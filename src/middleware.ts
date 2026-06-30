@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
   const { response, user: sessionUser } = await updateSession(request);
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
-  if (process.env.BIZ_MOCK_MODE === "true") {
+  if (process.env.NODE_ENV === "development" && process.env.BIZ_MOCK_MODE === "true") {
     return response;
   }
 

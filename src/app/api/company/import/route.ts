@@ -91,7 +91,13 @@ JSONのみ返してください。説明文は不要です。
       jsonStr = jsonMatch[1].trim();
     }
 
-    const extracted = JSON.parse(jsonStr);
+    const raw = JSON.parse(jsonStr);
+    const ALLOWED_KEYS = Object.keys(CATEGORIES);
+    const extracted: Record<string, string | null> = {};
+    for (const key of ALLOWED_KEYS) {
+      const v = (raw as Record<string, unknown>)[key];
+      extracted[key] = typeof v === "string" ? v.slice(0, 5000) : null;
+    }
     return NextResponse.json({ extracted, fileName });
   } catch (err: unknown) {
     console.error("[company/import] Error:", err instanceof Error ? err.message : err);

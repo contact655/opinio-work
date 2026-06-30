@@ -37,8 +37,14 @@ export async function POST(req: Request) {
   if (body.external_name.length > 100) {
     return NextResponse.json({ error: "氏名は100字以内で入力してください" }, { status: 400 });
   }
-  if (body.external_email && body.external_email.length > 200) {
-    return NextResponse.json({ error: "メールアドレスが長すぎます" }, { status: 400 });
+  if (body.external_email) {
+    if (body.external_email.length > 200) {
+      return NextResponse.json({ error: "メールアドレスが長すぎます" }, { status: 400 });
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(body.external_email)) {
+      return NextResponse.json({ error: "有効なメールアドレスを入力してください" }, { status: 400 });
+    }
   }
   if (!body.source) {
     return NextResponse.json({ error: "応募経路は必須です" }, { status: 400 });

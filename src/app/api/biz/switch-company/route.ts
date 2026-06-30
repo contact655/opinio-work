@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!companyId || typeof companyId !== "string") {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!companyId || typeof companyId !== "string" || !UUID_RE.test(companyId)) {
     return NextResponse.json({ error: "companyId is required" }, { status: 400 });
   }
 

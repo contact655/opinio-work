@@ -36,8 +36,8 @@ export async function PUT(
   // Protocol validation
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return NextResponse.json({ error: "INVALID_URL", message: "http/https URLを入力してください" }, { status: 400 });
+    if (parsed.protocol !== "https:") {
+      return NextResponse.json({ error: "INVALID_URL", message: "https:// URLを入力してください" }, { status: 400 });
     }
   } catch {
     return NextResponse.json({ error: "INVALID_URL", message: "有効なURLを入力してください" }, { status: 400 });
