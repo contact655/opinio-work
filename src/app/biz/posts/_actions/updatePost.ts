@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { CreatePostData, ActionResult } from "./createPost";
 
+const ALLOWED_POST_TYPES = new Set(["news", "blog", "story", "culture", "product", "event", "other"]);
+
 type UpdatePostData = Omit<CreatePostData, "company_id">;
 
 export async function updatePost(
@@ -16,6 +18,21 @@ export async function updatePost(
   if (!user) {
     return { success: false, error: "ログインしてください" };
   }
+
+  // type allowlist check
+  if (!ALLOWED_POST_TYPES.has(data.type)) {
+    return { success: false, error: "Invalid type" };
+  }
+
+  // length limits
+  if (data.url.length > 2048) return { success: false, error: "URL が長すぎます" };
+  if (data.title.length > 200) return { success: false, error: "タイトルが長すぎます" };
+  if (data.description && data.description.length > 2000) return { success: false, error: "説明が長すぎます" };
+  if (data.source_name && data.source_name.length > 200) return { success: false, error: "ソース名が長すぎます" };
+
+  // URL protocol validation
+  if (!data.url.startsWith("https://")) return { success: false, error: "URL は https:// で始めてください" };
+  if (data.thumbnail_url && !data.thumbnail_url.startsWith("https://")) return { success: false, error: "サムネ URL は https:// で始めてください" };
 
   // 所属確認: 更新対象の投稿が自社のものかをチェック
   const { data: existing } = await supabase

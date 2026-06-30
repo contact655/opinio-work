@@ -6,11 +6,9 @@ import { addExistingUserToCompany } from "../_lib";
 import { sendEmail } from "@/lib/notify/email";
 import { companyInviteTemplate } from "@/lib/notify/templates";
 
-function getBaseUrl(req: Request): string {
+function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  const origin = req.headers.get("origin");
-  if (origin) return origin.replace(/\/$/, "");
   return "https://opinio.jp";
 }
 
@@ -103,10 +101,10 @@ export async function POST(req: Request) {
 
   if (insertErr || !newRow) {
     console.error("[invite POST insert]", insertErr?.message);
-    return NextResponse.json({ error: insertErr?.message ?? "Failed" }, { status: 500 });
+    return NextResponse.json({ error: "招待の作成に失敗しました" }, { status: 500 });
   }
 
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getBaseUrl();
   const inviteUrl = `${baseUrl}/biz/auth/accept-invite?token=${inviteToken}`;
 
   // メール送信

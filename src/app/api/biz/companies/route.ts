@@ -119,7 +119,7 @@ export async function POST(req: Request) {
   if (companyError || !company) {
     console.error("[POST /api/biz/companies] INSERT failed:", companyError?.message);
     return NextResponse.json(
-      { error: `企業登録に失敗しました: ${companyError?.message ?? "unknown"}` },
+      { error: "企業登録に失敗しました" },
       { status: 500 }
     );
   }

@@ -31,9 +31,17 @@ export async function PUT(
     );
   }
 
-  const imageUrl    = typeof body.image_url    === "string" ? body.image_url.trim()    : null;
+  function validateHttpsUrl(val: unknown): string | null {
+    if (typeof val !== "string") return null;
+    const t = val.trim();
+    if (!t) return null;
+    if (!t.startsWith("https://")) return null;
+    return t.slice(0, 2048);
+  }
+
+  const imageUrl    = validateHttpsUrl(body.image_url);
   const videoUrl    = typeof body.video_url    === "string" ? body.video_url.trim()    : null;
-  const linkUrl     = typeof body.link_url     === "string" ? body.link_url.trim()     : null;
+  const linkUrl     = validateHttpsUrl(body.link_url);
   const title       = typeof body.title        === "string" ? body.title.trim().slice(0, 200)   : null;
   const description = typeof body.description  === "string" ? body.description.trim().slice(0, 5000) : null;
 
@@ -77,7 +85,7 @@ export async function PUT(
     ? (body.section_id === null ? null : typeof body.section_id === "string" ? body.section_id : undefined)
     : undefined;
   // og_image_url / og_title: link type のみ実質使用。undefined は null として保存。
-  const ogImageUrl = typeof body.og_image_url === "string" ? body.og_image_url : null;
+  const ogImageUrl = validateHttpsUrl(body.og_image_url);
   const ogTitle    = typeof body.og_title     === "string" ? body.og_title     : null;
 
   // RLS (ow_experience_stories_update_own + WITH CHECK) が ownership を保証

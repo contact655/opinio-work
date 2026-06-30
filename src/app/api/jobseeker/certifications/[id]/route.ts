@@ -29,18 +29,22 @@ export async function PUT(
     );
   }
 
-  // RLS の update_own が他人のレコード更新を自動的に弾く
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { data: updated, error } = await supabase
     .from("ow_user_certifications")
     .update({ name })
     .eq("id", params.id)
+    .eq("user_id", owUser.id)
     .select("id, name, sort_order")
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("[PUT /api/jobseeker/certifications/[id]]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(updated);
 }
@@ -55,10 +59,14 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("ow_user_certifications")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUser.id);
 
   if (error) {
     console.error("[DELETE /api/jobseeker/certifications/[id]]", error.message);

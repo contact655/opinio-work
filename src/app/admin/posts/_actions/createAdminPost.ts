@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+const ALLOWED_POST_TYPES = new Set(["news", "blog", "story", "culture", "product", "event", "other"]);
+
 export type AdminPostData = {
   company_id: string;
   url: string;
@@ -37,10 +39,22 @@ export async function createAdminPost(
     return { success: false, error: "管理者権限が必要です" };
   }
 
+  // type allowlist check
+  if (!ALLOWED_POST_TYPES.has(data.type)) {
+    return { success: false, error: "Invalid type" };
+  }
+
   const { data: post, error } = await supabase
     .from("ow_company_external_links")
     .insert({
-      ...data,
+      company_id: data.company_id,
+      url: data.url,
+      title: data.title,
+      description: data.description,
+      thumbnail_url: data.thumbnail_url,
+      source_name: data.source_name,
+      published_at: data.published_at,
+      type: data.type,
       created_by_role: "editor", // admin からの登録は editor 固定
       created_by_user_id: user.id,
     })

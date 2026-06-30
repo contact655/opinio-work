@@ -115,9 +115,20 @@ export async function PATCH(req: Request) {
   // draft_data があれば本番カラムに展開。なければ is_published のみ更新
   // ※ spread 後に is_published / published_at / updated_at / draft_data を上書きする順序に注意
   // ※ genres は ow_companies カラムに存在しない（関係テーブル管理）ため、spread 前に除去
-  const { genres: _genresField, ...draftWithoutGenres } = (draftData ?? {}) as Record<string, unknown> & { genres?: unknown };
+  const draft = (draftData ?? {}) as Record<string, unknown>;
+  const ALLOWED_COMPANY_COLS = [
+    "tagline", "description", "mission", "culture", "benefits",
+    "avg_salary", "avg_age", "female_ratio", "fit_positives", "fit_negatives", "why_join",
+    "remote_work_status", "flex_time", "side_job_ok", "accepting_casual_meetings",
+    "location", "url", "founded_year", "employee_count", "industry", "phase",
+    "logo_url", "logo_gradient", "logo_letter",
+  ];
+  const allowedPayload: Record<string, unknown> = {};
+  for (const key of ALLOWED_COMPANY_COLS) {
+    if (key in draft) allowedPayload[key] = draft[key];
+  }
   const updatePayload: Record<string, unknown> = {
-    ...draftWithoutGenres,
+    ...allowedPayload,
     is_published: body.isPublished,
     published_at: body.isPublished ? now : undefined,
     updated_at: now,

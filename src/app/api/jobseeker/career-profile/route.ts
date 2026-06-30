@@ -56,7 +56,7 @@ export async function PUT(req: Request) {
   };
 
   if (typeof body.is_published === "boolean") payload.is_published = body.is_published;
-  if (typeof body.headline === "string") payload.headline = body.headline || null;
+  if (typeof body.headline === "string") payload.headline = body.headline.slice(0, 200) || null;
   if (typeof body.years_of_experience === "number") payload.years_of_experience = body.years_of_experience;
   if (body.years_of_experience === null) payload.years_of_experience = null;
 

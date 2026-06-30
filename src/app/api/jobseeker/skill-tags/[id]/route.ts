@@ -28,10 +28,14 @@ export async function PATCH(
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { data, error } = await supabase
     .from("ow_user_skill_tags")
     .update(updates)
     .eq("id", params.id)
+    .eq("user_id", owUser.id)
     .select("id, label, category, sort_order")
     .single();
 
@@ -53,10 +57,14 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("ow_user_skill_tags")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", owUser.id);
 
   if (error) {
     console.error("[DELETE /api/jobseeker/skill-tags/[id]]", error.message);

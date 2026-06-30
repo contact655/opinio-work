@@ -90,7 +90,7 @@ export async function POST(
 
   if (insertError) {
     console.error("[conversations/join POST] insert error:", insertError.message);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   revalidatePath("/biz/conversations");

@@ -34,7 +34,19 @@ export async function PUT(
     );
   }
 
-  // RLS(ow_story_sections_update_own)が ownership を保証する
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  // Ownership check: verify section belongs to an experience owned by this user
+  const { data: section } = await supabase
+    .from("ow_story_sections")
+    .select("id, ow_experiences!inner(user_id)")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!section || (section.ow_experiences as unknown as { user_id: string } | null)?.user_id !== owUser.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { data: updated, error } = await supabase
     .from("ow_story_sections")
     .update({ name })
@@ -60,6 +72,19 @@ export async function DELETE(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  // Ownership check: verify section belongs to an experience owned by this user
+  const { data: sectionDel } = await supabase
+    .from("ow_story_sections")
+    .select("id, ow_experiences!inner(user_id)")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!sectionDel || (sectionDel.ow_experiences as unknown as { user_id: string } | null)?.user_id !== owUser.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const { error } = await supabase
     .from("ow_story_sections")

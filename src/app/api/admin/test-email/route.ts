@@ -102,7 +102,8 @@ export async function GET(req: Request) {
       note: "Check your inbox (and spam folder).",
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    console.error("[test-email] send failed:", err);
+    return NextResponse.json({ error: "メール送信に失敗しました" }, { status: 500 });
   }
 }
 

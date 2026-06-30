@@ -23,7 +23,7 @@ export async function bulkSetVisibility(
     .from("ow_users")
     .update({ visibility })
     .in("id", userIds);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: "表示設定の更新に失敗しました" };
   revalidatePath("/admin/candidates");
   return { ok: true };
 }
@@ -33,6 +33,7 @@ export async function bulkDeleteUsers(
 ): Promise<{ ok: boolean; deleted: number; error?: string }> {
   await assertAdmin();
   if (userIds.length === 0) return { ok: true, deleted: 0 };
+  if (userIds.length > 100) return { ok: false, deleted: 0, error: "一度に削除できるユーザーは100件までです" };
   const admin = createAdminClient();
 
   // auth_id を取得
@@ -40,7 +41,7 @@ export async function bulkDeleteUsers(
     .from("ow_users")
     .select("id, auth_id")
     .in("id", userIds);
-  if (fetchErr) return { ok: false, deleted: 0, error: fetchErr.message };
+  if (fetchErr) return { ok: false, deleted: 0, error: "ユーザー情報の取得に失敗しました" };
 
   let deleted = 0;
   const withoutAuth: string[] = [];

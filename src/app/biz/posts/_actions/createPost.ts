@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+const ALLOWED_POST_TYPES = new Set(["news", "blog", "story", "culture", "product", "event", "other"]);
+
 export type CreatePostData = {
   company_id: string;
   url: string;
@@ -28,6 +30,21 @@ export async function createPost(
     return { success: false, error: "ログインしてください" };
   }
 
+  // type allowlist check
+  if (!ALLOWED_POST_TYPES.has(data.type)) {
+    return { success: false, error: "Invalid type" };
+  }
+
+  // length limits
+  if (data.url.length > 2048) return { success: false, error: "URL が長すぎます" };
+  if (data.title.length > 200) return { success: false, error: "タイトルが長すぎます" };
+  if (data.description && data.description.length > 2000) return { success: false, error: "説明が長すぎます" };
+  if (data.source_name && data.source_name.length > 200) return { success: false, error: "ソース名が長すぎます" };
+
+  // URL protocol validation
+  if (!data.url.startsWith("https://")) return { success: false, error: "URL は https:// で始めてください" };
+  if (data.thumbnail_url && !data.thumbnail_url.startsWith("https://")) return { success: false, error: "サムネ URL は https:// で始めてください" };
+
   // 所属確認: 呼び出し元のユーザーが data.company_id に所属しているか検証
   const { data: membership } = await supabase
     .from("ow_company_admins")
@@ -42,7 +59,14 @@ export async function createPost(
   const { data: post, error } = await supabase
     .from("ow_company_external_links")
     .insert({
-      ...data,
+      company_id: data.company_id,
+      url: data.url,
+      title: data.title,
+      description: data.description,
+      thumbnail_url: data.thumbnail_url,
+      source_name: data.source_name,
+      published_at: data.published_at,
+      type: data.type,
       // published_at: 文字列 "YYYY-MM-DD" → そのまま渡す（null なら null）
       created_by_role: "company",
       created_by_user_id: user.id, // auth.users.id を直接保存
@@ -54,7 +78,7 @@ export async function createPost(
     console.error("[createPost] error:", error);
     return {
       success: false,
-      error: `保存に失敗しました: ${error.message}`,
+      error: "投稿の作成に失敗しました",
     };
   }
 

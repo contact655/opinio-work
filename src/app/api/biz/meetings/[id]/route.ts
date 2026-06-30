@@ -59,6 +59,7 @@ export async function PATCH(
       .from("ow_casual_meetings")
       .update({ status: body.value, updated_at: now })
       .eq("id", meetingId)
+      .eq("company_id", ctx.companyId)
       .select("id")
       .maybeSingle();
     if (error) {

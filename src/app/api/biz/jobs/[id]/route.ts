@@ -77,9 +77,18 @@ export async function PUT(
   const assigneeIds = Array.isArray(body.assigneeIds) ? (body.assigneeIds as string[]) : [];
   await supabase.from("ow_job_assignees").delete().eq("job_id", jobId);
   if (assigneeIds.length > 0) {
-    await supabase
-      .from("ow_job_assignees")
-      .insert(assigneeIds.map((uid) => ({ job_id: jobId, user_id: uid })));
+    const { data: validMembers } = await supabase
+      .from("ow_company_admins")
+      .select("user_id")
+      .eq("company_id", ctx0.companyId)
+      .in("user_id", assigneeIds);
+    const validIds = new Set((validMembers ?? []).map((m: { user_id: string }) => m.user_id));
+    const safeAssigneeIds = assigneeIds.filter((uid: string) => validIds.has(uid));
+    if (safeAssigneeIds.length > 0) {
+      await supabase
+        .from("ow_job_assignees")
+        .insert(safeAssigneeIds.map((uid: string) => ({ job_id: jobId, user_id: uid })));
+    }
   }
 
   // Activity: job_updated (best-effort) — ctx0 を再利用
