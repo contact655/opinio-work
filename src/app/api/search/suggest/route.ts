@@ -12,7 +12,9 @@ export async function GET(req: Request) {
   }
 
   const supabase = createClient();
-  const pattern = `%${q}%`;
+  // PostgREST injection 対策: .or() 文字列に埋め込む前にメタ文字を除去
+  const safeQ = q.replace(/[(),%]/g, "");
+  const pattern = `%${safeQ}%`;
 
   const [
     { data: companies },

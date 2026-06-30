@@ -51,8 +51,18 @@ export async function PATCH(
     }
     update.visibility_company = visibilityCompany;
   }
-  if (visibilitySalary   !== undefined) update.visibility_salary  = visibilitySalary;
-  if (visibilityReason   !== undefined) update.visibility_reason  = visibilityReason;
+  if (visibilitySalary !== undefined) {
+    if (typeof visibilitySalary !== "boolean") {
+      return NextResponse.json({ error: "Invalid visibilitySalary value" }, { status: 400 });
+    }
+    update.visibility_salary = visibilitySalary;
+  }
+  if (visibilityReason !== undefined) {
+    if (typeof visibilityReason !== "boolean") {
+      return NextResponse.json({ error: "Invalid visibilityReason value" }, { status: 400 });
+    }
+    update.visibility_reason = visibilityReason;
+  }
   if (description        !== undefined) update.description        = s(description, 5000);
   if (joinReason         !== undefined) update.join_reason        = s(joinReason, 5000);
   if (learnings          !== undefined) update.learnings          = s(learnings, 5000);

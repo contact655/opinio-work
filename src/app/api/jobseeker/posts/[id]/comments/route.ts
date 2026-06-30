@@ -17,11 +17,28 @@ async function resolveOwUserId(
 
 // GET /api/jobseeker/posts/[id]/comments — コメント一覧（認証不要）
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
   const postId = params.id;
+
+  // 投稿者の visibility をチェック（private は非公開）
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: post } = await supabase
+    .from("ow_posts")
+    .select("user:ow_users!user_id(visibility)")
+    .eq("id", postId)
+    .maybeSingle();
+  if (post) {
+    const visibility = (post.user as unknown as { visibility: string | null } | null)?.visibility;
+    if (visibility === "private") {
+      return NextResponse.json({ comments: [] });
+    }
+    if (visibility === "login_only" && !user) {
+      return NextResponse.json({ comments: [] });
+    }
+  }
 
   const { data, error } = await supabase
     .from("ow_post_comments")

@@ -139,9 +139,19 @@ export async function POST(req: Request) {
 
   const assigneeIds = Array.isArray(body.assigneeIds) ? (body.assigneeIds as string[]) : [];
   if (assigneeIds.length > 0) {
-    await supabase.from("ow_job_assignees").insert(
-      assigneeIds.map((uid) => ({ job_id: newJob.id, user_id: uid }))
-    );
+    // 担当者が自社メンバーであることを検証（PUT ハンドラーと同じ検証）
+    const { data: validMembers } = await supabase
+      .from("ow_company_admins")
+      .select("user_id")
+      .eq("company_id", ctx.companyId)
+      .in("user_id", assigneeIds);
+    const validIds = new Set((validMembers ?? []).map((m: { user_id: string }) => m.user_id));
+    const safeAssignees = assigneeIds.filter((uid) => validIds.has(uid));
+    if (safeAssignees.length > 0) {
+      await supabase.from("ow_job_assignees").insert(
+        safeAssignees.map((uid) => ({ job_id: newJob.id, user_id: uid }))
+      );
+    }
   }
 
   return NextResponse.json({ id: newJob.id });

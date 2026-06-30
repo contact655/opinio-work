@@ -27,8 +27,13 @@ export async function PATCH(
 
     const body = await request.json();
     const updates: Record<string, unknown> = {};
-    if (typeof body.caption === "string") updates.caption = body.caption;
-    if (typeof body.display_order === "number") updates.display_order = body.display_order;
+    if (typeof body.caption === "string") updates.caption = body.caption.slice(0, 500);
+    if (typeof body.display_order === "number") {
+      const ord = body.display_order;
+      if (Number.isInteger(ord) && ord >= 0 && ord <= 9999) {
+        updates.display_order = ord;
+      }
+    }
     if ('tagged_user_id' in body) {
       updates.tagged_user_id = body.tagged_user_id ?? null; // allow null to clear
     }

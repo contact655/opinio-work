@@ -94,10 +94,19 @@ export async function searchCompanies(
     if (params.workStyle)  q = q.eq("remote_work_status", params.workStyle);
     if (params.location) {
       // branch_locations 配列にも対応（大阪府 → 大阪, 愛知県 → 名古屋|愛知 等）
-      const branchKey = params.location.replace(/[都道府県]$/, "");
-      const extraKeys = PREF_TO_BRANCH_KEYS[params.location] ?? [branchKey];
-      const branchConds = extraKeys.map((k) => `branch_locations.cs.{"${k}"}`).join(",");
-      q = q.or(`location.ilike.%${params.location}%,${branchConds}`);
+      // PostgREST injection 対策: メタ文字を除去してからフィルター文字列に埋め込む
+      const safeLocation = params.location.replace(/[(),"\\]/g, "");
+      if (safeLocation) {
+        const extraKeys = PREF_TO_BRANCH_KEYS[params.location];
+        if (extraKeys) {
+          // 既知の都道府県: PREF_TO_BRANCH_KEYS の値のみ使用（ユーザー入力を埋め込まない）
+          const branchConds = extraKeys.map((k) => `branch_locations.cs.{"${k}"}`).join(",");
+          q = q.or(`location.ilike.%${safeLocation}%,${branchConds}`);
+        } else {
+          // 未知の値: ilike のみ（branch_locations フィルターは使わない）
+          q = q.ilike("location", `%${safeLocation}%`);
+        }
+      }
     }
     if (params.salaryMin)  q = q.gte("avg_salary", params.salaryMin * 10000);
     if (params.industry) {

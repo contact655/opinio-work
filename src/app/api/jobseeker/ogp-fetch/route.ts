@@ -114,6 +114,9 @@ export async function POST(req: NextRequest) {
       ogImageUrl = result.twitterImage[0].url ?? null;
     }
 
+    // OGP メタデータ内の画像 URL も安全性を確認（javascript: 等を排除）
+    if (ogImageUrl && !isUrlSafe(ogImageUrl)) ogImageUrl = null;
+
     return NextResponse.json(
       {
         og_image_url: ogImageUrl,

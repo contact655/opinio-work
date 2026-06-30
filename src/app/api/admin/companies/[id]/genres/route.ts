@@ -25,6 +25,13 @@ export async function POST(
   if (!Array.isArray(genre_ids) || genre_ids.length === 0) {
     return NextResponse.json({ error: 'genre_ids is required' }, { status: 400 });
   }
+  if (genre_ids.length > 50) {
+    return NextResponse.json({ error: 'Too many genre_ids (max 50)' }, { status: 400 });
+  }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!genre_ids.every((id: unknown) => typeof id === 'string' && UUID_RE.test(id))) {
+    return NextResponse.json({ error: 'Invalid genre_id format' }, { status: 400 });
+  }
 
   // 承認者（admin）の ow_users.id を取得
   const authClient = createClient();
@@ -77,6 +84,13 @@ export async function DELETE(
 
   if (!Array.isArray(genre_ids) || genre_ids.length === 0) {
     return NextResponse.json({ error: 'genre_ids is required' }, { status: 400 });
+  }
+  if (genre_ids.length > 50) {
+    return NextResponse.json({ error: 'Too many genre_ids (max 50)' }, { status: 400 });
+  }
+  const UUID_RE_DEL = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!genre_ids.every((id: unknown) => typeof id === 'string' && UUID_RE_DEL.test(id))) {
+    return NextResponse.json({ error: 'Invalid genre_id format' }, { status: 400 });
   }
 
   const supabase = createAdminClient();

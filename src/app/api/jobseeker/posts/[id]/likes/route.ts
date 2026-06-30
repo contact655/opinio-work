@@ -15,6 +15,19 @@ async function resolveOwUserId(
   return data?.id ?? null;
 }
 
+async function checkPostVisibility(
+  supabase: ReturnType<typeof createClient>,
+  postId: string
+): Promise<boolean> {
+  const { data: post } = await supabase
+    .from("ow_posts")
+    .select("user:ow_users!user_id(visibility)")
+    .eq("id", postId)
+    .maybeSingle();
+  const visibility = (post?.user as unknown as { visibility: string | null } | null)?.visibility;
+  return visibility !== "private";
+}
+
 // POST /api/jobseeker/posts/[id]/likes — いいね追加
 export async function POST(
   _req: Request,
@@ -28,6 +41,10 @@ export async function POST(
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const postId = params.id;
+
+  if (!(await checkPostVisibility(supabase, postId))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   // UPSERT: 既にいいね済みの場合は無視
   const { error } = await supabase
