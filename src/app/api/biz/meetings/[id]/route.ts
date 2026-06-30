@@ -117,14 +117,18 @@ export async function PATCH(
   }
 
   else if (body.action === "memo") {
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("ow_casual_meetings")
-      .update({ company_internal_memo: body.value ?? "", updated_at: now })
-      .eq("id", meetingId);
+      .update({ company_internal_memo: (body.value ?? "").slice(0, 2000), updated_at: now })
+      .eq("id", meetingId)
+      .eq("company_id", ctx.companyId)
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[meetings PATCH memo]", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   else if (body.action === "assign_to_me") {
@@ -136,26 +140,34 @@ export async function PATCH(
     if (!owUser) {
       return NextResponse.json({ error: "ow_users not found" }, { status: 404 });
     }
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("ow_casual_meetings")
       .update({ assignee_user_id: owUser.id, updated_at: now })
-      .eq("id", meetingId);
+      .eq("id", meetingId)
+      .eq("company_id", ctx.companyId)
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[meetings PATCH assign_to_me]", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   else if (body.action === "mark_read") {
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("ow_casual_meetings")
       .update({ company_read_at: now })
       .eq("id", meetingId)
-      .is("company_read_at", null);
+      .eq("company_id", ctx.companyId)
+      .is("company_read_at", null)
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("[meetings PATCH mark_read]", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   else {

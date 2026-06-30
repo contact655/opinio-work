@@ -37,10 +37,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "メールアドレスが正しくありません" }, { status: 400 });
   }
 
+  const VALID_SOURCES = new Set(["home_inline", "footer", "popup", "career_trajectories", "lp"]);
+  const source = VALID_SOURCES.has(body?.source) ? (body.source as string) : "home_inline";
+
   const supabase = createClient();
   const { error } = await supabase
     .from("ow_newsletter_subscribers")
-    .insert({ email, source: body?.source || "home_inline" });
+    .insert({ email, source });
 
   // Treat duplicate as success (idempotent subscribe)
   if (error && !error.message?.includes("duplicate")) {

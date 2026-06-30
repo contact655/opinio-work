@@ -38,25 +38,29 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  function s(v: unknown, max: number): string | null {
+    return typeof v === "string" ? v.slice(0, max) || null : null;
+  }
+
   const { data: updated, error } = await supabase
     .from("ow_experiences")
     .update({
       company_id: hasCompanyId ? (body.company_id as string) : null,
-      company_text: hasCompanyText ? (body.company_text as string) : null,
-      company_anonymized: hasCompanyAnon ? (body.company_anonymized as string) : null,
+      company_text: hasCompanyText ? s(body.company_text, 200) : null,
+      company_anonymized: hasCompanyAnon ? s(body.company_anonymized, 200) : null,
       role_category_id: roleId,
-      role_title: (body.role_title as string | undefined) ?? null,
-      department: (body.department as string | undefined) ?? null,
-      rank: (body.rank as string | undefined) ?? null,
+      role_title: s(body.role_title, 100),
+      department: s(body.department, 100),
+      rank: s(body.rank, 100),
       salary_base: (body.salary_base as number | undefined) ?? null,
       salary_bonus: (body.salary_bonus as number | undefined) ?? null,
       salary_stock: (body.salary_stock as number | undefined) ?? null,
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
-      description: (body.description as string | undefined) ?? null,
-      join_reason: (body.join_reason as string | undefined) ?? null,
-      employment_type: (body.employment_type as string | undefined) ?? null,
+      description: s(body.description, 5000),
+      join_reason: s(body.join_reason, 2000),
+      employment_type: s(body.employment_type, 50),
       salary_man: (body.salary_man as number | undefined) ?? null,
       visibility_company: (body.visibility_company as string | undefined) ?? "real",
       visibility_company_profile: (body.visibility_company_profile as string | undefined) ?? "real",

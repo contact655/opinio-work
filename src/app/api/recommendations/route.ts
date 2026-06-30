@@ -16,6 +16,18 @@ export async function POST(req: Request) {
   if (content.length < 10 || content.length > 1000) {
     return NextResponse.json({ error: "推薦文は10〜1000文字で入力してください" }, { status: 400 });
   }
+  if (typeof recommender_name === "string" && recommender_name.length > 100) {
+    return NextResponse.json({ error: "お名前は100文字以内で入力してください" }, { status: 400 });
+  }
+  if (typeof recommender_title === "string" && recommender_title.length > 100) {
+    return NextResponse.json({ error: "肩書きは100文字以内で入力してください" }, { status: 400 });
+  }
+  if (typeof recommender_company === "string" && recommender_company.length > 100) {
+    return NextResponse.json({ error: "会社名は100文字以内で入力してください" }, { status: 400 });
+  }
+  if (typeof relationship === "string" && relationship.length > 200) {
+    return NextResponse.json({ error: "関係性は200文字以内で入力してください" }, { status: 400 });
+  }
 
   // 自分自身への推薦はNG
   const { data: owViewer } = await supabase

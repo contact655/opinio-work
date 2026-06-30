@@ -62,10 +62,14 @@ export async function GET(req: NextRequest) {
         "User-Agent": "Mozilla/5.0 (compatible; OPINIOBot/1.0; +https://opinio.jp)",
         "Accept": "text/html,application/xhtml+xml",
       },
-      redirect: "follow",
+      redirect: "manual",
     });
     clearTimeout(timeout);
 
+    // リダイレクトは追わない（SSRF via open redirect 防止）
+    if (res.status >= 300 && res.status < 400) {
+      return NextResponse.json({ title: null, thumbnail_url: null, description: null });
+    }
     if (!res.ok) {
       return NextResponse.json({ title: null, thumbnail_url: null, description: null });
     }
