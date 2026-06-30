@@ -191,7 +191,9 @@ export default async function PostsPage({ searchParams }: Props) {
     query = query.eq("category", category);
   }
   if (q) {
-    query = query.or(`title.ilike.%${q}%,body.ilike.%${q}%`);
+    // Sanitize q: strip PostgREST filter metacharacters before embedding in .or()
+    const safeQ = q.replace(/[,().]/g, " ").replace(/\s+/g, " ").trim();
+    if (safeQ) query = query.or(`title.ilike.%${safeQ}%,body.ilike.%${safeQ}%`);
   }
 
   const { data: rawPosts } = await query;

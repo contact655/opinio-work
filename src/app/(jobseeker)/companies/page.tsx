@@ -194,6 +194,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             location={location}
             industry={industry}
             foreign={foreign}
+            salaryMin={salaryMin}
           />
         ) : (
           <div style={{ marginTop: 0 }}>

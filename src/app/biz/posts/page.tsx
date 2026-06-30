@@ -17,7 +17,7 @@ export default async function BizPostsPage() {
 
   const supabase = createClient();
 
-  const [{ data: externalLinks }, { data: stories }] = await Promise.all([
+  const [{ data: externalLinks, error: linksErr }, { data: stories, error: storiesErr }] = await Promise.all([
     supabase
       .from("ow_company_external_links")
       .select("*")
@@ -31,6 +31,9 @@ export default async function BizPostsPage() {
       .eq("company_id", ctx.tenantId)
       .order("created_at", { ascending: false }),
   ]);
+
+  if (linksErr) console.error("[biz/posts] external_links fetch error:", linksErr.message);
+  if (storiesErr) console.error("[biz/posts] stories fetch error:", storiesErr.message);
 
   return (
     <BusinessLayout

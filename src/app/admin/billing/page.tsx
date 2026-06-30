@@ -3,7 +3,7 @@ import { BillingClient, BillingRecord } from "./BillingClient";
 
 export const dynamic = "force-dynamic";
 
-async function getBillingRecords(): Promise<BillingRecord[]> {
+async function getBillingRecords(): Promise<{ records: BillingRecord[]; error: boolean }> {
   const admin = createAdminClient();
 
   const { data, error } = await admin
@@ -22,10 +22,10 @@ async function getBillingRecords(): Promise<BillingRecord[]> {
 
   if (error) {
     console.error("[billing] fetch error:", error.message);
-    return [];
+    return { records: [], error: true };
   }
 
-  return (data ?? []).map((row) => {
+  return { records: (data ?? []).map((row) => {
     type JobRow = { title: string; ow_companies: { name: string } | null };
     const jobRaw = row.ow_jobs as unknown as JobRow | JobRow[] | null;
     const job = Array.isArray(jobRaw) ? (jobRaw[0] ?? null) : jobRaw;
@@ -46,11 +46,11 @@ async function getBillingRecords(): Promise<BillingRecord[]> {
       invoicedAt: row.invoiced_at as string | null,
       paidAt: row.paid_at as string | null,
     };
-  });
+  }), error: false };
 }
 
 export default async function AdminBillingPage() {
-  const records = await getBillingRecords();
+  const { records } = await getBillingRecords();
 
   return (
     <div style={{ padding: 32 }}>
