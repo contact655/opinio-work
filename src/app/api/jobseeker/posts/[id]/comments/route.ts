@@ -72,6 +72,19 @@ export async function POST(
 
   const postId = params.id;
 
+  // 投稿者の visibility チェック（private / login_only ユーザーへのコメントを防ぐ）
+  const { data: postForCheck } = await supabase
+    .from("ow_posts")
+    .select("user:ow_users!user_id(visibility)")
+    .eq("id", postId)
+    .maybeSingle();
+  if (postForCheck) {
+    const vis = (postForCheck.user as unknown as { visibility: string | null } | null)?.visibility;
+    if (vis === "private") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   let body: { content?: unknown };
   try {
     body = await req.json();

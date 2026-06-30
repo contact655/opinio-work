@@ -178,10 +178,10 @@ function generateWeeklyEmail(topJobs: any[]): string {
           </div>
         </div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:8px">
-          ${salary} &middot; ${j.work_style ?? ""} &middot; ${j.location ?? ""}
+          ${escapeHtml(salary)} &middot; ${escapeHtml(j.work_style ?? "")} &middot; ${escapeHtml(j.location ?? "")}
         </div>
         <div style="font-size:12px;color:#085041;background:#E1F5EE;border-radius:8px;padding:8px 10px;margin-bottom:12px">
-          <strong>マッチ理由：</strong>${j.matchReason}
+          <strong>マッチ理由：</strong>${escapeHtml(j.matchReason ?? "")}
         </div>
         <a href="${BASE_URL}/jobs/${j.id}"
            style="display:inline-block;background:#059669;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">

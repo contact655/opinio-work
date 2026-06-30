@@ -77,7 +77,7 @@ export async function PATCH(
   };
   if (newStatus === "hired") {
     updatePayload.hired_confirmed_at = new Date().toISOString();
-    if (hiredSalary) updatePayload.hired_salary = hiredSalary;
+    if (hiredSalary != null) updatePayload.hired_salary = hiredSalary;
   }
 
   const { data: updated, error } = await supabase
@@ -131,7 +131,7 @@ export async function PATCH(
 
   // 採用確定時: 管理者（柴さん）に請求トリガーメールを送信
   if (newStatus === "hired" && appForNotify) {
-    const fee = hiredSalary ? Math.round(hiredSalary * 0.1) : null;
+    const fee = hiredSalary != null ? Math.round(hiredSalary * 0.1) : null;
     await notify({
       to: process.env.ADMIN_EMAIL || "contact@opinio.co.jp",
       subject: `【採用確定】${job?.ow_companies?.name ?? "企業"} が採用を確定しました`,

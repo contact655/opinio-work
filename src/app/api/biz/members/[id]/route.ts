@@ -50,11 +50,8 @@ export async function PATCH(
 
   const isSelf = target.user_id === actorOwUserId;
 
-  // ambassador の自己設定は admin 不要（自分自身のみ）— それ以外は admin 必須
-  const isSelfAmbassadorToggle = body.action === "ambassador" && isSelf;
-  if (!isSelfAmbassadorToggle) {
-    try { requireAdmin(allMemberships, companyId); } catch { return permissionDeniedResponse(); }
-  }
+  // ambassador の設定は admin 必須
+  try { requireAdmin(allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
   // 最後の admin を数える共通ヘルパー
   async function countActiveAdmins(): Promise<number> {

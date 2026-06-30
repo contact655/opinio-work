@@ -18,7 +18,8 @@ export async function POST(req: Request) {
   }
 
   const email = (body.email ?? "").trim();
-  if (!email.includes("@")) {
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "メールアドレスの形式が正しくありません" }, { status: 400 });
   }
   const permission = body.permission;
