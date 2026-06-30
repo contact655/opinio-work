@@ -11,12 +11,19 @@ type Params = {
   timePref: string[];
 };
 
-export async function submitConsultationRequest(params: Params): Promise<{ ok: boolean }> {
+export async function submitConsultationRequest(params: Params): Promise<{ ok: boolean; error?: string }> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   const { consultantName, name, email, message, timePref } = params;
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!name || name.length > 100) return { ok: false, error: "名前が不正です" };
+  if (!email || email.length > 254 || !EMAIL_RE.test(email)) return { ok: false, error: "メールアドレスが不正です" };
+  if (consultantName && consultantName.length > 200) return { ok: false, error: "相談者名が不正です" };
+  if (message && message.length > 5000) return { ok: false, error: "メッセージが長すぎます" };
+  if (timePref && (timePref.length > 10 || timePref.some((t: string) => t.length > 100))) return { ok: false, error: "希望時間帯が不正です" };
 
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 

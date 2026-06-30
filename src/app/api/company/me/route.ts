@@ -80,6 +80,11 @@ export async function PUT(req: Request) {
   }
 
   // 企業情報を更新
+  const VALID_PHASES = new Set(["seed", "シード", "series_a", "シリーズA", "series_b", "シリーズB", "series_c", "シリーズC", "listed", "上場", "unicorn", "ユニコーン", "IPO準備中", "private"]);
+  const phaseValue = typeof body.phase === "string" && VALID_PHASES.has(body.phase)
+    ? body.phase
+    : (body.phase === null ? null : undefined);
+
   const { error: updateError } = await admin
     .from("ow_companies")
     .update({
@@ -89,7 +94,7 @@ export async function PUT(req: Request) {
       employee_count: body.employee_count,
       location: str(body.location, 200),
       industry: str(body.industry, 100),
-      phase: str(body.phase, 100),
+      phase: phaseValue,
       url: safeHttpsUrl(body.url),
       mission: str(body.mission, 1000),
       description: str(body.description, 5000),

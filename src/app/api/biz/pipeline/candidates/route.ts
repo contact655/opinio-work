@@ -43,8 +43,9 @@ export async function POST(req: Request) {
   if (!body.source) {
     return NextResponse.json({ error: "応募経路は必須です" }, { status: 400 });
   }
-  if (body.source.length > 100) {
-    return NextResponse.json({ error: "応募経路は100字以内で入力してください" }, { status: 400 });
+  const VALID_SOURCES = new Set(["agent", "direct", "referral", "job_board", "other"]);
+  if (!VALID_SOURCES.has(body.source)) {
+    return NextResponse.json({ error: "Invalid source" }, { status: 400 });
   }
   if (body.agent_company && body.agent_company.length > 100) {
     return NextResponse.json({ error: "エージェント会社名は100字以内で入力してください" }, { status: 400 });

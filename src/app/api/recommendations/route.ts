@@ -10,6 +10,11 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { target_user_id, recommender_name, recommender_title, recommender_company, relationship, content } = body;
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!target_user_id || !UUID_RE.test(target_user_id)) {
+    return NextResponse.json({ error: "Invalid target_user_id" }, { status: 400 });
+  }
+
   if (!target_user_id || !recommender_name || !content) {
     return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
   }

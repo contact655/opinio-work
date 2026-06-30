@@ -35,6 +35,19 @@ export async function createStory(
     return { success: false, error: "本文が長すぎます" };
   if (data.category && data.category.length > 50)
     return { success: false, error: "カテゴリは50字以内で入力してください" };
+  if (data.cover_image_url) {
+    try {
+      const parsed = new URL(data.cover_image_url);
+      if (parsed.protocol !== "https:") {
+        return { success: false, error: "cover_image_urlはhttps://で始まる必要があります" };
+      }
+      if (data.cover_image_url.length > 2048) {
+        return { success: false, error: "cover_image_urlが長すぎます" };
+      }
+    } catch {
+      return { success: false, error: "有効なURLを指定してください" };
+    }
+  }
 
   // author_user_id = ow_users.id
   const { data: owUser } = await supabase

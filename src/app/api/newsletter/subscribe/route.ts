@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
     .from("ow_newsletter_subscribers")
     .insert({ email, source });
 
-  // Treat duplicate as success (idempotent subscribe)
-  if (error && !error.message?.includes("duplicate")) {
+  // Treat duplicate as success (idempotent subscribe); code 23505 = unique_violation
+  if (error && error.code !== "23505") {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
   return NextResponse.json({ ok: true });

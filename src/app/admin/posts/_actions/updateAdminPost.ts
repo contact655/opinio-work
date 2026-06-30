@@ -32,13 +32,28 @@ export async function updateAdminPost(
     return { success: false, error: "Invalid type" };
   }
 
+  function validateHttpsUrl(val: string | null | undefined): string | null {
+    if (!val) return null;
+    try {
+      const p = new URL(val);
+      if (p.protocol !== "https:") return null;
+      return val.length <= 2048 ? val : null;
+    } catch { return null; }
+  }
+
+  const safeUrl = validateHttpsUrl(data.url);
+  if (data.url && !safeUrl) {
+    return { success: false, error: "urlはhttps://で始まる有効なURLを指定してください" };
+  }
+  const safeThumbnailUrl = validateHttpsUrl(data.thumbnail_url);
+
   const { data: post, error } = await supabase
     .from("ow_company_external_links")
     .update({
-      url: data.url,
+      url: safeUrl ?? data.url,
       title: data.title,
       description: data.description,
-      thumbnail_url: data.thumbnail_url,
+      thumbnail_url: safeThumbnailUrl,
       source_name: data.source_name,
       published_at: data.published_at,
       type: data.type,

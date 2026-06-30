@@ -62,11 +62,21 @@ export async function PUT(
     opinio_comment: 3000, funding_stage: 100,
   };
 
+  const ENUM_FIELDS: Record<string, Set<string>> = {
+    status: new Set(["active", "inactive", "pending", "suspended"]),
+    remote_work_status: new Set(["remote", "hybrid", "on_site", "flexible"]),
+  };
+
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of allowedFields) {
     if (key in body) {
       const val = body[key];
-      if (typeof val === "string" && FIELD_LIMITS[key]) {
+      if (ENUM_FIELDS[key]) {
+        if (typeof val === "string" && ENUM_FIELDS[key].has(val)) {
+          updates[key] = val;
+        }
+        // skip invalid enum values
+      } else if (typeof val === "string" && FIELD_LIMITS[key]) {
         updates[key] = val.slice(0, FIELD_LIMITS[key]);
       } else {
         updates[key] = val;
