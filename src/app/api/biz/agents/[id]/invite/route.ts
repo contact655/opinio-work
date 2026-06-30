@@ -5,6 +5,10 @@ import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { notify } from "@/lib/notify/email";
 
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 // POST /api/biz/agents/[id]/invite — send magic link to all contacts
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -78,9 +82,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       </div>
     </div>
     <div style="padding:32px;">
-      <p style="font-size:16px;font-weight:700;color:#0F172A;margin:0 0 8px;">${contact.name} さん</p>
+      <p style="font-size:16px;font-weight:700;color:#0F172A;margin:0 0 8px;">${esc(contact.name)} さん</p>
       <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 24px;">
-        ${companyName}のエージェントポータルへご招待します。<br>
+        ${esc(companyName)}のエージェントポータルへご招待します。<br>
         以下のボタンからポータルにアクセスしてください。
       </p>
       <div style="text-align:center;margin:32px 0;">

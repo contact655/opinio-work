@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ export async function GET(request: Request) {
   }
   // Cron認証
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const expected = Buffer.from(`Bearer ${process.env.CRON_SECRET ?? ""}`);
+  const actual = Buffer.from(authHeader ?? "");
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -70,7 +73,7 @@ export async function GET(request: Request) {
     // ユーザーのメールアドレスを取得
     const {
       data: { users },
-    } = await supabase.auth.admin.listUsers();
+    } = await supabase.auth.admin.listUsers({ perPage: 1000 });
 
     const userEmailMap = new Map<string, string>();
     for (const u of users ?? []) {

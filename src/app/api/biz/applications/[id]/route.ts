@@ -30,6 +30,13 @@ export async function PATCH(
 
   const newStatus = body.status;
   const hiredSalary = body.hired_salary; // 採用確定時の年収（万円）
+
+  if (body.hired_salary !== undefined && body.hired_salary !== null) {
+    if (typeof body.hired_salary !== "number" || !Number.isFinite(body.hired_salary) || body.hired_salary < 0 || body.hired_salary > 100000) {
+      return NextResponse.json({ error: "hired_salaryは0〜100000万円の範囲で入力してください" }, { status: 400 });
+    }
+  }
+
   if (!newStatus || !VALID_APPLICATION_STATUSES.has(newStatus)) {
     return NextResponse.json(
       { error: `status must be one of: ${Array.from(VALID_APPLICATION_STATUSES).join(", ")}` },

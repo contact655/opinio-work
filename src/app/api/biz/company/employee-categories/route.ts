@@ -101,6 +101,8 @@ export async function PUT(req: Request) {
   }
   const { companyId } = ctx;
 
+  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+
   // 各 ID の display_order を index 値に更新
   // 並列実行で高速化、ただし企業帰属確認のため company_id も条件に含める
   const updates = orderedIds.map((id, index) =>

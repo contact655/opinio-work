@@ -61,6 +61,12 @@ export async function POST(
   if (!logo_gradient || typeof logo_gradient !== "string" || logo_gradient.trim() === "") {
     return NextResponse.json({ error: "logo_gradient is required" }, { status: 400 });
   }
+  if (logo_letter.trim().length > 4) {
+    return NextResponse.json({ error: "logo_letterは4文字以内です" }, { status: 400 });
+  }
+  if (logo_gradient.trim().length > 200) {
+    return NextResponse.json({ error: "logo_gradientは200文字以内です" }, { status: 400 });
+  }
 
   // ── 4. approve_school_request() 呼び出し ─────────────────────────────────
   //    service role クライアントで呼び出すことで RLS をバイパス

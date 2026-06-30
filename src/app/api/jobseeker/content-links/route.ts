@@ -53,6 +53,9 @@ export async function POST(req: Request) {
   if (!url || url.length > 2048) {
     return NextResponse.json({ error: "INVALID_URL", message: "URLを入力してください（2048字以内）" }, { status: 400 });
   }
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return NextResponse.json({ error: "URLはhttp(s)://で始まる必要があります" }, { status: 400 });
+  }
 
   const VALID_PLATFORMS = ["youtube", "note", "zenn", "speakerdeck", "podcast", "github", "other"] as const;
   const platform = typeof body.platform === "string" && (VALID_PLATFORMS as readonly string[]).includes(body.platform)

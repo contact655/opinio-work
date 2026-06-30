@@ -81,6 +81,10 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  if (body.type !== "cover" && body.type !== "avatar") {
+    return NextResponse.json({ error: "typeはcoverまたはavatarである必要があります" }, { status: 400 });
+  }
+
   const { data: owUser } = await supabase
     .from("ow_users")
     .select("id")

@@ -26,7 +26,18 @@ export async function PATCH(
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if ("pipeline_stage_id" in body) updates.pipeline_stage_id = body.pipeline_stage_id ?? null;
+  if ("pipeline_stage_id" in body) {
+    if (body.pipeline_stage_id) {
+      const { data: stage } = await supabase
+        .from("ow_pipeline_stages")
+        .select("id")
+        .eq("id", body.pipeline_stage_id)
+        .eq("company_id", ctx.companyId)
+        .maybeSingle();
+      if (!stage) return NextResponse.json({ error: "Invalid pipeline_stage_id" }, { status: 400 });
+    }
+    updates.pipeline_stage_id = body.pipeline_stage_id ?? null;
+  }
   if ("memo" in body) {
     if (body.memo !== null && body.memo !== undefined && typeof body.memo === "string" && body.memo.length > 5000) {
       return NextResponse.json({ error: "memo は5000文字以内で入力してください" }, { status: 400 });

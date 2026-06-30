@@ -24,7 +24,8 @@ export async function middleware(request: NextRequest) {
   // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
   const needsAuth =
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname));
 
   // Supabase セッションクッキーの有無を確認（sb-<ref>-auth-token）
   const hasSessionCookie = request.cookies.getAll().some(
@@ -44,11 +45,6 @@ export async function middleware(request: NextRequest) {
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
   if (process.env.BIZ_MOCK_MODE === "true") {
-    return response;
-  }
-
-  // Agent portal: /agent/auth is public; other /agent/* pages handle auth themselves
-  if (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname)) {
     return response;
   }
 

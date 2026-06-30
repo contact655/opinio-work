@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
-  const rawCategory = (body.category as string | undefined) ?? null;
+  const rawCategory = typeof body.category === "string" ? body.category.trim().slice(0, 50) : null;
 
   // INSERT
   const { data: inserted, error: insertError } = await supabase
