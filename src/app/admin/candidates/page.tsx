@@ -10,7 +10,10 @@ async function getUsers(query?: string) {
     .order("created_at", { ascending: false });
 
   if (query) {
-    q = q.or(`name.ilike.%${query}%,email.ilike.%${query}%,location.ilike.%${query}%`);
+    const safeQuery = query.replace(/[(),"\\]/g, "");
+    if (safeQuery) {
+      q = q.or(`name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`);
+    }
   }
 
   const [{ data: users }, authResult, { data: bizAdmins }, { data: careerProfiles }] = await Promise.all([

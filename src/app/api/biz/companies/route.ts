@@ -107,8 +107,8 @@ export async function POST(req: Request) {
       description: body.description || null,
       industry: body.industry || null,
       employee_count: body.size ? parseInt(body.size, 10) : null,
-      url: body.website || null,
-      logo_url: body.logo_url || null,
+      url: (typeof body.website === "string" && /^https:\/\//i.test(body.website)) ? body.website.slice(0, 2048) : null,
+      logo_url: (typeof body.logo_url === "string" && /^https:\/\//i.test(body.logo_url)) ? body.logo_url.slice(0, 2048) : null,
       status: "draft",
       is_published: false,
       plan: "free",
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
 
   // 5.5 ow_company_genres INSERT（best-effort）
   // genres が指定されている場合のみ実行。ow_companies INSERT 成功済みなので失敗しても 201 を返す。
-  const genreSlugs: string[] = Array.isArray(body.genres) ? body.genres : [];
+  const genreSlugs: string[] = Array.isArray(body.genres) ? body.genres.slice(0, 50) : [];
   if (genreSlugs.length > 0) {
     try {
       // slug → genre_id の解決

@@ -53,7 +53,12 @@ export async function PUT(
     );
   }
   if (type === "video") {
-    if (!videoUrl || !(/youtube\.com|youtu\.be/).test(videoUrl)) {
+    let validYoutube = false;
+    try {
+      const parsed = new URL(videoUrl ?? "");
+      validYoutube = parsed.hostname === "www.youtube.com" || parsed.hostname === "youtube.com" || parsed.hostname === "youtu.be";
+    } catch { /* invalid URL */ }
+    if (!videoUrl || !validYoutube) {
       return NextResponse.json(
         { error: "INVALID_URL_FORMAT", message: "video タイプには YouTube URL が必要です。" },
         { status: 400 }

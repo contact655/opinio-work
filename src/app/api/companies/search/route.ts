@@ -27,11 +27,14 @@ export async function GET(req: NextRequest) {
   const supabase = createClient();
 
   // is_published = true のみ返す（RLS + 明示フィルター）
+  // ILIKE wildcard エスケープ（% と _ はPostgreSQLのパターン文字）
+  const safeQ = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+
   const { data: companies, error } = await supabase
     .from("ow_companies")
     .select("id, name, logo_url, industry, employee_count")
     .eq("is_published", true)
-    .ilike("name", `%${q}%`)
+    .ilike("name", `%${safeQ}%`)
     .order("name")
     .limit(limit);
 

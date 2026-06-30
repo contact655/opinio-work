@@ -83,7 +83,10 @@ export async function searchCompanies(
     if (params.q?.trim()) {
       const words = params.q.trim().split(/\s+/).filter(Boolean);
       for (const word of words) {
-        const p = `%${word}%`;
+        // PostgREST injection 対策: .or() 文字列に埋め込む前にメタ文字を除去
+        const safeWord = word.replace(/[(),"\\]/g, "");
+        if (!safeWord) continue;
+        const p = `%${safeWord}%`;
         q = q.or(`name.ilike.${p},description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`);
       }
     }
