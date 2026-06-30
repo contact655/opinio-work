@@ -80,10 +80,14 @@ export async function GET(req: Request) {
     likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
   }
 
-  // For unauthenticated callers, only show posts from users with public visibility
-  const visiblePosts = myOwUserId
-    ? posts
-    : posts.filter((p) => p.user?.visibility === "public" || p.user?.visibility == null);
+  // Filter by visibility: private users' posts are hidden for all callers;
+  // login_only users' posts are hidden for unauthenticated callers
+  const visiblePosts = posts.filter((p) => {
+    const v = p.user?.visibility;
+    if (v === "private") return false;
+    if (v === "login_only" && !myOwUserId) return false;
+    return true;
+  });
 
   const result = visiblePosts.map((p) => ({
     id: p.id,

@@ -1,5 +1,16 @@
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 
+// HTML escape — prevents injection of user-supplied strings into email bodies
+function esc(s: string | null | undefined): string {
+  if (!s) return "";
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ── Shared inline styles ───────────────────────────────────────────────────────
 const TD_LABEL = "padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600;width:120px;vertical-align:top;font-size:13px";
 const TD_VALUE = "padding:8px 12px;border:1px solid #e2e8f0;font-size:13px";
@@ -64,10 +75,10 @@ export function casualMeetingAdminTemplate(params: {
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着カジュアル面談</h2>
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${params.contactEmail}</td></tr>
-        <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? (intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
-        <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${params.interestReason || "（未記入）"}</td></tr>
-        <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${params.questions || "（未記入）"}</td></tr>
+        <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
+        <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
+        <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
+        <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
       </table>
       <a href="https://opinio.jp/biz/meetings" style="${BTN}">管理画面で確認する →</a>
     `),
@@ -145,10 +156,10 @@ export function applicationAdminTemplate(params: {
     subject: `【新着応募】${params.companyName} / ${params.jobTitle} に応募がありました`,
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着求人応募</h2>
-      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong>「${params.jobTitle}」への応募がありました。</p>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong>「${esc(params.jobTitle)}」への応募がありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">応募者</td><td style="${TD_VALUE}">${params.applicantName}（${params.applicantEmail}）</td></tr>
-        <tr><td style="${TD_LABEL}">志望動機</td><td style="${TD_VALUE}">${params.message || "（未記入）"}</td></tr>
+        <tr><td style="${TD_LABEL}">応募者</td><td style="${TD_VALUE}">${esc(params.applicantName)}（${esc(params.applicantEmail)}）</td></tr>
+        <tr><td style="${TD_LABEL}">志望動機</td><td style="${TD_VALUE}">${esc(params.message) || "（未記入）"}</td></tr>
       </table>
       <a href="https://opinio.jp/biz/applications" style="${BTN}">応募管理で確認する →</a>
     `),
@@ -206,10 +217,10 @@ export function applicationStatusTemplate(params: {
     to: params.to,
     subject: subjects[params.status],
     html: htmlWrap(`
-      <h2>${subjects[params.status].replace("【opinio.jp】", "")}</h2>
-      <p>${params.name} さん、</p>
-      <p>${messages[params.status]}</p>
-      <p style="font-size: 13px; color: #888;">応募求人: ${params.companyName} / ${params.jobTitle}</p>
+      <h2>${esc(subjects[params.status].replace("【opinio.jp】", ""))}</h2>
+      <p>${esc(params.name)} さん、</p>
+      <p>${esc(messages[params.status])}</p>
+      <p style="font-size: 13px; color: #888;">応募求人: ${esc(params.companyName)} / ${esc(params.jobTitle)}</p>
       <p><a href="https://opinio.jp/mypage/applications">選考状況を確認する →</a></p>
     `),
   };
@@ -231,16 +242,16 @@ export function companyInviteTemplate(params: {
     to: params.recipientEmail,
     subject: `${params.companyName} の採用担当として招待されました - OPINIO`,
     html: htmlWrap(`
-      <h2>${params.companyName} の採用担当チームに招待されました</h2>
-      <p>${params.recipientEmail} 様</p>
+      <h2>${esc(params.companyName)} の採用担当チームに招待されました</h2>
+      <p>${esc(params.recipientEmail)} 様</p>
       <p>
-        <strong>${params.inviterName}</strong> さんから、OPINIO で
-        <strong>${params.companyName}</strong> の${roleText}招待されました。
+        <strong>${esc(params.inviterName)}</strong> さんから、OPINIO で
+        <strong>${esc(params.companyName)}</strong> の${esc(roleText)}招待されました。
       </p>
       <p>下記ボタンから招待を受諾してください。</p>
       <p style="margin: 28px 0;">
         <a
-          href="${params.inviteUrl}"
+          href="${params.inviteUrl.startsWith("https://") ? params.inviteUrl : "#"}"
           style="
             display: inline-block;
             background: #002366;
@@ -288,11 +299,11 @@ export function newCompanyAdminTemplate(params: {
       <table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 16px;">
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; width: 120px;">企業名</td>
-          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${params.companyName}</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${esc(params.companyName)}</td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">作成者</td>
-          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${params.creatorName}（${params.creatorEmail}）</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">${esc(params.creatorName)}（${esc(params.creatorEmail)}）</td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">ステータス</td>

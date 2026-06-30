@@ -23,6 +23,11 @@ export async function POST(request: Request) {
 
   const { company_id } = await request.json();
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!company_id || typeof company_id !== "string" || !UUID_RE.test(company_id)) {
+    return NextResponse.json({ error: "Invalid company_id" }, { status: 400 });
+  }
+
   // Check if already saved
   const { data: existing } = await supabase
     .from("ow_saved_companies")

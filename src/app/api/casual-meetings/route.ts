@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       user_id: owUserId,
       company_id,
       contact_email,
-      job_id: job_id || null,
+      job_id: (job_id && typeof job_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job_id)) ? job_id : null,
       share_profile: share_profile !== false,
       intent: intent || null,
       interest_reason: interest_reason || null,

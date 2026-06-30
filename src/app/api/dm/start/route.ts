@@ -20,7 +20,8 @@ export async function POST(request: Request) {
     message: string;
   };
 
-  if (!targetUserId || !message?.trim()) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!targetUserId || !UUID_RE.test(targetUserId) || !message?.trim()) {
     return NextResponse.json({ error: "targetUserId and message are required" }, { status: 400 });
   }
   if (message.trim().length > 2000) {
