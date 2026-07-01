@@ -7,18 +7,20 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const { target_user_id, recommender_name, recommender_title, recommender_company, relationship, content } = body;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!target_user_id || !UUID_RE.test(target_user_id)) {
+  if (typeof target_user_id !== "string" || !UUID_RE.test(target_user_id)) {
     return NextResponse.json({ error: "Invalid target_user_id" }, { status: 400 });
   }
 
   if (!target_user_id || !recommender_name || !content) {
     return NextResponse.json({ error: "必須項目が不足しています" }, { status: 400 });
   }
-  if (content.length < 10 || content.length > 1000) {
+  if (typeof content !== "string" || content.length < 10 || content.length > 1000) {
     return NextResponse.json({ error: "推薦文は10〜1000文字で入力してください" }, { status: 400 });
   }
   if (typeof recommender_name === "string" && recommender_name.length > 100) {
