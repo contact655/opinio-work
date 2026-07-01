@@ -15,17 +15,17 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@sentry/nextjs": "^10.59.0",
     "@supabase/ssr": "^0.10.0",
-    "@supabase/supabase-js": "^2.101.1",
+    "@supabase/supabase-js": "^2.110.0",
     "lucide-react": "^1.14.0",
     "next": "14.2.35",
     "nextjs-toploader": "^3.9.17",
-    "open-graph-scraper": "^6.11.0",
+    "open-graph-scraper": "^6.12.0",
     "pg": "^8.20.0",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "resend": "^6.10.0"
+    "resend": "^6.16.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",

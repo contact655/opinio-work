@@ -6,6 +6,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const supabaseAuth = createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const ctx = await getTenantContext();
     if (!ctx) {
       return NextResponse.json({ pendingMeetings: 0, pendingApplications: 0 });
