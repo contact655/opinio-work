@@ -6,11 +6,14 @@ import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 type Action = "permission" | "deactivate" | "reactivate" | "update_profile" | "ambassador";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   const adminRecordId = params.id; // ow_company_admins.id
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();

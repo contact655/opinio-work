@@ -11,11 +11,14 @@ function str(v: unknown, max: number): string | null {
 
 const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   const jobId = params.id;
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -115,6 +118,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const jobId = params.id;
+  if (!UUID_RE.test(jobId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -188,6 +192,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const jobId = params.id;
+  if (!UUID_RE.test(jobId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();

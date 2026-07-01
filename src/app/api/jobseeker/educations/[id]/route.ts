@@ -11,6 +11,8 @@ export async function PUT(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -47,7 +49,6 @@ export async function PUT(
     ? body.degree
     : null;
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
   const enrolled_at = typeof body.enrolled_at === "string" && DATE_RE.test(body.enrolled_at) ? body.enrolled_at : null;
   const is_current = body.is_current === true;

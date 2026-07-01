@@ -7,11 +7,14 @@ import { notify } from "@/lib/notify/email";
 import { applicationStatusTemplate } from "@/lib/notify/templates";
 import { insertActivity } from "@/lib/business/activities";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   const appId = params.id;
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
 
   // ── Auth ──────────────────────────────────────────────────────────────────

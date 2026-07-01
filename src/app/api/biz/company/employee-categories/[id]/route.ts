@@ -26,7 +26,8 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = params;
-  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!id || !UUID_RE.test(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const admin = createAdminClient();
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;

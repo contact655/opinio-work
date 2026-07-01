@@ -23,6 +23,8 @@ export async function PUT(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   let body: { url?: unknown; platform?: unknown; title?: unknown; description?: unknown; thumbnail_url?: unknown };
   try { body = await req.json(); } catch {

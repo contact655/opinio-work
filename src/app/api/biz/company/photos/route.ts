@@ -99,8 +99,9 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const photoId = searchParams.get("id");
-    if (!photoId) {
-      return Response.json({ error: "id is required" }, { status: 400 });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!photoId || !UUID_RE.test(photoId)) {
+      return Response.json({ error: "Invalid id" }, { status: 400 });
     }
 
     // 所有権確認: companyId が一致する行のみ削除

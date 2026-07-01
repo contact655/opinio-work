@@ -52,6 +52,8 @@ export async function POST(req: Request) {
   // ── 複製モード ──────────────────────────────────────────
   if (body.sourceId) {
     const sourceId = body.sourceId as string;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(sourceId)) return NextResponse.json({ error: "Invalid sourceId" }, { status: 400 });
     const cookieCompanyIdDup = cookies().get("biz_current_company_id")?.value;
     const ctxDup = await getCompanyContext(supabase, user.id, cookieCompanyIdDup);
     if (!ctxDup) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

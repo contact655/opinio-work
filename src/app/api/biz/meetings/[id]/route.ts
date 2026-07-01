@@ -14,11 +14,14 @@ const VALID_MEETING_STATUSES = new Set([
   "pending", "company_contacted", "scheduled", "completed", "declined",
 ]);
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   const meetingId = params.id;
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
 
   const {
