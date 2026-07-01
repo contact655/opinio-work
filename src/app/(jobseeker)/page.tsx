@@ -48,7 +48,7 @@ const getHomeData = unstable_cache(
       employeeCount: row.employee_count as number | null,
     }));
 
-    const [companiesCount, jobsCount] = statsRes;
+    const [companiesCount] = statsRes;
     const companyNum = `${companiesCount.count ?? 0}社+`;
 
     return { companies, companyNum };
