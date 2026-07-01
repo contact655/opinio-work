@@ -10,11 +10,15 @@ export const metadata = {
   title: { absolute: "候補者を推薦 | エージェントポータル | OPINIO" },
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function AgentRecommendPage({
   params,
 }: {
   params: { jobId: string };
 }) {
+  if (!UUID_RE.test(params.jobId)) redirect("/agent/dashboard");
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
   if (!email) {
     return NextResponse.json({ error: "メールアドレスは必須です" }, { status: 400 });
   }
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (email.length > 254 || !EMAIL_RE.test(email)) {
+    // Return 200 to prevent user enumeration
+    return NextResponse.json({ ok: true });
+  }
 
   const admin = createAdminClient();
 

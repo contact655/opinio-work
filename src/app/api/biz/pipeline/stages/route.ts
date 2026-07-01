@@ -118,11 +118,17 @@ export async function PUT(req: Request) {
   if (body.color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(body.color)) {
     return NextResponse.json({ error: "color must be a valid hex color (e.g. #3B5FD9)" }, { status: 400 });
   }
+  if (body.order_index !== undefined) {
+    const n = Number(body.order_index);
+    if (!Number.isInteger(n) || n < 0 || n > 9999) {
+      return NextResponse.json({ error: "Invalid order_index" }, { status: 400 });
+    }
+  }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.name !== undefined) updates.name = body.name;
   if (body.color !== undefined) updates.color = body.color;
-  if (body.order_index !== undefined) updates.order_index = body.order_index;
+  if (body.order_index !== undefined) updates.order_index = Number(body.order_index);
 
   const { data, error } = await supabase
     .from("ow_pipeline_stages")
