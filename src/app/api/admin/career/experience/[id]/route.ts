@@ -13,6 +13,9 @@ export async function PATCH(
   const { data: isAdmin } = await supabase.rpc("auth_is_admin");
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+
   const body = await request.json();
   const {
     salaryMan,

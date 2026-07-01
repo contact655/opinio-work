@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 
 // POST /api/admin/companies/[id]/genres — ジャンル紐付け追加
 // service_role を使用（ow_company_genres に INSERT/DELETE ポリシーなし）
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -13,6 +15,7 @@ export async function POST(
   if (!adminOk) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   let genre_ids: string[];
   try {
@@ -28,7 +31,6 @@ export async function POST(
   if (genre_ids.length > 50) {
     return NextResponse.json({ error: 'Too many genre_ids (max 50)' }, { status: 400 });
   }
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!genre_ids.every((id: unknown) => typeof id === 'string' && UUID_RE.test(id))) {
     return NextResponse.json({ error: 'Invalid genre_id format' }, { status: 400 });
   }
@@ -73,6 +75,7 @@ export async function DELETE(
   if (!adminOk) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   let genre_ids: string[];
   try {

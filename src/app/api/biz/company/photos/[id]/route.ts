@@ -16,6 +16,9 @@ export async function PATCH(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(params.id)) return Response.json({ error: "Invalid id" }, { status: 400 });
+
     const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
     const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
     if (!ctx) {

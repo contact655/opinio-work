@@ -55,6 +55,7 @@ export async function POST(req: Request) {
     const cookieCompanyIdDup = cookies().get("biz_current_company_id")?.value;
     const ctxDup = await getCompanyContext(supabase, user.id, cookieCompanyIdDup);
     if (!ctxDup) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try { requireAdmin(ctxDup.allMemberships, ctxDup.companyId); } catch { return permissionDeniedResponse(); }
 
     const { data: source } = await supabase
       .from("ow_jobs")
