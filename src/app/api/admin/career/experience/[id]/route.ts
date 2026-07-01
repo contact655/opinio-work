@@ -16,7 +16,9 @@ export async function PATCH(
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try { body = await request.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const {
     salaryMan,
     roleTitle,
@@ -49,7 +51,7 @@ export async function PATCH(
   if (roleTitle          !== undefined) update.role_title         = s(roleTitle, 100);
   if (companyAnonymized  !== undefined) update.company_anonymized = s(companyAnonymized, 200);
   if (visibilityCompany  !== undefined) {
-    if (!["real", "masked", "hidden"].includes(visibilityCompany)) {
+    if (!["real", "masked", "hidden"].includes(visibilityCompany as string)) {
       return NextResponse.json({ error: "Invalid visibilityCompany value" }, { status: 400 });
     }
     update.visibility_company = visibilityCompany;

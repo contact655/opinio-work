@@ -60,7 +60,9 @@ export async function PUT(req: Request) {
   }
 
   const admin = createAdminClient();
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const companyId = body.id;
 
   if (!companyId) {

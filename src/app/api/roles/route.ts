@@ -29,8 +29,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { role } = await req.json();
-  if (role === "company") {
+  let body: { role?: unknown };
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  const role = typeof body.role === "string" ? body.role : null;
+  if (!role || role === "company") {
     return NextResponse.json(
       { error: "company role is managed via ow_company_admins" },
       { status: 400 }
@@ -43,7 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 
-  const ok = await addUserRole(supabase, role);
+  const ok = await addUserRole(supabase, role as import("@/lib/roles").UserRole);
   if (!ok) {
     return NextResponse.json({ error: "Invalid role or insert failed" }, { status: 400 });
   }

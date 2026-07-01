@@ -22,7 +22,9 @@ export async function POST(req: Request) {
 
   // --- DB操作は管理クライアント（RLSバイパス）で ---
   const admin = createAdminClient();
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   // genres は ow_companies のカラムではないため分離（best-effort で ow_company_genres に INSERT）
   const genreSlugs: string[] = Array.isArray(body.genres) ? body.genres : [];
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
   }
 
   const VALID_PLANS = new Set(["free", "paid"]);
-  const plan = VALID_PLANS.has(body.plan) ? body.plan : "free";
+  const plan = (typeof body.plan === "string" && VALID_PLANS.has(body.plan)) ? body.plan : "free";
 
   const VALID_PHASES = new Set(["seed", "シード", "series_a", "シリーズA", "series_b", "シリーズB", "series_c", "シリーズC", "listed", "上場", "unicorn", "ユニコーン", "IPO準備中", "private"]);
   const phase = typeof body.phase === "string" && VALID_PHASES.has(body.phase) ? body.phase : null;
