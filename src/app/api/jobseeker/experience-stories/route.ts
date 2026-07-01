@@ -153,10 +153,10 @@ export async function POST(req: Request) {
 
   const periodStart = typeof body.period_start === "string" && body.period_start ? body.period_start : null;
   const periodEnd   = typeof body.period_end   === "string" && body.period_end   ? body.period_end   : null;
-  // section_id: 任意。null = 未分類エリアに表示。
-  // WITH CHECK(RLS)が「自分の experience に属するセクション ID のみ」を保証するため、
-  // API 層での追加検証は不要。
-  const sectionId = typeof body.section_id === "string" ? body.section_id : null;
+  // section_id: 任意。null = 未分類エリアに表示。UUID形式のみ許可。
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const sectionIdRaw = typeof body.section_id === "string" ? body.section_id : null;
+  const sectionId = sectionIdRaw && UUID_RE.test(sectionIdRaw) ? sectionIdRaw : null;
   // og_image_url / og_title: link type のみ実質使用。https:// URLのみ許可。
   let ogImageUrl: string | null = null;
   if (typeof body.og_image_url === "string" && body.og_image_url) {

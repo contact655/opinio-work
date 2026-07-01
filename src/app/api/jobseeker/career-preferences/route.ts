@@ -31,9 +31,26 @@ export async function PUT(req: Request) {
     "worry",
   ];
 
+  const NUMERIC_FIELDS = new Set(["experience_years", "desired_salary_min", "desired_salary_max"]);
+  const STRING_FIELDS  = new Set(["job_type", "desired_work_style", "transfer_timing", "worry"]);
+  const ARRAY_FIELDS   = new Set(["desired_phase"]);
+
   const patch: Record<string, unknown> = {};
   for (const key of allowed) {
-    if (key in body) patch[key] = body[key];
+    if (!(key in body)) continue;
+    const val = body[key];
+    if (NUMERIC_FIELDS.has(key)) {
+      if (val === null || val === undefined) { patch[key] = null; continue; }
+      const n = typeof val === "number" ? val : Number(val);
+      if (!Number.isFinite(n) || n < 0 || n > 99999999) continue; // 範囲外は無視
+      patch[key] = Math.floor(n);
+    } else if (STRING_FIELDS.has(key)) {
+      patch[key] = typeof val === "string" ? val.slice(0, 200) : null;
+    } else if (ARRAY_FIELDS.has(key)) {
+      patch[key] = Array.isArray(val) ? (val as unknown[]).filter((v) => typeof v === "string").slice(0, 20) : null;
+    } else {
+      patch[key] = val;
+    }
   }
 
   if (Object.keys(patch).length === 0) {

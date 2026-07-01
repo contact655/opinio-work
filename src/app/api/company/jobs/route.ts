@@ -18,6 +18,10 @@ export async function GET(req: NextRequest) {
   if (!companyId) {
     return NextResponse.json({ error: "company_id required" }, { status: 400 });
   }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(companyId)) {
+    return NextResponse.json({ error: "Invalid company_id" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
 

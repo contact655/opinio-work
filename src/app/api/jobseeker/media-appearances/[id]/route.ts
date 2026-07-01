@@ -43,7 +43,9 @@ export async function PUT(
   }
 
   const mediaName   = typeof body.media_name   === "string" ? body.media_name.trim().slice(0, 100) || null : null;
-  const appearedAt  = typeof body.appeared_at  === "string" && body.appeared_at  ? body.appeared_at  : null;
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const appearedAtRaw = typeof body.appeared_at === "string" ? body.appeared_at : null;
+  const appearedAt = appearedAtRaw && DATE_RE.test(appearedAtRaw) ? appearedAtRaw : null;
   const description = typeof body.description  === "string" ? body.description.trim().slice(0, 1000) || null : null;
 
   const url = typeof body.url === "string" ? body.url.trim().slice(0, 2048) || null : null;
