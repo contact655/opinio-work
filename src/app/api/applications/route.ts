@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { resolveOwUserId } from "@/lib/supabase/resolveOwUserId";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
@@ -8,11 +8,15 @@ import {
   applicationUserTemplate,
 } from "@/lib/notify/templates";
 import { insertActivity } from "@/lib/business/activities";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/applications — 求人応募
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const allowed = await checkRateLimit(req, { limit: 10, windowSec: 3600, prefix: "apply" });
+  if (!allowed) return NextResponse.json({ error: "リクエストが多すぎます。しばらくしてから再試行してください。" }, { status: 429 });
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

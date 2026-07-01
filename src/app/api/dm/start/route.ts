@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rateLimit";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const allowed = await checkRateLimit(request, { limit: 20, windowSec: 3600, prefix: "dm" });
+  if (!allowed) return NextResponse.json({ error: "リクエストが多すぎます。しばらくしてから再試行してください。" }, { status: 429 });
+
   const supabase = createClient();
   const admin = createAdminClient();
 

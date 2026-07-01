@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,10 @@ export async function GET(req: Request) {
 }
 
 // POST /api/jobseeker/posts — 投稿作成
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const allowed = await checkRateLimit(req, { limit: 30, windowSec: 3600, prefix: "post" });
+  if (!allowed) return NextResponse.json({ error: "リクエストが多すぎます。しばらくしてから再試行してください。" }, { status: 429 });
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

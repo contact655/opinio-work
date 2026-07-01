@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
 import {
@@ -24,7 +25,10 @@ async function resolveOwUserId(supabase: ReturnType<typeof createClient>): Promi
 const VALID_INTENTS = ["info_gathering", "good_opportunity", "within_6", "within_3"];
 
 // POST /api/casual-meetings — submit casual meeting request (authenticated)
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const allowed = await checkRateLimit(req, { limit: 10, windowSec: 3600, prefix: "meeting" });
+  if (!allowed) return NextResponse.json({ error: "リクエストが多すぎます。しばらくしてから再試行してください。" }, { status: 429 });
+
   const supabase = createClient();
   const { owUserId, email: authEmail } = await resolveOwUserId(supabase);
   if (!owUserId || !authEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
