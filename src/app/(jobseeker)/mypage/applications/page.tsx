@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
@@ -59,6 +60,7 @@ const FILTER_TABS = [
 ];
 
 export default function ApplicationsPage() {
+  const router = useRouter();
   const [applications, setApplications] = useState<Application[]>([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function ApplicationsPage() {
     } = await supabase.auth.getSession();
     const user = session?.user ?? null;
     if (!user) {
-      setLoading(false);
+      router.push("/auth?next=/mypage/applications");
       return;
     }
 

@@ -35,7 +35,8 @@ export async function POST(req: Request) {
     message?: string;
   };
 
-  if (!job_id) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!job_id || typeof job_id !== "string" || !UUID_RE.test(job_id)) {
     return NextResponse.json({ error: "job_id required" }, { status: 400 });
   }
   if (typeof message === "string" && message.length > 3000) {

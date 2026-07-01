@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { updateEngagementStatus, updateJobsPublic, updateIsPublished, updateSortOrder } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -123,20 +124,8 @@ export default function AdminCompaniesPage() {
   // engagement_status 変更
   async function handleEngagementChange(company: Company, newStatus: EngagementStatus) {
     setActionLoading(company.id);
-    const supabase = createClient();
     const now = new Date().toISOString();
-    const updates: Record<string, unknown> = {
-      engagement_status: newStatus,
-      updated_at: now,
-    };
-    if (newStatus === "verified"   && !company.verified_at)   updates.verified_at   = now;
-    if (newStatus === "contracted" && !company.contracted_at) updates.contracted_at = now;
-    // contracted/verified → none に戻す時は jobs_public も false に
-    if (newStatus === "none") updates.jobs_public = false;
-    // verified に戻す時も jobs_public = false（contracted のみ可）
-    if (newStatus === "verified") updates.jobs_public = false;
-
-    await supabase.from("ow_companies").update(updates).eq("id", company.id);
+    await updateEngagementStatus(company.id, newStatus, company.verified_at, company.contracted_at);
     setCompanies((prev) => prev.map((c) => c.id === company.id
       ? { ...c, engagement_status: newStatus,
           jobs_public: newStatus === "contracted" ? c.jobs_public : false,
@@ -153,8 +142,7 @@ export default function AdminCompaniesPage() {
     if (es !== "contracted") return; // contracted のみ可
     const newValue = !company.jobs_public;
     setActionLoading(company.id);
-    const supabase = createClient();
-    await supabase.from("ow_companies").update({ jobs_public: newValue, updated_at: new Date().toISOString() }).eq("id", company.id);
+    await updateJobsPublic(company.id, newValue);
     setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, jobs_public: newValue } : c));
     setActionLoading(null);
   }
@@ -163,8 +151,7 @@ export default function AdminCompaniesPage() {
   async function handleTogglePublish(company: Company) {
     const newValue = !company.is_published;
     setActionLoading(company.id);
-    const supabase = createClient();
-    await supabase.from("ow_companies").update({ is_published: newValue, updated_at: new Date().toISOString() }).eq("id", company.id);
+    await updateIsPublished(company.id, newValue);
     setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
     setActionLoading(null);
   }
@@ -209,12 +196,7 @@ export default function AdminCompaniesPage() {
 
     // Supabase に一括保存
     setIsSavingOrder(true);
-    const supabase = createClient();
-    await Promise.all(
-      updated.map((c) =>
-        supabase.from("ow_companies").update({ sort_order: c.sort_order }).eq("id", c.id)
-      )
-    );
+    await updateSortOrder(updated.map((c) => ({ id: c.id, sort_order: c.sort_order ?? 0 })));
     setIsSavingOrder(false);
   }
 

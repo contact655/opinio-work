@@ -98,7 +98,7 @@ JSONのみ返してください。説明文は不要です。
       const v = (raw as Record<string, unknown>)[key];
       extracted[key] = typeof v === "string" ? v.slice(0, 5000) : null;
     }
-    return NextResponse.json({ extracted, fileName });
+    return NextResponse.json({ extracted });
   } catch (err: unknown) {
     console.error("[company/import] Error:", err instanceof Error ? err.message : err);
     return NextResponse.json(

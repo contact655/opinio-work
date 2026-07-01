@@ -5,6 +5,7 @@ import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchJobById, fetchTeamMembers } from "@/lib/business/jobs";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,11 @@ export default async function JobEditPage({ params }: { params: { id: string } }
         </div>
       </BusinessLayout>
     );
+  }
+
+  // IDOR guard: ensure the job belongs to this tenant
+  if (jobData.companyId !== ctx.tenantId) {
+    notFound();
   }
 
   return (

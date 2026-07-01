@@ -42,11 +42,14 @@ async function getUserCareerData(userId: string) {
   };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function AdminCareerUserPage({
   params,
 }: {
   params: { userId: string };
 }) {
+  if (!UUID_RE.test(params.userId)) notFound();
   const data = await getUserCareerData(params.userId);
   if (!data) notFound();
 

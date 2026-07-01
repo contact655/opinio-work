@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import Link from "next/link";
@@ -28,6 +29,7 @@ type Conversation = {
 };
 
 export default function ConversationsPage() {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [hasUnreadMap, setHasUnreadMap] = useState<Map<string, boolean>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function ConversationsPage() {
     const user = session?.user;
 
     if (!user) {
-      setLoading(false);
+      router.push("/auth?next=/mypage/conversations");
       return;
     }
 

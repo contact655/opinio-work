@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { approveJob, rejectJob, privateJob, republishJob } from "./actions";
 
 // DB status values (migration 113 適用前は "active"、適用後は "published")
 const STATUS_TABS = [
@@ -76,19 +77,7 @@ export default function AdminJobsPage() {
   // 承認: status → "published", published_at = now
   async function handleApprove(job: Job) {
     setActionLoading(job.id);
-    const supabase = createClient();
-    const now = new Date().toISOString();
-    await supabase
-      .from("ow_jobs")
-      .update({
-        status: "published",
-        published_at: now,
-        updated_at: now,
-        rejection_reason: null,
-        rejection_reviewer: null,
-        rejection_date: null,
-      })
-      .eq("id", job.id);
+    await approveJob(job.id);
     setJobs((prev) =>
       prev.map((j) => j.id === job.id ? { ...j, status: "published" } : j)
     );
@@ -99,21 +88,7 @@ export default function AdminJobsPage() {
   async function handleRejectConfirm() {
     if (!rejectTarget || !rejectionReason.trim()) return;
     setActionLoading(rejectTarget.id);
-    const supabase = createClient();
-    const now = new Date().toISOString();
-    const dateLabel = new Date().toLocaleDateString("ja-JP", {
-      year: "numeric", month: "long", day: "numeric",
-    });
-    await supabase
-      .from("ow_jobs")
-      .update({
-        status: "rejected",
-        rejection_reason: rejectionReason.trim(),
-        rejection_reviewer: rejectionReviewer.trim() || "OPINIO編集部",
-        rejection_date: dateLabel,
-        updated_at: now,
-      })
-      .eq("id", rejectTarget.id);
+    await rejectJob(rejectTarget.id, rejectionReason.trim(), rejectionReviewer.trim());
     setJobs((prev) =>
       prev.map((j) =>
         j.id === rejectTarget!.id
@@ -129,11 +104,7 @@ export default function AdminJobsPage() {
   // 非公開化
   async function handlePrivate(job: Job) {
     setActionLoading(job.id);
-    const supabase = createClient();
-    await supabase
-      .from("ow_jobs")
-      .update({ status: "private", updated_at: new Date().toISOString() })
-      .eq("id", job.id);
+    await privateJob(job.id);
     setJobs((prev) =>
       prev.map((j) => j.id === job.id ? { ...j, status: "private" } : j)
     );
@@ -143,11 +114,7 @@ export default function AdminJobsPage() {
   // 再公開 (private → published)
   async function handleRepublish(job: Job) {
     setActionLoading(job.id);
-    const supabase = createClient();
-    await supabase
-      .from("ow_jobs")
-      .update({ status: "published", updated_at: new Date().toISOString() })
-      .eq("id", job.id);
+    await republishJob(job.id);
     setJobs((prev) =>
       prev.map((j) => j.id === job.id ? { ...j, status: "published" } : j)
     );

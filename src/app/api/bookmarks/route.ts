@@ -90,7 +90,8 @@ export async function DELETE(req: Request) {
   if (!["article", "company", "job", "mentor"].includes(target_type)) {
     return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
   }
-  if (target_id.length > 36) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(target_id)) {
     return NextResponse.json({ error: "Invalid target_id" }, { status: 400 });
   }
 

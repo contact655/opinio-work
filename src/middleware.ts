@@ -35,17 +35,27 @@ export async function middleware(request: NextRequest) {
   // 認証不要 かつ セッションクッキーなし → updateSession（Supabase外部呼び出し）をスキップ
   // これにより未ログインユーザーのパブリックページ閲覧時のタイムアウトを防ぐ
   if (!needsAuth && !hasSessionCookie) {
-    return NextResponse.next();
+    const h = new Headers(request.headers);
+    h.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: h } });
   }
 
   // セッション同期（ログイン中ユーザー or 認証が必要なパスのみ）
   // updateSession() が getUser() を内部で呼ぶため、返ってきた user を再利用する。
   // 別 client を作ると古い request cookies を読み、トークン更新直後に user = null になるバグがあった。
   const { response, user: sessionUser } = await updateSession(request);
+  // Supabase が設定したクッキーを保持しつつ、x-pathname をリクエストヘッダーに注入する。
+  // Server Components は headers() 経由でリクエストヘッダーを読むため、
+  // レスポンスヘッダーではなくリクエストヘッダーに設定する必要がある。
+  const reqHeaders = new Headers(request.headers);
+  reqHeaders.set("x-pathname", pathname);
+  const finalResponse = NextResponse.next({ request: { headers: reqHeaders } });
+  // updateSession が設定した Set-Cookie をコピー
+  response.cookies.getAll().forEach((c) => finalResponse.cookies.set(c));
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
   if (process.env.NODE_ENV === "development" && process.env.BIZ_MOCK_MODE === "true") {
-    return response;
+    return finalResponse;
   }
 
   if (needsAuth && !sessionUser) {
@@ -55,7 +65,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return response;
+  return finalResponse;
 }
 
 export const config = {

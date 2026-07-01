@@ -14,12 +14,14 @@ export type TeamMember = {
 export type JobEditData = {
   job: BizJob;
   assigneeIds: string[];
+  companyId: string;
 };
 
 // ─── DB row types ─────────────────────────────────────
 
 type DbJobFull = {
   id: string;
+  company_id: string | null;
   title: string | null;
   job_category: string | null;
   employment_type: string | null;
@@ -199,7 +201,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -244,7 +246,7 @@ export async function fetchJobById(
     rejectionReviewer: row.rejection_reviewer ?? undefined,
   };
 
-  return { job, assigneeIds };
+  return { job, assigneeIds, companyId: row.company_id ?? "" };
 }
 
 // ─── fetchTeamMembers ──────────────────────────────────

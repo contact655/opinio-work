@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toggleArticlePublished, linkArticleUser, linkArticleCompany } from "./actions";
 
 type Article = {
   id: string;
@@ -109,17 +110,10 @@ export default function AdminArticlesPage() {
   const togglePublished = async (articleId: string, current: boolean) => {
     setToggling(articleId);
     const nowIso = new Date().toISOString();
-    const { error } = await supabase
-      .from("ow_articles")
-      .update({
-        is_published: !current,
-        published_at: !current ? nowIso : null,
-        updated_at: nowIso,
-      })
-      .eq("id", articleId);
+    const result = await toggleArticlePublished(articleId, current);
     setToggling(null);
 
-    if (!error) {
+    if (result.ok) {
       setArticles((prev) =>
         prev.map((a) =>
           a.id === articleId
@@ -135,13 +129,10 @@ export default function AdminArticlesPage() {
 
   const handleUserLink = async (articleId: string, userId: string | null) => {
     setLinkingUser(articleId);
-    const { error } = await supabase
-      .from("ow_articles")
-      .update({ user_id: userId || null })
-      .eq("id", articleId);
+    const result = await linkArticleUser(articleId, userId);
     setLinkingUser(null);
 
-    if (!error) {
+    if (result.ok) {
       setArticles((prev) =>
         prev.map((a) => a.id === articleId ? { ...a, user_id: userId || null } : a)
       );
@@ -154,13 +145,10 @@ export default function AdminArticlesPage() {
 
   const handleCompanyLink = async (articleId: string, companyId: string | null) => {
     setLinkingCompany(articleId);
-    const { error } = await supabase
-      .from("ow_articles")
-      .update({ company_id: companyId || null })
-      .eq("id", articleId);
+    const result = await linkArticleCompany(articleId, companyId);
     setLinkingCompany(null);
 
-    if (!error) {
+    if (result.ok) {
       setArticles((prev) =>
         prev.map((a) => a.id === articleId ? { ...a, company_id: companyId || null } : a)
       );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
@@ -63,6 +64,7 @@ function BookmarkSection({ title, items }: { title: string; items: Bookmark[] })
 }
 
 export default function BookmarksPage() {
+  const router = useRouter();
   const [companyBookmarks, setCompanyBookmarks] = useState<Bookmark[]>([]);
   const [jobBookmarks, setJobBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function BookmarksPage() {
     (async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) { router.push("/auth?next=/mypage/bookmarks"); return; }
 
       const { data: owUserRows } = await supabase
         .from("ow_users").select("id").eq("auth_id", user.id).limit(1);

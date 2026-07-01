@@ -28,14 +28,15 @@ export async function GET(request: Request) {
 
       if (!owUser) {
         // トリガーが動かなかった場合のフォールバック: 手動作成
+        const rawName: string =
+          session.user.user_metadata?.name ||
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split("@")[0] ||
+          "ユーザー";
         await supabase.from("ow_users").insert({
           auth_id: session.user.id,
           email: session.user.email,
-          name:
-            session.user.user_metadata?.name ||
-            session.user.user_metadata?.full_name ||
-            session.user.email?.split("@")[0] ||
-            "ユーザー",
+          name: rawName.slice(0, 100),
           visibility: "public",
         });
       }
@@ -91,6 +92,10 @@ export async function GET(request: Request) {
 }
 
 // ── Welcome email HTML ────────────────────────────────────────────────────────
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 function buildWelcomeHtml(name: string): string {
   const btn = "display:inline-block;background:#002366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
   return `<!DOCTYPE html>
@@ -109,7 +114,7 @@ function buildWelcomeHtml(name: string): string {
         <tr>
           <td style="padding:32px 40px;color:#0f172a;line-height:1.7;font-size:14px">
             <h2 style="margin:0 0 8px;font-size:20px;color:#002366">ようこそ、OPINIO へ！</h2>
-            <p style="margin:0 0 20px;color:#475569">${name} さん、登録ありがとうございます。</p>
+            <p style="margin:0 0 20px;color:#475569">${esc(name)} さん、登録ありがとうございます。</p>
 
             <p style="margin:0 0 16px;color:#0f172a;font-weight:600">OPINIO でできること：</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
