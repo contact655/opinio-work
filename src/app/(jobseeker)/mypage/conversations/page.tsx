@@ -1,321 +1,82 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import ConversationsClient, { type Conversation } from "./ConversationsClient";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
-import Link from "next/link";
-import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
+export const dynamic = "force-dynamic";
 
-type Conversation = {
-  id: string;
-  kind: string;
-  stage: string;
-  status: string;
-  last_message_at: string | null;
-  created_at: string;
-  company_id: string | null;
-  mentor_user_id: string | null;
-  ow_companies: {
-    id: string;
-    name: string;
-    logo_url: string | null;
-    logo_letter: string | null;
-  } | null;
-  mentor: {
-    id: string;
-    name: string;
-  } | null;
-};
+export default async function ConversationsPage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth?next=/mypage/conversations");
 
-export default function ConversationsPage() {
-  const router = useRouter();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [hasUnreadMap, setHasUnreadMap] = useState<Map<string, boolean>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const adminSupabase = createAdminClient();
 
-  const loadData = useCallback(async () => {
-    const supabase = createClient();
+  // Resolve ow_users.id from auth_id
+  const { data: owUser } = await adminSupabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-
-    if (!user) {
-      router.push("/auth?next=/mypage/conversations");
-      return;
-    }
-
-    const { data: owUser } = await supabase
-      .from("ow_users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-
-    if (!owUser) {
-      setLoading(false);
-      return;
-    }
-
-    // RLS (migration 066 + 067) filters by owUser.id via ow_conversation_participants
-    // No explicit .eq() needed — RLS handles it
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error: fetchError } = await (supabase as any)
-      .from("ow_conversations")
-      .select(
-        `id, kind, stage, status, last_message_at, created_at,
-         company_id, mentor_user_id,
-         ow_companies(id, name, logo_url, logo_letter),
-         mentor:ow_users!mentor_user_id(id, name)`
-      )
-      .order("last_message_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
-
-    if (fetchError) {
-      setError(fetchError.message);
-    } else {
-      setConversations((data as Conversation[]) || []);
-
-      const conversationIds = (data ?? []).map((c: Conversation) => c.id);
-      if (conversationIds.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: myParticipants, error: partError } = await (supabase as any)
-          .from("ow_conversation_participants")
-          .select("id, conversation_id, last_read_at")
-          .eq("user_id", owUser.id)
-          .in("conversation_id", conversationIds);
-
-        if (partError) {
-          console.error("[Step 4-3 E] participants fetch failed:", partError.message);
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: messages, error: msgError } = await (supabase as any)
-          .from("ow_conversation_messages")
-          .select("conversation_id, sender_participant_id, sent_at")
-          .in("conversation_id", conversationIds)
-          .is("deleted_at", null);
-
-        if (msgError) {
-          console.error("[Step 4-3 E] messages fetch failed:", msgError.message);
-        }
-
-        const participantMap = new Map<string, { id: string; last_read_at: string | null }>();
-        for (const p of myParticipants ?? []) {
-          participantMap.set(p.conversation_id, { id: p.id, last_read_at: p.last_read_at });
-        }
-
-        const nextUnreadMap = new Map<string, boolean>();
-        for (const convId of conversationIds) {
-          const myPart = participantMap.get(convId);
-          if (!myPart) { nextUnreadMap.set(convId, false); continue; }
-          const hasUnread = (messages ?? []).some(
-            (m: { conversation_id: string; sender_participant_id: string | null; sent_at: string }) =>
-              m.conversation_id === convId &&
-              m.sender_participant_id !== myPart.id &&
-              (!myPart.last_read_at || new Date(m.sent_at) > new Date(myPart.last_read_at))
-          );
-          nextUnreadMap.set(convId, hasUnread);
-        }
-        setHasUnreadMap(nextUnreadMap);
-      }
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  if (loading) {
-    return (
-      <MypageLayout activeKey="conversations">
-        <h1 style={{
-          fontFamily: '"Noto Serif JP", serif', fontSize: "var(--text-xl)", fontWeight: 700,
-          color: "var(--ink)", marginBottom: "var(--space-6)",
-        }}>対話一覧</h1>
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton-shimmer" style={{
-              height: 72, borderRadius: 12,
-              background: "var(--line-soft)", border: "1px solid var(--line)",
-            }} />
-          ))}
-        </div>
-      </MypageLayout>
-    );
+  if (!owUser) {
+    return <ConversationsClient initialConversations={[]} />;
   }
 
-  return (
-    <MypageLayout activeKey="conversations">
-      <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
-        color: "var(--ink)", marginBottom: 24,
-      }}>対話一覧</h1>
+  // Fetch conversations (RLS already filters by participant via migration 066/067)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: convData } = await (adminSupabase as any)
+    .from("ow_conversations")
+    .select(
+      `id, kind, stage, status, last_message_at, created_at,
+       company_id, mentor_user_id,
+       ow_companies(id, name, logo_url, logo_letter),
+       mentor:ow_users!mentor_user_id(id, name)`
+    )
+    .order("last_message_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
 
-      {error && (
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "var(--space-3) var(--space-4)", marginBottom: "var(--space-4)", borderRadius: 8,
-          background: "var(--error-soft)", border: "1px solid #FCA5A5",
-          fontSize: "var(--text-sm)", color: "var(--error)", fontWeight: 600, gap: "var(--space-3)",
-        }} role="alert">
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>データの読み込みに失敗しました。</span>
-          <button
-            type="button"
-            onClick={loadData}
-            style={{
-              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-              background: "var(--error)", color: "#fff", border: "none", cursor: "pointer",
-              whiteSpace: "nowrap", fontFamily: "inherit",
-            }}
-          >
-            再試行
-          </button>
-        </div>
-      )}
+  const conversations: Conversation[] = convData ?? [];
+  const conversationIds = conversations.map((c) => c.id);
 
-      {conversations.length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--line)", padding: "40px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
-          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>まだ対話がありません</p>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.75, marginBottom: 24 }}>
-            気になる企業の在籍ユーザーにDMを送るか、<br />
-            カジュアル面談を申し込んで対話を始めましょう。
-          </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link
-              href="/companies"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "10px 20px",
-                background: "var(--royal)", color: "#fff",
-                borderRadius: 8, fontSize: 13, fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              企業を見てDMする
-            </Link>
-            <Link
-              href="/companies"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "10px 20px",
-                border: "1.5px solid var(--royal-100)", background: "var(--royal-50)", color: "var(--royal)",
-                borderRadius: 8, fontSize: 13, fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
-              カジュアル面談を申し込む
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {conversations.map((conv) => {
-            const company = conv.ow_companies;
-            const displayName =
-              conv.kind === "direct_message"
-                ? conv.mentor?.name ?? "ユーザー"
-                : conv.kind === "mentor"
-                ? conv.mentor?.name ?? "対話相手"
-                : company?.name ?? "(企業情報なし)";
+  if (conversationIds.length === 0) {
+    return <ConversationsClient initialConversations={[]} />;
+  }
 
-            // last_message_at が null = メッセージ未着。created_at へのフォールバックを停止し
-            // 「これから対話」固定テキストを表示する（フォールバック時の誤解を防ぐ hotfix）
-            const hasMessages = conv.last_message_at !== null;
-            const displayDate = hasMessages
-              ? formatRelativeTime(conv.last_message_at!)
-              : null;
-            const hasUnread = hasUnreadMap.get(conv.id) ?? false;
+  // Fetch unread state: participants + messages in parallel
+  const [{ data: myParticipants }, { data: messages }] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (adminSupabase as any)
+      .from("ow_conversation_participants")
+      .select("id, conversation_id, last_read_at")
+      .eq("user_id", owUser.id)
+      .in("conversation_id", conversationIds),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (adminSupabase as any)
+      .from("ow_conversation_messages")
+      .select("conversation_id, sender_participant_id, sent_at")
+      .in("conversation_id", conversationIds)
+      .is("deleted_at", null),
+  ]);
 
-            return (
-              <Link
-                key={conv.id}
-                href={`/mypage/conversations/${conv.id}`}
-                className="block"
-                aria-label={hasUnread ? `${displayName}（未読あり）` : displayName}
-              >
-                <div
-                  className={`bg-white rounded-card border p-4 transition-all duration-150 flex items-center gap-4 ${
-                    hasUnread
-                      ? "border-primary shadow-card-hover"
-                      : "border-card-border hover:border-primary hover:shadow-card-hover"
-                  }`}
-                >
-                  {/* Logo / Avatar */}
-                  {conv.kind === "direct_message" ? (
-                    <div style={{
-                      width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                      background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 14, fontWeight: 700, color: "#fff",
-                    }}>
-                      {displayName[0] ?? "?"}
-                    </div>
-                  ) : company?.logo_url ? (
-                    <img
-                      src={company.logo_url}
-                      alt={company.name}
-                      loading="lazy"
-                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                      {company?.logo_letter ?? company?.name?.[0] ?? displayName[0] ?? "?"}
-                    </div>
-                  )}
+  const participantMap = new Map<string, { id: string; last_read_at: string | null }>();
+  for (const p of myParticipants ?? []) {
+    participantMap.set(p.conversation_id, { id: p.id, last_read_at: p.last_read_at });
+  }
 
-                  {/* Name + date */}
-                  <div className="flex-1 min-w-0">
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span
-                        className={`text-sm truncate ${
-                          hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"
-                        }`}
-                      >
-                        {displayName}
-                      </span>
-                      {conv.kind === "direct_message" && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100, flexShrink: 0,
-                          background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-                          letterSpacing: "0.05em",
-                        }}>DM</span>
-                      )}
-                    </div>
-                    {displayDate ? (
-                      <div className="text-xs text-gray-400 mt-0.5 tabular-nums">
-                        {displayDate}
-                      </div>
-                    ) : (
-                      // last_message_at = null: メッセージ未着状態
-                      <div className="text-xs mt-0.5" style={{ color: "var(--ink-soft)" }}>
-                        これから対話
-                      </div>
-                    )}
-                  </div>
+  const conversationsWithUnread = conversations.map((conv) => {
+    const myPart = participantMap.get(conv.id);
+    if (!myPart) return { ...conv, hasUnread: false };
+    const hasUnread = (messages ?? []).some(
+      (m: { conversation_id: string; sender_participant_id: string | null; sent_at: string }) =>
+        m.conversation_id === conv.id &&
+        m.sender_participant_id !== myPart.id &&
+        (!myPart.last_read_at || new Date(m.sent_at) > new Date(myPart.last_read_at))
+    );
+    return { ...conv, hasUnread };
+  });
 
-                  {/* 未読インジケーター */}
-                  {hasUnread && (
-                    <div
-                      className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-primary"
-                      aria-label="未読あり"
-                      title="未読あり"
-                    />
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </MypageLayout>
-  );
+  return <ConversationsClient initialConversations={conversationsWithUnread} />;
 }
