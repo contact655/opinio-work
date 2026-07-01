@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function resolveOwUserId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -13,6 +15,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } },
 ) {
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
   const owUserId = await resolveOwUserId(supabase);
   if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,6 +35,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const supabase = createClient();
   const owUserId = await resolveOwUserId(supabase);
   if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
