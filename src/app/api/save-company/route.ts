@@ -21,7 +21,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const { company_id } = await request.json();
+  let parsed: { company_id?: unknown };
+  try { parsed = await request.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  const { company_id } = parsed;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!company_id || typeof company_id !== "string" || !UUID_RE.test(company_id)) {

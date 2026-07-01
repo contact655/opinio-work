@@ -14,11 +14,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { targetUserId, message } = body as {
-    targetUserId: string;
-    message: string;
-  };
+  let body: { targetUserId: string; message: string };
+  try { body = await request.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  const { targetUserId, message } = body;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!targetUserId || !UUID_RE.test(targetUserId) || !message?.trim()) {

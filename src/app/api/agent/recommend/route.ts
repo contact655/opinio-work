@@ -46,6 +46,8 @@ export async function POST(req: Request) {
   if (body.name.length > 100) return NextResponse.json({ error: "氏名は100字以内で入力してください" }, { status: 400 });
   if (!body.email?.trim()) return NextResponse.json({ error: "メールアドレスは必須です" }, { status: 400 });
   if (body.email.length > 200) return NextResponse.json({ error: "メールアドレスが長すぎます" }, { status: 400 });
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!EMAIL_RE.test(body.email.trim())) return NextResponse.json({ error: "有効なメールアドレスを入力してください" }, { status: 400 });
   if (!body.reason?.trim()) return NextResponse.json({ error: "推薦理由は必須です" }, { status: 400 });
   if (body.reason.length > 1000) return NextResponse.json({ error: "推薦理由は1000字以内で入力してください" }, { status: 400 });
   if (body.memo && body.memo.length > 1000) return NextResponse.json({ error: "メモは1000字以内で入力してください" }, { status: 400 });
