@@ -19,6 +19,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select("slug, updated_at")
     .eq("is_published", true);
 
+  const { data: careerProfiles } = await supabase
+    .from("ow_career_profiles")
+    .select("user_id, updated_at")
+    .eq("is_published", true);
+
   const baseUrl = "https://opinio.jp";
 
   return [
@@ -101,6 +106,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.75,
     },
+    // ── Career trajectory individual pages ──────────────────────────────────
+    ...(careerProfiles ?? []).map((p) => ({
+      url: `${baseUrl}/career-trajectories/${p.user_id}`,
+      lastModified: new Date(p.updated_at),
+      changeFrequency: "monthly" as const,
+      priority: 0.65,
+    })),
     {
       url: `${baseUrl}/career-consultation`,
       lastModified: new Date(),
