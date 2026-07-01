@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
-    const { text, fileName } = await req.json();
+    const { text } = await req.json();
 
     if (!text) {
       return NextResponse.json({ error: "テキストが空です" }, { status: 400 });
