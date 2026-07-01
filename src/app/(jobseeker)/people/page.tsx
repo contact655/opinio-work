@@ -1,6 +1,5 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
-import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
 import { PeopleListClient, type AmbassadorCard } from "./PeopleListClient";
@@ -41,7 +40,6 @@ type DbAmbassador = {
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
 async function getAmbassadors(): Promise<AmbassadorCard[]> {
-  noStore();
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase

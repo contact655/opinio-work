@@ -13,9 +13,8 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
-import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { type CardData } from "./TrajectoryCardClient";
 import { TrajectoryPageClient } from "./TrajectoryPageClient";
@@ -55,7 +54,6 @@ type ExpRow = {
 // ────────────────────────────────────────────────────────────────
 
 async function getProfiles(): Promise<CardData[]> {
-  noStore();
   const admin = createAdminClient();
 
   // ① ow_users と ow_career_profiles を並列取得（旧: 3回逐次 → 2回並列）

@@ -351,17 +351,9 @@ function CompanyMiniCardSkeleton() {
 }
 
 
-function FeaturedCompaniesSection() {
-  const [companies, setCompanies] = useState<PreviewCompany[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/companies/preview")
-      .then((r) => r.json())
-      .then((d) => { setCompanies(Array.isArray(d.companies) ? d.companies : []); })
-      .catch(() => setCompanies([]))
-      .finally(() => setLoading(false));
-  }, []);
+function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: PreviewCompany[] }) {
+  const companies = initialCompanies;
+  const loading = false;
 
   // 6件に絞る
   const displayed = companies.slice(0, 6);
@@ -1169,21 +1161,20 @@ function SocialProofSection() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function HomePageClient() {
-  const [stats, setStats] = useState<{ companies: number; jobs: number } | null>(null);
-  useEffect(() => {
-    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
-  }, []);
-  const companyNum = stats ? `${stats.companies}社+` : "80社+";
-
-
+export default function HomePageClient({
+  initialCompanies = [],
+  companyNum = "80社+",
+}: {
+  initialCompanies?: PreviewCompany[];
+  companyNum?: string;
+}) {
   return (
     <>
       <Hero />
       <FirstVisitOnboarding />
 
       <HowItWorks />
-      <FeaturedCompaniesSection />
+      <FeaturedCompaniesSection initialCompanies={initialCompanies} />
       <PainPoints />
       <CareerTrajectoriesTeaser />
       <SocialProofSection />

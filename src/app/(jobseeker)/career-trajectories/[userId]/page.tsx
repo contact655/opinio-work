@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 // ────────────────────────────────────────────────────────────────
 // 型

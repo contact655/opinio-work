@@ -6,7 +6,7 @@ import { BusinessHero } from "@/components/business/BusinessHero";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS採用プラットフォーム | OPINIO for Business" },

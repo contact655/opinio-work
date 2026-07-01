@@ -3,7 +3,7 @@ import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 import CompanyListClient from "./CompanyListClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 async function getCompanies() {
   const supabase = createClient();
