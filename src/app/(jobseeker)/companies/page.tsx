@@ -12,8 +12,8 @@ import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
 
-// 5分間ページキャッシュ（ISR）
-export const revalidate = 300;
+// searchParams（フィルター）を使うため dynamic にする
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS企業を知る | OPINIO" },

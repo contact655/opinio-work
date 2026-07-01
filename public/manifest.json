@@ -90,12 +90,6 @@
       "short_name": "マイページ",
       "url": "/mypage",
       "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96", "type": "image/png" }]
-    },
-    {
-      "name": "フィード",
-      "short_name": "フィード",
-      "url": "/feed",
-      "icons": [{ "src": "/icons/pwa/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ]
 }

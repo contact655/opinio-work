@@ -2925,13 +2925,13 @@ export default function ProfileEditClient({
 
   // ── グローバル保存ステータス（全タブ共通のインジケーター用） ─────────────
   // isSaving: いずれかのタブで保存中, justSaved: 直近3秒以内に保存完了
-  const [globalSaveStatus, setGlobalSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [globalSaveStatus, setGlobalSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // 各タブの保存アクション後にグローバルステータスを更新するヘルパー
-  const notifyGlobalSave = useCallback((status: "saving" | "saved") => {
+  const notifyGlobalSave = useCallback((status: "saving" | "saved" | "error") => {
     setGlobalSaveStatus(status);
-    if (status === "saved") {
-      setTimeout(() => setGlobalSaveStatus("idle"), 3000);
+    if (status === "saved" || status === "error") {
+      setTimeout(() => setGlobalSaveStatus("idle"), 4000);
     }
   }, []);
 
@@ -2950,8 +2950,10 @@ export default function ProfileEditClient({
         setPrefSaved(true);
         notifyGlobalSave("saved");
         prefSavedTimerRef.current = setTimeout(() => setPrefSaved(false), 3000);
+      } else {
+        notifyGlobalSave("error");
       }
-    } catch { /* ignore */ }
+    } catch { notifyGlobalSave("error"); }
     finally { setPrefSaving(false); }
   }, [notifyGlobalSave]);
 
@@ -3010,7 +3012,7 @@ export default function ProfileEditClient({
     } catch {
       setAccountToastVariant("error");
       setAccountToastMsg("保存に失敗しました。もう一度お試しください。");
-      setGlobalSaveStatus("idle");
+      notifyGlobalSave("error");
     } finally {
       setAccountSaving(false);
     }
@@ -3064,7 +3066,7 @@ export default function ProfileEditClient({
     } catch {
       setSocialToastVariant("error");
       setSocialToastMsg("保存に失敗しました。もう一度お試しください。");
-      setGlobalSaveStatus("idle");
+      notifyGlobalSave("error");
     } finally {
       setSocialSaving(false);
     }
@@ -3145,7 +3147,7 @@ export default function ProfileEditClient({
     } catch {
       setBasicToastVariant("error");
       setBasicToastMsg("保存に失敗しました。もう一度お試しください。");
-      setGlobalSaveStatus("idle");
+      notifyGlobalSave("error");
     } finally {
       setBasicSaving(false);
     }
@@ -3259,9 +3261,9 @@ export default function ProfileEditClient({
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "4px 10px", borderRadius: 100, fontSize: 12, fontWeight: 600,
-              background: globalSaveStatus === "saved" ? "var(--success-soft)" : "var(--bg-tint)",
-              color: globalSaveStatus === "saved" ? "var(--success)" : "var(--ink-mute)",
-              border: `1px solid ${globalSaveStatus === "saved" ? "#6ee7b7" : "var(--line)"}`,
+              background: globalSaveStatus === "saved" ? "var(--success-soft)" : globalSaveStatus === "error" ? "var(--error-soft)" : "var(--bg-tint)",
+              color: globalSaveStatus === "saved" ? "var(--success)" : globalSaveStatus === "error" ? "var(--error)" : "var(--ink-mute)",
+              border: `1px solid ${globalSaveStatus === "saved" ? "#6ee7b7" : globalSaveStatus === "error" ? "#FCA5A5" : "var(--line)"}`,
               transition: "all 0.2s",
             }}>
               {globalSaveStatus === "saving" ? (
@@ -3271,6 +3273,8 @@ export default function ProfileEditClient({
                   </svg>
                   保存中…
                 </>
+              ) : globalSaveStatus === "error" ? (
+                <>⚠ 保存失敗 — 再度お試しください</>
               ) : (
                 <>✓ 保存済み</>
               )}
