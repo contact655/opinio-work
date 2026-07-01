@@ -29,6 +29,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(params.id) || !UUID_RE.test(params.user_id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   const companyId = params.id;
   const userId = params.user_id;
 

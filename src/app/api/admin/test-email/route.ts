@@ -22,11 +22,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const to   = searchParams.get("to")   ?? user.email ?? "";
-  const type = searchParams.get("type") ?? "casual_meeting";
+  function escHtml(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
 
-  if (!to.includes("@")) {
+  const { searchParams } = new URL(req.url);
+  const toRaw = (searchParams.get("to") ?? user.email ?? "").slice(0, 254);
+  const to    = escHtml(toRaw);
+  const type  = (searchParams.get("type") ?? "casual_meeting").slice(0, 50);
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!EMAIL_RE.test(toRaw)) {
     return NextResponse.json({ error: "?to= must be a valid email" }, { status: 400 });
   }
 
@@ -93,10 +99,10 @@ export async function GET(req: Request) {
   }
 
   try {
-    await sendEmail({ to, subject, html });
+    await sendEmail({ to: toRaw, subject, html });
     return NextResponse.json({
       ok: true,
-      sent_to: to,
+      sent_to: toRaw,
       type,
       subject,
       note: "Check your inbox (and spam folder).",

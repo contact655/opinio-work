@@ -26,6 +26,11 @@ export async function POST(
 ) {
   const requestId = params.id;
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(requestId)) {
+    return NextResponse.json({ error: "Invalid request id" }, { status: 400 });
+  }
+
   // ── 1. 認証チェック ──────────────────────────────────────────────────────
   const supabase = createClient();
   const {
