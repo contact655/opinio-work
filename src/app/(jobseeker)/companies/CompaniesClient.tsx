@@ -735,7 +735,10 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
               </span>
             )}
 
-            {/* Job count badge */}
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Job count badge — right-aligned */}
             {company.job_count > 0 && (
               <span
                 style={{
@@ -759,9 +762,6 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 募集中 {company.job_count}件
               </span>
             )}
-
-            {/* Spacer */}
-            <div style={{ flex: 1 }} />
 
             {/* CTA button */}
             {company.accepting_casual_meetings ? (
