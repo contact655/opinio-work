@@ -42,9 +42,6 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Opinio Inc." }],
   creator: "Opinio Inc.",
-  verification: {
-    google: "fKeYTtqVui2vcb4NJmA9c64nYi9BZbkzLS0XScDL3UE",
-  },
   openGraph: {
     type: "website",
     locale: "ja_JP",
