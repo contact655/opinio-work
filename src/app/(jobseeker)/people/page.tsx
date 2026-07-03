@@ -107,7 +107,6 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <h1 className="sr-only">話せる人</h1>
       <PeopleListClient ambassadors={ambassadors} companies={companies} />
     </div>
   );

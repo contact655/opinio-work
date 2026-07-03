@@ -433,6 +433,37 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
 
   return (
     <>
+      {/* ── ページヘッダーバンド ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+        padding: "var(--space-8) 0 var(--space-6)",
+      }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>
+            PEOPLE
+          </div>
+          <h1 style={{
+            fontFamily: "var(--font-noto-serif)",
+            fontSize: "clamp(22px, 3vw, 32px)",
+            fontWeight: 700,
+            color: "#fff",
+            lineHeight: 1.35,
+            marginBottom: "var(--space-3)",
+          }}>
+            話せる人を探す
+          </h1>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              {ambassadors.length}名掲載中
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#FCD34D", border: "1px solid rgba(245,158,11,0.3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              直接話せる · 無料
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
       <div style={{ position: "sticky", top: 60, zIndex: 50, background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
