@@ -481,7 +481,10 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
 
         {/* ロールカテゴリ */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
-            {ROLE_CATEGORIES.map((cat) => {
+            {ROLE_CATEGORIES.filter((cat) => {
+              if (cat.key === "all") return true;
+              return ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length > 0;
+            }).map((cat) => {
               const count = cat.key === "all"
                 ? ambassadors.length
                 : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;

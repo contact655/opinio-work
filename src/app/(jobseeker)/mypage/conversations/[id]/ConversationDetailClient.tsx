@@ -84,6 +84,12 @@ export default function ConversationDetailClient({
     }
   }, [messages]);
 
+  // 10秒ポーリングで新着メッセージを自動取得
+  useEffect(() => {
+    const timer = setInterval(() => { refreshMessages(); }, 10_000);
+    return () => clearInterval(timer);
+  }, [refreshMessages]);
+
   const refreshMessages = useCallback(async () => {
     const supabase = createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
