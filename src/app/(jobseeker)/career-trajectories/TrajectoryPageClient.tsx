@@ -78,6 +78,24 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
+      {/* ── ページヘッダーバンド ── */}
+      <div style={{ background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)", padding: "var(--space-8) 0 var(--space-6)" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>CAREER TRAJECTORIES</div>
+          <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700, color: "#fff", lineHeight: 1.35, margin: 0 }}>
+            キャリア軌跡
+          </h1>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-3)" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {cards.length}名の軌跡を公開中
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(124,58,237,0.2)", color: "#C4B5FD", border: "1px solid rgba(124,58,237,0.35)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              年収変化 · 転職理由を匿名公開
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
       <div style={{
         position: "sticky", top: 60, zIndex: 50,
@@ -88,10 +106,8 @@ export function TrajectoryPageClient({ cards }: { cards: CardData[] }) {
       }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
-          {/* ── ページタイトル ── */}
-          <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0, letterSpacing: "-0.01em" }}>
-            キャリア軌跡
-          </h1>
+          {/* ── ページタイトル（スクリーンリーダー用） ── */}
+          <span className="sr-only">キャリア軌跡</span>
 
           {/* ── 行1: 検索バー + 職種チップ ── */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>

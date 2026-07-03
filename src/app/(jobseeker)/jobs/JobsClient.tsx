@@ -1640,6 +1640,25 @@ export default function JobsClient({
   return (
     <>
       <h1 className="sr-only">IT/SaaS求人を探す</h1>
+
+      {/* ── ページヘッダーバンド ── */}
+      <div style={{ background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)", padding: "var(--space-8) 0 var(--space-6)" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>JOBS</div>
+          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700, color: "#fff", lineHeight: 1.35, marginBottom: "var(--space-3)", margin: 0 }}>
+            IT / SaaS 求人を探す
+          </h2>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-3)" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {allJobs.length}件掲載中
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#FCD34D", border: "1px solid rgba(245,158,11,0.3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              外資 · SaaS · スタートアップ特化
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ── 2-row スティッキーフィルターバー（全幅・常時固定） ── */}
       <div
         ref={filterBarRef}

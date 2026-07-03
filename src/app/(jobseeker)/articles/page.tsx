@@ -51,7 +51,7 @@ function ArticleCard({ article }: { article: Article }) {
       >
         {/* Eyecatch */}
         <div style={{
-          height: 140,
+          height: 168,
           background: article.eyecatch_gradient || "linear-gradient(135deg, var(--royal), #3B5FD9)",
           display: "flex", alignItems: "center", justifyContent: "center",
           position: "relative", overflow: "hidden",
@@ -59,17 +59,22 @@ function ArticleCard({ article }: { article: Article }) {
           {/* 背景デコレーション */}
           <div style={{
             position: "absolute", inset: 0,
-            background: "radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 60%)",
+            background: "radial-gradient(circle at 70% 30%, rgba(255,255,255,0.18) 0%, transparent 60%)",
+          }} />
+          {/* 斜めストライプテクスチャ */}
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px)",
           }} />
           {/* 引用マーク（インタビュー系記事） */}
           {(article.type === "employee" || article.type === "mentor" || article.type === "ceo") && (
             <span style={{
               position: "absolute", left: 14, bottom: 10, zIndex: 1,
-              fontFamily: "Georgia, serif", fontSize: 64, lineHeight: 1,
-              color: "rgba(255,255,255,0.15)", fontWeight: 700, userSelect: "none",
+              fontFamily: "Georgia, serif", fontSize: 80, lineHeight: 1,
+              color: "rgba(255,255,255,0.12)", fontWeight: 700, userSelect: "none",
             }}>&ldquo;</span>
           )}
-          <span style={{ fontSize: 44, opacity: 0.18, position: "relative", zIndex: 1 }}>{icon}</span>
+          <span style={{ fontSize: 52, opacity: 0.22, position: "relative", zIndex: 1 }}>{icon}</span>
 
           {/* Category badge */}
           <div style={{
@@ -304,6 +309,24 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
     <>
       {/* SEO H1 (visually hidden) */}
       <h1 className="sr-only">IT/SaaS業界の取材記事</h1>
+
+      {/* ── ページヘッダーバンド ── */}
+      <div style={{ background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)", padding: "var(--space-8) 0 var(--space-6)" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: "var(--space-2)", textTransform: "uppercase" }}>ARTICLES</div>
+          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700, color: "#fff", lineHeight: 1.35, margin: 0 }}>
+            取材記事
+          </h2>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-3)" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {filteredArticles.length}件
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#FCD34D", border: "1px solid rgba(245,158,11,0.3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              社員インタビュー · 組織レポート · CEO取材
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Filter bar */}
       <Suspense fallback={<div style={{ height: 52, background: "#fff", borderBottom: "1px solid var(--line)" }} />}>

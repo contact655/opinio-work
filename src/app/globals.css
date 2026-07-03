@@ -845,18 +845,19 @@ body {
 .trajectory-list-card {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px 20px;
+  border-radius: 18px;
+  padding: 20px 24px;
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 20px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.05);
 }
 .trajectory-list-card:hover {
-  box-shadow: 0 3px 16px rgba(0,35,102,0.10);
+  box-shadow: 0 8px 28px rgba(0,35,102,0.12);
   border-color: var(--royal-100);
-  transform: translateX(2px);
+  transform: translateY(-2px);
 }
 /* ブロック1: 人物情報（固定幅・コンパクト） */
 .traj-person-block {
