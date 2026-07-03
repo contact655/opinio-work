@@ -19,16 +19,18 @@ const MEMBERSHIP_EXEMPT = [
 ];
 
 export default async function BizLayout({ children }: { children: React.ReactNode }) {
+  // Check path before auth to avoid redirect loops on public biz pages (e.g. /biz/auth itself)
+  const headersList = headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isExempt = MEMBERSHIP_EXEMPT.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+  if (isExempt) return <>{children}</>;
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect("/biz/auth");
   }
-
-  // Check if this path requires active company membership
-  const headersList = headers();
-  const pathname = headersList.get("x-pathname") ?? "";
-  const isExempt = MEMBERSHIP_EXEMPT.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   if (!isExempt) {
     const admin = createAdminClient();
