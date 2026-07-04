@@ -115,7 +115,7 @@ function Hero() {
           </p>
 
           {/* CTAs — primary only, secondary as text link */}
-          <div style={{ marginBottom: 28 }}>
+          <div style={{ marginBottom: 20 }}>
             <Link href="/companies" style={{
               display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
               padding: "16px 32px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
@@ -133,6 +133,25 @@ function Hero() {
                 → 無料会員登録はこちら（30秒）
               </Link>
             </div>
+          </div>
+
+          {/* 信頼シグナルピル */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
+            {[
+              { icon: "✅", text: "完全無料" },
+              { icon: "📵", text: "営業電話なし" },
+              { icon: "🔒", text: "メール登録のみ" },
+              { icon: "⏱", text: "登録30秒" },
+            ].map((p) => (
+              <span key={p.text} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "4px 10px", borderRadius: 100,
+                background: "rgba(255,255,255,0.7)", border: "1px solid var(--line)",
+                fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",
+              }}>
+                {p.icon} {p.text}
+              </span>
+            ))}
           </div>
 
         </div>
@@ -189,6 +208,51 @@ function Hero() {
               すべて無料 · メール登録のみ · 営業電話なし
             </p>
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Trust Numbers ────────────────────────────────────────────────────────────
+
+function TrustNumbers() {
+  const items = [
+    { icon: "🏢", num: "80社+", label: "の企業情報", sub: "外資IT・SaaS・スタートアップ" },
+    { icon: "💼", num: "150件+", label: "の公開求人", sub: "職種・年収・働き方で絞り込み" },
+    { icon: "👤", num: "13名", label: "のメンター", sub: "現役・OB社員に直接相談できる" },
+    { icon: "📊", num: "匿名", label: "年収・転職データ公開中", sub: "求人票には載らないリアルな数字" },
+  ];
+  return (
+    <section style={{
+      background: "#fff",
+      borderTop: "1px solid var(--line)",
+    }}>
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "40px 48px" }} className="px-5 md:px-12">
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "24px 32px",
+        }} className="grid grid-cols-2 md:grid-cols-4">
+          {items.map((item) => (
+            <div key={item.num + item.label} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{item.icon}</div>
+              <div style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: 36, fontWeight: 900,
+                color: "#001233", letterSpacing: "-0.03em",
+                lineHeight: 1,
+              }}>
+                {item.num}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 4 }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.5 }}>
+                {item.sub}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -1131,17 +1195,29 @@ function SocialProofSection() {
     <section style={{ background: "#fff", padding: "72px 48px 80px", borderTop: "1px solid var(--line)" }} className="px-5 md:px-12">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 14px", borderRadius: 100, background: "#FEF3C7", border: "1px solid #FDE68A", fontSize: 11, fontWeight: 700, color: "#92400E", marginBottom: 16 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "6px 16px", borderRadius: 100,
+            background: "linear-gradient(135deg, #001233, #002366)",
+            fontSize: 11, fontWeight: 700, color: "#fff", marginBottom: 16,
+            letterSpacing: "0.06em",
+          }}>
             ⭐ ユーザーの声
           </div>
           <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(20px,2.8vw,32px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
             OPINIOで、動き出した人たち。
           </h2>
-          <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8 }}>※ 実際のご利用者の体験をもとに作成したイメージです</p>
+          <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8, opacity: 0.5 }}>※ 実際のご利用者の体験をもとに作成したイメージです</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }} className="grid grid-cols-1 md:grid-cols-3">
           {stories.map((s) => (
             <div key={s.name} style={{ background: "var(--bg-tint)", borderRadius: 16, padding: "24px", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* 星5つ */}
+              <div style={{ display: "flex", gap: 2 }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} style={{ color: "#F59E0B", fontSize: 14 }}>★</span>
+                ))}
+              </div>
               <svg width="28" height="20" viewBox="0 0 28 20" fill="var(--royal-100)" aria-hidden><path d="M0 20V12.4C0 8.8 1.2 5.8 3.6 3.4 6 1 9.2 0 13.2 0v3.6c-2 0-3.6.7-4.8 2.2C7.2 7.2 6.6 9 6.6 11H11V20H0zm16 0V12.4c0-3.6 1.2-6.6 3.6-9C22 1 25.2 0 29.2 0v3.6c-2 0-3.6.7-4.8 2.2-1.2 1.4-1.8 3.2-1.8 5.2H27V20H16z"/></svg>
               <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.75, fontStyle: "italic", flex: 1, margin: 0 }}>{s.quote}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1153,6 +1229,48 @@ function SocialProofSection() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Founder Message ──────────────────────────────────────────────────────────
+
+function FounderMessage() {
+  return (
+    <section style={{
+      background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+      padding: "72px 48px",
+    }} className="px-5 py-14 md:px-12 md:py-20">
+      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+        {/* ラベル */}
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.5)", marginBottom: 24, textTransform: "uppercase" as const }}>
+          FROM THE FOUNDER
+        </div>
+        {/* 大きな引用 */}
+        <blockquote style={{
+          fontFamily: "var(--font-noto-serif)",
+          fontSize: "clamp(18px, 2.4vw, 26px)",
+          fontWeight: 700,
+          color: "#fff",
+          lineHeight: 1.7,
+          margin: "0 0 32px",
+          borderLeft: "3px solid #F59E0B",
+          paddingLeft: 24,
+        }}>
+          「転職は、情報量の差で結果が変わる。<br />
+          OPINIOは、その差をなくすためにあります。」
+        </blockquote>
+        {/* 署名 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #F59E0B, #D97706)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+            柴
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>柴 久人</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>株式会社Opinio 代表取締役 / 元外資系IT営業</div>
+          </div>
         </div>
       </div>
     </section>
@@ -1171,13 +1289,14 @@ export default function HomePageClient({
   return (
     <>
       <Hero />
+      <TrustNumbers />
       <FirstVisitOnboarding />
-
       <HowItWorks />
       <FeaturedCompaniesSection initialCompanies={initialCompanies} />
       <PainPoints />
       <CareerTrajectoriesTeaser />
       <SocialProofSection />
+      <FounderMessage />
       <HomeFaq />
       <FinalCta companyNum={companyNum} />
       <MobileAuthCTA />

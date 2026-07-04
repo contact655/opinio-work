@@ -84,6 +84,11 @@ export async function GET(request: Request) {
         );
       }
 
+      // 新規ユーザーはウェルカムバナー付きでリダイレクト
+      if (isNewUser && next === "/companies") {
+        return NextResponse.redirect(`${origin}/mypage?welcome=1`);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

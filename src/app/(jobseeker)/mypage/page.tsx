@@ -18,7 +18,7 @@ export const metadata = { title: { absolute: "マイページ | OPINIO" }, robot
 export default async function MypagePage({
   searchParams,
 }: {
-  searchParams?: { setup?: string };
+  searchParams?: { setup?: string; welcome?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -317,6 +317,7 @@ export default async function MypagePage({
 
   const showSetupBanner = !owUser?.profile_setup_at;
   const setupJustDone = searchParams?.setup === "done";
+  const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} />;
 }

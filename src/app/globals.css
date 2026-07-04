@@ -268,10 +268,11 @@ p, .description, .desc {
 /* ── Card hover effects ─────────────────────────────────────────────────────── */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0, 35, 102, 0.10);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px rgba(0, 35, 102, 0.12);
 }
 .company-card:hover {
   border-color: var(--royal-100) !important;
@@ -367,10 +368,15 @@ p, .description, .desc {
 
 /* ── Focus visible ring ──
    !important overrides inline outline:none so keyboard users always see focus rings */
+:focus-visible {
+  outline: 2px solid var(--royal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
 a:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--royal) !important;
-  outline-offset: 2px !important;
+  outline-offset: 3px !important;
   border-radius: 4px;
 }
 
@@ -912,4 +918,22 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,35,102,0.18);
   border-color: var(--royal-100) !important;
+}
+
+/* ── モバイル最小フォントサイズ保証 ─────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .job-card-meta,
+  .company-card-meta,
+  .pill-text {
+    font-size: 12px !important;
+  }
+}
+
+/* ── ページ遷移アニメーション ─────────────────────────────────────────────── */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: pageEnter 0.3s ease forwards;
 }

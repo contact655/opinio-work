@@ -249,6 +249,7 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [bookmarkCount, setBookmarkCount] = useState(0);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -578,6 +579,47 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
         @media (max-width: 640px) {
           .csb-bar { gap: 6px; }
         }
+        .csb-filter-toggle {
+          display: none;
+        }
+        .csb-filter-chips {
+          display: contents;
+        }
+        @media (max-width: 767px) {
+          .csb-filter-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12.5px;
+            color: var(--ink-soft);
+            cursor: pointer;
+            white-space: nowrap;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: #fff;
+            font-family: inherit;
+            font-weight: 500;
+            transition: border-color 0.15s, background 0.15s;
+            flex-shrink: 0;
+          }
+          .csb-filter-toggle.active {
+            border-color: var(--royal);
+            background: var(--royal-50);
+            color: var(--royal);
+            font-weight: 700;
+          }
+          .csb-filter-chips {
+            display: none;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 4px 0;
+          }
+          .csb-filter-chips.expanded {
+            display: flex;
+          }
+        }
       `}</style>
 
       <div ref={wrapRef} style={{ marginBottom: 4 }}>
@@ -632,6 +674,24 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               </div>
             )}
           </div>
+
+          {/* モバイル用フィルタートグルボタン */}
+          <button
+            type="button"
+            className={`csb-filter-toggle${filtersExpanded ? " active" : ""}`}
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            aria-expanded={filtersExpanded}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="4" y1="6" x2="20" y2="6"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+              <line x1="11" y1="18" x2="13" y2="18"/>
+            </svg>
+            絞り込む{filtersExpanded ? " ▴" : " ▾"}
+          </button>
+
+          {/* フィルターチップ群（モバイルで折りたたみ） */}
+          <div className={`csb-filter-chips${filtersExpanded ? " expanded" : ""}`}>
 
           {/* フェーズ */}
           <FilterChip
@@ -756,6 +816,8 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               ✕ すべてクリア
             </button>
           )}
+
+          </div>{/* /csb-filter-chips */}
 
           {/* 気になり件数 */}
           {bookmarkCount > 0 && (

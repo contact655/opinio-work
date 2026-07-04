@@ -808,6 +808,7 @@ export default function MypageClient({
   hasCareerPreferences = false,
   showSetupBanner = false,
   setupJustDone = false,
+  isNewUser = false,
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -827,6 +828,7 @@ export default function MypageClient({
   hasCareerPreferences?: boolean;
   showSetupBanner?: boolean;
   setupJustDone?: boolean;
+  isNewUser?: boolean;
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -839,6 +841,7 @@ export default function MypageClient({
     : null;
 
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const { isMentor: _isMentorMock } = useMypageMock();
 
   const navigate = useCallback((v: ActiveView) => {
@@ -1075,6 +1078,75 @@ export default function MypageClient({
       applicationsBadge={applicationsBadge}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
     >
+      {/* ウェルカムバナー（新規登録直後） */}
+      {isNewUser && !welcomeDismissed && (
+        <div style={{
+          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+          border: "1.5px solid #6EE7B7",
+          borderRadius: 14,
+          padding: "18px 20px",
+          marginBottom: 20,
+        }}>
+          {/* ヘッダー行 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <span style={{ fontSize: 26, lineHeight: 1 }}>🎉</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#065F46" }}>
+                OPINIOへようこそ！登録が完了しました。
+              </div>
+              <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>
+                まずは以下の3ステップをやってみましょう
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWelcomeDismissed(true)}
+              aria-label="閉じる"
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "#6EE7B7", fontSize: 20, lineHeight: 1,
+                padding: "4px 6px", borderRadius: 6, flexShrink: 0,
+              }}
+            >×</button>
+          </div>
+
+          {/* 3ステップ */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              { step: 1, label: "企業を1社お気に入りに追加する", href: "/companies", cta: "企業一覧を見る →" },
+              { step: 2, label: "求人を1件確認する", href: "/jobs", cta: "求人を見る →" },
+              { step: 3, label: "キャリア軌跡を見てみる", href: "/career-trajectories", cta: "キャリア軌跡を見る →" },
+            ].map(({ step, label, href, cta }) => (
+              <div key={step} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                background: "rgba(255,255,255,0.65)", borderRadius: 10,
+                padding: "10px 14px",
+              }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                  background: "var(--success)", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 800,
+                }}>
+                  {step}
+                </div>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#065F46" }}>
+                  {label}
+                </span>
+                <Link href={href} style={{
+                  fontSize: 11, fontWeight: 700, color: "#047857",
+                  background: "#D1FAE5", padding: "4px 10px",
+                  borderRadius: 100, textDecoration: "none", flexShrink: 0,
+                  border: "1px solid #A7F3D0",
+                }}>
+                  {cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 公開完了バナー（/profile/start から遷移直後） */}
       {setupJustDone && (
         <div style={{
