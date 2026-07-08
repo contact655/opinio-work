@@ -98,39 +98,34 @@ export default async function FeedPage() {
     };
     const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
-    // 新着求人（1社1件、3件）
+    // 新着求人（会社制約なし、新着3件そのまま）
     const { data: jobRows } = await adminSupabase
       .from("ow_jobs")
       .select("id, title, job_category, salary_min, salary_max, work_style, ow_companies!inner(id, name, brand_name, logo_letter, logo_gradient, logo_url)")
       .in("status", ["published", "active"])
       .order("published_at", { ascending: false })
-      .limit(20);
+      .limit(3);
 
-    if (jobRows) {
-      const seen = new Set<string>();
-      for (const row of jobRows as unknown as Array<{
-        id: string; title: string; job_category: string | null;
-        salary_min: number | null; salary_max: number | null; work_style: string | null;
-        ow_companies: { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
-      }>) {
-        const co = row.ow_companies;
-        if (!co || seen.has(co.id)) continue;
-        seen.add(co.id);
-        const ws = row.work_style;
-        sidebarJobs.push({
-          id: row.id,
-          title: row.title,
-          companyName: co.brand_name ?? co.name,
-          dept: row.job_category,
-          salaryMin: row.salary_min,
-          salaryMax: row.salary_max,
-          workStyle: ws ? (WORK_STYLE_LABELS[ws] ?? ws) : null,
-          logoUrl: co.logo_url,
-          logoGradient: co.logo_gradient ?? FALLBACK_GRADIENT,
-          logoLetter: co.logo_letter ?? (co.brand_name ?? co.name).charAt(0).toUpperCase(),
-        });
-        if (sidebarJobs.length >= 3) break;
-      }
+    for (const row of (jobRows ?? []) as unknown as Array<{
+      id: string; title: string; job_category: string | null;
+      salary_min: number | null; salary_max: number | null; work_style: string | null;
+      ow_companies: { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+    }>) {
+      const co = row.ow_companies;
+      if (!co) continue;
+      const ws = row.work_style;
+      sidebarJobs.push({
+        id: row.id,
+        title: row.title,
+        companyName: co.brand_name ?? co.name,
+        dept: row.job_category,
+        salaryMin: row.salary_min,
+        salaryMax: row.salary_max,
+        workStyle: ws ? (WORK_STYLE_LABELS[ws] ?? ws) : null,
+        logoUrl: co.logo_url,
+        logoGradient: co.logo_gradient ?? FALLBACK_GRADIENT,
+        logoLetter: co.logo_letter ?? (co.brand_name ?? co.name).charAt(0).toUpperCase(),
+      });
     }
 
     // 話せる人（is_ambassador=true, 3人）
