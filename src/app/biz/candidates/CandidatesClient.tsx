@@ -8,6 +8,7 @@ type Candidate = {
   name: string;
   location: string | null;
   isMentor: boolean;
+  canTalkToHr: boolean;
   currentRole: string | null;
   currentCompany: string | null;
   jobType: string | null;
@@ -94,7 +95,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
   const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
   const [phase, setPhase] = useState("");
   const [transferTiming, setTransferTiming] = useState("");
-  const [_mentorOnly] = useState(false);
+  const [talkToHrOnly, setTalkToHrOnly] = useState(false);
 
   // カテゴリ選択時: 職種選択をリセット
   function selectCategory(key: string | null) {
@@ -133,13 +134,14 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
 
     if (phase)          list = list.filter((c) => c.desiredPhase?.includes(phase));
     if (transferTiming) list = list.filter((c) => c.transferTiming === transferTiming);
+    if (talkToHrOnly)   list = list.filter((c) => c.canTalkToHr);
 
     return list;
-  }, [candidates, q, workStyle, jobCategoryKey, selectedJobType, phase, transferTiming]);
+  }, [candidates, q, workStyle, jobCategoryKey, selectedJobType, phase, transferTiming, talkToHrOnly]);
 
   // jobCategoryKey / selectedJobType はどちらか一方でも選択されていれば「1フィルタ」としてカウント
   const jobTypeFilterActive = jobCategoryKey !== null;
-  const activeFilterCount = [workStyle, jobTypeFilterActive ? "x" : "", phase, transferTiming].filter(Boolean).length;
+  const activeFilterCount = [workStyle, jobTypeFilterActive ? "x" : "", phase, transferTiming, talkToHrOnly ? "x" : ""].filter(Boolean).length;
 
   function clearAllFilters() {
     setWorkStyle("");
@@ -147,6 +149,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
     setSelectedJobType(null);
     setPhase("");
     setTransferTiming("");
+    setTalkToHrOnly(false);
   }
 
   // 現在選択中のカテゴリの配下職種
@@ -221,6 +224,39 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
               <option key={v} value={v}>{l}</option>
             ))}
           </select>
+          {/* 人事と話してOKのみトグル */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={talkToHrOnly}
+            onClick={() => setTalkToHrOnly((v) => !v)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 36, padding: "0 12px", borderRadius: 8,
+              border: talkToHrOnly ? "1.5px solid var(--royal)" : "1px solid var(--line)",
+              background: talkToHrOnly ? "var(--royal-50)" : "#fff",
+              color: talkToHrOnly ? "var(--royal)" : "var(--ink-soft)",
+              cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: talkToHrOnly ? 700 : 400,
+              transition: "all 0.15s", whiteSpace: "nowrap",
+            }}
+          >
+            {/* mini toggle pill */}
+            <span style={{
+              display: "inline-block", width: 28, height: 16, borderRadius: 8, flexShrink: 0,
+              background: talkToHrOnly ? "var(--royal)" : "var(--line)",
+              position: "relative", transition: "background 0.15s",
+            }}>
+              <span style={{
+                position: "absolute", top: 2,
+                left: talkToHrOnly ? 14 : 2,
+                width: 12, height: 12, borderRadius: "50%", background: "#fff",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                transition: "left 0.15s",
+              }} />
+            </span>
+            人事と話せる候補者のみ
+          </button>
+
           {/* Result count + clear */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
@@ -407,6 +443,15 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
                         {c.name}
                       </span>
+                      {c.canTalkToHr && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 100,
+                          background: "var(--royal-50)", color: "var(--royal)",
+                          border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+                        }}>
+                          話せる
+                        </span>
+                      )}
                     </div>
                     {(c.currentRole || c.currentCompany) ? (
                       <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
