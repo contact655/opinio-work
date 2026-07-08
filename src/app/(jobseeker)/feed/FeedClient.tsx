@@ -804,16 +804,19 @@ function PostCard({
                 {[post.user.roleTitle, post.user.company].filter(Boolean).join(" · ")}
               </div>
             )}
-            <div
+            <Link
+              href={`/feed/${post.id}`}
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontSize: 12,
                 color: "var(--ink-mute)",
                 marginTop: 2,
+                display: "block",
+                textDecoration: "none",
               }}
             >
               {relativeTime(post.created_at)}
-            </div>
+            </Link>
           </div>
         </div>
 
