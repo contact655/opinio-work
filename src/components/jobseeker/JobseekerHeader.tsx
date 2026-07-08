@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
@@ -265,7 +266,9 @@ export function JobseekerHeader() {
           <div className="hidden md:flex" style={{ gap: 10, alignItems: "center", flexShrink: 0 }}>
             {!loading && (
               user ? (
-                /* ── Logged-in: avatar button + dropdown ── */
+                /* ── Logged-in: bell + avatar button + dropdown ── */
+                <>
+                <NotificationBell />
                 <div style={{ position: "relative" }} ref={dropdownRef}>
                   <button type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -333,6 +336,7 @@ export function JobseekerHeader() {
                     </div>
                   )}
                 </div>
+                </>
               ) : (
                 <>
                   <Link href="/business" style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textDecoration: "none", padding: "8px 10px", whiteSpace: "nowrap" }}>
