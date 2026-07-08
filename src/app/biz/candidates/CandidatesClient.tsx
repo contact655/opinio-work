@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { JOB_TYPES } from "@/lib/constants/jobTypes";
+import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
 
 type Candidate = {
   id: string;
@@ -25,8 +25,14 @@ const WORK_STYLE_LABELS: Record<string, string> = {
   flexible: "柔軟に対応",
 };
 
-// ow_profiles.job_type — 定数は src/lib/constants/jobTypes.ts で一元管理
-const JOB_TYPE_OPTIONS = [...JOB_TYPES];
+// フィルタ専用: legacy 値をカテゴリにマッピングする。
+// JOB_TYPE_CATEGORIES 定数自体は変えず、ここだけで legacy を拾う。
+// profile/edit の optgroup には影響しない。
+const LEGACY_CATEGORY_MAP: Record<string, string> = {
+  "インサイドセールス": "sales",
+  "エンジニア":        "engineering",
+  "事業開発・BizDev":  "management",
+};
 
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, var(--royal), #3B5FD9)",
@@ -53,13 +59,48 @@ const TRANSFER_TIMING_OPTIONS = [
   { value: "情報収集中", label: "情報収集中" },
 ];
 
+// カテゴリ chip 用スタイルヘルパー
+function catChipStyle(active: boolean): React.CSSProperties {
+  return {
+    height: 30, padding: "0 12px", borderRadius: 15,
+    fontSize: 12, fontWeight: active ? 700 : 400,
+    border: active ? "1.5px solid var(--royal)" : "1px solid var(--line)",
+    background: active ? "var(--royal-50)" : "#fff",
+    color: active ? "var(--royal)" : "var(--ink-soft)",
+    cursor: "pointer", whiteSpace: "nowrap" as const,
+    fontFamily: "inherit", transition: "all 0.15s",
+    display: "inline-flex", alignItems: "center", gap: 4,
+  };
+}
+
+function jobChipStyle(active: boolean): React.CSSProperties {
+  return {
+    height: 28, padding: "0 10px", borderRadius: 14,
+    fontSize: 11, fontWeight: active ? 700 : 400,
+    border: active ? "1.5px solid var(--accent)" : "1px solid var(--line)",
+    background: active ? "var(--royal-50)" : "var(--bg-tint)",
+    color: active ? "var(--accent)" : "var(--ink-soft)",
+    cursor: "pointer", whiteSpace: "nowrap" as const,
+    fontFamily: "inherit", transition: "all 0.15s",
+    display: "inline-flex", alignItems: "center",
+  };
+}
+
 export default function CandidatesClient({ candidates }: { candidates: Candidate[] }) {
   const [q, setQ] = useState("");
   const [workStyle, setWorkStyle] = useState("");
-  const [jobType, setJobType] = useState("");
+  // 職種フィルタ: カテゴリ選択 → 配下職種選択の2段構成
+  const [jobCategoryKey, setJobCategoryKey] = useState<string | null>(null);
+  const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
   const [phase, setPhase] = useState("");
   const [transferTiming, setTransferTiming] = useState("");
   const [_mentorOnly] = useState(false);
+
+  // カテゴリ選択時: 職種選択をリセット
+  function selectCategory(key: string | null) {
+    setJobCategoryKey(key);
+    setSelectedJobType(null);
+  }
 
   const filtered = useMemo(() => {
     let list = candidates;
@@ -72,19 +113,44 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         (c.location ?? "").includes(lower)
       );
     }
-    if (workStyle)      list = list.filter((c) => c.workStyle === workStyle);
-    if (jobType)        list = list.filter((c) => c.jobType === jobType);
+    if (workStyle) list = list.filter((c) => c.workStyle === workStyle);
+
+    if (selectedJobType) {
+      // 職種まで絞り込み: 完全一致（DB保存値との一致）
+      list = list.filter((c) => c.jobType === selectedJobType);
+    } else if (jobCategoryKey) {
+      // カテゴリのみ選択: 配下の全職種 + legacy値にマッチ
+      const cat = JOB_TYPE_CATEGORIES.find((c) => c.key === jobCategoryKey);
+      const types = (cat?.types ?? []) as readonly string[];
+      // LEGACY_CATEGORY_MAP でこのカテゴリに対応する legacy 値を追加
+      const legacyForCat = Object.entries(LEGACY_CATEGORY_MAP)
+        .filter(([, catKey]) => catKey === jobCategoryKey)
+        .map(([jt]) => jt);
+      list = list.filter(
+        (c) => c.jobType && (types.includes(c.jobType) || legacyForCat.includes(c.jobType))
+      );
+    }
+
     if (phase)          list = list.filter((c) => c.desiredPhase?.includes(phase));
     if (transferTiming) list = list.filter((c) => c.transferTiming === transferTiming);
 
     return list;
-  }, [candidates, q, workStyle, jobType, phase, transferTiming]);
+  }, [candidates, q, workStyle, jobCategoryKey, selectedJobType, phase, transferTiming]);
 
-  const activeFilterCount = [workStyle, jobType, phase, transferTiming].filter(Boolean).length;
+  // jobCategoryKey / selectedJobType はどちらか一方でも選択されていれば「1フィルタ」としてカウント
+  const jobTypeFilterActive = jobCategoryKey !== null;
+  const activeFilterCount = [workStyle, jobTypeFilterActive ? "x" : "", phase, transferTiming].filter(Boolean).length;
 
   function clearAllFilters() {
-    setWorkStyle(""); setJobType(""); setPhase(""); setTransferTiming("");
+    setWorkStyle("");
+    setJobCategoryKey(null);
+    setSelectedJobType(null);
+    setPhase("");
+    setTransferTiming("");
   }
+
+  // 現在選択中のカテゴリの配下職種
+  const selectedCat = JOB_TYPE_CATEGORIES.find((c) => c.key === jobCategoryKey);
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
@@ -106,7 +172,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 24,
       }}>
-        {/* Row 1: search + basic selects + count */}
+        {/* Row 1: search + work-style select + count/clear */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
           <div style={{ position: "relative", flex: "1 1 200px" }}>
             <input
@@ -138,23 +204,6 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
               </button>
             )}
           </div>
-          <select
-            id="candidates-job-type"
-            value={jobType}
-            aria-label="職種で絞り込み"
-            onChange={(e) => setJobType(e.target.value)}
-            style={{
-              height: 36, padding: "0 10px",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 13, color: jobType ? "var(--ink)" : "var(--ink-soft)", background: "#fff",
-              outline: "none", fontFamily: "inherit",
-            }}
-          >
-            <option value="">職種（全て）</option>
-            {JOB_TYPE_OPTIONS.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
           <select
             id="candidates-work-style"
             value={workStyle}
@@ -195,7 +244,63 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
           </div>
         </div>
 
-        {/* Row 2: phase pills + transfer timing pills + mentor toggle */}
+        {/* Row 2: 職種カテゴリ chip */}
+        <div style={{ marginBottom: selectedCat ? 8 : 12 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>職種:</span>
+            {JOB_TYPE_CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                aria-pressed={jobCategoryKey === cat.key}
+                onClick={() => selectCategory(jobCategoryKey === cat.key ? null : cat.key)}
+                style={catChipStyle(jobCategoryKey === cat.key)}
+              >
+                <span aria-hidden="true">{cat.emoji}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2b: 配下職種 chip（カテゴリ選択時のみ展開） */}
+        {selectedCat && (
+          <div style={{
+            display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center",
+            padding: "8px 10px", marginBottom: 12,
+            background: "var(--royal-50)", borderRadius: 8,
+            border: "1px solid var(--royal-100)",
+          }}>
+            <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
+              {selectedCat.emoji} {selectedCat.label}:
+            </span>
+            {selectedCat.types.map((jt) => (
+              <button
+                key={jt}
+                type="button"
+                aria-pressed={selectedJobType === jt}
+                onClick={() => setSelectedJobType(selectedJobType === jt ? null : jt)}
+                style={jobChipStyle(selectedJobType === jt)}
+              >
+                {JOB_TYPE_DISPLAY_LABELS[jt] ?? jt}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => selectCategory(null)}
+              style={{
+                marginLeft: "auto", height: 24, padding: "0 8px", borderRadius: 6,
+                fontSize: 11, border: "1px solid var(--royal-100)",
+                background: "#fff", color: "var(--ink-mute)", cursor: "pointer",
+                fontFamily: "inherit", whiteSpace: "nowrap",
+              }}
+            >
+              ✕ カテゴリを解除
+            </button>
+          </div>
+        )}
+
+        {/* Row 3: phase pills + transfer timing pills */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>企業フェーズ:</span>
           {["", ...PHASE_OPTIONS].map((v) => (
@@ -238,7 +343,6 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
               {v || "全て"}
             </button>
           ))}
-
         </div>
       </div>
 
@@ -310,7 +414,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                       </div>
                     ) : c.jobType ? (
                       <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                        {c.jobType}
+                        {JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}
                       </div>
                     ) : null}
                   </div>
