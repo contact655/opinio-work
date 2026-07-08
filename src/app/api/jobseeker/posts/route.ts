@@ -21,6 +21,11 @@ type RawPost = {
   id: string;
   content: string;
   image_url: string | null;
+  link_url: string | null;
+  link_title: string | null;
+  link_image_url: string | null;
+  link_description: string | null;
+  link_domain: string | null;
   created_at: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
   likes: { count: number }[];
@@ -50,7 +55,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from("ow_posts")
     .select(`
-      id, content, image_url, created_at,
+      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -117,6 +122,11 @@ export async function GET(req: Request) {
       id: p.id,
       content: p.content,
       image_url: p.image_url,
+      link_url: p.link_url,
+      link_title: p.link_title,
+      link_image_url: p.link_image_url,
+      link_description: p.link_description,
+      link_domain: p.link_domain,
       created_at: p.created_at,
       user: p.user
         ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
@@ -142,7 +152,15 @@ export async function POST(req: NextRequest) {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  let body: { content?: unknown; image_url?: unknown };
+  let body: {
+    content?: unknown;
+    image_url?: unknown;
+    link_url?: unknown;
+    link_title?: unknown;
+    link_image_url?: unknown;
+    link_description?: unknown;
+    link_domain?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -165,11 +183,33 @@ export async function POST(req: NextRequest) {
   }
   const image_url = image_url_raw;
 
+  // リンクプレビューフィールド（httpsのみ許可）
+  const link_url_raw = typeof body.link_url === "string" && body.link_url.trim().length > 0
+    ? body.link_url.trim()
+    : null;
+  if (link_url_raw && !/^https?:\/\//i.test(link_url_raw)) {
+    return NextResponse.json({ error: "link_url must use HTTPS" }, { status: 400 });
+  }
+  const link_url = link_url_raw;
+  const link_title = typeof body.link_title === "string" && body.link_title.trim().length > 0
+    ? body.link_title.slice(0, 500)
+    : null;
+  const link_image_url_raw = typeof body.link_image_url === "string" && body.link_image_url.trim().length > 0
+    ? body.link_image_url.trim()
+    : null;
+  const link_image_url = link_image_url_raw && /^https?:\/\//i.test(link_image_url_raw) ? link_image_url_raw : null;
+  const link_description = typeof body.link_description === "string" && body.link_description.trim().length > 0
+    ? body.link_description.slice(0, 500)
+    : null;
+  const link_domain = typeof body.link_domain === "string" && body.link_domain.trim().length > 0
+    ? body.link_domain.slice(0, 253)
+    : null;
+
   const { data: inserted, error } = await supabase
     .from("ow_posts")
-    .insert({ user_id: owUserId, content, image_url })
+    .insert({ user_id: owUserId, content, image_url, link_url, link_title, link_image_url, link_description, link_domain })
     .select(`
-      id, content, image_url, created_at,
+      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url)
     `)
     .single();

@@ -25,7 +25,7 @@ export async function GET(
   const { data: raw, error } = await adminSupabase
     .from("ow_posts")
     .select(`
-      id, content, image_url, created_at,
+      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -37,7 +37,10 @@ export async function GET(
   if (!raw) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const p = raw as unknown as {
-    id: string; content: string; image_url: string | null; created_at: string;
+    id: string; content: string; image_url: string | null;
+    link_url: string | null; link_title: string | null; link_image_url: string | null;
+    link_description: string | null; link_domain: string | null;
+    created_at: string;
     user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
     likes: { count: number }[]; comments: { count: number }[];
   };
@@ -74,7 +77,10 @@ export async function GET(
 
   return NextResponse.json({
     post: {
-      id: p.id, content: p.content, image_url: p.image_url, created_at: p.created_at,
+      id: p.id, content: p.content, image_url: p.image_url,
+      link_url: p.link_url, link_title: p.link_title, link_image_url: p.link_image_url,
+      link_description: p.link_description, link_domain: p.link_domain,
+      created_at: p.created_at,
       user: p.user
         ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, roleTitle, company }
         : { id: "", name: "不明", avatar_color: null, avatar_url: null, roleTitle: null, company: null },

@@ -9,6 +9,7 @@ import FeedSidebar, {
   type SidebarJob,
   type SidebarPerson,
 } from "@/components/feed/FeedSidebar";
+import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,11 @@ type PostItem = {
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
+  link_url: string | null;
+  link_title: string | null;
+  link_image_url: string | null;
+  link_description: string | null;
+  link_domain: string | null;
 };
 
 type CommentItem = {
@@ -142,6 +148,18 @@ function PostComposer({
   const fileRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
 
+  // リンクプレビュー
+  type OgpPreview = { linkUrl: string; linkTitle: string | null; linkImageUrl: string | null; linkDescription: string | null; linkDomain: string | null };
+  const [ogpPreview, setOgpPreview] = useState<OgpPreview | null>(null);
+  const [ogpFetching, setOgpFetching] = useState(false);
+  const ogpFetchedUrl = useRef<string | null>(null);
+
+  // 本文からhttpsのURLを1つ抽出
+  function extractFirstUrl(text: string): string | null {
+    const m = /https?:\/\/[^\s　、。！？」）\]>）」』"'>]+/.exec(text);
+    return m?.[0] ?? null;
+  }
+
   const MAX_CHARS = 1000;
   const remaining = MAX_CHARS - content.length;
 
@@ -191,11 +209,62 @@ function PostComposer({
     if (!content.trim() || posting) return;
     setPosting(true);
     setError(null);
+
+    // OGP取得（best-effort: 失敗しても投稿を続行）
+    let linkPayload: {
+      link_url: string | null;
+      link_title: string | null;
+      link_image_url: string | null;
+      link_description: string | null;
+      link_domain: string | null;
+    } = { link_url: null, link_title: null, link_image_url: null, link_description: null, link_domain: null };
+
+    // 既にプレビュー取得済みならそれを使う、なければ投稿時に取得
+    const detectedUrl = extractFirstUrl(content.trim());
+    if (detectedUrl) {
+      const preview = ogpPreview && ogpPreview.linkUrl === detectedUrl ? ogpPreview : null;
+      if (preview) {
+        linkPayload = {
+          link_url: preview.linkUrl,
+          link_title: preview.linkTitle,
+          link_image_url: preview.linkImageUrl,
+          link_description: preview.linkDescription,
+          link_domain: preview.linkDomain,
+        };
+      } else {
+        // 先読みされていない場合は投稿ボタン押下時に取得
+        try {
+          setOgpFetching(true);
+          const ogRes = await fetch("/api/jobseeker/ogp-fetch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: detectedUrl }),
+          });
+          if (ogRes.ok) {
+            const ogData = await ogRes.json();
+            let domain: string | null = null;
+            try { domain = new URL(detectedUrl).hostname; } catch { /* ignore */ }
+            linkPayload = {
+              link_url: detectedUrl,
+              link_title: ogData.og_title ?? null,
+              link_image_url: ogData.og_image_url ?? null,
+              link_description: null,
+              link_domain: domain,
+            };
+          }
+        } catch {
+          // OGP取得失敗は無視。link系はnullで投稿
+        } finally {
+          setOgpFetching(false);
+        }
+      }
+    }
+
     try {
       const res = await fetch("/api/jobseeker/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: content.trim(), image_url: imageUrl }),
+        body: JSON.stringify({ content: content.trim(), image_url: imageUrl, ...linkPayload }),
       });
       if (!res.ok) {
         const j = await res.json();
@@ -208,16 +277,59 @@ function PostComposer({
         like_count: 0,
         comment_count: 0,
         liked_by_me: false,
+        link_url: linkPayload.link_url,
+        link_title: linkPayload.link_title,
+        link_image_url: linkPayload.link_image_url,
+        link_description: linkPayload.link_description,
+        link_domain: linkPayload.link_domain,
       });
       setContent("");
       setImageUrl(null);
       setImagePreview(null);
+      setOgpPreview(null);
+      ogpFetchedUrl.current = null;
       if (fileRef.current) fileRef.current.value = "";
     } catch (err) {
       setError(err instanceof Error ? err.message : "投稿に失敗しました");
     } finally {
       setPosting(false);
     }
+  };
+
+  // テキストエリア onChange 時にURLを検出して先読み（デバウンス600ms）
+  const ogpDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setContent(val);
+    if (ogpDebounceRef.current) clearTimeout(ogpDebounceRef.current);
+    ogpDebounceRef.current = setTimeout(async () => {
+      const url = extractFirstUrl(val);
+      if (!url || url === ogpFetchedUrl.current) return;
+      ogpFetchedUrl.current = url;
+      setOgpFetching(true);
+      setOgpPreview(null);
+      try {
+        const res = await fetch("/api/jobseeker/ogp-fetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          let domain: string | null = null;
+          try { domain = new URL(url).hostname; } catch { /* ignore */ }
+          setOgpPreview({
+            linkUrl: url,
+            linkTitle: data.og_title ?? null,
+            linkImageUrl: data.og_image_url ?? null,
+            linkDescription: null,
+            linkDomain: domain,
+          });
+        }
+      } catch { /* silent */ } finally {
+        setOgpFetching(false);
+      }
+    }, 600);
   };
 
   return (
@@ -244,7 +356,7 @@ function PostComposer({
         <div style={{ flex: 1 }}>
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleContentChange}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="今日のキャリアの気づきをシェアしよう…"
@@ -264,6 +376,24 @@ function PostComposer({
               minHeight: 80,
             }}
           />
+
+          {/* リンクプレビュー（OGP先読み） */}
+          {ogpFetching && (
+            <div style={{ marginTop: 10, fontSize: 12, color: "var(--ink-mute)" }}>
+              🔗 リンク情報を取得中…
+            </div>
+          )}
+          {ogpPreview && !ogpFetching && (
+            <div style={{ marginTop: 10 }}>
+              <LinkPreviewCard
+                linkUrl={ogpPreview.linkUrl}
+                linkTitle={ogpPreview.linkTitle}
+                linkImageUrl={ogpPreview.linkImageUrl}
+                linkDescription={ogpPreview.linkDescription}
+                linkDomain={ogpPreview.linkDomain}
+              />
+            </div>
+          )}
 
           {/* 画像プレビュー */}
           {imagePreview && (
@@ -923,6 +1053,19 @@ function PostCard({
               borderRadius: 8,
               border: "1px solid var(--line)",
             }}
+          />
+        </div>
+      )}
+
+      {/* リンクプレビュー */}
+      {post.link_url && (
+        <div style={{ marginBottom: 14 }}>
+          <LinkPreviewCard
+            linkUrl={post.link_url}
+            linkTitle={post.link_title}
+            linkImageUrl={post.link_image_url}
+            linkDescription={post.link_description}
+            linkDomain={post.link_domain}
           />
         </div>
       )}

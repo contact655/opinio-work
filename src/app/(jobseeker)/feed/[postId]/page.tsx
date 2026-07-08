@@ -3,11 +3,17 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 
 type RawPost = {
   id: string;
   content: string;
   image_url: string | null;
+  link_url: string | null;
+  link_title: string | null;
+  link_image_url: string | null;
+  link_description: string | null;
+  link_domain: string | null;
   created_at: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
   likes: { count: number }[];
@@ -52,7 +58,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   const { data: raw } = await adminSupabase
     .from("ow_posts")
     .select(`
-      id, content, image_url, created_at,
+      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -182,6 +188,19 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
               src={p.image_url}
               alt=""
               style={{ width: "100%", maxHeight: 400, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }}
+            />
+          </div>
+        )}
+
+        {/* リンクプレビュー */}
+        {p.link_url && (
+          <div style={{ marginBottom: 14 }}>
+            <LinkPreviewCard
+              linkUrl={p.link_url}
+              linkTitle={p.link_title}
+              linkImageUrl={p.link_image_url}
+              linkDescription={p.link_description}
+              linkDomain={p.link_domain}
             />
           </div>
         )}
