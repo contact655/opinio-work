@@ -20,6 +20,7 @@ const SALARY_PILL_TIERS = [
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
+import { getLogoLetter } from "@/lib/utils/companyLogo";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ function JobCard({
   // ── Hooks must be called before any early return ──
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const bookmarkingRef = useRef(false);
   const router = useRouter();
 
@@ -189,7 +191,7 @@ function JobCard({
 
   if (!company) return null;
 
-  const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
+  const logoLetter = getLogoLetter(company.logo_letter, company.name);
   const badge = freshBadge(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
 
@@ -276,13 +278,14 @@ function JobCard({
           boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
           zIndex: 3,
         }}>
-          {company.logo_url ? (
+          {company.logo_url && !logoError ? (
             <Image
               src={company.logo_url}
-              alt={company.name}
+              alt=""
               width={44}
               height={44}
               style={{ objectFit: "contain" }}
+              onError={() => setLogoError(true)}
             />
           ) : logoLetter}
         </div>
@@ -524,8 +527,8 @@ function JobCard({
             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
               <div style={{
                 fontFamily: "Inter, sans-serif",
-                fontSize: 17,
-                fontWeight: (job.salary_min || job.salary_max) ? 800 : 400,
+                fontSize: 12,
+                fontWeight: (job.salary_min || job.salary_max) ? 600 : 400,
                 color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
                 lineHeight: 1.2,
               }}>
@@ -577,7 +580,7 @@ function JobPreviewPanel({
   if (!job) return null;
   const company = companyMap.get(job.company_id);
   if (!company) return null;
-  const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
+  const logoLetter = getLogoLetter(company.logo_letter, company.name);
 
   return (
     <div className="job-preview-panel" style={{
@@ -598,7 +601,7 @@ function JobPreviewPanel({
           color: "#fff", fontSize: 16, fontWeight: 700, overflow: "hidden",
         }}>
           {company.logo_url
-            ? <img src={company.logo_url} alt={company.name} width={44} height={44} style={{ objectFit: "contain" }} />
+            ? <img src={company.logo_url} alt="" width={44} height={44} style={{ objectFit: "contain" }} />
             : logoLetter}
         </div>
         <div style={{ minWidth: 0 }}>
@@ -921,6 +924,7 @@ function JobListCard({
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const bookmarkingRef = useRef(false);
   const router = useRouter();
 
@@ -963,7 +967,7 @@ function JobListCard({
 
   if (!company) return null;
 
-  const logoLetter = company.logo_letter ?? company.name.charAt(0).toUpperCase();
+  const logoLetter = getLogoLetter(company.logo_letter, company.name);
   const deptStyle = getDeptStyle(job.dept);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
@@ -1015,9 +1019,9 @@ function JobListCard({
           color: company.logo_url ? undefined : "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)", marginTop: 1,
         }}>
-          {company.logo_url ? (
+          {company.logo_url && !logoError ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={company.logo_url} alt={company.name} width={48} height={48} style={{ objectFit: "contain" }} />
+            <img src={company.logo_url} alt="" width={48} height={48} style={{ objectFit: "contain" }} onError={() => setLogoError(true)} />
           ) : logoLetter}
         </div>
 
@@ -1097,7 +1101,7 @@ function JobListCard({
               <>
                 <span style={{
                   fontFamily: "Inter, sans-serif",
-                  fontSize: 15, fontWeight: 700,
+                  fontSize: 12, fontWeight: 600,
                   color: "var(--success)", lineHeight: 1.1,
                 }}>
                   {formatSalary(job.salary_min, job.salary_max)}

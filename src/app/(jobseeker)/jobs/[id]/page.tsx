@@ -9,6 +9,7 @@ import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
+import { getLogoLetter } from "@/lib/utils/companyLogo";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -426,9 +427,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               overflow: "hidden",
             }}>
               {company.logo_url ? (
-                <Image src={company.logo_url} alt={company.name} width={72} height={72} style={{ objectFit: "contain" }} />
+                <Image src={company.logo_url} alt="" width={72} height={72} style={{ objectFit: "contain" }} />
               ) : (
-                company.logo_letter ?? initial
+                getLogoLetter(company.logo_letter, company.name)
               )}
             </div>
 
@@ -469,9 +470,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               <div style={{ marginBottom: "var(--space-2)" }}>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "7px 18px", borderRadius: 100,
+                  padding: "5px 14px", borderRadius: 100,
                   background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                  color: "var(--success)", fontSize: 20, fontWeight: 700,
+                  color: "var(--success)", fontSize: 15, fontWeight: 700,
                   fontFamily: "Inter, sans-serif",
                 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1045,9 +1046,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     overflow: "hidden",
                   }}>
                     {company.logo_url ? (
-                      <Image src={company.logo_url} alt={company.name} width={56} height={56} style={{ objectFit: "contain" }} />
+                      <Image src={company.logo_url} alt="" width={56} height={56} style={{ objectFit: "contain" }} />
                     ) : (
-                      company.logo_letter ?? initial
+                      getLogoLetter(company.logo_letter, company.name)
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

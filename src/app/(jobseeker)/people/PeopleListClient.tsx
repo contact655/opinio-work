@@ -182,6 +182,7 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
   return (
     <div
       style={{
+        position: "relative",
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
@@ -190,6 +191,7 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         flexDirection: "column",
         gap: 0,
         transition: "box-shadow 0.15s, transform 0.15s",
+        cursor: "pointer",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 24px rgba(0,35,102,0.10)";
@@ -200,13 +202,20 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
       }}
     >
+      {/* カード全体リンク（クリック可能エリア） */}
+      <Link
+        href={`/u/${card.userId}`}
+        aria-label={`${card.name}のプロフィールを見る`}
+        style={{ position: "absolute", inset: 0, borderRadius: 16, zIndex: 0 }}
+      />
+
       {/* アバター（④現職バッジは削除） */}
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ marginBottom: 14, position: "relative", zIndex: 1 }}>
         <Avatar card={card} size={64} />
       </div>
 
       {/* 名前 + 話せるバッジ */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
           {card.name}
         </span>
@@ -214,7 +223,7 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
       </div>
 
       {/* 役職（②重複排除） */}
-      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, position: "relative", zIndex: 1 }}>
         {roleDisplay}
         {showDept && (
           <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>
@@ -222,13 +231,13 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
       </div>
 
       {/* 会社名 */}
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ marginBottom: 14, position: "relative", zIndex: 1 }}>
         <CompanyBadge card={card} />
       </div>
 
       {/* ⑦ テーマタグ（DB設定値優先） */}
       {tags.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, position: "relative", zIndex: 1 }}>
           <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>
             テーマ
           </div>
@@ -237,7 +246,7 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
       )}
 
       {/* ⑧CTAボタン + サブテキスト */}
-      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, position: "relative", zIndex: 1 }}>
         <div>
           <Link
             href={`/companies/${card.companyId}/casual-meeting`}
@@ -289,6 +298,7 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 
   return (
     <div style={{
+      position: "relative",
       display: "grid",
       gridTemplateColumns: "64px 1fr auto",
       alignItems: "center",
@@ -297,15 +307,25 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
       borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
       background: "#fff",
       transition: "background 0.1s",
+      cursor: "pointer",
     }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
+      {/* カード全体リンク */}
+      <Link
+        href={`/u/${card.userId}`}
+        aria-label={`${card.name}のプロフィールを見る`}
+        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+      />
+
       {/* アバター */}
-      <Avatar card={card} size={52} />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <Avatar card={card} size={52} />
+      </div>
 
       {/* 名前・役職・タグ（④現職バッジ削除） */}
-      <div style={{ minWidth: 0 }}>
+      <div style={{ minWidth: 0, position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
           <TalkBadge />
@@ -323,7 +343,7 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
       </div>
 
       {/* ⑧CTAボタン + サブテキスト */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center", position: "relative", zIndex: 1 }}>
         <Link
           href={`/companies/${card.companyId}/casual-meeting`}
           style={{
@@ -461,9 +481,11 @@ function PeerGridCard({ card }: { card: PeerCard }) {
   return (
     <div
       style={{
+        position: "relative",
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
         padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 0,
         transition: "box-shadow 0.15s, transform 0.15s",
+        cursor: "pointer",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 24px rgba(0,35,102,0.10)";
@@ -474,26 +496,32 @@ function PeerGridCard({ card }: { card: PeerCard }) {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
       }}
     >
-      <div style={{ marginBottom: 14 }}>
+      {/* カード全体リンク */}
+      <Link
+        href={`/u/${card.userId}`}
+        aria-label={`${card.name}のプロフィールを見る`}
+        style={{ position: "absolute", inset: 0, borderRadius: 16, zIndex: 0 }}
+      />
+      <div style={{ marginBottom: 14, position: "relative", zIndex: 1 }}>
         <PeerAvatar card={card} size={64} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
         <PeerBadge />
       </div>
       {card.roleTitle && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>{card.roleTitle}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6, position: "relative", zIndex: 1 }}>{card.roleTitle}</div>
       )}
       {card.companyName && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10 }}>{card.companyName}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, position: "relative", zIndex: 1 }}>{card.companyName}</div>
       )}
       {jobTypeLabel && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, position: "relative", zIndex: 1 }}>
           <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>経験職種</div>
           <TopicTags tags={[jobTypeLabel]} />
         </div>
       )}
-      <div style={{ marginTop: "auto" }}>
+      <div style={{ marginTop: "auto", position: "relative", zIndex: 1 }}>
         <Link
           href={`/u/${card.userId}`}
           style={{
@@ -521,16 +549,26 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
 
   return (
     <div style={{
+      position: "relative",
       display: "grid", gridTemplateColumns: "64px 1fr auto", alignItems: "center",
       gap: 16, padding: "18px 24px",
       borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
       background: "#fff", transition: "background 0.1s",
+      cursor: "pointer",
     }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
-      <PeerAvatar card={card} size={52} />
-      <div style={{ minWidth: 0 }}>
+      {/* カード全体リンク */}
+      <Link
+        href={`/u/${card.userId}`}
+        aria-label={`${card.name}のプロフィールを見る`}
+        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <PeerAvatar card={card} size={52} />
+      </div>
+      <div style={{ minWidth: 0, position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
           <PeerBadge />
@@ -545,7 +583,7 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
         </div>
         {jobTypeLabel && <TopicTags tags={[jobTypeLabel]} />}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center", position: "relative", zIndex: 1 }}>
         <Link
           href={`/u/${card.userId}`}
           style={{
