@@ -4650,6 +4650,8 @@ export type Database = {
           about_me: string | null
           auth_id: string | null
           avatar_color: string | null
+          can_talk_to_candidates: boolean
+          can_talk_to_hr: boolean
           cover_color: string | null
           created_at: string
           email: string
@@ -4668,6 +4670,8 @@ export type Database = {
           about_me?: string | null
           auth_id?: string | null
           avatar_color?: string | null
+          can_talk_to_candidates?: boolean
+          can_talk_to_hr?: boolean
           cover_color?: string | null
           created_at?: string
           email: string
@@ -4686,6 +4690,8 @@ export type Database = {
           about_me?: string | null
           auth_id?: string | null
           avatar_color?: string | null
+          can_talk_to_candidates?: boolean
+          can_talk_to_hr?: boolean
           cover_color?: string | null
           created_at?: string
           email?: string
