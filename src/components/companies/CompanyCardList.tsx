@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import type { CompanyForCarousel } from "@/types/genre";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
 import { addToCompare, removeFromCompare, isInCompareList } from "./CompareBar";
@@ -74,22 +74,6 @@ function stripLegalSuffix(name: string): string {
     .trim();
 }
 
-// ⑥ 業種別グラデーション（ロゴなし企業の背景色）
-const INDUSTRY_LOGO_GRADIENTS: Record<string, string> = {
-  "HR Tech":        "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
-  "FinTech/SaaS":   "linear-gradient(135deg, #064e3b 0%, #059669 100%)",
-  "CRM":            "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-  "CRM/SaaS":       "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
-  "AI Tech":        "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)",
-  "Sales Tech":     "linear-gradient(135deg, #134e4a 0%, #0f766e 100%)",
-  "Med Tech":       "linear-gradient(135deg, #7c2d12 0%, #c2410c 100%)",
-  "ConTech":        "linear-gradient(135deg, #78350f 0%, #d97706 100%)",
-  "顧客コミュニケーション": "linear-gradient(135deg, #3730a3 0%, #6366f1 100%)",
-};
-function getLogoGradient(industry: string | null | undefined, fallback: string): string {
-  if (!industry) return fallback;
-  return INDUSTRY_LOGO_GRADIENTS[industry] ?? fallback;
-}
 
 /** 更新日を「N日前」に変換 */
 function updatedAgo(updatedAt: string | null | undefined): string | null {
@@ -222,24 +206,16 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
     }
   };
 
-  const initial = company.logo_letter ?? company.name.slice(0, 1);
   const stageCfg = getStageCfg(company.funding_stage);
   const enName = cleanEnName(company.name_en);
   const displayName = enName ?? stripLegalSuffix(company.name);
   const isEnName = !!enName;
   const showSubtitle = displayName !== company.name;
-  const headerGradient =
-    company.logo_gradient ??
-    "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
   const memberCount = company.current_member_count ?? (members?.length ?? 0);
   const obogCount = company.obog_count ?? 0;
   const ago = updatedAgo(company.updated_at);
   const features = Array.isArray(company.company_features) ? company.company_features : [];
   const _jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
-
-  // ── コンパクトカード（compact=true）— 白背景ロゴ正方形・固定高さ・2行タグライン ──
-  const NAVY_GRAD = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
-  const CARD_LOGO_GRAD = company.logo_url ? "#fff" : getLogoGradient(company.industry, NAVY_GRAD);
 
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
   const meetingBorder = "1px solid var(--line)";
@@ -291,31 +267,16 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           }}
         >
           {/* ── ロゴ正方形（白背景・影付き） ── */}
-          <div className="clv-logo" style={{
-            width: 56, height: 56, borderRadius: 10, flexShrink: 0,
-            background: CARD_LOGO_GRAD,
-            border: "1px solid #eef0f3",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            overflow: "hidden", position: "relative",
-          }}>
-            {company.logo_url ? (
-              <Image
-                src={company.logo_url}
-                alt={`${company.name}のロゴ`}
-                fill
-                className="clv-logo-img"
-                style={{ objectFit: "contain", padding: "13%" }}
-                sizes="56px"
-              />
-            ) : (
-              <span style={{
-                fontSize: 22, fontWeight: 900, color: "rgba(255,255,255,0.92)",
-                fontFamily: "Inter, sans-serif", lineHeight: 1, userSelect: "none",
-                textShadow: "0 1px 4px rgba(0,0,0,0.2)",
-              }}>{initial}</span>
-            )}
-          </div>
+          <CompanyLogo
+            name={company.name}
+            logoUrl={company.logo_url}
+            logoLetter={company.logo_letter}
+            logoGradient={company.logo_gradient}
+            size={56}
+            borderRadius={10}
+            className="clv-logo"
+            style={{ border: "1px solid #eef0f3", boxShadow: "0 2px 8px rgba(0,0,0,0.09)" }}
+          />
 
           {/* ── テキスト情報（4行）── */}
           <div style={{
@@ -508,38 +469,14 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         }}
       >
         {/* ── ロゴ ── */}
-        <div style={{
-          width: 68,
-          height: 68,
-          borderRadius: 12,
-          flexShrink: 0,
-          background: company.logo_url ? "#f5f7fa" : headerGradient,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          position: "relative",
-        }}>
-          {company.logo_url ? (
-            <Image
-              src={company.logo_url}
-              alt={`${company.name}のロゴ`}
-              fill
-              style={{ objectFit: "contain", padding: "12%" }}
-              sizes="68px"
-            />
-          ) : (
-            <span style={{
-              fontSize: 26, fontWeight: 800,
-              color: "rgba(255,255,255,0.88)",
-              fontFamily: "Inter, sans-serif",
-              letterSpacing: "-0.03em",
-              userSelect: "none",
-            }}>
-              {initial}
-            </span>
-          )}
-        </div>
+        <CompanyLogo
+          name={company.name}
+          logoUrl={company.logo_url}
+          logoLetter={company.logo_letter}
+          logoGradient={company.logo_gradient}
+          size={68}
+          borderRadius={12}
+        />
 
         {/* ── 企業情報（メイン） ── */}
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
 import { addToCompare, removeFromCompare, isInCompareList } from './CompareBar';
+import { getLogoLetter } from '@/lib/utils/companyLogo';
 
 const COMPARE_EVENT = 'opinio-compare-update';
 
@@ -112,7 +113,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
   const headerGradient = company.logo_gradient
     ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
 
-  const initial = company.logo_letter ?? company.name.slice(0, 1);
+  const initial = getLogoLetter(company.logo_letter, company.name);
   const displayName = cleanEnName(company.name_en) ?? company.name;
   const isEnName = !!cleanEnName(company.name_en);
   const router = useRouter();
@@ -174,7 +175,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
     e.preventDefault();
     e.stopPropagation();
     const headerGrad = company.logo_gradient ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
-    const initChar = company.logo_letter ?? company.name.slice(0, 1);
+    const initChar = getLogoLetter(company.logo_letter, company.name);
     if (inCompare) {
       removeFromCompare(company.id);
     } else {

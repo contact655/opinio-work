@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -13,8 +14,8 @@ export type SidebarJob = {
   salaryMax: number | null;
   workStyle: string | null;
   logoUrl: string | null;
-  logoGradient: string;
-  logoLetter: string;
+  logoGradient: string | null;
+  logoLetter: string | null;
 };
 
 export type SidebarPerson = {
@@ -68,34 +69,14 @@ function JobMiniCard({ job }: { job: SidebarJob }) {
         }}
       >
         {/* ロゴ */}
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: job.logoUrl ? undefined : job.logoGradient,
-            flexShrink: 0,
-            overflow: "hidden",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 13,
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          {job.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={job.logoUrl}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-          ) : (
-            job.logoLetter
-          )}
-        </div>
+        <CompanyLogo
+          name={job.companyName}
+          logoUrl={job.logoUrl}
+          logoLetter={job.logoLetter}
+          logoGradient={job.logoGradient}
+          size={36}
+          borderRadius={8}
+        />
 
         {/* テキスト */}
         <div style={{ minWidth: 0, flex: 1 }}>

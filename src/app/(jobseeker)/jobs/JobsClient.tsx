@@ -2,12 +2,12 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
 import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -20,7 +20,6 @@ const SALARY_PILL_TIERS = [
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
-import { getLogoLetter } from "@/lib/utils/companyLogo";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -141,7 +140,6 @@ function JobCard({
   // ── Hooks must be called before any early return ──
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
-  const [logoError, setLogoError] = useState(false);
   const bookmarkingRef = useRef(false);
   const router = useRouter();
 
@@ -191,7 +189,6 @@ function JobCard({
 
   if (!company) return null;
 
-  const logoLetter = getLogoLetter(company.logo_letter, company.name);
   const badge = freshBadge(job.updated_days_ago);
   const deptStyle = getDeptStyle(job.dept);
 
@@ -269,25 +266,18 @@ function JobCard({
         <div style={{
           position: "absolute",
           bottom: -20, left: 16,
-          width: 44, height: 44,
-          borderRadius: 10,
-          background: company.logo_url ? "#fff" : "rgba(255,255,255,0.15)",
           border: "2.5px solid rgba(255,255,255,0.9)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", fontSize: 17, fontWeight: 700, overflow: "hidden",
           boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
           zIndex: 3,
         }}>
-          {company.logo_url && !logoError ? (
-            <Image
-              src={company.logo_url}
-              alt=""
-              width={44}
-              height={44}
-              style={{ objectFit: "contain" }}
-              onError={() => setLogoError(true)}
-            />
-          ) : logoLetter}
+          <CompanyLogo
+            name={company.name}
+            logoUrl={company.logo_url}
+            logoLetter={company.logo_letter}
+            logoGradient={company.gradient}
+            size={44}
+            borderRadius={10}
+          />
         </div>
         {/* ⑨ 鮮度バッジ（NEW → today / NEW / 今週） */}
         {badge && (
@@ -580,7 +570,6 @@ function JobPreviewPanel({
   if (!job) return null;
   const company = companyMap.get(job.company_id);
   if (!company) return null;
-  const logoLetter = getLogoLetter(company.logo_letter, company.name);
 
   return (
     <div className="job-preview-panel" style={{
@@ -593,17 +582,14 @@ function JobPreviewPanel({
     }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-          background: company.logo_url ? "#f8fafc" : (company.gradient || "linear-gradient(135deg, #001233, #002366)"),
-          border: company.logo_url ? "1.5px solid var(--line)" : "none",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", fontSize: 16, fontWeight: 700, overflow: "hidden",
-        }}>
-          {company.logo_url
-            ? <img src={company.logo_url} alt="" width={44} height={44} style={{ objectFit: "contain" }} />
-            : logoLetter}
-        </div>
+        <CompanyLogo
+          name={company.name}
+          logoUrl={company.logo_url}
+          logoLetter={company.logo_letter}
+          logoGradient={company.gradient}
+          size={44}
+          borderRadius={10}
+        />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, marginBottom: 2 }}>{company.name}</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
@@ -924,7 +910,6 @@ function JobListCard({
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
-  const [logoError, setLogoError] = useState(false);
   const bookmarkingRef = useRef(false);
   const router = useRouter();
 
@@ -967,7 +952,6 @@ function JobListCard({
 
   if (!company) return null;
 
-  const logoLetter = getLogoLetter(company.logo_letter, company.name);
   const deptStyle = getDeptStyle(job.dept);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
@@ -1011,19 +995,15 @@ function JobListCard({
         onMouseLeave={() => onHover?.(null)}
       >
         {/* ロゴ */}
-        <div style={{
-          width: 48, height: 48, borderRadius: 10, flexShrink: 0,
-          background: company.logo_url ? "#f8fafc" : (company.gradient || "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)"),
-          border: company.logo_url ? "1.5px solid var(--line)" : "none",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: company.logo_url ? undefined : "#fff", fontSize: 18, fontWeight: 700, overflow: "hidden",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)", marginTop: 1,
-        }}>
-          {company.logo_url && !logoError ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={company.logo_url} alt="" width={48} height={48} style={{ objectFit: "contain" }} onError={() => setLogoError(true)} />
-          ) : logoLetter}
-        </div>
+        <CompanyLogo
+          name={company.name}
+          logoUrl={company.logo_url}
+          logoLetter={company.logo_letter}
+          logoGradient={company.gradient}
+          size={48}
+          borderRadius={10}
+          style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08)", marginTop: 1 }}
+        />
 
         {/* Content — flex column with uniform gap */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>

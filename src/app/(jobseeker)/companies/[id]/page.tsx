@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CompanyLogoImage } from "@/components/companies/CompanyLogoImage";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -167,40 +167,21 @@ function Hero({
           {/* Left: logo + info */}
           <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
             {/* Logo — overlaps cover band */}
-            <div
+            <CompanyLogo
+              name={company.name}
+              logoUrl={company.logo_url}
+              logoLetter={company.logo_letter}
+              logoGradient={company.gradient}
+              size={96}
+              borderRadius={18}
               style={{
-                width: 96,
-                height: 96,
-                borderRadius: 18,
-                flexShrink: 0,
                 marginTop: -56,
                 position: "relative",
                 zIndex: 1,
-                background: company.gradient,
                 border: "4px solid #fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 38,
-                fontWeight: 700,
-                fontFamily: "Inter, sans-serif",
                 boxShadow: "0 8px 28px rgba(0,0,0,0.18)",
-                overflow: "hidden",
               }}
-            >
-              {company.logo_url ? (
-                <CompanyLogoImage
-                  logoUrl={company.logo_url}
-                  name={company.name}
-                  fallbackLetter={company.logo_letter ?? initial}
-                  size={96}
-                  gradient={company.gradient}
-                />
-              ) : (
-                company.logo_letter ?? initial
-              )}
-            </div>
+            />
             <div style={{ paddingTop: "var(--space-3)" }}>
               <div
                 style={{
@@ -2663,7 +2644,6 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
         `}</style>
         <div className="similar-grid">
           {companies.map((co) => {
-            const initial = co.name.charAt(0).toUpperCase();
             return (
               <Link key={co.id} href={`/companies/${co.id}`} style={{ textDecoration: "none" }}>
                 <div
@@ -2678,14 +2658,14 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
                 >
                   {/* Mini cover */}
                   <div style={{ height: 56, background: co.gradient, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {co.logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={co.logo_url} alt={co.name} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 6, background: "#fff" }} />
-                    ) : (
-                      <span style={{ fontSize: 22, fontWeight: 800, color: "#fff", fontFamily: "Inter, sans-serif", opacity: 0.9 }}>
-                        {co.logo_letter ?? initial}
-                      </span>
-                    )}
+                    <CompanyLogo
+                      name={co.name}
+                      logoUrl={co.logo_url}
+                      logoLetter={co.logo_letter}
+                      logoGradient={co.gradient}
+                      size={36}
+                      borderRadius={6}
+                    />
                   </div>
                   <div style={{ padding: "var(--space-2) 10px var(--space-3)" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>

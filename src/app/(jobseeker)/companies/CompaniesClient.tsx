@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CompanyLogo } from "@/components/jobseeker/CompanyLogo";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { CompanyListRow } from "@/lib/supabase/queries";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 import { showToast } from "@/lib/toast";

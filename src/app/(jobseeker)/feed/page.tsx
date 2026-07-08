@@ -128,8 +128,8 @@ export default async function FeedPage() {
         salaryMax: row.salary_max,
         workStyle: ws ? (WORK_STYLE_LABELS[ws] ?? ws) : null,
         logoUrl: co.logo_url,
-        logoGradient: co.logo_gradient ?? FALLBACK_GRADIENT,
-        logoLetter: co.logo_letter ?? (co.brand_name ?? co.name).charAt(0).toUpperCase(),
+        logoGradient: co.logo_gradient,
+        logoLetter: co.logo_letter,
       });
     }
 

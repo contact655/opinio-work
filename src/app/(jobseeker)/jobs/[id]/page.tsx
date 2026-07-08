@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type PositionMember } from "@/app/jobs/mockJobData";
@@ -9,7 +8,7 @@ import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
-import { getLogoLetter } from "@/lib/utils/companyLogo";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -148,9 +147,14 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {jobs.map((rj) => (
           <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: rj.logoGradient || "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "var(--text-base)", fontWeight: 700, overflow: "hidden" }}>
-              {rj.logoUrl ? <Image src={rj.logoUrl} alt={rj.companyName} width={40} height={40} style={{ objectFit: "contain" }} /> : (rj.logoLetter && !/^[株合有（]/.test(rj.logoLetter) ? rj.logoLetter : rj.companyName.replace(/^株式会社\s*|^（株）\s*|^合同会社\s*|^有限会社\s*/, "").trim().charAt(0).toUpperCase())}
-            </div>
+            <CompanyLogo
+              name={rj.companyName}
+              logoUrl={rj.logoUrl}
+              logoLetter={rj.logoLetter}
+              logoGradient={rj.logoGradient}
+              size={40}
+              borderRadius={8}
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
               <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{rj.companyName}</div>
@@ -417,21 +421,15 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-6) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: 14, flexShrink: 0,
-              background: company.logo_url ? "#f8fafc" : company.gradient,
-              border: company.logo_url ? "1px solid var(--line)" : "none",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 26, fontWeight: 700,
-              boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
-              overflow: "hidden",
-            }}>
-              {company.logo_url ? (
-                <Image src={company.logo_url} alt="" width={72} height={72} style={{ objectFit: "contain" }} />
-              ) : (
-                getLogoLetter(company.logo_letter, company.name)
-              )}
-            </div>
+            <CompanyLogo
+              name={company.name}
+              logoUrl={company.logo_url}
+              logoLetter={company.logo_letter}
+              logoGradient={company.gradient}
+              size={64}
+              borderRadius={14}
+              style={{ boxShadow: "0 6px 20px rgba(0,0,0,0.12)" }}
+            />
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 6, flexWrap: "wrap" }}>
@@ -1037,20 +1035,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
                   padding: "var(--space-4)", background: "var(--bg-tint)", borderRadius: 12,
                 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-                    background: company.logo_url ? "#f8fafc" : company.gradient,
-                    border: company.logo_url ? "1px solid var(--line)" : "none",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: "var(--text-lg)", fontWeight: 700,
-                    overflow: "hidden",
-                  }}>
-                    {company.logo_url ? (
-                      <Image src={company.logo_url} alt="" width={56} height={56} style={{ objectFit: "contain" }} />
-                    ) : (
-                      getLogoLetter(company.logo_letter, company.name)
-                    )}
-                  </div>
+                  <CompanyLogo
+                    name={company.name}
+                    logoUrl={company.logo_url}
+                    logoLetter={company.logo_letter}
+                    logoGradient={company.gradient}
+                    size={52}
+                    borderRadius={12}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap",
