@@ -59,7 +59,7 @@ const STYLES: Record<StatusVariant, { bg: string; color: string; label: string }
   published:          { bg: "var(--success-soft)", color: "var(--success)", label: "公開中" },
   active:             { bg: "var(--success-soft)", color: "var(--success)", label: "公開中" },
   accepted:           { bg: "var(--success-soft)", color: "var(--success)", label: "採用" },
-  hired:              { bg: "var(--success-soft)", color: "var(--success)", label: "採用確定" },
+  hired:              { bg: "var(--success)",      color: "#ffffff",        label: "採用確定" },
   approved:           { bg: "var(--success-soft)", color: "var(--success)", label: "承認済み" },
   // gray ──────────────────────────────────────────────────────────────────────
   completed:          { bg: "var(--line-soft)",    color: "var(--ink-soft)", label: "完了" },
