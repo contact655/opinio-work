@@ -275,6 +275,48 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
+// ─── 投稿間差し込みカード（モバイル用） ───────────────────────────────────────
+
+export function FeedInsertJobCard({ job }: { job: SidebarJob }) {
+  return (
+    <div className="feed-insert-card">
+      <div
+        style={{
+          fontFamily: '"Noto Sans JP", sans-serif',
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--ink-mute)",
+          letterSpacing: "0.05em",
+          marginBottom: 6,
+        }}
+      >
+        新着求人
+      </div>
+      <JobMiniCard job={job} />
+    </div>
+  );
+}
+
+export function FeedInsertPersonCard({ person }: { person: SidebarPerson }) {
+  return (
+    <div className="feed-insert-card">
+      <div
+        style={{
+          fontFamily: '"Noto Sans JP", sans-serif',
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--ink-mute)",
+          letterSpacing: "0.05em",
+          marginBottom: 6,
+        }}
+      >
+        話せる人
+      </div>
+      <PersonMiniCard person={person} />
+    </div>
+  );
+}
+
 // ─── FeedSidebar（メイン） ────────────────────────────────────────────────────
 
 export default function FeedSidebar({

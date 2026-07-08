@@ -634,6 +634,16 @@ body {
   }
 }
 
+/* ── Feed insert cards — 1024px以上では非表示（サイドバーと排他） ── */
+.feed-insert-card {
+  margin-bottom: 10px;
+}
+@media (min-width: 1024px) {
+  .feed-insert-card {
+    display: none;
+  }
+}
+
 /* ── Mobile bottom nav — 768px以上では非表示 ── */
 @media (min-width: 768px) {
   .mobile-bottom-nav-root {

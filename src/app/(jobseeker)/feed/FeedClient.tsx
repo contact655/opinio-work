@@ -3,7 +3,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
-import FeedSidebar, { type SidebarJob, type SidebarPerson } from "@/components/feed/FeedSidebar";
+import FeedSidebar, {
+  FeedInsertJobCard,
+  FeedInsertPersonCard,
+  type SidebarJob,
+  type SidebarPerson,
+} from "@/components/feed/FeedSidebar";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -1177,18 +1182,40 @@ export default function FeedClient({
           )}
         </div>
       ) : (
-        posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            myUserId={myUserId}
-            myName={myName}
-            myAvatarColor={myAvatarColor}
-            myAvatarUrl={myAvatarUrl}
-            onDelete={handleDelete}
-            onLikeToggle={handleLikeToggle}
-          />
-        ))
+        // 投稿間差し込み: 3件ごとに求人/話せる人を交互挿入（モバイルのみ表示）
+        posts.flatMap((post, i) => {
+          const elements: React.ReactNode[] = [
+            <PostCard
+              key={post.id}
+              post={post}
+              myUserId={myUserId}
+              myName={myName}
+              myAvatarColor={myAvatarColor}
+              myAvatarUrl={myAvatarUrl}
+              onDelete={handleDelete}
+              onLikeToggle={handleLikeToggle}
+            />,
+          ];
+          // 3件目・6件目・9件目…（0-indexed: index 2, 5, 8…）の直後に差し込む
+          if ((i + 1) % 3 === 0) {
+            const insertCount = Math.floor((i + 1) / 3) - 1; // 0-based差し込み回数
+            if (insertCount % 2 === 0 && sidebarJobs.length > 0) {
+              // 偶数回 = 求人（0回目, 2回目…）、巡回
+              const job = sidebarJobs[insertCount % sidebarJobs.length];
+              elements.push(
+                <FeedInsertJobCard key={`insert-job-${i}`} job={job} />
+              );
+            } else if (insertCount % 2 === 1 && sidebarPeople.length > 0) {
+              // 奇数回 = 話せる人（1回目, 3回目…）、巡回
+              const person = sidebarPeople[insertCount % sidebarPeople.length];
+              elements.push(
+                <FeedInsertPersonCard key={`insert-person-${i}`} person={person} />
+              );
+            }
+            // どちらも0件ならスキップ（空カードを出さない）
+          }
+          return elements;
+        })
       )}
 
       {/* もっと見るボタン */}
