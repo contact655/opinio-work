@@ -718,23 +718,6 @@ body {
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* ── Career Trajectories page ──────────────────────────────────────────────── */
-.trajectory-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-}
-.trajectory-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-@media (max-width: 900px) {
-  .trajectory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 560px) {
-  .trajectory-grid { grid-template-columns: minmax(0, 1fr); }
-}
 .role-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 6px 12px; border-radius: 100px;
@@ -760,26 +743,6 @@ body {
 .role-chip.active .role-chip-count {
   background: rgba(255,255,255,0.25);
 }
-.traj-search-input {
-  border: 1.5px solid #e6e9ef; border-radius: 999px;
-  padding: 9px 14px 9px 36px; font-size: 13.5px;
-  background: #fff; color: var(--ink); outline: none;
-  width: 100%; box-sizing: border-box;
-  font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
-}
-.traj-search-input:focus {
-  border-color: var(--royal);
-  box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
-}
-.traj-sort-select {
-  border: 1.5px solid var(--line); border-radius: 10px;
-  padding: 8px 12px; font-size: 12px; font-weight: 600;
-  background: #fff; color: var(--ink-soft); outline: none;
-  cursor: pointer; transition: border-color 0.12s;
-  appearance: none; -webkit-appearance: none;
-  padding-right: 28px;
-}
-.traj-sort-select:focus { border-color: var(--royal); }
 .stats-strip {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -818,85 +781,6 @@ body {
 }
 @media (max-width: 640px) {
   .stats-strip { grid-template-columns: 1fr; }
-  .traj-search-input { width: 140px; }
-}
-
-/* ── Trajectory card interactive styles ─────────────────────────────────────── */
-@keyframes slideInFromLeft {
-  from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes fadeInConnector {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.trajectory-card-interactive {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 20px 20px 16px;
-  height: 100%;
-  min-height: 280px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
-  cursor: pointer;
-}
-.trajectory-card-interactive:hover {
-  box-shadow: 0 4px 24px rgba(0,35,102,0.12);
-  border-color: var(--royal-100);
-  transform: translateY(-2px);
-}
-.trajectory-list-card {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 20px 24px;
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
-  box-shadow: 0 1px 4px rgba(15,23,42,0.05);
-}
-.trajectory-list-card:hover {
-  box-shadow: 0 8px 28px rgba(0,35,102,0.12);
-  border-color: var(--royal-100);
-  transform: translateY(-2px);
-}
-/* ブロック1: 人物情報（固定幅・コンパクト） */
-.traj-person-block {
-  flex: 0 0 auto;
-  min-width: 110px;
-  max-width: 160px;
-}
-/* ブロック3: 職種変遷（補足・控えめ） */
-.traj-role-block {
-  flex: 0 0 auto;
-  max-width: 145px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-/* ブロック間の縦区切り線 */
-.traj-block-divider {
-  width: 1px;
-  align-self: stretch;
-  background: var(--line);
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-/* スマホ: 縦積みに変換 */
-@media (max-width: 600px) {
-  .trajectory-list-card {
-    flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
-  }
-  .traj-person-block { max-width: none; }
-  .traj-role-block { max-width: none; }
-  .traj-block-divider { width: auto; height: 1px; align-self: auto; }
 }
 .older-chip-btn {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
