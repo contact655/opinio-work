@@ -11,6 +11,8 @@ type PostUser = {
   name: string;
   avatar_color: string | null;
   avatar_url: string | null;
+  roleTitle?: string | null;
+  company?: string | null;
 };
 
 type PostItem = {
@@ -790,6 +792,18 @@ function PostCard({
             >
               {post.user.name}
             </Link>
+            {(post.user.roleTitle || post.user.company) && (
+              <div
+                style={{
+                  fontFamily: '"Noto Sans JP", sans-serif',
+                  fontSize: 12,
+                  color: "var(--ink-soft)",
+                  marginTop: 2,
+                }}
+              >
+                {[post.user.roleTitle, post.user.company].filter(Boolean).join(" · ")}
+              </div>
+            )}
             <div
               style={{
                 fontFamily: "Inter, sans-serif",

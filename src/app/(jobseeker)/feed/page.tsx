@@ -66,18 +66,40 @@ export default async function FeedPage() {
   // visibility フィルター（private は全員非表示 / login_only はログイン済みなので表示）
   const visiblePosts = posts.filter((p) => p.user?.visibility !== "private");
 
-  const initialPosts = visiblePosts.map((p) => ({
-    id: p.id,
-    content: p.content,
-    image_url: p.image_url,
-    created_at: p.created_at,
-    user: p.user
-      ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url }
-      : { id: "", name: "不明", avatar_color: null, avatar_url: null },
-    like_count: p.likes?.[0]?.count ?? 0,
-    comment_count: p.comments?.[0]?.count ?? 0,
-    liked_by_me: likedPostIds.has(p.id),
-  }));
+  // 現職情報を別クエリで取得
+  const userIds = Array.from(new Set(visiblePosts.map((p) => p.user?.id).filter(Boolean) as string[]));
+  const expByUser = new Map<string, { roleTitle: string | null; company: string | null }>();
+  if (userIds.length > 0) {
+    const { data: exps } = await adminSupabase
+      .from("ow_experiences")
+      .select("user_id, role_title, company_text, company_anonymized")
+      .in("user_id", userIds)
+      .eq("is_current", true);
+    for (const exp of exps ?? []) {
+      if (!expByUser.has(exp.user_id)) {
+        expByUser.set(exp.user_id, {
+          roleTitle: exp.role_title ?? null,
+          company: exp.company_text || exp.company_anonymized || null,
+        });
+      }
+    }
+  }
+
+  const initialPosts = visiblePosts.map((p) => {
+    const exp = p.user ? expByUser.get(p.user.id) : undefined;
+    return {
+      id: p.id,
+      content: p.content,
+      image_url: p.image_url,
+      created_at: p.created_at,
+      user: p.user
+        ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
+        : { id: "", name: "不明", avatar_color: null, avatar_url: null, roleTitle: null, company: null },
+      like_count: p.likes?.[0]?.count ?? 0,
+      comment_count: p.comments?.[0]?.count ?? 0,
+      liked_by_me: likedPostIds.has(p.id),
+    };
+  });
 
   return (
     <FeedClient
