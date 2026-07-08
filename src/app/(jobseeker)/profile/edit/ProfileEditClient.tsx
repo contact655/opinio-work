@@ -10,7 +10,7 @@ import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageM
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
-import { JOB_TYPES } from "@/lib/constants/jobTypes";
+import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -3811,8 +3811,19 @@ export default function ProfileEditClient({
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
-                  {JOB_TYPES.map((jt) => (
-                    <option key={jt} value={jt}>{jt}</option>
+                  {/* legacy値保持ユーザー向けフォールバック: カテゴリに含まれない値を今持っている場合のみ先頭に表示 */}
+                  {prefJobType !== "" &&
+                    !JOB_TYPE_CATEGORIES.some((cat) => (cat.types as readonly string[]).includes(prefJobType)) && (
+                    <option value={prefJobType}>{prefJobType}</option>
+                  )}
+                  {JOB_TYPE_CATEGORIES.map((cat) => (
+                    <optgroup key={cat.key} label={`${cat.emoji} ${cat.label}`}>
+                      {cat.types.map((jt) => (
+                        <option key={jt} value={jt}>
+                          {JOB_TYPE_DISPLAY_LABELS[jt] ?? jt}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </FormGroup>
