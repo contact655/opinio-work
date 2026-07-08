@@ -139,6 +139,8 @@ type OwUser = {
   about_me: string | null;
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
+  can_talk_to_candidates: boolean | null;
+  can_talk_to_hr: boolean | null;
   social_links: Record<string, string> | null;
 } | null;
 
@@ -156,6 +158,8 @@ type SettingsState = {
   coverColor: string;
   visibility: "public" | "login_only" | "private";
   isOpenToWork: boolean;
+  canTalkToCandidates: boolean;
+  canTalkToHr: boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -2975,17 +2979,21 @@ export default function ProfileEditClient({
 
   // ── アカウント設定タブの状態（明示保存方式） ────────────────────────────
   const [settings, setSettings] = useState<SettingsState>({
-    avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
-    coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
-    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
-    isOpenToWork: owUser?.is_open_to_work ?? false,
+    avatarColor:          owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
+    coverColor:           owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
+    visibility:           (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    isOpenToWork:         owUser?.is_open_to_work         ?? false,
+    canTalkToCandidates:  owUser?.can_talk_to_candidates  ?? false,
+    canTalkToHr:          owUser?.can_talk_to_hr          ?? false,
   });
   // 初期値を保持して変更検知（JSON.stringify 比較）
   const [initialSettings, setInitialSettings] = useState<SettingsState>({
-    avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
-    coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
-    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
-    isOpenToWork: owUser?.is_open_to_work ?? false,
+    avatarColor:          owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
+    coverColor:           owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
+    visibility:           (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    isOpenToWork:         owUser?.is_open_to_work         ?? false,
+    canTalkToCandidates:  owUser?.can_talk_to_candidates  ?? false,
+    canTalkToHr:          owUser?.can_talk_to_hr          ?? false,
   });
   const [accountSaving,       setAccountSaving]       = useState(false);
   const [accountJustSaved,    setAccountJustSaved]    = useState(false);
@@ -3001,7 +3009,12 @@ export default function ProfileEditClient({
       const res = await fetch("/api/jobseeker/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility: settings.visibility, is_open_to_work: settings.isOpenToWork }),
+        body: JSON.stringify({
+          visibility:             settings.visibility,
+          is_open_to_work:        settings.isOpenToWork,
+          can_talk_to_candidates: settings.canTalkToCandidates,
+          can_talk_to_hr:         settings.canTalkToHr,
+        }),
       });
       if (!res.ok) throw new Error();
       setInitialSettings(settings); // 保存成功: 次回比較の基準点を更新
@@ -4392,6 +4405,118 @@ export default function ProfileEditClient({
                   <span style={{
                     position: "absolute", top: 3,
                     left: settings.isOpenToWork ? 23 : 3,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                    transition: "left 0.2s",
+                  }} />
+                </button>
+              </div>
+            </FormSection>
+
+            {/* ── Section 3c: 話しかけを受け付ける ────────────────────────── */}
+            <FormSection
+              title="話しかけを受け付ける"
+              desc="ONにすると、対象の人からの話しかけ・相談リクエストを受け付けます。コンタクト方法はOPINIOが仲介します。"
+            >
+              {/* ① 他の候補者と話してOK */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 16px", marginBottom: 8,
+                background: settings.canTalkToCandidates ? "var(--royal-50)" : "var(--bg-tint)",
+                border: `1px solid ${settings.canTalkToCandidates ? "var(--royal-100)" : "var(--line)"}`,
+                borderRadius: 10,
+                transition: "all 0.2s",
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    他の候補者と話してOK
+                    {settings.canTalkToCandidates && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "2px var(--space-2)", borderRadius: 100,
+                        fontSize: 10, fontWeight: 700,
+                        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                        color: "#fff",
+                        fontFamily: "'Inter', sans-serif",
+                      }}>
+                        ✓ 有効
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                    同じような立場の候補者からの相談・話しかけを受け付けます
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.canTalkToCandidates}
+                  onClick={() => setSettings((prev) => ({ ...prev, canTalkToCandidates: !prev.canTalkToCandidates }))}
+                  style={{
+                    width: 44, height: 24, borderRadius: 100,
+                    background: settings.canTalkToCandidates ? "var(--royal)" : "var(--line)",
+                    border: "none", cursor: "pointer",
+                    position: "relative", flexShrink: 0,
+                    transition: "background 0.2s",
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: 3,
+                    left: settings.canTalkToCandidates ? 23 : 3,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                    transition: "left 0.2s",
+                  }} />
+                </button>
+              </div>
+
+              {/* ② 企業の人事と話してOK */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 16px",
+                background: settings.canTalkToHr ? "var(--royal-50)" : "var(--bg-tint)",
+                border: `1px solid ${settings.canTalkToHr ? "var(--royal-100)" : "var(--line)"}`,
+                borderRadius: 10,
+                transition: "all 0.2s",
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    企業の人事と話してOK
+                    {settings.canTalkToHr && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "2px var(--space-2)", borderRadius: 100,
+                        fontSize: 10, fontWeight: 700,
+                        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                        color: "#fff",
+                        fontFamily: "'Inter', sans-serif",
+                      }}>
+                        ✓ 有効
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                    企業の人事担当者からの話しかけ・面談依頼を受け付けます
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.canTalkToHr}
+                  onClick={() => setSettings((prev) => ({ ...prev, canTalkToHr: !prev.canTalkToHr }))}
+                  style={{
+                    width: 44, height: 24, borderRadius: 100,
+                    background: settings.canTalkToHr ? "var(--royal)" : "var(--line)",
+                    border: "none", cursor: "pointer",
+                    position: "relative", flexShrink: 0,
+                    transition: "background 0.2s",
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: 3,
+                    left: settings.canTalkToHr ? 23 : 3,
                     width: 18, height: 18, borderRadius: "50%",
                     background: "#fff",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
