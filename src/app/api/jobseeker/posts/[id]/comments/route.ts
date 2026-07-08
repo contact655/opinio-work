@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -115,6 +116,33 @@ export async function POST(
   if (error) {
     console.error("[POST /api/jobseeker/posts/[id]/comments]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+  // 通知INSERT（best-effort: 失敗してもコメント自体は成功）
+  try {
+    const adminSupabase = createAdminClient();
+
+    // 投稿の所有者を取得
+    const { data: post } = await adminSupabase
+      .from("ow_posts")
+      .select("user_id")
+      .eq("id", postId)
+      .maybeSingle();
+
+    const recipientUserId = post?.user_id ?? null;
+
+    // 自分の投稿への自分のコメントは通知しない
+    if (recipientUserId && recipientUserId !== owUserId) {
+      await adminSupabase.from("ow_notifications").insert({
+        recipient_user_id: recipientUserId,
+        actor_user_id: owUserId,
+        type: "comment",
+        post_id: postId,
+        comment_id: inserted.id,
+      });
+    }
+  } catch (notifErr) {
+    console.error("[comments notify]", notifErr);
   }
 
   return NextResponse.json({ comment: inserted }, { status: 201 });
