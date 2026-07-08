@@ -2,7 +2,7 @@
  * queries.ts — Supabase data access layer for Stage 1 (read-only public pages)
  *
  * Scope: ow_companies + ow_jobs only (ow_ prefix tables only)
- * Mentors: mock継続 (Stage 2 で ow_users.is_mentor で実装)
+ * Mentors: ow_mentors テーブルは migration 140 で削除済み。ambassador 機能に移行。
  * Articles: mock継続 (ow_articles テーブルなし)
  */
 
@@ -724,7 +724,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 
   const { data: users } = await supabase
     .from("ow_users")
-    .select("id, name, visibility")
+    .select("id, name, avatar_color, avatar_url, visibility")
     .in("id", userIds)
     .eq("visibility", "public");
 
@@ -734,37 +734,6 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
   const publicUserIds = new Set(users.map((u: any) => u.id as string));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMap = new Map(users.map((u: any) => [u.id as string, u]));
-
-  // Try user_id match first; fall back to name match (ow_mentors.user_id is null for legacy mentors)
-  const userNames = Array.from(publicUserIds)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((uid) => (userMap.get(uid) as Record<string, any>)?.name as string)
-    .filter(Boolean);
-
-  const [{ data: mentorsByUid }, { data: mentorsByName }] = await Promise.all([
-    supabase
-      .from("ow_mentors")
-      .select("id, user_id, name, photo_url, avatar_color, avatar_initial")
-      .in("user_id", Array.from(publicUserIds)),
-    supabase
-      .from("ow_mentors")
-      .select("id, user_id, name, photo_url, avatar_color, avatar_initial")
-      .in("name", userNames),
-  ]);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allMentors = [...(mentorsByUid ?? []), ...(mentorsByName ?? [])] as Record<string, any>[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mentorByUserId = new Map<string, Record<string, any>>();
-  for (const m of allMentors) {
-    if (m.user_id) mentorByUserId.set(m.user_id as string, m);
-  }
-  // name-based fallback: build mentor lookup by name
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mentorByName = new Map<string, Record<string, any>>();
-  for (const m of allMentors) {
-    if (m.name) mentorByName.set(m.name as string, m);
-  }
 
   const seen = new Set<string>();
   const result: JobPositionMember[] = [];
@@ -777,19 +746,19 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = userMap.get(uid) as Record<string, any>;
     const name = (user.name as string) ?? "—";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mentor = (mentorByUserId.get(uid) ?? mentorByName.get(name)) as Record<string, any> | undefined;
+    const avatarColor = user.avatar_color as string | null;
+    const avatarUrl = user.avatar_url as string | null;
 
     result.push({
       userId: uid,
       name,
       roleTitle: (exp.role_title as string) ?? "",
       isCurrent: (exp.is_current as boolean) ?? false,
-      isMentor: !!mentor,
-      mentorId: mentor ? (mentor.id as string) : null,
-      photoUrl: mentor?.photo_url ? (mentor.photo_url as string) : null,
-      gradient: mentor?.avatar_color ? (mentor.avatar_color as string) : FALLBACK_GRADIENT,
-      initial: mentor?.avatar_initial ? (mentor.avatar_initial as string) : name.charAt(0),
+      isMentor: false,
+      mentorId: null,
+      photoUrl: avatarUrl,
+      gradient: avatarColor?.startsWith("linear-gradient") ? avatarColor : FALLBACK_GRADIENT,
+      initial: name.charAt(0),
     });
 
     if (result.length >= 6) break;
