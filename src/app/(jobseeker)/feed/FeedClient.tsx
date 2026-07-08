@@ -132,7 +132,7 @@ function PostComposer({
   const fileRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
 
-  const MAX_CHARS = 500;
+  const MAX_CHARS = 1000;
   const remaining = MAX_CHARS - content.length;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

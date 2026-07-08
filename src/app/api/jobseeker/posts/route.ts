@@ -129,8 +129,8 @@ export async function POST(req: NextRequest) {
   if (!content || content.length < 1) {
     return NextResponse.json({ error: "CONTENT_REQUIRED", message: "本文を入力してください" }, { status: 400 });
   }
-  if (content.length > 500) {
-    return NextResponse.json({ error: "CONTENT_TOO_LONG", message: "本文は500文字以内で入力してください" }, { status: 400 });
+  if (content.length > 1000) {
+    return NextResponse.json({ error: "CONTENT_TOO_LONG", message: "本文は1000文字以内で入力してください" }, { status: 400 });
   }
 
   const image_url_raw = typeof body.image_url === "string" && body.image_url.trim().length > 0
