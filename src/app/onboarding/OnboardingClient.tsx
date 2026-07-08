@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { JOB_TYPES } from "@/lib/constants/jobTypes";
+import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
@@ -26,8 +26,8 @@ const STEPS: Step[] = [
       </svg>
     ),
     question: "あなたの職種は？",
-    sub: "最も近いものを選んでください",
-    options: [...JOB_TYPES],
+    sub: "カテゴリを選んでください",
+    options: [],  // 2段階UIのため options は未使用。カテゴリは JOB_TYPE_CATEGORIES から描画
   },
   {
     id: "experience_years",
@@ -71,6 +71,7 @@ function OnboardingInner() {
   })();
 
   const [step, setStep] = useState(0);
+  const [jobTypeCategory, setJobTypeCategory] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -365,50 +366,155 @@ function OnboardingInner() {
             {current.sub}
           </p>
 
-          {/* 選択肢 — job_type は 2 列グリッド、その他は 1 列 */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: current.id === "job_type" ? "1fr 1fr" : "1fr",
-            gap: 8,
-          }}>
-            {current.options.map((opt) => (
-              <button
-                type="button"
-                key={opt}
-                onClick={() => select(opt)}
-                disabled={saving}
-                style={{
-                  padding: "13px 16px",
-                  border: "1px solid var(--line)",
-                  borderRadius: 10,
-                  background: "#fff",
-                  color: "var(--ink)",
-                  fontSize: 14,
-                  cursor: saving ? "wait" : "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left" as const,
-                  transition: "all 0.15s",
-                  fontWeight: 500,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--royal)";
-                  e.currentTarget.style.background = "var(--royal-50)";
-                  e.currentTarget.style.color = "var(--royal)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--line)";
-                  e.currentTarget.style.background = "#fff";
-                  e.currentTarget.style.color = "var(--ink)";
-                }}
-              >
-                {saving ? (
-                  <span style={{ opacity: 0.5 }}>{opt}</span>
-                ) : (
-                  opt
-                )}
-              </button>
-            ))}
-          </div>
+          {/* 選択肢 — job_type は 2段階UI、その他は 1列 */}
+          {current.id === "job_type" ? (
+            jobTypeCategory === null ? (
+              /* Stage A: カテゴリ選択 */
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {JOB_TYPE_CATEGORIES.map((cat) => (
+                  <button
+                    type="button"
+                    key={cat.key}
+                    onClick={() => setJobTypeCategory(cat.key)}
+                    style={{
+                      padding: "16px 12px",
+                      border: "1px solid var(--line)",
+                      borderRadius: 10,
+                      background: "#fff",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      textAlign: "center" as const,
+                      transition: "all 0.15s",
+                      display: "flex",
+                      flexDirection: "column" as const,
+                      alignItems: "center",
+                      gap: 6,
+                      minHeight: 72,
+                      justifyContent: "center",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "var(--royal)";
+                      e.currentTarget.style.background = "var(--royal-50)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "var(--line)";
+                      e.currentTarget.style.background = "#fff";
+                    }}
+                  >
+                    <span style={{ fontSize: 22, lineHeight: 1 }}>{cat.emoji}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>
+                      {cat.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              /* Stage B: サブ職種選択 */
+              (() => {
+                const cat = JOB_TYPE_CATEGORIES.find((c) => c.key === jobTypeCategory)!;
+                return (
+                  <>
+                    {/* カテゴリ変更ボタン */}
+                    <button
+                      type="button"
+                      onClick={() => setJobTypeCategory(null)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        marginBottom: 16,
+                        padding: "6px 10px",
+                        border: "none", background: "none",
+                        color: "var(--ink-soft)",
+                        fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                      カテゴリを変更
+                      <span style={{ fontWeight: 600, color: "var(--ink)" }}>
+                        {cat.emoji} {cat.label}
+                      </span>
+                    </button>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      {cat.types.map((type) => {
+                        const label = JOB_TYPE_DISPLAY_LABELS[type] ?? type;
+                        return (
+                          <button
+                            type="button"
+                            key={type}
+                            onClick={() => select(type)}
+                            disabled={saving}
+                            style={{
+                              padding: "13px 16px",
+                              border: "1px solid var(--line)",
+                              borderRadius: 10,
+                              background: "#fff",
+                              color: "var(--ink)",
+                              fontSize: 13,
+                              cursor: saving ? "wait" : "pointer",
+                              fontFamily: "inherit",
+                              textAlign: "left" as const,
+                              transition: "all 0.15s",
+                              fontWeight: 500,
+                              lineHeight: 1.35,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "var(--royal)";
+                              e.currentTarget.style.background = "var(--royal-50)";
+                              e.currentTarget.style.color = "var(--royal)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "var(--line)";
+                              e.currentTarget.style.background = "#fff";
+                              e.currentTarget.style.color = "var(--ink)";
+                            }}
+                          >
+                            {saving ? <span style={{ opacity: 0.5 }}>{label}</span> : label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()
+            )
+          ) : (
+            /* step 1, 2: 従来通り 1列 */
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+              {current.options.map((opt) => (
+                <button
+                  type="button"
+                  key={opt}
+                  onClick={() => select(opt)}
+                  disabled={saving}
+                  style={{
+                    padding: "13px 16px",
+                    border: "1px solid var(--line)",
+                    borderRadius: 10,
+                    background: "#fff",
+                    color: "var(--ink)",
+                    fontSize: 14,
+                    cursor: saving ? "wait" : "pointer",
+                    fontFamily: "inherit",
+                    textAlign: "left" as const,
+                    transition: "all 0.15s",
+                    fontWeight: 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--royal)";
+                    e.currentTarget.style.background = "var(--royal-50)";
+                    e.currentTarget.style.color = "var(--royal)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--line)";
+                    e.currentTarget.style.background = "#fff";
+                    e.currentTarget.style.color = "var(--ink)";
+                  }}
+                >
+                  {saving ? <span style={{ opacity: 0.5 }}>{opt}</span> : opt}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 戻る / スキップ */}
@@ -416,7 +522,10 @@ function OnboardingInner() {
           {step > 0 && (
             <button
               type="button"
-              onClick={() => setStep((s) => s - 1)}
+              onClick={() => {
+                setStep((s) => s - 1);
+                if (step === 1) setJobTypeCategory(null);
+              }}
               style={{
                 fontSize: 12, color: "var(--ink-soft)", background: "none",
                 border: "1px solid var(--line)", borderRadius: 8,
