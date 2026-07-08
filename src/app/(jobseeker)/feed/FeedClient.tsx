@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import FeedSidebar, { type SidebarJob, type SidebarPerson } from "@/components/feed/FeedSidebar";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,8 @@ type Props = {
   myAvatarColor: string | null;
   myAvatarUrl: string | null;
   myLikedPostIds: string[];
+  sidebarJobs?: SidebarJob[];
+  sidebarPeople?: SidebarPerson[];
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1019,6 +1022,8 @@ export default function FeedClient({
   myAvatarUrl,
   // myLikedPostIds は initialPosts に liked_by_me として既に組み込まれているため直接参照しない
   myLikedPostIds: _myLikedPostIds,
+  sidebarJobs = [],
+  sidebarPeople = [],
 }: Props) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -1070,14 +1075,21 @@ export default function FeedClient({
     }
   };
 
+  const hasSidebar = sidebarJobs.length > 0 || sidebarPeople.length > 0;
+
   return (
     <div
       style={{
-        maxWidth: 680,
+        maxWidth: hasSidebar ? 1000 : 680,
         margin: "0 auto",
         padding: "24px 16px 64px",
+        display: hasSidebar ? "flex" : "block",
+        gap: hasSidebar ? 24 : undefined,
+        alignItems: "flex-start",
       }}
     >
+      {/* メインフィード */}
+      <div style={{ flex: 1, minWidth: 0 }}>
       {/* ページタイトル */}
       <h1
         style={{
@@ -1209,6 +1221,14 @@ export default function FeedClient({
           >
             {loadingMore ? "読み込み中…" : "もっと見る"}
           </button>
+        </div>
+      )}
+      </div>{/* /メインフィード */}
+
+      {/* デスクトップサイドバー（lg以上のみ） */}
+      {hasSidebar && (
+        <div className="feed-sidebar-wrapper">
+          <FeedSidebar jobs={sidebarJobs} people={sidebarPeople} />
         </div>
       )}
     </div>

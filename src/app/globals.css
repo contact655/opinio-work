@@ -624,6 +624,16 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* ── Feed sidebar — 1024px未満では非表示 ── */
+.feed-sidebar-wrapper {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .feed-sidebar-wrapper {
+    display: block;
+  }
+}
+
 /* ── Mobile bottom nav — 768px以上では非表示 ── */
 @media (min-width: 768px) {
   .mobile-bottom-nav-root {
