@@ -819,15 +819,6 @@ function FirstVisitOnboarding() {
       accent: "#FEF3C7",
       border: "#FDE68A",
     },
-    {
-      icon: <ChatIcon />,
-      title: "キャリアの相談がしたい",
-      sub: "転職を迫らない第三者に話す",
-      href: "/career-consultation",
-      color: "#7C3AED",
-      accent: "#F3E8FF",
-      border: "#DDD6FE",
-    },
   ];
 
   return (
