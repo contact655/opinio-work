@@ -98,7 +98,6 @@ export function JobseekerFooter() {
                 { href: "/contact",      label: "お問い合わせ" },
                 { href: "/privacy",        label: "プライバシーポリシー" },
                 { href: "/terms",          label: "利用規約（求職者）" },
-                { href: "/terms/mentor",   label: "利用規約（メンター）" },
                 { href: "/terms/business", label: "利用規約（掲載企業）" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
