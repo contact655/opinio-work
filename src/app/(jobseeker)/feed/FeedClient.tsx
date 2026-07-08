@@ -1071,7 +1071,7 @@ export default function FeedClient({
           marginBottom: 24,
         }}
       >
-        フィード
+        投稿
       </h1>
 
       {/* 投稿コンポーザー（ログイン済みのみ） */}

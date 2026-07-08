@@ -167,7 +167,7 @@ function TalkBadge() {
       border: "1px solid #FED7AA", whiteSpace: "nowrap",
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-      話せます
+      面談可
     </span>
   );
 }
@@ -226,11 +226,11 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         <CompanyBadge card={card} />
       </div>
 
-      {/* ⑦ 話せるテーマタグ（DB設定値優先） */}
+      {/* ⑦ テーマタグ（DB設定値優先） */}
       {tags.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>
-            話せるテーマ
+            テーマ
           </div>
           <TopicTags tags={tags} />
         </div>
@@ -257,7 +257,7 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
             話を聞く →
           </Link>
           <div style={{ textAlign: "center", fontSize: 10, color: "var(--ink-mute)", marginTop: 4 }}>
-            カジュアル面談を申し込む（無料）
+            カジュアル面談（無料）
           </div>
         </div>
         <Link
@@ -366,7 +366,7 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
   { key: "all",      label: "すべて",       pattern: null },
-  { key: "peers",    label: "候補者",       pattern: null },
+  { key: "peers",    label: "ユーザー",     pattern: null },
   { key: "hr",       label: "人事・採用",   pattern: /人事|採用|hr|recruit/i },
   { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
   { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
@@ -447,7 +447,7 @@ function PeerBadge() {
       border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
-      候補者
+      ユーザー
     </span>
   );
 }
@@ -608,7 +608,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
           まだ登録がありません
         </div>
         <div style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          「話せる人」として登録した社員が表示されます。
+          登録ユーザーが表示されます。
         </div>
       </div>
     );
@@ -633,15 +633,12 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
             lineHeight: 1.35,
             marginBottom: "var(--space-3)",
           }}>
-            話せる人を探す
+            ユーザーを探す
           </h1>
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              {ambassadors.length + peers.length}名掲載中
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#FCD34D", border: "1px solid rgba(245,158,11,0.3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              直接話せる · 無料
+              {ambassadors.length + peers.length}名参加中
             </span>
           </div>
         </div>
@@ -741,7 +738,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
           {isPeersMode && (
             <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic", marginRight: 8 }}>
-              候補者同士で話せる人
+              ユーザー同士でつながれる方
             </span>
           )}
           {!isPeersMode && <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>}
@@ -893,7 +890,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
       {(isPeersMode ? filteredPeers : filteredAmbassadors).length === 0 && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
           {isPeersMode
-            ? "まだ「候補者同士で話せる」に設定している方がいません。プロフィール設定から有効にできます。"
+            ? "まだ登録している方がいません。プロフィール設定から有効にできます。"
             : "該当する方が見つかりません"}
         </div>
       )}
@@ -910,7 +907,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         color: "var(--ink-mute)",
         lineHeight: 1.8,
       }}>
-        ※ このページに掲載されている方は、各企業の採用担当から「話せる人」として承認を受けた現役社員です。<br />
+        ※ このページに掲載されている方は、各企業の採用担当が承認した現役社員です。<br />
         ※ カジュアルにお話を聞くことができます。転職を前提としない情報収集もお気軽にどうぞ。
       </div>
       </div>

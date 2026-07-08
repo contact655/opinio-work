@@ -5,8 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import FeedClient from "./FeedClient";
 
 export const metadata: Metadata = {
-  title: "フィード | OPINIO",
-  description: "IT/SaaS業界で働く人たちの投稿フィード",
+  title: "投稿 | OPINIO",
+  description: "IT/SaaS業界で働く人たちの投稿",
 };
 
 type RawPost = {
