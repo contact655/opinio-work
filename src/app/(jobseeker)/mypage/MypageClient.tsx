@@ -12,13 +12,11 @@ import {
   type RawEducation,
 } from "@/lib/utils/timeline";
 import {
-  PILL_STYLES,
   STATUS_LABEL,
-  STATUS_VARIANT,
   type CasualMeeting,
   type Bookmark,
-  type PillVariant,
 } from "@/app/mypage/mockMypageData";
+import { StatusPill } from "@/components/common/StatusPill";
 
 type OwUser = {
   id: string;
@@ -40,26 +38,20 @@ type ActiveView =
   | "bookmarks";
 
 // ─── Shared: Status Pill ──────────────────────────────────────────────────────
+// 共通 StatusPill を使用。STATUS_LABEL でドメイン固有ラベルを上書きする。
 
-function StatusPill({
+function MypageStatusPill({
   statusKey,
   label,
 }: {
   statusKey: string;
   label?: string;
 }) {
-  const variant: PillVariant = STATUS_VARIANT[statusKey] ?? "gray";
-  const { bg, color } = PILL_STYLES[variant];
-  const text = label ?? STATUS_LABEL[statusKey] ?? statusKey;
+  const text = label ?? STATUS_LABEL[statusKey] ?? undefined;
   return (
-    <span style={{
-      padding: "3px 9px", borderRadius: 100,
-      fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-      letterSpacing: "0.05em", whiteSpace: "nowrap",
-      background: bg, color,
-    }}>
+    <StatusPill variant={statusKey}>
       {text}
-    </span>
+    </StatusPill>
   );
 }
 
@@ -136,7 +128,7 @@ function RequestItem({
         </div>
         <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", lineHeight: 1.5 }}>{meta}</div>
       </div>
-      <StatusPill statusKey={statusKey} label={statusLabel} />
+      <MypageStatusPill statusKey={statusKey} label={statusLabel} />
     </div>
   );
 }
@@ -196,7 +188,7 @@ function RecentActivityItem({
       </div>
       {/* ステータスバッジ: 独立行 */}
       <div>
-        <StatusPill statusKey={statusKey} />
+        <MypageStatusPill statusKey={statusKey} />
       </div>
     </div>
   );

@@ -4,40 +4,23 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import type { BizApplication, ApplicationStatus, ApplicationStatusTab } from "@/lib/business/applications";
 import { APPLICATION_STATUS_TABS, countByStatus, VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
+import { StatusPill } from "@/components/common/StatusPill";
 
-// ─── Status helpers ─────────────────────────────────────────────────────────
-
-const STATUS_COLOR: Record<ApplicationStatus, string> = {
-  pending:   "#D97706",
-  reviewing: "var(--royal)",
-  interview: "#7C3AED",
-  accepted:  "var(--success)",
-  rejected:  "#DC2626",
-  hired:     "var(--success)",
+// 応募ドメイン固有のラベル（StatusPill のデフォルトと異なるため children で上書き）
+const APP_STATUS_LABEL: Record<ApplicationStatus, string> = {
+  pending:   "新着",
+  reviewing: "確認中",
+  interview: "面接中",
+  accepted:  "採用",
+  rejected:  "不採用",
+  hired:     "採用確定",
 };
 
-const STATUS_BG: Record<ApplicationStatus, string> = {
-  pending:   "#FEF3C7",
-  reviewing: "var(--royal-50)",
-  interview: "#F5F3FF",
-  accepted:  "var(--success-soft)",
-  rejected:  "#FEE2E2",
-  hired:     "#D1FAE5",
-};
-
-function StatusPill({ status }: { status: ApplicationStatus }) {
-  const tab = APPLICATION_STATUS_TABS.find((t) => t.status === status);
+function AppStatusPill({ status }: { status: ApplicationStatus }) {
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center",
-      padding: "2px 10px", borderRadius: 100,
-      fontSize: 11, fontWeight: 700, letterSpacing: "0.05em",
-      fontFamily: "'Inter', sans-serif",
-      background: STATUS_BG[status],
-      color: STATUS_COLOR[status],
-    }}>
-      {tab?.labelJa ?? status}
-    </span>
+    <StatusPill variant={status}>
+      {APP_STATUS_LABEL[status]}
+    </StatusPill>
   );
 }
 
@@ -432,7 +415,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                       {app.jobTitle}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <StatusPill status={app.status} />
+                      <AppStatusPill status={app.status} />
                       <span style={{
                         fontSize: 11, color: "var(--ink-mute)",
                         fontFamily: "'Inter', sans-serif",
@@ -531,7 +514,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
               {app.name}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <StatusPill status={app.status} />
+              <AppStatusPill status={app.status} />
               <span style={{
                 fontSize: 12, color: "var(--ink-mute)",
                 fontFamily: "'Inter', sans-serif",
