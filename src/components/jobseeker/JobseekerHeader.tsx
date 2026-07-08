@@ -11,7 +11,6 @@ const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
   { href: "/jobs", label: "求人", highlight: false },
   { href: "/people", label: "話せる人", highlight: false },
-  { href: "/career-trajectories", label: "キャリア軌跡", highlight: false },
   { href: "/career-consultation", label: "相談", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];

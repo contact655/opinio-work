@@ -16,11 +16,10 @@ async function getUsers(query?: string) {
     }
   }
 
-  const [{ data: users }, authResult, { data: bizAdmins }, { data: careerProfiles }] = await Promise.all([
+  const [{ data: users }, authResult, { data: bizAdmins }] = await Promise.all([
     q.limit(500),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from("ow_company_admins").select("user_id").eq("is_active", true),
-    admin.from("ow_career_profiles").select("user_id").eq("is_published", true),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,13 +29,11 @@ async function getUsers(query?: string) {
     authUsers.map((u: any) => [u.id as string, (u.last_sign_in_at ?? null) as string | null])
   );
   const bizUserIds = new Set((bizAdmins ?? []).map((a) => a.user_id).filter(Boolean));
-  const careerUserIds = new Set((careerProfiles ?? []).map((p) => p.user_id).filter(Boolean));
 
   return (users ?? []).map((u) => ({
     ...u,
     lastLogin: u.auth_id ? (authMap.get(u.auth_id) ?? null) : null,
     isBizAdmin: bizUserIds.has(u.id),
-    hasCareerProfile: careerUserIds.has(u.id),
   }));
 }
 

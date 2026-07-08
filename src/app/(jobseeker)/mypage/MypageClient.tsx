@@ -1107,7 +1107,7 @@ export default function MypageClient({
             {[
               { step: 1, label: "企業を1社お気に入りに追加する", href: "/companies", cta: "企業一覧を見る →" },
               { step: 2, label: "求人を1件確認する", href: "/jobs", cta: "求人を見る →" },
-              { step: 3, label: "キャリア軌跡を見てみる", href: "/career-trajectories", cta: "キャリア軌跡を見る →" },
+              { step: 3, label: "話せる人を探してみる", href: "/people", cta: "話せる人を見る →" },
             ].map(({ step, label, href, cta }) => (
               <div key={step} style={{
                 display: "flex", alignItems: "center", gap: 12,

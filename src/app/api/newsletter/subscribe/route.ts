@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "メールアドレスが正しくありません" }, { status: 400 });
   }
 
-  const VALID_SOURCES = new Set(["home_inline", "footer", "popup", "career_trajectories", "lp"]);
+  const VALID_SOURCES = new Set(["home_inline", "footer", "popup", "lp"]);
   const source = VALID_SOURCES.has(body?.source) ? (body.source as string) : "home_inline";
 
   const supabase = createClient();

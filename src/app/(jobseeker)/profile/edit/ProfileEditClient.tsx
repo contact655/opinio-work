@@ -2812,51 +2812,6 @@ export default function ProfileEditClient({
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── キャリア軌跡公開設定 state ────────────────────────────────────────────────
-  const [careerIsPublished, setCareerIsPublished] = useState(false);
-  const [careerHeadline, setCareerHeadline] = useState("");
-  const [careerYears, setCareerYears] = useState("");
-  const [careerProfileLoaded, setCareerProfileLoaded] = useState(false);
-  const [careerProfileSaving, setCareerProfileSaving] = useState(false);
-  const [careerProfileSaved, setCareerProfileSaved] = useState(false);
-  const careerSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    fetch("/api/jobseeker/career-profile")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.careerProfile) {
-          setCareerIsPublished(d.careerProfile.is_published ?? false);
-          setCareerHeadline(d.careerProfile.headline ?? "");
-          setCareerYears(d.careerProfile.years_of_experience?.toString() ?? "");
-        }
-        setCareerProfileLoaded(true);
-      })
-      .catch(() => setCareerProfileLoaded(true));
-  }, []);
-
-  const saveCareerProfile = useCallback(async () => {
-    setCareerProfileSaving(true);
-    try {
-      await fetch("/api/jobseeker/career-profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          is_published: careerIsPublished,
-          headline: careerHeadline || null,
-          years_of_experience: careerYears ? parseInt(careerYears, 10) : null,
-        }),
-      });
-      setCareerProfileSaved(true);
-      if (careerSavedTimerRef.current) clearTimeout(careerSavedTimerRef.current);
-      careerSavedTimerRef.current = setTimeout(() => setCareerProfileSaved(false), 2500);
-    } catch {
-      // best-effort
-    } finally {
-      setCareerProfileSaving(false);
-    }
-  }, [careerIsPublished, careerHeadline, careerYears]);
-
   // ── 発信コンテンツリンク state ──────────────────────────────────────────────
   const [contentLinks, setContentLinks] = useState<ContentLink[]>(initialContentLinks);
   const [newLinkUrl, setNewLinkUrl] = useState("");
@@ -3648,116 +3603,6 @@ export default function ProfileEditClient({
         {activeTab === "career" && (
           <div style={{ maxWidth: 680 }}>
 
-            {/* ── キャリア軌跡 公開設定 ── */}
-            <FormSection title="キャリア軌跡の公開設定">
-              {!careerProfileLoaded ? (
-                <div style={{ color: "var(--ink-mute)", fontSize: 13 }}>読み込み中…</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                    キャリア軌跡ページ（<a href="/career-trajectories" target="_blank" style={{ color: "var(--royal)" }}>/career-trajectories</a>）に
-                    あなたの職歴を公開するかどうかを設定します。職歴ごとの「会社名の表示」設定と組み合わせて利用できます。
-                  </p>
-
-                  {/* 公開トグル */}
-                  <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-                    <div
-                      onClick={() => setCareerIsPublished((v) => !v)}
-                      style={{
-                        width: 44, height: 24, borderRadius: 12, flexShrink: 0,
-                        background: careerIsPublished ? "var(--royal)" : "var(--line)",
-                        position: "relative", cursor: "pointer", transition: "background 0.2s",
-                      }}
-                    >
-                      <div style={{
-                        position: "absolute", top: 3, left: careerIsPublished ? 22 : 3,
-                        width: 18, height: 18, borderRadius: "50%",
-                        background: "#fff", transition: "left 0.2s",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                      }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                        {careerIsPublished ? "キャリア軌跡を公開中" : "キャリア軌跡を非公開"}
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>
-                        {careerIsPublished
-                          ? "キャリア軌跡ページに表示されます"
-                          : "オンにすると /career-trajectories に表示されます"}
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* ヘッドライン */}
-                  <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>
-                      キャリアのヘッドライン（任意）
-                    </label>
-                    <input
-                      type="text"
-                      value={careerHeadline}
-                      onChange={(e) => setCareerHeadline(e.target.value)}
-                      placeholder="例: SaaS営業からエンジニアへ転身"
-                      maxLength={80}
-                      style={{
-                        width: "100%", boxSizing: "border-box",
-                        padding: "8px 12px", borderRadius: 8,
-                        border: "1px solid var(--line)", fontSize: 14, fontFamily: "inherit",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-
-                  {/* 社会人経験年数 */}
-                  <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>
-                      社会人経験年数（任意）
-                    </label>
-                    <input
-                      type="number"
-                      value={careerYears}
-                      onChange={(e) => setCareerYears(e.target.value)}
-                      placeholder="例: 8"
-                      min={0}
-                      max={50}
-                      style={{
-                        width: 120, padding: "8px 12px", borderRadius: 8,
-                        border: "1px solid var(--line)", fontSize: 14, fontFamily: "inherit",
-                        outline: "none",
-                      }}
-                    />
-                    <span style={{ marginLeft: 8, fontSize: 13, color: "var(--ink-soft)" }}>年</span>
-                  </div>
-
-                  {/* 保存ボタン */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <button
-                      onClick={saveCareerProfile}
-                      disabled={careerProfileSaving}
-                      style={{
-                        padding: "8px 20px", borderRadius: 8, border: "none",
-                        background: careerProfileSaved ? "var(--success)" : "var(--royal)",
-                        color: "#fff", fontSize: 13, fontWeight: 700,
-                        cursor: careerProfileSaving ? "default" : "pointer",
-                        transition: "background 0.2s",
-                      }}
-                    >
-                      {careerProfileSaving ? "保存中…" : careerProfileSaved ? "✓ 保存しました" : "保存する"}
-                    </button>
-                    {careerIsPublished && (
-                      <a
-                        href="/career-trajectories"
-                        target="_blank"
-                        style={{ fontSize: 13, color: "var(--royal)", textDecoration: "underline" }}
-                      >
-                        公開ページを確認 →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-            </FormSection>
-
             <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} birthDate={owUser?.birth_date} />
             <EducationEditor
               educations={educations}
@@ -3788,7 +3633,7 @@ export default function ProfileEditClient({
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
-                埋めると、条件に合う企業があなたのキャリア軌跡を見たとき、興味シグナルとして届きます
+                希望条件を埋めると、条件に合う企業や求人とのマッチング精度が上がります
               </span>
             </div>
             {/* 保存状態インジケーター */}

@@ -179,12 +179,6 @@ function Hero() {
                 href: "/jobs", cta: "求人を探す →",
                 bg: "#FEF3C7", border: "#FDE68A",
               },
-              {
-                icon: "📊", title: "転職者の年収・軌跡を確認",
-                desc: "IT/SaaS転職者の年収変化・転職理由を匿名公開。求人票にない実データが分かります。",
-                href: "/career-trajectories", cta: "キャリア軌跡を見る →",
-                bg: "#EDE9FE", border: "#C4B5FD",
-              },
             ].map((item) => (
               <Link key={item.title} href={item.href} style={{ textDecoration: "none", display: "block" }}>
                 <div style={{
@@ -521,8 +515,10 @@ function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: Prev
 
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
+type HowItWorksStep = { step: string; title: string; en: string; desc: string; action: string; href: string; iconBg: string; icon: React.ReactNode; };
+
 function HowItWorks() {
-  const STEPS = [
+  const STEPS: HowItWorksStep[] = [
     {
       step: "STEP 01", title: "企業の内側を知る", en: "Research",
       desc: "取材記事・求人票・組織情報が一か所に集約。メール登録のみで、IT/SaaS企業のリアルを自由に調べられます。",
@@ -532,14 +528,12 @@ function HowItWorks() {
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "先輩の軌跡・年収を確認", en: "Explore",
-      desc: "IT/SaaS業界で転職した人たちの年収変化・転職理由を匿名で公開。求人票には載らないリアルな数字を確認できます。",
-      action: "→ キャリア軌跡を見る",
-      href: "/career-trajectories",
-      iconBg: "linear-gradient(135deg, #7C3AED, #A78BFA)",
+      step: "STEP 02", title: "話せる人に相談する", en: "Connect",
+      desc: "企業の現役社員・OB/OGに直接話を聞ける。求人票には載らないカルチャーや仕事のリアルを確認できます。",
+      action: "→ 話せる人を探す",
+      href: "/people",
+      iconBg: "linear-gradient(135deg, var(--warm), #D97706)",
       icon: <ChatIcon />,
-      highlight: true,
-      badge: "OPINIOだけの強み",
     },
     {
       step: "STEP 03", title: "自分のペースで決める", en: "Decide",
@@ -560,7 +554,7 @@ function HowItWorks() {
             企業と、そこで働く人の情報を一か所で
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
-            取材記事・求人票・キャリア軌跡・年収データを集約。<br />
+            取材記事・求人票・話せる人を一か所に集約。<br />
             情報を集めてから、自分のペースで動ける。
           </p>
         </div>
@@ -569,18 +563,18 @@ function HowItWorks() {
           {STEPS.map((s, i) => (
             <React.Fragment key={i}>
               <div className="card-hover" style={{
-                background: s.highlight ? "linear-gradient(135deg, #F3E8FF 0%, #fff 100%)" : "#fff",
-                border: s.highlight ? "2px solid #A78BFA" : "1px solid var(--line)",
+                background: "#fff",
+                border: "1px solid var(--line)",
                 borderRadius: 16, padding: 28,
                 cursor: "default",
                 position: "relative", overflow: "hidden",
-                boxShadow: s.highlight ? "0 8px 32px rgba(124,58,237,0.12)" : "none",
+                boxShadow: "none",
               }}>
                 {/* 背景ステップ数字 */}
                 <div style={{
                   position: "absolute", top: -4, right: 12,
                   fontSize: 96, fontWeight: 900,
-                  color: s.highlight ? "#7C3AED" : "var(--ink)",
+                  color: "var(--ink)",
                   opacity: 0.04,
                   fontFamily: "Inter, sans-serif",
                   lineHeight: 1,
@@ -589,18 +583,7 @@ function HowItWorks() {
                 }}>
                   {String(i + 1).padStart(2, "0")}
                 </div>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: s.highlight ? "#7C3AED" : "var(--royal)", marginBottom: "var(--space-2)" }}>{s.step}</div>
-                {/* badge for highlight steps */}
-                {"badge" in s && s.badge && (
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 10px", borderRadius: 100, marginBottom: 10,
-                    background: "#EDE9FE", border: "1px solid #C4B5FD",
-                    fontSize: 10, fontWeight: 700, color: "#7C3AED",
-                  }}>
-                    ★ {s.badge}
-                  </div>
-                )}
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", marginBottom: "var(--space-2)" }}>{s.step}</div>
                 <div style={{
                   width: 56, height: 56, borderRadius: 14,
                   background: s.iconBg, display: "flex", alignItems: "center", justifyContent: "center",
@@ -775,167 +758,6 @@ function FinalCta({ companyNum }: { companyNum: string }) {
           → メールアドレスで無料登録（30秒）
         </Link>
       </div>
-    </section>
-  );
-}
-
-// ─── Career Trajectories Teaser ──────────────────────────────────────────────
-
-function CareerTrajectoriesTeaser() {
-  const SAMPLE_PATHS = [
-    {
-      role: "営業職",
-      tenure: "社会人8年目",
-      reason: "消費財メーカーから外資SaaSへの転身",
-      chips: ["消費財メーカー", "外資SaaS SDR", "外資SaaS AE", "国内SaaS"],
-      salaryFrom: "310",
-      salaryTo: "980",
-      diff: "+670",
-    },
-    {
-      role: "営業職",
-      tenure: "社会人6年目",
-      reason: "SIerから外資SaaSへのシフト",
-      chips: ["SIer 営業", "外資SaaS", "外資SaaS AE"],
-      salaryFrom: "350",
-      salaryTo: "750",
-      diff: "+400",
-    },
-    {
-      role: "エンジニア",
-      tenure: "社会人5年目",
-      reason: "受託開発からプロダクト企業へ",
-      chips: ["受託開発", "B2B SaaS", "外資クラウド"],
-      salaryFrom: "480",
-      salaryTo: "900",
-      diff: "+420",
-    },
-  ];
-
-  return (
-    <section style={{
-      background: "linear-gradient(160deg, #1A0A3C 0%, #0D0028 55%, #150540 100%)",
-      padding: "72px 24px",
-    }}>
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
-
-        {/* ヘッダー */}
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 7,
-            padding: "5px 14px",
-            background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)",
-            borderRadius: 100, fontSize: 11, fontWeight: 700, marginBottom: 16,
-            letterSpacing: "0.1em", border: "1px solid rgba(255,255,255,0.2)",
-          }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            CAREER TRAJECTORIES
-          </div>
-          <h2 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(22px, 3vw, 34px)", fontWeight: 700,
-            color: "#fff", letterSpacing: "-0.02em", marginBottom: 10,
-          }}>
-            IT転職者の年収変化・軌跡を公開
-          </h2>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.8 }}>
-            転職前後の年収・会社を変えた理由を、本人の許可のもとで匿名公開。<br />
-            求人票には載らないリアルな数字を確認できます。
-          </p>
-        </div>
-
-        {/* サンプル軌跡カード — 3列 */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: 16,
-          marginBottom: 40,
-        }}>
-          {SAMPLE_PATHS.map((path, i) => (
-            <Link key={i} href="/career-trajectories" style={{ textDecoration: "none" }}>
-              <div
-                className="career-teaser-card"
-                style={{
-                  background: "#fff", borderRadius: 16, padding: "20px 22px",
-                  boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
-                  height: "100%", display: "flex", flexDirection: "column",
-                  transition: "box-shadow 0.15s, transform 0.15s",
-                }}
-              >
-                {/* ロール + 年次 */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{path.role}</span>
-                  <span style={{
-                    fontSize: 10, fontWeight: 600, color: "#7C3AED",
-                    background: "rgba(124,58,237,0.08)", padding: "2px 8px", borderRadius: 100,
-                    flexShrink: 0,
-                  }}>{path.tenure}</span>
-                </div>
-
-                {/* 転職理由ヒント */}
-                <p style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 14, lineHeight: 1.6 }}>
-                  {path.reason}
-                </p>
-
-                {/* 年収変化 */}
-                <div style={{
-                  background: "rgba(5,150,105,0.06)", borderRadius: 10,
-                  padding: "12px 14px", border: "1px solid rgba(5,150,105,0.18)",
-                  marginBottom: 14,
-                }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>{path.salaryFrom}万</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginBottom: 2 }}><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                    <span style={{ fontSize: 24, fontWeight: 900, color: "var(--success)", fontFamily: "Inter, sans-serif", letterSpacing: "-0.02em" }}>{path.salaryTo}万円</span>
-                  </div>
-                  <span style={{
-                    display: "inline-block",
-                    fontSize: 12, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif",
-                    background: "rgba(5,150,105,0.12)", padding: "2px 10px", borderRadius: 100,
-                  }}>{path.diff}万 UP ↑</span>
-                </div>
-
-                {/* キャリアパス */}
-                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginTop: "auto" }}>
-                  {path.chips.map((chip, j) => (
-                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, color: "#7C3AED",
-                        background: "rgba(124,58,237,0.08)",
-                        padding: "3px 8px", borderRadius: 100, whiteSpace: "nowrap",
-                      }}>{chip}</span>
-                      {j < path.chips.length - 1 && (
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div style={{ textAlign: "center" }}>
-          <Link href="/career-trajectories" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "14px 36px", borderRadius: 10, fontSize: 15, fontWeight: 700,
-            background: "#fff", color: "#7C3AED",
-            textDecoration: "none",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
-          }}>
-            全員の軌跡・年収を見る →
-          </Link>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 12 }}>メール登録のみ · 完全無料</p>
-        </div>
-      </div>
-
-      <style>{`
-        .career-teaser-card:hover {
-          box-shadow: 0 16px 56px rgba(0,0,0,0.45) !important;
-          transform: translateY(-3px) !important;
-        }
-      `}</style>
     </section>
   );
 }
@@ -1294,7 +1116,6 @@ export default function HomePageClient({
       <HowItWorks />
       <FeaturedCompaniesSection initialCompanies={initialCompanies} />
       <PainPoints />
-      <CareerTrajectoriesTeaser />
       <SocialProofSection />
       <FounderMessage />
       <HomeFaq />

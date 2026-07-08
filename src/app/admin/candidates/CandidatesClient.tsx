@@ -16,7 +16,6 @@ type User = {
   created_at: string;
   lastLogin: string | null;
   isBizAdmin: boolean;
-  hasCareerProfile: boolean;
 };
 
 function getAvatarGradient(str: string): string {
@@ -142,7 +141,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                   aria-label="全選択"
                 />
               </th>
-              {["名前", "メール", "居住地", "年代", "BIZ", "軌跡", "公開設定", "面談可", "最終ログイン", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "最終ログイン", "登録日"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -222,24 +221,6 @@ export function CandidatesClient({ users }: { users: User[] }) {
                         }}>
                           BIZ
                         </span>
-                      ) : (
-                        <span style={{ color: "var(--ink-mute)" }}>—</span>
-                      )}
-                    </td>
-                    {/* 軌跡 */}
-                    <td style={{ padding: "11px 14px" }}>
-                      {u.hasCareerProfile ? (
-                        <a
-                          href={`/admin/career/${u.id}`}
-                          style={{
-                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
-                            background: "#F3E8FF", color: "#7C3AED",
-                            border: "1px solid #DDD6FE", textDecoration: "none",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          公開中
-                        </a>
                       ) : (
                         <span style={{ color: "var(--ink-mute)" }}>—</span>
                       )}
