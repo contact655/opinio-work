@@ -1639,19 +1639,9 @@ export default function JobsClient({
 
   return (
     <>
-      {/* ── ページヘッダー ── */}
-      <div style={{ paddingTop: "var(--space-8)", paddingBottom: "var(--space-4)" }} className="px-5 md:px-12">
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
-          <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, marginBottom: "var(--space-3)", margin: 0 }}>
-            IT / SaaS 求人を探す
-          </h1>
-          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-3)" }}>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              {allJobs.length}件掲載中
-            </span>
-          </div>
-        </div>
-      </div>
+      <h1 className="sr-only">IT/SaaS 求人を探す</h1>
+
+      <div style={{ paddingTop: "var(--space-5)" }} />
 
       {/* ── 2-row スティッキーフィルターバー（全幅・常時固定） ── */}
       <div

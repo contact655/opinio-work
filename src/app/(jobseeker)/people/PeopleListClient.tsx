@@ -616,27 +616,9 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
 
   return (
     <>
-      {/* ── ページヘッダー ── */}
-      <div style={{ paddingTop: "var(--space-8)", paddingBottom: "var(--space-4)" }} className="px-5 md:px-12">
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: "clamp(22px, 3vw, 32px)",
-            fontWeight: 700,
-            color: "var(--ink)",
-            lineHeight: 1.35,
-            marginBottom: "var(--space-3)",
-          }}>
-            ユーザーを探す
-          </h1>
-          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              {ambassadors.length + peers.length}名参加中
-            </span>
-          </div>
-        </div>
-      </div>
+      <h1 className="sr-only">ユーザーを探す</h1>
+
+      <div style={{ paddingTop: "var(--space-5)" }} />
 
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
       <div style={{ position: "sticky", top: 60, zIndex: 50, background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }} className="px-5 md:px-12">

@@ -841,3 +841,16 @@ body {
 .page-enter {
   animation: pageEnter 0.3s ease forwards;
 }
+
+/* アクセシビリティ: 視覚的に非表示、スクリーンリーダーには見える */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
