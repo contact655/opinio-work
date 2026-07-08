@@ -217,9 +217,9 @@ function PostComposer({
         border: focused
           ? "1.5px solid var(--accent)"
           : "1.5px solid var(--line)",
-        borderRadius: 16,
-        padding: "20px 24px",
-        marginBottom: 20,
+        borderRadius: 14,
+        padding: "16px 20px",
+        marginBottom: 16,
         boxShadow: focused
           ? "0 0 0 3px rgba(59,95,217,0.08)"
           : "0 1px 4px rgba(15,23,42,0.06)",
@@ -759,8 +759,8 @@ function PostCard({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 14,
-        padding: "20px 24px",
-        marginBottom: 16,
+        padding: "16px 20px",
+        marginBottom: 10,
         boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
       }}
     >
@@ -770,7 +770,7 @@ function PostCard({
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          marginBottom: 14,
+          marginBottom: 10,
         }}
       >
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -873,11 +873,11 @@ function PostCard({
       {/* 本文 */}
       <p
         style={{
-          margin: "0 0 14px",
+          margin: "0 0 10px",
           fontFamily: '"Noto Sans JP", sans-serif',
           fontSize: 15,
           color: "var(--ink)",
-          lineHeight: 1.75,
+          lineHeight: 1.7,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
         }}
@@ -908,7 +908,7 @@ function PostCard({
           display: "flex",
           alignItems: "center",
           gap: 4,
-          paddingTop: 12,
+          paddingTop: 8,
           borderTop: "1px solid var(--line)",
         }}
       >
@@ -924,7 +924,7 @@ function PostCard({
             background: "none",
             border: "none",
             cursor: myUserId ? "pointer" : "default",
-            padding: "6px 12px",
+            padding: "4px 10px",
             borderRadius: 8,
             color: post.liked_by_me ? "var(--error)" : "var(--ink-soft)",
             fontFamily: '"Noto Sans JP", sans-serif',
@@ -955,7 +955,7 @@ function PostCard({
             background: showComments ? "var(--royal-50)" : "none",
             border: "none",
             cursor: "pointer",
-            padding: "6px 12px",
+            padding: "4px 10px",
             borderRadius: 8,
             color: showComments ? "var(--royal)" : "var(--ink-soft)",
             fontFamily: '"Noto Sans JP", sans-serif',
@@ -1058,7 +1058,7 @@ export default function FeedClient({
       style={{
         maxWidth: 680,
         margin: "0 auto",
-        padding: "32px 16px 64px",
+        padding: "24px 16px 64px",
       }}
     >
       {/* ページタイトル */}
@@ -1068,7 +1068,7 @@ export default function FeedClient({
           fontSize: 22,
           fontWeight: 700,
           color: "var(--ink)",
-          marginBottom: 24,
+          marginBottom: 16,
         }}
       >
         投稿
