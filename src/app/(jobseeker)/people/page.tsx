@@ -2,7 +2,7 @@ export const revalidate = 300;
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
-import { PeopleListClient, type AmbassadorCard } from "./PeopleListClient";
+import { PeopleListClient, type AmbassadorCard, type PeerCard } from "./PeopleListClient";
 
 export const metadata: Metadata = {
   title: { absolute: "話せる人 | OPINIO" },
@@ -95,8 +95,72 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
     });
 }
 
+async function getPeers(): Promise<PeerCard[]> {
+  const adminSupabase = createAdminClient();
+
+  const { data: users, error } = await adminSupabase
+    .from("ow_users")
+    .select("id, name, avatar_color, avatar_url, auth_id")
+    .eq("can_talk_to_candidates", true)
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false });
+
+  if (error || !users || users.length === 0) return [];
+
+  const userIds = users.map((u: { id: string }) => u.id as string);
+  const authIds = users.map((u: { auth_id: string | null }) => u.auth_id).filter(Boolean) as string[];
+
+  // 現職情報
+  const { data: exps } = await adminSupabase
+    .from("ow_experiences")
+    .select("user_id, role_title, company_text, company_anonymized")
+    .in("user_id", userIds)
+    .eq("is_current", true);
+
+  const expByUser = new Map<string, { role_title: string | null; company: string | null }>();
+  for (const exp of exps ?? []) {
+    if (!expByUser.has(exp.user_id as string)) {
+      expByUser.set(exp.user_id as string, {
+        role_title: exp.role_title as string | null,
+        company: (exp.company_text as string | null) || (exp.company_anonymized as string | null) || null,
+      });
+    }
+  }
+
+  // job_type (ow_profiles.user_id = auth.users.id = ow_users.auth_id)
+  const jobTypeByAuthId = new Map<string, string | null>();
+  if (authIds.length > 0) {
+    const { data: profiles } = await adminSupabase
+      .from("ow_profiles")
+      .select("user_id, job_type")
+      .in("user_id", authIds);
+    for (const p of profiles ?? []) {
+      jobTypeByAuthId.set(p.user_id as string, p.job_type as string | null);
+    }
+  }
+
+  return users.map((u: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; auth_id: string | null }) => {
+    const gradient =
+      u.avatar_color?.startsWith("linear-gradient")
+        ? u.avatar_color
+        : FALLBACK_GRADIENT;
+    const exp = expByUser.get(u.id) ?? null;
+    const jobType = u.auth_id ? (jobTypeByAuthId.get(u.auth_id) ?? null) : null;
+    return {
+      userId: u.id,
+      name: u.name ?? "名前未設定",
+      initial: (u.name ?? "?").charAt(0),
+      gradient,
+      avatarUrl: u.avatar_url ?? null,
+      roleTitle: exp?.role_title ?? null,
+      companyName: exp?.company ?? null,
+      jobType,
+    };
+  });
+}
+
 export default async function PeoplePage() {
-  const ambassadors = await getAmbassadors();
+  const [ambassadors, peers] = await Promise.all([getAmbassadors(), getPeers()]);
 
   // 企業ごとにグループ化してフィルター用のリストを作成
   const companies = Array.from(
@@ -107,7 +171,7 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={ambassadors} companies={companies} />
+      <PeopleListClient ambassadors={ambassadors} peers={peers} companies={companies} />
     </div>
   );
 }

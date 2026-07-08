@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
+import { JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
 
 export type AmbassadorCard = {
   adminId: string;
@@ -22,10 +23,22 @@ export type AmbassadorCard = {
   companyLogoLetter: string | null;
 };
 
+export type PeerCard = {
+  userId: string;
+  name: string;
+  initial: string;
+  gradient: string;
+  avatarUrl: string | null;
+  roleTitle: string | null;
+  companyName: string | null;
+  jobType: string | null;
+};
+
 type Company = { id: string; name: string };
 
 type Props = {
   ambassadors: AmbassadorCard[];
+  peers: PeerCard[];
   companies: Company[];
 };
 
@@ -353,6 +366,7 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
   { key: "all",      label: "すべて",       pattern: null },
+  { key: "peers",    label: "候補者",       pattern: null },
   { key: "hr",       label: "人事・採用",   pattern: /人事|採用|hr|recruit/i },
   { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
   { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
@@ -363,7 +377,7 @@ const ROLE_CATEGORIES = [
 type RoleCategoryKey = typeof ROLE_CATEGORIES[number]["key"];
 
 function matchesRoleCategory(card: AmbassadorCard, key: RoleCategoryKey): boolean {
-  if (key === "all") return true;
+  if (key === "all" || key === "peers") return true;
   const text = `${card.roleTitle ?? ""} ${card.department ?? ""}`;
   const cat = ROLE_CATEGORIES.find((c) => c.key === key);
   return cat?.pattern ? cat.pattern.test(text) : true;
@@ -394,15 +408,172 @@ function matchesCompanyType(card: AmbassadorCard, key: CompanyTypeKey): boolean 
   return cat.phasePattern.test(phase);
 }
 
+// ── PeerAvatar ────────────────────────────────────────────────────────
+function PeerAvatar({ card, size }: { card: PeerCard; size: number }) {
+  const fontSize = size * 0.38;
+  if (card.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={card.avatarUrl}
+        alt={card.name}
+        style={{
+          width: size, height: size, borderRadius: "50%", objectFit: "cover",
+          border: "2px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", flexShrink: 0,
+        }}
+      />
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", background: card.gradient,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize, fontWeight: 800, color: "#fff", flexShrink: 0,
+      border: "2px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
+    }}>
+      {card.initial}
+    </div>
+  );
+}
+
+// ── PeerBadge ─────────────────────────────────────────────────────────
+function PeerBadge() {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      fontSize: 10, fontWeight: 700,
+      padding: "2px 8px", borderRadius: 100,
+      background: "var(--royal-50)", color: "var(--royal)",
+      border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
+      候補者
+    </span>
+  );
+}
+
+// ── PeerGridCard ─────────────────────────────────────────────────────
+function PeerGridCard({ card }: { card: PeerCard }) {
+  const jobTypeLabel = card.jobType
+    ? (JOB_TYPE_DISPLAY_LABELS[card.jobType] ?? card.jobType)
+    : null;
+
+  return (
+    <div
+      style={{
+        background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+        padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 0,
+        transition: "box-shadow 0.15s, transform 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 24px rgba(0,35,102,0.10)";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+      }}
+    >
+      <div style={{ marginBottom: 14 }}>
+        <PeerAvatar card={card} size={64} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
+        <PeerBadge />
+      </div>
+      {card.roleTitle && (
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>{card.roleTitle}</div>
+      )}
+      {card.companyName && (
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10 }}>{card.companyName}</div>
+      )}
+      {jobTypeLabel && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>経験職種</div>
+          <TopicTags tags={[jobTypeLabel]} />
+        </div>
+      )}
+      <div style={{ marginTop: "auto" }}>
+        <Link
+          href={`/u/${card.userId}`}
+          style={{
+            display: "block", textAlign: "center", padding: "9px 16px",
+            background: "var(--royal-50)", color: "var(--royal)",
+            borderRadius: 9, fontSize: 13, fontWeight: 700,
+            textDecoration: "none", border: "1px solid var(--royal-100)",
+            transition: "opacity 0.15s",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.80"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
+        >
+          プロフィールを見る →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── PeerListRow ──────────────────────────────────────────────────────
+function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
+  const jobTypeLabel = card.jobType
+    ? (JOB_TYPE_DISPLAY_LABELS[card.jobType] ?? card.jobType)
+    : null;
+
+  return (
+    <div style={{
+      display: "grid", gridTemplateColumns: "64px 1fr auto", alignItems: "center",
+      gap: 16, padding: "18px 24px",
+      borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
+      background: "#fff", transition: "background 0.1s",
+    }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
+    >
+      <PeerAvatar card={card} size={52} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
+          <PeerBadge />
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: jobTypeLabel ? 6 : 0 }}>
+          {card.roleTitle ?? ""}
+          {card.companyName && (
+            <span style={{ color: "var(--ink-mute)" }}>
+              {card.roleTitle ? " · " : ""}{card.companyName}
+            </span>
+          )}
+        </div>
+        {jobTypeLabel && <TopicTags tags={[jobTypeLabel]} />}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center" }}>
+        <Link
+          href={`/u/${card.userId}`}
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            padding: "8px 18px", background: "var(--royal-50)", color: "var(--royal)",
+            borderRadius: 8, fontSize: 12, fontWeight: 700,
+            textDecoration: "none", border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+          }}
+        >
+          プロフィールを見る →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, companies: _companies }: Props) {
+export function PeopleListClient({ ambassadors, peers, companies: _companies }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [roleCategory, setRoleCategory] = useState<RoleCategoryKey>("all");
   const [companyType, setCompanyType] = useState<CompanyTypeKey>("all");
   const [keyword, setKeyword] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() => {
+  const isPeersMode = roleCategory === "peers";
+
+  const filteredAmbassadors = useMemo(() => {
+    if (isPeersMode) return [];
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchesRoleCategory(a, roleCategory)) return false;
@@ -415,9 +586,21 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         (a.department ?? "").toLowerCase().includes(q)
       );
     });
-  }, [ambassadors, roleCategory, companyType, keyword]);
+  }, [ambassadors, roleCategory, companyType, keyword, isPeersMode]);
 
-  if (ambassadors.length === 0) {
+  const filteredPeers = useMemo(() => {
+    if (!isPeersMode) return [];
+    const q = keyword.trim().toLowerCase();
+    if (!q) return peers;
+    return peers.filter((p) =>
+      p.name.toLowerCase().includes(q) ||
+      (p.companyName ?? "").toLowerCase().includes(q) ||
+      (p.roleTitle ?? "").toLowerCase().includes(q)
+    );
+  }, [peers, isPeersMode, keyword]);
+
+
+  if (ambassadors.length === 0 && peers.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "80px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>💬</div>
@@ -455,7 +638,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.88)", border: "1px solid rgba(255,255,255,0.18)", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              {ambassadors.length}名掲載中
+              {ambassadors.length + peers.length}名掲載中
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#FCD34D", border: "1px solid rgba(245,158,11,0.3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
               直接話せる · 無料
@@ -513,12 +696,14 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         {/* ロールカテゴリ */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
             {ROLE_CATEGORIES.filter((cat) => {
-              if (cat.key === "all") return true;
+              if (cat.key === "all" || cat.key === "peers") return true;
               return ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length > 0;
             }).map((cat) => {
               const count = cat.key === "all"
                 ? ambassadors.length
-                : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;
+                : cat.key === "peers"
+                  ? peers.length
+                  : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;
               const isActive = roleCategory === cat.key;
               return (
                 <button
@@ -554,8 +739,13 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
 
         {/* ── 行2: 企業タイプフィルター + 表示切替（overflowX auto で見切れ解消） ── */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
-          {COMPANY_TYPE_FILTERS.map((cat) => {
+          {isPeersMode && (
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic", marginRight: 8 }}>
+              候補者同士で話せる人
+            </span>
+          )}
+          {!isPeersMode && <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>}
+          {!isPeersMode && COMPANY_TYPE_FILTERS.map((cat) => {
             const count = cat.key === "all"
               ? ambassadors.length
               : ambassadors.filter((a) => matchesCompanyType(a, cat.key)).length;
@@ -635,7 +825,7 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
         {(keyword || roleCategory !== "all" || companyType !== "all") && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              {filtered.length}名が見つかりました
+              {isPeersMode ? filteredPeers.length : filteredAmbassadors.length}名が見つかりました
             </span>
             <button
               type="button"
@@ -664,13 +854,14 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
           borderRadius: 14,
           overflow: "hidden",
         }}>
-          {filtered.map((card, i) => (
-            <AmbassadorListRow
-              key={card.userId}
-              card={card}
-              isLast={i === filtered.length - 1}
-            />
-          ))}
+          {isPeersMode
+            ? filteredPeers.map((card, i) => (
+                <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
+              ))
+            : filteredAmbassadors.map((card, i) => (
+                <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1} />
+              ))
+          }
         </div>
       )}
 
@@ -691,16 +882,19 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
             }
           `}</style>
           <div className="people-grid">
-            {filtered.map((card) => (
-              <AmbassadorGridCard key={card.userId} card={card} />
-            ))}
+            {isPeersMode
+              ? filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)
+              : filteredAmbassadors.map((card) => <AmbassadorGridCard key={card.userId} card={card} />)
+            }
           </div>
         </>
       )}
 
-      {filtered.length === 0 && (
+      {(isPeersMode ? filteredPeers : filteredAmbassadors).length === 0 && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
-          該当する方が見つかりません
+          {isPeersMode
+            ? "まだ「候補者同士で話せる」に設定している方がいません。プロフィール設定から有効にできます。"
+            : "該当する方が見つかりません"}
         </div>
       )}
 
