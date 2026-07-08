@@ -10,6 +10,7 @@ import FeedSidebar, {
   type SidebarPerson,
 } from "@/components/feed/FeedSidebar";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
+import FeedProfileCard, { type FeedProfileData } from "@/components/feed/FeedProfileCard";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ type Props = {
   myLikedPostIds: string[];
   sidebarJobs?: SidebarJob[];
   sidebarPeople?: SidebarPerson[];
+  feedProfile?: FeedProfileData | null;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1172,6 +1174,7 @@ export default function FeedClient({
   myLikedPostIds: _myLikedPostIds,
   sidebarJobs = [],
   sidebarPeople = [],
+  feedProfile = null,
 }: Props) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -1224,18 +1227,26 @@ export default function FeedClient({
   };
 
   const hasSidebar = sidebarJobs.length > 0 || sidebarPeople.length > 0;
+  const hasProfile = !!feedProfile;
 
   return (
     <div
       style={{
-        maxWidth: hasSidebar ? 1000 : 680,
+        maxWidth: hasProfile || hasSidebar ? 1160 : 680,
         margin: "0 auto",
         padding: "24px 16px 64px",
-        display: hasSidebar ? "flex" : "block",
-        gap: hasSidebar ? 24 : undefined,
+        display: "flex",
+        gap: 24,
         alignItems: "flex-start",
       }}
     >
+      {/* 左カラム: プロフィールサマリー（デスクトップのみ） */}
+      {hasProfile && (
+        <div className="feed-profile-wrapper">
+          <FeedProfileCard profile={feedProfile!} />
+        </div>
+      )}
+
       {/* メインフィード */}
       <div style={{ flex: 1, minWidth: 0 }}>
       {/* ページタイトル */}

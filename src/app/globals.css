@@ -624,13 +624,20 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* ── Feed sidebar — 1024px未満では非表示 ── */
+/* ── Feed sidebar & profile card — 1024px未満では非表示 ── */
 .feed-sidebar-wrapper {
+  display: none;
+}
+.feed-profile-wrapper {
   display: none;
 }
 @media (min-width: 1024px) {
   .feed-sidebar-wrapper {
     display: block;
+  }
+  .feed-profile-wrapper {
+    display: block;
+    flex-shrink: 0;
   }
 }
 

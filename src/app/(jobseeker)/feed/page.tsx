@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import FeedClient from "./FeedClient";
 import type { SidebarJob, SidebarPerson } from "@/components/feed/FeedSidebar";
+import type { FeedProfileData } from "@/components/feed/FeedProfileCard";
 
 export const metadata: Metadata = {
   title: "投稿 | OPINIO",
@@ -88,6 +89,48 @@ export default async function FeedPage() {
           company: exp.company_text || exp.company_anonymized || null,
         });
       }
+    }
+  }
+
+  // ── 左カラム: 自分のプロフィールサマリー（失敗してもフィード本体は壊れない） ──
+  let feedProfile: FeedProfileData | null = null;
+  if (myOwUserId && owUser) {
+    try {
+      // 現職情報
+      const { data: myExp } = await adminSupabase
+        .from("ow_experiences")
+        .select("role_title, company_text, company_anonymized")
+        .eq("user_id", myOwUserId)
+        .eq("is_current", true)
+        .limit(1)
+        .maybeSingle();
+
+      // 完成度計算用データ
+      const [{ data: owProfile }, { data: skillTags }, { data: careers }] = await Promise.all([
+        adminSupabase.from("ow_users").select("about_me").eq("id", myOwUserId).maybeSingle(),
+        adminSupabase.from("ow_user_skill_tags").select("id").eq("user_id", myOwUserId).limit(1),
+        adminSupabase.from("ow_experiences").select("id").eq("user_id", myOwUserId).limit(1),
+      ]);
+
+      const hasName   = !!owUser.name && owUser.name !== "ユーザー";
+      const hasAbout  = !!owProfile?.about_me && (owProfile.about_me as string).trim().length > 0;
+      const hasSkills = (skillTags?.length ?? 0) > 0;
+      const hasCareer = (careers?.length ?? 0) > 0;
+
+      let profileStage: 1 | 2 | 3 = 1;
+      if (hasName && hasAbout && hasSkills) profileStage = hasCareer ? 3 : 2;
+
+      feedProfile = {
+        userId: myOwUserId,
+        name: owUser.name ?? "ユーザー",
+        avatarColor: owUser.avatar_color ?? null,
+        avatarUrl: owUser.avatar_url ?? null,
+        roleTitle: myExp?.role_title ?? null,
+        companyName: myExp?.company_text || myExp?.company_anonymized || null,
+        profileStage,
+      };
+    } catch (e) {
+      console.error("[feed profile card]", e);
     }
   }
 
@@ -208,6 +251,7 @@ export default async function FeedPage() {
       myLikedPostIds={Array.from(likedPostIds)}
       sidebarJobs={sidebarJobs}
       sidebarPeople={sidebarPeople}
+      feedProfile={feedProfile}
     />
   );
 }
