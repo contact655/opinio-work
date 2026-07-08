@@ -10,6 +10,7 @@ import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageM
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
+import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -3810,17 +3811,9 @@ export default function ProfileEditClient({
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
-                  <option value="フィールドセールス">フィールドセールス</option>
-                  <option value="インサイドセールス">インサイドセールス</option>
-                  <option value="カスタマーサクセス">カスタマーサクセス</option>
-                  <option value="マーケティング">マーケティング</option>
-                  <option value="事業開発・BizDev">事業開発・BizDev</option>
-                  <option value="プロダクトマネージャー">プロダクトマネージャー</option>
-                  <option value="エンジニア">エンジニア</option>
-                  <option value="デザイナー">デザイナー</option>
-                  <option value="HR・人事">HR・人事</option>
-                  <option value="財務・経理">財務・経理</option>
-                  <option value="その他">その他</option>
+                  {JOB_TYPES.map((jt) => (
+                    <option key={jt} value={jt}>{jt}</option>
+                  ))}
                 </select>
               </FormGroup>
               <FormGroup label="社会人経験年数" htmlFor="pe-exp-years">

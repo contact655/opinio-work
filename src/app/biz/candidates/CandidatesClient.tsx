@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { JOB_TYPES } from "@/lib/constants/jobTypes";
 
 type Candidate = {
   id: string;
@@ -24,20 +25,8 @@ const WORK_STYLE_LABELS: Record<string, string> = {
   flexible: "柔軟に対応",
 };
 
-// ow_profiles.job_type stores Japanese strings matching the onboarding options
-const JOB_TYPE_OPTIONS = [
-  "フィールドセールス",
-  "インサイドセールス",
-  "カスタマーサクセス",
-  "マーケティング",
-  "事業開発・BizDev",
-  "プロダクトマネージャー",
-  "エンジニア",
-  "デザイナー",
-  "HR・人事",
-  "財務・経理",
-  "その他",
-];
+// ow_profiles.job_type — 定数は src/lib/constants/jobTypes.ts で一元管理
+const JOB_TYPE_OPTIONS = [...JOB_TYPES];
 
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, var(--royal), #3B5FD9)",

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { JOB_TYPES } from "@/lib/constants/jobTypes";
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
@@ -26,29 +27,7 @@ const STEPS: Step[] = [
     ),
     question: "あなたの職種は？",
     sub: "最も近いものを選んでください",
-    options: [
-      // Leadership / Business
-      "経営・CxO",
-      "事業開発",
-      "フィールドセールス",
-      "インサイドセールス",
-      "カスタマーサクセス",
-      "マーケティング",
-      "コーポレート",
-      // Product / Design
-      "プロダクトマネージャー",
-      "デザイナー",
-      "データサイエンティスト",
-      // Engineering
-      "エンジニア",
-      "バックエンド",
-      "フロントエンド",
-      "フルスタック",
-      "SRE/インフラ",
-      "iOS/Android",
-      // Others
-      "その他",
-    ],
+    options: [...JOB_TYPES],
   },
   {
     id: "experience_years",
@@ -476,14 +455,14 @@ function OnboardingInner() {
             }}
             disabled={saving}
             style={{
-              fontSize: 12, color: "var(--ink-mute)", background: "none",
-              border: "none", cursor: "pointer", fontFamily: "inherit",
-              padding: "8px 16px", textDecoration: "underline",
-              textDecorationColor: "var(--line)",
+              fontSize: 13, color: "var(--ink-soft)", background: "none",
+              border: "1px solid var(--line)", borderRadius: 8,
+              cursor: saving ? "wait" : "pointer", fontFamily: "inherit",
+              padding: "9px 20px", display: "flex", alignItems: "center", gap: 5,
             }}
           >
             後で設定する
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
