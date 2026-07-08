@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { useAutoSave } from "@/hooks/useAutoSave";
@@ -247,44 +247,68 @@ export function JobEditForm({
   const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { saveState, trigger: triggerAutosave } = useAutoSave();
+  // currentJobId: 新規モードでも自動保存後の ID を追跡する
+  // 初期値は initialJob?.id（編集モード）または null（新規モード）
+  const [currentJobId, setCurrentJobId] = useState<string | null>(initialJob?.id ?? null);
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
     setTimeout(() => setErrorMessage(null), 5000);
   };
-  // hasInteracted: React 18 Strict Mode 対策 (isFirstRender パターンは NG)
-  // ユーザーが実際にフォームを変更したときだけ true にセットする
-  const hasInteracted = useRef(false);
   const effectiveTeam = teamMembers ?? MOCK_TEAM;
-  const jobId = initialJob?.id ?? null;
 
-  function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
-    hasInteracted.current = true;
-    setForm((prev) => ({ ...prev, [key]: value }));
-    triggerAutosave();
-  }
-
-  // Autosave: edit mode のみ form 変更後 700ms で PUT
-  useEffect(() => {
-    if (!hasInteracted.current) return;
-    if (!jobId || mode !== "edit" || process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
-    const timer = setTimeout(() => {
-      fetch(`/api/biz/jobs/${jobId}`, {
+  // 実際の保存処理。useAutoSave の onSave に渡す。
+  // useCallback で最新の form/currentJobId を閉じる。useAutoSave 側で ref 経由で
+  // 参照するため、form が変わるたびに debounce タイマーがリセットされることはない。
+  const doSave = useCallback(async () => {
+    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
+    if (!currentJobId) {
+      // 新規モード: タイトルが入力されていればレコード発行
+      if (!form.title.trim()) return;
+      const res = await fetch("/api/biz/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, companyId }),
+      });
+      if (!res.ok) throw new Error("create failed");
+      const { id } = (await res.json()) as { id: string };
+      setCurrentJobId(id);
+      // router.replace はページリロード相当で form state が消えるため使わない。
+      // URLバーのみ書き換えてリロードなしで編集を継続できるようにする。
+      window.history.replaceState({}, "", `/biz/jobs/${id}/edit`);
+    } else {
+      // 既存レコード更新（編集モード、または新規モードでの2回目以降の自動保存）
+      // status は PUT に含まれないため、自動保存が draft 以外に変わることはない。
+      const res = await fetch(`/api/biz/jobs/${currentJobId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
-      }).catch(console.error);
-    }, 700);
-    return () => clearTimeout(timer);
-  // form のみ監視（jobId/mode は初期値から不変）
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form]);
+      });
+      if (!res.ok) throw new Error("save failed");
+    }
+  }, [form, currentJobId, companyId]);
+
+  const { saveState, trigger: triggerAutosave } = useAutoSave({ onSave: doSave });
+
+  function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    // 新規モードでタイトルが空のうちは自動保存しない（空レコード量産防止）
+    // 「key === "title"」の場合は入力中の新しい値で判定する
+    const effectiveTitle = key === "title" ? (value as string) : form.title;
+    if (currentJobId || effectiveTitle.trim().length > 0) {
+      triggerAutosave();
+    }
+  }
 
   const handleCreate = useCallback(async () => {
     if (!form.title.trim()) { showError("求人タイトルを入力してください。"); return; }
     setIsCreating(true);
     try {
+      if (currentJobId) {
+        // 自動保存が既にレコードを作成済み → ページを edit モードでリロードして完全に切り替える
+        router.replace(`/biz/jobs/${currentJobId}/edit`);
+        return;
+      }
       const res = await fetch("/api/biz/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -299,9 +323,10 @@ export function JobEditForm({
       setIsCreating(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, companyId, router]);
+  }, [form, companyId, router, currentJobId]);
 
   const handlePublish = useCallback(async () => {
+    const jobId = currentJobId;
     if (!jobId) return;
     setIsPublishing(true);
     try {
@@ -324,7 +349,7 @@ export function JobEditForm({
       setIsPublishing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, jobId, router]);
+  }, [form, currentJobId, router]);
 
   // セクション完成度チェック
   const sectionComplete = useMemo(() => ({
@@ -355,10 +380,13 @@ export function JobEditForm({
     transition: "all 0.3s", flexShrink: 0,
     ...(saveState === "saving" ? { color: "var(--warm)", background: "var(--warm-soft)" }
       : saveState === "saved"  ? { color: "var(--success)", background: "var(--success-soft)" }
+      : saveState === "error"  ? { color: "var(--error)", background: "var(--error-soft)" }
       : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
   };
   const saveStatusText = saveState === "saving" ? "下書きに保存中..."
-    : saveState === "saved" ? "下書きを自動保存しました" : "編集中";
+    : saveState === "saved"  ? "下書きを自動保存しました"
+    : saveState === "error"  ? "保存に失敗しました"
+    : "編集中";
 
   const pageTitle = mode === "new" ? "求人を作成" : (initialJob?.title ?? "求人を編集");
 
@@ -795,6 +823,8 @@ export function JobEditForm({
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             ) : saveState === "saved" ? (
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            ) : saveState === "error" ? (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             ) : null}
             {saveStatusText}
           </span>
@@ -804,9 +834,9 @@ export function JobEditForm({
           <button
             type="button"
             onClick={() => {
-              if (jobId) window.open(`/jobs/${jobId}`, "_blank", "noopener,noreferrer");
+              if (currentJobId) window.open(`/jobs/${currentJobId}`, "_blank", "noopener,noreferrer");
             }}
-            disabled={!jobId}
+            disabled={!currentJobId}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "8px 16px", fontSize: 13, fontWeight: 600,
