@@ -13,6 +13,43 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-07-08 セッション25 更新）
+
+### ✅ 完了 2026-07-08 セッション25: StatusPill統合・オンボーディング改善・dead code削除
+
+  **StatusPill 統合（`src/components/common/StatusPill.tsx` 他4ファイル）:**
+  - 全ドメイン（面談・求人・応募・メンター予約）の21ステータスバリアントを1ファイルに一元化
+  - `MeetingStatusBadge` / `JobStatusBadge` を薄いラッパーに変換
+  - `ApplicationsClient` / `MypageClient` のインライン実装を共通 StatusPill に差し替え
+  - `hired` バッジ: ソリッドグリーン（`var(--success)` bg + white text）で「採用確定」を強調
+  - 調査レポート: `docs/research-statuspill-2026-07.md`
+
+  **オンボーディング改善（`src/app/onboarding/OnboardingClient.tsx` 他）:**
+  - ⚠️ **CLAUDE.md 旧記述の訂正**: オンボーディングは「5ステップ強制完走」ではなく**3ステップ**（職種 / 経験年数 / 悩み）。
+    「後で設定する」ボタン（スキップ）は**最初から実装済み**で `onboarding_completed: true` をセットして離脱できる。
+    OnboardingGuard とも整合済み（スキップ後のリダイレクトループなし）。
+    ※ CLAUDE.md の「5ステップ」記述はすべてメンター予約フロー（`/mentors/[id]/reserve`）の話であり、オンボーディングとは別物。
+  - P0: 職種定数を `src/lib/constants/jobTypes.ts` に一元化（**20職種**）
+    - オンボーディング / プロフィール編集 / 企業候補者フィルタが同じ定数を参照
+    - 旧プロフィール編集の3職種（事業開発・BizDev / HR・人事 / 財務・経理）をマスタに追加
+    - DB調査: 既存ユーザーの job_type 値は「フィールドセールス」「バックエンド」「インサイドセールス」のみ（legacy値は0件）
+  - P2: 「後で設定する」ボタンの視認性改善（枠付きボタン形状、13px / `--ink-soft`）
+  - 調査レポート: `docs/research-onboarding-2026-07.md`
+
+  **dead code 削除:**
+  - `src/lib/matching.ts` 削除 — `generateMatchReasons()` は呼び出し元ゼロ
+  - `src/lib/utils/matchReason.ts` 削除 — `getMatchReason()` は呼び出し元ゼロ
+  - 実際のマッチング理由は `src/app/api/cron/weekly-match/route.ts` 内ローカルの `getDefaultReason()` が担当
+    （`ow_match_scores` テーブルは0件のため、全ユーザーに固定テキストが返る）
+  - 調査レポート: `docs/research-matching-2026-07.md`
+
+### 🟢 次の優先候補（2026-07-08 セッション25後）
+- **Migration 197 手動適用** — Supabase SQL Editor で `supabase/migrations/197_create_mentor_reservations.sql` を実行（メンター予約 API が有効化される）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **オンボーディング P1（2段階 UI）** — 職種カテゴリ→サブ選択の2段階化（`docs/research-onboarding-2026-07.md` に設計案）
+
+---
+
 ## 🎯 次のセッションでやること（2026-06-21 セッション24 更新）
 
 ### ✅ 完了 2026-06-21 セッション24: キャリア軌跡 Phase 3 修正 + mentor_reservations migration + Ambassador UI
