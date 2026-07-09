@@ -96,6 +96,7 @@ const DEPT_SHORT: Record<string, string> = {
   "AI":                           "AI",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function shortDept(dept: string): string {
   for (const [key, label] of Object.entries(DEPT_SHORT)) {
     if (dept.includes(key)) return label;
