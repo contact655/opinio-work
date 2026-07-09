@@ -816,7 +816,7 @@ function FilterChip({
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, alumni = [], isApplied = false,
-  selectedJobId,
+  selectedJobId, onSelect,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -824,6 +824,7 @@ function JobListItem({
   alumni?: CompanyAlumniPreview[];
   isApplied?: boolean;
   selectedJobId?: string | null;
+  onSelect?: (id: string) => void;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -882,6 +883,7 @@ function JobListItem({
         href={`/jobs/${job.id}`}
         prefetch
         className="job-list-item-link"
+        onClick={onSelect ? (e) => { if (window.innerWidth >= 1024) { e.preventDefault(); onSelect(job.id); } } : undefined}
         style={{
           display: "flex",
           alignItems: "center",
@@ -902,9 +904,9 @@ function JobListItem({
             logoUrl={company.logo_url}
             logoLetter={company.logo_letter}
             logoGradient={company.gradient}
-            size={40}
-            borderRadius={8}
-            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+            size={48}
+            borderRadius={10}
+            style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.12)" }}
           />
         </div>
 
@@ -977,6 +979,35 @@ function JobListItem({
             )}
           </div>
 
+          {/* 先輩strip — LinkedIn「あなたの繋がり」相当：会社名直下で目立たせる */}
+          {alumni.length > 0 && (
+            <div style={{ marginBottom: 5 }}>
+              <span
+                role="presentation"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "3px 10px 3px 6px", borderRadius: 20,
+                  background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
+                  border: "1.5px solid var(--royal-100)", cursor: "pointer",
+                }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  {alumni.slice(0, 3).map((a, i) => (
+                    <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
+                      style={{ width: 24, height: 24, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i, textDecoration: "none" }}>
+                      {a.name.replace(/\s/g, "").charAt(0)}
+                    </a>
+                  ))}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                  {alumni.length === 1 ? `${alumni[0].name.slice(0, 3)}さんが先輩にいます` : `先輩${alumni.length}名がいます`}
+                  <span style={{ fontSize: 10, marginLeft: 4, color: "#3B5FD9" }}>話を聞く →</span>
+                </span>
+              </span>
+            </div>
+          )}
+
           {/* 行3: 年収 · 勤務地 · 勤務形態 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {(job.salary_min || job.salary_max) && (
@@ -1007,35 +1038,6 @@ function JobListItem({
               </span>
             )}
           </div>
-
-          {/* 先輩strip（コンパクト版） */}
-          {alumni.length > 0 && (
-            <div style={{ marginTop: 5 }}>
-              <span
-                role="presentation"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "2px 8px", borderRadius: 4,
-                  background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
-                  border: "1.5px solid var(--royal-100)", cursor: "pointer",
-                }}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
-              >
-                <span style={{ display: "inline-flex", alignItems: "center" }}>
-                  {alumni.slice(0, 3).map((a, i) => (
-                    <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
-                      style={{ width: 20, height: 20, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i, textDecoration: "none" }}>
-                      {a.name.replace(/\s/g, "").charAt(0)}
-                    </a>
-                  ))}
-                </span>
-                <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap" }}>
-                  {alumni.length === 1 ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます` : `先輩${alumni.length}名がいます`}
-                  <span style={{ fontSize: 10, marginLeft: 4, color: "#3B5FD9" }}>話を聞く →</span>
-                </span>
-              </span>
-            </div>
-          )}
         </div>
 
         {/* ── 右端: NEW バッジ + ♡ボタン ── */}
@@ -1056,20 +1058,176 @@ function JobListItem({
             aria-pressed={bookmarked}
             style={{
               width: 32, height: 32, borderRadius: "50%",
-              border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
-              background: bookmarked ? "#FEF2F2" : "#fff",
+              border: `1.5px solid ${bookmarked ? "#e24b4a" : "#FECACA"}`,
+              background: bookmarked ? "#FEF2F2" : "#FFF5F5",
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
               transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
               transition: "all 0.2s", flexShrink: 0,
             }}
           >
-            <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+            <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
           </button>
           <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
             {job.updated_days_ago === 0 ? "今日" : `${job.updated_days_ago}日前`}
           </span>
         </div>
       </Link>
+    </div>
+  );
+}
+
+// ─── Right detail pane (LinkedIn 2-pane) ─────────────────────────────────────
+
+function JobDetailPane({
+  job, company, alumni,
+}: {
+  job: Job | null;
+  company: Company | null;
+  alumni: CompanyAlumniPreview[];
+}) {
+  if (!job || !company) {
+    return (
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: 12, height: 200, border: "2px dashed var(--line)", borderRadius: 12,
+        color: "var(--ink-mute)", background: "#fafbfc",
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+        <span style={{ fontSize: 13, fontWeight: 500 }}>求人を選ぶと詳細が表示されます</span>
+      </div>
+    );
+  }
+
+  const deptStyle = getDeptStyle(job.dept);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
+  const hasMeeting = company.accepting_casual_meetings;
+
+  return (
+    <div style={{
+      position: "sticky", top: 80,
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 12, overflow: "hidden",
+      boxShadow: "0 2px 16px rgba(15,23,42,0.08)",
+      maxHeight: "calc(100vh - 96px)", overflowY: "auto",
+    }}>
+      {/* Company banner */}
+      <div style={{ height: 64, background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)", position: "relative", flexShrink: 0 }}>
+        <div style={{ position: "absolute", bottom: -22, left: 16, border: "3px solid rgba(255,255,255,0.9)", boxShadow: "0 2px 10px rgba(0,0,0,0.15)", borderRadius: 12, zIndex: 3 }}>
+          <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter} logoGradient={company.gradient} size={48} borderRadius={10} />
+        </div>
+      </div>
+
+      <div style={{ padding: "30px 18px 20px" }}>
+        {/* Company name + phase */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+          <Link href={`/companies/${company.id}`} style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(company as any).brand_name ?? company.name}
+          </Link>
+          {phaseBadge && (
+            <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: phaseBadge.bg, color: phaseBadge.color, border: `1px solid ${phaseBadge.color}40` }}>
+              {phaseBadge.label}
+            </span>
+          )}
+        </div>
+
+        {/* Job title */}
+        <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.35, marginBottom: 14, letterSpacing: "-0.02em" }}>
+          {job.role}
+        </h2>
+
+        {/* Alumni strip (大きく目立つ版) */}
+        {alumni.length > 0 && (
+          <Link href={`/companies/${company.id}#members`} style={{
+            display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
+            padding: "8px 12px", borderRadius: 10,
+            background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
+            border: "1.5px solid var(--royal-100)", textDecoration: "none",
+          }}>
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+              {alumni.slice(0, 3).map((a, i) => (
+                <span key={a.userId} title={a.name} style={{ width: 28, height: 28, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -9, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i }}>
+                  {a.name.replace(/\s/g, "").charAt(0)}
+                </span>
+              ))}
+            </span>
+            <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700 }}>
+              {alumni.length === 1 ? `${alumni[0].name.slice(0, 3)}さんが先輩にいます` : `先輩${alumni.length}名がいます`}
+              <span style={{ fontSize: 11, marginLeft: 4, color: "#3B5FD9" }}>話を聞く →</span>
+            </span>
+          </Link>
+        )}
+
+        {/* Meta */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, padding: "10px 12px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 12 }}>
+          {(job.salary_min || job.salary_max) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "var(--ink-mute)", minWidth: 40 }}>年収</span>
+              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--success)" }}>{formatSalary(job.salary_min, job.salary_max)}</span>
+            </div>
+          )}
+          {job.location && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "var(--ink-mute)", minWidth: 40 }}>勤務地</span>
+              <span style={{ color: "var(--ink)" }}>{job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}</span>
+            </div>
+          )}
+          {job.work_style && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "var(--ink-mute)", minWidth: 40 }}>勤務形態</span>
+              <span style={{ color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink)", fontWeight: job.work_style.includes("リモート") ? 600 : 400 }}>{job.work_style}</span>
+            </div>
+          )}
+          {job.employment_type && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "var(--ink-mute)", minWidth: 40 }}>雇用形態</span>
+              <span style={{ color: "var(--ink)" }}>{job.employment_type}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Dept tag */}
+        {job.dept && (
+          <div style={{ marginBottom: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}` }}>
+              {job.dept}
+            </span>
+          </div>
+        )}
+
+        {/* Highlight */}
+        {job.highlight && (
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 16, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {job.highlight}
+          </p>
+        )}
+
+        {/* CTAs */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Link href={`/jobs/${job.id}`} style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            padding: "11px", borderRadius: 8, background: "var(--royal)",
+            color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none",
+          }}>
+            詳細を見る
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </Link>
+          {hasMeeting && (
+            <Link href={`/companies/${company.id}/casual-meeting`} style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+              padding: "10px", borderRadius: 8,
+              border: "1.5px solid #EA580C", color: "#EA580C",
+              fontWeight: 700, fontSize: 13, textDecoration: "none",
+              background: "#FFF7ED",
+            }}>
+              面談を申し込む
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1283,6 +1441,22 @@ export default function JobsClient({
   const sort = searchParams.get("sort") ?? "updated";
   // Phase 1: 読み取りのみ（?job=UUID で行ハイライト。書き込みは Phase 2）
   const selectedJobId = searchParams.get("job");
+
+  // Desktop 2-pane detection
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const handleSelectJob = useCallback((jobId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get("job") === jobId) params.delete("job");
+    else params.set("job", jobId);
+    router.replace(`/jobs?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   // Local-only keyword search
   const [q, setQ] = useState("");
@@ -1558,14 +1732,14 @@ export default function JobsClient({
               {meetingOnly && <span style={{ marginRight: 4 }}>✓</span>}面談受付中
             </button>
 
-            {/* 職種 select */}
-            <select value={category} onChange={(e) => setParam("category", e.target.value)} style={filterSelectStyle(!!category)} aria-label="職種で絞り込み">
+            {/* 職種 select — デスクトップではサイドバーに同機能あるため非表示 */}
+            <select value={category} onChange={(e) => setParam("category", e.target.value)} style={filterSelectStyle(!!category)} aria-label="職種で絞り込み" className="jobs-filterbar-sidebar-dup">
               <option value="">職種</option>
               {parentRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
 
             {/* 勤務形態 select */}
-            <select value={work_style} onChange={(e) => setParam("work_style", e.target.value)} style={filterSelectStyle(!!work_style)} aria-label="勤務形態で絞り込み">
+            <select value={work_style} onChange={(e) => setParam("work_style", e.target.value)} style={filterSelectStyle(!!work_style)} aria-label="勤務形態で絞り込み" className="jobs-filterbar-sidebar-dup">
               <option value="">勤務形態</option>
               <option value="フルリモート">フルリモート</option>
               <option value="ハイブリッド">ハイブリッド</option>
@@ -1573,13 +1747,13 @@ export default function JobsClient({
             </select>
 
             {/* 年収 select */}
-            <select value={salary} onChange={(e) => setParam("salary", e.target.value)} style={filterSelectStyle(!!salary)} aria-label="年収で絞り込み">
+            <select value={salary} onChange={(e) => setParam("salary", e.target.value)} style={filterSelectStyle(!!salary)} aria-label="年収で絞り込み" className="jobs-filterbar-sidebar-dup">
               <option value="">年収</option>
               {SALARY_PILL_TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
 
             {/* 雇用形態 select */}
-            <select value={empType} onChange={(e) => setParam("emp_type", e.target.value)} style={filterSelectStyle(!!empType)} aria-label="雇用形態で絞り込み">
+            <select value={empType} onChange={(e) => setParam("emp_type", e.target.value)} style={filterSelectStyle(!!empType)} aria-label="雇用形態で絞り込み" className="jobs-filterbar-sidebar-dup">
               <option value="">雇用形態</option>
               <option value="正社員">正社員</option>
               <option value="業務委託">業務委託</option>
@@ -1588,7 +1762,7 @@ export default function JobsClient({
 
             {/* 地域 select */}
             {availablePrefectures.length > 1 && (
-              <select value={prefecture} onChange={(e) => setParam("prefecture", e.target.value)} style={filterSelectStyle(!!prefecture)} aria-label="地域で絞り込み">
+              <select value={prefecture} onChange={(e) => setParam("prefecture", e.target.value)} style={filterSelectStyle(!!prefecture)} aria-label="地域で絞り込み" className="jobs-filterbar-sidebar-dup">
                 <option value="">地域</option>
                 {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -1751,7 +1925,12 @@ export default function JobsClient({
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-6 md:px-12 md:py-8"
         >
-          <div className="jobs-layout">
+          {/* selected job data for detail pane */}
+          {(() => { /* computed below via variables */ return null; })()}
+          <div
+            className="jobs-layout"
+            style={isDesktop ? { gridTemplateColumns: `220px minmax(0,1fr)${selectedJobId ? " 360px" : ""}` } : undefined}
+          >
             {/* ─ Desktop sidebar ─ */}
             <aside className="jobs-sidebar">
               <SidebarFilters
@@ -1819,6 +1998,7 @@ export default function JobsClient({
                     alumni={alumniMap[job.id] ?? []}
                     isApplied={appliedJobIds.has(job.id)}
                     selectedJobId={selectedJobId}
+                    onSelect={handleSelectJob}
                   />
                 ))}
               </div>
@@ -1879,8 +2059,17 @@ export default function JobsClient({
             </>
           )}
             </main>
-            {/* Phase 2 布石: 右詳細ペイン（現在は非表示） */}
-            <div className="jobs-detail-pane" aria-hidden="true" />
+            {/* 右詳細ペイン */}
+            {isDesktop && (
+              <div className="jobs-detail-pane">
+                {(() => {
+                  const selJob = selectedJobId ? paged.find(j => j.id === selectedJobId) ?? null : null;
+                  const selCo = selJob ? companyMap.get(selJob.company_id) ?? null : null;
+                  const selAlumni = selJob ? (alumniMap[selJob.id] ?? []) : [];
+                  return <JobDetailPane job={selJob} company={selCo} alumni={selAlumni} />;
+                })()}
+              </div>
+            )}
           </div>{/* jobs-layout end */}
         </div>
       </div>{/* bg end */}
@@ -1963,17 +2152,19 @@ export default function JobsClient({
           .jobs-view-toggle { display: none !important; }
         }
 
-        /* ── Desktop layout (≥1024px): サイドバー + 縦リスト ── */
+        /* ── Desktop layout (≥1024px): サイドバー + 縦リスト [+ 詳細ペイン] ── */
         @media (min-width: 1024px) {
           .jobs-layout {
             display: grid;
+            /* 列数は isDesktop + selectedJobId に応じて inline style で上書き */
             grid-template-columns: 220px minmax(0, 1fr);
             gap: 24px;
             align-items: start;
           }
           .jobs-sidebar { display: block !important; }
-          /* Phase 2 右ペインは引き続き非表示 */
-          .jobs-detail-pane { display: none; }
+          .jobs-detail-pane { display: block !important; }
+          /* サイドバーと重複するフィルターをトップバーから隠す */
+          .jobs-filterbar-sidebar-dup { display: none !important; }
         }
 
         @media (max-width: 767px) {
