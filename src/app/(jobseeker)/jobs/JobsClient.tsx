@@ -992,9 +992,9 @@ function JobListItem({
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); }}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); } }}
                 style={{
-                  fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
+                  fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, lineHeight: 1,
                   background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-                  flexShrink: 0, cursor: "pointer",
+                  flexShrink: 0, cursor: "pointer", display: "inline-flex", alignItems: "center",
                 }}
               >
                 {shortDept(job.dept)}
