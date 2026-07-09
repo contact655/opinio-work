@@ -993,13 +993,23 @@ function JobListCard({
 
         {/* 行1: タイトル（左,flex:1）＋ 職種・面談バッジ（右） */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <span style={{
-            flex: 1, minWidth: 0,
-            fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>
-            {job.role}
-          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{
+              display: "block",
+              fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {job.role}
+            </span>
+            {job.highlight && (
+              <span style={{
+                display: "block", fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1,
+              }}>
+                {job.highlight}
+              </span>
+            )}
+          </div>
           {/* バッジ（右端） */}
           <div style={{ flexShrink: 0, display: "flex", gap: 4, alignItems: "center" }}>
             {job.dept && (
