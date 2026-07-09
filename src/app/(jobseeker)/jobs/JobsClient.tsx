@@ -988,13 +988,24 @@ function JobListCard({
       {/* ── 中央ゾーン: タイトル・メタ情報・バッジ ── */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2, justifyContent: "center" }}>
 
-        {/* タイトル */}
-        <span style={{
-          fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          {job.role}
-        </span>
+        {/* タイトル行 + 年収（右寄せ） */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <span style={{
+            fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0,
+          }}>
+            {job.role}
+          </span>
+          <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+            {(job.salary_min || job.salary_max) ? (
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
+                {formatSalary(job.salary_min, job.salary_max)}
+              </span>
+            ) : (
+              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>年収応相談</span>
+            )}
+          </span>
+        </div>
 
         {/* 会社名 · フェーズ · 場所 · 勤務形態（1行、nowrap） */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflow: "hidden" }}>
@@ -1004,7 +1015,7 @@ function JobListCard({
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}}
             className="company-name-link"
-            style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
           >
             {(company as any).brand_name ?? company.name}
           </span>
@@ -1095,116 +1106,67 @@ function JobListCard({
           </span>
         )}
 
-        {/* バッジ行: 職種 + 面談受付中 + 応募済み */}
-        {(job.dept || company.accepting_casual_meetings || isApplied) && (
-          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
-            {job.dept && (
-              <span style={{
-                fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-                background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-                flexShrink: 0,
-              }}>
-                {shortDept(job.dept)}
-              </span>
-            )}
-            {company.accepting_casual_meetings && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
-                background: "#FFF7ED", color: "#C2410C",
-                border: "1.5px solid #FDBA74", flexShrink: 0,
-              }}>
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
-                面談受付中
-              </span>
-            )}
-            {isApplied && (
-              <span style={{
-                fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-                background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
-                flexShrink: 0,
-              }}>
-                ✓ 応募済み
-              </span>
-            )}
-            {/* モバイル: 右ゾーンが非表示なので詳細CTAをここに */}
-            <span className="job-list-mobile-cta" style={{
-              display: "none",
-              marginLeft: "auto", fontSize: 11, color: "var(--royal)", fontWeight: 600,
-              alignItems: "center", gap: 3, flexShrink: 0,
+        {/* バッジ行: 職種 + 面談受付中 + 応募済み + ♡・詳細（右端） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
+          {job.dept && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+              background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+              flexShrink: 0,
             }}>
-              詳細 →
+              {shortDept(job.dept)}
+            </span>
+          )}
+          {company.accepting_casual_meetings && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 3,
+              fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
+              background: "#FFF7ED", color: "#C2410C",
+              border: "1.5px solid #FDBA74", flexShrink: 0,
+            }}>
+              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+              面談受付中
+            </span>
+          )}
+          {isApplied && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+              background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
+              flexShrink: 0,
+            }}>
+              ✓ 応募済み
+            </span>
+          )}
+          {/* 右端: ♡ + 詳細 */}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={handleBookmark}
+              aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
+              aria-pressed={bookmarked}
+              style={{
+                width: 22, height: 22, borderRadius: "50%",
+                border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
+                cursor: "pointer",
+                background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
+                transition: "all 0.2s",
+                padding: 0,
+              }}
+            >
+              <Heart size={10} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+            </button>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 2,
+              fontSize: 10, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
+            }}>
+              詳細
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
             </span>
           </div>
-        )}
-
-        {/* モバイル: 年収（右ゾーンが非表示のため中央ゾーン下部に） */}
-        <div className="job-list-mobile-salary" style={{ display: "none" }}>
-          {(job.salary_min || job.salary_max) ? (
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
-              {formatSalary(job.salary_min, job.salary_max)}
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500, marginLeft: 3, fontFamily: "inherit" }}>年収</span>
-            </span>
-          ) : (
-            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>年収応相談</span>
-          )}
-        </div>
-      </div>
-
-      {/* ── 右ゾーン: 年収 + アクション ── */}
-      <div className="job-list-right-zone" style={{
-        width: 108, flexShrink: 0,
-        display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between",
-        borderLeft: "1px solid var(--line-soft)", paddingLeft: 10,
-        paddingTop: 2, paddingBottom: 2,
-      }}>
-        {/* 年収（上寄せ） */}
-        <div style={{ textAlign: "right" }}>
-          {(job.salary_min || job.salary_max) ? (
-            <>
-              <div style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: 13, fontWeight: 700,
-                color: "var(--success)", lineHeight: 1.1, whiteSpace: "nowrap",
-              }}>
-                {formatSalary(job.salary_min, job.salary_max)}
-              </div>
-              <div style={{ fontSize: 9, color: "var(--ink-mute)", fontWeight: 500, marginTop: 1 }}>年収</div>
-            </>
-          ) : (
-            <div style={{ fontSize: 10, color: "var(--ink-mute)", fontStyle: "italic" }}>年収応相談</div>
-          )}
-        </div>
-
-        {/* お気に入り + 詳細（下寄せ） */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <button
-            type="button"
-            onClick={handleBookmark}
-            aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
-            aria-pressed={bookmarked}
-            style={{
-              width: 24, height: 24, borderRadius: "50%",
-              border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
-              cursor: "pointer",
-              background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
-              transition: "all 0.2s",
-              padding: 0, flexShrink: 0,
-            }}
-          >
-            <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
-          </button>
-          <span className="job-list-card-cta" style={{
-            display: "inline-flex", alignItems: "center", gap: 2,
-            fontSize: 10, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
-          }}>
-            詳細
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </span>
         </div>
       </div>
     </Link>
@@ -2164,12 +2126,8 @@ export default function JobsClient({
           .jobs-sidebar { display: none !important; }
         }
 
-        /* ── Mobile card: 右ゾーン非表示、年収・CTAを中央下部に展開 ── */
         @media (max-width: 767px) {
           .job-list-mobile-hide { display: none !important; }
-          .job-list-right-zone { display: none !important; }
-          .job-list-mobile-salary { display: block !important; }
-          .job-list-mobile-cta { display: inline-flex !important; }
           .job-list-logo { width: 36px !important; height: 36px !important; min-width: 36px !important; }
           .job-list-card-link { padding: 10px 12px !important; gap: 10px !important; }
         }
