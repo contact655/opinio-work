@@ -995,6 +995,7 @@ function JobListItem({
                   fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, lineHeight: 1,
                   background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
                   flexShrink: 0, cursor: "pointer", display: "inline-flex", alignItems: "center",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {shortDept(job.dept)}
