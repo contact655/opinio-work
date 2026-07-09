@@ -1220,11 +1220,12 @@ export default function HomePageClient({
       <FeaturedThreeCards />
       <JobTagSection />
       <FirstVisitOnboarding />
-      <HowItWorks />
-      <FeaturedCompaniesSection initialCompanies={initialCompanies} />
       <PainPoints />
       <LogoWallSection companies={initialCompanies} />
-      <SocialProofSection />
+      <FeaturedCompaniesSection initialCompanies={initialCompanies} />
+      <HowItWorks />
+      {/* 実ユーザーの声が取れ次第、実引用に差し替え。現状は架空データのため非表示 */}
+      {/* <SocialProofSection /> */}
       <FounderMessage />
       <HomeFaq />
       <FinalCta companyNum={companyNum} />
