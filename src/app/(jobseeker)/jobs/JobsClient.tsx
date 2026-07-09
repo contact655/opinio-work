@@ -8,6 +8,7 @@ import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
 import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
+import { createClient } from "@/lib/supabase/client";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -71,6 +72,33 @@ function getPhaseBadge(phase: string | null | undefined) {
   if (!phase) return null;
   return PHASE_BADGE_MAP[phase] ?? { bg: "#F1F5F9", color: "#475569", label: phase };
 }
+
+// ow_profiles.job_type → ow_roles.name のマッピング（パーソナライズ用）
+const JOB_TYPE_TO_ROLE_NAME: Record<string, string> = {
+  "フィールドセールス":    "営業",
+  "SDR":                  "営業",
+  "BDR":                  "営業",
+  "インサイドセールス":    "営業",
+  "カスタマーサクセス":    "カスタマーサクセス",
+  "カスタマーサポート":    "カスタマーサクセス",
+  "マーケティング":        "マーケティング",
+  "プロダクトマーケティング": "マーケティング",
+  "バックエンド":          "エンジニア",
+  "フロントエンド":        "エンジニア",
+  "フルスタック":          "エンジニア",
+  "SRE/インフラ":          "エンジニア",
+  "iOS/Android":           "エンジニア",
+  "エンジニア":            "エンジニア",
+  "データサイエンティスト": "エンジニア",
+  "プロダクトマネージャー": "プロダクト",
+  "デザイナー":            "デザイナー",
+  "コーポレート":          "コーポレート",
+  "HR・人事":              "コーポレート",
+  "財務・経理":            "コーポレート",
+  "経営・CxO":             "事業開発",
+  "事業開発":              "事業開発",
+  "事業開発・BizDev":      "事業開発",
+};
 
 // ─── Dept short labels (⑤) ───────────────────────────────────────────────────
 
@@ -1512,6 +1540,24 @@ export default function JobsClient({
       .catch(() => {});
   }, []);
 
+  // パーソナライズ: ログインユーザーの希望職種を取得
+  const [userJobType, setUserJobType] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: owUser } = await supabase
+          .from("ow_users").select("id").eq("auth_id", user.id).single();
+        if (!owUser?.id) return;
+        const { data: profile } = await supabase
+          .from("ow_profiles").select("job_type").eq("user_id", owUser.id).single();
+        if (profile?.job_type) setUserJobType(profile.job_type as string);
+      } catch { /* not logged in or no profile */ }
+    })();
+  }, []);
+
   // ⑤ "もっと見る" — init from URL param ?show=N, resets when filters change
   const initShow = Math.max(PER_PAGE, parseInt(searchParams.get("show") ?? "0") || PER_PAGE);
   const [displayCount, setDisplayCount] = useState(initShow);
@@ -1670,6 +1716,16 @@ export default function JobsClient({
     () => allJobs.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings).length,
     [allJobs, companyMap]
   );
+
+  // 希望職種マッチ求人（パーソナライズセクション用）
+  const jobTypeMatchedJobs = useMemo(() => {
+    if (!userJobType) return [];
+    const roleName = JOB_TYPE_TO_ROLE_NAME[userJobType];
+    if (!roleName) return [];
+    const role = parentRoles.find((r) => r.name === roleName);
+    if (!role) return [];
+    return allJobs.filter((j) => j.role_category_id === role.id).slice(0, 5);
+  }, [allJobs, userJobType, parentRoles]);
 
   return (
     <>
@@ -1966,6 +2022,57 @@ export default function JobsClient({
 
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
+
+          {/* ── パーソナライズ: 希望マッチ求人 ── */}
+          {!hasFilter && !q && jobTypeMatchedJobs.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+                paddingBottom: 10, borderBottom: "2px solid var(--royal-100)",
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                  あなたの希望職種にマッチ
+                </span>
+                <span style={{
+                  fontSize: 11, padding: "2px 9px", borderRadius: 100,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  fontWeight: 700, border: "1px solid var(--royal-100)",
+                }}>
+                  {userJobType}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: "auto", fontFamily: "Inter, sans-serif" }}>
+                  {jobTypeMatchedJobs.length}件
+                </span>
+              </div>
+              <div className="jobs-list-desktop">
+                {jobTypeMatchedJobs.map((job) => (
+                  <JobListItem
+                    key={job.id}
+                    job={job}
+                    companyMap={companyMap}
+                    initialBookmarked={bookmarkedIds.has(job.id)}
+                    alumni={alumniMap?.[job.id] ?? []}
+                    isApplied={appliedJobIds.has(job.id)}
+                    selectedJobId={selectedJobId}
+                    onSelect={handleSelectJob}
+                  />
+                ))}
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10, marginTop: 20,
+              }}>
+                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                  すべての求人
+                </span>
+                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+              </div>
+            </div>
+          )}
+
           {paged.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "48px 24px", background: "#fff",
