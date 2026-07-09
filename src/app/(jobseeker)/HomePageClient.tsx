@@ -523,7 +523,7 @@ function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: Prev
               IT/SaaS業界を代表する企業が集まっています
             </h2>
             <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", marginTop: "var(--space-2)", lineHeight: 1.7 }}>
-              編集部が取材・審査した企業のみ掲載。現役社員やOBに直接聞くこともできます。
+              編集部が取材・審査した企業のみ掲載。取材記事と求人票を横断して確認できます。
             </p>
           </div>
           <Link href="/companies" style={{
@@ -1095,7 +1095,7 @@ function MobileAuthCTA() {
 
 // ─── Social Proof Section ────────────────────────────────────────────────────
 
-function SocialProofSection() {
+function _SocialProofSection() {
   const stories = [
     {
       quote: "Salesforceの先輩に相談して、入社前に組織文化を把握できました。入社後のギャップがほぼゼロでした。",
