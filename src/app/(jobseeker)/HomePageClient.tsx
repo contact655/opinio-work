@@ -17,7 +17,7 @@ const FEATURED_COMPANIES = [
     industry: "CRM・営業支援",
     logoUrl: null,
     logoLetter: "S",
-    gradient: "linear-gradient(135deg, #00A1E0, #0D74B8)",
+    gradient: "#374151",
     jobCount: 111,
     articleCount: 1,
   },
@@ -28,7 +28,7 @@ const FEATURED_COMPANIES = [
     industry: "HR Tech",
     logoUrl: null,
     logoLetter: "S",
-    gradient: "linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)",
+    gradient: "#4B5563",
     jobCount: 3,
     articleCount: 2,
   },
@@ -39,7 +39,7 @@ const FEATURED_COMPANIES = [
     industry: "FinTech",
     logoUrl: null,
     logoLetter: "F",
-    gradient: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+    gradient: "#6B7280",
     jobCount: 3,
     articleCount: 1,
   },
@@ -83,7 +83,7 @@ function FeaturedThreeCards() {
                     <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10 }}>{co.industry}</div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
                       {co.articleCount > 0 && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>
                           ✍ 取材記事 {co.articleCount}件
                         </span>
                       )}
@@ -223,111 +223,68 @@ function BriefcaseIcon() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero() {
-
   return (
     <section style={{
-      background: `linear-gradient(155deg, #edf0fa 0%, #ece8ff 28%, #f6f0ff 55%, #fafafa 78%, #fff 100%)`,
-      padding: "80px 48px 100px",
-      overflow: "hidden",
-      position: "relative",
-    }} className="px-5 pt-16 pb-20 md:px-12 md:pt-20 md:pb-24">
-      {/* Decorative orbs — soft on light bg */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <div style={{ position: "absolute", right: "-8%", top: "-15%", width: "45vw", height: "45vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(59,95,217,0.07) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", left: "-5%", bottom: "-10%", width: "32vw", height: "32vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)" }} />
-      </div>
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", position: "relative" }}
-        className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16 items-center">
+      background: "#fff",
+      borderBottom: "1px solid var(--line)",
+      padding: "88px 48px 72px",
+    }} className="px-5 pt-20 pb-16 md:px-12 md:pt-24 md:pb-20">
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
-        {/* Left: message */}
-        <div className="hero-fade">
-          {/* Eyebrow */}
-          {/* Title */}
-          <h1 style={{
-            fontSize: "clamp(28px,3.5vw,48px)",
-            fontWeight: 700, lineHeight: 1.22, letterSpacing: "-0.03em",
-            color: "var(--ink)", marginBottom: "var(--space-2)",
-            fontFamily: 'var(--font-noto-serif)',
+        {/* h1 — serif, 1カラム左寄せ */}
+        <h1 style={{
+          fontSize: "clamp(30px,4vw,52px)",
+          fontWeight: 700, lineHeight: 1.18, letterSpacing: "-0.03em",
+          color: "var(--ink)", marginBottom: 20,
+          fontFamily: "var(--font-noto-serif)",
+        }}>
+          IT/SaaS転職に必要な情報が、<br />ここで完結する。
+        </h1>
+
+        {/* Lead */}
+        <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 36, maxWidth: 560 }}>
+          企業データ・求人・編集部の取材記事を一か所に集約。<br />
+          探し回らず、比べて、自分のペースで応募できます。
+        </p>
+
+        {/* CTAs */}
+        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" as const, marginBottom: 48 }}>
+          <Link href="/companies" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "15px 32px",
+            background: "var(--ink)", color: "#fff",
+            fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
+            letterSpacing: "-0.01em",
           }}>
-            深く<span style={{ color: "#D97706" }}>知ってから</span>、応募する。
-          </h1>
-
-          {/* Lead */}
-          <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 28, maxWidth: "var(--max-w-form)" }}>
-            IT/SaaS業界の企業データと求人を一か所に集約。<br />
-            取材記事と公開求人を横断して、自分のペースで探せます。
-          </p>
-
-          {/* CTAs — primary only, secondary as text link */}
-          <div style={{ marginBottom: 20 }}>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
-              padding: "16px 32px", background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
-              fontWeight: 800, fontSize: 16, borderRadius: 10, textDecoration: "none",
-              boxShadow: "0 6px 24px rgba(245,158,11,0.35)",
-              letterSpacing: "-0.01em",
-            }}>
-              まず企業を見てみる <ArrowIcon />
-            </Link>
-            <div style={{ marginTop: 10 }}>
-              <Link href="/auth" style={{
-                fontSize: 12, color: "var(--ink-mute)", textDecoration: "none",
-                display: "inline-flex", alignItems: "center", gap: 4,
-              }}>
-                → 無料会員登録はこちら（30秒）
-              </Link>
-            </div>
-          </div>
-
-
+            まず企業を見てみる <ArrowIcon />
+          </Link>
+          <Link href="/auth" style={{
+            fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
+            display: "inline-flex", alignItems: "center", gap: 4,
+          }}>
+            → 無料登録はこちら（30秒）
+          </Link>
         </div>
 
-        {/* Right: feature highlights */}
-        <div className="hidden md:flex justify-center hero-fade-right" style={{ position: "relative" }}>
-          <div style={{
-            background: "#fff", borderRadius: 20,
-            boxShadow: "0 20px 60px rgba(0,35,102,0.10), 0 4px 16px rgba(15,23,42,0.06)",
-            padding: "24px", width: "100%", maxWidth: 400,
-            border: "1px solid var(--line)",
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 16 }}>OPINIOでできること</div>
-
-            {[
-              {
-                icon: "🏢", title: "企業の内側を知る",
-                desc: "取材記事・求人・社員情報がひとつの企業ページに集約。メール登録のみで閲覧できます。",
-                href: "/companies", cta: "企業を見る →",
-                bg: "var(--royal-50)", border: "var(--royal-100)",
-              },
-              {
-                icon: "💼", title: "求人をフィルターで探す",
-                desc: "職種・年収・働き方で絞り込み。外資・SaaS・スタートアップの求人を一覧で確認。",
-                href: "/jobs", cta: "求人を探す →",
-                bg: "#FEF3C7", border: "#FDE68A",
-              },
-            ].map((item) => (
-              <Link key={item.title} href={item.href} style={{ textDecoration: "none", display: "block" }}>
-                <div style={{
-                  background: item.bg, borderRadius: 12, padding: "14px 16px",
-                  border: `1px solid ${item.border}`, marginBottom: 10,
-                  transition: "box-shadow 0.15s",
-                }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{item.title}</div>
-                      <p style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, margin: "0 0 6px" }}>{item.desc}</p>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)" }}>{item.cta}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-
-            <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center" as const, marginTop: 12 }}>
-              すべて無料 · メール登録のみ · 営業電話なし
-            </p>
-          </div>
+        {/* 数字ストリップ */}
+        <div style={{
+          display: "flex", gap: 0, borderTop: "1px solid var(--line)",
+          paddingTop: 28,
+        }}>
+          {[
+            { num: "80社+", label: "取材済み企業" },
+            { num: "150件+", label: "公開求人" },
+            { num: "外資IT・SaaS", label: "特化領域" },
+          ].map((item, i) => (
+            <div key={item.num} style={{
+              flex: 1, paddingRight: 24,
+              borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+              paddingLeft: i > 0 ? 24 : 0,
+            }}>
+              <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(18px,2vw,24px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1 }}>{item.num}</div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, fontWeight: 500 }}>{item.label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -355,9 +312,9 @@ const PHASE_COLORS: Record<string, { bg: string; color: string }> = {
   "シリーズA": { bg: "#EFF3FC", color: "var(--royal)" },
   "シリーズB": { bg: "#F3E8FF", color: "#7C3AED" },
   "シリーズC": { bg: "#ECFDF5", color: "var(--success)" },
-  "上場": { bg: "#FEF3C7", color: "#D97706" },
-  "グロース": { bg: "#FEF3C7", color: "#D97706" },
-  "プライム": { bg: "#FEF3C7", color: "#B45309" },
+  "上場": { bg: "var(--line-soft)", color: "var(--ink-soft)" },
+  "グロース": { bg: "var(--line-soft)", color: "var(--ink-soft)" },
+  "プライム": { bg: "var(--line-soft)", color: "var(--ink-soft)" },
 };
 
 function CompanyMiniCard({ c }: { c: PreviewCompany }) {
@@ -455,8 +412,8 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
           ) : (c.articleCount ?? 0) > 0 ? (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: "3px var(--space-2)", borderRadius: 100,
-              background: "var(--warm-soft)", color: "#92400E",
-              border: "1px solid #FDE68A",
+              background: "var(--line-soft)", color: "var(--ink-soft)",
+              border: "1px solid var(--line)",
               display: "flex", alignItems: "center", gap: 3,
               whiteSpace: "nowrap" as const,
             }}>
@@ -664,7 +621,7 @@ function HowItWorks() {
       desc: "職種・年収・働き方で横断検索し、企業ごとに比べられる。取材記事と求人票を並べて、自分に合うかを確かめる。",
       action: "→ 求人を探す",
       href: "/jobs",
-      iconBg: "linear-gradient(135deg, var(--warm), #D97706)",
+      iconBg: "linear-gradient(135deg, #475569, #1e293b)",
       icon: <BriefcaseIcon />,
     },
     {
@@ -824,10 +781,9 @@ function PainPoints() {
           <Link href="/companies" style={{
             display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
             padding: "var(--space-4) 32px",
-            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            background: "var(--ink)",
             color: "#fff", fontWeight: 700, fontSize: 15,
             borderRadius: 8, textDecoration: "none",
-            boxShadow: "0 4px 20px rgba(245,158,11,0.25)",
           }}>
             まず企業を見てみる <ArrowIcon />
           </Link>
@@ -870,9 +826,9 @@ function FinalCta({ companyNum }: { companyNum: string }) {
         <Link href="/companies" style={{
           display: "inline-flex", alignItems: "center", gap: 10,
           padding: "18px 56px",
-          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)", color: "#fff",
+          background: "#fff", color: "var(--ink)",
           fontWeight: 800, fontSize: 18, borderRadius: 10, textDecoration: "none",
-          boxShadow: "0 8px 32px rgba(245,158,11,0.50), 0 2px 8px rgba(0,0,0,0.12)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
           letterSpacing: "-0.01em",
         }}>
           まず企業を見てみる <ArrowIcon />
@@ -947,9 +903,9 @@ function FirstVisitOnboarding() {
       title: "自分に合う求人を探したい",
       sub: "職種・年収・働き方で絞り込む",
       href: "/jobs",
-      color: "#D97706",
-      accent: "#FEF3C7",
-      border: "#FDE68A",
+      color: "var(--ink-soft)",
+      accent: "var(--line-soft)",
+      border: "var(--line)",
     },
   ];
 
@@ -1098,10 +1054,9 @@ function MobileAuthCTA() {
       </div>
       <Link href="/auth" style={{
         padding: "9px 18px", borderRadius: 8, flexShrink: 0,
-        background: "linear-gradient(135deg, #F59E0B, #D97706)",
-        color: "#fff", fontSize: 13, fontWeight: 700,
+        background: "#fff",
+        color: "var(--ink)", fontSize: 13, fontWeight: 700,
         textDecoration: "none",
-        boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
         whiteSpace: "nowrap",
       }}>
         無料登録 →
@@ -1201,7 +1156,7 @@ function FounderMessage() {
           color: "#fff",
           lineHeight: 1.7,
           margin: "0 0 32px",
-          borderLeft: "3px solid #F59E0B",
+          borderLeft: "3px solid rgba(255,255,255,0.35)",
           paddingLeft: 24,
         }}>
           「転職は、情報量の差で結果が変わる。<br />
@@ -1209,7 +1164,7 @@ function FounderMessage() {
         </blockquote>
         {/* 署名 */}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #F59E0B, #D97706)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "1.5px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
             柴
           </div>
           <div>
