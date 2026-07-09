@@ -1069,8 +1069,8 @@ function JobListItem({
             aria-pressed={bookmarked}
             style={{
               width: 32, height: 32, borderRadius: "50%",
-              border: `1.5px solid ${bookmarked ? "#e24b4a" : "#FECACA"}`,
-              background: bookmarked ? "#FEF2F2" : "#FFF5F5",
+              border: `1.5px solid ${bookmarked ? "#e24b4a" : "#e2e8f0"}`,
+              background: bookmarked ? "#FEF2F2" : "#fff",
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
               transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
               transition: "all 0.2s", flexShrink: 0,
