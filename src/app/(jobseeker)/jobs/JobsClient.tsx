@@ -115,7 +115,12 @@ const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }>
   "営業":               { bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
   "カスタマーサクセス": { bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
   "マーケティング":     { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
-  "コーポレート":       { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
+  "事業開発":           { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
+  "BizDev":             { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
+  "コーポレート":       { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
+  "経理":               { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
+  "法務":               { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
+  "人事":               { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
   "経営":               { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
 };
 
@@ -123,7 +128,7 @@ function getDeptStyle(dept: string) {
   for (const [key, style] of Object.entries(DEPT_COLORS)) {
     if (dept.includes(key)) return style;
   }
-  return { bg: "var(--royal-50)", color: "var(--royal)", border: "var(--royal-100)" };
+  return { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" };
 }
 
 // ─── Job Card ─────────────────────────────────────────────────────────────────
