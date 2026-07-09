@@ -433,7 +433,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 6, flexWrap: "wrap" }}>
-                <Link href={`/companies/${company.id}`} style={{ fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 600 }}>
+                <Link href={`/companies/${company.id}`} style={{ fontSize: "var(--text-base)", color: "var(--royal)", fontWeight: 700 }}>
                   {company.name}
                 </Link>
                 <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
