@@ -105,13 +105,13 @@ function Hero() {
             color: "var(--ink)", marginBottom: "var(--space-2)",
             fontFamily: 'var(--font-noto-serif)',
           }}>
-            IT転職、データで<span style={{ color: "#D97706" }}>深く知って</span>から動く。
+            深く<span style={{ color: "#D97706" }}>知ってから</span>、応募する。
           </h1>
 
           {/* Lead */}
           <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 28, maxWidth: "var(--max-w-form)" }}>
-            外資IT・国内SaaS・スタートアップの企業情報・求人・転職データが一か所に。<br />
-            <strong style={{ color: "#D97706" }}>メール登録のみ</strong>で、求人票には載らない実情を確認できます。
+            IT/SaaS業界の企業データと求人を一か所に集約。<br />
+            取材記事と公開求人を横断して、自分のペースで探せます。
           </p>
 
           {/* CTAs — primary only, secondary as text link */}
@@ -135,24 +135,6 @@ function Hero() {
             </div>
           </div>
 
-          {/* 信頼シグナルピル */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
-            {[
-              { icon: "✅", text: "完全無料" },
-              { icon: "📵", text: "営業電話なし" },
-              { icon: "🔒", text: "メール登録のみ" },
-              { icon: "⏱", text: "登録30秒" },
-            ].map((p) => (
-              <span key={p.text} style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "4px 10px", borderRadius: 100,
-                background: "rgba(255,255,255,0.7)", border: "1px solid var(--line)",
-                fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",
-              }}>
-                {p.icon} {p.text}
-              </span>
-            ))}
-          </div>
 
         </div>
 
