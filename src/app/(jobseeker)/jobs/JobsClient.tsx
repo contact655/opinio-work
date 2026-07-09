@@ -988,24 +988,13 @@ function JobListCard({
       {/* ── 中央ゾーン: タイトル・メタ情報・バッジ ── */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2, justifyContent: "center" }}>
 
-        {/* タイトル行 + 年収（右寄せ） */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{
-            fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0,
-          }}>
-            {job.role}
-          </span>
-          <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
-            {(job.salary_min || job.salary_max) ? (
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
-                {formatSalary(job.salary_min, job.salary_max)}
-              </span>
-            ) : (
-              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>年収応相談</span>
-            )}
-          </span>
-        </div>
+        {/* タイトル行 */}
+        <span style={{
+          fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {job.role}
+        </span>
 
         {/* 会社名 · フェーズ · 場所 · 勤務形態（1行、nowrap） */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflow: "hidden" }}>
@@ -1106,7 +1095,7 @@ function JobListCard({
           </span>
         )}
 
-        {/* バッジ行: 職種 + 面談受付中 + 応募済み + ♡・詳細（右端） */}
+        {/* バッジ行: 職種 + 面談受付中 + 年収 + 応募済み + ♡・詳細（右端） */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
           {job.dept && (
             <span style={{
@@ -1126,6 +1115,16 @@ function JobListCard({
             }}>
               <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
               面談受付中
+            </span>
+          )}
+          {(job.salary_min || job.salary_max) && (
+            <span style={{
+              fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+              color: "var(--success)", background: "var(--success-soft)",
+              padding: "1px 7px", borderRadius: 100,
+              border: "1px solid #6EE7B7", flexShrink: 0, whiteSpace: "nowrap",
+            }}>
+              {formatSalary(job.salary_min, job.salary_max)}
             </span>
           )}
           {isApplied && (
