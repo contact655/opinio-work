@@ -19,21 +19,25 @@ const IN_SCOPE = [
     name: "B2B SaaS",
     desc: "業務効率化・営業/マーケ/CS支援・HR Tech・FinTech など、企業向けソフトウェア事業",
     examples: ["SmartHR", "LayerX", "freee", "Money Forward"],
+    companiesHref: "/companies",
   },
   {
     name: "外資IT",
     desc: "グローバルITプロダクト企業の日本法人・日本オフィス",
     examples: ["Salesforce", "HubSpot", "Datadog", "Notion"],
+    companiesHref: "/companies",
   },
   {
     name: "AI / ML系スタートアップ〜大手",
     desc: "プロダクト型のAI/ML企業（生成AI含む）",
     examples: ["PKSHA Technology", "Ubie"],
+    companiesHref: "/companies?industry=ai",
   },
   {
     name: "クラウドインフラ / PaaS / IaaS",
     desc: "開発者向けプラットフォーム・クラウドインフラ提供企業",
     examples: [],
+    companiesHref: "/companies?industry=infra",
   },
 ];
 
@@ -132,7 +136,7 @@ export default function IndustriesPage() {
                   {item.desc}
                 </p>
                 {item.examples.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 18 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 18, marginBottom: 12 }}>
                     {item.examples.map((ex) => (
                       <span key={ex} style={{
                         display: "inline-block", padding: "2px 10px", borderRadius: 100,
@@ -145,6 +149,14 @@ export default function IndustriesPage() {
                     ))}
                   </div>
                 )}
+                <div style={{ paddingLeft: 18 }}>
+                  <Link href={item.companiesHref} style={{
+                    fontSize: 12, fontWeight: 600, color: "var(--royal)",
+                    textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4,
+                  }}>
+                    この業界の企業を見る →
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
@@ -173,56 +185,28 @@ export default function IndustriesPage() {
           </div>
         </div>
 
-        {/* CTAs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{
-            background: "var(--royal-50)", borderRadius: 12, padding: "28px 32px",
-            border: "1px solid var(--royal-100)",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            flexWrap: "wrap", gap: 16,
-          }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                対象企業の求人を探す
-              </div>
-              <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-                IT/SaaS業界の最新求人を、働き方・職種で絞り込めます
-              </div>
+        {/* CTA */}
+        <div style={{
+          background: "var(--ink)", borderRadius: 12, padding: "32px 40px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: 16,
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6 }}>
+              掲載企業をすべて見る
             </div>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "12px 24px", background: "var(--royal)", color: "#fff",
-              fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}>
-              企業一覧を見る →
-            </Link>
-          </div>
-          <div style={{
-            background: "var(--warm-soft)", borderRadius: 12, padding: "28px 32px",
-            border: "1px solid #FDE68A",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            flexWrap: "wrap", gap: 16,
-          }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                企業の現役社員と直接話す
-              </div>
-              <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-                気になった企業にカジュアル面談を申し込んで、リアルな声を聞けます。完全無料。
-              </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
+              業界・フェーズ・働き方で絞り込んで探せます
             </div>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "12px 24px",
-              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-              color: "#fff",
-              fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}>
-              企業を見る →
-            </Link>
           </div>
+          <Link href="/companies" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "13px 28px", background: "#fff", color: "var(--ink)",
+            fontWeight: 700, fontSize: 14, borderRadius: 8, textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}>
+            企業一覧へ →
+          </Link>
         </div>
       </div>
     </div>
