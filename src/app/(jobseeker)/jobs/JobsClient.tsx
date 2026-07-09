@@ -988,65 +988,96 @@ function JobListCard({
         />
       </div>
 
-      {/* ── 中央ゾーン: タイトル・メタ情報・バッジ ── */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2, justifyContent: "center" }}>
+      {/* ── 中央ゾーン: 縦2行 ── */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3, justifyContent: "center" }}>
 
-        {/* タイトル行 */}
-        <span style={{
-          fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          {job.role}
-        </span>
-
-        {/* 会社名 · フェーズ · 場所 · 勤務形態（1行、nowrap） */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflow: "hidden" }}>
-          <span
-            role="link"
-            tabIndex={0}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}}
-            className="company-name-link"
-            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
-          >
-            {(company as any).brand_name ?? company.name}
+        {/* 行1: タイトル（左,flex:1）＋ 職種・面談バッジ（右） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {job.role}
           </span>
-          {phaseBadge && (
-            <span style={{
-              fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
-              background: phaseBadge.bg, color: phaseBadge.color, flexShrink: 0,
-              border: `1px solid ${phaseBadge.color}40`,
-            }}>
-              {phaseBadge.label}
-            </span>
-          )}
-          {job.location && (
-            <>
-              <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
-              </span>
-            </>
-          )}
-          {job.work_style && (
-            <>
-              <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
+          {/* バッジ（右端） */}
+          <div style={{ flexShrink: 0, display: "flex", gap: 4, alignItems: "center" }}>
+            {job.dept && (
               <span style={{
-                fontSize: 10, fontWeight: 600, flexShrink: 0,
-                color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)",
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+                background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
               }}>
-                {job.work_style}
+                {shortDept(job.dept)}
               </span>
-            </>
-          )}
-          {job.employment_type && job.employment_type !== "正社員" && (
-            <>
-              <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-              <span style={{ fontSize: 9, color: "var(--success)", fontWeight: 700, background: "#F0FDF4", padding: "1px 5px", borderRadius: 4, border: "1px solid #BBF7D0", flexShrink: 0 }}>
-                {job.employment_type}
+            )}
+            {company.accepting_casual_meetings && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                background: "#FFF7ED", color: "#C2410C", border: "1.5px solid #FDBA74",
+              }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+                面談受付中
               </span>
-            </>
+            )}
+          </div>
+        </div>
+
+        {/* 行2: 会社名メタ（左,flex:1,overflow）＋ 年収（右） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden", flexWrap: "nowrap" }}>
+            <span
+              role="link" tabIndex={0}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}}
+              className="company-name-link"
+              style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+            >
+              {(company as any).brand_name ?? company.name}
+            </span>
+            {phaseBadge && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
+                background: phaseBadge.bg, color: phaseBadge.color, flexShrink: 0,
+                border: `1px solid ${phaseBadge.color}40`,
+              }}>
+                {phaseBadge.label}
+              </span>
+            )}
+            {job.location && (
+              <>
+                <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
+                <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
+                </span>
+              </>
+            )}
+            {job.work_style && (
+              <>
+                <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
+                <span style={{ fontSize: 10, fontWeight: 600, flexShrink: 0, color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)" }}>
+                  {job.work_style}
+                </span>
+              </>
+            )}
+            {job.employment_type && job.employment_type !== "正社員" && (
+              <>
+                <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
+                <span style={{ fontSize: 9, color: "var(--success)", fontWeight: 700, background: "#F0FDF4", padding: "1px 5px", borderRadius: 4, border: "1px solid #BBF7D0", flexShrink: 0 }}>
+                  {job.employment_type}
+                </span>
+              </>
+            )}
+          </div>
+          {/* 年収（右端） */}
+          {(job.salary_min || job.salary_max) && (
+            <span style={{
+              flexShrink: 0, fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
+              color: "var(--success)", whiteSpace: "nowrap",
+            }}>
+              {formatSalary(job.salary_min, job.salary_max)}
+            </span>
           )}
         </div>
 
@@ -1065,82 +1096,22 @@ function JobListCard({
           >
             <span style={{ display: "inline-flex", alignItems: "center" }}>
               {alumni.slice(0, 3).map((a, i) => (
-                <a
-                  key={a.userId}
-                  href={`/u/${a.userId}`}
-                  onClick={(e) => e.stopPropagation()}
-                  title={a.name}
-                  style={{
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: a.gradient,
-                    border: "2px solid #fff",
-                    marginLeft: i === 0 ? 0 : -6,
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 8, fontWeight: 800, color: "#fff",
-                    flexShrink: 0, position: "relative",
-                    boxShadow: "0 1px 3px rgba(0,35,102,0.2)",
-                    textDecoration: "none",
-                    zIndex: 3 - i,
-                  }}
-                >
+                <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
+                  style={{ width: 18, height: 18, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", boxShadow: "0 1px 3px rgba(0,35,102,0.2)", textDecoration: "none", zIndex: 3 - i }}>
                   {a.name.replace(/\s/g, "").charAt(0)}
                 </a>
               ))}
             </span>
             <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3, whiteSpace: "nowrap" }}>
-              {alumni.length === 1
-                ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます`
-                : alumni.length === 2
-                ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます`
-                : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます`}
+              {alumni.length === 1 ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます` : alumni.length === 2 ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます` : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます`}
               <span style={{ fontSize: 9, color: "#3B5FD9", marginLeft: 3, fontWeight: 600 }}>話を聞く →</span>
             </span>
           </span>
         )}
 
         {isApplied && (
-          <span style={{
-            fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-            background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
-            alignSelf: "flex-start",
-          }}>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", alignSelf: "flex-start" }}>
             ✓ 応募済み
-          </span>
-        )}
-      </div>
-
-      {/* ── 右ゾーン: バッジ（職種・面談・年収） ── */}
-      <div style={{
-        width: 200, flexShrink: 0,
-        display: "flex", flexDirection: "column", justifyContent: "center",
-        gap: 5, alignItems: "flex-end",
-      }} className="job-list-card-badges">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end" }}>
-          {job.dept && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
-              background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-            }}>
-              {shortDept(job.dept)}
-            </span>
-          )}
-          {company.accepting_casual_meetings && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 3,
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-              background: "#FFF7ED", color: "#C2410C", border: "1.5px solid #FDBA74",
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
-              面談受付中
-            </span>
-          )}
-        </div>
-        {(job.salary_min || job.salary_max) && (
-          <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
-            color: "var(--success)", whiteSpace: "nowrap",
-          }}>
-            {formatSalary(job.salary_min, job.salary_max)}
           </span>
         )}
       </div>
