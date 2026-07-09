@@ -6,6 +6,149 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import HomeFaq from "@/app/HomeFaq";
 
+// ─── Featured company cards（#4）─────────────────────────────────────────────
+
+const FEATURED_COMPANIES = [
+  {
+    id: "c3664ef1-5571-4645-b30f-1474e7961c17",
+    name: "株式会社セールスフォース・ジャパン",
+    brandName: "Salesforce Japan",
+    industry: "CRM・営業支援",
+    logoUrl: "https://logo.clearbit.com/salesforce.com",
+    logoLetter: "S",
+    gradient: "linear-gradient(135deg, #00A1E0, #0D74B8)",
+    jobCount: 111,
+    articleCount: 1,
+  },
+  {
+    id: "81aa95dc-2304-4faa-9c4a-f2f5454e8e11",
+    name: "SmartHR株式会社",
+    brandName: "SmartHR",
+    industry: "HR Tech",
+    logoUrl: "https://logo.clearbit.com/smarthr.co.jp",
+    logoLetter: "S",
+    gradient: "linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)",
+    jobCount: 3,
+    articleCount: 2,
+  },
+  {
+    id: "f98f5d13-c72f-42fa-9c91-ee4647de2793",
+    name: "freee株式会社",
+    brandName: "freee",
+    industry: "FinTech",
+    logoUrl: "https://logo.clearbit.com/freee.co.jp",
+    logoLetter: "F",
+    gradient: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+    jobCount: 3,
+    articleCount: 1,
+  },
+];
+
+function FeaturedThreeCards() {
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+  return (
+    <section style={{ background: "#fff", padding: "48px 48px 40px", borderTop: "1px solid var(--line)" }} className="px-5 py-10 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--ink-mute)", marginBottom: 20, textTransform: "uppercase" as const }}>
+          掲載企業の例
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {FEATURED_COMPANIES.map((co) => {
+            const showLogo = co.logoUrl && !imgErrors.has(co.id);
+            return (
+              <Link key={co.id} href={`/companies/${co.id}`} style={{ textDecoration: "none", display: "block" }}>
+                <div style={{
+                  borderRadius: 14, border: "1px solid var(--line)",
+                  overflow: "hidden", background: "#fff",
+                  boxShadow: "0 2px 8px rgba(15,23,42,0.06)",
+                  transition: "box-shadow 0.18s, transform 0.18s",
+                }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 20px rgba(0,35,102,0.1)"; (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(15,23,42,0.06)"; (e.currentTarget as HTMLDivElement).style.transform = ""; }}
+                >
+                  {/* Logo area */}
+                  <div style={{ height: 72, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--line-soft)", background: "#fafafa" }}>
+                    {showLogo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={co.logoUrl} alt={co.brandName} style={{ maxHeight: 36, maxWidth: "60%", objectFit: "contain" }}
+                        onError={() => setImgErrors(prev => new Set(Array.from(prev).concat(co.id)))} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: co.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#fff" }}>{co.logoLetter}</div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div style={{ padding: "14px 16px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{co.brandName}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10 }}>{co.industry}</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                      {co.articleCount > 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A" }}>
+                          ✍ 取材記事 {co.articleCount}件
+                        </span>
+                      )}
+                      {co.jobCount > 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                          💼 求人 {co.jobCount}件
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <Link href="/companies" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            全企業を見る →
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Job category quick-filter tags（#5）─────────────────────────────────────
+
+const JOB_TAGS = [
+  { label: "フィールドセールス", q: "フィールドセールス" },
+  { label: "インサイドセールス", q: "インサイドセールス" },
+  { label: "カスタマーサクセス", q: "カスタマーサクセス" },
+  { label: "プロダクトマネージャー", q: "プロダクト" },
+  { label: "エンジニア", q: "エンジニア" },
+  { label: "マーケティング", q: "マーケティング" },
+];
+
+function JobTagSection() {
+  const router = useRouter();
+  return (
+    <section style={{ background: "var(--royal-50)", padding: "28px 48px", borderTop: "1px solid var(--royal-100)" }} className="px-5 py-6 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", flexShrink: 0, letterSpacing: "0.04em" }}>職種で探す:</span>
+          {JOB_TAGS.map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              onClick={() => router.push(`/jobs?q=${encodeURIComponent(t.q)}`)}
+              style={{
+                fontSize: 12, fontWeight: 600, padding: "5px 14px", borderRadius: 100,
+                background: "#fff", border: "1.5px solid var(--royal-100)",
+                color: "var(--royal)", cursor: "pointer", transition: "all 0.15s",
+                fontFamily: "inherit",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--royal)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const PAIN_POINTS = [
@@ -1040,6 +1183,8 @@ export default function HomePageClient({
   return (
     <>
       <Hero />
+      <FeaturedThreeCards />
+      <JobTagSection />
       <FirstVisitOnboarding />
       <HowItWorks />
       <FeaturedCompaniesSection initialCompanies={initialCompanies} />
