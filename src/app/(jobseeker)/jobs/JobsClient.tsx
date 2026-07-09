@@ -675,22 +675,25 @@ function getRoleColor(name: string): { color: string; bg: string } {
 
 // ─── Filter select style helper (matches /companies) ─────────────────────────
 
-function filterSelectStyle(active: boolean, width = 110): React.CSSProperties {
+function filterSelectStyle(active: boolean, width?: number): React.CSSProperties {
   return {
-    height: 38,
-    width,
-    padding: "0 8px",
-    border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-    borderRadius: 8,
-    fontSize: "var(--text-sm)",
-    color: active ? "var(--royal)" : "var(--ink-soft)",
-    background: "#fff",
+    height: 36,
+    ...(width ? { width } : {}),
+    padding: "0 14px",
+    border: `1.5px solid ${active ? "var(--royal)" : "#e2e8f0"}`,
+    borderRadius: 999,
+    fontSize: 12.5,
+    color: active ? "#fff" : "var(--ink-soft)",
+    background: active ? "var(--royal)" : "#fff",
     cursor: "pointer",
-    fontWeight: active ? 600 : 400,
+    fontWeight: active ? 700 : 500,
     outline: "none",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    flexShrink: 0,
+    boxShadow: active ? "0 2px 8px rgba(0,35,102,0.25)" : "none",
+    transition: "all 0.15s",
   };
 }
 
@@ -1611,87 +1614,66 @@ export default function JobsClient({
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 md:px-12">
 
-          {/* ── 行1: 検索 + フィルター（/companies と同形式） ── */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", overflowX: "auto" }}>
-            {/* 検索バー — /companies と同スタイル */}
-            <div role="search" style={{ position: "relative", flex: "0 0 200px" }}>
-              <input
-                type="search"
-                aria-label="求人を検索"
-                placeholder="職種・企業名で検索..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                style={{
-                  width: "100%",
-                  height: 38,
-                  padding: q ? "0 32px 0 12px" : "0 12px",
-                  border: "1px solid var(--line)",
-                  borderRadius: 8,
-                  fontSize: "var(--text-sm)",
-                  color: "var(--ink)",
-                  outline: "none",
-                  background: "#fff",
-                  boxSizing: "border-box",
-                }}
-              />
-              {q && (
-                <button
-                  type="button"
-                  onClick={() => setQ("")}
-                  aria-label="検索をクリア"
-                  style={{
-                    position: "absolute", right: 8, top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none", border: "none", cursor: "pointer",
-                    color: "var(--ink-mute)", fontSize: "var(--text-md)",
-                    lineHeight: 1, padding: 2,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >×</button>
-              )}
-            </div>
+          {/* ── 行1: 検索バー（企業一覧と同スタイル：大きなピル） ── */}
+          <div role="search" style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
+            padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
+          }}
+            onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
+            onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="search"
+              aria-label="求人を検索"
+              placeholder="職種・企業名で検索..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              style={{
+                flex: 1, border: "none", outline: "none",
+                fontSize: 13.5, color: "var(--ink)", background: "transparent",
+                padding: "10px 0", minWidth: 0,
+              }}
+            />
+            {q && (
+              <button type="button" onClick={() => setQ("")} aria-label="検索をクリア"
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
+              >×</button>
+            )}
+          </div>
 
-            {/* 面談受付中 pill — /companies と同スタイル */}
+          {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
+            {/* 面談受付中 */}
             <button
               type="button"
               onClick={() => setMeetingOnly((v) => !v)}
               aria-pressed={meetingOnly}
               style={{
-                height: 38,
-                padding: "0 14px",
-                borderRadius: 8,
-                fontSize: "var(--text-sm)",
-                fontWeight: 500,
-                border: `1px solid ${meetingOnly ? "var(--royal)" : "var(--line)"}`,
-                background: meetingOnly ? "var(--royal)" : "#fff",
+                height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
+                fontWeight: meetingOnly ? 700 : 500,
+                border: `1.5px solid ${meetingOnly ? "#ea580c" : "#e2e8f0"}`,
+                background: meetingOnly ? "linear-gradient(135deg, #f97316, #ea580c)" : "#fff",
                 color: meetingOnly ? "#fff" : "var(--ink-soft)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
+                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                boxShadow: meetingOnly ? "0 2px 10px rgba(234,88,12,0.30)" : "none",
+                transition: "all 0.15s",
               }}
             >
-              面談受付中
+              {meetingOnly && <span style={{ marginRight: 4 }}>✓</span>}面談受付中
             </button>
 
             {/* 職種 select */}
-            <select
-              value={category}
-              onChange={(e) => setParam("category", e.target.value)}
-              style={filterSelectStyle(!!category, 110)}
-              aria-label="職種で絞り込み"
-            >
+            <select value={category} onChange={(e) => setParam("category", e.target.value)} style={filterSelectStyle(!!category)} aria-label="職種で絞り込み">
               <option value="">職種</option>
-              {parentRoles.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
+              {parentRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
 
             {/* 勤務形態 select */}
-            <select
-              value={work_style}
-              onChange={(e) => setParam("work_style", e.target.value)}
-              style={filterSelectStyle(!!work_style, 105)}
-              aria-label="勤務形態で絞り込み"
-            >
+            <select value={work_style} onChange={(e) => setParam("work_style", e.target.value)} style={filterSelectStyle(!!work_style)} aria-label="勤務形態で絞り込み">
               <option value="">勤務形態</option>
               <option value="フルリモート">フルリモート</option>
               <option value="ハイブリッド">ハイブリッド</option>
@@ -1699,25 +1681,13 @@ export default function JobsClient({
             </select>
 
             {/* 年収 select */}
-            <select
-              value={salary}
-              onChange={(e) => setParam("salary", e.target.value)}
-              style={filterSelectStyle(!!salary, 90)}
-              aria-label="年収で絞り込み"
-            >
+            <select value={salary} onChange={(e) => setParam("salary", e.target.value)} style={filterSelectStyle(!!salary)} aria-label="年収で絞り込み">
               <option value="">年収</option>
-              {SALARY_PILL_TIERS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
+              {SALARY_PILL_TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
 
             {/* 雇用形態 select */}
-            <select
-              value={empType}
-              onChange={(e) => setParam("emp_type", e.target.value)}
-              style={filterSelectStyle(!!empType, 95)}
-              aria-label="雇用形態で絞り込み"
-            >
+            <select value={empType} onChange={(e) => setParam("emp_type", e.target.value)} style={filterSelectStyle(!!empType)} aria-label="雇用形態で絞り込み">
               <option value="">雇用形態</option>
               <option value="正社員">正社員</option>
               <option value="業務委託">業務委託</option>
@@ -1726,38 +1696,22 @@ export default function JobsClient({
 
             {/* 地域 select */}
             {availablePrefectures.length > 1 && (
-              <select
-                value={prefecture}
-                onChange={(e) => setParam("prefecture", e.target.value)}
-                style={filterSelectStyle(!!prefecture, 82)}
-                aria-label="地域で絞り込み"
-              >
+              <select value={prefecture} onChange={(e) => setParam("prefecture", e.target.value)} style={filterSelectStyle(!!prefecture)} aria-label="地域で絞り込み">
                 <option value="">地域</option>
-                {availablePrefectures.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
+                {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             )}
 
             {(hasFilter || q || meetingOnly) && (
-              <button
-                type="button"
-                onClick={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
-                style={{
-                  fontSize: 12, color: "var(--ink-mute)",
-                  background: "none", border: "none", cursor: "pointer",
-                  padding: "5px 4px", whiteSpace: "nowrap",
-                  fontFamily: "inherit", flexShrink: 0,
-                }}
-              >
-                ✕ リセット
-              </button>
+              <button type="button" onClick={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
+                style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
+              >✕ リセット</button>
             )}
-          </div>
 
-          {/* ── 行2: 並び替え pills + [right: グルーピング + 件数] ── */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び替え:</span>
+            {/* 縦区切り */}
+            <div style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
+
+            {/* 並び替えpills */}
             {([
               { value: "updated", label: "新着順" },
               { value: "salary",  label: "年収順" },
@@ -1771,12 +1725,13 @@ export default function JobsClient({
                   onClick={() => setParam("sort", opt.value)}
                   title={"title" in opt ? opt.title : undefined}
                   style={{
-                    height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
+                    height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
                     fontWeight: active ? 700 : 500,
-                    border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                    border: `1.5px solid ${active ? "var(--royal)" : "#e2e8f0"}`,
                     background: active ? "var(--royal)" : "#fff",
                     color: active ? "#fff" : "var(--ink-mute)",
-                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", flexShrink: 0,
+                    boxShadow: active ? "0 2px 8px rgba(0,35,102,0.25)" : "none",
                   }}
                 >
                   {opt.label}
