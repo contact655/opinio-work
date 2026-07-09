@@ -179,7 +179,7 @@ function _ThemesSection({ themes }: { themes: ThemeItem[] }) {
         </span>
       </div>
       <p style={{ fontSize: "var(--text-sm)", color: INK_SOFT, lineHeight: 1.8, marginBottom: "var(--space-6)" }}>
-        このメンターが特に得意とするテーマです。相談時の参考にしてください。
+        この記事で取り上げたテーマ・領域です。
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
         {themes.map((theme) => (

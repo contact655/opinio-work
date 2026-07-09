@@ -163,7 +163,7 @@ const PAIN_POINTS = [
     icon: <ChatIcon />,
     q: "求人票には記載がない「本当の組織文化」が知りたい",
     pain: "公式情報だけでは、入社後のギャップが怖い。会社の内側がわからないまま応募するリスク。",
-    resolution: "現役社員・OBへの取材レポートを各企業ページで公開。カジュアル面談で直接確かめることもできます。",
+    resolution: "現役社員・OBへの取材レポートを各企業ページで公開。求人票に載らないカルチャーや組織の実態を確認できます。",
   },
   {
     icon: <PhoneOffIcon />,
@@ -561,7 +561,7 @@ function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: Prev
           </div>
         )}
 
-        {/* Insider value prop strip */}
+        {/* Value prop strip */}
         <div style={{
           marginTop: "var(--space-8)", padding: "var(--space-4) var(--space-6)",
           background: "var(--royal-50)", borderRadius: 12,
@@ -570,8 +570,8 @@ function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: Prev
           flexWrap: "wrap",
         }}>
           {[
-            { icon: "👥", text: "現役社員のリアルな声が聞ける" },
-            { icon: "🎓", text: "OB・OGの転職経験談も" },
+            { icon: "✍", text: "編集部の取材記事が読める" },
+            { icon: "💼", text: "求人票と企業情報を横断して比較" },
           ].map(({ icon, text }) => (
             <div key={text} style={{
               display: "flex", alignItems: "center", gap: "var(--space-2)",
@@ -750,7 +750,7 @@ function PainPoints() {
             転職活動、こんな不便ありませんか？
           </h2>
           <p style={{ fontSize: "var(--text-md)", lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: 600, margin: "0 auto" }}>
-            求人情報の鮮度・検索性・相談相手の有無──<br />
+            求人情報の鮮度・検索性・企業情報の透明性──<br />
             キャリア判断の土台となる情報が整っていないことで、一歩踏み出しづらくなっている問題に向き合います。
           </p>
         </div>
