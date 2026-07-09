@@ -559,100 +559,6 @@ function JobCard({
   );
 }
 
-// ─── ⑥ Hover preview panel (desktop only) ────────────────────────────────────
-
-function JobPreviewPanel({
-  job,
-  companyMap,
-}: {
-  job: Job | null;
-  companyMap: Map<string, Company>;
-}) {
-  if (!job) return null;
-  const company = companyMap.get(job.company_id);
-  if (!company) return null;
-
-  return (
-    <div className="job-preview-panel" style={{
-      position: "fixed", right: 24, top: "50%", transform: "translateY(-50%)",
-      width: 300, maxHeight: "70vh", overflowY: "auto",
-      background: "#fff", borderRadius: 16,
-      boxShadow: "0 20px 60px rgba(0,35,102,0.18), 0 4px 16px rgba(0,35,102,0.1)",
-      border: "1.5px solid var(--royal-100)",
-      padding: 20, zIndex: 100,
-    }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <CompanyLogo
-          name={company.name}
-          logoUrl={company.logo_url}
-          logoLetter={company.logo_letter}
-          logoGradient={company.gradient}
-          size={44}
-          borderRadius={10}
-        />
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, marginBottom: 2 }}>{company.name}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-            {job.role}
-          </div>
-        </div>
-      </div>
-
-      {/* Salary — always show, 年収応相談 when null/0 */}
-      <div style={{ marginBottom: 12 }}>
-        {((job.salary_min ?? 0) > 0 || (job.salary_max ?? 0) > 0) ? (
-          <>
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--success)" }}>
-              {formatSalary(job.salary_min, job.salary_max)}
-            </span>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 4 }}>年収</span>
-          </>
-        ) : (
-          <span style={{ fontSize: 14, color: "var(--ink-mute)", fontWeight: 500 }}>年収応相談</span>
-        )}
-      </div>
-
-      {/* Location + work style */}
-      {(job.location || job.work_style) && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {job.location && (
-            <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
-            </span>
-          )}
-          {job.work_style && (
-            <span style={{ color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)", fontWeight: 600 }}>
-              {job.work_style}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Highlight */}
-      {job.highlight && (
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 16 }}>
-          {job.highlight.slice(0, 100)}{job.highlight.length > 100 ? "…" : ""}
-        </p>
-      )}
-
-      {/* CTA */}
-      <Link href={`/jobs/${job.id}`} style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        padding: "10px 16px", borderRadius: 10,
-        background: "var(--royal)", color: "#fff",
-        fontSize: 13, fontWeight: 700, textDecoration: "none",
-      }}>
-        詳細を見る
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
-      </Link>
-    </div>
-  );
-}
-
 // ─── Role color map for colorStyle chips ─────────────────────────────────────
 
 const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
@@ -904,7 +810,7 @@ function FilterChip({
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, alumni = [], isApplied = false,
-  selectedJobId, onHover,
+  selectedJobId,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -912,7 +818,6 @@ function JobListItem({
   alumni?: CompanyAlumniPreview[];
   isApplied?: boolean;
   selectedJobId?: string | null;
-  onHover?: (job: Job | null) => void;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -966,10 +871,7 @@ function JobListItem({
   const isSelected = selectedJobId === job.id;
 
   return (
-    <div
-      onMouseEnter={() => onHover?.(job)}
-      onMouseLeave={() => onHover?.(null)}
-    >
+    <div>
       <Link
         href={`/jobs/${job.id}`}
         prefetch
@@ -982,11 +884,7 @@ function JobListItem({
           background: isSelected ? "var(--royal-50)" : "#fff",
           textDecoration: "none",
           borderBottom: "1px solid var(--line-soft)",
-          borderLeft: isSelected
-            ? "4px solid var(--royal)"
-            : hasMeeting
-            ? "4px solid #EA580C"
-            : "4px solid transparent",
+          borderLeft: isSelected ? "4px solid var(--royal)" : "4px solid transparent",
           transition: "background 0.15s",
         }}
       >
@@ -1228,11 +1126,6 @@ function SidebarFilters({
             </span>
           )}
         </div>
-        {/* ④ 面談受付中 凡例 */}
-        <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 12, height: 12, borderRadius: 2, borderLeft: "3px solid #EA580C", background: "#FFF7ED", flexShrink: 0 }} />
-          <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>カード左のオレンジ枠が対象企業</span>
-        </div>
       </div>
 
       {/* 職種 — アコーディオン（デフォルト展開）*/}
@@ -1419,10 +1312,6 @@ export default function JobsClient({
       })
       .catch(() => {});
   }, []);
-
-  // ⑥ Hover preview
-  const [hoveredJob, setHoveredJob] = useState<Job | null>(null);
-  const handleHover = useCallback((j: Job | null) => setHoveredJob(j), []);
 
   // ⑤ "もっと見る" — init from URL param ?show=N, resets when filters change
   const initShow = Math.max(PER_PAGE, parseInt(searchParams.get("show") ?? "0") || PER_PAGE);
@@ -1916,7 +1805,6 @@ export default function JobsClient({
                     alumni={alumniMap[job.id] ?? []}
                     isApplied={appliedJobIds.has(job.id)}
                     selectedJobId={selectedJobId}
-                    onHover={handleHover}
                   />
                 ))}
               </div>
@@ -1982,9 +1870,6 @@ export default function JobsClient({
           </div>{/* jobs-layout end */}
         </div>
       </div>{/* bg end */}
-
-      {/* ⑥ ホバープレビューパネル（デスクトップのみ） */}
-      <JobPreviewPanel job={hoveredJob} companyMap={companyMap} />
 
       <style>{`
         /* ── Job card hover ── */
@@ -2085,11 +1970,7 @@ export default function JobsClient({
         .company-name-link:hover {
           text-decoration: underline;
         }
-        /* ⑥ Preview panel — wide desktop only */
-        .job-preview-panel { display: none; }
-        @media (min-width: 1440px) {
-          .job-preview-panel { display: block; animation: fadeInUp 0.18s ease; }
-        }
+
       `}</style>
     </>
   );
