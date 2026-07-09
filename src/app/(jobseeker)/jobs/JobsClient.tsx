@@ -1098,13 +1098,28 @@ function JobListCard({
           </span>
         )}
 
-        {/* バッジ行: 職種 + 面談受付中 + 年収 + 応募済み + ♡・詳細（右端） */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
+        {isApplied && (
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+            background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
+            alignSelf: "flex-start",
+          }}>
+            ✓ 応募済み
+          </span>
+        )}
+      </div>
+
+      {/* ── 右ゾーン: バッジ（職種・面談・年収） ── */}
+      <div style={{
+        width: 200, flexShrink: 0,
+        display: "flex", flexDirection: "column", justifyContent: "center",
+        gap: 5, alignItems: "flex-end",
+      }} className="job-list-card-badges">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end" }}>
           {job.dept && (
             <span style={{
-              fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
               background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-              flexShrink: 0,
             }}>
               {shortDept(job.dept)}
             </span>
@@ -1112,64 +1127,52 @@ function JobListCard({
           {company.accepting_casual_meetings && (
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 3,
-              fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
-              background: "#FFF7ED", color: "#C2410C",
-              border: "1.5px solid #FDBA74", flexShrink: 0,
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+              background: "#FFF7ED", color: "#C2410C", border: "1.5px solid #FDBA74",
             }}>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
               面談受付中
             </span>
           )}
-          {(job.salary_min || job.salary_max) && (
-            <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-              color: "var(--success)", background: "var(--success-soft)",
-              padding: "1px 7px", borderRadius: 100,
-              border: "1px solid #6EE7B7", flexShrink: 0, whiteSpace: "nowrap",
-            }}>
-              {formatSalary(job.salary_min, job.salary_max)}
-            </span>
-          )}
-          {isApplied && (
-            <span style={{
-              fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-              background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
-              flexShrink: 0,
-            }}>
-              ✓ 応募済み
-            </span>
-          )}
-          {/* 右端: ♡ + 詳細 */}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={handleBookmark}
-              aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
-              aria-pressed={bookmarked}
-              style={{
-                width: 22, height: 22, borderRadius: "50%",
-                border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
-                cursor: "pointer",
-                background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
-                transition: "all 0.2s",
-                padding: 0,
-              }}
-            >
-              <Heart size={10} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
-            </button>
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 2,
-              fontSize: 10, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
-            }}>
-              詳細
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </span>
-          </div>
         </div>
+        {(job.salary_min || job.salary_max) && (
+          <span style={{
+            fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
+            color: "var(--success)", whiteSpace: "nowrap",
+          }}>
+            {formatSalary(job.salary_min, job.salary_max)}
+          </span>
+        )}
+      </div>
+
+      {/* ── 最右端: ♡ + 詳細 ── */}
+      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <button
+          type="button"
+          onClick={handleBookmark}
+          aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
+          aria-pressed={bookmarked}
+          style={{
+            width: 24, height: 24, borderRadius: "50%",
+            border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
+            cursor: "pointer",
+            background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
+            transition: "all 0.2s", padding: 0,
+          }}
+        >
+          <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+        </button>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 2,
+          fontSize: 10, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
+        }}>
+          詳細
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </span>
       </div>
     </Link>
   );
