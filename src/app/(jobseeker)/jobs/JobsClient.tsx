@@ -907,10 +907,10 @@ function JobListItem({
           {/* 行1: 求人タイトル + 面談受付中バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
             <span style={{
-              fontSize: 14, fontWeight: 700, color: "var(--ink)",
-              lineHeight: 1.4, letterSpacing: "-0.01em",
+              fontSize: 16, fontWeight: 800, color: "var(--ink)",
+              lineHeight: 1.4, letterSpacing: "-0.02em",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              maxWidth: "calc(100% - 100px)",
+              maxWidth: "calc(100% - 110px)",
             }}>
               {job.role}
             </span>
@@ -933,7 +933,7 @@ function JobListItem({
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); } }}
               className="company-name-link"
-              style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+              style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
             >
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(company as any).brand_name ?? company.name}
@@ -948,11 +948,18 @@ function JobListItem({
               </span>
             )}
             {job.dept && (
-              <span style={{
-                fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
-                background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-                flexShrink: 0,
-              }}>
+              <span
+                role="button"
+                tabIndex={0}
+                title={`「${job.dept}」で絞り込む`}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); } }}
+                style={{
+                  fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
+                  background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+                  flexShrink: 0, cursor: "pointer",
+                }}
+              >
                 {job.dept}
               </span>
             )}
@@ -1010,14 +1017,14 @@ function JobListItem({
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
                   {alumni.slice(0, 3).map((a, i) => (
                     <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
-                      style={{ width: 16, height: 16, borderRadius: "50%", background: a.gradient, border: "1.5px solid #fff", marginLeft: i === 0 ? 0 : -5, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i, textDecoration: "none" }}>
+                      style={{ width: 20, height: 20, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i, textDecoration: "none" }}>
                       {a.name.replace(/\s/g, "").charAt(0)}
                     </a>
                   ))}
                 </span>
-                <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap" }}>
                   {alumni.length === 1 ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます` : `先輩${alumni.length}名がいます`}
-                  <span style={{ fontSize: 9, marginLeft: 3, color: "#3B5FD9" }}>話を聞く →</span>
+                  <span style={{ fontSize: 10, marginLeft: 4, color: "#3B5FD9" }}>話を聞く →</span>
                 </span>
               </span>
             </div>
