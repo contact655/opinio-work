@@ -15,7 +15,7 @@ const FEATURED_COMPANIES = [
     name: "株式会社セールスフォース・ジャパン",
     brandName: "Salesforce Japan",
     industry: "CRM・営業支援",
-    logoUrl: "https://logo.clearbit.com/salesforce.com",
+    logoUrl: null,
     logoLetter: "S",
     gradient: "linear-gradient(135deg, #00A1E0, #0D74B8)",
     jobCount: 111,
@@ -26,7 +26,7 @@ const FEATURED_COMPANIES = [
     name: "SmartHR株式会社",
     brandName: "SmartHR",
     industry: "HR Tech",
-    logoUrl: "https://logo.clearbit.com/smarthr.co.jp",
+    logoUrl: null,
     logoLetter: "S",
     gradient: "linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)",
     jobCount: 3,
@@ -37,7 +37,7 @@ const FEATURED_COMPANIES = [
     name: "freee株式会社",
     brandName: "freee",
     industry: "FinTech",
-    logoUrl: "https://logo.clearbit.com/freee.co.jp",
+    logoUrl: null,
     logoLetter: "F",
     gradient: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
     jobCount: 3,
@@ -491,7 +491,7 @@ function CompanyMiniCardSkeleton() {
 }
 
 
-function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: PreviewCompany[] }) {
+function _FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: PreviewCompany[] }) {
   const companies = initialCompanies;
   const loading = false;
 
@@ -618,7 +618,24 @@ function LogoWallSection({ companies }: { companies: PreviewCompany[] }) {
           </p>
         </div>
         <LogoWall companies={wallData} />
-        <div style={{ textAlign: "center", marginTop: 28 }}>
+        {/* Value prop strip */}
+        <div style={{
+          marginTop: 28, padding: "14px 24px",
+          background: "var(--royal-50)", borderRadius: 12,
+          border: "1px solid var(--royal-100)",
+          display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" as const,
+          justifyContent: "center",
+        }}>
+          {[
+            { icon: "✍", text: "編集部の取材記事が読める" },
+            { icon: "💼", text: "求人票と企業情報を横断して比較" },
+          ].map(({ icon, text }) => (
+            <div key={text} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+              <span>{icon}</span>{text}
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
           <Link href="/companies" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "10px 24px", border: "1.5px solid var(--royal-100)", borderRadius: 8, background: "var(--royal-50)" }}>
             全企業を見る →
           </Link>
@@ -1222,7 +1239,6 @@ export default function HomePageClient({
       <FirstVisitOnboarding />
       <PainPoints />
       <LogoWallSection companies={initialCompanies} />
-      <FeaturedCompaniesSection initialCompanies={initialCompanies} />
       <HowItWorks />
       {/* 実ユーザーの声が取れ次第、実引用に差し替え。現状は架空データのため非表示 */}
       {/* <SocialProofSection /> */}
