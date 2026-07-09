@@ -71,7 +71,7 @@ function FeaturedThreeCards() {
                   <div style={{ height: 72, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--line-soft)", background: "#fafafa" }}>
                     {showLogo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={co.logoUrl} alt={co.brandName} style={{ maxHeight: 36, maxWidth: "60%", objectFit: "contain" }}
+                      <img src={co.logoUrl ?? undefined} alt={co.brandName} style={{ maxHeight: 36, maxWidth: "60%", objectFit: "contain" }}
                         onError={() => setImgErrors(prev => new Set(Array.from(prev).concat(co.id)))} />
                     ) : (
                       <div style={{ width: 44, height: 44, borderRadius: 10, background: co.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#fff" }}>{co.logoLetter}</div>
