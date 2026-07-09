@@ -979,6 +979,17 @@ function JobListItem({
             )}
           </div>
 
+          {/* キャッチコピー1行 — LinkedIn の job summary 相当 */}
+          {job.highlight && (
+            <div style={{
+              fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5,
+              marginBottom: 5,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {job.highlight}
+            </div>
+          )}
+
           {/* 先輩strip — LinkedIn「あなたの繋がり」相当：会社名直下で目立たせる */}
           {alumni.length > 0 && (
             <div style={{ marginBottom: 5 }}>
@@ -1713,11 +1724,12 @@ export default function JobsClient({
 
           {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
-            {/* 面談受付中 */}
+            {/* 面談受付中 — デスクトップではサイドバーに同機能あるため非表示 */}
             <button
               type="button"
               onClick={() => setMeetingOnly((v) => !v)}
               aria-pressed={meetingOnly}
+              className="jobs-filterbar-sidebar-dup"
               style={{
                 height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
                 fontWeight: meetingOnly ? 700 : 500,
@@ -1770,12 +1782,13 @@ export default function JobsClient({
 
             {(hasFilter || q || meetingOnly) && (
               <button type="button" onClick={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
+                className="jobs-filterbar-sidebar-dup"
                 style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
               >✕ リセット</button>
             )}
 
-            {/* 縦区切り */}
-            <div style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
+            {/* 縦区切り — デスクトップでは不要（左側が全て非表示になるため） */}
+            <div className="jobs-filterbar-sidebar-dup" style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
 
             {/* 並び替えpills */}
             {([
