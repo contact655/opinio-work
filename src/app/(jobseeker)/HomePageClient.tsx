@@ -190,50 +190,6 @@ function Hero() {
   );
 }
 
-// ─── Trust Numbers ────────────────────────────────────────────────────────────
-
-function TrustNumbers() {
-  const items = [
-    { icon: "🏢", num: "80社+", label: "の企業情報", sub: "外資IT・SaaS・スタートアップ" },
-    { icon: "💼", num: "150件+", label: "の公開求人", sub: "職種・年収・働き方で絞り込み" },
-    { icon: "👤", num: "13名", label: "のメンター", sub: "現役・OB社員に直接相談できる" },
-    { icon: "📊", num: "匿名", label: "年収・転職データ公開中", sub: "求人票には載らないリアルな数字" },
-  ];
-  return (
-    <section style={{
-      background: "#fff",
-      borderTop: "1px solid var(--line)",
-    }}>
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "40px 48px" }} className="px-5 md:px-12">
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "24px 32px",
-        }} className="grid grid-cols-2 md:grid-cols-4">
-          {items.map((item) => (
-            <div key={item.num + item.label} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 22, marginBottom: 6 }}>{item.icon}</div>
-              <div style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: 36, fontWeight: 900,
-                color: "#001233", letterSpacing: "-0.03em",
-                lineHeight: 1,
-              }}>
-                {item.num}
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 4 }}>
-                {item.label}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.5 }}>
-                {item.sub}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 // ─── Featured Companies ────────────────────────────────────────────────────────
 
@@ -1084,7 +1040,6 @@ export default function HomePageClient({
   return (
     <>
       <Hero />
-      <TrustNumbers />
       <FirstVisitOnboarding />
       <HowItWorks />
       <FeaturedCompaniesSection initialCompanies={initialCompanies} />
