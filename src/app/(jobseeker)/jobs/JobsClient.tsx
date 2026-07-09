@@ -75,6 +75,7 @@ function getPhaseBadge(phase: string | null | undefined) {
 // ─── Dept short labels (⑤) ───────────────────────────────────────────────────
 
 const DEPT_SHORT: Record<string, string> = {
+  "未定（面談時相談）":           "オープン",
   "プロフェッショナルサービス":   "プロサービス",
   "ソリューションズアーキテクト": "SA",
   "ソリューションアーキテクト":   "SA",
@@ -112,8 +113,8 @@ const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }>
   "デザイン":           { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
   "PdM / PM":           { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
   "プロダクト":         { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
-  "営業":               { bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
-  "カスタマーサクセス": { bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
+  "営業":               { bg: "#ECFDF5", color: "#15803D", border: "#A7F3D0" },
+  "カスタマーサクセス": { bg: "#ECFDF5", color: "#15803D", border: "#A7F3D0" },
   "マーケティング":     { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
   "事業開発":           { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
   "BizDev":             { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
@@ -886,6 +887,7 @@ function JobListItem({
           alignItems: "center",
           gap: 14,
           padding: "14px 16px",
+          minHeight: 80,
           background: isSelected ? "var(--royal-50)" : "#fff",
           textDecoration: "none",
           borderBottom: "1px solid var(--line-soft)",
@@ -965,7 +967,7 @@ function JobListItem({
                   flexShrink: 0, cursor: "pointer",
                 }}
               >
-                {job.dept}
+                {shortDept(job.dept)}
               </span>
             )}
             {isApplied && (
