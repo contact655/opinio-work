@@ -1051,34 +1051,32 @@ function JobListCard({
           )}
         </div>
 
-        {/* ── データ行: 年収 / 勤務地 / リモート ── */}
-        <div style={{ padding: "10px 16px 0", display: "flex", flexDirection: "column", gap: 5 }}>
+        {/* ── データ行: 年収 · 勤務地 · リモート (インライン) ── */}
+        <div style={{ padding: "8px 16px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {(job.salary_min || job.salary_max) && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", width: 48, flexShrink: 0 }}>年収</span>
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 700, color: "var(--success)" }}>
-                {formatSalary(job.salary_min, job.salary_max)}
-              </span>
-            </div>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700, color: "var(--success)" }}>
+              {formatSalary(job.salary_min, job.salary_max)}
+            </span>
+          )}
+          {job.location && (job.salary_min || job.salary_max) && (
+            <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
           )}
           {job.location && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", width: 48, flexShrink: 0 }}>勤務地</span>
-              <span style={{ fontSize: 12.5, color: "var(--ink)" }}>
-                {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
-              </span>
-            </div>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 3 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
+            </span>
+          )}
+          {job.work_style && (job.location || job.salary_min || job.salary_max) && (
+            <span style={{ fontSize: 10, color: "var(--line)" }}>·</span>
           )}
           {job.work_style && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", width: 48, flexShrink: 0 }}>リモート</span>
-              <span style={{
-                fontSize: 12.5, fontWeight: 600,
-                color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? "var(--success)" : "var(--ink)",
-              }}>
-                {job.work_style}
-              </span>
-            </div>
+            <span style={{
+              fontSize: 12, fontWeight: 600,
+              color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? "var(--success)" : "var(--ink-soft)",
+            }}>
+              {job.work_style}
+            </span>
           )}
         </div>
 
@@ -2066,11 +2064,17 @@ export default function JobsClient({
         .jobs-sidebar { display: none; }
         /* filter bar: always visible */
         .jobs-mobile-filterbar { display: block; position: sticky; top: 64px; }
-        /* list: always visible */
+        /* list: 2-column grid on desktop, 1-column on mobile */
         .jobs-list-desktop {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        @media (min-width: 768px) {
+          .jobs-list-desktop {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
         }
         /* desktop grid mode */
         .jobs-grid-desktop {
