@@ -899,7 +899,7 @@ function FilterChip({
   );
 }
 
-// ─── Horizontal list card ─────────────────────────────────────────────────────
+// ─── Expanded vertical list card ─────────────────────────────────────────────
 
 function JobListCard({
   job, companyMap, initialBookmarked = false, alumni = [], isApplied = false, onHover,
@@ -958,204 +958,233 @@ function JobListCard({
   const deptStyle = getDeptStyle(job.dept);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
+  const badge = freshBadge(job.updated_days_ago);
+  const hasMeeting = company.accepting_casual_meetings;
 
   return (
-    <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
-      display: "flex", gap: 10, alignItems: "stretch",
-      background: bookmarked ? "#FFF8F2" : "#fff",
-      borderRadius: 8,
-      padding: "9px 12px",
-      textDecoration: "none",
-      border: "1px solid var(--line)",
-      boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
-      transition: "box-shadow 0.22s ease, transform 0.22s ease, background 0.2s",
-      cursor: "pointer",
-    }}
+    <div
       onMouseEnter={() => onHover?.(job)}
       onMouseLeave={() => onHover?.(null)}
     >
-      {/* ── 左ゾーン: ロゴ ── */}
-      <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-        <CompanyLogo
-          name={company.name}
-          logoUrl={company.logo_url}
-          logoLetter={company.logo_letter}
-          logoGradient={company.gradient}
-          size={36}
-          borderRadius={7}
-          className="job-list-logo"
-          style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
-        />
-      </div>
+      <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
+        display: "flex",
+        flexDirection: "column",
+        background: "#fff",
+        borderRadius: 10,
+        textDecoration: "none",
+        border: hasMeeting ? "1.5px solid #FDBA74" : "1px solid var(--line)",
+        borderLeft: hasMeeting ? "4px solid #EA580C" : undefined,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+        transition: "box-shadow 0.2s, transform 0.2s",
+        overflow: "hidden",
+      }}>
 
-      {/* ── 中央ゾーン: 縦2行 ── */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3, justifyContent: "center" }}>
-
-        {/* 行1: タイトル（左,flex:1）＋ 職種・面談バッジ（右） */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        {/* ── 会社ヘッダー ── */}
+        <div style={{ padding: "14px 16px 10px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--line-soft)" }}>
+          <CompanyLogo
+            name={company.name}
+            logoUrl={company.logo_url}
+            logoLetter={company.logo_letter}
+            logoGradient={company.gradient}
+            size={36}
+            borderRadius={7}
+            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08)", flexShrink: 0 }}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{
-              display: "block",
-              fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {job.role}
-            </span>
-            {job.highlight && (
-              <span style={{
-                display: "block", fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1,
-              }}>
-                {job.highlight}
-              </span>
-            )}
-          </div>
-          {/* バッジ（右端） */}
-          <div style={{ flexShrink: 0, display: "flex", gap: 4, alignItems: "center" }}>
-            {job.dept && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
-                background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-              }}>
-                {shortDept(job.dept)}
-              </span>
-            )}
-            {company.accepting_casual_meetings && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                background: "#FFF7ED", color: "#C2410C", border: "1.5px solid #FDBA74",
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0 }} />
-                面談受付中
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 行2: 会社名メタ（左,flex:1,overflow）＋ 年収（右） */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden", flexWrap: "nowrap" }}>
             <span
               role="link" tabIndex={0}
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}}
               className="company-name-link"
-              style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+              style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, cursor: "pointer" }}
             >
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(company as any).brand_name ?? company.name}
             </span>
             {phaseBadge && (
               <span style={{
-                fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
-                background: phaseBadge.bg, color: phaseBadge.color, flexShrink: 0,
+                marginLeft: 7, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                background: phaseBadge.bg, color: phaseBadge.color,
                 border: `1px solid ${phaseBadge.color}40`,
               }}>
                 {phaseBadge.label}
               </span>
             )}
-            {job.location && (
-              <>
-                <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-                <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
-                </span>
-              </>
-            )}
-            {job.work_style && (
-              <>
-                <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-                <span style={{ fontSize: 10, fontWeight: 600, flexShrink: 0, color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)" }}>
-                  {job.work_style}
-                </span>
-              </>
-            )}
-            {job.employment_type && job.employment_type !== "正社員" && (
-              <>
-                <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-                <span style={{ fontSize: 9, color: "var(--success)", fontWeight: 700, background: "#F0FDF4", padding: "1px 5px", borderRadius: 4, border: "1px solid #BBF7D0", flexShrink: 0 }}>
-                  {job.employment_type}
-                </span>
-              </>
+          </div>
+          {hasMeeting && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
+              background: "#FFF7ED", color: "#C2410C", border: "1.5px solid #FDBA74",
+              flexShrink: 0,
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite" }} />
+              面談受付中
+            </span>
+          )}
+        </div>
+
+        {/* ── 求人タイトル + キャッチコピー ── */}
+        <div style={{ padding: "12px 16px 0" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 16, fontWeight: 700, color: "var(--ink)", lineHeight: 1.45, letterSpacing: "-0.01em" }}>
+              {job.role}
+            </div>
+            {badge && (
+              <span style={{
+                flexShrink: 0, fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 100,
+                background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`,
+                fontFamily: "Inter, sans-serif", marginTop: 2,
+              }}>
+                {badge.label}
+              </span>
             )}
           </div>
-          {/* 年収（右端） */}
-          {(job.salary_min || job.salary_max) && (
-            <span style={{
-              flexShrink: 0, fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
-              color: "var(--success)", whiteSpace: "nowrap",
+          {job.highlight && (
+            <p style={{
+              fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.75, marginTop: 6,
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
             }}>
-              {formatSalary(job.salary_min, job.salary_max)}
+              {job.highlight}
+            </p>
+          )}
+        </div>
+
+        {/* ── データ行: 年収 / 勤務地 / リモート ── */}
+        <div style={{ padding: "10px 16px 0", display: "flex", flexDirection: "column", gap: 5 }}>
+          {(job.salary_min || job.salary_max) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", width: 48, flexShrink: 0 }}>年収</span>
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 700, color: "var(--success)" }}>
+                {formatSalary(job.salary_min, job.salary_max)}
+              </span>
+            </div>
+          )}
+          {job.location && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", width: 48, flexShrink: 0 }}>勤務地</span>
+              <span style={{ fontSize: 12.5, color: "var(--ink)" }}>
+                {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
+              </span>
+            </div>
+          )}
+          {job.work_style && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", width: 48, flexShrink: 0 }}>リモート</span>
+              <span style={{
+                fontSize: 12.5, fontWeight: 600,
+                color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? "var(--success)" : "var(--ink)",
+              }}>
+                {job.work_style}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── バッジ行 ── */}
+        <div style={{ padding: "10px 16px 0", display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+          {job.dept && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 4,
+              background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+            }}>
+              {job.dept}
+            </span>
+          )}
+          {job.employment_type && job.employment_type !== "正社員" && (
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 4,
+              background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
+            }}>
+              {job.employment_type}
+            </span>
+          )}
+          {isApplied && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}>
+              ✓ 応募済み
             </span>
           )}
         </div>
 
         {/* 先輩strip */}
         {alumni.length > 0 && (
-          <span
-            role="presentation"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "3px 7px", borderRadius: 5,
-              background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
-              border: "1.5px solid var(--royal-100)",
-              cursor: "pointer", alignSelf: "flex-start",
-            }}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center" }}>
-              {alumni.slice(0, 3).map((a, i) => (
-                <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
-                  style={{ width: 18, height: 18, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", boxShadow: "0 1px 3px rgba(0,35,102,0.2)", textDecoration: "none", zIndex: 3 - i }}>
-                  {a.name.replace(/\s/g, "").charAt(0)}
-                </a>
-              ))}
+          <div style={{ padding: "8px 16px 0" }}>
+            <span
+              role="presentation"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "4px 10px", borderRadius: 6,
+                background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
+                border: "1.5px solid var(--royal-100)",
+                cursor: "pointer",
+              }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center" }}>
+                {alumni.slice(0, 3).map((a, i) => (
+                  <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
+                    style={{ width: 20, height: 20, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -7, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", boxShadow: "0 1px 3px rgba(0,35,102,0.2)", textDecoration: "none", zIndex: 3 - i }}>
+                    {a.name.replace(/\s/g, "").charAt(0)}
+                  </a>
+                ))}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3, whiteSpace: "nowrap" }}>
+                {alumni.length === 1 ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます` : alumni.length === 2 ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます` : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます`}
+                <span style={{ fontSize: 10, color: "#3B5FD9", marginLeft: 4, fontWeight: 600 }}>話を聞く →</span>
+              </span>
             </span>
-            <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3, whiteSpace: "nowrap" }}>
-              {alumni.length === 1 ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます` : alumni.length === 2 ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます` : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます`}
-              <span style={{ fontSize: 9, color: "#3B5FD9", marginLeft: 3, fontWeight: 600 }}>話を聞く →</span>
-            </span>
-          </span>
+          </div>
         )}
 
-        {isApplied && (
-          <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", alignSelf: "flex-start" }}>
-            ✓ 応募済み
-          </span>
-        )}
-      </div>
-
-      {/* ── 最右端: ♡ + 詳細 ── */}
-      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-        <button
-          type="button"
-          onClick={handleBookmark}
-          aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
-          aria-pressed={bookmarked}
-          style={{
-            width: 24, height: 24, borderRadius: "50%",
-            border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
-            cursor: "pointer",
-            background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transform: bookmarkAnim ? "scale(1.2)" : "scale(1)",
-            transition: "all 0.2s", padding: 0,
-          }}
-        >
-          <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
-        </button>
-        <span style={{
-          display: "inline-flex", alignItems: "center", gap: 2,
-          fontSize: 10, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
+        {/* ── フッター: CTAボタン ── */}
+        <div style={{
+          padding: "12px 16px 14px",
+          marginTop: 12,
+          borderTop: "1px solid var(--line-soft)",
+          display: "flex", alignItems: "center", gap: 8,
         }}>
-          詳細
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <path d="M9 18l6-6-6-6"/>
-          </svg>
-        </span>
-      </div>
-    </Link>
+          {/* ♡ 気になる */}
+          <button
+            type="button"
+            onClick={handleBookmark}
+            aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
+            aria-pressed={bookmarked}
+            style={{
+              flex: "0 0 auto", height: 40, padding: "0 16px", borderRadius: 8,
+              border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
+              background: bookmarked ? "#FEF2F2" : "#fff",
+              color: bookmarked ? "#e24b4a" : "var(--ink-soft)",
+              fontSize: 13, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 5,
+              transform: bookmarkAnim ? "scale(1.05)" : "scale(1)",
+              transition: "all 0.2s",
+            }}
+          >
+            <Heart size={14} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+            気になる
+          </button>
+
+          {/* 詳細を見る */}
+          <div style={{
+            flex: 1, height: 40, borderRadius: 8,
+            background: "var(--royal)", color: "#fff",
+            fontSize: 13, fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
+          }}>
+            詳細を見る
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </div>
+
+          {/* 更新日 */}
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {job.updated_days_ago === 0 ? "今日" : `${job.updated_days_ago}日前`}
+          </span>
+        </div>
+      </Link>
+    </div>
   );
 }
 
