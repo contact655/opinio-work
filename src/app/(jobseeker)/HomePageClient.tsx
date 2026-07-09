@@ -643,12 +643,12 @@ function HowItWorks() {
       icon: <SearchIcon />,
     },
     {
-      step: "STEP 02", title: "話せる人に相談する", en: "Connect",
-      desc: "企業の現役社員・OB/OGに直接話を聞ける。求人票には載らないカルチャーや仕事のリアルを確認できます。",
-      action: "→ 話せる人を探す",
-      href: "/people",
+      step: "STEP 02", title: "気になる求人を比較する", en: "Compare",
+      desc: "職種・年収・働き方で横断検索し、企業ごとに比べられる。取材記事と求人票を並べて、自分に合うかを確かめる。",
+      action: "→ 求人を探す",
+      href: "/jobs",
       iconBg: "linear-gradient(135deg, var(--warm), #D97706)",
-      icon: <ChatIcon />,
+      icon: <BriefcaseIcon />,
     },
     {
       step: "STEP 03", title: "自分のペースで決める", en: "Decide",
@@ -669,7 +669,7 @@ function HowItWorks() {
             企業と、そこで働く人の情報を一か所で
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.9, color: "var(--ink-soft)", maxWidth: "var(--max-w-form)", margin: "0 auto" }}>
-            取材記事・求人票・話せる人を一か所に集約。<br />
+            取材記事・求人票を一か所に集約。<br />
             情報を集めてから、自分のペースで動ける。
           </p>
         </div>
