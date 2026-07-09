@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import HomeFaq from "@/app/HomeFaq";
+import { LogoWall } from "@/components/companies/LogoWall";
 
 // ─── Featured company cards（#4）─────────────────────────────────────────────
 
@@ -589,6 +590,39 @@ function FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: Prev
             transform: translateY(-2px) !important;
           }
         `}</style>
+      </div>
+    </section>
+  );
+}
+
+// ─── Logo Wall Section（#6）──────────────────────────────────────────────────
+
+function LogoWallSection({ companies }: { companies: PreviewCompany[] }) {
+  const wallData = companies.map((c) => ({
+    id: c.id,
+    name: c.name,
+    logoUrl: c.logoUrl,
+    letter: c.letter,
+    gradient: c.gradient,
+  }));
+  return (
+    <section style={{ background: "#fff", padding: "64px 48px", borderTop: "1px solid var(--line)" }} className="px-5 py-12 md:px-12">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <SectionTag>掲載企業</SectionTag>
+          <h2 style={{ fontSize: "clamp(22px,2.8vw,34px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, marginBottom: 10 }}>
+            編集部が取材・審査した企業だけ
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+            外資IT・国内SaaS・スタートアップを中心に、OPINIOが直接取材した企業のみ掲載しています。
+          </p>
+        </div>
+        <LogoWall companies={wallData} />
+        <div style={{ textAlign: "center", marginTop: 28 }}>
+          <Link href="/companies" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "10px 24px", border: "1.5px solid var(--royal-100)", borderRadius: 8, background: "var(--royal-50)" }}>
+            全企業を見る →
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -1189,6 +1223,7 @@ export default function HomePageClient({
       <HowItWorks />
       <FeaturedCompaniesSection initialCompanies={initialCompanies} />
       <PainPoints />
+      <LogoWallSection companies={initialCompanies} />
       <SocialProofSection />
       <FounderMessage />
       <HomeFaq />
