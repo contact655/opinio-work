@@ -1135,47 +1135,6 @@ function _SocialProofSection() {
   );
 }
 
-// ─── Founder Message ──────────────────────────────────────────────────────────
-
-function FounderMessage() {
-  return (
-    <section style={{
-      background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
-      padding: "72px 48px",
-    }} className="px-5 py-14 md:px-12 md:py-20">
-      <div style={{ maxWidth: 800, margin: "0 auto" }}>
-        {/* ラベル */}
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.5)", marginBottom: 24, textTransform: "uppercase" as const }}>
-          FROM THE FOUNDER
-        </div>
-        {/* 大きな引用 */}
-        <blockquote style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: "clamp(18px, 2.4vw, 26px)",
-          fontWeight: 700,
-          color: "#fff",
-          lineHeight: 1.7,
-          margin: "0 0 32px",
-          borderLeft: "3px solid rgba(255,255,255,0.35)",
-          paddingLeft: 24,
-        }}>
-          「転職は、情報量の差で結果が変わる。<br />
-          OPINIOは、その差をなくすためにあります。」
-        </blockquote>
-        {/* 署名 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "1.5px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-            柴
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>柴 久人</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>株式会社Opinio 代表取締役 / 元外資系IT営業</div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -1197,7 +1156,6 @@ export default function HomePageClient({
       <HowItWorks />
       {/* 実ユーザーの声が取れ次第、実引用に差し替え。現状は架空データのため非表示 */}
       {/* <SocialProofSection /> */}
-      <FounderMessage />
       <HomeFaq />
       <FinalCta companyNum={companyNum} />
       <MobileAuthCTA />
