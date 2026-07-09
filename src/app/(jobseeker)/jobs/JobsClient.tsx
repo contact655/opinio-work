@@ -958,13 +958,13 @@ function JobListCard({
 
   return (
     <Link href={`/jobs/${job.id}`} prefetch className="job-list-card-link" style={{
-      display: "flex", gap: 12, alignItems: "stretch",
+      display: "flex", gap: 10, alignItems: "stretch",
       background: bookmarked ? "#FFF8F2" : "#fff",
-      borderRadius: 10,
-      padding: "12px 14px",
+      borderRadius: 8,
+      padding: "9px 12px",
       textDecoration: "none",
       border: "1px solid var(--line)",
-      boxShadow: "0 1px 4px rgba(15,23,42,0.07)",
+      boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
       transition: "box-shadow 0.22s ease, transform 0.22s ease, background 0.2s",
       cursor: "pointer",
     }}
@@ -978,39 +978,39 @@ function JobListCard({
           logoUrl={company.logo_url}
           logoLetter={company.logo_letter}
           logoGradient={company.gradient}
-          size={40}
-          borderRadius={8}
+          size={36}
+          borderRadius={7}
           className="job-list-logo"
-          style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+          style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
         />
       </div>
 
       {/* ── 中央ゾーン: タイトル・メタ情報・バッジ ── */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3, justifyContent: "center" }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2, justifyContent: "center" }}>
 
         {/* タイトル */}
         <span style={{
-          fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
+          fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3, letterSpacing: "-0.01em",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {job.role}
         </span>
 
-        {/* 会社名 · フェーズ · 場所 · 勤務形態 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+        {/* 会社名 · フェーズ · 場所 · 勤務形態（1行、nowrap） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflow: "hidden" }}>
           <span
             role="link"
             tabIndex={0}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}}
             className="company-name-link"
-            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+            style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
           >
             {(company as any).brand_name ?? company.name}
           </span>
           {phaseBadge && (
             <span style={{
-              fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+              fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 100,
               background: phaseBadge.bg, color: phaseBadge.color, flexShrink: 0,
               border: `1px solid ${phaseBadge.color}40`,
             }}>
@@ -1020,8 +1020,8 @@ function JobListCard({
           {job.location && (
             <>
               <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
               </span>
             </>
@@ -1030,7 +1030,7 @@ function JobListCard({
             <>
               <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
               <span style={{
-                fontSize: 11, fontWeight: 600, flexShrink: 0,
+                fontSize: 10, fontWeight: 600, flexShrink: 0,
                 color: job.work_style.includes("リモート") ? "var(--success)" : "var(--ink-soft)",
               }}>
                 {job.work_style}
@@ -1040,33 +1040,23 @@ function JobListCard({
           {job.employment_type && job.employment_type !== "正社員" && (
             <>
               <span style={{ fontSize: 10, color: "var(--line)", flexShrink: 0 }}>·</span>
-              <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, background: "#F0FDF4", padding: "1px 6px", borderRadius: 4, border: "1px solid #BBF7D0", flexShrink: 0 }}>
+              <span style={{ fontSize: 9, color: "var(--success)", fontWeight: 700, background: "#F0FDF4", padding: "1px 5px", borderRadius: 4, border: "1px solid #BBF7D0", flexShrink: 0 }}>
                 {job.employment_type}
               </span>
             </>
           )}
         </div>
 
-        {/* キャッチコピー（デスクトップのみ） */}
-        {job.highlight && (
-          <p className="job-list-mobile-hide" style={{
-            fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.4, margin: 0,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>
-            {job.highlight}
-          </p>
-        )}
-
         {/* 先輩strip */}
         {alumni.length > 0 && (
           <span
             role="presentation"
             style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "4px 8px", borderRadius: 6,
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "3px 7px", borderRadius: 5,
               background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
               border: "1.5px solid var(--royal-100)",
-              cursor: "pointer", marginTop: 1,
+              cursor: "pointer", alignSelf: "flex-start",
             }}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
           >
@@ -1078,12 +1068,12 @@ function JobListCard({
                   onClick={(e) => e.stopPropagation()}
                   title={a.name}
                   style={{
-                    width: 22, height: 22, borderRadius: "50%",
+                    width: 18, height: 18, borderRadius: "50%",
                     background: a.gradient,
                     border: "2px solid #fff",
-                    marginLeft: i === 0 ? 0 : -7,
+                    marginLeft: i === 0 ? 0 : -6,
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 9, fontWeight: 800, color: "#fff",
+                    fontSize: 8, fontWeight: 800, color: "#fff",
                     flexShrink: 0, position: "relative",
                     boxShadow: "0 1px 3px rgba(0,35,102,0.2)",
                     textDecoration: "none",
@@ -1094,23 +1084,23 @@ function JobListCard({
                 </a>
               ))}
             </span>
-            <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3 }}>
+            <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 700, lineHeight: 1.3, whiteSpace: "nowrap" }}>
               {alumni.length === 1
                 ? `${alumni[0].name.slice(0, 2)}さんが先輩にいます`
                 : alumni.length === 2
                 ? `${alumni[0].name.slice(0, 2)}さん・${alumni[1].name.slice(0, 2)}さんが先輩にいます`
                 : `${alumni[0].name.slice(0, 2)}さんなど先輩${alumni.length}名がいます`}
-              <span style={{ fontSize: 10, color: "#3B5FD9", marginLeft: 4, fontWeight: 600 }}>話を聞く →</span>
+              <span style={{ fontSize: 9, color: "#3B5FD9", marginLeft: 3, fontWeight: 600 }}>話を聞く →</span>
             </span>
           </span>
         )}
 
         {/* バッジ行: 職種 + 面談受付中 + 応募済み */}
         {(job.dept || company.accepting_casual_meetings || isApplied) && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
             {job.dept && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
                 background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
                 flexShrink: 0,
               }}>
@@ -1120,7 +1110,7 @@ function JobListCard({
             {company.accepting_casual_meetings && (
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 100,
                 background: "#FFF7ED", color: "#C2410C",
                 border: "1.5px solid #FDBA74", flexShrink: 0,
               }}>
@@ -1130,7 +1120,7 @@ function JobListCard({
             )}
             {isApplied && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
                 background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0",
                 flexShrink: 0,
               }}>
@@ -1151,7 +1141,7 @@ function JobListCard({
         {/* モバイル: 年収（右ゾーンが非表示のため中央ゾーン下部に） */}
         <div className="job-list-mobile-salary" style={{ display: "none" }}>
           {(job.salary_min || job.salary_max) ? (
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700, color: "var(--success)" }}>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
               {formatSalary(job.salary_min, job.salary_max)}
               <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500, marginLeft: 3, fontFamily: "inherit" }}>年収</span>
             </span>
@@ -1163,37 +1153,38 @@ function JobListCard({
 
       {/* ── 右ゾーン: 年収 + アクション ── */}
       <div className="job-list-right-zone" style={{
-        width: 120, flexShrink: 0,
-        display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center",
-        gap: 8, borderLeft: "1px solid var(--line-soft)", paddingLeft: 12,
+        width: 108, flexShrink: 0,
+        display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "space-between",
+        borderLeft: "1px solid var(--line-soft)", paddingLeft: 10,
+        paddingTop: 2, paddingBottom: 2,
       }}>
-        {/* 年収 */}
+        {/* 年収（上寄せ） */}
         <div style={{ textAlign: "right" }}>
           {(job.salary_min || job.salary_max) ? (
             <>
               <div style={{
                 fontFamily: "Inter, sans-serif",
-                fontSize: 15, fontWeight: 700,
+                fontSize: 13, fontWeight: 700,
                 color: "var(--success)", lineHeight: 1.1, whiteSpace: "nowrap",
               }}>
                 {formatSalary(job.salary_min, job.salary_max)}
               </div>
-              <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500, marginTop: 1 }}>年収</div>
+              <div style={{ fontSize: 9, color: "var(--ink-mute)", fontWeight: 500, marginTop: 1 }}>年収</div>
             </>
           ) : (
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic" }}>年収応相談</div>
+            <div style={{ fontSize: 10, color: "var(--ink-mute)", fontStyle: "italic" }}>年収応相談</div>
           )}
         </div>
 
-        {/* お気に入り + 詳細 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {/* お気に入り + 詳細（下寄せ） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <button
             type="button"
             onClick={handleBookmark}
             aria-label={bookmarked ? "ブックマーク解除" : "ブックマーク追加"}
             aria-pressed={bookmarked}
             style={{
-              width: 26, height: 26, borderRadius: "50%",
+              width: 24, height: 24, borderRadius: "50%",
               border: bookmarked ? "1.5px solid #e24b4a" : "1.5px solid var(--line)",
               cursor: "pointer",
               background: bookmarked ? "#FEF2F2" : "rgba(255,255,255,0.92)",
@@ -1203,14 +1194,14 @@ function JobListCard({
               padding: 0, flexShrink: 0,
             }}
           >
-            <Heart size={12} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
+            <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#94a3b8", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
           </button>
           <span className="job-list-card-cta" style={{
             display: "inline-flex", alignItems: "center", gap: 2,
-            fontSize: 11, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
+            fontSize: 10, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap",
           }}>
             詳細
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M9 18l6-6-6-6"/>
             </svg>
           </span>
