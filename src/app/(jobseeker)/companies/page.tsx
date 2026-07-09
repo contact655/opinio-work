@@ -8,7 +8,6 @@ import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSect
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
-import { CompareBar } from "@/components/companies/CompareBar";
 
 type MemberPreview = { id: string; name: string };
 
@@ -320,8 +319,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
     {/* 管理者専用: 企業並び替えオーバーレイ（非管理者には何も表示されない） */}
     <CompanyAdminDndOverlay />
 
-    {/* #13: 比較バー（最大3社選択で表示） */}
-    <CompareBar />
     </>
   );
 }

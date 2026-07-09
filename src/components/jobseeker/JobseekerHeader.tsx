@@ -410,7 +410,7 @@ export function JobseekerHeader() {
                 e.preventDefault();
                 setSearchOpen(false);
                 if (searchQuery.trim()) {
-                  router.push(`/jobs?q=${encodeURIComponent(searchQuery.trim())}`);
+                  router.push(`/companies?q=${encodeURIComponent(searchQuery.trim())}`);
                 }
               }}
               style={{ maxWidth: 860, margin: "0 auto", height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 24px" }}
@@ -459,7 +459,7 @@ export function JobseekerHeader() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
                     {POPULAR_QUERIES.map((q) => (
                       <button key={q} type="button"
-                        onClick={() => { setSearchOpen(false); router.push(`/jobs?q=${encodeURIComponent(q)}`); }}
+                        onClick={() => { setSearchOpen(false); router.push(`/companies?q=${encodeURIComponent(q)}`); }}
                         style={{ padding: "5px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "var(--bg-tint)", fontSize: 12, fontWeight: 500, cursor: "pointer", color: "var(--ink-soft)" }}>
                         {q}
                       </button>
@@ -528,10 +528,10 @@ export function JobseekerHeader() {
 
                   {/* 全件検索リンク */}
                   <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginTop: 4 }}>
-                    <a href={`/jobs?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
+                    <a href={`/companies?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
                       style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 8, textDecoration: "none", fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-                      「{searchQuery}」を求人で検索 →
+                      「{searchQuery}」を企業で検索 →
                     </a>
                   </div>
                 </div>
@@ -541,8 +541,8 @@ export function JobseekerHeader() {
               {searchQuery && suggestions && suggestions.companies.length === 0 && suggestions.jobs.length === 0 && (
                 <div style={{ padding: "16px 8px 20px", color: "var(--ink-mute)", fontSize: 13 }}>
                   「{searchQuery}」に一致する結果がありません。
-                  <a href={`/jobs?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
-                    style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6, textDecoration: "underline" }}>求人で検索 →</a>
+                  <a href={`/companies?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
+                    style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6, textDecoration: "underline" }}>企業で検索 →</a>
                 </div>
               )}
             </div>

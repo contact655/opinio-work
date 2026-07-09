@@ -7,9 +7,6 @@ import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
-import { addToCompare, removeFromCompare, isInCompareList } from "./CompareBar";
-
-const COMPARE_EVENT = "opinio-compare-update";
 
 // ── フェーズバッジ設定（CompanyCardCompactと統一）──────────────────────────────
 type StageCfgEntry = { label: string; color: string; bg: string; border: string; fontWeight?: number };
@@ -152,27 +149,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
     });
   }, [company.id]);
 
-  // ── 比較機能 ───────────────────────────────────────────────────────────────
-  const [inCompare, setInCompare] = useState(false);
-  useEffect(() => {
-    setInCompare(isInCompareList(company.id));
-    const onUpdate = () => setInCompare(isInCompareList(company.id));
-    window.addEventListener(COMPARE_EVENT, onUpdate);
-    return () => window.removeEventListener(COMPARE_EVENT, onUpdate);
-  }, [company.id]);
-
-  const handleCompare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const grad = company.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
-    const init = company.logo_letter ?? company.name.slice(0, 1);
-    if (inCompare) {
-      removeFromCompare(company.id);
-    } else {
-      const added = addToCompare({ id: company.id, name: company.name, initial: init, gradient: grad });
-      if (!added) showToast("比較できるのは最大3社までです", "warm");
-    }
-  };
 
   const handleBookmark = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -677,25 +653,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             <span>{bookmarked ? "気になり済み" : "気になる"}</span>
           </button>
 
-          {/* 比較ボタン */}
-          <button
-            type="button"
-            onClick={handleCompare}
-            title={inCompare ? "比較リストから削除" : "比較に追加"}
-            style={{
-              padding: "5px 10px", borderRadius: 100,
-              background: inCompare ? "var(--royal-50)" : "transparent",
-              color: inCompare ? "var(--royal)" : "var(--ink-mute)",
-              border: `1px solid ${inCompare ? "var(--royal-100)" : "var(--line)"}`,
-              fontSize: 11, fontWeight: 600,
-              cursor: "pointer",
-              display: "inline-flex", alignItems: "center", gap: 3,
-              transition: "all 0.15s",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {inCompare ? "✓ 比較中" : "+ 比較"}
-          </button>
         </div>
       </Link>
     </>

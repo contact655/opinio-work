@@ -5,10 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
-import { addToCompare, removeFromCompare, isInCompareList } from './CompareBar';
 import { getLogoLetter } from '@/lib/utils/companyLogo';
-
-const COMPARE_EVENT = 'opinio-compare-update';
 
 // フェーズバッジ設定
 type StageCfgEntry = { label: string; color: string; bg: string; border: string; fontWeight?: number };
@@ -162,27 +159,6 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
   const stageCfg = getStageCfg(company.funding_stage);
   const articleCount = company.article_count ?? 0;
 
-  // ── 比較機能 ─────────────────────────────────────────────────────────────────
-  const [inCompare, setInCompare] = useState(false);
-  useEffect(() => {
-    setInCompare(isInCompareList(company.id));
-    const onUpdate = () => setInCompare(isInCompareList(company.id));
-    window.addEventListener(COMPARE_EVENT, onUpdate);
-    return () => window.removeEventListener(COMPARE_EVENT, onUpdate);
-  }, [company.id]);
-
-  const handleCompare = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const headerGrad = company.logo_gradient ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
-    const initChar = getLogoLetter(company.logo_letter, company.name);
-    if (inCompare) {
-      removeFromCompare(company.id);
-    } else {
-      const added = addToCompare({ id: company.id, name: company.name, initial: initChar, gradient: headerGrad });
-      if (!added) showToast('比較できるのは最大3社までです', 'warm');
-    }
-  }, [inCompare, company.id, company.name, company.logo_gradient, company.logo_letter]);
 
   return (
     <Link
@@ -281,18 +257,6 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                     ✍ 取材済
                   </span>
                 )}
-                {/* 比較 */}
-                <button onClick={handleCompare} className={`ccc-compare-btn${inCompare ? ' active' : ''}`} style={{
-                  marginLeft: 'auto',
-                  padding: '2px 7px', borderRadius: 4,
-                  background: inCompare ? 'var(--royal-50)' : 'transparent',
-                  color: inCompare ? 'var(--royal)' : 'var(--ink-mute)',
-                  border: `1px solid ${inCompare ? 'var(--royal-100)' : 'var(--line)'}`,
-                  fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-                  opacity: inCompare ? 1 : 0, transition: 'opacity 0.15s',
-                }}>
-                  {inCompare ? '✓ 比較中' : '+ 比較'}
-                </button>
               </div>
             </div>
             {/* ブックマーク */}

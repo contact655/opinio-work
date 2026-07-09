@@ -18,7 +18,6 @@ import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg } from "./CompanyDetailClient";
-import { HeroCompareButton } from "./HeroCompareButton";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 // import { GenreCarousel } from "@/components/companies/GenreCarousel";
@@ -408,15 +407,6 @@ function Hero({
             </div>
           </div>
 
-          {/* Right: compare */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0, alignSelf: "flex-start", paddingTop: "var(--space-3)" }}>
-            <HeroCompareButton
-              companyId={company.id}
-              companyName={company.name}
-              companyInitial={company.logo_letter ?? company.name.charAt(0).toUpperCase()}
-              companyGradient={company.gradient}
-            />
-          </div>
         </div>
 
         {/* Stats strip — full-width grid */}
