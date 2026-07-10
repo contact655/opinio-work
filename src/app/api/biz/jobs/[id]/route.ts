@@ -66,6 +66,7 @@ export async function PUT(
       why_hire: str(body.whyHire, 5000),
       team_composition: str(body.teamComposition, 5000),
       first_90_days: str(body.first90Days, 5000),
+      business_model: str(body.businessModel, 50) || null,
       updated_at: now,
     })
     .eq("id", jobId)

@@ -10,6 +10,7 @@ import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getVisibleRoles } from "@/lib/constants/jobTypes";
+import { BUSINESS_MODELS, getBusinessModelLabel } from "@/lib/constants/businessModels";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -483,6 +484,14 @@ function JobCard({
         </div>
       )}
 
+      {/* 業態タグ */}
+      {job.business_model && (
+        <div style={{ marginBottom: 6 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", border: "1px solid #DDD6FE", borderRadius: 100, padding: "2px 8px" }}>
+            {getBusinessModelLabel(job.business_model)}
+          </span>
+        </div>
+      )}
 
       {/* Highlight */}
       {job.highlight && (
@@ -1276,18 +1285,19 @@ function JobDetailPane({
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, empType, prefecture, meetingOnly,
+  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
+  bizModel: string;
   meetingOnly: boolean; availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
 }) {
   // ③ アコーディオン: デフォルトで年収・雇用形態・地域は折りたたむ
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["salary", "empType", "prefecture"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["salary", "empType", "bizModel", "prefecture"]));
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -1333,11 +1343,9 @@ function SidebarFilters({
             <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
           </div>
           <span style={{ fontSize: 13, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)", flex: 1 }}>面談受付中のみ</span>
-          {meetingCount > 0 && (
-            <span style={{ fontSize: 10, color: "#C2410C", background: "#FFF7ED", padding: "1px 6px", borderRadius: 100, border: "1px solid #FDBA74", flexShrink: 0 }}>
-              {meetingCount}件
-            </span>
-          )}
+          <span suppressHydrationWarning style={{ fontSize: 10, color: "#C2410C", background: "#FFF7ED", padding: "1px 6px", borderRadius: 100, border: "1px solid #FDBA74", flexShrink: 0, visibility: meetingCount > 0 ? "visible" : "hidden" }}>
+            {meetingCount}件
+          </span>
         </div>
       </div>
 
@@ -1442,6 +1450,28 @@ function SidebarFilters({
         )}
       </div>
 
+      {/* 業態タグ — アコーディオン（デフォルト折りたたみ）*/}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="業態" sectionKey="bizModel" hasActive={!!bizModel} />
+        {!collapsed.has("bizModel") && (
+          <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+            {BUSINESS_MODELS.map((m) => {
+              const isActive = bizModel === m.key;
+              return (
+                <button key={m.key} type="button" onClick={() => setParam("biz_model", isActive ? "" : m.key)}
+                  style={{ display: "flex", alignItems: "flex-start", flexDirection: "column", gap: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--purple)" : "transparent"}`, background: isActive ? "var(--purple-soft)" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--purple)" : "var(--ink)" }}>{isActive ? "✓ " : ""}{m.label}</span>
+                  {m.desc && <span style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.4 }}>{m.desc}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* 地域 — アコーディオン（デフォルト折りたたみ）*/}
       {availablePrefectures.length > 1 && (
         <div>
@@ -1493,6 +1523,7 @@ export default function JobsClient({
   const industry = searchParams.get("industry") ?? "";
   const prefecture = searchParams.get("prefecture") ?? "";
   const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター
+  const bizModel = searchParams.get("biz_model") ?? ""; // 業態タグフィルター
   const sort = searchParams.get("sort") ?? "updated";
   // Phase 1: 読み取りのみ（?job=UUID で行ハイライト。書き込みは Phase 2）
   const selectedJobId = searchParams.get("job");
@@ -1588,9 +1619,9 @@ export default function JobsClient({
   );
 
   // 業界名の正規化マップ（フィルター用）
+  // SaaS は業態タグ（biz_model）に移行したため業界軸から削除
   const INDUSTRY_NORMALIZE: Record<string, string> = {
-    "IT": "IT / SaaS",
-    "SaaS": "IT / SaaS",
+    "IT": "ITサービス",
   };
   const normalizeIndustry = (v: string | null) =>
     v ? (INDUSTRY_NORMALIZE[v] ?? v) : null;
@@ -1665,6 +1696,11 @@ export default function JobsClient({
       list = list.filter((j) => j.employment_type === empType);
     }
 
+    // 業態タグフィルタ
+    if (bizModel) {
+      list = list.filter((j) => j.business_model === bizModel);
+    }
+
     // 面談受付中フィルタ
     if (meetingOnly) {
       list = list.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings);
@@ -1690,7 +1726,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, industry, prefecture, empType, meetingOnly, sort, companies, companyMap]);
+  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, prefecture, empType, meetingOnly, sort, companies, companyMap]);
 
   // ⑧ グルーピング適用（1社あたり最大3件）
   const filteredForDisplay = useMemo(() => {
@@ -1715,7 +1751,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, industry, prefecture, empType, sort, q].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, prefecture, empType, sort, q].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1728,7 +1764,7 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType || meetingOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || prefecture || empType || meetingOnly);
 
   // 面談受付中の求人数（全件から）
   const meetingCount = useMemo(
@@ -2052,6 +2088,7 @@ export default function JobsClient({
                 workStyle={work_style}
                 salary={salary}
                 empType={empType}
+                bizModel={bizModel}
                 prefecture={prefecture}
                 meetingOnly={meetingOnly}
                 availablePrefectures={availablePrefectures}

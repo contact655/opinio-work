@@ -59,6 +59,8 @@ export type Job = {
   why_hire?: string | null;
   team_composition?: string | null;
   first_90_days?: string | null;
+  // 業態タグ (Migration 210)
+  business_model?: string | null;
 };
 
 // ─── Avatar gradient palette ──────────────────────────────────────────────────

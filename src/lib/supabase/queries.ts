@@ -166,6 +166,8 @@ function mapJob(row: Record<string, any>): Job {
     why_hire: (row.why_hire as string) ?? null,
     team_composition: (row.team_composition as string) ?? null,
     first_90_days: (row.first_90_days as string) ?? null,
+    // 業態タグ (Migration 210)
+    business_model: (row.business_model as string) ?? null,
   };
 }
 
@@ -630,6 +632,7 @@ const JOB_LIST_COLS = [
   "id", "company_id", "title", "job_category", "role_category_id", "employment_type",
   "location", "work_style", "salary_min", "salary_max",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
+  // "business_model", // ← migration 210 適用後に有効化
 ].join(", ");
 
 const JOB_DETAIL_COLS = [

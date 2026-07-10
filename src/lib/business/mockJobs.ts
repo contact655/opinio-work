@@ -32,6 +32,8 @@ export type BizJob = {
   rejectionReason?: string;
   rejectionDate?: string;
   rejectionReviewer?: string;
+  // 業態タグ (Migration 210)
+  businessModel?: string | null;
 };
 
 export const MOCK_JOBS: BizJob[] = [

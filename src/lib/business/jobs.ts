@@ -48,6 +48,7 @@ type DbJobFull = {
   rejection_reason: string | null;
   rejection_date: string | null;
   rejection_reviewer: string | null;
+  business_model: string | null;
   ow_job_assignees: { user_id: string }[] | null;
 };
 
@@ -69,6 +70,7 @@ type DbJob = {
   urgency: string | null;
   published_at: string | null;
   updated_at: string | null;
+  business_model: string | null;        // m210 業態タグ
 };
 
 // ─── Helpers ───────────────────────────────────────────
@@ -129,6 +131,7 @@ function transformJob(row: DbJob, meetingCount: number, applicationCount: number
     requiredSkills: row.required_skills ?? [],                     // m031 修正
     preferredSkills: row.preferred_skills ?? [],                   // m031 修正
     selectionSteps: row.selection_steps ?? [],                     // m031 修正
+    businessModel: row.business_model ?? undefined,
     assigneeNames: [],
     status,
     meetingCount,
@@ -153,7 +156,7 @@ export async function fetchJobsForCompany(
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at"
+      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model"
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
@@ -201,7 +204,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -244,6 +247,7 @@ export async function fetchJobById(
     rejectionReason: row.rejection_reason ?? undefined,
     rejectionDate: row.rejection_date ?? undefined,
     rejectionReviewer: row.rejection_reviewer ?? undefined,
+    businessModel: row.business_model ?? undefined,
   };
 
   return { job, assigneeIds, companyId: row.company_id ?? "" };

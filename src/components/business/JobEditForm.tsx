@@ -11,6 +11,7 @@ import { JobEditSubNav, type EditSection } from "./JobEditSubNav";
 import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
+import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ type FormState = {
   whyHire: string;
   teamComposition: string;
   first90Days: string;
+  businessModel: string;
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -71,7 +73,7 @@ function jobToForm(job: BizJob | null): FormState {
     requiredSkills: [], preferredSkills: [], cultureFit: "",
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
-    whyHire: "", teamComposition: "", first90Days: "",
+    whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
   };
   return {
     title: job.title,
@@ -97,6 +99,7 @@ function jobToForm(job: BizJob | null): FormState {
     whyHire: (job as unknown as { why_hire?: string }).why_hire ?? "",
     teamComposition: (job as unknown as { team_composition?: string }).team_composition ?? "",
     first90Days: (job as unknown as { first_90_days?: string }).first_90_days ?? "",
+    businessModel: job.businessModel ?? "",
   };
 }
 
@@ -438,6 +441,39 @@ export function JobEditForm({
                   <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
                 </FormGroup>
               </div>
+              <FormGroup>
+                <FormLabel optional htmlFor="jef-business-model">業態タグ（プロダクト特性）</FormLabel>
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
+                  「どういう売り方・提供形態か」を求職者に伝えるタグです。業界（ドメイン）とは別の軸です。
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {BUSINESS_MODELS.map((m) => {
+                    const isActive = form.businessModel === m.key;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => updateForm("businessModel", isActive ? "" : m.key)}
+                        title={m.desc || undefined}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 20,
+                          border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
+                          background: isActive ? "var(--royal-50)" : "#fff",
+                          color: isActive ? "var(--royal)" : "var(--ink-soft)",
+                          fontSize: 13,
+                          fontWeight: isActive ? 700 : 400,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.1s",
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </FormGroup>
             </FormSection>
           </>
         );

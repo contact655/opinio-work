@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS ow_salary_reports (
 
 ALTER TABLE ow_salary_reports ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "public_read_approved" ON ow_salary_reports;
+DROP POLICY IF EXISTS "owner_read_own" ON ow_salary_reports;
+DROP POLICY IF EXISTS "owner_insert" ON ow_salary_reports;
+DROP POLICY IF EXISTS "admin_all" ON ow_salary_reports;
+
 -- 承認済みは誰でも読める（集計用）
 CREATE POLICY "public_read_approved" ON ow_salary_reports
   FOR SELECT USING (is_approved = TRUE);

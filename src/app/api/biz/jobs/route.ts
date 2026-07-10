@@ -31,6 +31,7 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string) {
     selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps : [],
     selection_duration: str(body.selectionDuration, 100),
     start_date_preference: str(body.startDatePreference, 100),
+    business_model: str(body.businessModel, 50) || null,
     status: "draft",
     updated_at: new Date().toISOString(),
   };
