@@ -21,38 +21,38 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json();
   const admin = createAdminClient();
 
-  const { data: review } = await admin
-    .from("ow_company_reviews")
+  const { data: report } = await admin
+    .from("ow_salary_reports")
     .select("company_id")
     .eq("id", params.id)
     .single();
-  if (!review) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { error } = await admin
-    .from("ow_company_reviews")
-    .update({ is_approved: body.is_approved, updated_at: new Date().toISOString() })
+    .from("ow_salary_reports")
+    .update({ is_approved: body.is_approved })
     .eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  revalidatePath(`/companies/${review.company_id}`);
+  revalidatePath(`/companies/${report.company_id}`);
   return NextResponse.json({ ok: true });
 }
 
-// DELETE: 却下（物理削除 — 却下済みを未承認一覧に残さないための設計）
+// DELETE: 却下（物理削除）
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   if (!await assertAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: review } = await admin
-    .from("ow_company_reviews")
+  const { data: report } = await admin
+    .from("ow_salary_reports")
     .select("company_id")
     .eq("id", params.id)
     .single();
 
-  const { error } = await admin.from("ow_company_reviews").delete().eq("id", params.id);
+  const { error } = await admin.from("ow_salary_reports").delete().eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  if (review) revalidatePath(`/companies/${review.company_id}`);
+  if (report) revalidatePath(`/companies/${report.company_id}`);
   return NextResponse.json({ ok: true });
 }
