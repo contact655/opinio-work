@@ -1,0 +1,161 @@
+import type { Job } from "@/app/jobs/mockJobData";
+
+// ─── ユーザープロフィール（ow_profiles + ow_user_skill_tags）──────────────
+export type ScoringProfile = {
+  job_type: string | null;           // 希望職種
+  desired_salary_min: number | null; // 万円
+  desired_salary_max: number | null;
+  desired_phase: string[] | null;    // 希望企業フェーズ（例: ["シリーズA","上場"]）
+  desired_work_style: string | null; // "full_remote" | "hybrid" | "on_site" | Japanese
+  skill_labels: string[];            // ow_user_skill_tags.label[]
+};
+
+// ─── 出力型 ──────────────────────────────────────────────────────────────
+export type RecommendedJob = {
+  job: Job;
+  score: number;
+  reasonText: string; // 日本語で1〜2行の根拠説明
+};
+
+// ─── 設定定数 ─────────────────────────────────────────────────────────────
+const WEIGHTS = {
+  JOB_TYPE:    40,
+  SALARY:      25,
+  PHASE:       20,
+  WORK_STYLE:  15,
+  SKILL_EACH:   5,
+  SKILL_MAX:   20,
+};
+
+export const RECOMMEND_CONFIG = {
+  MIN_SCORE:   30,
+  MAX_RESULTS:  5,
+};
+
+// ─── 正規化ヘルパー ──────────────────────────────────────────────────────
+
+function normWorkStyle(s: string): string {
+  const v = s.toLowerCase().replace(/[_\-\s]/g, "");
+  if (v.includes("fullremote") || v.includes("フルリモート") || v.includes("リモート可")) return "full_remote";
+  if (v.includes("hybrid") || v.includes("ハイブリッド")) return "hybrid";
+  if (v.includes("onsite") || v.includes("原則出社") || v.includes("オフィス")) return "on_site";
+  return v;
+}
+
+function normPhase(s: string): string {
+  const v = s.toLowerCase().replace(/[_\-\s・]/g, "");
+  if (v.includes("seed") || v.includes("シード")) return "seed";
+  if (v.includes("seriesa") || v.includes("シリーズa") || v.includes("シリーズａ")) return "series_a";
+  if (v.includes("seriesb") || v.includes("シリーズb") || v.includes("シリーズｂ")) return "series_b";
+  if (v.includes("seriesc") || v.includes("シリーズc") || v.includes("シリーズｃ")) return "series_c";
+  if (v.includes("listed") || v.includes("上場") || v.includes("ipo")) return "listed";
+  if (v.includes("ipo準備") || v.includes("ipoprep")) return "ipo_prep";
+  return v;
+}
+
+// ─── スコアリング本体 ─────────────────────────────────────────────────────
+
+export function scoreJob(
+  job: Job,
+  companyPhase: string | null | undefined,
+  profile: ScoringProfile
+): { score: number; reasonParts: string[] } {
+  let score = 0;
+  const reasonParts: string[] = [];
+
+  // 1. 職種マッチ（job_category = dept）
+  if (profile.job_type && job.dept) {
+    if (profile.job_type === job.dept) {
+      score += WEIGHTS.JOB_TYPE;
+      reasonParts.push(`希望職種「${job.dept}」に合致`);
+    }
+  }
+
+  // 2. 年収重なり（job.salary_min/max は万円単位）
+  const jMin = job.salary_min ?? 0;
+  const jMax = job.salary_max ?? jMin;
+  const pMin = profile.desired_salary_min;
+  const pMax = profile.desired_salary_max;
+  if (jMax > 0 && (pMin != null || pMax != null)) {
+    const effectivePMin = pMin ?? 0;
+    const effectivePMax = pMax ?? 9999;
+    const overlapStart = Math.max(jMin, effectivePMin);
+    const overlapEnd   = Math.min(jMax, effectivePMax);
+    if (overlapEnd > overlapStart) {
+      const jRange = jMax - jMin || 1;
+      const ratio  = Math.min((overlapEnd - overlapStart) / jRange, 1);
+      const pts    = Math.round(ratio * WEIGHTS.SALARY);
+      if (pts > 0) {
+        score += pts;
+        const rangeLabel =
+          pMin && pMax ? `${pMin}〜${pMax}万` :
+          pMin ? `${pMin}万〜` : `〜${pMax}万`;
+        reasonParts.push(`希望年収（${rangeLabel}）と重なる`);
+      }
+    }
+  }
+
+  // 3. 企業フェーズ
+  if (profile.desired_phase?.length && companyPhase) {
+    const normCompany = normPhase(companyPhase);
+    const hit = profile.desired_phase.some((p) => normPhase(p) === normCompany);
+    if (hit) {
+      score += WEIGHTS.PHASE;
+      reasonParts.push(`希望フェーズ（${companyPhase}）にマッチ`);
+    }
+  }
+
+  // 4. 勤務スタイル
+  if (profile.desired_work_style && job.work_style) {
+    if (normWorkStyle(profile.desired_work_style) === normWorkStyle(job.work_style)) {
+      score += WEIGHTS.WORK_STYLE;
+      reasonParts.push(`勤務形態（${job.work_style}）が希望と一致`);
+    }
+  }
+
+  // 5. スキル重なり
+  if (profile.skill_labels.length > 0) {
+    const jobSkillPool = [
+      ...(job.required_skills ?? []),
+      ...(job.preferred_skills ?? []),
+    ].map((s) => s.toLowerCase());
+    const matched = profile.skill_labels.filter((skill) =>
+      jobSkillPool.some(
+        (js) => js.includes(skill.toLowerCase()) || skill.toLowerCase().includes(js)
+      )
+    );
+    if (matched.length > 0) {
+      const pts = Math.min(matched.length * WEIGHTS.SKILL_EACH, WEIGHTS.SKILL_MAX);
+      score += pts;
+      reasonParts.push(`スキル（${matched.slice(0, 2).join("・")}）が活かせる`);
+    }
+  }
+
+  return { score, reasonParts };
+}
+
+// ─── 全求人をスコアリングしてソート ───────────────────────────────────────
+
+export function computeRecommendations(
+  jobs: Job[],
+  phaseMap: Map<string, string>,   // company_id → phase
+  profile: ScoringProfile,
+  alreadyShownIds?: Set<string>    // 既に他の場所で表示済みの求人ID（任意）
+): RecommendedJob[] {
+  const scored: RecommendedJob[] = [];
+
+  for (const job of jobs) {
+    if (alreadyShownIds?.has(job.id)) continue;
+
+    const phase = phaseMap.get(job.company_id) ?? null;
+    const { score, reasonParts } = scoreJob(job, phase, profile);
+
+    if (score >= RECOMMEND_CONFIG.MIN_SCORE && reasonParts.length > 0) {
+      const reasonText = reasonParts.slice(0, 2).join("・");
+      scored.push({ job, score, reasonText });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, RECOMMEND_CONFIG.MAX_RESULTS);
+}

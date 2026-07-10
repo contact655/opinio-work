@@ -7,6 +7,7 @@ import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
 import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
+import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getVisibleRoles } from "@/lib/constants/jobTypes";
@@ -1528,11 +1529,13 @@ export default function JobsClient({
   companies,
   parentRoles,
   alumniMap = {},
+  recommendations = [],
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
   alumniMap?: Record<string, CompanyAlumniPreview[]>;
+  recommendations?: RecommendedJob[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2125,8 +2128,72 @@ export default function JobsClient({
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
 
-          {/* ── パーソナライズ: 希望マッチ求人 ── */}
-          {!hasFilter && !q && jobTypeMatchedJobs.length > 0 && (
+          {/* ── パーソナライズ: あなたにおすすめの求人（サーバーサイドスコアリング） ── */}
+          {!hasFilter && !q && recommendations.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              {/* セクションヘッダー */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+                paddingBottom: 10, borderBottom: "2px solid var(--royal-100)",
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                  あなたにおすすめの求人
+                </span>
+                <span style={{
+                  fontSize: 11, padding: "2px 9px", borderRadius: 100,
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  fontWeight: 700, border: "1px solid var(--royal-100)",
+                }}>
+                  {recommendations.length}件
+                </span>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: "auto" }}>
+                  プロフィール情報をもとに算出
+                </span>
+              </div>
+
+              {/* おすすめカード + 理由バッジ */}
+              <div className="jobs-list-desktop" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {recommendations.map(({ job, reasonText }) => (
+                  <div key={job.id} style={{ position: "relative" }}>
+                    {/* 理由バッジ — カード上部に重ねる */}
+                    <div style={{
+                      position: "absolute", top: 10, right: 12, zIndex: 2,
+                      background: "linear-gradient(90deg, #002366 0%, #3B5FD9 100%)",
+                      color: "#fff", fontSize: 10, fontWeight: 700,
+                      padding: "3px 10px", borderRadius: 100,
+                      maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      pointerEvents: "none",
+                    }}>
+                      ✦ {reasonText}
+                    </div>
+                    <JobListItem
+                      job={job}
+                      companyMap={companyMap}
+                      initialBookmarked={bookmarkedIds.has(job.id)}
+                      alumni={alumniMap?.[job.id] ?? []}
+                      isApplied={appliedJobIds.has(job.id)}
+                      selectedJobId={selectedJobId}
+                      onSelect={handleSelectJob}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20 }}>
+                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                  すべての求人
+                </span>
+                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+              </div>
+            </div>
+          )}
+
+          {/* フォールバック: おすすめなし・希望職種マッチのみ（ログイン済みでプロフィール未設定の場合） */}
+          {!hasFilter && !q && recommendations.length === 0 && jobTypeMatchedJobs.length > 0 && (
             <div style={{ marginBottom: 28 }}>
               <div style={{
                 display: "flex", alignItems: "center", gap: 8, marginBottom: 12,

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getJobs, getParentRoles, getJobAlumniMap } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
 import JobsClient from "./JobsClient";
 
-// 5分間ページキャッシュ（ISR）
-export const revalidate = 60;
+// ログイン状態でパーソナライズするため force-dynamic
+// （getJobs は unstable_cache 内部キャッシュで高速）
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS求人を探す | OPINIO" },
@@ -22,15 +26,73 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
+async function fetchUserRecommendations(
+  jobs: Awaited<ReturnType<typeof getJobs>>["jobs"],
+  companies: Awaited<ReturnType<typeof getJobs>>["companies"]
+): Promise<RecommendedJob[]> {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // ow_users.id を解決（ow_profiles / ow_user_skill_tags の FK）
+    const adminSupabase = createAdminClient();
+    const { data: owUser } = await adminSupabase
+      .from("ow_users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (!owUser?.id) return [];
+
+    // ow_profiles + スキルタグを並列取得
+    const [{ data: profile }, { data: skillRows }] = await Promise.all([
+      adminSupabase
+        .from("ow_profiles")
+        .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, desired_phase")
+        .eq("user_id", owUser.id)
+        .maybeSingle(),
+      adminSupabase
+        .from("ow_user_skill_tags")
+        .select("label")
+        .eq("user_id", owUser.id),
+    ]);
+
+    if (!profile) return [];
+
+    const scoringProfile = {
+      job_type: profile.job_type ?? null,
+      desired_work_style: profile.desired_work_style ?? null,
+      desired_salary_min: profile.desired_salary_min ? Number(profile.desired_salary_min) : null,
+      desired_salary_max: profile.desired_salary_max ? Number(profile.desired_salary_max) : null,
+      desired_phase: (profile.desired_phase as string[] | null) ?? null,
+      skill_labels: (skillRows ?? []).map((r: { label: string }) => r.label).filter(Boolean),
+    };
+
+    // company_id → phase マップを構築
+    const phaseMap = new Map(
+      companies
+        .filter((c) => c.phase)
+        .map((c) => [c.id, c.phase as string])
+    );
+
+    return computeRecommendations(jobs, phaseMap, scoringProfile);
+  } catch {
+    return [];
+  }
+}
+
 export default async function JobsPage() {
   const [{ jobs, companies }, parentRoles] = await Promise.all([
     getJobs(),
     getParentRoles(),
   ]);
 
-  const alumniMap = await getJobAlumniMap(
-    jobs.map((j) => ({ jobId: j.id, companyId: j.company_id, jobCategory: j.dept ?? null }))
-  );
+  const [alumniMap, recommendations] = await Promise.all([
+    getJobAlumniMap(
+      jobs.map((j) => ({ jobId: j.id, companyId: j.company_id, jobCategory: j.dept ?? null }))
+    ),
+    fetchUserRecommendations(jobs, companies),
+  ]);
 
   return (
     <Suspense
@@ -46,7 +108,7 @@ export default async function JobsPage() {
         </div>
       }
     >
-      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} alumniMap={alumniMap} />
+      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} alumniMap={alumniMap} recommendations={recommendations} />
     </Suspense>
   );
 }
