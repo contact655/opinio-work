@@ -44,9 +44,4 @@ CREATE POLICY "owner_delete" ON ow_company_reviews
 
 -- admin は全操作可能
 CREATE POLICY "admin_all" ON ow_company_reviews
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM ow_users
-      WHERE auth_id = auth.uid() AND is_admin = TRUE
-    )
-  );
+  FOR ALL USING (auth_is_admin());
