@@ -17,6 +17,7 @@ import {
   Briefcase,
   CalendarCheck,
   Receipt,
+  Star,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -40,6 +41,7 @@ const NAV_GROUPS = [
       { label: "求人審査",            href: "/admin/jobs",             icon: <FileText     size={16} strokeWidth={2} /> },
       { label: "記事管理",            href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },
       { label: "発信管理",            href: "/admin/posts",            icon: <Newspaper    size={16} strokeWidth={2} /> },
+      { label: "口コミ審査",          href: "/admin/reviews",          icon: <Star         size={16} strokeWidth={2} /> },
     ],
   },
   {
