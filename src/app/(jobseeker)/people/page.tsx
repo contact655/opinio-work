@@ -98,17 +98,29 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
 async function getPeers(): Promise<PeerCard[]> {
   const adminSupabase = createAdminClient();
 
-  const { data: users, error } = await adminSupabase
-    .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, auth_id")
-    .eq("can_talk_to_candidates", true)
-    .eq("visibility", "public")
-    .order("created_at", { ascending: false });
+  // キャリア軌跡を公開しているユーザーを取得
+  const { data: careerProfiles, error } = await adminSupabase
+    .from("ow_career_profiles")
+    .select("user_id, headline, years_of_experience, ow_users(id, name, avatar_color, avatar_url, auth_id, visibility)")
+    .eq("is_published", true)
+    .order("updated_at", { ascending: false });
 
-  if (error || !users || users.length === 0) return [];
+  if (error || !careerProfiles || careerProfiles.length === 0) return [];
 
-  const userIds = users.map((u: { id: string }) => u.id as string);
-  const authIds = users.map((u: { auth_id: string | null }) => u.auth_id).filter(Boolean) as string[];
+  type CareerRow = {
+    user_id: string;
+    headline: string | null;
+    years_of_experience: number | null;
+    ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; auth_id: string | null; visibility: string | null } | null;
+  };
+
+  const rows = careerProfiles as unknown as CareerRow[];
+  const validRows = rows.filter((r) => r.ow_users?.visibility === "public" && r.ow_users?.name);
+
+  if (validRows.length === 0) return [];
+
+  const userIds = validRows.map((r) => r.user_id);
+  const authIds = validRows.map((r) => r.ow_users?.auth_id).filter(Boolean) as string[];
 
   // 現職情報
   const { data: exps } = await adminSupabase
@@ -127,7 +139,7 @@ async function getPeers(): Promise<PeerCard[]> {
     }
   }
 
-  // job_type (ow_profiles.user_id = auth.users.id = ow_users.auth_id)
+  // job_type
   const jobTypeByAuthId = new Map<string, string | null>();
   if (authIds.length > 0) {
     const { data: profiles } = await adminSupabase
@@ -139,15 +151,13 @@ async function getPeers(): Promise<PeerCard[]> {
     }
   }
 
-  return users.map((u: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; auth_id: string | null }) => {
-    const gradient =
-      u.avatar_color?.startsWith("linear-gradient")
-        ? u.avatar_color
-        : FALLBACK_GRADIENT;
-    const exp = expByUser.get(u.id) ?? null;
+  return validRows.map((r) => {
+    const u = r.ow_users!;
+    const gradient = u.avatar_color?.startsWith("linear-gradient") ? u.avatar_color : FALLBACK_GRADIENT;
+    const exp = expByUser.get(r.user_id) ?? null;
     const jobType = u.auth_id ? (jobTypeByAuthId.get(u.auth_id) ?? null) : null;
     return {
-      userId: u.id,
+      userId: r.user_id,
       name: u.name ?? "名前未設定",
       initial: (u.name ?? "?").charAt(0),
       gradient,
@@ -155,6 +165,8 @@ async function getPeers(): Promise<PeerCard[]> {
       roleTitle: exp?.role_title ?? null,
       companyName: exp?.company ?? null,
       jobType,
+      headline: r.headline,
+      yearsOfExperience: r.years_of_experience,
     };
   });
 }

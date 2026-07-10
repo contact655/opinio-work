@@ -32,6 +32,8 @@ export type PeerCard = {
   roleTitle: string | null;
   companyName: string | null;
   jobType: string | null;
+  headline: string | null;
+  yearsOfExperience: number | null;
 };
 
 type Company = { id: string; name: string };
@@ -386,7 +388,7 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
   { key: "all",      label: "すべて",       pattern: null },
-  { key: "peers",    label: "登録ユーザー", pattern: null },
+  { key: "peers",    label: "キャリア公開中", pattern: null },
   { key: "hr",       label: "人事・採用",   pattern: /人事|採用|hr|recruit/i },
   { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
   { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
@@ -463,11 +465,10 @@ function PeerBadge() {
       display: "inline-flex", alignItems: "center", gap: 4,
       fontSize: 10, fontWeight: 700,
       padding: "2px 8px", borderRadius: 100,
-      background: "var(--royal-50)", color: "var(--royal)",
-      border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+      background: "var(--purple-soft)", color: "var(--purple)",
+      border: "1px solid #e9d5ff", whiteSpace: "nowrap",
     }}>
-      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
-      ユーザー
+      キャリア公開中
     </span>
   );
 }
@@ -515,26 +516,46 @@ function PeerGridCard({ card }: { card: PeerCard }) {
       {card.companyName && (
         <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, position: "relative", zIndex: 1 }}>{card.companyName}</div>
       )}
-      {jobTypeLabel && (
-        <div style={{ marginBottom: 16, position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>経験職種</div>
+      {card.headline && (
+        <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6, position: "relative", zIndex: 1,
+          display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {card.headline}
+        </p>
+      )}
+      {!card.headline && jobTypeLabel && (
+        <div style={{ marginBottom: 10, position: "relative", zIndex: 1 }}>
           <TopicTags tags={[jobTypeLabel]} />
         </div>
       )}
-      <div style={{ marginTop: "auto", position: "relative", zIndex: 1 }}>
+      {card.yearsOfExperience && (
+        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, position: "relative", zIndex: 1 }}>
+          経験 {card.yearsOfExperience}年
+        </div>
+      )}
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, position: "relative", zIndex: 1 }}>
+        <Link
+          href={`/career-trajectories/${card.userId}`}
+          style={{
+            display: "block", textAlign: "center", padding: "9px 16px",
+            background: "linear-gradient(135deg, var(--purple), #9333ea)",
+            color: "#fff", borderRadius: 9, fontSize: 13, fontWeight: 700,
+            textDecoration: "none", transition: "opacity 0.15s",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.88"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
+        >
+          キャリア軌跡を見る →
+        </Link>
         <Link
           href={`/u/${card.userId}`}
           style={{
-            display: "block", textAlign: "center", padding: "9px 16px",
+            display: "block", textAlign: "center", padding: "8px 16px",
             background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 9, fontSize: 13, fontWeight: 700,
+            borderRadius: 9, fontSize: 12, fontWeight: 600,
             textDecoration: "none", border: "1px solid var(--royal-100)",
-            transition: "opacity 0.15s",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.80"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
         >
-          プロフィールを見る →
+          プロフィール
         </Link>
       </div>
     </div>
@@ -581,19 +602,37 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
             </span>
           )}
         </div>
-        {jobTypeLabel && <TopicTags tags={[jobTypeLabel]} />}
+        {card.headline && (
+          <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.5,
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {card.headline}
+          </p>
+        )}
+        {!card.headline && jobTypeLabel && <TopicTags tags={[jobTypeLabel]} />}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center", position: "relative", zIndex: 1 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "flex-end", position: "relative", zIndex: 1 }}>
+        <Link
+          href={`/career-trajectories/${card.userId}`}
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            padding: "8px 16px",
+            background: "linear-gradient(135deg, var(--purple), #9333ea)",
+            color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700,
+            textDecoration: "none", whiteSpace: "nowrap",
+          }}
+        >
+          キャリア軌跡 →
+        </Link>
         <Link
           href={`/u/${card.userId}`}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "8px 18px", background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 8, fontSize: 12, fontWeight: 700,
+            padding: "6px 14px", background: "var(--royal-50)", color: "var(--royal)",
+            borderRadius: 8, fontSize: 11, fontWeight: 600,
             textDecoration: "none", border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
           }}
         >
-          プロフィールを見る →
+          プロフィール
         </Link>
       </div>
     </div>
@@ -934,8 +973,8 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         color: "var(--ink-mute)",
         lineHeight: 1.8,
       }}>
-        ※ このページに掲載されている方は、各企業の採用担当が承認した現役社員です。<br />
-        ※ カジュアルにお話を聞くことができます。転職を前提としない情報収集もお気軽にどうぞ。
+        ※ 「話せる人」は各企業の採用担当が承認した現役社員です。カジュアル面談（無料）でお話を聞けます。<br />
+        ※ 「キャリア公開中」はキャリア軌跡を公開しているユーザーです。プロフィールから経歴を確認できます。
       </div>
       </div>
     </>
