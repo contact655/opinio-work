@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { bulkSetVisibility, bulkDeleteUsers } from "./actions";
+import { CanTalkCandidatesToggle } from "./CanTalkCandidatesToggle";
 
 type User = {
   id: string;
@@ -10,6 +11,7 @@ type User = {
   email: string | null;
   is_mentor: boolean | null;
   can_casual_meeting: boolean | null;
+  can_talk_to_candidates: boolean | null;
   location: string | null;
   birth_date: string | null;
   visibility: string | null;
@@ -141,7 +143,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                   aria-label="全選択"
                 />
               </th>
-              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "最終ログイン", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "話せる", "最終ログイン", "登録日"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -240,6 +242,13 @@ export function CandidatesClient({ users }: { users: User[] }) {
                       <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>
                         {u.can_casual_meeting ? "✓" : "—"}
                       </span>
+                    </td>
+                    {/* 話せる（can_talk_to_candidates） */}
+                    <td style={{ padding: "11px 14px" }}>
+                      <CanTalkCandidatesToggle
+                        userId={u.id}
+                        initialValue={u.can_talk_to_candidates ?? false}
+                      />
                     </td>
                     {/* 最終ログイン */}
                     <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>

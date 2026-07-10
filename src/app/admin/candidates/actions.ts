@@ -32,6 +32,21 @@ export async function bulkSetVisibility(
   return { ok: true };
 }
 
+export async function toggleCanTalkToCandidates(
+  userId: string,
+  value: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("ow_users")
+    .update({ can_talk_to_candidates: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/candidates");
+  return { ok: true };
+}
+
 export async function bulkDeleteUsers(
   userIds: string[]
 ): Promise<{ ok: boolean; deleted: number; error?: string }> {
