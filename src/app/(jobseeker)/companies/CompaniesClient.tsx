@@ -7,6 +7,8 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { CompanyListRow } from "@/lib/supabase/queries";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 import { showToast } from "@/lib/toast";
+import CompareBar from "@/components/companies/CompareBar";
+import SwipeMode from "@/components/companies/SwipeMode";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -997,6 +999,8 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
     viewParam === "list" ? "list" : "card"
   );
 
+  const [swipeMode, setSwipeMode] = useState(false);
+
   // Bookmark state
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const bookmarkingRef = useRef<Set<string>>(new Set());
@@ -1499,6 +1503,16 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
             </select>
           )}
 
+          {/* Swipe mode button — モバイルのみ */}
+          <button
+            type="button"
+            onClick={() => setSwipeMode(true)}
+            className="swipe-mode-btn"
+            style={{ alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer" }}
+          >
+            ↕ スワイプ
+          </button>
+
           {/* Layout toggle — 行1の右端 */}
           <div style={{ marginLeft: "auto", display: "flex", gap: 3 }}>
             {LAYOUT_BTNS.map(({ mode, label, Icon }) => (
@@ -1814,7 +1828,13 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
         @media (max-width: 640px) {
           .list-card-right-panel { display: none !important; }
         }
+        .swipe-mode-btn { display: none; }
+        @media (max-width: 767px) {
+          .swipe-mode-btn { display: inline-flex !important; }
+        }
       `}</style>
+      <CompareBar />
+      {swipeMode && <SwipeMode companies={filtered} onClose={() => setSwipeMode(false)} />}
     </div>
   );
 }

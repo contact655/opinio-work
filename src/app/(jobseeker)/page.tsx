@@ -33,7 +33,7 @@ const getHomeData = unstable_cache(
       Promise.all([
         admin.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
         admin.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["published", "active"]),
-      ]),
+      ]) as Promise<[{ count: number | null }, { count: number | null }]>,
     ]);
 
     const companies = (companiesRes.data ?? []).map((row) => ({
@@ -48,10 +48,18 @@ const getHomeData = unstable_cache(
       employeeCount: row.employee_count as number | null,
     }));
 
-    const [companiesCount] = statsRes;
+    const [companiesCount, jobsCount] = statsRes;
     const companyNum = `${companiesCount.count ?? 0}社+`;
+    const jobNum = `${jobsCount.count ?? 0}件+`;
 
-    return { companies, companyNum };
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: newJobsCount } = await admin
+      .from("ow_jobs")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["published", "active"])
+      .gte("published_at", oneWeekAgo);
+
+    return { companies, companyNum, jobNum, newJobsThisWeek: newJobsCount ?? 0 };
   },
   ["home-page-data"],
   { revalidate: 300 }
@@ -60,6 +68,6 @@ const getHomeData = unstable_cache(
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const { companies, companyNum } = await getHomeData();
-  return <HomePageClient initialCompanies={companies} companyNum={companyNum} />;
+  const { companies, companyNum, jobNum, newJobsThisWeek } = await getHomeData();
+  return <HomePageClient initialCompanies={companies} companyNum={companyNum} jobNum={jobNum} newJobsThisWeek={newJobsThisWeek} />;
 }

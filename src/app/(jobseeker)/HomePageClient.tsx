@@ -222,7 +222,7 @@ function BriefcaseIcon() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero() {
+function Hero({ companyNum, jobNum, newJobsThisWeek }: { companyNum: string; jobNum: string; newJobsThisWeek: number }) {
   return (
     <section style={{
       background: "#fff",
@@ -267,24 +267,29 @@ function Hero() {
         </div>
 
         {/* 数字ストリップ */}
-        <div style={{
-          display: "flex", gap: 0, borderTop: "1px solid var(--line)",
-          paddingTop: 28,
-        }}>
-          {[
-            { num: "80社+", label: "取材済み企業" },
-            { num: "150件+", label: "公開求人" },
-            { num: "外資IT・SaaS", label: "特化領域" },
-          ].map((item, i) => (
-            <div key={item.num} style={{
-              flex: 1, paddingRight: 24,
-              borderLeft: i > 0 ? "1px solid var(--line)" : "none",
-              paddingLeft: i > 0 ? 24 : 0,
-            }}>
-              <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(18px,2vw,24px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1 }}>{item.num}</div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, fontWeight: 500 }}>{item.label}</div>
+        <div style={{ borderTop: "1px solid var(--line)", paddingTop: 28 }}>
+          <div style={{ display: "flex", gap: 0, marginBottom: newJobsThisWeek > 0 ? 16 : 0 }}>
+            {[
+              { num: companyNum, label: "取材済み企業" },
+              { num: jobNum, label: "公開求人" },
+              { num: "外資IT・SaaS", label: "特化領域" },
+            ].map((item, i) => (
+              <div key={item.label} style={{
+                flex: 1, paddingRight: 24,
+                borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+                paddingLeft: i > 0 ? 24 : 0,
+              }}>
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(18px,2vw,24px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1 }}>{item.num}</div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, fontWeight: 500 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+          {newJobsThisWeek > 0 && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 99, background: "var(--success-soft)", border: "1px solid #A7F3D0" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>今週 {newJobsThisWeek}件の新着求人</span>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </section>
@@ -1141,13 +1146,17 @@ function _SocialProofSection() {
 export default function HomePageClient({
   initialCompanies = [],
   companyNum = "80社+",
+  jobNum = "150件+",
+  newJobsThisWeek = 0,
 }: {
   initialCompanies?: PreviewCompany[];
   companyNum?: string;
+  jobNum?: string;
+  newJobsThisWeek?: number;
 }) {
   return (
     <>
-      <Hero />
+      <Hero companyNum={companyNum} jobNum={jobNum} newJobsThisWeek={newJobsThisWeek} />
       <FeaturedThreeCards />
       <JobTagSection />
       <FirstVisitOnboarding />

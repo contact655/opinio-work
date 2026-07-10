@@ -8,7 +8,9 @@ export async function GET() {
   try {
     const supabase = createClient();
 
-    const [companiesRes, jobsRes] = await Promise.all([
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [companiesRes, jobsRes, newJobsRes, updatedCompaniesRes] = await Promise.all([
       supabase
         .from("ow_companies")
         .select("id", { count: "exact", head: true })
@@ -17,12 +19,24 @@ export async function GET() {
         .from("ow_jobs")
         .select("id", { count: "exact", head: true })
         .in("status", ["published", "active"]),
+      supabase
+        .from("ow_jobs")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["published", "active"])
+        .gte("published_at", oneWeekAgo),
+      supabase
+        .from("ow_companies")
+        .select("id", { count: "exact", head: true })
+        .eq("is_published", true)
+        .gte("updated_at", oneWeekAgo),
     ]);
 
     return NextResponse.json(
       {
         companies: companiesRes.count ?? 0,
         jobs: jobsRes.count ?? 0,
+        newJobsThisWeek: newJobsRes.count ?? 0,
+        updatedCompaniesThisWeek: updatedCompaniesRes.count ?? 0,
       },
       {
         headers: {

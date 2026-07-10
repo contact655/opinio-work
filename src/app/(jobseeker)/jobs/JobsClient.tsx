@@ -1507,6 +1507,9 @@ export default function JobsClient({
   // 面談受付中のみフィルター
   const [meetingOnly, setMeetingOnly] = useState(false);
 
+  // モバイルフィルターボトムシート
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
   // Which filter chip dropdown is open
   const filterBarRef = useRef<HTMLDivElement>(null);
 
@@ -1781,6 +1784,31 @@ export default function JobsClient({
 
           {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
+            {/* モバイル専用フィルターボタン（デスクトップはサイドバーがあるため非表示） */}
+            <button
+              type="button"
+              onClick={() => setFilterSheetOpen(true)}
+              className="jobs-mobile-filter-btn"
+              style={{
+                display: "none", // CSS media queryで表示制御
+                height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
+                fontWeight: hasFilter || meetingOnly ? 700 : 500,
+                border: `1.5px solid ${hasFilter || meetingOnly ? "var(--royal)" : "#e2e8f0"}`,
+                background: hasFilter || meetingOnly ? "var(--royal-50)" : "#fff",
+                color: hasFilter || meetingOnly ? "var(--royal)" : "var(--ink-soft)",
+                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, alignItems: "center", gap: 6,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ display: "inline-block", verticalAlign: "middle", marginRight: 5 }}>
+                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+              </svg>
+              絞り込み
+              {(hasFilter || meetingOnly) && (
+                <span style={{ marginLeft: 5, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "var(--royal)", color: "#fff", fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif" }}>
+                  {[category, work_style, salary, empType, prefecture, meetingOnly ? "m" : ""].filter(Boolean).length}
+                </span>
+              )}
+            </button>
             {/* 面談受付中 — デスクトップではサイドバーに同機能あるため非表示 */}
             <button
               type="button"
@@ -2292,12 +2320,123 @@ export default function JobsClient({
           .job-list-mobile-hide { display: none !important; }
         }
 
+        /* モバイルフィルターボタン: 1023px以下で表示 */
+        @media (max-width: 1023px) {
+          .jobs-mobile-filter-btn { display: inline-flex !important; }
+        }
+
         /* company name hover */
         .company-name-link:hover {
           text-decoration: underline;
         }
 
+        /* ボトムシートアニメーション */
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+
       `}</style>
+
+      {/* ── モバイルフィルターボトムシート ── */}
+      {filterSheetOpen && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 2000, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setFilterSheetOpen(false); }}
+        >
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "0 0 env(safe-area-inset-bottom)", maxHeight: "85vh", overflowY: "auto", animation: "slideUp 0.25s ease-out" }}>
+            {/* ハンドル */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px", borderBottom: "1px solid var(--line)" }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>絞り込み</span>
+              <button onClick={() => setFilterSheetOpen(false)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--ink-mute)", lineHeight: 1, padding: 4 }}>×</button>
+            </div>
+
+            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* 面談受付中 */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>ステータス</div>
+                <button
+                  onClick={() => setMeetingOnly(v => !v)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${meetingOnly ? "#ea580c" : "var(--line)"}`, background: meetingOnly ? "#FFF7ED" : "#fff", cursor: "pointer", textAlign: "left" }}
+                >
+                  <div style={{ width: 36, height: 20, borderRadius: 10, background: meetingOnly ? "#EA580C" : "#e2e8f0", position: "relative", flexShrink: 0 }}>
+                    <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)" }}>面談受付中のみ</span>
+                </button>
+              </div>
+
+              {/* 職種 */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>職種</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {parentRoles.map(r => (
+                    <button key={r.id} onClick={() => setParam("category", category === r.id ? "" : r.id)}
+                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${category === r.id ? "var(--royal)" : "var(--line)"}`, background: category === r.id ? "var(--royal-50)" : "#fff", color: category === r.id ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: category === r.id ? 700 : 400 }}>
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 勤務形態 */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>勤務形態</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["フルリモート", "ハイブリッド", "出社"].map(v => (
+                    <button key={v} onClick={() => setParam("work_style", work_style === v ? "" : v)}
+                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${work_style === v ? "var(--royal)" : "var(--line)"}`, background: work_style === v ? "var(--royal-50)" : "#fff", color: work_style === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: work_style === v ? 700 : 400 }}>
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 年収 */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>年収下限</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {SALARY_PILL_TIERS.map(t => (
+                    <button key={t.value} onClick={() => setParam("salary", salary === t.value ? "" : t.value)}
+                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${salary === t.value ? "var(--royal)" : "var(--line)"}`, background: salary === t.value ? "var(--royal-50)" : "#fff", color: salary === t.value ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: salary === t.value ? 700 : 400 }}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 雇用形態 */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["正社員", "業務委託", "副業"].map(v => (
+                    <button key={v} onClick={() => setParam("emp_type", empType === v ? "" : v)}
+                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${empType === v ? "var(--royal)" : "var(--line)"}`, background: empType === v ? "var(--royal-50)" : "#fff", color: empType === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: empType === v ? 700 : 400 }}>
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* フッターボタン */}
+            <div style={{ padding: "12px 20px 24px", borderTop: "1px solid var(--line)", display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setMeetingOnly(false); router.replace("/jobs"); setFilterSheetOpen(false); }}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer" }}
+              >
+                リセット
+              </button>
+              <button
+                onClick={() => setFilterSheetOpen(false)}
+                style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              >
+                {paged.length}件を見る
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
