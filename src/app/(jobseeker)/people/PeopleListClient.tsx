@@ -386,7 +386,7 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
   { key: "all",      label: "すべて",       pattern: null },
-  { key: "peers",    label: "ユーザー",     pattern: null },
+  { key: "peers",    label: "登録ユーザー", pattern: null },
   { key: "hr",       label: "人事・採用",   pattern: /人事|採用|hr|recruit/i },
   { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
   { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
@@ -654,9 +654,22 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
 
   return (
     <>
-      <h1 className="sr-only">ユーザーを探す</h1>
+      <h1 className="sr-only">先輩を知る — 話せる人を探す</h1>
 
-      <div style={{ paddingTop: "var(--space-5)" }} />
+      {/* ページヘッダー */}
+      <div style={{ background: "var(--royal)", padding: "32px 0 28px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }} className="px-5 md:px-12">
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", textTransform: "uppercase" as const, marginBottom: 8 }}>PEOPLE</div>
+          <h2 style={{ fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 800, color: "#fff", marginBottom: 6, fontFamily: "var(--font-noto-serif)" }}>
+            先輩を知る
+          </h2>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.6 }}>
+            IT/SaaS企業の現役社員・OB/OGに、はたらくリアルを聞いてみましょう。
+          </p>
+        </div>
+      </div>
+
+      <div style={{ paddingTop: "var(--space-3)" }} />
 
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
       <div style={{ position: "sticky", top: 60, zIndex: 50, background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }} className="px-5 md:px-12">

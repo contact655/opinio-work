@@ -633,10 +633,8 @@ export default async function ArticlePage({ params }: { params: { slug: string }
               </div>
             )}
 
-            {/* CEO: company CTA */}
-            {article.type === "ceo" && (
-              <CompanyCTA article={article} />
-            )}
+            {/* Company CTA — all interview types */}
+            <CompanyCTA article={article} />
           </>
         )}
 
@@ -681,6 +679,9 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 </p>
               </div>
             )}
+
+            {/* report型にも企業CTA */}
+            <CompanyCTA article={article} />
           </>
         )}
       </article>

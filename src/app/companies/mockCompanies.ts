@@ -25,6 +25,7 @@ export type Company = {
   gradient: string;
   logo_url?: string | null;
   logo_letter?: string | null;
+  url?: string | null;
   x_url?: string | null;
   linkedin_url?: string | null;
   careers_url?: string | null;

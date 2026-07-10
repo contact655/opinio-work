@@ -36,5 +36,12 @@
       "port": 3003,
       "autoPort": true
     }
+  ,{
+      "name": "opinio-circle",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd /Users/hisato/opinio-circle && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3004"],
+      "port": 3004,
+      "autoPort": true
+    }
   ]
 }

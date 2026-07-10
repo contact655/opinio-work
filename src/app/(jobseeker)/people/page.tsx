@@ -5,15 +5,15 @@ import type { Metadata } from "next";
 import { PeopleListClient, type AmbassadorCard, type PeerCard } from "./PeopleListClient";
 
 export const metadata: Metadata = {
-  title: { absolute: "話せる人 | OPINIO" },
-  description: "OPINIO に登録している企業の社員・OB/OGの中から、採用に関わっている方に直接話を聞けます。",
+  title: { absolute: "先輩を知る | OPINIO" },
+  description: "IT/SaaS企業の現役社員・OB/OGに、はたらくリアルを直接聞いてみましょう。キャリア選択の参考に。",
   alternates: { canonical: "https://opinio.jp/people" },
   openGraph: {
-    title: "話せる人 | OPINIO",
-    description: "企業の現役社員に、仕事のリアルを直接聞いてみませんか。",
+    title: "先輩を知る — 話せる人を探す | OPINIO",
+    description: "IT/SaaS企業の現役社員・OB/OGに、はたらくリアルを直接聞いてみましょう。",
     type: "website",
     url: "https://opinio.jp/people",
-    images: [{ url: "https://opinio.jp/api/og?title=%E8%A9%B1%E3%81%9B%E3%82%8B%E4%BA%BA&subtitle=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E7%8F%BE%E5%BD%B9%E7%A4%BE%E5%93%A1%E3%81%A8%E8%A9%B1%E3%81%9B%E3%82%8B", width: 1200, height: 630 }],
+    images: [{ url: "https://opinio.jp/api/og?title=%E5%85%88%E8%BC%A9%E3%82%92%E7%9F%A5%E3%82%8B&subtitle=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E7%8F%BE%E5%BD%B9%E7%A4%BE%E5%93%A1%E3%81%A8%E8%A9%B1%E3%81%9B%E3%82%8B", width: 1200, height: 630 }],
   },
 };
 

@@ -226,6 +226,7 @@ function CompanyCardCard({
               logoUrl={company.logo_url}
               logoLetter={company.logo_letter}
               logoGradient={company.logo_gradient}
+              companyUrl={company.url}
               size={46}
               borderRadius={8}
             />
@@ -543,6 +544,7 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
               logoUrl={company.logo_url}
               logoLetter={company.logo_letter}
               logoGradient={company.logo_gradient}
+              companyUrl={company.url}
               size={40}
               borderRadius={8}
             />

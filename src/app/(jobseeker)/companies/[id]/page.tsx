@@ -173,6 +173,7 @@ function Hero({
               logoUrl={company.logo_url}
               logoLetter={company.logo_letter}
               logoGradient={company.gradient}
+              companyUrl={company.url}
               size={96}
               borderRadius={18}
               style={{
@@ -2237,7 +2238,7 @@ function JobsSection({
 
   return (
     <>
-    <style>{`
+    <style suppressHydrationWarning>{`
       .job-embed-card:hover > div {
         border-color: var(--royal) !important;
         box-shadow: 0 4px 14px rgba(0,35,102,0.10) !important;
@@ -3608,7 +3609,7 @@ export default async function CompanyDetailPage({
       {/* γ-7: モバイル固定底部バー (< 768px) */}
       <MobileBottomCTA company={company} />
 
-      <style>{`
+      <style suppressHydrationWarning>{`
         /* ── Section entrance animation ── */
         @keyframes section-enter {
           from { opacity: 0; transform: translateY(16px); }

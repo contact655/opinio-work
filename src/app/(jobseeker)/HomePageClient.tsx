@@ -222,76 +222,156 @@ function BriefcaseIcon() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
+// ─── Hero company preview cards ───────────────────────────────────────────────
+const HERO_COMPANIES = [
+  { id: "c3664ef1-5571-4645-b30f-1474e7961c17", name: "Salesforce Japan", industry: "グローバルCRM", phase: "上場", gradient: "linear-gradient(135deg,#00A1E0,#0066CC)", letter: "SF", jobs: 106 },
+  { id: "81aa95dc-2304-4faa-9c4a-f2f5454e8e11", name: "SmartHR", industry: "HR Tech", phase: "シリーズD", gradient: "linear-gradient(135deg,#1E3A5F,#2E5077)", letter: "SH", jobs: 3 },
+  { id: "a6b3aef3-6c56-4c95-99f5-08be757b12d7", name: "medimo", industry: "Medical AI", phase: "シリーズA", gradient: "linear-gradient(135deg,#059669,#047857)", letter: "ME", jobs: 25 },
+  { id: "f98f5d13-c72f-42fa-9c91-ee4647de2793", name: "freee", industry: "FinTech", phase: "上場", gradient: "linear-gradient(135deg,#7C3AED,#5B21B6)", letter: "fr", jobs: 3 },
+];
+
+function HeroCompanyPreview() {
+  return (
+    <div style={{
+      background: "var(--royal)",
+      borderRadius: 16,
+      padding: "20px 18px 16px",
+      boxShadow: "0 20px 56px rgba(0,35,102,0.28)",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* bg decoration */}
+      <div style={{ position: "absolute", right: -40, top: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(59,95,217,0.25)", pointerEvents: "none" }} />
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", textTransform: "uppercase" as const, marginBottom: 14, position: "relative" }}>
+        掲載企業（一部）
+      </div>
+      <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, position: "relative" }}>
+        {HERO_COMPANIES.map((co) => (
+          <Link key={co.id} href={`/companies/${co.id}`} style={{ textDecoration: "none" }}>
+            <div style={{
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 10,
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 11,
+              transition: "background 0.15s",
+            }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.13)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.07)"; }}
+            >
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: co.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0, fontFamily: "Inter, sans-serif" }}>{co.letter}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{co.name}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{co.industry}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, background: "rgba(5,150,105,0.3)", color: "#6EE7B7", padding: "2px 7px", borderRadius: 100, whiteSpace: "nowrap" as const }}>面談受付中</span>
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)" }}>求人{co.jobs}件</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      <div style={{ marginTop: 12, textAlign: "center" as const, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>他{">"}76社掲載中</div>
+    </div>
+  );
+}
+
 function Hero({ companyNum, jobNum, newJobsThisWeek }: { companyNum: string; jobNum: string; newJobsThisWeek: number }) {
   return (
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      padding: "88px 48px 72px",
-    }} className="px-5 pt-20 pb-16 md:px-12 md:pt-24 md:pb-20">
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      padding: "80px 48px 64px",
+    }} className="px-5 pt-16 pb-12 md:px-12 md:pt-20 md:pb-16">
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
+        <div className="hero-two-col">
+          {/* ── 左: テキスト ── */}
+          <div className="hero-left">
+            <h1 style={{
+              fontSize: "clamp(28px,3.6vw,50px)",
+              fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.03em",
+              color: "var(--ink)", marginBottom: 18,
+              fontFamily: "var(--font-noto-serif)",
+            }}>
+              IT/SaaS転職に必要な<br />情報が、ここで完結する。
+            </h1>
 
-        {/* h1 — serif, 1カラム左寄せ */}
-        <h1 style={{
-          fontSize: "clamp(30px,4vw,52px)",
-          fontWeight: 700, lineHeight: 1.18, letterSpacing: "-0.03em",
-          color: "var(--ink)", marginBottom: 20,
-          fontFamily: "var(--font-noto-serif)",
-        }}>
-          IT/SaaS転職に必要な情報が、<br />ここで完結する。
-        </h1>
+            <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 32, maxWidth: 480 }}>
+              企業データ・求人・編集部の取材記事を一か所に集約。<br />
+              探し回らず、比べて、自分のペースで応募できます。
+            </p>
 
-        {/* Lead */}
-        <p style={{ fontSize: 16, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 36, maxWidth: 560 }}>
-          企業データ・求人・編集部の取材記事を一か所に集約。<br />
-          探し回らず、比べて、自分のペースで応募できます。
-        </p>
-
-        {/* CTAs */}
-        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" as const, marginBottom: 48 }}>
-          <Link href="/companies" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "15px 32px",
-            background: "var(--ink)", color: "#fff",
-            fontWeight: 700, fontSize: 15, borderRadius: 8, textDecoration: "none",
-            letterSpacing: "-0.01em",
-          }}>
-            まず企業を見てみる <ArrowIcon />
-          </Link>
-          <Link href="/auth" style={{
-            fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
-            display: "inline-flex", alignItems: "center", gap: 4,
-          }}>
-            → 無料登録はこちら（30秒）
-          </Link>
-        </div>
-
-        {/* 数字ストリップ */}
-        <div style={{ borderTop: "1px solid var(--line)", paddingTop: 28 }}>
-          <div style={{ display: "flex", gap: 0, marginBottom: newJobsThisWeek > 0 ? 16 : 0 }}>
-            {[
-              { num: companyNum, label: "取材済み企業" },
-              { num: jobNum, label: "公開求人" },
-              { num: "外資IT・SaaS", label: "特化領域" },
-            ].map((item, i) => (
-              <div key={item.label} style={{
-                flex: 1, paddingRight: 24,
-                borderLeft: i > 0 ? "1px solid var(--line)" : "none",
-                paddingLeft: i > 0 ? 24 : 0,
+            {/* CTAs */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" as const, marginBottom: 40 }}>
+              <Link href="/companies" style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "14px 28px",
+                background: "var(--ink)", color: "#fff",
+                fontWeight: 700, fontSize: 14, borderRadius: 8, textDecoration: "none",
+                letterSpacing: "-0.01em",
               }}>
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(18px,2vw,24px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1 }}>{item.num}</div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, fontWeight: 500 }}>{item.label}</div>
-              </div>
-            ))}
-          </div>
-          {newJobsThisWeek > 0 && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 99, background: "var(--success-soft)", border: "1px solid #A7F3D0" }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>今週 {newJobsThisWeek}件の新着求人</span>
+                まず企業を見てみる <ArrowIcon />
+              </Link>
+              <Link href="/auth" style={{
+                fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 4,
+              }}>
+                → 無料登録はこちら（30秒）
+              </Link>
             </div>
-          )}
+
+            {/* 数字ストリップ */}
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 24 }}>
+              <div style={{ display: "flex", gap: 0, marginBottom: newJobsThisWeek > 0 ? 14 : 0 }}>
+                {[
+                  { num: companyNum, label: "取材済み企業" },
+                  { num: jobNum, label: "公開求人" },
+                  { num: "外資IT・SaaS", label: "特化領域" },
+                ].map((item, i) => (
+                  <div key={item.label} style={{
+                    flex: 1, paddingRight: 20,
+                    borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+                    paddingLeft: i > 0 ? 20 : 0,
+                  }}>
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(16px,1.8vw,22px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1 }}>{item.num}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, fontWeight: 500 }}>{item.label}</div>
+                  </div>
+                ))}
+              </div>
+              {newJobsThisWeek > 0 && (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 99, background: "var(--success-soft)", border: "1px solid #A7F3D0" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>今週 {newJobsThisWeek}件の新着求人</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── 右: 企業プレビューカード ── */}
+          <div className="hero-right">
+            <HeroCompanyPreview />
+          </div>
         </div>
       </div>
+      <style>{`
+        .hero-two-col {
+          display: grid;
+          grid-template-columns: 1fr 340px;
+          gap: 56px;
+          align-items: center;
+        }
+        .hero-right { display: block; }
+        @media (max-width: 900px) {
+          .hero-two-col { grid-template-columns: 1fr; gap: 36px; }
+          .hero-right { max-width: 420px; }
+        }
+        @media (max-width: 640px) {
+          .hero-right { display: none; }
+        }
+      `}</style>
     </section>
   );
 }
