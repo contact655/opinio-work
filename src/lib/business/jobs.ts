@@ -49,6 +49,12 @@ type DbJobFull = {
   rejection_date: string | null;
   rejection_reviewer: string | null;
   business_model: string | null;
+  // セールス職専用項目 (Migration 212)
+  ote_min: number | null;
+  ote_max: number | null;
+  sales_segment: string[] | null;
+  sales_hunter_farmer: string | null;
+  incentive_note: string | null;
   ow_job_assignees: { user_id: string }[] | null;
 };
 
@@ -204,7 +210,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -248,6 +254,12 @@ export async function fetchJobById(
     rejectionDate: row.rejection_date ?? undefined,
     rejectionReviewer: row.rejection_reviewer ?? undefined,
     businessModel: row.business_model ?? undefined,
+    // セールス職専用項目 (Migration 212)
+    oteMin: row.ote_min ?? undefined,
+    oteMax: row.ote_max ?? undefined,
+    salesSegment: row.sales_segment ?? undefined,
+    salesHunterFarmer: row.sales_hunter_farmer ?? undefined,
+    incentiveNote: row.incentive_note ?? undefined,
   };
 
   return { job, assigneeIds, companyId: row.company_id ?? "" };

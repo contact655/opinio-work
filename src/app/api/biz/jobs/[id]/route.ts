@@ -67,6 +67,12 @@ export async function PUT(
       team_composition: str(body.teamComposition, 5000),
       first_90_days: str(body.first90Days, 5000),
       business_model: str(body.businessModel, 50) || null,
+      // セールス職専用項目 (Migration 212)
+      ote_min: body.oteMin ? parseInt(String(body.oteMin)) || null : null,
+      ote_max: body.oteMax ? parseInt(String(body.oteMax)) || null : null,
+      sales_segment: Array.isArray(body.salesSegment) ? (body.salesSegment as string[]).filter((s) => typeof s === "string").slice(0, 3) : null,
+      sales_hunter_farmer: str(body.salesHunterFarmer, 20) || null,
+      incentive_note: str(body.incentiveNote, 1000) || null,
       updated_at: now,
     })
     .eq("id", jobId)

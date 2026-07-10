@@ -32,6 +32,12 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string) {
     selection_duration: str(body.selectionDuration, 100),
     start_date_preference: str(body.startDatePreference, 100),
     business_model: str(body.businessModel, 50) || null,
+    // セールス職専用項目 (Migration 212)
+    ote_min: body.oteMin ? parseInt(String(body.oteMin)) || null : null,
+    ote_max: body.oteMax ? parseInt(String(body.oteMax)) || null : null,
+    sales_segment: Array.isArray(body.salesSegment) ? (body.salesSegment as string[]).filter((s) => typeof s === "string").slice(0, 3) : null,
+    sales_hunter_farmer: str(body.salesHunterFarmer, 20) || null,
+    incentive_note: str(body.incentiveNote, 1000) || null,
     status: "draft",
     updated_at: new Date().toISOString(),
   };

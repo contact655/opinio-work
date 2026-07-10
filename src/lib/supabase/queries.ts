@@ -168,6 +168,12 @@ function mapJob(row: Record<string, any>): Job {
     first_90_days: (row.first_90_days as string) ?? null,
     // 業態タグ (Migration 210)
     business_model: (row.business_model as string) ?? null,
+    // セールス職専用項目 (Migration 212)
+    ote_min: (row.ote_min as number) ?? null,
+    ote_max: (row.ote_max as number) ?? null,
+    sales_segment: Array.isArray(row.sales_segment) ? (row.sales_segment as string[]) : null,
+    sales_hunter_farmer: (row.sales_hunter_farmer as string) ?? null,
+    incentive_note: (row.incentive_note as string) ?? null,
   };
 }
 
@@ -633,6 +639,8 @@ const JOB_LIST_COLS = [
   "location", "work_style", "salary_min", "salary_max",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
   "business_model",
+  // セールス職専用項目 (Migration 212) — 一覧カードでも OTE 表示に使う
+  "ote_min", "ote_max", "sales_segment",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [
@@ -640,6 +648,8 @@ const JOB_DETAIL_COLS = [
   "description", "requirements", "preferred_skills", "selection_process",
   "message_to_candidates", "what_youll_do_intro", "who_we_want_intro",
   "why_hire", "team_composition", "first_90_days",
+  // セールス職専用（詳細のみ）
+  "sales_hunter_farmer", "incentive_note",
 ].join(", ");
 
 export const getJobs = unstable_cache(

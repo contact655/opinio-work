@@ -9,6 +9,7 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
+import { isSalesJob, getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -466,6 +467,8 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* ② Salary — success green, prominent below title */}
               {(job.salary_min || job.salary_max) && (
               <div style={{ marginBottom: "var(--space-2)" }}>
+                {/* セールス職の場合は基本給 + OTE を並べて表示 */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "5px 14px", borderRadius: 100,
@@ -476,11 +479,27 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                   </svg>
-                  想定年収&nbsp;{job.salary_min && job.salary_max
+                  {isSalesJob(job.dept) ? "基本給" : "想定年収"}&nbsp;{job.salary_min && job.salary_max
                     ? `${job.salary_min}〜${job.salary_max}万円`
                     : job.salary_min ? `${job.salary_min}万円〜`
                     : `〜${job.salary_max}万円`}
                 </span>
+                {/* OTE ピル（営業職かつ入力あり） */}
+                {isSalesJob(job.dept) && (job.ote_min || job.ote_max) && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "5px 14px", borderRadius: 100,
+                    background: "#EFF6FF", border: "1px solid #BFDBFE",
+                    color: "#1D4ED8", fontSize: 15, fontWeight: 700,
+                    fontFamily: "Inter, sans-serif",
+                  }}>
+                    OTE&nbsp;{job.ote_min && job.ote_max
+                      ? `${job.ote_min}〜${job.ote_max}万円`
+                      : job.ote_min ? `${job.ote_min}万円〜`
+                      : `〜${job.ote_max}万円`}
+                  </span>
+                )}
+                </div>
 
                 {/* レンジコンテキスト：幅が広いとき目安と可視化バーを追加 */}
                 {showSalaryContext && (
@@ -604,23 +623,73 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   勤務条件
                 </SecTitle>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-                  {/* 年収 */}
+                  {/* 年収 / OTE */}
                   {(job.salary_min || job.salary_max) && (
-                  <div style={{ gridColumn: "1 / -1", padding: "16px 20px", borderRadius: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 28, height: 28, borderRadius: 7, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
-                          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    {/* 基本給行 */}
+                    <div style={{ padding: "16px 20px", borderRadius: isSalesJob(job.dept) && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 28, height: 28, borderRadius: 7, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
+                            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                          </svg>
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+                          {isSalesJob(job.dept) ? "基本給" : "想定年収"}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                        {job.salary_min && job.salary_max
+                          ? `${job.salary_min}〜${job.salary_max}万円`
+                          : job.salary_min ? `${job.salary_min}万円〜`
+                          : `〜${job.salary_max}万円`}
                       </span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>想定年収</span>
                     </div>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                      {job.salary_min && job.salary_max
-                        ? `${job.salary_min}〜${job.salary_max}万円`
-                        : job.salary_min ? `${job.salary_min}万円〜`
-                        : `〜${job.salary_max}万円`}
-                    </span>
+                    {/* OTE行（営業職かつ入力あり） */}
+                    {isSalesJob(job.dept) && (job.ote_min || job.ote_max) && (
+                    <div style={{ padding: "14px 20px", borderRadius: "0 0 12px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderTop: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 28, height: 28, borderRadius: 7, background: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                          </svg>
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#1D4ED8" }}>OTE（目標達成時）</span>
+                      </div>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: "#1D4ED8", fontFamily: "Inter, sans-serif" }}>
+                        {job.ote_min && job.ote_max
+                          ? `${job.ote_min}〜${job.ote_max}万円`
+                          : job.ote_min ? `${job.ote_min}万円〜`
+                          : `〜${job.ote_max}万円`}
+                      </span>
+                    </div>
+                    )}
+                  </div>
+                  )}
+                  {/* セールス専用: 担当セグメント・新規/既存 */}
+                  {isSalesJob(job.dept) && ((job.sales_segment?.length ?? 0) > 0 || job.sales_hunter_farmer || job.incentive_note) && (
+                  <div style={{ gridColumn: "1 / -1", padding: "16px 20px", borderRadius: 12, background: "#F8FAFC", border: "1px solid var(--line)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>担当領域・インセンティブ</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      {(job.sales_segment ?? []).map((seg) => (
+                        <span key={seg} style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 100, background: "#DBEAFE", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
+                          {getSalesSegmentLabel(seg)}
+                        </span>
+                      ))}
+                      {job.sales_hunter_farmer && (
+                        <span style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>
+                          {getHunterFarmerLabel(job.sales_hunter_farmer)}
+                        </span>
+                      )}
+                    </div>
+                    {job.incentive_note && (
+                      <p style={{ margin: "12px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                        {job.incentive_note}
+                      </p>
+                    )}
                   </div>
                   )}
                   {/* 勤務地 */}

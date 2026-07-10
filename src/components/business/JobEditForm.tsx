@@ -12,6 +12,7 @@ import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
+import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS, isSalesJob } from "@/lib/constants/salesFields";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,12 @@ type FormState = {
   teamComposition: string;
   first90Days: string;
   businessModel: string;
+  // セールス職専用項目 (Migration 212)
+  oteMin: string;
+  oteMax: string;
+  salesSegment: string[];
+  salesHunterFarmer: string;
+  incentiveNote: string;
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -74,6 +81,7 @@ function jobToForm(job: BizJob | null): FormState {
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
     whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
+    oteMin: "", oteMax: "", salesSegment: [], salesHunterFarmer: "", incentiveNote: "",
   };
   return {
     title: job.title,
@@ -100,6 +108,11 @@ function jobToForm(job: BizJob | null): FormState {
     teamComposition: (job as unknown as { team_composition?: string }).team_composition ?? "",
     first90Days: (job as unknown as { first_90_days?: string }).first_90_days ?? "",
     businessModel: job.businessModel ?? "",
+    oteMin: job.oteMin?.toString() ?? "",
+    oteMax: job.oteMax?.toString() ?? "",
+    salesSegment: job.salesSegment ?? [],
+    salesHunterFarmer: job.salesHunterFarmer ?? "",
+    incentiveNote: job.incentiveNote ?? "",
   };
 }
 
@@ -485,15 +498,115 @@ export function JobEditForm({
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>給与レンジ、勤務地、勤務形態など、労働条件を入力してください。</p>
             <FormSection title="給与">
               <FormGroup>
-                <FormLabel required>年収レンジ</FormLabel>
+                <FormLabel required>基本給レンジ</FormLabel>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
                   <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" id="jef-salary-min" />
                   <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
                   <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
                   <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                 </div>
-                <Hint>求職者側では「¥{form.salaryMin || "?"}-{form.salaryMax || "?"}万」と表示されます</Hint>
+                <Hint>固定報酬ベースのレンジです。求職者側では「基本給 {form.salaryMin || "?"}〜{form.salaryMax || "?"}万円」と表示されます</Hint>
               </FormGroup>
+
+              {/* ── セールス職専用ブロック ── */}
+              {isSalesJob(form.jobCategory) && (
+                <div style={{ border: "1.5px solid #DBEAFE", borderRadius: 12, padding: "20px 20px 12px", background: "#EFF6FF", marginTop: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
+                    <span style={{ fontSize: 12, color: "#1D4ED8", fontWeight: 600 }}>セールス専用の報酬・担当領域</span>
+                  </div>
+
+                  {/* OTE */}
+                  <FormGroup>
+                    <FormLabel optional>OTE（目標達成時の想定年収）</FormLabel>
+                    <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
+                      インセンティブ・コミッション込みで目標達成時に想定される年収レンジ。基本給レンジとは別に入力してください。
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
+                      <FormInput value={form.oteMin} onChange={(v) => updateForm("oteMin", v)} placeholder="800" type="number" id="jef-ote-min" />
+                      <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
+                      <FormInput value={form.oteMax} onChange={(v) => updateForm("oteMax", v)} placeholder="1400" type="number" id="jef-ote-max" />
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                    </div>
+                  </FormGroup>
+
+                  {/* 担当セグメント */}
+                  <FormGroup>
+                    <FormLabel optional>担当セグメント</FormLabel>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {SALES_SEGMENTS.map((seg) => {
+                        const isActive = form.salesSegment.includes(seg.key);
+                        return (
+                          <button
+                            key={seg.key}
+                            type="button"
+                            title={seg.desc}
+                            onClick={() => {
+                              const next = isActive
+                                ? form.salesSegment.filter((s) => s !== seg.key)
+                                : [...form.salesSegment, seg.key];
+                              updateForm("salesSegment", next);
+                            }}
+                            style={{
+                              padding: "8px 16px", borderRadius: 100,
+                              border: `1.5px solid ${isActive ? "#1D4ED8" : "var(--line)"}`,
+                              background: isActive ? "#DBEAFE" : "#fff",
+                              color: isActive ? "#1D4ED8" : "var(--ink-soft)",
+                              fontSize: 13, fontWeight: isActive ? 700 : 400,
+                              cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s",
+                            }}
+                          >
+                            {seg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <Hint>複数選択可。SMB・ミッドマーケット・エンタープライズなど担当する市場規模を選んでください</Hint>
+                  </FormGroup>
+
+                  {/* 新規/既存の傾向 */}
+                  <FormGroup>
+                    <FormLabel optional>新規/既存の傾向</FormLabel>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {SALES_HUNTER_FARMER_OPTIONS.map((opt) => {
+                        const isActive = form.salesHunterFarmer === opt.key;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            title={opt.desc}
+                            onClick={() => updateForm("salesHunterFarmer", isActive ? "" : opt.key)}
+                            style={{
+                              padding: "8px 16px", borderRadius: 100,
+                              border: `1.5px solid ${isActive ? "#1D4ED8" : "var(--line)"}`,
+                              background: isActive ? "#DBEAFE" : "#fff",
+                              color: isActive ? "#1D4ED8" : "var(--ink-soft)",
+                              fontSize: 13, fontWeight: isActive ? 700 : 400,
+                              cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s",
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </FormGroup>
+
+                  {/* インセンティブ補足 */}
+                  <FormGroup style={{ marginBottom: 4 }}>
+                    <FormLabel optional htmlFor="jef-incentive-note">インセンティブ補足</FormLabel>
+                    <FormTextarea
+                      id="jef-incentive-note"
+                      value={form.incentiveNote}
+                      onChange={(v) => updateForm("incentiveNote", v)}
+                      placeholder="例：コミッション上限なし。四半期ごとに目標設定・評価。超過達成時はボーナスあり。"
+                      rows={2}
+                      maxLength={500}
+                    />
+                  </FormGroup>
+                </div>
+              )}
+
               <FormGroup style={{ marginBottom: 0 }}>
                 <FormLabel optional htmlFor="jef-salary-note">給与の補足説明</FormLabel>
                 <FormTextarea id="jef-salary-note" value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。" rows={3} maxLength={200} />

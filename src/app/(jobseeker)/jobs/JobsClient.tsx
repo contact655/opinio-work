@@ -11,6 +11,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getVisibleRoles } from "@/lib/constants/jobTypes";
 import { BUSINESS_MODELS, getBusinessModelLabel } from "@/lib/constants/businessModels";
+import { isSalesJob, getSalesSegmentLabel } from "@/lib/constants/salesFields";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -559,18 +560,38 @@ function JobCard({
             )}
           </div>
           <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-              <div style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: 12,
-                fontWeight: (job.salary_min || job.salary_max) ? 600 : 400,
-                color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-                lineHeight: 1.2,
-              }}>
-                {formatSalary(job.salary_min, job.salary_max)}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {/* 基本給 */}
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                <div style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 12,
+                  fontWeight: (job.salary_min || job.salary_max) ? 600 : 400,
+                  color: (job.salary_min || job.salary_max) ? "var(--success)" : "var(--ink-mute)",
+                  lineHeight: 1.2,
+                }}>
+                  {formatSalary(job.salary_min, job.salary_max)}
+                </div>
+                {(job.salary_min || job.salary_max) && (
+                  <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>
+                    {isSalesJob(job.dept) ? "基本給" : "年収"}
+                  </span>
+                )}
               </div>
-              {(job.salary_min || job.salary_max) && (
-                <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 500 }}>年収</span>
+              {/* OTE ピル（営業職かつ設定あり） */}
+              {isSalesJob(job.dept) && (job.ote_min || job.ote_max) && (
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                  OTE {job.ote_min && job.ote_max
+                    ? `${job.ote_min}〜${job.ote_max}万`
+                    : job.ote_min ? `${job.ote_min}万〜`
+                    : `〜${job.ote_max}万`}
+                </span>
+              )}
+              {/* セグメントバッジ（OTEなし・セグメントあり） */}
+              {isSalesJob(job.dept) && !(job.ote_min || job.ote_max) && (job.sales_segment ?? []).length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "#DBEAFE", color: "#1D4ED8", border: "1px solid #BFDBFE", whiteSpace: "nowrap" }}>
+                  {getSalesSegmentLabel((job.sales_segment ?? [])[0])}
+                </span>
               )}
             </div>
           </div>

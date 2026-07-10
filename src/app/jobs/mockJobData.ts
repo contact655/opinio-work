@@ -61,6 +61,12 @@ export type Job = {
   first_90_days?: string | null;
   // 業態タグ (Migration 210)
   business_model?: string | null;
+  // セールス職専用項目 (Migration 212)
+  ote_min?: number | null;
+  ote_max?: number | null;
+  sales_segment?: string[] | null;
+  sales_hunter_farmer?: string | null;
+  incentive_note?: string | null;
 };
 
 // ─── Avatar gradient palette ──────────────────────────────────────────────────

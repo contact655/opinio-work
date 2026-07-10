@@ -34,6 +34,12 @@ export type BizJob = {
   rejectionReviewer?: string;
   // 業態タグ (Migration 210)
   businessModel?: string | null;
+  // セールス職専用項目 (Migration 212)
+  oteMin?: number | null;
+  oteMax?: number | null;
+  salesSegment?: string[] | null;
+  salesHunterFarmer?: string | null;
+  incentiveNote?: string | null;
 };
 
 export const MOCK_JOBS: BizJob[] = [
