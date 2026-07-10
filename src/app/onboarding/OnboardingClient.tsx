@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
+import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS, getVisibleCategories, SHOW_TECH_ROLES } from "@/lib/constants/jobTypes";
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
@@ -370,8 +370,11 @@ function OnboardingInner() {
           {current.id === "job_type" ? (
             jobTypeCategory === null ? (
               /* Stage A: カテゴリ選択 */
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {JOB_TYPE_CATEGORIES.map((cat) => (
+              (() => {
+                const visibleCats = getVisibleCategories();
+                const businessCats = visibleCats.filter((c) => c.track === "business");
+                const techCats = SHOW_TECH_ROLES ? visibleCats.filter((c) => c.track === "tech") : [];
+                const renderCatButton = (cat: typeof JOB_TYPE_CATEGORIES[number]) => (
                   <button
                     type="button"
                     key={cat.key}
@@ -407,8 +410,27 @@ function OnboardingInner() {
                       {cat.label}
                     </span>
                   </button>
-                ))}
-              </div>
+                );
+                return (
+                  <div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      {businessCats.map(renderCatButton)}
+                    </div>
+                    {techCats.length > 0 && (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 8px" }}>
+                          <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                          <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>技術職</span>
+                          <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          {techCats.map(renderCatButton)}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()
             ) : (
               /* Stage B: サブ職種選択 */
               (() => {

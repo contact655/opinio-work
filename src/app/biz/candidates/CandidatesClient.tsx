@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
+import { JOB_TYPE_DISPLAY_LABELS, getVisibleCategories } from "@/lib/constants/jobTypes";
 
 type Candidate = {
   id: string;
@@ -121,7 +121,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
       list = list.filter((c) => c.jobType === selectedJobType);
     } else if (jobCategoryKey) {
       // カテゴリのみ選択: 配下の全職種 + legacy値にマッチ
-      const cat = JOB_TYPE_CATEGORIES.find((c) => c.key === jobCategoryKey);
+      const cat = getVisibleCategories().find((c) => c.key === jobCategoryKey);
       const types = (cat?.types ?? []) as readonly string[];
       // LEGACY_CATEGORY_MAP でこのカテゴリに対応する legacy 値を追加
       const legacyForCat = Object.entries(LEGACY_CATEGORY_MAP)
@@ -153,7 +153,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
   }
 
   // 現在選択中のカテゴリの配下職種
-  const selectedCat = JOB_TYPE_CATEGORIES.find((c) => c.key === jobCategoryKey);
+  const selectedCat = getVisibleCategories().find((c) => c.key === jobCategoryKey);
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
@@ -284,7 +284,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         <div style={{ marginBottom: selectedCat ? 8 : 12 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>職種:</span>
-            {JOB_TYPE_CATEGORIES.map((cat) => (
+            {getVisibleCategories().map((cat) => (
               <button
                 key={cat.key}
                 type="button"

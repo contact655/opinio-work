@@ -9,6 +9,7 @@ import { showToast } from "@/lib/toast";
 import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
+import { getVisibleRoles } from "@/lib/constants/jobTypes";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -1343,25 +1344,39 @@ function SidebarFilters({
       {/* 職種 — アコーディオン（デフォルト展開）*/}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
         <SectionHeader label="職種" sectionKey="roles" hasActive={!!category} />
-        {!collapsed.has("roles") && (
-          <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {parentRoles.map((role) => {
-              const isActive = category === role.id;
-              const rc = getRoleColor(role.name);
-              return (
-                <button key={role.id} type="button" onClick={() => setParam("category", isActive ? "" : role.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
-                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
-                  <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                  {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {!collapsed.has("roles") && (() => {
+          const { business, tech } = getVisibleRoles(parentRoles);
+          const renderRoleBtn = (role: { id: string; name: string }) => {
+            const isActive = category === role.id;
+            const rc = getRoleColor(role.name);
+            return (
+              <button key={role.id} type="button" onClick={() => setParam("category", isActive ? "" : role.id)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
+                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
+                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
+                {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            );
+          };
+          return (
+            <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+              {business.map(renderRoleBtn)}
+              {tech.length > 0 && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "5px 2px 3px" }}>
+                    <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>技術職</span>
+                    <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                  </div>
+                  {tech.map(renderRoleBtn)}
+                </>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* 勤務形態 — アコーディオン（デフォルト展開）*/}
