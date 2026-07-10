@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { fetchDistinctLocations, fetchDistinctIndustries, searchCompanies } from "@/lib/search/companies";
 import { createPublicClient } from "@/lib/supabase/public";
+import { getCompanyReviewSummaries } from "@/lib/supabase/queries";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
@@ -121,7 +122,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   // 新: 全5クエリを同時に投げて最も遅いものを待つだけ
   const supabase = createPublicClient();
 
-  const [locations, industries, companyNamesResult, allCompaniesResult, experienceResult] = await Promise.all([
+  const [locations, industries, companyNamesResult, allCompaniesResult, experienceResult, reviewSummaries] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
     // フィルターバー用業種リスト（unstable_cache 300s）
@@ -140,6 +141,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
     needsGrid
       ? supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name)").eq("is_current", true)
       : Promise.resolve({ data: null }),
+    // 口コミ平均スコア
+    needsGrid ? getCompanyReviewSummaries() : Promise.resolve({} as Record<string, { avg: number; count: number }>),
   ]);
 
   const companySuggestions: { id: string; name: string }[] =
@@ -206,7 +209,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
                   {(() => {
                     // #10: DB側でソート済み（updated_at DESC for "newest", employee_count DESC for "employees"）
                     // "jobs" のみアプリ側で補完（job_count は集計値のため DB ソート不可）
-                    const paged = [...allCompaniesResult.companies];
+                    const paged = allCompaniesResult.companies.map(c => ({
+                      ...c,
+                      review_avg: reviewSummaries[c.id]?.avg ?? null,
+                      review_count: reviewSummaries[c.id]?.count ?? null,
+                    }));
                     if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
                     if (sort === "disclosure") {
                       // reality_disclosure が null でないものを上位に

@@ -397,21 +397,34 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               </div>
             )}
 
-            {/* 行6: 求人数バッジ */}
-            {company.job_count > 0 && (
-              <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                  fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
-                  background: "var(--royal)", color: "#fff",
-                  whiteSpace: "nowrap",
-                }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/>
-                    <path d="M16 3h-8l-2 4h12l-2-4z"/>
-                  </svg>
-                  募集中 {company.job_count}件
-                </span>
+            {/* 行6: 求人数バッジ + 口コミスコア */}
+            {(company.job_count > 0 || (company.review_count && company.review_count > 0)) && (
+              <div style={{ display: "flex", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+                {company.job_count > 0 && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
+                    background: "var(--royal)", color: "#fff",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/>
+                      <path d="M16 3h-8l-2 4h12l-2-4z"/>
+                    </svg>
+                    募集中 {company.job_count}件
+                  </span>
+                )}
+                {company.review_avg && company.review_count && company.review_count > 0 && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
+                    background: "#FFFBEB", color: "#92400E",
+                    border: "1px solid #FDE68A", whiteSpace: "nowrap",
+                  }}>
+                    ★ {company.review_avg.toFixed(1)}
+                    <span style={{ fontWeight: 400, color: "#B45309" }}>({company.review_count}件)</span>
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -591,6 +604,17 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           <StatCol label="OB・OG" value={obogCount} unit="名" />
           <div className="clc-stat-divider" />
           <JobCountStat count={company.job_count} />
+          {company.review_avg && company.review_count && company.review_count > 0 && (
+            <>
+              <div className="clc-stat-divider" />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 20px", minWidth: 70 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#92400E", fontFamily: "Inter, sans-serif" }}>
+                  ★ {company.review_avg.toFixed(1)}
+                </span>
+                <span style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>口コミ {company.review_count}件</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── CTA + ブックマーク ── */}

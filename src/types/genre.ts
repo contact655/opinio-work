@@ -47,6 +47,8 @@ export type CompanyForCarousel = {
   // 14項目改善で追加
   company_features?: string[] | null;  // #3 カルチャー・特徴タグ
   top_job_titles?: string[] | null;    // #2 求人ポジション名（最大2件）
+  review_avg?: number | null;          // 口コミ平均評価（承認済みのみ）
+  review_count?: number | null;        // 口コミ件数
 };
 
 export type GenreWithCompanies = Genre & {
