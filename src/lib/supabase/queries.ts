@@ -632,7 +632,7 @@ const JOB_LIST_COLS = [
   "id", "company_id", "title", "job_category", "role_category_id", "employment_type",
   "location", "work_style", "salary_min", "salary_max",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
-  // "business_model", // ← migration 210 適用後に有効化
+  "business_model",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [
