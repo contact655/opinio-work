@@ -17,6 +17,54 @@ export type RecommendedJob = {
   reasonText: string; // 日本語で1〜2行の根拠説明
 };
 
+// ─── 希望職種 → ow_jobs.job_category マッピング ──────────────────────────
+// ow_profiles.job_type（オンボーディングで入力される細かい分類）と
+// ow_jobs.job_category（求人側の粗い分類）の粒度差・揺れを吸収する。
+// DB の実 job_category 値（SELECT job_category, COUNT(*) FROM ow_jobs GROUP BY job_category）
+// を確認済みで網羅している。
+export const JOB_TYPE_CATEGORY_MAP: Record<string, string[]> = {
+  // ── セールス系 ──
+  "フィールドセールス":    ["セールス", "営業", "エンタープライズ営業", "SMB営業", "フィールドセールス"],
+  "インサイドセールス":    ["セールス", "営業", "インサイドセールス"],
+  "SDR/BDR":              ["セールス", "営業", "インサイドセールス", "SDR", "BDR"],
+  "SDR":                  ["セールス", "営業", "インサイドセールス"],
+  "BDR":                  ["セールス", "営業"],
+  // ── CS / サポート ──
+  "カスタマーサクセス":    ["カスタマーサクセス", "CS", "テクニカルサポート", "ビジネスオペレーション"],
+  "カスタマーサポート":    ["カスタマーサクセス", "テクニカルサポート"],
+  // ── マーケティング ──
+  "マーケティング":        ["マーケティング", "プロダクトマーケティング", "マーケ"],
+  "プロダクトマーケティング": ["マーケティング", "プロダクトマーケティング"],
+  // ── エンジニア系 ──
+  "バックエンド":          ["エンジニアリング", "バックエンドエンジニア", "ソフトウェアエンジニア", "リサーチエンジニア"],
+  "フロントエンド":        ["エンジニアリング", "ソフトウェアエンジニア"],
+  "フルスタック":          ["エンジニアリング", "ソフトウェアエンジニア", "バックエンドエンジニア"],
+  "SRE/インフラ":          ["エンジニアリング", "ソフトウェアエンジニア"],
+  "iOS/Android":           ["エンジニアリング", "ソフトウェアエンジニア"],
+  "エンジニア":            ["エンジニアリング", "バックエンドエンジニア", "ソフトウェアエンジニア"],
+  "データサイエンティスト": ["データ・アナリスト", "リサーチエンジニア", "AI・Agentforce", "エンジニアリング"],
+  // ── プロダクト ──
+  "プロダクトマネージャー": ["プロダクトマネージャー", "プロダクト"],
+  // ── デザイン ──
+  "デザイナー":            ["プロダクトデザイナー", "デザイン", "デザイナー"],
+  // ── コーポレート ──
+  "コーポレート":          ["コーポレート", "人事・HR", "ビジネスオペレーション", "オペレーション"],
+  "HR・人事":              ["人事・HR", "コーポレート"],
+  "財務・経理":            ["コーポレート", "ビジネスオペレーション"],
+  // ── 事業開発 / 経営 ──
+  "事業開発・BizDev":      ["事業開発", "事業戦略・開発", "アライアンス・パートナー", "コンサルタント"],
+  "事業開発":              ["事業開発", "事業戦略・開発", "アライアンス・パートナー"],
+  "経営・CxO":             ["事業開発", "事業戦略・開発", "コンサルタント", "セールス戦略・オペレーション"],
+};
+
+// Fix 2: 希望職種がマッピング先の job_category に含まれるか判定
+function matchesJobCategory(profileJobType: string, jobCategory: string): boolean {
+  const mapped = JOB_TYPE_CATEGORY_MAP[profileJobType];
+  if (mapped) return mapped.includes(jobCategory);
+  // マップ未定義の場合は完全一致フォールバック
+  return profileJobType === jobCategory;
+}
+
 // ─── 設定定数 ─────────────────────────────────────────────────────────────
 const WEIGHTS = {
   JOB_TYPE:    40,
@@ -63,11 +111,11 @@ export function scoreJob(
   let score = 0;
   const reasonParts: string[] = [];
 
-  // 1. 職種マッチ（job_category = dept）
+  // 1. 職種マッチ（Fix 2: マッピング経由で粒度差・表記揺れを吸収）
   if (profile.job_type && job.dept) {
-    if (profile.job_type === job.dept) {
+    if (matchesJobCategory(profile.job_type, job.dept)) {
       score += WEIGHTS.JOB_TYPE;
-      reasonParts.push(`希望職種「${job.dept}」に合致`);
+      reasonParts.push(`希望職種「${profile.job_type}」に合致`);
     }
   }
 

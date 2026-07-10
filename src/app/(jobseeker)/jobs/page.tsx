@@ -35,27 +35,31 @@ async function fetchUserRecommendations(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    // ow_users.id を解決（ow_profiles / ow_user_skill_tags の FK）
     const adminSupabase = createAdminClient();
-    const { data: owUser } = await adminSupabase
-      .from("ow_users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-    if (!owUser?.id) return [];
 
-    // ow_profiles + スキルタグを並列取得
-    const [{ data: profile }, { data: skillRows }] = await Promise.all([
+    // ow_profiles.user_id = auth.users.id（直接 auth UUID）
+    // ow_user_skill_tags.user_id = ow_users.id（ow_users 経由）
+    // → 両テーブルで FK が異なるため別々に解決する
+    const [{ data: profile }, owUserResult] = await Promise.all([
       adminSupabase
         .from("ow_profiles")
         .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, desired_phase")
-        .eq("user_id", owUser.id)
+        .eq("user_id", user.id)   // Fix 1: auth UUID を直接使う
         .maybeSingle(),
       adminSupabase
-        .from("ow_user_skill_tags")
-        .select("label")
-        .eq("user_id", owUser.id),
+        .from("ow_users")
+        .select("id")
+        .eq("auth_id", user.id)
+        .maybeSingle(),
     ]);
+
+    const owUserId = owUserResult.data?.id;
+    const { data: skillRows } = owUserId
+      ? await adminSupabase
+          .from("ow_user_skill_tags")
+          .select("label")
+          .eq("user_id", owUserId)
+      : { data: [] };
 
     if (!profile) return [];
 
