@@ -1517,3 +1517,34 @@ export async function getJobAlumniMap(
 
   return result;
 }
+
+// ─── Company Review Summaries ──────────────────────────────────────────────────
+
+export type CompanyReviewSummary = {
+  avg: number;
+  count: number;
+};
+
+export async function getCompanyReviewSummaries(): Promise<Record<string, CompanyReviewSummary>> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("ow_company_reviews")
+    .select("company_id, rating_overall")
+    .eq("is_approved", true);
+
+  if (!data || data.length === 0) return {};
+
+  const map: Record<string, { sum: number; count: number }> = {};
+  for (const row of data) {
+    if (!row.company_id || !row.rating_overall) continue;
+    if (!map[row.company_id]) map[row.company_id] = { sum: 0, count: 0 };
+    map[row.company_id].sum += row.rating_overall;
+    map[row.company_id].count += 1;
+  }
+
+  const result: Record<string, CompanyReviewSummary> = {};
+  for (const [cid, { sum, count }] of Object.entries(map)) {
+    result[cid] = { avg: Math.round((sum / count) * 10) / 10, count };
+  }
+  return result;
+}

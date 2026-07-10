@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
-import type { CompanyAlumniPreview } from "@/lib/supabase/queries";
+import type { CompanyAlumniPreview, CompanyReviewSummary } from "@/lib/supabase/queries";
 import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
@@ -876,7 +876,7 @@ function FilterChip({
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, alumni = [], isApplied = false,
-  selectedJobId, onSelect,
+  selectedJobId, onSelect, reviewSummary,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -885,6 +885,7 @@ function JobListItem({
   isApplied?: boolean;
   selectedJobId?: string | null;
   onSelect?: (id: string) => void;
+  reviewSummary?: CompanyReviewSummary;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -1080,7 +1081,7 @@ function JobListItem({
             </div>
           )}
 
-          {/* 行3: 年収 · 勤務地 · 勤務形態 */}
+          {/* 行3: 年収 · 勤務地 · 勤務形態 · 口コミ */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {(job.salary_min || job.salary_max) && (
               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--success)" }}>
@@ -1108,6 +1109,18 @@ function JobListItem({
               }}>
                 {job.work_style}
               </span>
+            )}
+            {reviewSummary && reviewSummary.count >= 1 && (
+              <>
+                <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "#B45309", fontWeight: 600 }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" aria-hidden="true">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  {reviewSummary.avg.toFixed(1)}
+                  <span style={{ color: "var(--ink-mute)", fontWeight: 400 }}>({reviewSummary.count}件)</span>
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -1307,13 +1320,13 @@ function JobDetailPane({
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
+  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly, bizOnly,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
   bizModel: string;
-  meetingOnly: boolean; availablePrefectures: string[];
+  meetingOnly: boolean; bizOnly: boolean; availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
@@ -1356,6 +1369,33 @@ function SidebarFilters({
             リセット
           </button>
         )}
+      </div>
+
+      {/* ビジネス職ショートカット */}
+      <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--line-soft)" }}>
+        <button
+          type="button"
+          onClick={() => setParam("biz_only", bizOnly ? "" : "1")}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+            border: `1.5px solid ${bizOnly ? "var(--warm)" : "var(--line)"}`,
+            background: bizOnly ? "#FEF3C7" : "#FAFBFF",
+            transition: "all 0.15s",
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 14 }}>💼</span>
+            <span style={{ fontSize: 12.5, fontWeight: bizOnly ? 700 : 600, color: bizOnly ? "#92400E" : "var(--ink)" }}>
+              ビジネス職のみ
+            </span>
+          </span>
+          {bizOnly ? (
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#92400E" }}>✓ ON</span>
+          ) : (
+            <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>IS/FS/CS/マーケ等</span>
+          )}
+        </button>
       </div>
 
       {/* 面談受付中トグル */}
@@ -1530,17 +1570,20 @@ export default function JobsClient({
   parentRoles,
   alumniMap = {},
   recommendations = [],
+  reviewSummaries = {},
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
   alumniMap?: Record<string, CompanyAlumniPreview[]>;
   recommendations?: RecommendedJob[];
+  reviewSummaries?: Record<string, CompanyReviewSummary>;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const category = searchParams.get("category") ?? "";
+  const bizOnly = searchParams.get("biz_only") === "1";
   const dept = searchParams.get("dept") ?? "";       // 後方互換 (新規 URL では未使用)
   const work_style = searchParams.get("work_style") ?? "";
   const salary = searchParams.get("salary") ?? "";
@@ -1681,6 +1724,13 @@ export default function JobsClient({
       );
     }
 
+    // ビジネス職のみフィルタ
+    if (bizOnly && !category) {
+      const { business } = getVisibleRoles(parentRoles);
+      const bizIds = new Set(business.map((r) => r.id));
+      list = list.filter((j) => bizIds.has(j.role_category_id ?? ""));
+    }
+
     // ow_roles 親カテゴリフィルタ (role_category_id が親 UUID に直接紐づく前提)
     if (category) list = list.filter((j) => j.role_category_id === category);
 
@@ -1775,7 +1825,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, prefecture, empType, sort, q].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, prefecture, empType, sort, q, bizOnly].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1788,7 +1838,7 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || prefecture || empType || meetingOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || prefecture || empType || meetingOnly || bizOnly);
 
   // 面談受付中の求人数（全件から）
   const meetingCount = useMemo(
@@ -2115,6 +2165,7 @@ export default function JobsClient({
                 bizModel={bizModel}
                 prefecture={prefecture}
                 meetingOnly={meetingOnly}
+                bizOnly={bizOnly}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 onMeetingOnlyChange={setMeetingOnly}
@@ -2154,32 +2205,51 @@ export default function JobsClient({
                 </span>
               </div>
 
-              {/* おすすめカード + 理由バッジ */}
+              {/* おすすめカード + 理由バッジ（先輩との融合表示） */}
               <div className="jobs-list-desktop" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {recommendations.map(({ job, reasonText }) => (
-                  <div key={job.id} style={{ position: "relative" }}>
-                    {/* 理由バッジ — カード上部に重ねる */}
-                    <div style={{
-                      position: "absolute", top: 10, right: 12, zIndex: 2,
-                      background: "linear-gradient(90deg, #002366 0%, #3B5FD9 100%)",
-                      color: "#fff", fontSize: 10, fontWeight: 700,
-                      padding: "3px 10px", borderRadius: 100,
-                      maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      pointerEvents: "none",
-                    }}>
-                      ✦ {reasonText}
+                {recommendations.map(({ job, reasonText }) => {
+                  const jobAlumni = alumniMap?.[job.id] ?? [];
+                  const hasAlumni = jobAlumni.length > 0;
+                  return (
+                    <div key={job.id} style={{ position: "relative" }}>
+                      {/* 統合バッジ — 理由 + 先輩情報を一行で表示 */}
+                      <div style={{
+                        position: "absolute", top: 10, right: 12, zIndex: 2,
+                        display: "flex", alignItems: "center", gap: 5,
+                        pointerEvents: "none",
+                      }}>
+                        <div style={{
+                          background: "linear-gradient(90deg, #002366 0%, #3B5FD9 100%)",
+                          color: "#fff", fontSize: 10, fontWeight: 700,
+                          padding: "3px 10px", borderRadius: 100,
+                          maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          ✦ {reasonText}
+                        </div>
+                        {hasAlumni && (
+                          <div style={{
+                            background: "linear-gradient(90deg, #FFF7ED 0%, #FEF3C7 100%)",
+                            color: "#C2410C", fontSize: 10, fontWeight: 700,
+                            padding: "3px 9px", borderRadius: 100,
+                            border: "1px solid #FDBA74", whiteSpace: "nowrap",
+                          }}>
+                            👤 先輩{jobAlumni.length}名在籍
+                          </div>
+                        )}
+                      </div>
+                      <JobListItem
+                        job={job}
+                        companyMap={companyMap}
+                        initialBookmarked={bookmarkedIds.has(job.id)}
+                        alumni={jobAlumni}
+                        isApplied={appliedJobIds.has(job.id)}
+                        selectedJobId={selectedJobId}
+                        onSelect={handleSelectJob}
+                        reviewSummary={reviewSummaries?.[job.company_id]}
+                      />
                     </div>
-                    <JobListItem
-                      job={job}
-                      companyMap={companyMap}
-                      initialBookmarked={bookmarkedIds.has(job.id)}
-                      alumni={alumniMap?.[job.id] ?? []}
-                      isApplied={appliedJobIds.has(job.id)}
-                      selectedJobId={selectedJobId}
-                      onSelect={handleSelectJob}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20 }}>
@@ -2227,6 +2297,7 @@ export default function JobsClient({
                     isApplied={appliedJobIds.has(job.id)}
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
+                    reviewSummary={reviewSummaries?.[job.company_id]}
                   />
                 ))}
               </div>
@@ -2288,6 +2359,7 @@ export default function JobsClient({
                     isApplied={appliedJobIds.has(job.id)}
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
+                    reviewSummary={reviewSummaries?.[job.company_id]}
                   />
                 ))}
               </div>
@@ -2492,18 +2564,28 @@ export default function JobsClient({
             </div>
 
             <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* 面談受付中 */}
+              {/* クイックフィルタ */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>ステータス</div>
-                <button
-                  onClick={() => setMeetingOnly(v => !v)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${meetingOnly ? "#ea580c" : "var(--line)"}`, background: meetingOnly ? "#FFF7ED" : "#fff", cursor: "pointer", textAlign: "left" }}
-                >
-                  <div style={{ width: 36, height: 20, borderRadius: 10, background: meetingOnly ? "#EA580C" : "#e2e8f0", position: "relative", flexShrink: 0 }}>
-                    <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)" }}>面談受付中のみ</span>
-                </button>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>クイックフィルタ</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button
+                    onClick={() => { setParam("biz_only", bizOnly ? "" : "1"); setFilterSheetOpen(false); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${bizOnly ? "var(--warm)" : "var(--line)"}`, background: bizOnly ? "#FEF3C7" : "#fff", cursor: "pointer", textAlign: "left" }}
+                  >
+                    <span style={{ fontSize: 16 }}>💼</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: bizOnly ? "#92400E" : "var(--ink)" }}>ビジネス職のみ（IS/FS/CS/マーケ等）</span>
+                    {bizOnly && <span style={{ marginLeft: "auto", fontSize: 11, color: "#92400E", fontWeight: 700 }}>✓</span>}
+                  </button>
+                  <button
+                    onClick={() => setMeetingOnly(v => !v)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${meetingOnly ? "#ea580c" : "var(--line)"}`, background: meetingOnly ? "#FFF7ED" : "#fff", cursor: "pointer", textAlign: "left" }}
+                  >
+                    <div style={{ width: 36, height: 20, borderRadius: 10, background: meetingOnly ? "#EA580C" : "#e2e8f0", position: "relative", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)" }}>面談受付中のみ</span>
+                  </button>
+                </div>
               </div>
 
               {/* 職種 */}
