@@ -11,8 +11,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
   { href: "/jobs", label: "求人", highlight: false },
-  { href: "/people", label: "ユーザー", highlight: false },
-  { href: "/feed", label: "投稿", highlight: false },
+  { href: "/people", label: "先輩を知る", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
 

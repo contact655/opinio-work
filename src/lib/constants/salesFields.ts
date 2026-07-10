@@ -1,9 +1,22 @@
 // セールス職専用構造化項目のマスタ定数
-// job_category === "営業" のときのみ入力・表示に使用する。
+// ビジネス職（IS/FS/CS/マーケ等）のOTE・セグメント表示に使用する。
 
-/** 営業職かどうかの判定ロジックを1箇所に集約 */
+/** ビジネス職（OTE・セグメント表示対象）のカテゴリセット */
+const SALES_JOB_CATEGORIES = new Set([
+  "営業",
+  "SMB営業",
+  "エンタープライズ営業",
+  "セールス",
+  "インサイドセールス",
+  "フィールドセールス",
+  "カスタマーサクセス",
+  "セールスエンジニア",
+  "セールス戦略・オペレーション",
+]);
+
+/** ビジネス職（OTE・セグメント表示対象）かどうかの判定 */
 export function isSalesJob(jobCategory: string | null | undefined): boolean {
-  return jobCategory === "営業";
+  return !!jobCategory && SALES_JOB_CATEGORIES.has(jobCategory);
 }
 
 // ─── 担当セグメント ───────────────────────────────────────────────────────────

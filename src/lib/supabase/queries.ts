@@ -82,6 +82,7 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     gradient: (row.logo_gradient as string) ?? FALLBACK_GRADIENT,
     logo_url: (row.logo_url as string | null) ?? null,
     logo_letter: (row.logo_letter as string | null) ?? null,
+    url: (row.url as string | null) ?? null,
     x_url: (row.x_url as string | null) ?? null,
     linkedin_url: (row.linkedin_url as string | null) ?? null,
     careers_url: (row.careers_url as string | null) ?? null,
@@ -377,12 +378,14 @@ export type CompanyListRow = {
   company_features: string[] | null;
   /** ow_experiences 上のユニーク登録ユーザー数（DM可能な在籍・OB人数） */
   member_count: number;
+  /** 企業Webサイト URL（Clearbit ロゴ取得に使用） */
+  url: string | null;
 };
 
 const COMPANY_LISTPAGE_COLS = [
   "id", "name", "name_en", "tagline", "industry", "phase", "employee_count",
   "avg_salary", "logo_gradient", "logo_letter", "logo_url",
-  "location", "accepting_casual_meetings", "remote_work_status",
+  "location", "url", "accepting_casual_meetings", "remote_work_status",
   "is_published", "jobs_public", "updated_at", "company_features",
 ].join(", ");
 
@@ -476,6 +479,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,
     company_features: Array.isArray(row.company_features) ? (row.company_features as string[]) : null,
     member_count: memberCountMap.get(row.id as string)?.size ?? 0,
+    url: (row.url as string | null) ?? null,
   }));
 }
 
@@ -483,7 +487,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
 
 const COMPANY_LIST_COLS = [
   "id", "name", "name_en", "brand_name", "tagline", "industry", "phase", "employee_count",
-  "logo_gradient", "logo_letter", "logo_url", "accepting_casual_meetings",
+  "logo_gradient", "logo_letter", "logo_url", "url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
 ].join(", ");
 

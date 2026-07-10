@@ -314,6 +314,7 @@ function JobCard({
             logoUrl={company.logo_url}
             logoLetter={company.logo_letter}
             logoGradient={company.gradient}
+            companyUrl={company.url}
             size={44}
             borderRadius={10}
           />
@@ -965,6 +966,7 @@ function JobListItem({
             logoUrl={company.logo_url}
             logoLetter={company.logo_letter}
             logoGradient={company.gradient}
+            companyUrl={company.url}
             size={48}
             borderRadius={10}
             style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.12)" }}
@@ -1201,7 +1203,7 @@ function JobDetailPane({
       {/* Company banner */}
       <div style={{ height: 64, background: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)", position: "relative", flexShrink: 0 }}>
         <div style={{ position: "absolute", bottom: -22, left: 16, border: "3px solid rgba(255,255,255,0.9)", boxShadow: "0 2px 10px rgba(0,0,0,0.15)", borderRadius: 12, zIndex: 3 }}>
-          <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter} logoGradient={company.gradient} size={48} borderRadius={10} />
+          <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter} logoGradient={company.gradient} companyUrl={company.url} size={48} borderRadius={10} />
         </div>
       </div>
 
