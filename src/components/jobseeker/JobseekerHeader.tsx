@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
   { href: "/jobs", label: "求人", highlight: false },
   { href: "/people", label: "先輩を知る", highlight: false },
+  { href: "/career-trajectories", label: "キャリア軌跡", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
 
@@ -338,6 +339,9 @@ export function JobseekerHeader() {
                 </>
               ) : (
                 <>
+                  <Link href="/career-agent" style={{ fontSize: 12, fontWeight: 700, color: "#92400E", textDecoration: "none", padding: "7px 12px", whiteSpace: "nowrap", background: "#FEF3C7", border: "1.5px solid #FDE68A", borderRadius: 8 }}>
+                    キャリア相談（無料）
+                  </Link>
                   <Link href="/business" style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textDecoration: "none", padding: "8px 10px", whiteSpace: "nowrap" }}>
                     企業の方へ →
                   </Link>

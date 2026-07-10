@@ -861,3 +861,56 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ── /career-agent page ─────────────────────────────────────────── */
+.ca-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.ca-input:focus { border-color: var(--royal); box-shadow: 0 0 0 3px var(--royal-50); }
+.ca-input::placeholder { color: var(--ink-mute); }
+.ca-label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.ca-required { color: var(--error); margin-left: 4px; }
+.ca-submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #002366, #3B5FD9);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+}
+.ca-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ca-submit-btn:hover:not(:disabled) { opacity: 0.9; }
+.ca-step-num {
+  font-family: 'Inter', monospace;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--royal-50);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+@media (max-width: 768px) {
+  .ca-hero-title { font-size: 28px !important; }
+  .ca-features-grid { grid-template-columns: 1fr !important; }
+  .ca-steps-grid { grid-template-columns: 1fr 1fr !important; }
+  .ca-main-layout { flex-direction: column !important; }
+  .ca-form-col { max-width: 100% !important; }
+  .ca-info-col { display: none !important; }
+}
+@media (max-width: 480px) {
+  .ca-steps-grid { grid-template-columns: 1fr !important; }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import { createClient } from "@/lib/supabase/client";
 
@@ -146,20 +147,28 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
           </div>
         </div>
         {isLoggedIn && !submitted && (
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", borderRadius: 8, border: "1.5px solid var(--royal)",
-              background: "transparent", color: "var(--royal)", fontSize: 13, fontWeight: 700,
-              cursor: "pointer", fontFamily: "var(--font-noto-sans)",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            口コミを書く
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 8, border: "1.5px solid var(--royal)",
+                background: "transparent", color: "var(--royal)", fontSize: 13, fontWeight: 700,
+                cursor: "pointer", fontFamily: "var(--font-noto-sans)",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              口コミを書く
+            </button>
+            <Link
+              href={`/companies/${companyId}/review`}
+              style={{ fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}
+            >
+              専用ページで書く →
+            </Link>
+          </div>
         )}
       </div>
 
