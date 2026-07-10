@@ -676,8 +676,6 @@ export type JobPositionMember = {
   name: string;
   roleTitle: string;
   isCurrent: boolean;
-  isMentor: boolean;
-  mentorId: string | null;
   photoUrl: string | null;
   gradient: string;
   initial: string;
@@ -754,8 +752,6 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
       name,
       roleTitle: (exp.role_title as string) ?? "",
       isCurrent: (exp.is_current as boolean) ?? false,
-      isMentor: false,
-      mentorId: null,
       photoUrl: avatarUrl,
       gradient: avatarColor?.startsWith("linear-gradient") ? avatarColor : FALLBACK_GRADIENT,
       initial: name.charAt(0),

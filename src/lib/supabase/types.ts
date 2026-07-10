@@ -1082,59 +1082,6 @@ export type Database = {
           },
         ]
       }
-      consultation_cases: {
-        Row: {
-          action_taken: string | null
-          anon_profile: string
-          consent_given: boolean | null
-          consulted_at: string | null
-          created_at: string | null
-          display_order: number | null
-          id: string
-          insight: string
-          is_published: boolean | null
-          mentor_id: string | null
-          worry_category: string
-          worry_summary: string
-        }
-        Insert: {
-          action_taken?: string | null
-          anon_profile: string
-          consent_given?: boolean | null
-          consulted_at?: string | null
-          created_at?: string | null
-          display_order?: number | null
-          id?: string
-          insight: string
-          is_published?: boolean | null
-          mentor_id?: string | null
-          worry_category: string
-          worry_summary: string
-        }
-        Update: {
-          action_taken?: string | null
-          anon_profile?: string
-          consent_given?: boolean | null
-          consulted_at?: string | null
-          created_at?: string | null
-          display_order?: number | null
-          id?: string
-          insight?: string
-          is_published?: boolean | null
-          mentor_id?: string | null
-          worry_category?: string
-          worry_summary?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "consultation_cases_mentor_id_fkey"
-            columns: ["mentor_id"]
-            isOneToOne: false
-            referencedRelation: "ow_mentors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       crm_activities: {
         Row: {
           activity_type: string
@@ -3150,65 +3097,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ow_consultations: {
-        Row: {
-          candidate_id: string | null
-          consultation_date: string | null
-          consulted_at: string
-          created_at: string | null
-          duration_min: number | null
-          id: string
-          is_shareable: boolean | null
-          memo: string | null
-          mentor_id: string | null
-          mentor_name: string | null
-          summary: string | null
-          tags: string[] | null
-          topic: string | null
-          user_id: string | null
-        }
-        Insert: {
-          candidate_id?: string | null
-          consultation_date?: string | null
-          consulted_at: string
-          created_at?: string | null
-          duration_min?: number | null
-          id?: string
-          is_shareable?: boolean | null
-          memo?: string | null
-          mentor_id?: string | null
-          mentor_name?: string | null
-          summary?: string | null
-          tags?: string[] | null
-          topic?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          candidate_id?: string | null
-          consultation_date?: string | null
-          consulted_at?: string
-          created_at?: string | null
-          duration_min?: number | null
-          id?: string
-          is_shareable?: boolean | null
-          memo?: string | null
-          mentor_id?: string | null
-          mentor_name?: string | null
-          summary?: string | null
-          tags?: string[] | null
-          topic?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_consultations_mentor_id_fkey"
-            columns: ["mentor_id"]
-            isOneToOne: false
-            referencedRelation: "ow_mentors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_experiences: {
         Row: {
           company_anonymized: string | null
@@ -4017,13 +3905,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ow_mentor_reservations_mentor_id_fkey"
-            columns: ["mentor_id"]
-            isOneToOne: false
-            referencedRelation: "ow_mentors"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ow_mentor_reservations_mentor_user_id_fkey"
             columns: ["mentor_user_id"]
             isOneToOne: false
@@ -4038,78 +3919,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      ow_mentors: {
-        Row: {
-          avatar_color: string | null
-          avatar_initial: string | null
-          bio: string | null
-          calendly_url: string | null
-          catchphrase: string | null
-          concerns: string[] | null
-          created_at: string | null
-          current_career: string | null
-          current_company: string | null
-          current_role: string | null
-          display_order: number | null
-          id: string
-          is_available: boolean | null
-          name: string
-          previous_career: string | null
-          question_tags: string[] | null
-          roles: string[] | null
-          success_count: number | null
-          total_consultations: number | null
-          total_sessions: number | null
-          worries: string[] | null
-        }
-        Insert: {
-          avatar_color?: string | null
-          avatar_initial?: string | null
-          bio?: string | null
-          calendly_url?: string | null
-          catchphrase?: string | null
-          concerns?: string[] | null
-          created_at?: string | null
-          current_career?: string | null
-          current_company?: string | null
-          current_role?: string | null
-          display_order?: number | null
-          id?: string
-          is_available?: boolean | null
-          name: string
-          previous_career?: string | null
-          question_tags?: string[] | null
-          roles?: string[] | null
-          success_count?: number | null
-          total_consultations?: number | null
-          total_sessions?: number | null
-          worries?: string[] | null
-        }
-        Update: {
-          avatar_color?: string | null
-          avatar_initial?: string | null
-          bio?: string | null
-          calendly_url?: string | null
-          catchphrase?: string | null
-          concerns?: string[] | null
-          created_at?: string | null
-          current_career?: string | null
-          current_company?: string | null
-          current_role?: string | null
-          display_order?: number | null
-          id?: string
-          is_available?: boolean | null
-          name?: string
-          previous_career?: string | null
-          question_tags?: string[] | null
-          roles?: string[] | null
-          success_count?: number | null
-          total_consultations?: number | null
-          total_sessions?: number | null
-          worries?: string[] | null
-        }
-        Relationships: []
       }
       ow_messages: {
         Row: {

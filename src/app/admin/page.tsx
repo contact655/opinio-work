@@ -556,7 +556,6 @@ export default async function AdminDashboard() {
             {[
               { href: "/admin/companies", label: "企業を管理する", desc: "掲載企業の承認・編集", icon: "🏢" },
               { href: "/admin/jobs", label: "求人を審査する", desc: "掲載求人のレビューと承認", icon: "📋" },
-              { href: "/admin/mentors", label: "メンターを管理する", desc: "メンター登録・承認", icon: "🎓" },
               { href: "/admin/candidates", label: "候補者を確認する", desc: "登録ユーザーの一覧", icon: "👤" },
             ].map(({ href, label, desc, icon }) => (
               <Link key={href} href={href} style={{ textDecoration: "none" }}>
