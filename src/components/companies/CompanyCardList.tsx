@@ -197,8 +197,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const meetingBorder = "1px solid var(--line)";
   const meetingBoxShadow = "0 1px 4px rgba(15,23,42,0.06)";
 
-  // ① 年収表示
-  const salaryLabel = company.avg_salary
+  // 年収表示（カードでは非表示、将来の参照用に残す）
+  const _salaryLabel = company.avg_salary
     ? (typeof company.avg_salary === "number"
         ? `平均 ${Math.round((company.avg_salary as number) / 10000)}万円`
         : `平均 ${company.avg_salary}`)
