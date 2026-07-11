@@ -1322,13 +1322,13 @@ function JobDetailPane({
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly, bizOnly,
+  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
   bizModel: string;
-  meetingOnly: boolean; bizOnly: boolean; availablePrefectures: string[];
+  meetingOnly: boolean; availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
@@ -1371,33 +1371,6 @@ function SidebarFilters({
             リセット
           </button>
         )}
-      </div>
-
-      {/* ビジネス職ショートカット */}
-      <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--line-soft)" }}>
-        <button
-          type="button"
-          onClick={() => setParam("biz_only", bizOnly ? "" : "1")}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
-            border: `1.5px solid ${bizOnly ? "var(--warm)" : "var(--line)"}`,
-            background: bizOnly ? "#FEF3C7" : "#FAFBFF",
-            transition: "all 0.15s",
-          }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 14 }}>💼</span>
-            <span style={{ fontSize: 12.5, fontWeight: bizOnly ? 700 : 600, color: bizOnly ? "#92400E" : "var(--ink)" }}>
-              ビジネス職のみ
-            </span>
-          </span>
-          {bizOnly ? (
-            <span style={{ fontSize: 10, fontWeight: 800, color: "#92400E" }}>✓ ON</span>
-          ) : (
-            <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>IS/FS/CS/マーケ等</span>
-          )}
-        </button>
       </div>
 
       {/* 面談受付中トグル */}
@@ -2167,7 +2140,6 @@ export default function JobsClient({
                 bizModel={bizModel}
                 prefecture={prefecture}
                 meetingOnly={meetingOnly}
-                bizOnly={bizOnly}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 onMeetingOnlyChange={setMeetingOnly}
@@ -2181,85 +2153,38 @@ export default function JobsClient({
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
 
-          {/* ── パーソナライズ: あなたにおすすめの求人（サーバーサイドスコアリング） ── */}
+          {/* ── パーソナライズ: あなたにおすすめの求人（コンパクト表示） ── */}
           {!hasFilter && !q && recommendations.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              {/* セクションヘッダー */}
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-                paddingBottom: 10, borderBottom: "2px solid var(--royal-100)",
-              }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                  あなたにおすすめの求人
-                </span>
-                <span style={{
-                  fontSize: 11, padding: "2px 9px", borderRadius: 100,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  fontWeight: 700, border: "1px solid var(--royal-100)",
-                }}>
-                  {recommendations.length}件
-                </span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: "auto" }}>
-                  プロフィール情報をもとに算出
-                </span>
-              </div>
-
-              {/* おすすめカード + 理由バッジ（先輩との融合表示） */}
-              <div className="jobs-list-desktop" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {recommendations.map(({ job, reasonText }) => {
-                  const jobAlumni = alumniMap?.[job.id] ?? [];
-                  const hasAlumni = jobAlumni.length > 0;
-                  return (
-                    <div key={job.id} style={{ position: "relative" }}>
-                      {/* 統合バッジ — 理由 + 先輩情報を一行で表示 */}
-                      <div style={{
-                        position: "absolute", top: 10, right: 12, zIndex: 2,
-                        display: "flex", alignItems: "center", gap: 5,
-                        pointerEvents: "none",
-                      }}>
-                        <div style={{
-                          background: "linear-gradient(90deg, #002366 0%, #3B5FD9 100%)",
-                          color: "#fff", fontSize: 10, fontWeight: 700,
-                          padding: "3px 10px", borderRadius: 100,
-                          maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
-                          ✦ {reasonText}
-                        </div>
-                        {hasAlumni && (
-                          <div style={{
-                            background: "linear-gradient(90deg, #FFF7ED 0%, #FEF3C7 100%)",
-                            color: "#C2410C", fontSize: 10, fontWeight: 700,
-                            padding: "3px 9px", borderRadius: 100,
-                            border: "1px solid #FDBA74", whiteSpace: "nowrap",
-                          }}>
-                            👤 先輩{jobAlumni.length}名在籍
-                          </div>
-                        )}
-                      </div>
-                      <JobListItem
-                        job={job}
-                        companyMap={companyMap}
-                        initialBookmarked={bookmarkedIds.has(job.id)}
-                        alumni={jobAlumni}
-                        isApplied={appliedJobIds.has(job.id)}
-                        selectedJobId={selectedJobId}
-                        onSelect={handleSelectJob}
-                        reviewSummary={reviewSummaries?.[job.company_id]}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20 }}>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                  すべての求人
-                </span>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div style={{
+              marginBottom: 16, padding: "10px 14px", borderRadius: 10,
+              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                ✦ あなたへのおすすめ
+              </span>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+                {recommendations.slice(0, 3).map(({ job }) => (
+                  <a
+                    key={job.id}
+                    href={`/jobs/${job.id}`}
+                    style={{
+                      fontSize: 11, padding: "3px 10px", borderRadius: 100,
+                      background: "#fff", color: "var(--royal)",
+                      border: "1px solid var(--royal-100)", textDecoration: "none",
+                      fontWeight: 600, whiteSpace: "nowrap",
+                      overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180,
+                      display: "inline-block",
+                    }}
+                  >
+                    {job.title}
+                  </a>
+                ))}
+                {recommendations.length > 3 && (
+                  <span style={{ fontSize: 11, color: "var(--royal)", alignSelf: "center" }}>
+                    +{recommendations.length - 3}件
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -2570,14 +2495,6 @@ export default function JobsClient({
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>クイックフィルタ</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button
-                    onClick={() => { setParam("biz_only", bizOnly ? "" : "1"); setFilterSheetOpen(false); }}
-                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${bizOnly ? "var(--warm)" : "var(--line)"}`, background: bizOnly ? "#FEF3C7" : "#fff", cursor: "pointer", textAlign: "left" }}
-                  >
-                    <span style={{ fontSize: 16 }}>💼</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: bizOnly ? "#92400E" : "var(--ink)" }}>ビジネス職のみ（IS/FS/CS/マーケ等）</span>
-                    {bizOnly && <span style={{ marginLeft: "auto", fontSize: 11, color: "#92400E", fontWeight: 700 }}>✓</span>}
-                  </button>
                   <button
                     onClick={() => setMeetingOnly(v => !v)}
                     style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${meetingOnly ? "#ea580c" : "var(--line)"}`, background: meetingOnly ? "#FFF7ED" : "#fff", cursor: "pointer", textAlign: "left" }}
