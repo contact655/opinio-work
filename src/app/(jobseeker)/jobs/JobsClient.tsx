@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
-import type { CompanyAlumniPreview, CompanyReviewSummary } from "@/lib/supabase/queries";
+import type { CompanyReviewSummary } from "@/lib/supabase/queries";
 import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
@@ -876,13 +876,12 @@ function FilterChip({
 // ─── LinkedIn 型縦リスト行 ────────────────────────────────────────────────────
 
 function JobListItem({
-  job, companyMap, initialBookmarked = false, alumni = [], isApplied = false,
+  job, companyMap, initialBookmarked = false, isApplied = false,
   selectedJobId, onSelect, reviewSummary,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
   initialBookmarked?: boolean;
-  alumni?: CompanyAlumniPreview[];
   isApplied?: boolean;
   selectedJobId?: string | null;
   onSelect?: (id: string) => void;
@@ -1138,11 +1137,10 @@ function JobListItem({
 // ─── Right detail pane (LinkedIn 2-pane) ─────────────────────────────────────
 
 function JobDetailPane({
-  job, company, alumni,
+  job, company,
 }: {
   job: Job | null;
   company: Company | null;
-  alumni: CompanyAlumniPreview[];
 }) {
   if (!job || !company) {
     return (
@@ -1493,14 +1491,12 @@ export default function JobsClient({
   jobs: allJobs,
   companies,
   parentRoles,
-  alumniMap = {},
   recommendations = [],
   reviewSummaries = {},
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
-  alumniMap?: Record<string, CompanyAlumniPreview[]>;
   recommendations?: RecommendedJob[];
   reviewSummaries?: Record<string, CompanyReviewSummary>;
 }) {
@@ -2170,7 +2166,6 @@ export default function JobsClient({
                     job={job}
                     companyMap={companyMap}
                     initialBookmarked={bookmarkedIds.has(job.id)}
-                    alumni={alumniMap?.[job.id] ?? []}
                     isApplied={appliedJobIds.has(job.id)}
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
@@ -2232,7 +2227,6 @@ export default function JobsClient({
                     job={job}
                     companyMap={companyMap}
                     initialBookmarked={bookmarkedIds.has(job.id)}
-                    alumni={alumniMap[job.id] ?? []}
                     isApplied={appliedJobIds.has(job.id)}
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
@@ -2303,8 +2297,7 @@ export default function JobsClient({
                 {(() => {
                   const selJob = selectedJobId ? paged.find(j => j.id === selectedJobId) ?? null : null;
                   const selCo = selJob ? companyMap.get(selJob.company_id) ?? null : null;
-                  const selAlumni = selJob ? (alumniMap[selJob.id] ?? []) : [];
-                  return <JobDetailPane job={selJob} company={selCo} alumni={selAlumni} />;
+                  return <JobDetailPane job={selJob} company={selCo} />;
                 })()}
               </div>
             )}
