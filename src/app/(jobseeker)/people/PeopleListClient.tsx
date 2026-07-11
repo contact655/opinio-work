@@ -599,19 +599,6 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
     <>
       <h1 className="sr-only">先輩を知る — 話せる人を探す</h1>
 
-      {/* ページヘッダー */}
-      <div style={{ background: "var(--royal)", padding: "32px 0 28px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }} className="px-5 md:px-12">
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", textTransform: "uppercase" as const, marginBottom: 8 }}>PEOPLE</div>
-          <h2 style={{ fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 800, color: "#fff", marginBottom: 6, fontFamily: "var(--font-noto-serif)" }}>
-            先輩を知る
-          </h2>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.6 }}>
-            IT/SaaS企業の現役社員・OB/OGに、はたらくリアルを聞いてみましょう。
-          </p>
-        </div>
-      </div>
-
       <div style={{ paddingTop: "var(--space-3)" }} />
 
       {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
