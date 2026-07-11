@@ -1,4 +1,3 @@
-import { JobsMockView } from "./JobsMockView";
 import { JobsClient } from "./JobsClient";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -13,10 +12,6 @@ export const metadata = {
 };
 
 export default async function BizJobsPage() {
-  if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-    return <JobsMockView />;
-  }
-
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 

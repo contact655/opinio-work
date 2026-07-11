@@ -32,8 +32,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
     // optimistic update
     setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: newStatus } : j));
 
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
-
     const res = await fetch(`/api/biz/jobs/${jobId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -56,8 +54,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
     // optimistic remove
     setJobs((prev) => prev.filter((j) => j.id !== jobId));
 
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
-
     const res = await fetch(`/api/biz/jobs/${jobId}`, { method: "DELETE" });
     if (!res.ok) {
       setJobs(snapshot);
@@ -66,10 +62,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
   }, [jobs]);
 
   const handleDuplicate = useCallback(async (jobId: string) => {
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-      showError("複製機能はモックモードでは動作しません。");
-      return;
-    }
     const res = await fetch("/api/biz/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

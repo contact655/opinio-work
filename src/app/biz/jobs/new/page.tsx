@@ -3,7 +3,6 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
-import { mockTenantContext } from "@/lib/business/mockTenantContext";
 import { fetchTeamMembers } from "@/lib/business/jobs";
 
 export const dynamic = "force-dynamic";
@@ -13,23 +12,6 @@ export const metadata = {
 };
 
 export default async function JobNewPage() {
-  // Mock mode
-  if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-    const ctx = mockTenantContext;
-    return (
-      <BusinessLayout
-        userName={ctx.userName}
-        tenantName={ctx.tenantName}
-        tenantLogoGradient={ctx.logoGradient}
-        tenantLogoLetter={ctx.logoLetter}
-        variant="fullBleed"
-      >
-        <JobEditForm mode="new" />
-      </BusinessLayout>
-    );
-  }
-
-  // Production
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const userName = user?.email ? user.email.split("@")[0] : "ご担当者";

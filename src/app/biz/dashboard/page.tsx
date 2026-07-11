@@ -6,7 +6,6 @@ import { UpgradeBanner } from "@/components/business/UpgradeBanner";
 import { EditorInvitation } from "@/components/business/EditorInvitation";
 import { JobStatusCards } from "@/components/business/JobStatusCards";
 import { TeamMembers } from "@/components/business/TeamMembers";
-import { DashboardMockView } from "./DashboardMockView";
 import {
   getTenantContext,
   getJobPerformance,
@@ -68,10 +67,6 @@ export default async function BizDashboardPage() {
   const ctx = await getTenantContext();
 
   if (!ctx) {
-    // NEXT_PUBLIC_BIZ_MOCK_MODE=true の場合のみモックで描画（dev 専用）
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-      return <DashboardMockView />;
-    }
     return <NoTenantPage />;
   }
 

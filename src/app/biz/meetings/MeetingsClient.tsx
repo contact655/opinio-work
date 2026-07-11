@@ -93,8 +93,6 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
       return next?.id ?? null;
     });
 
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
-
     const res = await fetch(`/api/biz/meetings/${meetingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -125,8 +123,6 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
           : m
       )
     );
-
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
 
     const res = await fetch(`/api/biz/meetings/${meetingId}`, {
       method: "PATCH",
@@ -162,16 +158,14 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
       );
       setMemoSaveStates((prev) => ({ ...prev, [meetingId]: "saved" }));
 
-      if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE !== "true") {
-        try {
-          await fetch(`/api/biz/meetings/${meetingId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "memo", value: text }),
-          });
-        } catch (err) {
-          console.error("[meetings] Failed to save memo:", err);
-        }
+      try {
+        await fetch(`/api/biz/meetings/${meetingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "memo", value: text }),
+        });
+      } catch (err) {
+        console.error("[meetings] Failed to save memo:", err);
       }
 
       // 2秒後に saved 表示を消す
@@ -187,14 +181,11 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
     if (!m?.isUnread) return;
     // optimistic: mark as read in UI immediately
     setMeetings((prev) => prev.map((m) => m.id === id ? { ...m, isUnread: false } : m));
-    // fire-and-forget in production
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE !== "true") {
-      fetch(`/api/biz/meetings/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_read" }),
-      }).catch(console.error);
-    }
+    fetch(`/api/biz/meetings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "mark_read" }),
+    }).catch(console.error);
   }, [meetings]);
 
   const handlePrev = useCallback(() => {

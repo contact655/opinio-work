@@ -277,7 +277,6 @@ export function JobEditForm({
   // useCallback で最新の form/currentJobId を閉じる。useAutoSave 側で ref 経由で
   // 参照するため、form が変わるたびに debounce タイマーがリセットされることはない。
   const doSave = useCallback(async () => {
-    if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") return;
     if (!currentJobId) {
       // 新規モード: タイトルが入力されていればレコード発行
       if (!form.title.trim()) return;

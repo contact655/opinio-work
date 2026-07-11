@@ -1,4 +1,3 @@
-import { JobEditMockView } from "./JobEditMockView";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { JobEditForm } from "@/components/business/JobEditForm";
@@ -15,10 +14,6 @@ export function generateMetadata() {
 
 
 export default async function JobEditPage({ params }: { params: { id: string } }) {
-  if (process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true") {
-    return <JobEditMockView jobId={params.id} />;
-  }
-
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
