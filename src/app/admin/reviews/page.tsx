@@ -10,11 +10,21 @@ export const metadata = {
 export default async function AdminReviewsPage() {
   const admin = createAdminClient();
 
-  const { data: reviews } = await admin
-    .from("ow_company_reviews")
-    .select("id, company_id, employment_status, rating_overall, rating_culture, rating_growth, rating_wlb, rating_compensation, rating_leadership, rating_business, rating_welfare, pros, cons, job_type, is_approved, created_at, ow_companies(id, name)")
-    .order("created_at", { ascending: false })
-    .limit(200);
+  const [{ data: reviews }, { data: companies }] = await Promise.all([
+    admin
+      .from("ow_company_reviews")
+      .select("id, company_id, employment_status, rating_overall, rating_culture, rating_growth, rating_wlb, rating_compensation, rating_leadership, rating_business, rating_welfare, pros, cons, job_type, is_approved, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    admin.from("ow_companies").select("id, name"),
+  ]);
 
-  return <ReviewsAdminClient initialReviews={(reviews ?? []) as Parameters<typeof ReviewsAdminClient>[0]["initialReviews"]} />;
+  const companyMap = Object.fromEntries((companies ?? []).map(c => [c.id, { id: c.id, name: c.name as string }]));
+  const enriched = (reviews ?? []).map(r => ({
+    ...r,
+    ow_companies: companyMap[r.company_id] ?? null,
+    ow_users: null as { name: string } | null,
+  }));
+
+  return <ReviewsAdminClient initialReviews={enriched as Parameters<typeof ReviewsAdminClient>[0]["initialReviews"]} />;
 }
