@@ -251,7 +251,7 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, position: "relative", zIndex: 1 }}>
         <div>
           <Link
-            href={`/companies/${card.companyId}/casual-meeting`}
+            href={`/people/${card.adminId}/reserve`}
             style={{
               display: "block", textAlign: "center",
               padding: "9px 16px",
@@ -534,7 +534,7 @@ function PeerGridCard({ card }: { card: PeerCard }) {
       )}
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, position: "relative", zIndex: 1 }}>
         <Link
-          href={`/career-trajectories/${card.userId}`}
+          href={`/u/${card.userId}`}
           style={{
             display: "block", textAlign: "center", padding: "9px 16px",
             background: "linear-gradient(135deg, var(--purple), #9333ea)",
@@ -612,7 +612,7 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "flex-end", position: "relative", zIndex: 1 }}>
         <Link
-          href={`/career-trajectories/${card.userId}`}
+          href={`/u/${card.userId}`}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             padding: "8px 16px",

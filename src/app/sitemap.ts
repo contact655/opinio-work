@@ -107,6 +107,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.4,
     },
+    {
+      url: `${baseUrl}/career-agent`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
 
     // ── Dynamic: jobs ────────────────────────────────────────────────────────
     ...(jobs?.map((job) => ({

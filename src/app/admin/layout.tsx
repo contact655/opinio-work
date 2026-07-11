@@ -20,6 +20,7 @@ import {
   Star,
   DollarSign,
   TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -51,6 +52,7 @@ const NAV_GROUPS = [
   {
     label: "オペレーション",
     items: [
+      { label: "キャリア相談リード",  href: "/admin/career-leads",     icon: <MessageSquare size={16} strokeWidth={2} /> },
       { label: "請求管理",            href: "/admin/billing",          icon: <Receipt       size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },

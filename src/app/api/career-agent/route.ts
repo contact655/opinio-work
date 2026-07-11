@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,21 @@ export async function POST(req: Request) {
       <a href="https://opinio.co.jp" style="${btn}">OPINIOのサービスを見る →</a>
     </p>
   `);
+
+  // ── DB に保存（best-effort：失敗してもメール送信は続行）────────────────────
+  try {
+    const supabase = createAdminClient();
+    await supabase.from("ow_career_agent_leads").insert({
+      name,
+      email,
+      current_job: current,
+      timeline,
+      message: message || null,
+      status: "new",
+    });
+  } catch (err) {
+    console.error("[career-agent] db insert failed:", err);
+  }
 
   try {
     await Promise.all([
