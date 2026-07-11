@@ -381,12 +381,12 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{remoteText}</span>
                 )}
                 {/* アバターアイコン列（現役・OBOG） */}
-                {members.length > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", paddingLeft: 6 }}>
+                {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
+                  <div style={{ display: "flex", alignItems: "center", paddingLeft: members.length > 0 ? 6 : 0 }}>
                     {members.slice(0, 4).map((m) => (
                       <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
                     ))}
-                    <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, marginLeft: 8, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, marginLeft: members.length > 0 ? 8 : 0, whiteSpace: "nowrap" }}>
                       {memberCount > 0 ? `現役${memberCount}名` : ""}
                       {obogCount > 0 ? `・OB${obogCount}名` : ""}
                     </span>
