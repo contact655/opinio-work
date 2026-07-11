@@ -339,12 +339,6 @@ export function JobseekerHeader() {
                 </>
               ) : (
                 <>
-                  <Link href="/career-agent" style={{ fontSize: 12, fontWeight: 700, color: "#92400E", textDecoration: "none", padding: "7px 12px", whiteSpace: "nowrap", background: "#FEF3C7", border: "1.5px solid #FDE68A", borderRadius: 8 }}>
-                    キャリア相談（無料）
-                  </Link>
-                  <Link href="/business" style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textDecoration: "none", padding: "8px 10px", whiteSpace: "nowrap" }}>
-                    企業の方へ →
-                  </Link>
                   <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none", padding: "8px 14px" }}>
                     ログイン
                   </Link>
@@ -685,20 +679,6 @@ export function JobseekerHeader() {
                   無料登録
                 </Link>
               </div>
-              <Link
-                href="/career-agent"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ display: "block", margin: "8px 16px 4px", padding: "11px 20px", fontSize: 14, fontWeight: 700, color: "#92400E", background: "#FEF3C7", border: "1.5px solid #FDE68A", borderRadius: 8, textDecoration: "none", textAlign: "center" }}
-              >
-                キャリア相談（無料）
-              </Link>
-              <Link
-                href="/business"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ display: "block", padding: "12px 24px", fontSize: 13, color: "var(--ink-mute)", textDecoration: "none" }}
-              >
-                企業の方へ →
-              </Link>
             </>
           )}
         </nav>
