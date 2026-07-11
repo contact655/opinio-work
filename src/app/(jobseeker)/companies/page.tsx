@@ -10,7 +10,7 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 
-type MemberPreview = { id: string; name: string };
+type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
 // searchParams（フィルター）を使うため dynamic にする
 export const dynamic = "force-dynamic";
@@ -139,7 +139,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
     // 在籍メンバー: 全社分を並列取得し、後でメモリ内フィルター
     needsGrid
-      ? supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name)").eq("is_current", true)
+      ? supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name, photo_url)").eq("is_current", true)
       : Promise.resolve({ data: null }),
     // 口コミ平均スコア
     needsGrid ? getCompanyReviewSummaries() : Promise.resolve({} as Record<string, { avg: number; count: number }>),
@@ -157,10 +157,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
       if (!pageCompanyIds.has(companyId)) continue;
       if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
       if (membersByCompany[companyId].length < 8) {
-        const user = exp.ow_users as { id: string; name: string } | { id: string; name: string }[] | null;
+        const user = exp.ow_users as { id: string; name: string; photo_url?: string | null } | { id: string; name: string; photo_url?: string | null }[] | null;
         if (user) {
           const u = Array.isArray(user) ? user[0] : user;
-          if (u) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?" });
+          if (u) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.photo_url ?? null });
         }
       }
     }

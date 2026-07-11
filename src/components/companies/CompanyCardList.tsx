@@ -84,26 +84,30 @@ function updatedAgo(updatedAt: string | null | undefined): string | null {
   return `${Math.floor(months / 12)}年前更新`;
 }
 
-/** メンバーアバター（初期文字ベース） */
-function MemberAvatar({ name, size = 24 }: { name: string; size?: number }) {
+/** メンバーアバター（写真優先・初期文字フォールバック） */
+function MemberAvatar({ name, photoUrl, size = 24 }: { name: string; photoUrl?: string | null; size?: number }) {
   const initial = name.slice(0, 1);
-  // 名前ハッシュでグラデーション色を決める
   const hue = Array.from(name).reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name}
+        style={{
+          width: size, height: size, borderRadius: "50%", objectFit: "cover",
+          border: "2px solid #fff", flexShrink: 0, marginLeft: -6,
+        }}
+      />
+    );
+  }
   return (
     <div style={{
-      width: size,
-      height: size,
-      borderRadius: "50%",
+      width: size, height: size, borderRadius: "50%",
       background: `hsl(${hue},60%,50%)`,
       border: "2px solid #fff",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: size * 0.42,
-      fontWeight: 700,
-      color: "#fff",
-      flexShrink: 0,
-      marginLeft: -6,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: size * 0.42, fontWeight: 700, color: "#fff",
+      flexShrink: 0, marginLeft: -6,
     }}>
       {initial}
     </div>
@@ -349,7 +353,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
-            {/* 行4: メタ（所在地 + 従業員数 + 登録人数） */}
+            {/* 行4: メタ（所在地 + 従業員数） */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
@@ -368,18 +372,25 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               {company.employee_count && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
               )}
-              {(memberCount > 0 || obogCount > 0) && (
-                <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
-                  · 現役{memberCount}名{obogCount > 0 ? ` / OB${obogCount}名` : ""}
-                </span>
-              )}
             </div>
 
-            {/* 行5: リモート＋募集中（同行） */}
-            {(remoteText || company.job_count > 0) && (
+            {/* 行5: リモート ＋ アバター ＋ 募集中 */}
+            {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {remoteText && (
                   <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{remoteText}</span>
+                )}
+                {/* アバターアイコン列（現役・OBOG） */}
+                {members.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", paddingLeft: 6 }}>
+                    {members.slice(0, 4).map((m) => (
+                      <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
+                    ))}
+                    <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, marginLeft: 8, whiteSpace: "nowrap" }}>
+                      {memberCount > 0 ? `現役${memberCount}名` : ""}
+                      {obogCount > 0 ? `・OB${obogCount}名` : ""}
+                    </span>
+                  </div>
                 )}
                 {company.job_count > 0 && (
                   <span style={{
@@ -575,7 +586,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {members.length > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 0, paddingLeft: 6 }}>
                 {members.slice(0, 4).map((m) => (
-                  <MemberAvatar key={m.id} name={m.name} size={20} />
+                  <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
                 ))}
                 {members.length > 4 && (
                   <span style={{ fontSize: 10, color: "var(--ink-mute)", marginLeft: 8 }}>

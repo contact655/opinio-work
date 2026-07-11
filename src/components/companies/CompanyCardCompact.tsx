@@ -64,7 +64,7 @@ function getIndustryStyle(industry: string | null) {
   return INDUSTRY_COLORS[industry] ?? { color: "#4a5260", bg: "#f1f5f9" };
 }
 
-export type MemberPreview = { id: string; name: string };
+export type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
 type Props = {
   company: CompanyForCarousel;
