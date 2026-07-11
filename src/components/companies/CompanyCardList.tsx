@@ -349,7 +349,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
-            {/* 行4: メタ（所在地 + 従業員数） */}
+            {/* 行4: メタ（所在地 + 従業員数 + 登録人数） */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
@@ -368,42 +368,23 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               {company.employee_count && (
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
               )}
-              {memberCount > 0 && (
-                <span style={{
-                  fontSize: 10, color: "var(--success)", fontWeight: 700,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}>· {memberCount}名</span>
+              {(memberCount > 0 || obogCount > 0) && (
+                <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+                  · 現役{memberCount}名{obogCount > 0 ? ` / OB${obogCount}名` : ""}
+                </span>
               )}
             </div>
 
-            {/* 行5: 年収・リモート（①） */}
-            {(salaryLabel || remoteText) && (
+            {/* 行5: リモート＋募集中（同行） */}
+            {(remoteText || company.job_count > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                {salaryLabel && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, color: "var(--success)",
-                    display: "flex", alignItems: "center", gap: 2,
-                    whiteSpace: "nowrap",
-                  }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                    {salaryLabel}
-                  </span>
-                )}
                 {remoteText && (
                   <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{remoteText}</span>
                 )}
-              </div>
-            )}
-
-            {/* 行6: 求人数バッジ + 口コミスコア */}
-            {(company.job_count > 0 || (company.review_count && company.review_count > 0)) && (
-              <div style={{ display: "flex", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
                 {company.job_count > 0 && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
+                    fontSize: 11, fontWeight: 800, padding: "3px 9px", borderRadius: 100,
                     background: "var(--royal)", color: "#fff",
                     whiteSpace: "nowrap",
                   }}>
@@ -414,17 +395,21 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                     募集中 {company.job_count}件
                   </span>
                 )}
-                {company.review_avg && company.review_count && company.review_count > 0 && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
-                    background: "#FFFBEB", color: "#92400E",
-                    border: "1px solid #FDE68A", whiteSpace: "nowrap",
-                  }}>
-                    ★ {company.review_avg.toFixed(1)}
-                    <span style={{ fontWeight: 400, color: "#B45309" }}>({company.review_count}件)</span>
-                  </span>
-                )}
+              </div>
+            )}
+
+            {/* 行6: 口コミスコア */}
+            {company.review_avg && company.review_count && company.review_count > 0 && (
+              <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                  fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
+                  background: "#FFFBEB", color: "#92400E",
+                  border: "1px solid #FDE68A", whiteSpace: "nowrap",
+                }}>
+                  ★ {company.review_avg.toFixed(1)}
+                  <span style={{ fontWeight: 400, color: "#B45309" }}>({company.review_count}件)</span>
+                </span>
               </div>
             )}
           </div>
@@ -536,19 +521,24 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
-          {/* ① 年収・リモート（リストカード） */}
-          {(salaryLabel || remoteText) && (
+          {/* リモート＋募集中（同行） */}
+          {(remoteText || company.job_count > 0) && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
-              {salaryLabel && (
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", display: "flex", alignItems: "center", gap: 3 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                  </svg>
-                  {salaryLabel}
-                </span>
-              )}
               {remoteText && (
                 <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{remoteText}</span>
+              )}
+              {company.job_count > 0 && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 100,
+                  background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
+                }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 3h-8l-2 4h12l-2-4z"/>
+                  </svg>
+                  募集中 {company.job_count}件
+                </span>
               )}
             </div>
           )}
