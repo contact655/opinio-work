@@ -2123,7 +2123,7 @@ export default function JobsClient({
                       display: "inline-block",
                     }}
                   >
-                    {job.title}
+                    {job.role}
                   </a>
                 ))}
                 {recommendations.length > 3 && (
