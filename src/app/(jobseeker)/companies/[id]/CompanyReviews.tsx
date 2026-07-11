@@ -85,6 +85,8 @@ function RatingBar({ label, value }: { label: string; value: number | null }) {
   );
 }
 
+const INITIAL_COUNT = 3;
+
 export default function CompanyReviewsSection({ companyId, companyName }: { companyId: string; companyName: string }) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -92,6 +94,7 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
   const [showModal, setShowModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const fetchReviews = useCallback(async () => {
     const res = await fetch(`/api/company-reviews?company_id=${companyId}`);
@@ -219,7 +222,7 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {reviews.map((r) => (
+          {(showAll ? reviews : reviews.slice(0, INITIAL_COUNT)).map((r) => (
             <div key={r.id} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: "16px 20px", background: "var(--bg-tint)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                 <Stars value={r.rating_overall} />
@@ -253,6 +256,26 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
             </div>
           ))}
         </div>
+
+        {reviews.length > INITIAL_COUNT && (
+          <div style={{ marginTop: 20, textAlign: "center" }}>
+            <button
+              onClick={() => setShowAll(v => !v)}
+              style={{
+                padding: "10px 28px", borderRadius: 10,
+                border: "1.5px solid var(--line)", background: "#fff",
+                fontSize: 13, fontWeight: 700, color: "var(--ink-soft)",
+                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+              }}
+            >
+              {showAll ? (
+                <>折りたたむ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M18 15l-6-6-6 6"/></svg></>
+              ) : (
+                <>全てを見る（残り {reviews.length - INITIAL_COUNT}件） <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg></>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 投稿モーダル */}
