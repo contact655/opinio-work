@@ -1166,18 +1166,18 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
           OPINIO編集部
         </span>
       </div>
-      <div style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ padding: "20px 28px", display: "grid", gridTemplateColumns: hasPos && hasNeg ? "1fr 1fr" : "1fr", gap: 16 }}>
         {hasPos && (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              向いている人
+              こんな人に向いている
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {detail.fit_positives!.map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "var(--success-soft)", borderRadius: 10, border: "1px solid #A7F3D0" }}>
-                  <span style={{ color: "var(--success)", flexShrink: 0, marginTop: 1 }}>✓</span>
-                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{item}</span>
+                  <span style={{ color: "var(--success)", flexShrink: 0, marginTop: 2, fontSize: 14 }}>✓</span>
+                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -1187,13 +1187,13 @@ function FitSection({ detail }: { detail: CompanyDetail }) {
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--error)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              向かない人
+              こんな人には向かない
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {detail.fit_negatives!.map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "var(--error-soft)", borderRadius: 10, border: "1px solid #FECACA" }}>
-                  <span style={{ color: "var(--error)", flexShrink: 0, marginTop: 1 }}>✗</span>
-                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{item}</span>
+                  <span style={{ color: "var(--error)", flexShrink: 0, marginTop: 2, fontSize: 14 }}>✗</span>
+                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>{item}</span>
                 </div>
               ))}
             </div>
