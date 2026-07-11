@@ -12,7 +12,7 @@ export default async function AdminReviewsPage() {
 
   const { data: reviews } = await admin
     .from("ow_company_reviews")
-    .select("*, ow_companies(id, name), ow_users(name)")
+    .select("*, ow_companies(id, name)")
     .order("created_at", { ascending: false })
     .limit(200);
 
