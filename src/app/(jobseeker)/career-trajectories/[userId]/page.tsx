@@ -107,15 +107,15 @@ export default async function CareerTrajectoryDetailPage({ params }: Props) {
   // プロフィール + ユーザー情報
   const { data: cp } = await admin
     .from("ow_career_profiles")
-    .select("headline, years_of_experience, updated_at, is_published, ow_users(id, name, profile_photo_url, job_type, visibility)")
+    .select("headline, years_of_experience, updated_at, is_published, ow_users(id, name, avatar_url, visibility)")
     .eq("user_id", userId)
     .single();
 
   if (!cp || !cp.is_published) notFound();
 
   const user = cp.ow_users as unknown as {
-    id: string; name: string | null; profile_photo_url: string | null;
-    job_type: string | null; visibility: string;
+    id: string; name: string | null; avatar_url: string | null;
+    visibility: string;
   } | null;
 
   if (!user || user.visibility === "private") notFound();
@@ -152,14 +152,14 @@ export default async function CareerTrajectoryDetailPage({ params }: Props) {
           </Link>
 
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Avatar name={name} photoUrl={user.profile_photo_url} size={64} />
+            <Avatar name={name} photoUrl={user.avatar_url} size={64} />
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--ink)", margin: "0 0 4px", fontFamily: "'Noto Serif JP', serif" }}>
                 {name}
               </h1>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {user.job_type && (
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{user.job_type}</span>
+                {cp.headline && (
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{cp.headline}</span>
                 )}
                 {cp.years_of_experience && (
                   <span style={{
