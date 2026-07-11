@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
 
@@ -176,15 +177,15 @@ function TalkBadge() {
 
 // ── AmbassadorGridCard ───────────────────────────────────────────────
 function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
+  const router = useRouter();
   const tags = resolveTopicTags(card);
-  // ②重複防止: roleTitle と department が同じ文字列なら department を省略
   const roleDisplay = card.roleTitle ?? card.department ?? "採用担当";
   const showDept = card.department && card.roleTitle && card.department !== card.roleTitle;
 
   return (
     <div
+      onClick={() => router.push(`/u/${card.userId}`)}
       style={{
-        position: "relative",
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
@@ -204,88 +205,48 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
       }}
     >
-      {/* カード全体リンク（クリック可能エリア） */}
-      <Link
-        href={`/u/${card.userId}`}
-        aria-label={`${card.name}のプロフィールを見る`}
-        style={{ position: "absolute", inset: 0, borderRadius: 16, zIndex: 0 }}
-      />
-
-      {/* アバター（④現職バッジは削除） */}
-      <div style={{ marginBottom: 14, position: "relative", zIndex: 1 }}>
+      <div style={{ marginBottom: 14 }}>
         <Avatar card={card} size={64} />
       </div>
 
-      {/* 名前 + 話せるバッジ */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
-          {card.name}
-        </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
         <TalkBadge />
       </div>
 
-      {/* 役職（②重複排除） */}
-      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, position: "relative", zIndex: 1 }}>
+      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
         {roleDisplay}
-        {showDept && (
-          <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>
-        )}
+        {showDept && <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>}
       </div>
 
-      {/* 会社名 */}
-      <div style={{ marginBottom: 14, position: "relative", zIndex: 1 }}>
+      <div style={{ marginBottom: 14 }}>
         <CompanyBadge card={card} />
       </div>
 
-      {/* ⑦ テーマタグ（DB設定値優先） */}
       {tags.length > 0 && (
-        <div style={{ marginBottom: 16, position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>
-            テーマ
-          </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>テーマ</div>
           <TopicTags tags={tags} />
         </div>
       )}
 
-      {/* ⑧CTAボタン + サブテキスト */}
-      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, position: "relative", zIndex: 1 }}>
-        <div>
-          <Link
-            href={`/people/${card.adminId}/reserve`}
-            style={{
-              display: "block", textAlign: "center",
-              padding: "9px 16px",
-              background: "linear-gradient(135deg, #F59E0B, #F97316)",
-              color: "#fff",
-              borderRadius: 9,
-              fontSize: 13, fontWeight: 700,
-              textDecoration: "none",
-              transition: "opacity 0.15s",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.88"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
-          >
-            話を聞く →
-          </Link>
-          <div style={{ textAlign: "center", fontSize: 10, color: "var(--ink-mute)", marginTop: 4 }}>
-            カジュアル面談（無料）
-          </div>
-        </div>
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
         <Link
-          href={`/u/${card.userId}`}
+          href={`/people/${card.adminId}/reserve`}
+          onClick={(e) => e.stopPropagation()}
           style={{
             display: "block", textAlign: "center",
-            padding: "8px 16px",
-            background: "var(--royal-50)",
-            color: "var(--royal)",
-            borderRadius: 9,
-            fontSize: 12, fontWeight: 600,
-            textDecoration: "none",
-            border: "1px solid var(--royal-100)",
+            padding: "9px 16px",
+            background: "linear-gradient(135deg, #F59E0B, #F97316)",
+            color: "#fff", borderRadius: 9,
+            fontSize: 13, fontWeight: 700, textDecoration: "none",
           }}
         >
-          プロフィールを見る
+          話を聞く →
         </Link>
+        <div style={{ textAlign: "center", fontSize: 10, color: "var(--ink-mute)" }}>
+          カジュアル面談（無料）
+        </div>
       </div>
     </div>
   );
@@ -293,41 +254,33 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
 
 // ── AmbassadorListRow ────────────────────────────────────────────────
 function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
+  const router = useRouter();
   const tags = resolveTopicTags(card);
-  // ②重複防止
   const roleDisplay = card.roleTitle ?? card.department ?? "採用担当";
   const showDept = card.department && card.roleTitle && card.department !== card.roleTitle;
 
   return (
-    <div style={{
-      position: "relative",
-      display: "grid",
-      gridTemplateColumns: "64px 1fr auto",
-      alignItems: "center",
-      gap: 16,
-      padding: "18px 24px",
-      borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-      background: "#fff",
-      transition: "background 0.1s",
-      cursor: "pointer",
-    }}
+    <div
+      onClick={() => router.push(`/u/${card.userId}`)}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "64px 1fr auto",
+        alignItems: "center",
+        gap: 16,
+        padding: "18px 24px",
+        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
+        background: "#fff",
+        transition: "background 0.1s",
+        cursor: "pointer",
+      }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
-      {/* カード全体リンク */}
-      <Link
-        href={`/u/${card.userId}`}
-        aria-label={`${card.name}のプロフィールを見る`}
-        style={{ position: "absolute", inset: 0, zIndex: 0 }}
-      />
-
       {/* アバター */}
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <Avatar card={card} size={52} />
-      </div>
+      <Avatar card={card} size={52} />
 
-      {/* 名前・役職・タグ（④現職バッジ削除） */}
-      <div style={{ minWidth: 0, position: "relative", zIndex: 1 }}>
+      {/* 名前・役職・タグ */}
+      <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
           <TalkBadge />
@@ -340,14 +293,14 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
           <span style={{ margin: "0 6px", color: "var(--line)" }}>|</span>
           <CompanyBadge card={card} />
         </div>
-        {/* ⑦ DB設定タグがある場合のみ表示 */}
         {tags.length > 0 && <TopicTags tags={tags} />}
       </div>
 
-      {/* ⑧CTAボタン + サブテキスト */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "center", position: "relative", zIndex: 1 }}>
+      {/* CTAボタン */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "center" }}>
         <Link
-          href={`/companies/${card.companyId}/casual-meeting`}
+          href={`/people/${card.adminId}/reserve`}
+          onClick={(e) => e.stopPropagation()}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             padding: "8px 18px",
@@ -364,22 +317,6 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
         <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
           カジュアル面談（無料）
         </div>
-        <Link
-          href={`/u/${card.userId}`}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "6px 14px",
-            background: "transparent",
-            color: "var(--royal)",
-            borderRadius: 8,
-            fontSize: 11, fontWeight: 600,
-            textDecoration: "none",
-            border: "1px solid var(--royal-100)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          プロフィール
-        </Link>
       </div>
     </div>
   );
@@ -475,14 +412,15 @@ function PeerBadge() {
 
 // ── PeerGridCard ─────────────────────────────────────────────────────
 function PeerGridCard({ card }: { card: PeerCard }) {
+  const router = useRouter();
   const jobTypeLabel = card.jobType
     ? (JOB_TYPE_DISPLAY_LABELS[card.jobType] ?? card.jobType)
     : null;
 
   return (
     <div
+      onClick={() => router.push(`/u/${card.userId}`)}
       style={{
-        position: "relative",
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
         padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 0,
         transition: "box-shadow 0.15s, transform 0.15s",
@@ -497,65 +435,47 @@ function PeerGridCard({ card }: { card: PeerCard }) {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
       }}
     >
-      {/* カード全体リンク */}
-      <Link
-        href={`/u/${card.userId}`}
-        aria-label={`${card.name}のプロフィールを見る`}
-        style={{ position: "absolute", inset: 0, borderRadius: 16, zIndex: 0 }}
-      />
-      <div style={{ marginBottom: 14, position: "relative", zIndex: 1 }}>
+      <div style={{ marginBottom: 14 }}>
         <PeerAvatar card={card} size={64} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
         <PeerBadge />
       </div>
       {card.roleTitle && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6, position: "relative", zIndex: 1 }}>{card.roleTitle}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>{card.roleTitle}</div>
       )}
       {card.companyName && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, position: "relative", zIndex: 1 }}>{card.companyName}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10 }}>{card.companyName}</div>
       )}
       {card.headline && (
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6, position: "relative", zIndex: 1,
+        <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6,
           display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           {card.headline}
         </p>
       )}
       {!card.headline && jobTypeLabel && (
-        <div style={{ marginBottom: 10, position: "relative", zIndex: 1 }}>
+        <div style={{ marginBottom: 10 }}>
           <TopicTags tags={[jobTypeLabel]} />
         </div>
       )}
       {card.yearsOfExperience && (
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, position: "relative", zIndex: 1 }}>
+        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10 }}>
           経験 {card.yearsOfExperience}年
         </div>
       )}
-      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, position: "relative", zIndex: 1 }}>
+      <div style={{ marginTop: "auto" }}>
         <Link
           href={`/u/${card.userId}`}
+          onClick={(e) => e.stopPropagation()}
           style={{
             display: "block", textAlign: "center", padding: "9px 16px",
             background: "linear-gradient(135deg, var(--purple), #9333ea)",
             color: "#fff", borderRadius: 9, fontSize: 13, fontWeight: 700,
-            textDecoration: "none", transition: "opacity 0.15s",
+            textDecoration: "none",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "0.88"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = "1"; }}
         >
           キャリア軌跡を見る →
-        </Link>
-        <Link
-          href={`/u/${card.userId}`}
-          style={{
-            display: "block", textAlign: "center", padding: "8px 16px",
-            background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 9, fontSize: 12, fontWeight: 600,
-            textDecoration: "none", border: "1px solid var(--royal-100)",
-          }}
-        >
-          プロフィール
         </Link>
       </div>
     </div>
@@ -564,32 +484,26 @@ function PeerGridCard({ card }: { card: PeerCard }) {
 
 // ── PeerListRow ──────────────────────────────────────────────────────
 function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
+  const router = useRouter();
   const jobTypeLabel = card.jobType
     ? (JOB_TYPE_DISPLAY_LABELS[card.jobType] ?? card.jobType)
     : null;
 
   return (
-    <div style={{
-      position: "relative",
-      display: "grid", gridTemplateColumns: "64px 1fr auto", alignItems: "center",
-      gap: 16, padding: "18px 24px",
-      borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-      background: "#fff", transition: "background 0.1s",
-      cursor: "pointer",
-    }}
+    <div
+      onClick={() => router.push(`/u/${card.userId}`)}
+      style={{
+        display: "grid", gridTemplateColumns: "64px 1fr auto", alignItems: "center",
+        gap: 16, padding: "18px 24px",
+        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
+        background: "#fff", transition: "background 0.1s",
+        cursor: "pointer",
+      }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
-      {/* カード全体リンク */}
-      <Link
-        href={`/u/${card.userId}`}
-        aria-label={`${card.name}のプロフィールを見る`}
-        style={{ position: "absolute", inset: 0, zIndex: 0 }}
-      />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <PeerAvatar card={card} size={52} />
-      </div>
-      <div style={{ minWidth: 0, position: "relative", zIndex: 1 }}>
+      <PeerAvatar card={card} size={52} />
+      <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
           <PeerBadge />
@@ -610,9 +524,10 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
         )}
         {!card.headline && jobTypeLabel && <TopicTags tags={[jobTypeLabel]} />}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "flex-end", position: "relative", zIndex: 1 }}>
+      <div style={{ flexShrink: 0 }}>
         <Link
           href={`/u/${card.userId}`}
+          onClick={(e) => e.stopPropagation()}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             padding: "8px 16px",
@@ -622,17 +537,6 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
           }}
         >
           キャリア軌跡 →
-        </Link>
-        <Link
-          href={`/u/${card.userId}`}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "6px 14px", background: "var(--royal-50)", color: "var(--royal)",
-            borderRadius: 8, fontSize: 11, fontWeight: 600,
-            textDecoration: "none", border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
-          }}
-        >
-          プロフィール
         </Link>
       </div>
     </div>
