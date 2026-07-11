@@ -604,22 +604,6 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
                 {phaseBadge.label}
               </span>
             )}
-            {isRecentlyUpdated && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  padding: "2px 7px",
-                  borderRadius: 100,
-                  background: "#f0fdf4",
-                  color: "#15803d",
-                  border: "1px solid #bbf7d0",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {daysSinceUpdate === 0 ? "今日更新" : `${daysSinceUpdate}日前更新`}
-              </span>
-            )}
             {company.accepting_casual_meetings && (
               <span
                 style={{
