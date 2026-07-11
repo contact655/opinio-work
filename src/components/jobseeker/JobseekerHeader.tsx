@@ -11,7 +11,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
   { href: "/jobs", label: "求人", highlight: false },
-  { href: "/people", label: "先輩を知る", highlight: false },
+  { href: "/people", label: "ユーザー", highlight: false },
   { href: "/career-trajectories", label: "キャリア軌跡", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
@@ -685,6 +685,13 @@ export function JobseekerHeader() {
                   無料登録
                 </Link>
               </div>
+              <Link
+                href="/career-agent"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{ display: "block", margin: "8px 16px 4px", padding: "11px 20px", fontSize: 14, fontWeight: 700, color: "#92400E", background: "#FEF3C7", border: "1.5px solid #FDE68A", borderRadius: 8, textDecoration: "none", textAlign: "center" }}
+              >
+                キャリア相談（無料）
+              </Link>
               <Link
                 href="/business"
                 onClick={() => setMobileMenuOpen(false)}

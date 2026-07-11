@@ -1054,34 +1054,6 @@ function JobListItem({
             </div>
           )}
 
-          {/* 先輩strip — LinkedIn「あなたの繋がり」相当：会社名直下で目立たせる */}
-          {alumni.length > 0 && (
-            <div style={{ marginBottom: 5 }}>
-              <span
-                role="presentation"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "3px 10px 3px 6px", borderRadius: 20,
-                  background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
-                  border: "1.5px solid var(--royal-100)", cursor: "pointer",
-                }}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${job.company_id}#members`); }}
-              >
-                <span style={{ display: "inline-flex", alignItems: "center" }}>
-                  {alumni.slice(0, 3).map((a, i) => (
-                    <a key={a.userId} href={`/u/${a.userId}`} onClick={(e) => e.stopPropagation()} title={a.name}
-                      style={{ width: 24, height: 24, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i, textDecoration: "none" }}>
-                      {a.name.replace(/\s/g, "").charAt(0)}
-                    </a>
-                  ))}
-                </span>
-                <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, whiteSpace: "nowrap" }}>
-                  {alumni.length === 1 ? `${alumni[0].name.slice(0, 3)}さんが先輩にいます` : `先輩${alumni.length}名がいます`}
-                  <span style={{ fontSize: 10, marginLeft: 4, color: "#3B5FD9" }}>話を聞く →</span>
-                </span>
-              </span>
-            </div>
-          )}
 
           {/* 行3: 年収 · 勤務地 · 勤務形態 · 口コミ */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -1225,28 +1197,6 @@ function JobDetailPane({
         <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", lineHeight: 1.35, marginBottom: 14, letterSpacing: "-0.02em" }}>
           {job.role}
         </h2>
-
-        {/* Alumni strip (大きく目立つ版) */}
-        {alumni.length > 0 && (
-          <Link href={`/companies/${company.id}#members`} style={{
-            display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
-            padding: "8px 12px", borderRadius: 10,
-            background: "linear-gradient(135deg, #EFF3FC 0%, #DCE5F7 100%)",
-            border: "1.5px solid var(--royal-100)", textDecoration: "none",
-          }}>
-            <span style={{ display: "inline-flex", alignItems: "center" }}>
-              {alumni.slice(0, 3).map((a, i) => (
-                <span key={a.userId} title={a.name} style={{ width: 28, height: 28, borderRadius: "50%", background: a.gradient, border: "2px solid #fff", marginLeft: i === 0 ? 0 : -9, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", flexShrink: 0, position: "relative", zIndex: 3 - i }}>
-                  {a.name.replace(/\s/g, "").charAt(0)}
-                </span>
-              ))}
-            </span>
-            <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700 }}>
-              {alumni.length === 1 ? `${alumni[0].name.slice(0, 3)}さんが先輩にいます` : `先輩${alumni.length}名がいます`}
-              <span style={{ fontSize: 11, marginLeft: 4, color: "#3B5FD9" }}>話を聞く →</span>
-            </span>
-          </Link>
-        )}
 
         {/* Meta */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, padding: "10px 12px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 12 }}>
