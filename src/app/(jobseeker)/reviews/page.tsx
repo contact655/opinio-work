@@ -99,17 +99,7 @@ export default async function ReviewsPage() {
                 href={`/companies/${s.companyId}#reviews`}
                 style={{ textDecoration: "none", display: "block" }}
               >
-                <div style={{
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: 16,
-                  padding: "20px 24px",
-                  transition: "box-shadow 0.15s, border-color 0.15s",
-                  cursor: "pointer",
-                }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 20px rgba(15,23,42,0.10)"; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal-100)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = ""; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--line)"; }}
-                >
+                <div className="review-company-card">
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                     {/* ロゴ */}
                     <div style={{
