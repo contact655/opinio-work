@@ -73,8 +73,9 @@ export async function searchCompanies(
   const supabase = createPublicClient();
 
   // ── DB側ページネーションを使うか判定
-  // hiring / foreign / salaryMin フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const useDbPagination = !params.hiring && !params.foreign && !params.salaryMin && params.phase !== "外資系" && params.limit !== undefined;
+  // hiring / foreign / salaryMin / クライアントソート フィルターはアプリ側で処理するため、DB ページネーションと併用不可
+  const clientSideSort = params.sort === "jobs" || params.sort === "salary" || params.sort === "disclosure";
+  const useDbPagination = !params.hiring && !params.foreign && !params.salaryMin && params.phase !== "外資系" && !clientSideSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -126,9 +127,7 @@ export async function searchCompanies(
   // ── Step 1: データ取得 + 総件数を1クエリで同時取得（count: "exact"）
   // 旧: COUNT クエリ → await → DATA クエリ（2 hop）
   // 新: DATA クエリ + count: "exact" で1 hop に統合
-  const orderCol = params.sort === "employees" ? "employee_count"
-                : params.sort === "salary"    ? "avg_salary"
-                : "updated_at";
+  const orderCol = params.sort === "employees" ? "employee_count" : "updated_at";
   const orderAsc = false;
 
   let dataQuery = applyFilters(
@@ -228,6 +227,32 @@ export async function searchCompanies(
       return (c as { is_foreign?: boolean }).is_foreign === true;
     });
     totalCount = filteredCompanies.length;
+  }
+
+  // client-side ソート（jobs / salary / disclosure）
+  if (params.sort === "jobs") {
+    filteredCompanies = [...filteredCompanies].sort((a, b) => (b.job_count ?? 0) - (a.job_count ?? 0));
+  } else if (params.sort === "salary") {
+    const parseSalary = (c: CompanyForCarousel) => {
+      const s = (c as { avg_salary?: string | number | null }).avg_salary;
+      if (!s) return 0;
+      const n = parseInt(String(s).replace(/[^0-9]/g, ""), 10);
+      return isNaN(n) ? 0 : n;
+    };
+    filteredCompanies = [...filteredCompanies].sort((a, b) => parseSalary(b) - parseSalary(a));
+  } else if (params.sort === "disclosure") {
+    const disclosureScore = (c: CompanyForCarousel) => {
+      let score = 0;
+      const s = (c as { avg_salary?: string | number | null }).avg_salary;
+      if (s && String(s).replace(/[^0-9]/g, "")) score += 2;
+      if ((c.article_count ?? 0) > 0) score += 3;
+      if ((c.job_count ?? 0) > 0) score += 1;
+      if (Array.isArray(c.company_features) && c.company_features.length > 0) score += 1;
+      if ((c.current_member_count ?? 0) > 0) score += 2;
+      if ((c.obog_count ?? 0) > 0) score += 1;
+      return score;
+    };
+    filteredCompanies = [...filteredCompanies].sort((a, b) => disclosureScore(b) - disclosureScore(a));
   }
 
   return {
