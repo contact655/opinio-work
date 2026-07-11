@@ -496,12 +496,6 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
   const fallbackGradient = "linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)";
   const industryBadge = getIndustryBadge(company.industry);
   const phaseBadge = getPhaseBadge(company.phase);
-  const daysSinceUpdate = (() => {
-    if (!company.updated_at) return 99;
-    const diff = (Date.now() - new Date(company.updated_at).getTime()) / (1000 * 60 * 60 * 24);
-    return Math.floor(diff);
-  })();
-  const isRecentlyUpdated = daysSinceUpdate <= 7;
 
   return (
     <Link href={`/companies/${company.id}`} prefetch={true} style={{ textDecoration: "none", display: "block" }}>
