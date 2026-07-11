@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Company = {
@@ -69,7 +70,14 @@ export default function ReviewsClient({
   salaries: SalaryRow[];
   companies: Company[];
 }) {
-  const [tab, setTab] = useState<"reviews" | "salary">("reviews");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<"reviews" | "salary">(
+    searchParams.get("tab") === "salary" ? "salary" : "reviews"
+  );
+
+  useEffect(() => {
+    setTab(searchParams.get("tab") === "salary" ? "salary" : "reviews");
+  }, [searchParams]);
 
   const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]));
 

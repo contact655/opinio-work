@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { MobileBottomNav } from "@/components/jobseeker/MobileBottomNav";
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
 export default function JobseekerLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <JobseekerHeader />
+      <Suspense fallback={null}><JobseekerHeader /></Suspense>
       <main id="main-content" style={{ flex: 1 }}>
         {children}
       </main>

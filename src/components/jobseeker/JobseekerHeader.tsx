@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown } from "lucide-react";
@@ -12,7 +12,8 @@ const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
   { href: "/jobs", label: "求人", highlight: false },
   { href: "/people", label: "ユーザー", highlight: false },
-  { href: "/reviews", label: "口コミ・給与", highlight: false },
+  { href: "/reviews", label: "口コミ", highlight: false },
+  { href: "/reviews?tab=salary", label: "給与", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
 
@@ -25,6 +26,7 @@ const POPULAR_QUERIES = ["プロダクトマネージャー", "エンジニア",
 
 export function JobseekerHeader() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [user, setUser] = useState<{ email: string; name: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -189,7 +191,11 @@ export function JobseekerHeader() {
           {/* Nav — desktop only */}
           <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 8, flex: 1, alignItems: "center" }}>
             {NAV_LINKS.map(({ href, label, highlight }) => {
-              const active = pathname.startsWith(href);
+              const [hrefPath, hrefQuery] = href.split("?");
+              const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
+              const active = hrefTab
+                ? pathname === hrefPath && searchParams.get("tab") === hrefTab
+                : pathname.startsWith(hrefPath) && !searchParams.get("tab");
               if (highlight) {
                 return (
                   <Link
@@ -593,7 +599,11 @@ export function JobseekerHeader() {
         {/* Nav links */}
         <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
           {NAV_LINKS.map(({ href, label, highlight }) => {
-            const active = pathname.startsWith(href);
+            const [hrefPath, hrefQuery] = href.split("?");
+            const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
+            const active = hrefTab
+              ? pathname === hrefPath && searchParams.get("tab") === hrefTab
+              : pathname.startsWith(hrefPath) && !searchParams.get("tab");
             if (highlight) {
               return (
                 <Link

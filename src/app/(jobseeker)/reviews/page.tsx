@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ReviewsClient from "./ReviewsClient";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +29,12 @@ export default async function ReviewsPage() {
   ]);
 
   return (
-    <ReviewsClient
-      reviews={reviews ?? []}
-      salaries={salaries ?? []}
-      companies={companies ?? []}
-    />
+    <Suspense fallback={null}>
+      <ReviewsClient
+        reviews={reviews ?? []}
+        salaries={salaries ?? []}
+        companies={companies ?? []}
+      />
+    </Suspense>
   );
 }
