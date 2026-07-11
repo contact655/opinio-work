@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
@@ -293,7 +294,7 @@ function ProfilePhotoUploader({
             overflow: "hidden",
           }}>
             {coverPhotoUrl && (
-              <img src={coverPhotoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <Image src={coverPhotoUrl} alt="" fill style={{ objectFit: "cover" }} />
             )}
             {/* Upload cover overlay */}
             <button
@@ -334,7 +335,7 @@ function ProfilePhotoUploader({
               onClick={() => avatarInputRef.current?.click()}
               >
                 {avatarUrl
-                  ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ? <Image src={avatarUrl} alt="" fill style={{ objectFit: "cover" }} />
                   : (basicInfoName.charAt(0) || "?")}
               </div>
               <button

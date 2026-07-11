@@ -21,7 +21,8 @@ export const metadata: Metadata = {
 const getHomeData = unstable_cache(
   async () => {
     const admin = createAdminClient();
-    const [companiesRes, statsRes] = await Promise.all([
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const [companiesRes, companiesCount, jobsCount, newJobsRes] = await Promise.all([
       admin
         .from("ow_companies")
         .select(
@@ -30,10 +31,13 @@ const getHomeData = unstable_cache(
         .eq("is_published", true)
         .order("display_order", { ascending: true, nullsFirst: false })
         .limit(12),
-      Promise.all([
-        admin.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
-        admin.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["published", "active"]),
-      ]) as Promise<[{ count: number | null }, { count: number | null }]>,
+      admin.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
+      admin.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["published", "active"]),
+      admin
+        .from("ow_jobs")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["published", "active"])
+        .gte("published_at", oneWeekAgo),
     ]);
 
     const companies = (companiesRes.data ?? []).map((row) => ({
@@ -48,16 +52,9 @@ const getHomeData = unstable_cache(
       employeeCount: row.employee_count as number | null,
     }));
 
-    const [companiesCount, jobsCount] = statsRes;
     const companyNum = `${companiesCount.count ?? 0}社+`;
     const jobNum = `${jobsCount.count ?? 0}件+`;
-
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { count: newJobsCount } = await admin
-      .from("ow_jobs")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["published", "active"])
-      .gte("published_at", oneWeekAgo);
+    const newJobsCount = newJobsRes.count;
 
     return { companies, companyNum, jobNum, newJobsThisWeek: newJobsCount ?? 0 };
   },

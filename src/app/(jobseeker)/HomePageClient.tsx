@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import HomeFaq from "@/app/HomeFaq";
@@ -70,8 +71,7 @@ function FeaturedThreeCards() {
                   {/* Logo area */}
                   <div style={{ height: 72, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--line-soft)", background: "#fafafa" }}>
                     {showLogo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={co.logoUrl ?? undefined} alt={co.brandName} style={{ maxHeight: 36, maxWidth: "60%", objectFit: "contain" }}
+                      <Image src={co.logoUrl ?? ""} alt={co.brandName} width={120} height={36} style={{ maxHeight: 36, maxWidth: "60%", objectFit: "contain", width: "auto" }}
                         onError={() => setImgErrors(prev => new Set(Array.from(prev).concat(co.id)))} />
                     ) : (
                       <div style={{ width: 44, height: 44, borderRadius: 10, background: co.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "#fff" }}>{co.logoLetter}</div>
@@ -448,7 +448,7 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
             flexShrink: 0, overflow: "hidden",
           }}>
             {c.logoUrl
-              ? <img src={c.logoUrl} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              ? <Image src={c.logoUrl} alt={c.name} width={48} height={48} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
               : c.letter
             }
           </div>

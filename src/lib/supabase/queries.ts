@@ -728,42 +728,26 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 
   const { data: expRows } = await supabase
     .from("ow_experiences")
-    .select("user_id, role_title, is_current, role_category_id")
+    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility)")
     .in("role_category_id", roleIds);
 
   if (!expRows || expRows.length === 0) return [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const expData = expRows as Record<string, any>[];
-  const userIds = Array.from(new Set(expData.map((e) => e.user_id as string)));
-
-  const { data: users } = await supabase
-    .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, visibility")
-    .in("id", userIds)
-    .eq("visibility", "public");
-
-  if (!users || users.length === 0) return [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const publicUserIds = new Set(users.map((u: any) => u.id as string));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userMap = new Map(users.map((u: any) => [u.id as string, u]));
 
   const seen = new Set<string>();
   const result: JobPositionMember[] = [];
 
   for (const exp of expData) {
-    const uid = exp.user_id as string;
-    if (!publicUserIds.has(uid) || seen.has(uid)) continue;
+    const user = exp.ow_users as Record<string, any> | null;
+    if (!user || user.visibility !== "public") continue;
+    const uid = user.id as string;
+    if (seen.has(uid)) continue;
     seen.add(uid);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = userMap.get(uid) as Record<string, any>;
     const name = (user.name as string) ?? "—";
     const avatarColor = user.avatar_color as string | null;
     const avatarUrl = user.avatar_url as string | null;
-
     result.push({
       userId: uid,
       name,
@@ -773,12 +757,12 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
       gradient: avatarColor?.startsWith("linear-gradient") ? avatarColor : FALLBACK_GRADIENT,
       initial: name.charAt(0),
     });
-
     if (result.length >= 6) break;
   }
 
   return result;
 }
+
 
 export async function getJobById(
   id: string
@@ -799,25 +783,25 @@ export async function getJobById(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jobRow = data as Record<string, any>;
 
-  const { data: compData, error: compErr } = await supabase
-    .from("ow_companies")
-    .select(COMPANY_LIST_COLS)
-    .eq("id", jobRow.company_id)
-    .single();
+  const [{ data: compData, error: compErr }, { data: relatedRows }] = await Promise.all([
+    supabase
+      .from("ow_companies")
+      .select(COMPANY_LIST_COLS)
+      .eq("id", jobRow.company_id)
+      .single(),
+    supabase
+      .from("ow_jobs")
+      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, updated_at")
+      .eq("company_id", jobRow.company_id)
+      .in("status", ["active", "published"])
+      .neq("id", jobRow.id)
+      .limit(3),
+  ]);
 
   if (compErr || !compData) {
     console.error("[getJobById] company not found for", jobRow.company_id);
     return null;
   }
-
-  // Fetch up to 3 other jobs from same company
-  const { data: relatedRows } = await supabase
-    .from("ow_jobs")
-    .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, updated_at")
-    .eq("company_id", jobRow.company_id)
-    .in("status", ["active", "published"])
-    .neq("id", jobRow.id)
-    .limit(3);
   const relatedJobs: Job[] = (relatedRows ?? []).map((r) => mapJob(r as Record<string, unknown>));
 
   return {

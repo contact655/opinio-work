@@ -86,15 +86,13 @@ async function fetchUserRecommendations(
 }
 
 export default async function JobsPage() {
-  const [{ jobs, companies }, parentRoles] = await Promise.all([
+  const [{ jobs, companies }, parentRoles, reviewSummaries] = await Promise.all([
     getJobs(),
     getParentRoles(),
-  ]);
-
-  const [recommendations, reviewSummaries] = await Promise.all([
-    fetchUserRecommendations(jobs, companies),
     getCompanyReviewSummaries(),
   ]);
+
+  const recommendations = await fetchUserRecommendations(jobs, companies);
 
   return (
     <Suspense

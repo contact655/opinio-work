@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 
 // ─── ShareButton ───────────────────────────────────────────────────────────────
@@ -84,8 +85,7 @@ export function EmployeeAvatarImg({
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} onError={() => setErrored(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    <Image src={src} alt={alt} fill onError={() => setErrored(true)} style={{ objectFit: "cover" }} />
   );
 }
 

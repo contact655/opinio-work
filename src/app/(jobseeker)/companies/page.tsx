@@ -12,8 +12,6 @@ import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOv
 
 type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
-// searchParams（フィルター）を使うため dynamic にする
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS企業を知る | OPINIO" },
