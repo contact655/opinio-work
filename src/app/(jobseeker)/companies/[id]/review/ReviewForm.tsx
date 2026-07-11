@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type Company = { id: string; name: string; industry: string | null; phase: string | null };
@@ -44,7 +43,6 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 export default function ReviewForm({ company }: { company: Company }) {
-  const router = useRouter();
   const [employmentStatus, setEmploymentStatus] = useState<"current" | "alumni">("current");
   const [jobType, setJobType] = useState("");
   const [ratingOverall, setRatingOverall] = useState(0);

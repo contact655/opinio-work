@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getJobs, getParentRoles, getJobAlumniMap, getCompanyReviewSummaries, type CompanyReviewSummary } from "@/lib/supabase/queries";
+import { getJobs, getParentRoles, getJobAlumniMap, getCompanyReviewSummaries } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
