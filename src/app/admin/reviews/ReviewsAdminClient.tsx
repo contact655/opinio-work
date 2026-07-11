@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RATING_AXES } from "@/lib/constants/reviewAxes";
 
 type Review = {
   id: string;
@@ -11,6 +12,9 @@ type Review = {
   rating_growth: number | null;
   rating_wlb: number | null;
   rating_compensation: number | null;
+  rating_leadership: number | null;
+  rating_business: number | null;
+  rating_welfare: number | null;
   pros: string | null;
   cons: string | null;
   job_type: string | null;
@@ -185,18 +189,16 @@ export default function ReviewsAdminClient({ initialReviews }: { initialReviews:
               </div>
             </div>
 
-            {(r.rating_culture || r.rating_growth || r.rating_wlb || r.rating_compensation) && (
-              <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
-                {[
-                  { label: "社風", v: r.rating_culture },
-                  { label: "成長", v: r.rating_growth },
-                  { label: "WLB", v: r.rating_wlb },
-                  { label: "報酬", v: r.rating_compensation },
-                ].filter(x => x.v).map(({ label, v }) => (
-                  <span key={label} style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                    {label}: <span style={{ color: "#B45309" }}>{"★".repeat(v!)}{"☆".repeat(5 - v!)}</span>
-                  </span>
-                ))}
+            {RATING_AXES.some(({ key }) => (r as unknown as Record<string, unknown>)[key]) && (
+              <div style={{ display: "flex", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+                {RATING_AXES.map(({ key, label }) => {
+                  const v = (r as unknown as Record<string, number | null>)[key];
+                  return v ? (
+                    <span key={key} style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                      {label}: <span style={{ color: "#B45309" }}>{"★".repeat(v)}{"☆".repeat(5 - v)}</span>
+                    </span>
+                  ) : null;
+                })}
               </div>
             )}
 

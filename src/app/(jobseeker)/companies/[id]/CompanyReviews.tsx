@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
+import { RATING_AXES } from "@/lib/constants/reviewAxes";
 import { createClient } from "@/lib/supabase/client";
 
 type Review = {
@@ -13,6 +14,9 @@ type Review = {
   rating_growth: number | null;
   rating_wlb: number | null;
   rating_compensation: number | null;
+  rating_leadership: number | null;
+  rating_business: number | null;
+  rating_welfare: number | null;
   pros: string | null;
   cons: string | null;
   job_type: string | null;
@@ -26,14 +30,10 @@ type Summary = {
   avg_growth: number | null;
   avg_wlb: number | null;
   avg_compensation: number | null;
+  avg_leadership: number | null;
+  avg_business: number | null;
+  avg_welfare: number | null;
 };
-
-const RATING_LABELS = [
-  { key: "rating_culture", label: "社風・文化", avg_key: "avg_culture" },
-  { key: "rating_growth", label: "成長機会", avg_key: "avg_growth" },
-  { key: "rating_wlb", label: "WLB", avg_key: "avg_wlb" },
-  { key: "rating_compensation", label: "報酬水準", avg_key: "avg_compensation" },
-] as const;
 
 function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -185,7 +185,7 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
             </div>
             {/* カテゴリ別バー */}
             <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 10, justifyContent: "center" }}>
-              {RATING_LABELS.map(({ label, avg_key }) => (
+              {RATING_AXES.map(({ label, avg_key }) => (
                 <RatingBar key={avg_key} label={label} value={(summary as unknown as Record<string, number | null>)[avg_key]} />
               ))}
             </div>
@@ -282,6 +282,9 @@ function ReviewModal({ companyId, companyName, onClose, onSuccess }: {
     rating_growth: 0,
     rating_wlb: 0,
     rating_compensation: 0,
+    rating_leadership: 0,
+    rating_business: 0,
+    rating_welfare: 0,
     pros: "",
     cons: "",
   });
@@ -369,9 +372,9 @@ function ReviewModal({ companyId, companyName, onClose, onSuccess }: {
           <div>
             <label style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", display: "block", marginBottom: 12 }}>カテゴリ別評価（任意）</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {RATING_LABELS.map(({ key, label }) => (
+              {RATING_AXES.map(({ key, label }) => (
                 <div key={key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", width: 72, flexShrink: 0 }}>{label}</span>
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", width: 84, flexShrink: 0 }}>{label}</span>
                   <StarPicker
                     value={(form as unknown as Record<string, number>)[key]}
                     onChange={(v) => setForm(f => ({ ...f, [key]: v }))}

@@ -20,21 +20,26 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient();
   const { data: reviews } = await admin
     .from("ow_company_reviews")
-    .select("id, employment_status, rating_overall, rating_culture, rating_growth, rating_wlb, rating_compensation, pros, cons, job_type, created_at")
+    .select("id, employment_status, rating_overall, rating_culture, rating_growth, rating_wlb, rating_compensation, rating_leadership, rating_business, rating_welfare, pros, cons, job_type, created_at")
     .eq("company_id", companyId)
     .eq("is_approved", true)
     .order("created_at", { ascending: false });
 
   const list = reviews ?? [];
 
-  // サマリー計算
+  const pick = (key: string) => list.map((r) => (r as Record<string, unknown>)[key]).filter((v) => typeof v === "number") as number[];
+
+  // サマリー計算（null軸は除外）
   const summary = list.length === 0 ? null : {
     count: list.length,
-    avg_overall: avg(list.map((r) => r.rating_overall)),
-    avg_culture: avg(list.map((r) => r.rating_culture).filter(Boolean) as number[]),
-    avg_growth: avg(list.map((r) => r.rating_growth).filter(Boolean) as number[]),
-    avg_wlb: avg(list.map((r) => r.rating_wlb).filter(Boolean) as number[]),
-    avg_compensation: avg(list.map((r) => r.rating_compensation).filter(Boolean) as number[]),
+    avg_overall:      avg(list.map((r) => r.rating_overall)),
+    avg_culture:      avg(pick("rating_culture")),
+    avg_growth:       avg(pick("rating_growth")),
+    avg_wlb:          avg(pick("rating_wlb")),
+    avg_compensation: avg(pick("rating_compensation")),
+    avg_leadership:   avg(pick("rating_leadership")),
+    avg_business:     avg(pick("rating_business")),
+    avg_welfare:      avg(pick("rating_welfare")),
   };
 
   return NextResponse.json({ reviews: list, summary });
@@ -60,7 +65,12 @@ export async function POST(req: NextRequest) {
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const body = await req.json();
-  const { company_id, employment_status, rating_overall, rating_culture, rating_growth, rating_wlb, rating_compensation, pros, cons, job_type } = body;
+  const {
+    company_id, employment_status, rating_overall,
+    rating_culture, rating_growth, rating_wlb, rating_compensation,
+    rating_leadership, rating_business, rating_welfare,
+    pros, cons, job_type,
+  } = body;
 
   if (!company_id || !employment_status || !rating_overall) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -73,10 +83,13 @@ export async function POST(req: NextRequest) {
       user_id: owUser.id,
       employment_status,
       rating_overall,
-      rating_culture: rating_culture || null,
-      rating_growth: rating_growth || null,
-      rating_wlb: rating_wlb || null,
+      rating_culture:      rating_culture      || null,
+      rating_growth:       rating_growth       || null,
+      rating_wlb:          rating_wlb          || null,
       rating_compensation: rating_compensation || null,
+      rating_leadership:   rating_leadership   || null,
+      rating_business:     rating_business     || null,
+      rating_welfare:      rating_welfare      || null,
       pros: pros || null,
       cons: cons || null,
       job_type: job_type || null,

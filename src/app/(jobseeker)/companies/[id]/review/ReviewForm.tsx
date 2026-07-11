@@ -2,15 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { RATING_AXES } from "@/lib/constants/reviewAxes";
 
 type Company = { id: string; name: string; industry: string | null; phase: string | null };
-
-const RATING_AXES = [
-  { key: "rating_culture",      label: "社風・カルチャー" },
-  { key: "rating_growth",       label: "成長・学習機会" },
-  { key: "rating_wlb",          label: "ワークライフバランス" },
-  { key: "rating_compensation", label: "報酬・評価制度" },
-] as const;
 
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hover, setHover] = useState(0);
@@ -66,10 +60,13 @@ export default function ReviewForm({ company }: { company: Company }) {
         company_id: company.id,
         employment_status: employmentStatus,
         rating_overall: ratingOverall,
-        rating_culture: ratings.rating_culture || null,
-        rating_growth: ratings.rating_growth || null,
-        rating_wlb: ratings.rating_wlb || null,
+        rating_culture:      ratings.rating_culture      || null,
+        rating_growth:       ratings.rating_growth       || null,
+        rating_wlb:          ratings.rating_wlb          || null,
         rating_compensation: ratings.rating_compensation || null,
+        rating_leadership:   ratings.rating_leadership   || null,
+        rating_business:     ratings.rating_business     || null,
+        rating_welfare:      ratings.rating_welfare      || null,
         pros: pros.trim() || null,
         cons: cons.trim() || null,
         job_type: jobType.trim() || null,
