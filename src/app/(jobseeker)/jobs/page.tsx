@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getJobs, getParentRoles, getJobAlumniMap, getCompanyReviewSummaries } from "@/lib/supabase/queries";
+import { getJobs, getParentRoles, getCompanyReviewSummaries } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
@@ -91,10 +91,7 @@ export default async function JobsPage() {
     getParentRoles(),
   ]);
 
-  const [alumniMap, recommendations, reviewSummaries] = await Promise.all([
-    getJobAlumniMap(
-      jobs.map((j) => ({ jobId: j.id, companyId: j.company_id, jobCategory: j.dept ?? null }))
-    ),
+  const [recommendations, reviewSummaries] = await Promise.all([
     fetchUserRecommendations(jobs, companies),
     getCompanyReviewSummaries(),
   ]);
@@ -113,7 +110,7 @@ export default async function JobsPage() {
         </div>
       }
     >
-      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} alumniMap={alumniMap} recommendations={recommendations} reviewSummaries={reviewSummaries} />
+      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} recommendations={recommendations} reviewSummaries={reviewSummaries} />
     </Suspense>
   );
 }
