@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
-import { JobPerformanceList } from "@/components/business/JobPerformanceList";
 import { UpgradeBanner } from "@/components/business/UpgradeBanner";
-import { EditorInvitation } from "@/components/business/EditorInvitation";
 import { JobStatusCards } from "@/components/business/JobStatusCards";
 import { TeamMembers } from "@/components/business/TeamMembers";
 import {
   getTenantContext,
-  getJobPerformance,
   getJobStatusCounts,
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
@@ -71,8 +68,7 @@ export default async function BizDashboardPage() {
   }
 
   const supabase = createClient();
-  const [jobPerformance, jobStatusCounts, teamMembers, companyRaw] = await Promise.all([
-    getJobPerformance(ctx.tenantId),
+  const [jobStatusCounts, teamMembers, companyRaw] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
@@ -190,11 +186,7 @@ export default async function BizDashboardPage() {
             求人管理へ →
           </Link>
         </div>
-        <JobPerformanceList jobs={jobPerformance} />
       </section>
-
-      {/* ── Editor invitation (最下部) ── */}
-      <EditorInvitation />
     </BusinessLayout>
   );
 }

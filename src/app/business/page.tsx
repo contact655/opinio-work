@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import React from "react";
 import Link from "next/link";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
-import { BusinessHero } from "@/components/business/BusinessHero";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 
@@ -127,9 +126,6 @@ export default async function ForCompaniesPage() {
     <>
       <BusinessHeader />
       <main style={{ paddingTop: 60 }}>
-
-        {/* ─── Hero ── */}
-        <BusinessHero />
 
         {/* ─── 01 TALENT ─── */}
         <section id="talent" style={{ background: "var(--bg-tint)", borderTop: "1px solid var(--line)", padding: "80px 24px" }}>
