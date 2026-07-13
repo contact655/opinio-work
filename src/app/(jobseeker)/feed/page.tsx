@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,16 +29,16 @@ export default async function FeedPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/auth?next=/feed");
+  // ow_users レコードを取得（未ログインは null）
+  let owUser: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null } | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("ow_users")
+      .select("id, name, avatar_color, avatar_url")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    owUser = data;
   }
-
-  // ow_users レコードを取得
-  const { data: owUser } = await supabase
-    .from("ow_users")
-    .select("id, name, avatar_color, avatar_url")
-    .eq("auth_id", user.id)
-    .maybeSingle();
 
   const myOwUserId = owUser?.id ?? null;
 
@@ -70,8 +69,13 @@ export default async function FeedPage() {
     likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
   }
 
-  // visibility フィルター（private は全員非表示 / login_only はログイン済みなので表示）
-  const visiblePosts = posts.filter((p) => p.user?.visibility !== "private");
+  // visibility フィルター（private は全員非表示 / login_only は未ログイン時も非表示）
+  const visiblePosts = posts.filter((p) => {
+    const v = p.user?.visibility;
+    if (v === "private") return false;
+    if (v === "login_only" && !user) return false;
+    return true;
+  });
 
   // 現職情報を別クエリで取得
   const userIds = Array.from(new Set(visiblePosts.map((p) => p.user?.id).filter(Boolean) as string[]));

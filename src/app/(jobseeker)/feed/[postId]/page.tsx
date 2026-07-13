@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -50,9 +50,9 @@ function formatDate(iso: string): string {
 export default async function FeedPostPage({ params }: { params: { postId: string } }) {
   if (!UUID_RE.test(params.postId)) notFound();
 
+  // 閲覧は未ログインOK（login_only 投稿は非表示）
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(`/auth?next=/feed/${params.postId}`);
 
   const adminSupabase = createAdminClient();
   const { data: raw } = await adminSupabase
@@ -69,6 +69,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   if (!raw) notFound();
   const p = raw as unknown as RawPost;
   if (p.user?.visibility === "private") notFound();
+  if (p.user?.visibility === "login_only" && !user) notFound();
 
   // 現職情報
   let roleTitle: string | null = null;

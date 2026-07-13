@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import FeedSidebar, {
   FeedInsertJobCard,
   FeedInsertPersonCard,
@@ -830,7 +831,7 @@ function CommentSection({
             color: "var(--ink-mute)",
           }}
         >
-          <Link href="/auth" style={{ color: "var(--accent)" }}>
+          <Link href="/auth?next=/feed" style={{ color: "var(--accent)" }}>
             ログイン
           </Link>
           するとコメントできます
@@ -863,11 +864,13 @@ function PostCard({
   const [liking, setLiking] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const router = useRouter();
 
   const isOwner = myUserId !== null && post.user.id === myUserId;
 
   const handleLike = async () => {
-    if (!myUserId || liking) return;
+    if (!myUserId) { router.push("/auth?next=/feed"); return; }
+    if (liking) return;
     const wasLiked = post.liked_by_me;
     setLiking(true);
     // 楽観的更新
@@ -1082,10 +1085,10 @@ function PostCard({
           borderTop: "1px solid var(--line)",
         }}
       >
-        {/* いいねボタン */}
+        {/* いいねボタン — 未ログイン時は /auth へ誘導 */}
         <button
           onClick={handleLike}
-          disabled={!myUserId || liking}
+          disabled={liking}
           title={myUserId ? (post.liked_by_me ? "いいねを解除" : "いいね") : "ログインしていいね"}
           style={{
             display: "flex",
@@ -1093,7 +1096,7 @@ function PostCard({
             gap: 6,
             background: "none",
             border: "none",
-            cursor: myUserId ? "pointer" : "default",
+            cursor: "pointer",
             padding: "4px 10px",
             borderRadius: 8,
             color: post.liked_by_me ? "var(--error)" : "var(--ink-soft)",
@@ -1103,9 +1106,7 @@ function PostCard({
             transition: "background 0.15s, color 0.15s",
           }}
           onMouseEnter={(e) => {
-            if (myUserId)
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "var(--bg-tint)";
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = "none";
