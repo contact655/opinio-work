@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
-import { UpgradeBanner } from "@/components/business/UpgradeBanner";
 import { JobStatusCards } from "@/components/business/JobStatusCards";
 import { TeamMembers } from "@/components/business/TeamMembers";
 import {
@@ -143,9 +142,6 @@ export default async function BizDashboardPage() {
           </Link>
         </div>
       )}
-
-      {/* ── Upgrade banner ── */}
-      <UpgradeBanner />
 
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
       <div style={{
