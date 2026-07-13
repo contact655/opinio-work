@@ -290,14 +290,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   面談
                 </span>
               )}
-              {/* ⑨ 鮮度バッジ（コンパクトカード） */}
-              {ago && (
-                <span style={{
-                  fontSize: 10, padding: "1px 5px", borderRadius: 4,
-                  background: "var(--bg-tint)", color: "var(--ink-mute)",
-                  border: "1px solid var(--line)", whiteSpace: "nowrap", flexShrink: 0,
-                }}>{ago}</span>
-              )}
               {/* ② ♡ボタン — 常時ピンク */}
               <button
                 type="button"
@@ -478,14 +470,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 fontSize: 11, fontWeight: stageCfg.fontWeight ?? 700, padding: "2px 8px", borderRadius: 100,
                 background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
               }}>{stageCfg.label}</span>
-            )}
-            {/* #9: 更新日 */}
-            {ago && (
-              <span style={{
-                fontSize: 11, padding: "2px 8px", borderRadius: 100,
-                background: "var(--bg-tint)", color: "var(--ink-mute)",
-                border: "1px solid var(--line)",
-              }}>{ago}</span>
             )}
           </div>
 
