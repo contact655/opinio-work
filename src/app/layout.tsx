@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
-import { Analytics } from "@/components/analytics/Analytics";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
@@ -172,7 +171,6 @@ export default function RootLayout({
         />
         <a href="#main-content" className="skip-to-main">メインコンテンツへスキップ</a>
         {children}
-        <Analytics />
         <ServiceWorkerRegistration />
       </body>
     </html>
