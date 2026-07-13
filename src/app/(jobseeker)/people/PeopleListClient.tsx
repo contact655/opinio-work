@@ -475,7 +475,7 @@ function PeerGridCard({ card }: { card: PeerCard }) {
             textDecoration: "none",
           }}
         >
-          キャリア軌跡を見る →
+          プロフィールを見る →
         </Link>
       </div>
     </div>
@@ -536,7 +536,7 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
             textDecoration: "none", whiteSpace: "nowrap",
           }}
         >
-          キャリア軌跡 →
+          プロフィール →
         </Link>
       </div>
     </div>
@@ -545,7 +545,7 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
 
 // ── PeopleListClient ─────────────────────────────────────────────────
 export function PeopleListClient({ ambassadors, peers, companies: _companies }: Props) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [roleCategory, setRoleCategory] = useState<RoleCategoryKey>("all");
   const [companyType, setCompanyType] = useState<CompanyTypeKey>("all");
   const [keyword, setKeyword] = useState("");
