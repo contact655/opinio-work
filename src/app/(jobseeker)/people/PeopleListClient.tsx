@@ -4,6 +4,57 @@ import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// 英語ロールタイトル → 日本語の一般的な職種名
+const ROLE_JA_MAP: Record<string, string> = {
+  // 営業系
+  "account executive": "法人営業",
+  "enterprise account executive": "法人営業",
+  "senior account executive": "法人営業",
+  "account manager": "法人営業",
+  "sales representative": "営業",
+  "sales development representative": "インサイドセールス",
+  "sales development representative（sdr）": "インサイドセールス",
+  "sdr": "インサイドセールス",
+  "business development representative": "インサイドセールス",
+  "bdr": "インサイドセールス",
+  "inside sales": "インサイドセールス",
+  // CS
+  "customer success manager": "カスタマーサクセス",
+  "customer success": "カスタマーサクセス",
+  "csm": "カスタマーサクセス",
+  // マーケティング
+  "marketing manager": "マーケティング",
+  "marketing specialist": "マーケティング",
+  "digital marketer": "マーケティング",
+  // エンジニア
+  "software engineer": "エンジニア",
+  "cloud engineer": "エンジニア",
+  "system engineer": "エンジニア",
+  "solutions engineer": "プリセールス",
+  "pre-sales engineer": "プリセールス",
+  // 人事
+  "people & culture manager": "人事・採用",
+  "people and culture manager": "人事・採用",
+  "hr manager": "人事",
+  // プロダクト
+  "product manager": "プロダクトマネージャー",
+  // コンサル
+  "it consultant": "ITコンサルタント",
+  "senior consultant": "コンサルタント",
+  "consultant": "コンサルタント",
+};
+
+function hasJapanese(str: string): boolean {
+  return /[　-鿿]/.test(str);
+}
+
+function getJaLabel(roleTitle: string | null): string | null {
+  if (!roleTitle) return null;
+  if (hasJapanese(roleTitle)) return null; // 既に日本語ならラベル不要
+  const key = roleTitle.toLowerCase().trim();
+  return ROLE_JA_MAP[key] ?? null;
+}
+
 export type AmbassadorCard = {
   adminId: string;
   userId: string;
@@ -438,6 +489,9 @@ function PeerGridCard({ card }: { card: PeerCard }) {
       {card.roleTitle && (
         <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, textAlign: "center" }}>
           {card.roleTitle}
+          {getJaLabel(card.roleTitle) && (
+            <span style={{ color: "var(--ink-mute)" }}>（{getJaLabel(card.roleTitle)}）</span>
+          )}
         </div>
       )}
 
@@ -500,6 +554,9 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2 }}>
           {card.roleTitle ?? ""}
+          {getJaLabel(card.roleTitle) && (
+            <span style={{ color: "var(--ink-mute)" }}>（{getJaLabel(card.roleTitle)}）</span>
+          )}
           {card.companyName && (
             <span style={{ color: "var(--ink-mute)" }}>
               {card.roleTitle ? " · " : ""}{card.companyName}
