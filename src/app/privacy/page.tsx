@@ -14,5 +14,5 @@ export default function PrivacyPage() {
   const filePath = path.join(process.cwd(), "content/legal/privacy-policy.md");
   const content = fs.readFileSync(filePath, "utf-8");
 
-  return <LegalDocument content={content} />;
+  return <LegalDocument content={content} showToc />;
 }

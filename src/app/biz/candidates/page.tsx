@@ -27,6 +27,15 @@ export default async function CandidatesPage() {
     );
   }
   const supabase = createClient();
+  const adminClient = createAdminClient();
+
+  // 転職勧奨禁止期間中の候補者IDを取得（就職後2年以内かつ在職中）
+  const { data: blockedPlacements } = await adminClient
+    .from("ow_placements")
+    .select("candidate_id")
+    .is("resigned_at", null)
+    .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const blockedCandidateIds = new Set((blockedPlacements ?? []).map((p: any) => p.candidate_id as string));
 
   // 公開プロフィールの求職者を取得（visibility = 'public'）
   // ow_profiles.user_id = auth.users.id（= ow_users.auth_id）のため
@@ -56,7 +65,6 @@ export default async function CandidatesPage() {
   if (authIds.length > 0) {
     // ow_profiles の RLS は own_read のみ（biz ユーザーは他者のプロフィールを読めない）
     // このページは getTenantContext() で biz 認証済みのため admin client で bypass する
-    const adminClient = createAdminClient();
     const { data: profileRows } = await adminClient
       .from("ow_profiles")
       .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing")
@@ -90,7 +98,7 @@ export default async function CandidatesPage() {
     }
   }
 
-  const candidates = (rawUsers ?? []).map((u: any) => {
+  const candidates = (rawUsers ?? []).filter((u: any) => !blockedCandidateIds.has(u.id as string)).map((u: any) => {
     const authId = u.auth_id as string | null;
     const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
     const currentExp = currentExpByUser.get(u.id as string) ?? null;

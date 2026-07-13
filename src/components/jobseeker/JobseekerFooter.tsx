@@ -94,9 +94,10 @@ export function JobseekerFooter() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
                 { href: "/contact",      label: "お問い合わせ" },
+                { href: "/terms",          label: "利用規約" },
+                { href: "/terms/business", label: "企業向け規約" },
                 { href: "/privacy",        label: "プライバシーポリシー" },
-                { href: "/terms",          label: "利用規約（求職者）" },
-                { href: "/terms/business", label: "利用規約（掲載企業）" },
+                { href: "/legal/agency",   label: "職業安定法に基づく明示事項" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
                   fontSize: 13, textDecoration: "none",

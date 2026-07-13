@@ -39,6 +39,10 @@ type Props = {
   isAdmin?: boolean;
   /** ow_genres 全件（display_order 昇順ソート済み）。GenreChipSelector に渡す。 */
   availableGenres?: Genre[];
+  /** 掲載・人材紹介利用規約への同意済みか */
+  initialTermsAgreed?: boolean;
+  /** 同意記録用のユーザーID（auth.users.id） */
+  userId?: string;
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -296,10 +300,15 @@ export function CompanyEditClient({
   memberships,
   isAdmin = true,
   availableGenres = [],
+  initialTermsAgreed = false,
+  userId = "",
 }: Props) {
   const router = useRouter();
 
   const [form, setForm] = useState<BizCompany>({ ...initialCompany });
+  const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
+  const [termsChecked, setTermsChecked] = useState(false);
+  const [isRecordingAgreement, setIsRecordingAgreement] = useState(false);
   const [activeSection, setActiveSection] = useState<CompanySectionId>("basic");
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -424,6 +433,28 @@ export function CompanyEditClient({
   function update<K extends keyof BizCompany>(key: K, value: BizCompany[K]) {
     hasInteracted.current = true;
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // ── 規約同意記録 ──────────────────────────────────────────────────────────
+  async function handleAgreeAndContinue() {
+    if (!termsChecked || isRecordingAgreement) return;
+    setIsRecordingAgreement(true);
+    try {
+      await fetch("/api/biz/terms-agreement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          companyId,
+          termsType: "business",
+          termsVersion: "2026-08-01",
+        }),
+      });
+      setTermsAgreed(true);
+      showToast("掲載・人材紹介利用規約への同意を記録しました ✓", "default");
+    } finally {
+      setIsRecordingAgreement(false);
+    }
   }
 
   // ── 公開ハンドラ ───────────────────────────────────────────────────────────
@@ -632,6 +663,68 @@ export function CompanyEditClient({
                 <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>設定すると企業詳細ページに「採用情報ページ」リンクが表示されます</p>
               </FormGroup>
             </SectionCard>
+
+            {/* 規約同意 */}
+            {!termsAgreed ? (
+              <div style={{
+                marginTop: 24, padding: "24px 28px",
+                background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                borderRadius: 12,
+              }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+                  掲載・人材紹介利用規約への同意
+                </p>
+                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.8 }}>
+                  OPINIOに企業情報を掲載するには、
+                  <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
+                    掲載・人材紹介利用規約
+                  </a>
+                  への同意が必要です。規約の全文を確認の上、同意してください。
+                </p>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 16 }}>
+                  <input
+                    type="checkbox"
+                    checked={termsChecked}
+                    onChange={(e) => setTermsChecked(e.target.checked)}
+                    style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer" }}
+                  />
+                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
+                    <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載・人材紹介利用規約</a>
+                    の全文を読み、内容に同意します。
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAgreeAndContinue}
+                  disabled={!termsChecked || isRecordingAgreement}
+                  style={{
+                    background: termsChecked ? "var(--royal)" : "var(--line)",
+                    color: termsChecked ? "#fff" : "var(--ink-mute)",
+                    border: "none", borderRadius: 8,
+                    padding: "10px 20px", fontSize: 14, fontWeight: 600,
+                    cursor: termsChecked ? "pointer" : "not-allowed",
+                  }}
+                >
+                  {isRecordingAgreement ? "記録中..." : "同意して続ける"}
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                marginTop: 16, padding: "12px 16px",
+                background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                borderRadius: 10, display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+                  掲載・人材紹介利用規約に同意済み
+                </span>
+                <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-soft)", textDecoration: "underline" }}>
+                  規約全文を確認する →
+                </a>
+              </div>
+            )}
           </>
         );
 
@@ -1147,7 +1240,22 @@ export function CompanyEditClient({
               </svg>
               プレビュー
             </button>
-            {isAdmin && (
+            {isAdmin && !termsAgreed && (
+              <button
+                type="button"
+                onClick={() => setActiveSection("basic")}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "8px 16px", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                  borderRadius: 8, cursor: "pointer",
+                  background: "var(--warm-soft)", color: "#92400E",
+                  border: "1px solid #FDE68A",
+                }}
+              >
+                ⚠ 規約に同意してから公開できます
+              </button>
+            )}
+            {isAdmin && termsAgreed && (
             <button
               type="button"
               onClick={handlePublish}
@@ -1183,6 +1291,7 @@ export function CompanyEditClient({
               {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
             </button>
             )}
+
           </div>
         </div>
 

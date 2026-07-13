@@ -5,6 +5,7 @@ import { fetchOfficePhotosForCompany } from "@/lib/business/photos";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyEditClient } from "./CompanyEditClient";
 import type { Genre } from "@/components/ui/GenreChipSelector";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,20 @@ export default async function BizCompanyPage() {
   const supabase = createClient();
 
   // 全クエリを並列取得（company は genres に依存しないため同時実行）
+  // 規約同意記録を確認（ow_terms_agreements）
+  const { data: { user } } = await supabase.auth.getUser();
+  const adminClient = createAdminClient();
+  const { data: existingAgreement } = user
+    ? await adminClient
+        .from("ow_terms_agreements")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("terms_type", "business")
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const termsAgreed = !!existingAgreement;
+
   const [initialPhotos, genresResult, publishedGenresResult, companyRaw] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
     supabase
@@ -61,6 +76,8 @@ export default async function BizCompanyPage() {
       memberships={ctx.allCompanies}
       isAdmin={ctx.currentPermission === "admin"}
       availableGenres={availableGenres}
+      initialTermsAgreed={termsAgreed}
+      userId={user?.id ?? ""}
     />
   );
 }

@@ -19,6 +19,7 @@ import {
   Receipt,
   Star,
   DollarSign,
+  Award,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -53,6 +54,7 @@ const NAV_GROUPS = [
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
+      { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
     ],
   },
 ];
