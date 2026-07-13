@@ -15,10 +15,9 @@ type DbAmbassador = {
   user_id: string;
   company_id: string;
   role_title: string | null;
-  department: string | null;
   talk_themes: string[] | null;
-  user: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
-  company: {
+  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
+  ow_companies: {
     id: string;
     name: string | null;
     brand_name: string | null;
@@ -36,20 +35,18 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
-    .from("ow_company_admins")
+    .from("ow_company_members")
     .select(`
       id,
       user_id,
       company_id,
       role_title,
-      department,
       talk_themes,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
-      company:ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase, industry)
+      ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
+      ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase, industry)
     `)
-    .eq("is_ambassador", true)
-    .eq("is_active", true)
-    .not("user_id", "is", null)
+    .eq("display_consent", true)
+    .eq("is_public", true)
     .order("company_id", { ascending: true });
 
   if (error) {
@@ -60,30 +57,30 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
   const rows = (data ?? []) as unknown as DbAmbassador[];
 
   return rows
-    .filter((r) => r.user?.visibility !== "private" && r.user?.name)
+    .filter((r) => r.ow_users?.visibility !== "private" && r.ow_users?.name)
     .map((r) => {
       const gradient =
-        r.user?.avatar_color?.startsWith("linear-gradient")
-          ? r.user.avatar_color
+        r.ow_users?.avatar_color?.startsWith("linear-gradient")
+          ? r.ow_users.avatar_color
           : FALLBACK_GRADIENT;
 
       return {
         adminId: r.id,
         userId: r.user_id,
-        name: r.user?.name ?? "—",
-        initial: r.user?.name?.charAt(0) ?? "?",
+        name: r.ow_users?.name ?? "—",
+        initial: r.ow_users?.name?.charAt(0) ?? "?",
         gradient,
-        avatarUrl: r.user?.avatar_url ?? null,
+        avatarUrl: r.ow_users?.avatar_url ?? null,
         roleTitle: r.role_title,
-        department: r.department,
+        department: null,
         talkThemes: r.talk_themes ?? [],
-        companyId: r.company?.id ?? r.company_id,
-        companyName: r.company?.brand_name ?? r.company?.name ?? "—",
-        companyPhase: r.company?.phase ?? null,
-        companyIndustry: r.company?.industry ?? null,
-        companyLogoUrl: r.company?.logo_url ?? null,
-        companyLogoGradient: r.company?.logo_gradient ?? null,
-        companyLogoLetter: r.company?.logo_letter ?? null,
+        companyId: r.ow_companies?.id ?? r.company_id,
+        companyName: r.ow_companies?.brand_name ?? r.ow_companies?.name ?? "—",
+        companyPhase: r.ow_companies?.phase ?? null,
+        companyIndustry: r.ow_companies?.industry ?? null,
+        companyLogoUrl: r.ow_companies?.logo_url ?? null,
+        companyLogoGradient: r.ow_companies?.logo_gradient ?? null,
+        companyLogoLetter: r.ow_companies?.logo_letter ?? null,
       };
     });
 }

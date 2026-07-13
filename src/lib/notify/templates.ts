@@ -327,3 +327,78 @@ export function newCompanyAdminTemplate(params: {
     `),
   };
 }
+
+// ── 面談対応者招待メール（本人宛） ───────────────────────────────────────────
+export function ambassadorInviteTemplate(params: {
+  to: string;
+  userName: string;
+  companyName: string;
+  roleTitle: string;
+  token: string;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  const approveUrl = `${siteUrl}/mypage/ambassador-invite/${params.token}`;
+
+  return {
+    to: params.to,
+    subject: `【OPINIO】${esc(params.companyName)}の面談対応者に選ばれました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談対応者への招待</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        ${esc(params.userName)} さん<br><br>
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
+        あなたをOPINIOの「面談対応者」に指名する申請がありました。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業名</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        <tr><td style="${TD_LABEL}">役職</td><td style="${TD_VALUE}">${esc(params.roleTitle)}</td></tr>
+      </table>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px">
+        面談対応者になると:<br>
+        ・OPINIOの「話せる人」一覧にあなたのプロフィールが表示されます<br>
+        ・転職を検討している方から、カジュアル面談の申込みが届きます<br>
+        ・あなたの氏名・役職・所属企業が公開されます
+      </p>
+      <p style="margin:0 0 24px">
+        <a href="${approveUrl}" style="${BTN}">承認する（または断る）→</a>
+      </p>
+      <p style="color:#94a3b8;font-size:12px;margin:0">
+        ※ 承認は任意です。承認しない場合、あなたの情報が公開されることはありません。<br>
+        ※ 承認後も、いつでも設定を解除できます。<br>
+        ※ 管理画面へのアクセス権は付与されません。
+      </p>
+    `),
+  };
+}
+
+// ── カジュアル面談通知（企業管理者宛） ─────────────────────────────────────────
+export function casualMeetingCompanyAdminTemplate(params: {
+  to: string;
+  companyName: string;
+  contactEmail: string;
+  intent: string | null;
+  interestReason: string | null;
+  questions: string | null;
+}) {
+  const intentLabel: Record<string, string> = {
+    info_gathering: "情報収集中",
+    good_opportunity: "良い機会があれば",
+    within_6: "6ヶ月以内に転職検討",
+    within_3: "3ヶ月以内に転職検討",
+  };
+  return {
+    to: params.to,
+    subject: `【OPINIO】${esc(params.companyName)}へのカジュアル面談申し込みがありました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着カジュアル面談</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> へのカジュアル面談申し込みがありました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
+        <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
+        <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
+        <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
+      </table>
+      <a href="https://opinio.jp/biz/meetings" style="${BTN}">管理画面で確認する →</a>
+    `),
+  };
+}

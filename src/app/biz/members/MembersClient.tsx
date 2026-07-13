@@ -9,11 +9,15 @@ type Tab = "active" | "inactive";
 type ActionType = "permission" | "deactivate" | "reactivate";
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
+import type { AmbassadorRecord, AmbassadorCandidate } from "./page";
+
 type Props = {
   initialMembers: MemberRecord[];
   initialPendingInvites: PendingInviteRecord[];
   currentUserId: string;
   isAdmin?: boolean;
+  ambassadors?: AmbassadorRecord[];
+  ambassadorCandidates?: AmbassadorCandidate[];
 };
 
 const PERM_LABELS: Record<MemberRecord["permission"], string> = {
@@ -1007,7 +1011,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true }: Props) {
+export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [] }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
 
@@ -1035,6 +1039,64 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [ambassadorTogglingId, setAmbassadorTogglingId] = useState<string | null>(null);
 
   const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
+
+  // 面談対応者セクション state
+  const [ambassadors, setAmbassadors] = useState(initialAmbassadors);
+  const [inviteRoleTitles, setInviteRoleTitles] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const c of ambassadorCandidates) {
+      m[c.user_id] = c.role_title ?? "";
+    }
+    return m;
+  });
+  const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
+  const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
+
+  async function handleInviteAmbassador(userId: string) {
+    const roleTitle = inviteRoleTitles[userId]?.trim();
+    if (!roleTitle) return;
+    setInvitingUserId(userId);
+    try {
+      const res = await fetch("/api/biz/ambassador/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, role_title: roleTitle }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setToastMessage(data.error ?? "エラーが発生しました");
+      } else {
+        setToastMessage("招待メールを送信しました");
+        router.refresh();
+      }
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setInvitingUserId(null);
+    }
+  }
+
+  async function handleRevokeAmbassador(memberId: string) {
+    setRevokingMemberId(memberId);
+    try {
+      const res = await fetch("/api/biz/ambassador/revoke", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: memberId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setToastMessage(data.error ?? "エラーが発生しました");
+      } else {
+        setAmbassadors((prev) => prev.filter((a) => a.id !== memberId));
+        setToastMessage("解除しました");
+      }
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setRevokingMemberId(null);
+    }
+  }
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
@@ -1646,6 +1708,219 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           onCancel={closeDialog}
         />
       )}
+
+      {/* ── 面談対応者セクション ── */}
+      <div style={{ marginTop: 48 }}>
+        <div style={{ marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--ink)", margin: "0 0 4px" }}>
+            面談対応者
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
+            候補者と直接話してもらう社員です。<br />
+            <span style={{
+              display: "inline-block",
+              background: "var(--success-soft)",
+              color: "var(--success)",
+              fontWeight: 700,
+              fontSize: 11,
+              padding: "2px 8px",
+              borderRadius: 4,
+              marginTop: 4,
+            }}>
+              ✓ 管理画面へのアクセス権は付与されません
+            </span>
+          </p>
+        </div>
+
+        {/* 承認済み */}
+        {ambassadors.filter((a) => a.display_consent && a.is_public).length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.05em" }}>
+              ■ 承認済み
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {ambassadors.filter((a) => a.display_consent && a.is_public).map((a) => (
+                <div key={a.id} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "#fff",
+                  border: "1px solid var(--line)",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: a.gradient,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
+                    overflow: "hidden",
+                  }}>
+                    {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "—"}</div>
+                  </div>
+                  <span style={{ background: "var(--success-soft)", color: "var(--success)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
+                    承認済み
+                  </span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleRevokeAmbassador(a.id)}
+                      disabled={revokingMemberId === a.id}
+                      style={{
+                        background: "none", border: "1px solid var(--line)", borderRadius: 6,
+                        padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {revokingMemberId === a.id ? "..." : "解除"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 承認待ち */}
+        {ambassadors.filter((a) => !a.display_consent).length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.05em" }}>
+              ■ 承認待ち
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {ambassadors.filter((a) => !a.display_consent).map((a) => (
+                <div key={a.id} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "#fff",
+                  border: "1px solid var(--line)",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                  opacity: 0.8,
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: a.gradient,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
+                    overflow: "hidden",
+                  }}>
+                    {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "—"}</div>
+                  </div>
+                  <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
+                    招待中
+                  </span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleRevokeAmbassador(a.id)}
+                      disabled={revokingMemberId === a.id}
+                      style={{
+                        background: "none", border: "1px solid var(--line)", borderRadius: 6,
+                        padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {revokingMemberId === a.id ? "..." : "取消"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 指名できる社員（候補） */}
+        {ambassadorCandidates.length > 0 && isAdmin && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.05em" }}>
+              ■ 指名できる社員（OPINIOに登録している自社の社員）
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {ambassadorCandidates.map((c) => (
+                <div key={c.user_id} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "var(--bg-tint)",
+                  border: "1px dashed var(--line)",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: c.gradient,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
+                    overflow: "hidden",
+                  }}>
+                    {c.avatar_url ? <img src={c.avatar_url} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : c.initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{c.name}</div>
+                    <input
+                      type="text"
+                      placeholder="役職を入力（例：エンジニア）"
+                      value={inviteRoleTitles[c.user_id] ?? ""}
+                      onChange={(e) => setInviteRoleTitles((prev) => ({ ...prev, [c.user_id]: e.target.value }))}
+                      style={{
+                        fontSize: 12, border: "1px solid var(--line)", borderRadius: 6,
+                        padding: "3px 8px", color: "var(--ink)", marginTop: 4,
+                        width: "100%", maxWidth: 200, outline: "none",
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleInviteAmbassador(c.user_id)}
+                    disabled={invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()}
+                    style={{
+                      background: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()
+                        ? "var(--line)"
+                        : "var(--royal)",
+                      color: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()
+                        ? "var(--ink-mute)"
+                        : "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "6px 14px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()
+                        ? "not-allowed"
+                        : "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {invitingUserId === c.user_id ? "送信中..." : "面談対応者にする"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {ambassadors.length === 0 && ambassadorCandidates.length === 0 && (
+          <div style={{
+            background: "var(--bg-tint)",
+            border: "1px dashed var(--line)",
+            borderRadius: 10,
+            padding: "24px",
+            textAlign: "center",
+            color: "var(--ink-mute)",
+            fontSize: 13,
+          }}>
+            OPINIOに登録している自社の社員がいません。<br />
+            社員が職務経歴に自社を登録すると、ここに表示されます。
+          </div>
+        )}
+      </div>
 
       {/* Toast */}
       {toastMessage && (

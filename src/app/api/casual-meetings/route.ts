@@ -6,7 +6,9 @@ import { notify } from "@/lib/notify/email";
 import {
   casualMeetingAdminTemplate,
   casualMeetingUserTemplate,
+  casualMeetingCompanyAdminTemplate,
 } from "@/lib/notify/templates";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { insertActivity } from "@/lib/business/activities";
 
 export const dynamic = "force-dynamic";
@@ -147,6 +149,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (companyForNotify) {
+    // OPINIO 運営への通知
     await notify(
       casualMeetingAdminTemplate({
         companyName: companyForNotify.name,
@@ -156,12 +159,39 @@ export async function POST(req: NextRequest) {
         questions: (questions as string | null) ?? null,
       })
     );
+    // 申込者本人への確認メール
     await notify(
       casualMeetingUserTemplate({
         to: contact_email,
         companyName: companyForNotify.name,
       })
     );
+
+    // 企業管理者（admin権限）への通知
+    const adminSupabase = createAdminClient();
+    const { data: companyAdmins } = await adminSupabase
+      .from("ow_company_admins")
+      .select("user_id, ow_users!user_id(email)")
+      .eq("company_id", company_id as string)
+      .eq("permission", "admin")
+      .eq("is_active", true)
+      .not("user_id", "is", null);
+
+    type AdminRow = { user_id: string; ow_users: { email: string | null } | null };
+    for (const row of (companyAdmins ?? []) as unknown as AdminRow[]) {
+      const email = row.ow_users?.email;
+      if (!email) continue;
+      await notify(
+        casualMeetingCompanyAdminTemplate({
+          to: email,
+          companyName: companyForNotify.name,
+          contactEmail: contact_email,
+          intent: (intent as string | null) ?? null,
+          interestReason: (interest_reason as string | null) ?? null,
+          questions: (questions as string | null) ?? null,
+        })
+      );
+    }
   }
 
   return NextResponse.json({ id: meeting.id, status: meeting.status });
