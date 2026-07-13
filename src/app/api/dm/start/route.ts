@@ -3,6 +3,44 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rateLimit";
 
+export async function GET(request: NextRequest) {
+  const supabase = createClient();
+  const admin = createAdminClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const targetUserId = request.nextUrl.searchParams.get("targetUserId");
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!targetUserId || !UUID_RE.test(targetUserId)) {
+    return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
+  }
+
+  const { data: owMe } = await supabase.from("ow_users").select("id, name").eq("auth_id", authUser.id).maybeSingle();
+  if (!owMe) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  // 既存会話を探す（双方向）
+  const { data: conv1 } = await admin.from("ow_conversations").select("id").eq("kind", "direct_message").eq("candidate_user_id", owMe.id).eq("mentor_user_id", targetUserId).maybeSingle();
+  const { data: conv2 } = await admin.from("ow_conversations").select("id").eq("kind", "direct_message").eq("candidate_user_id", targetUserId).eq("mentor_user_id", owMe.id).maybeSingle();
+  const conv = conv1 || conv2;
+
+  if (!conv) return NextResponse.json({ conversation: null });
+
+  const { data: participant } = await admin.from("ow_conversation_participants").select("id").eq("conversation_id", conv.id).eq("user_id", owMe.id).maybeSingle();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: messages } = await (admin as any)
+    .from("ow_conversation_messages")
+    .select(`id, body, sent_at, sender_participant_id, ow_conversation_participants!sender_participant_id(role, ow_users(name))`)
+    .eq("conversation_id", conv.id)
+    .is("deleted_at", null)
+    .order("sent_at", { ascending: true });
+
+  return NextResponse.json({
+    conversation: { id: conv.id, myParticipantId: participant?.id ?? null, myName: owMe.name },
+    messages: messages ?? [],
+  });
+}
+
 export async function POST(request: NextRequest) {
   const allowed = await checkRateLimit(request, { limit: 20, windowSec: 3600, prefix: "dm" });
   if (!allowed) return NextResponse.json({ error: "リクエストが多すぎます。しばらくしてから再試行してください。" }, { status: 429 });
