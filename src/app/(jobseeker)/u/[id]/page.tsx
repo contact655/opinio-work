@@ -501,23 +501,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   marginBottom: 6, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
                 }}>
                   {owUser.name}
-                  {owUser.is_open_to_work && (
-                    <span style={{
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "3px 10px", borderRadius: 100,
-                      fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.04em",
-                      background: "linear-gradient(135deg, var(--success), #10B981)",
-                      color: "#fff",
-                      boxShadow: "0 2px 8px rgba(5,150,105,0.3)",
-                      verticalAlign: "middle",
-                      fontFamily: "'Inter', sans-serif",
-                    }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      転職検討中
-                    </span>
-                  )}
                 </div>
                 {/* Current role subtitle */}
                 {currentCareer && (
@@ -559,25 +542,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </span>
                   )}
                 </div>
-                {/* Career stats — big-number cards with icons */}
+                {/* Career stats */}
                 {careerSummary && (
                   <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                    {/* 社数: royal blue + briefcase */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--royal-50)", borderRadius: 10, padding: "8px 16px", border: "1px solid var(--royal-100)", minWidth: 64 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 2 }}>
-                        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                      </svg>
-                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--royal)", lineHeight: 1 }}>{careerSummary.companyCount}</span>
-                      <span style={{ fontSize: 11, color: "var(--royal)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>社の経験</span>
-                    </div>
-                    {/* 年数: success green + clock */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--success-soft)", borderRadius: 10, padding: "8px 16px", border: "1px solid #6ee7b7", minWidth: 64 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 2 }}>
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                      </svg>
-                      <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--success)", lineHeight: 1 }}>{careerSummary.totalYears}</span>
-                      <span style={{ fontSize: 11, color: "var(--success)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>年のIT経験</span>
-                    </div>
                     {/* スキル数: purple + tag */}
                     {skillTags.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--purple-soft)", borderRadius: 10, padding: "8px 16px", border: "1px solid #c4b5fd", minWidth: 64 }}>
