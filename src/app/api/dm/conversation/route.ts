@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     messages: messages ?? [],
-    myParticipantId: participant.id,
+    myParticipantId: participant?.id ?? null,
     myName: owMe.name,
   });
 }

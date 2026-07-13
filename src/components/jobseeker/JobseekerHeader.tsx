@@ -14,7 +14,7 @@ const NAV_LINKS = [
   { href: "/people", label: "ユーザー", highlight: false },
   { href: "/reviews?tab=reviews", label: "口コミ", highlight: false },
   { href: "/reviews?tab=salary", label: "給与", highlight: false },
-  { href: "/reviews?tab=post", label: "投稿する", highlight: false },
+  { href: "/feed", label: "投稿", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
 

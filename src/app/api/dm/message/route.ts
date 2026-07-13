@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   // メッセージ挿入（admin client で RLS バイパス）
   const { error: insertErr } = await admin
     .from("ow_conversation_messages")
-    .insert({ conversation_id: conversationId, sender_participant_id: participant.id, body: message.trim() });
+    .insert({ conversation_id: conversationId, sender_participant_id: participant?.id ?? null, body: message.trim() });
 
   if (insertErr) {
     console.error("[dm/message] insert error:", insertErr);
