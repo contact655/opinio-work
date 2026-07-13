@@ -102,7 +102,7 @@ function SocialProofStrip() {
         ))}
       </div>
       <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: 0 }}>
-        <strong style={{ color: "var(--ink)" }}>96名+</strong> のIT/SaaSプロが利用中
+        <strong style={{ color: "var(--ink)" }}>96名+</strong> のIT転職希望者が利用中
       </p>
     </div>
   );
