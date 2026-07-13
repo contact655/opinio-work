@@ -58,6 +58,17 @@ const STEPS: Step[] = [
       "まず話を聞いてみたい",
     ],
   },
+  {
+    id: "scout_enabled",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.7 12.1 19.79 19.79 0 0 1 1.61 3.56 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/>
+      </svg>
+    ),
+    question: "企業からのスカウトを受け取りますか?",
+    sub: "あとから変更できます",
+    options: [],  // scout_enabled は特別UIのため options は未使用
+  },
 ];
 
 // ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
@@ -109,6 +120,10 @@ function OnboardingInner() {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      const scoutEnabled = newAnswers.scout_enabled === "true" ? true
+        : newAnswers.scout_enabled === "false" ? false
+        : null;
+
       if (existing) {
         await supabase
           .from("ow_profiles")
@@ -116,6 +131,7 @@ function OnboardingInner() {
             job_type: newAnswers.job_type,
             experience_years: newAnswers.experience_years,
             worry: newAnswers.worry,
+            scout_enabled: scoutEnabled,
             onboarding_completed: true,
             updated_at: new Date().toISOString(),
           })
@@ -126,6 +142,7 @@ function OnboardingInner() {
           job_type: newAnswers.job_type,
           experience_years: newAnswers.experience_years,
           worry: newAnswers.worry,
+          scout_enabled: scoutEnabled,
           onboarding_completed: true,
         });
       }
@@ -187,7 +204,7 @@ function OnboardingInner() {
             <div style={{
               display: "flex", justifyContent: "center", gap: 8, marginBottom: 24, flexWrap: "wrap",
             }}>
-              {["完全無料", "スカウトなし", "30分から"].map((t) => (
+              {["完全無料", "在籍企業は自動ブロック", "30分から"].map((t) => (
                 <span key={t} style={{
                   fontSize: 10.5, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)",
@@ -366,8 +383,76 @@ function OnboardingInner() {
             {current.sub}
           </p>
 
-          {/* 選択肢 — job_type は 2段階UI、その他は 1列 */}
-          {current.id === "job_type" ? (
+          {/* 選択肢 — job_type は 2段階UI、scout_enabled は特別UI、その他は 1列 */}
+          {current.id === "scout_enabled" ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* 受け取る */}
+              <button
+                type="button"
+                onClick={() => select("true")}
+                disabled={saving}
+                style={{
+                  padding: "18px 20px",
+                  border: "2px solid var(--royal)",
+                  borderRadius: 12,
+                  background: "var(--royal-50)",
+                  cursor: saving ? "wait" : "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left" as const,
+                  transition: "all 0.15s",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                  <span style={{ fontSize: 18 }}>⭐</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>受け取る（推奨）</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, paddingLeft: 28 }}>
+                  企業があなたのプロフィールを見て、直接連絡できるようになります
+                </div>
+              </button>
+              {/* 受け取らない */}
+              <button
+                type="button"
+                onClick={() => select("false")}
+                disabled={saving}
+                style={{
+                  padding: "18px 20px",
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  background: "#fff",
+                  cursor: saving ? "wait" : "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left" as const,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--line)";
+                  e.currentTarget.style.background = "var(--bg-tint)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--line)";
+                  e.currentTarget.style.background = "#fff";
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                  <span style={{ fontSize: 18 }}>🔒</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>受け取らない</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, paddingLeft: 28 }}>
+                  企業からは一切見えません
+                </div>
+              </button>
+              {/* 注意書き */}
+              <div style={{
+                marginTop: 4, padding: "12px 14px",
+                background: "var(--bg-tint)", borderRadius: 8,
+                border: "1px solid var(--line)",
+                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
+              }}>
+                ✓ 今の会社・過去に在籍した会社からは、自動的にブロックされます
+              </div>
+            </div>
+          ) : current.id === "job_type" ? (
             jobTypeCategory === null ? (
               /* Stage A: カテゴリ選択 */
               (() => {
@@ -539,7 +624,7 @@ function OnboardingInner() {
           )}
         </div>
 
-        {/* 戻る / スキップ */}
+        {/* 戻る / スキップ（scout_enabled ステップはスキップ不可） */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
           {step > 0 && (
             <button
@@ -559,42 +644,44 @@ function OnboardingInner() {
               前に戻る
             </button>
           )}
-          <button
-            type="button"
-            onClick={async () => {
-              const supabase = createClient();
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                const { data: existing } = await supabase
-                  .from("ow_profiles")
-                  .select("id")
-                  .eq("user_id", user.id)
-                  .maybeSingle();
-                if (existing) {
-                  await supabase
+          {current.id !== "scout_enabled" && (
+            <button
+              type="button"
+              onClick={async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  const { data: existing } = await supabase
                     .from("ow_profiles")
-                    .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
-                    .eq("user_id", user.id);
-                } else {
-                  await supabase.from("ow_profiles").insert({
-                    user_id: user.id,
-                    onboarding_completed: true,
-                  });
+                    .select("id")
+                    .eq("user_id", user.id)
+                    .maybeSingle();
+                  if (existing) {
+                    await supabase
+                      .from("ow_profiles")
+                      .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
+                      .eq("user_id", user.id);
+                  } else {
+                    await supabase.from("ow_profiles").insert({
+                      user_id: user.id,
+                      onboarding_completed: true,
+                    });
+                  }
                 }
-              }
-              router.push(nextUrl);
-            }}
-            disabled={saving}
-            style={{
-              fontSize: 13, color: "var(--ink-soft)", background: "none",
-              border: "1px solid var(--line)", borderRadius: 8,
-              cursor: saving ? "wait" : "pointer", fontFamily: "inherit",
-              padding: "9px 20px", display: "flex", alignItems: "center", gap: 5,
-            }}
-          >
-            後で設定する
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
+                router.push(nextUrl);
+              }}
+              disabled={saving}
+              style={{
+                fontSize: 13, color: "var(--ink-soft)", background: "none",
+                border: "1px solid var(--line)", borderRadius: 8,
+                cursor: saving ? "wait" : "pointer", fontFamily: "inherit",
+                padding: "9px 20px", display: "flex", alignItems: "center", gap: 5,
+              }}
+            >
+              後で設定する
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

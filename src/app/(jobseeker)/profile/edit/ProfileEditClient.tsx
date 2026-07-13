@@ -2771,6 +2771,7 @@ export default function ProfileEditClient({
   initialContentLinks,
   roles,
   isWelcome = false,
+  initialScoutEnabled = null,
   initialProfilePrefs = null,
 }: {
   owUser: OwUser;
@@ -2786,6 +2787,7 @@ export default function ProfileEditClient({
   initialContentLinks: ContentLink[];
   roles: RoleItem[];
   isWelcome?: boolean;
+  initialScoutEnabled?: boolean | null;
   initialProfilePrefs?: {
     job_type: string | null;
     experience_years: string | null;
@@ -2991,6 +2993,70 @@ export default function ProfileEditClient({
   const handleCancelAccount = useCallback(() => {
     setSettings(initialSettings);
   }, [initialSettings]);
+
+  // ── スカウト設定の状態（ow_profiles.scout_enabled） ─────────────────────
+  const [scoutEnabled, setScoutEnabled] = useState<boolean | null>(initialScoutEnabled ?? null);
+  const [scoutSaving, setScoutSaving] = useState(false);
+  const [scoutSaved, setScoutSaved] = useState(false);
+
+  type BlockedCompany = {
+    id: string | null;
+    company_id: string | null;
+    company_name: string;
+    block_reason: "experience" | "manual";
+  };
+  const [blockedCompanies, setBlockedCompanies] = useState<BlockedCompany[]>([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
+  const [removingBlockId, setRemovingBlockId] = useState<string | null>(null);
+
+  const loadBlockedCompanies = useCallback(async () => {
+    setBlockedLoading(true);
+    try {
+      const res = await fetch("/api/jobseeker/scout-settings");
+      if (res.ok) {
+        const data = await res.json();
+        setBlockedCompanies(data.blocks ?? []);
+      }
+    } catch {
+      // best-effort
+    } finally {
+      setBlockedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBlockedCompanies();
+  }, [loadBlockedCompanies]);
+
+  const handleRemoveBlock = useCallback(async (blockId: string) => {
+    setRemovingBlockId(blockId);
+    try {
+      await fetch(`/api/jobseeker/scout-settings?id=${blockId}`, { method: "DELETE" });
+      setBlockedCompanies(prev => prev.filter(b => b.id !== blockId));
+    } catch {
+      // best-effort
+    } finally {
+      setRemovingBlockId(null);
+    }
+  }, []);
+
+  const handleSaveScout = useCallback(async (value: boolean | null) => {
+    setScoutEnabled(value);
+    setScoutSaving(true);
+    try {
+      await fetch("/api/jobseeker/scout-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scout_enabled: value }),
+      });
+      setScoutSaved(true);
+      setTimeout(() => setScoutSaved(false), 2000);
+    } catch {
+      // best-effort
+    } finally {
+      setScoutSaving(false);
+    }
+  }, []);
 
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
   const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
@@ -4369,6 +4435,148 @@ export default function ProfileEditClient({
                     transition: "left 0.2s",
                   }} />
                 </button>
+              </div>
+            </FormSection>
+
+            {/* ── Section 3d: スカウト設定 ─────────────────────────────────── */}
+            <FormSection
+              title="スカウト設定"
+              desc="企業からのスカウトを受け取るかどうかを設定します。在籍企業・過去の在籍企業からは自動的にブロックされます。"
+            >
+              {/* scout_enabled 未設定の注意 */}
+              {scoutEnabled === null && (
+                <div style={{
+                  background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
+                  padding: "10px 14px", fontSize: 12, color: "#92400E", marginBottom: 12,
+                }}>
+                  オンボーディングで設定されていません。下記から設定してください。
+                </div>
+              )}
+              {/* 受け取る */}
+              <div
+                role="radio"
+                aria-checked={scoutEnabled === true}
+                onClick={() => !scoutSaving && handleSaveScout(true)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", marginBottom: 8, cursor: "pointer",
+                  background: scoutEnabled === true ? "var(--royal-50)" : "var(--bg-tint)",
+                  border: `1.5px solid ${scoutEnabled === true ? "var(--royal)" : "var(--line)"}`,
+                  borderRadius: 10, transition: "all 0.15s",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    受け取る（推奨）
+                    {scoutEnabled === true && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff" }}>
+                        ✓ 設定中
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>企業があなたのプロフィールを見て、直接連絡できるようになります</div>
+                </div>
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                  border: `2px solid ${scoutEnabled === true ? "var(--royal)" : "var(--line)"}`,
+                  background: scoutEnabled === true ? "var(--royal)" : "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {scoutEnabled === true && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+                </div>
+              </div>
+              {/* 受け取らない */}
+              <div
+                role="radio"
+                aria-checked={scoutEnabled === false}
+                onClick={() => !scoutSaving && handleSaveScout(false)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", cursor: "pointer",
+                  background: scoutEnabled === false ? "var(--bg-tint)" : "#fff",
+                  border: `1.5px solid ${scoutEnabled === false ? "var(--ink-mute)" : "var(--line)"}`,
+                  borderRadius: 10, transition: "all 0.15s",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    受け取らない
+                    {scoutEnabled === false && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>
+                        ✓ 設定中
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>企業からは一切見えません</div>
+                </div>
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                  border: `2px solid ${scoutEnabled === false ? "var(--ink-mute)" : "var(--line)"}`,
+                  background: scoutEnabled === false ? "var(--ink-mute)" : "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {scoutEnabled === false && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+                </div>
+              </div>
+              {/* 保存フィードバック */}
+              {(scoutSaving || scoutSaved) && (
+                <div style={{ fontSize: 12, color: scoutSaved ? "var(--success)" : "var(--ink-mute)", marginTop: 8 }}>
+                  {scoutSaved ? "✓ 保存しました" : "保存中..."}
+                </div>
+              )}
+              {/* ブロック企業一覧 */}
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+                  あなたのプロフィールをブロックしている企業
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+                  職務経歴に登録した企業からは自動的に見えません。転職活動が今の会社に知られることはありません。
+                </div>
+                {blockedLoading ? (
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 0" }}>読み込み中…</div>
+                ) : blockedCompanies.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line)" }}>
+                    ブロック中の企業はありません
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {blockedCompanies.map((b, i) => (
+                      <div key={b.id ?? `${b.company_id}-${i}`} style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "10px 14px", borderRadius: 8,
+                        background: b.block_reason === "experience" ? "var(--bg-tint)" : "#fff",
+                        border: `1px solid ${b.block_reason === "experience" ? "var(--line)" : "var(--line)"}`,
+                      }}>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{b.company_name}</span>
+                          <span style={{
+                            marginLeft: 8, fontSize: 11, fontWeight: 600,
+                            padding: "2px 7px", borderRadius: 100,
+                            background: b.block_reason === "experience" ? "var(--royal-50)" : "var(--line-soft)",
+                            color: b.block_reason === "experience" ? "var(--royal)" : "var(--ink-soft)",
+                          }}>
+                            {b.block_reason === "experience" ? "在籍企業（自動）" : "手動でブロック中"}
+                          </span>
+                        </div>
+                        {b.block_reason === "manual" && b.id && (
+                          <button
+                            type="button"
+                            disabled={removingBlockId === b.id}
+                            onClick={() => handleRemoveBlock(b.id!)}
+                            style={{
+                              fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                              border: "1px solid var(--line)", background: "#fff",
+                              color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
+                              opacity: removingBlockId === b.id ? 0.5 : 1,
+                            }}
+                          >
+                            {removingBlockId === b.id ? "解除中…" : "解除"}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </FormSection>
 

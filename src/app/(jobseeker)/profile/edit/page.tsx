@@ -105,7 +105,7 @@ export default async function ProfileEditPage({
       display_order: (r.display_order as number) ?? 0,
     }));
 
-  // ow_profiles — 希望条件（job_type, desired_work_style, desired_salary, transfer_timing）
+  // ow_profiles — 希望条件 + スカウト設定
   let profilePrefs: {
     job_type: string | null;
     experience_years: string | null;
@@ -115,13 +115,14 @@ export default async function ProfileEditPage({
     transfer_timing: string | null;
     desired_phase: string[] | null;
     worry: string | null;
+    scout_enabled: boolean | null;
   } | null = null;
 
   if (owUser) {
     // onboarding は auth.users.id を user_id として保存する場合がある
     const { data: p1 } = await supabase
       .from("ow_profiles")
-      .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry")
+      .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -131,7 +132,7 @@ export default async function ProfileEditPage({
     } else {
       const { data: p2 } = await supabase
         .from("ow_profiles")
-        .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry")
+        .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
         .eq("user_id", owUser.id)
         .maybeSingle();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,6 +211,7 @@ export default async function ProfileEditPage({
       initialContentLinks={contentLinksRaw ?? []}
       roles={roles}
       isWelcome={isWelcome}
+      initialScoutEnabled={profilePrefs?.scout_enabled ?? null}
       initialProfilePrefs={profilePrefs}
     />
   );

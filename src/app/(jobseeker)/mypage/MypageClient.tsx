@@ -1057,6 +1057,28 @@ export default function MypageClient({
         )}
       </div>
 
+      {/* スカウト受信箱リンク */}
+      <Link
+        href="/mypage/scouts"
+        style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 16px", borderRadius: 10,
+          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+          textDecoration: "none",
+        }}
+      >
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.7 12.1 19.79 19.79 0 0 1 1.61 3.56 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/>
+          </svg>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 2 }}>スカウト受信箱</div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>企業から届いたスカウトを確認する</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </Link>
+
       {/* マイアクティビティ */}
       <div>
         <div style={{ marginBottom: "var(--space-3)" }}>

@@ -53,27 +53,64 @@ export default async function CandidatesPage() {
     .map((u: any) => u.auth_id as string);
 
   // ow_profiles: user_id = auth.users.id（= ow_users.auth_id）経由で取得
-  // desired_salary_min/max は機微情報のため除外
   const profilesByAuthId = new Map<string, {
     onboarding_completed: boolean;
     desired_work_style: string | null;
     job_type: string | null;
     desired_phase: string[] | null;
     transfer_timing: string | null;
+    scout_enabled: boolean | null;
   }>();
 
-  if (authIds.length > 0) {
-    // ow_profiles の RLS は own_read のみ（biz ユーザーは他者のプロフィールを読めない）
-    // このページは getTenantContext() で biz 認証済みのため admin client で bypass する
-    const { data: profileRows } = await adminClient
-      .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing")
-      .in("user_id", authIds);
+  // プロフィール + 送信枠 を並列取得
+  const [profileRows, quotaRow] = await Promise.all([
+    authIds.length > 0
+      ? adminClient
+          .from("ow_profiles")
+          .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled")
+          .in("user_id", authIds)
+          .then(r => r.data ?? [])
+      : Promise.resolve([]),
+    // スカウト送信枠
+    adminClient
+      .from("ow_scout_quotas")
+      .select("monthly_limit, bonus_credits, used_this_month, period_start")
+      .eq("company_id", ctx.tenantId)
+      .maybeSingle()
+      .then(r => r.data),
+  ]);
 
-    for (const p of profileRows ?? []) {
-      profilesByAuthId.set(p.user_id as string, p as any);
-    }
+  for (const p of profileRows) {
+    profilesByAuthId.set(p.user_id as string, p as any);
   }
+
+  // 送信枠の計算
+  const monthlyLimit = quotaRow?.monthly_limit ?? 30;
+  const bonusCredits = quotaRow?.bonus_credits ?? 0;
+  const usedThisMonth = quotaRow?.used_this_month ?? 0;
+  const remainingQuota = Math.max(0, monthlyLimit + bonusCredits - usedThisMonth);
+
+  // Step 1: scout_enabled = true の候補者だけに絞る（転職勧奨禁止も除外）
+  const scoutEnabledUsers = (rawUsers ?? []).filter((u: any) => {
+    if (blockedCandidateIds.has(u.id as string)) return false;
+    const authId = u.auth_id as string | null;
+    const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
+    return profile?.scout_enabled === true;
+  });
+
+  // Step 2: can_send_scout(company_id, candidate_auth_id) RPC で名前マッチも含めてフィルタ
+  // （company_id=NULL の職務経歴でも会社名正規化で突き合わせる）
+  const canSendResults = await Promise.all(
+    scoutEnabledUsers.map(async (u: any) => {
+      const authId = u.auth_id as string | null;
+      if (!authId) return false;
+      const { data } = await adminClient.rpc("can_send_scout", {
+        p_company_id: ctx.tenantId,
+        p_candidate_id: authId,
+      });
+      return data === true;
+    })
+  );
 
   // 現職情報を別取得（is_current = true の最初の 1 件）
   const { data: currentExps } = userIds.length > 0
@@ -98,26 +135,36 @@ export default async function CandidatesPage() {
     }
   }
 
-  const candidates = (rawUsers ?? []).filter((u: any) => !blockedCandidateIds.has(u.id as string)).map((u: any) => {
-    const authId = u.auth_id as string | null;
-    const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
-    const currentExp = currentExpByUser.get(u.id as string) ?? null;
-    return {
-      id: u.id as string,
-      name: (u.name as string) || "名前未設定",
-      location: (u.location as string) || null,
-      isMentor: (u.is_mentor as boolean) || false,
-      canTalkToHr: (u.can_talk_to_hr as boolean) || false,
-      currentRole: currentExp?.role_title ?? null,
-      currentCompany: currentExp?.company ?? null,
-      jobType: profile?.job_type || null,
-      workStyle: profile?.desired_work_style || null,
-      desiredPhase: profile?.desired_phase || null,
-      transferTiming: profile?.transfer_timing || null,
-      onboardingCompleted: profile?.onboarding_completed || false,
-      createdAt: u.created_at as string,
-    };
-  });
+  // 自社の求人一覧（スカウト送信時の求人選択に使う）
+  const { data: companyJobs } = await adminClient
+    .from("ow_jobs")
+    .select("id, title")
+    .eq("company_id", ctx.tenantId)
+    .in("status", ["published", "active"])
+    .order("title");
+
+  const candidates = scoutEnabledUsers
+    .filter((_u: any, i: number) => canSendResults[i] === true)
+    .map((u: any) => {
+      const authId = u.auth_id as string | null;
+      const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
+      const currentExp = currentExpByUser.get(u.id as string) ?? null;
+      return {
+        id: u.id as string,
+        name: (u.name as string) || "名前未設定",
+        location: (u.location as string) || null,
+        isMentor: (u.is_mentor as boolean) || false,
+        canTalkToHr: (u.can_talk_to_hr as boolean) || false,
+        currentRole: currentExp?.role_title ?? null,
+        currentCompany: currentExp?.company ?? null,
+        jobType: profile?.job_type || null,
+        workStyle: profile?.desired_work_style || null,
+        desiredPhase: profile?.desired_phase || null,
+        transferTiming: profile?.transfer_timing || null,
+        onboardingCompleted: profile?.onboarding_completed || false,
+        createdAt: u.created_at as string,
+      };
+    });
 
   const layoutProps = ctx
     ? {
@@ -130,9 +177,18 @@ export default async function CandidatesPage() {
       }
     : { userName: "担当者" };
 
+  const scoutQuota = {
+    monthlyLimit,
+    bonusCredits,
+    usedThisMonth,
+    remaining: remainingQuota,
+  };
+
+  const jobOptions = (companyJobs ?? []).map((j: any) => ({ id: j.id as string, title: j.title as string }));
+
   return (
     <BusinessLayout {...layoutProps}>
-      <CandidatesClient candidates={candidates} />
+      <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} />
     </BusinessLayout>
   );
 }

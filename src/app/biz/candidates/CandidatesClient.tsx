@@ -87,9 +87,69 @@ function jobChipStyle(active: boolean): React.CSSProperties {
   };
 }
 
-export default function CandidatesClient({ candidates }: { candidates: Candidate[] }) {
+type ScoutQuota = {
+  monthlyLimit: number;
+  bonusCredits: number;
+  usedThisMonth: number;
+  remaining: number;
+};
+
+type JobOption = { id: string; title: string };
+
+export default function CandidatesClient({
+  candidates,
+  scoutQuota,
+  jobOptions = [],
+}: {
+  candidates: Candidate[];
+  scoutQuota?: ScoutQuota;
+  jobOptions?: JobOption[];
+}) {
   const [q, setQ] = useState("");
   const [workStyle, setWorkStyle] = useState("");
+
+  // Scout modal state
+  const [scoutTarget, setScoutTarget] = useState<Candidate | null>(null);
+  const [scoutMessage, setScoutMessage] = useState("");
+  const [scoutJobId, setScoutJobId] = useState<string>("");
+  const [scoutSending, setScoutSending] = useState(false);
+  const [scoutError, setScoutError] = useState<string | null>(null);
+  const [scoutSuccess, setScoutSuccess] = useState(false);
+
+  function openScout(c: Candidate) {
+    setScoutTarget(c);
+    setScoutMessage("");
+    setScoutJobId("");
+    setScoutError(null);
+    setScoutSuccess(false);
+  }
+
+  async function sendScout() {
+    if (!scoutTarget || !scoutMessage.trim()) return;
+    setScoutSending(true);
+    setScoutError(null);
+    try {
+      const res = await fetch("/api/biz/scouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidate_id: scoutTarget.id,
+          message: scoutMessage.trim(),
+          job_id: scoutJobId || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setScoutError(data.error ?? "送信に失敗しました");
+        return;
+      }
+      setScoutSuccess(true);
+    } catch {
+      setScoutError("送信に失敗しました。もう一度お試しください。");
+    } finally {
+      setScoutSending(false);
+    }
+  }
   // 職種フィルタ: カテゴリ選択 → 配下職種選択の2段構成
   const [jobCategoryKey, setJobCategoryKey] = useState<string | null>(null);
   const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
@@ -158,17 +218,131 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>
-          求職者を探す
-        </h1>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
-          公開プロフィールを設定している求職者が表示されます。
-          <span style={{ marginLeft: 8, color: "var(--ink-mute)" }}>
-            ※ ダイレクトスカウトはできません。カジュアル面談への申込を待つ設計です
-          </span>
-        </p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 28 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>
+            求職者を探す
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
+            スカウトを受け取る設定をした求職者が表示されます。
+          </p>
+        </div>
+        {/* Scout quota */}
+        {scoutQuota && (
+          <div style={{
+            background: scoutQuota.remaining === 0 ? "var(--error-soft)" : "var(--royal-50)",
+            border: `1px solid ${scoutQuota.remaining === 0 ? "#FECACA" : "var(--royal-100)"}`,
+            borderRadius: 10, padding: "10px 16px", textAlign: "right", flexShrink: 0,
+          }}>
+            <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 2 }}>今月の残り送信枠</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+              {scoutQuota.remaining}
+              <span style={{ fontSize: 12, fontWeight: 400, color: "var(--ink-mute)", marginLeft: 4 }}>
+                / {scoutQuota.monthlyLimit + scoutQuota.bonusCredits} 通
+              </span>
+            </div>
+            {scoutQuota.bonusCredits > 0 && (
+              <div style={{ fontSize: 10, color: "var(--ink-mute)" }}>
+                （追加枠 +{scoutQuota.bonusCredits} 通含む）
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Scout send modal */}
+      {scoutTarget && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+          zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+        }} onClick={(e) => { if (e.target === e.currentTarget) setScoutTarget(null); }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "32px 36px",
+            width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
+          }}>
+            {scoutSuccess ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: "50%", margin: "0 auto 16px",
+                  background: "linear-gradient(135deg, var(--success), #34D399)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>スカウトを送信しました</h3>
+                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 24 }}>
+                  {scoutTarget.name} さんへのスカウトを送信しました。<br />
+                  返信があればOPINIOから通知します。
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setScoutTarget(null); window.location.reload(); }}
+                  style={{ background: "var(--royal)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                >
+                  閉じる
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
+                    {scoutTarget.name} さんにスカウトを送る
+                  </h3>
+                  <button type="button" onClick={() => setScoutTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--ink-mute)" }}>×</button>
+                </div>
+                {/* Job selection */}
+                {jobOptions.length > 0 && (
+                  <label style={{ display: "block", marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>求人を指定（任意）</div>
+                    <select
+                      value={scoutJobId}
+                      onChange={(e) => setScoutJobId(e.target.value)}
+                      style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, background: "#fff", fontFamily: "inherit" }}
+                    >
+                      <option value="">求人を指定しない（カジュアルな連絡）</option>
+                      {jobOptions.map((j) => (
+                        <option key={j.id} value={j.id}>{j.title}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {/* Message */}
+                <label style={{ display: "block", marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+                    メッセージ <span style={{ color: "var(--error)" }}>*</span>
+                  </div>
+                  <textarea
+                    value={scoutMessage}
+                    onChange={(e) => setScoutMessage(e.target.value)}
+                    placeholder={"はじめまして。〇〇株式会社の△△と申します。\nご経歴を拝見し、ぜひ一度お話しできればと思いご連絡しました。"}
+                    rows={6}
+                    style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+                  />
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "right", marginTop: 4 }}>
+                    {scoutMessage.length} / 2000
+                  </div>
+                </label>
+                {scoutError && (
+                  <div style={{ background: "var(--error-soft)", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--error)", marginBottom: 16 }}>
+                    {scoutError}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button type="button" onClick={() => setScoutTarget(null)} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>キャンセル</button>
+                  <button
+                    type="button"
+                    onClick={sendScout}
+                    disabled={scoutSending || !scoutMessage.trim()}
+                    style={{ background: scoutSending || !scoutMessage.trim() ? "var(--ink-mute)" : "var(--royal)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: scoutSending || !scoutMessage.trim() ? "default" : "pointer", fontFamily: "inherit" }}
+                  >
+                    {scoutSending ? "送信中..." : "スカウトを送る"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{
@@ -505,7 +679,7 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                 </div>
 
                 {/* Footer */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <span style={{
                     fontSize: 10, padding: "3px 8px", borderRadius: 100,
                     background: c.onboardingCompleted ? "var(--success-soft)" : "var(--bg-tint)",
@@ -515,12 +689,23 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
                   }}>
                     {c.onboardingCompleted ? "✓ プロフィール設定済み" : "設定中"}
                   </span>
-                  <span style={{
-                    fontSize: 11, color: "var(--royal)", fontWeight: 600,
-                    display: "flex", alignItems: "center", gap: 3,
-                  }}>
-                    詳細 →
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openScout(c); }}
+                      disabled={(scoutQuota?.remaining ?? 1) === 0}
+                      style={{
+                        fontSize: 11, padding: "5px 12px", borderRadius: 6,
+                        background: (scoutQuota?.remaining ?? 1) === 0 ? "var(--bg-tint)" : "var(--royal)",
+                        color: (scoutQuota?.remaining ?? 1) === 0 ? "var(--ink-mute)" : "#fff",
+                        border: "none", cursor: (scoutQuota?.remaining ?? 1) === 0 ? "default" : "pointer",
+                        fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap",
+                      }}
+                    >
+                      スカウトを送る
+                    </button>
+                    <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>詳細 →</span>
+                  </div>
                 </div>
               </div>
             </a>
@@ -528,19 +713,14 @@ export default function CandidatesClient({ candidates }: { candidates: Candidate
         </div>
       )}
 
-      {/* Philosophy note */}
+      {/* Info note */}
       <div style={{
-        marginTop: 32, padding: "14px 18px", background: "#fffbeb",
-        border: "1px solid #fde68a", borderRadius: 10,
-        fontSize: 12, color: "#92400e", lineHeight: 1.7,
+        marginTop: 32, padding: "14px 18px", background: "var(--royal-50)",
+        border: "1px solid var(--royal-100)", borderRadius: 10,
+        fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
       }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }}>
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        <strong>OPINIO の採用思想：</strong>
-        スカウトではなく「来てもらう」採用。企業情報・求人・カジュアル面談を充実させることで、
-        求職者が自発的に接触してくる設計です。
-        求職者へのダイレクトメッセージは現在提供していません。
+        表示されるのは「スカウトを受け取る」設定をした求職者のみです。在籍企業・手動ブロック企業のスカウトは自動でブロックされます。
+        スカウト送信枠が不足する場合は管理者にお問い合わせください。
       </div>
     </div>
   );
