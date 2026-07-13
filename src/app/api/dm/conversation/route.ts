@@ -18,15 +18,35 @@ export async function GET(request: NextRequest) {
   const { data: owMe } = await supabase.from("ow_users").select("id, name").eq("auth_id", authUser.id).maybeSingle();
   if (!owMe) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // 参加者チェック（admin で取得して本人かどうか確認）
-  const { data: participant } = await admin
+  // 会話が存在し、かつ自分が candidate_user_id または mentor_user_id であることを確認
+  const { data: conv } = await admin
+    .from("ow_conversations")
+    .select("id, candidate_user_id, mentor_user_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+
+  const isMember = conv.candidate_user_id === owMe.id || conv.mentor_user_id === owMe.id;
+  if (!isMember) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+
+  // participant レコードを取得（なければ自動作成）
+  let { data: participant } = await admin
     .from("ow_conversation_participants")
     .select("id")
     .eq("conversation_id", conversationId)
     .eq("user_id", owMe.id)
     .maybeSingle();
 
-  if (!participant) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+  if (!participant) {
+    const role = conv.candidate_user_id === owMe.id ? "initiator" : "recipient";
+    const { data: created } = await admin
+      .from("ow_conversation_participants")
+      .insert({ conversation_id: conversationId, user_id: owMe.id, role })
+      .select("id")
+      .single();
+    participant = created;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: messages } = await (admin as any)
