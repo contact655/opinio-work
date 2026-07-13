@@ -35,6 +35,7 @@ export type PeerCard = {
   jobType: string | null;
   headline: string | null;
   yearsOfExperience: number | null;
+  birthYear: number | null;
 };
 
 type Company = { id: string; name: string };
@@ -413,18 +414,15 @@ function PeerBadge() {
 // ── PeerGridCard ─────────────────────────────────────────────────────
 function PeerGridCard({ card }: { card: PeerCard }) {
   const router = useRouter();
-  const jobTypeLabel = card.jobType
-    ? (JOB_TYPE_DISPLAY_LABELS[card.jobType] ?? card.jobType)
-    : null;
+  const age = card.birthYear ? (2026 - card.birthYear) : null;
 
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       style={{
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
-        padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 0,
-        transition: "box-shadow 0.15s, transform 0.15s",
-        cursor: "pointer",
+        padding: "24px 20px 20px", display: "flex", flexDirection: "column", alignItems: "center",
+        gap: 0, transition: "box-shadow 0.15s, transform 0.15s", cursor: "pointer",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 24px rgba(0,35,102,0.10)";
@@ -435,36 +433,40 @@ function PeerGridCard({ card }: { card: PeerCard }) {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
       }}
     >
-      <div style={{ marginBottom: 14 }}>
-        <PeerAvatar card={card} size={64} />
+      {/* 写真：中央 */}
+      <div style={{ marginBottom: 12 }}>
+        <PeerAvatar card={card} size={72} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
-        <PeerBadge />
+
+      {/* 名前 */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, textAlign: "center" }}>
+        {card.name}
       </div>
+
+      {/* 役職 */}
       {card.roleTitle && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>{card.roleTitle}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, textAlign: "center" }}>
+          {card.roleTitle}
+        </div>
       )}
+
+      {/* 現職企業名 */}
       {card.companyName && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10 }}>{card.companyName}</div>
-      )}
-      {card.headline && (
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6,
-          display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          {card.headline}
-        </p>
-      )}
-      {!card.headline && jobTypeLabel && (
-        <div style={{ marginBottom: 10 }}>
-          <TopicTags tags={[jobTypeLabel]} />
+        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, textAlign: "center" }}>
+          {card.companyName}
         </div>
       )}
-      {card.yearsOfExperience && (
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10 }}>
-          経験 {card.yearsOfExperience}年
+
+      {/* 年齢・経験年数 */}
+      {(age || card.yearsOfExperience) && (
+        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 16, textAlign: "center", display: "flex", gap: 8, justifyContent: "center" }}>
+          {age && <span>{age}歳</span>}
+          {age && card.yearsOfExperience && <span style={{ color: "var(--line)" }}>|</span>}
+          {card.yearsOfExperience && <span>経験 {card.yearsOfExperience}年</span>}
         </div>
       )}
-      <div style={{ marginTop: "auto" }}>
+
+      <div style={{ marginTop: "auto", width: "100%" }}>
         <Link
           href={`/u/${card.userId}`}
           onClick={(e) => e.stopPropagation()}
@@ -485,9 +487,7 @@ function PeerGridCard({ card }: { card: PeerCard }) {
 // ── PeerListRow ──────────────────────────────────────────────────────
 function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
   const router = useRouter();
-  const jobTypeLabel = card.jobType
-    ? (JOB_TYPE_DISPLAY_LABELS[card.jobType] ?? card.jobType)
-    : null;
+  const age = card.birthYear ? (2026 - card.birthYear) : null;
 
   return (
     <div
@@ -504,11 +504,10 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
     >
       <PeerAvatar card={card} size={52} />
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
-          <PeerBadge />
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
+          {card.name}
         </div>
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: jobTypeLabel ? 6 : 0 }}>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2 }}>
           {card.roleTitle ?? ""}
           {card.companyName && (
             <span style={{ color: "var(--ink-mute)" }}>
@@ -516,13 +515,13 @@ function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
             </span>
           )}
         </div>
-        {card.headline && (
-          <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.5,
-            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-            {card.headline}
-          </p>
+        {(age || card.yearsOfExperience) && (
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", gap: 6 }}>
+            {age && <span>{age}歳</span>}
+            {age && card.yearsOfExperience && <span>·</span>}
+            {card.yearsOfExperience && <span>経験 {card.yearsOfExperience}年</span>}
+          </div>
         )}
-        {!card.headline && jobTypeLabel && <TopicTags tags={[jobTypeLabel]} />}
       </div>
       <div style={{ flexShrink: 0 }}>
         <Link

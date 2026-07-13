@@ -91,7 +91,7 @@ async function getPeers(): Promise<PeerCard[]> {
   // キャリア軌跡を公開しているユーザーを取得
   const { data: careerProfiles, error } = await adminSupabase
     .from("ow_career_profiles")
-    .select("user_id, headline, years_of_experience, ow_users(id, name, avatar_color, avatar_url, auth_id, visibility)")
+    .select("user_id, headline, years_of_experience, birth_year, ow_users(id, name, avatar_color, avatar_url, auth_id, visibility)")
     .eq("is_published", true)
     .order("updated_at", { ascending: false });
 
@@ -101,6 +101,7 @@ async function getPeers(): Promise<PeerCard[]> {
     user_id: string;
     headline: string | null;
     years_of_experience: number | null;
+    birth_year: number | null;
     ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; auth_id: string | null; visibility: string | null } | null;
   };
 
@@ -157,6 +158,7 @@ async function getPeers(): Promise<PeerCard[]> {
       jobType,
       headline: r.headline,
       yearsOfExperience: r.years_of_experience,
+      birthYear: r.birth_year ?? null,
     };
   });
 }
