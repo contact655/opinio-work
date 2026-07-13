@@ -242,6 +242,27 @@ export function JobseekerHeader() {
                 </Link>
               );
             })}
+
+            {/* メッセージ — ログイン済みのみ表示 */}
+            {!loading && user && (() => {
+              const active = pathname === "/mypage/conversations";
+              return (
+                <Link
+                  href="/mypage/conversations"
+                  aria-current={active ? "page" : undefined}
+                  style={{
+                    fontSize: 14, fontWeight: 500,
+                    color: active ? "var(--royal)" : "var(--ink-soft)",
+                    textDecoration: "none",
+                    borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
+                    paddingTop: 0, paddingRight: 8, paddingBottom: 2, paddingLeft: 8,
+                    transition: "color 0.15s", whiteSpace: "nowrap",
+                  }}
+                >
+                  メッセージ
+                </Link>
+              );
+            })()}
           </nav>
 
           {/* Search icon — desktop */}
@@ -276,26 +297,6 @@ export function JobseekerHeader() {
                 /* ── Logged-in: bell + avatar button + dropdown ── */
                 <>
                 <NotificationBell />
-                {/* メッセージアイコン */}
-                <Link
-                  href="/mypage/conversations"
-                  aria-label="メッセージ"
-                  style={{
-                    width: 36, height: 36,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    borderRadius: 8, border: "1px solid var(--line)",
-                    background: pathname === "/mypage/conversations" ? "var(--royal-50)" : "#fff",
-                    color: pathname === "/mypage/conversations" ? "var(--royal)" : "var(--ink-mute)",
-                    flexShrink: 0, textDecoration: "none",
-                    transition: "border-color 0.15s, color 0.15s",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--royal)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = pathname === "/mypage/conversations" ? "var(--royal)" : "var(--line)"; (e.currentTarget as HTMLAnchorElement).style.color = pathname === "/mypage/conversations" ? "var(--royal)" : "var(--ink-mute)"; }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </Link>
                 <div style={{ position: "relative" }} ref={dropdownRef}>
                   <button type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
