@@ -747,48 +747,50 @@ function CareerContent({
   const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
   const hasDesc = !!data.description;
 
+  // 表示する役職ラベル: role_title（例: "Enterprise Account Executive"）> role_label（例: "フィールドセールス"）
+  const positionLabel = data.role_title || data.role_label;
+  // 役職と職種が違う場合のみサブに職種を出す
+  const subLabel = data.role_title && data.role_label !== data.role_title ? data.role_label : null;
+
   return (
     <div style={{ paddingTop: 10, paddingBottom: 22, paddingLeft: 8 }}>
-      {/* Company + employment type + badges */}
-      <div style={{ marginBottom: 4, lineHeight: 1.35 }}>
+      {/* 会社名 + 雇用形態 + バッジ */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6, lineHeight: 1.35 }}>
         {data.company_id ? (
-          <Link
-            href={`/companies/${data.company_id}`}
-            className="company-name-link"
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#111",
-              textDecoration: "none",
-            }}
-          >
+          <Link href={`/companies/${data.company_id}`} className="company-name-link"
+            style={{ fontSize: 17, fontWeight: 700, color: "#111", textDecoration: "none" }}>
             {shortCompanyName(data.company_name)}
           </Link>
         ) : (
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#111",
-            }}
-          >
+          <span style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>
             {shortCompanyName(data.company_name)}
           </span>
         )}
         {data.employment_type && (
-          <span style={{ fontSize: 15, fontWeight: 400, color: "var(--ink-soft)" }}>
-            {" · "}{data.employment_type}
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
+            background: "var(--line-soft)", borderRadius: 4, padding: "2px 7px",
+          }}>
+            {data.employment_type}
           </span>
         )}
         {data.is_current && <CurrentBadge />}
         {isParallel && <ParallelBadge />}
       </div>
 
-      {/* Role info table */}
-      <RoleInfoChips parentName={data.role_parent_name} roleName={data.role_label} roleTitle={data.role_title} size="md" />
+      {/* 役職名（メイン・太字） */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, lineHeight: 1.4 }}>
+        {positionLabel}
+      </div>
 
+      {/* 部門 / 職種カテゴリ（サブ） */}
+      {(data.role_parent_name || subLabel) && (
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
+          {[data.role_parent_name, subLabel].filter(Boolean).join(" · ")}
+        </div>
+      )}
 
-      {/* Date + duration — always inline */}
+      {/* 期間 */}
       <div style={{
         fontFamily: "Inter, sans-serif", fontSize: 12,
         color: "var(--ink-mute)", marginBottom: hasDesc ? 12 : 0, lineHeight: 1.4,
@@ -796,7 +798,7 @@ function CareerContent({
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
       </div>
 
-      {/* Description */}
+      {/* 業務内容 */}
       {data.description && (
         isAuthenticated ? (
           <div style={{ maxWidth: 560 }}>
@@ -806,7 +808,6 @@ function CareerContent({
           <DescriptionGate />
         )
       )}
-
     </div>
   );
 }
@@ -940,11 +941,18 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
         {data.is_current && <CurrentBadge />}
       </div>
 
-      {/* Role info table */}
-      <RoleInfoChips parentName={data.role_parent_name} roleName={data.role_label} roleTitle={data.role_title} size="sm" />
+      {/* 役職名 */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2, lineHeight: 1.4 }}>
+        {data.role_title || data.role_label}
+      </div>
+      {/* 部門 / 職種サブ */}
+      {(data.role_parent_name || (data.role_title && data.role_label !== data.role_title)) && (
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3 }}>
+          {[data.role_parent_name, data.role_title ? data.role_label : null].filter(Boolean).join(" · ")}
+        </div>
+      )}
 
-
-      {/* Date + duration — always inline */}
+      {/* 期間 */}
       <div style={{
         fontFamily: "Inter, sans-serif", fontSize: 12,
         color: "var(--ink-mute)", marginBottom: data.description ? 8 : 0, lineHeight: 1.4,
