@@ -60,7 +60,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
   const rows = (data ?? []) as unknown as DbAmbassador[];
 
   return rows
-    .filter((r) => r.user?.visibility === "public" && r.user?.name)
+    .filter((r) => r.user?.visibility !== "private" && r.user?.name)
     .map((r) => {
       const gradient =
         r.user?.avatar_color?.startsWith("linear-gradient")
@@ -108,7 +108,7 @@ async function getPeers(): Promise<PeerCard[]> {
   };
 
   const rows = careerProfiles as unknown as CareerRow[];
-  const validRows = rows.filter((r) => r.ow_users?.visibility === "public" && r.ow_users?.name);
+  const validRows = rows.filter((r) => r.ow_users?.visibility !== "private" && r.ow_users?.name);
 
   if (validRows.length === 0) return [];
 
