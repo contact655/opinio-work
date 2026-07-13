@@ -4277,20 +4277,46 @@ export default function ProfileEditClient({
               title="プロフィールの公開設定"
               desc="プロフィールページを他のユーザーが閲覧できるかどうかを設定します。"
             >
-              <FormGroup label="公開範囲" htmlFor="pe-visibility">
-                <select
-                  id="pe-visibility"
-                  value={settings.visibility}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, visibility: e.target.value as SettingsState["visibility"] }))
-                  }
-                  style={selectStyle()}
-                >
-                  <option value="public">すべてのOpinioユーザーに公開</option>
-                  <option value="login_only">ログインユーザーのみ公開</option>
-                  <option value="private">非公開（自分だけ見れる）</option>
-                </select>
-              </FormGroup>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {(
+                  [
+                    { value: "public",     label: "すべてのOPINIOユーザーに公開",  desc: "ログイン中の求職者・企業担当者が閲覧できます" },
+                    { value: "login_only", label: "ログインユーザーのみ（初期設定）", desc: "ログインしていないゲストには表示されません" },
+                    { value: "private",    label: "非公開",                       desc: "自分だけ閲覧できます" },
+                  ] as const
+                ).map((opt) => (
+                  <label
+                    key={opt.value}
+                    style={{
+                      display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+                      padding: "10px 14px", borderRadius: 8,
+                      border: `1.5px solid ${settings.visibility === opt.value ? "var(--royal)" : "var(--line)"}`,
+                      background: settings.visibility === opt.value ? "var(--royal-50)" : "#fff",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value={opt.value}
+                      checked={settings.visibility === opt.value}
+                      onChange={() => setSettings((prev) => ({ ...prev, visibility: opt.value }))}
+                      style={{ marginTop: 2, accentColor: "var(--royal)", flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{opt.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div style={{
+                marginTop: 12, padding: "8px 12px", borderRadius: 6,
+                background: "var(--success-soft)", fontSize: 12, color: "var(--success)",
+                display: "flex", alignItems: "flex-start", gap: 6,
+              }}>
+                <span style={{ flexShrink: 0 }}>✓</span>
+                <span>どの設定でも、在籍企業からのスカウトは自動的にブロックされます。</span>
+              </div>
               {owUser?.id && settings.visibility !== "private" && (
                 <div style={{ marginTop: "var(--space-3)" }}>
                   <a
