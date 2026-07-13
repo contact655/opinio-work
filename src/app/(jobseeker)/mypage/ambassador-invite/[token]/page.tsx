@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { JobseekerHeader } from "@/components/jobseeker/JobseekerHeader";
 
 type InviteInfo = {
   id: string;
@@ -71,7 +70,6 @@ export default function AmbassadorInvitePage() {
 
   return (
     <>
-      <JobseekerHeader />
       <div style={{ minHeight: "100vh", background: "#f8fafc", padding: "48px 16px" }}>
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
 

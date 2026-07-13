@@ -11,8 +11,9 @@ export default function ServiceWorkerRegistration() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
-    // localhost（HTTP）でも開発確認できるように環境チェックは緩め
-    // 本番では必ず HTTPS になる
+    // 開発環境ではキャッシュが Next.js HMR と衝突するためスキップ
+    if (process.env.NODE_ENV !== "production") return;
+
     const register = async () => {
       try {
         const registration = await navigator.serviceWorker.register("/sw.js", {

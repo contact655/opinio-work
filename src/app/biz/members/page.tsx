@@ -4,7 +4,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MembersClient } from "./MembersClient";
+import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate } from "./MembersClient";
 
 export const dynamic = "force-dynamic";
 
@@ -13,29 +13,6 @@ export const metadata = {
 };
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-
-export type AmbassadorRecord = {
-  id: string;
-  user_id: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  avatar_url: string | null;
-  role_title: string | null;
-  display_consent: boolean;
-  is_public: boolean;
-  invited_at: string | null;
-};
-
-export type AmbassadorCandidate = {
-  user_id: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  avatar_url: string | null;
-  role_title: string | null;
-  current_company: string | null;
-};
 
 async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> {
   const adminSupabase = createAdminClient();

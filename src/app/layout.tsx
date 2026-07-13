@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
-import { PageViewTracker } from "@/components/PageViewTracker";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
@@ -172,7 +171,7 @@ export default function RootLayout({
         />
         <a href="#main-content" className="skip-to-main">メインコンテンツへスキップ</a>
         {children}
-        <PageViewTracker />
+        {/* <PageViewTracker /> */}
         <ServiceWorkerRegistration />
       </body>
     </html>

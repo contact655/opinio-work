@@ -9,7 +9,28 @@ type Tab = "active" | "inactive";
 type ActionType = "permission" | "deactivate" | "reactivate";
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
-import type { AmbassadorRecord, AmbassadorCandidate } from "./page";
+export type AmbassadorRecord = {
+  id: string;
+  user_id: string;
+  name: string;
+  initial: string;
+  gradient: string;
+  avatar_url: string | null;
+  role_title: string | null;
+  display_consent: boolean;
+  is_public: boolean;
+  invited_at: string | null;
+};
+
+export type AmbassadorCandidate = {
+  user_id: string;
+  name: string;
+  initial: string;
+  gradient: string;
+  avatar_url: string | null;
+  role_title: string | null;
+  current_company: string | null;
+};
 
 type Props = {
   initialMembers: MemberRecord[];
