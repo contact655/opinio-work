@@ -570,7 +570,6 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
   }, [ambassadors, roleCategory, companyType, keyword, isPeersMode]);
 
   const filteredPeers = useMemo(() => {
-    if (!isPeersMode) return [];
     const q = keyword.trim().toLowerCase();
     if (!q) return peers;
     return peers.filter((p) =>
@@ -654,7 +653,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
               return ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length > 0;
             }).map((cat) => {
               const count = cat.key === "all"
-                ? ambassadors.length
+                ? ambassadors.length + peers.length
                 : cat.key === "peers"
                   ? peers.length
                   : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;
@@ -779,7 +778,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         {(keyword || roleCategory !== "all" || companyType !== "all") && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              {isPeersMode ? filteredPeers.length : filteredAmbassadors.length}名が見つかりました
+              {isPeersMode ? filteredPeers.length : filteredAmbassadors.length + filteredPeers.length}名が見つかりました
             </span>
             <button
               type="button"
@@ -812,9 +811,19 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
             ? filteredPeers.map((card, i) => (
                 <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
               ))
-            : filteredAmbassadors.map((card, i) => (
-                <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1} />
-              ))
+            : <>
+                {filteredAmbassadors.map((card, i) => (
+                  <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1 && filteredPeers.length === 0} />
+                ))}
+                {filteredPeers.length > 0 && filteredAmbassadors.length > 0 && (
+                  <div style={{ padding: "8px 20px", background: "var(--bg-tint)", borderTop: "1px solid var(--line)", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
+                    キャリア公開中
+                  </div>
+                )}
+                {filteredPeers.map((card, i) => (
+                  <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
+                ))}
+              </>
           }
         </div>
       )}
@@ -838,13 +847,16 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
           <div className="people-grid">
             {isPeersMode
               ? filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)
-              : filteredAmbassadors.map((card) => <AmbassadorGridCard key={card.userId} card={card} />)
+              : <>
+                  {filteredAmbassadors.map((card) => <AmbassadorGridCard key={card.userId} card={card} />)}
+                  {filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)}
+                </>
             }
           </div>
         </>
       )}
 
-      {(isPeersMode ? filteredPeers : filteredAmbassadors).length === 0 && (
+      {(isPeersMode ? filteredPeers.length : filteredAmbassadors.length + filteredPeers.length) === 0 && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
           {isPeersMode
             ? "まだ登録している方がいません。プロフィール設定から有効にできます。"

@@ -193,7 +193,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const showSubtitle = displayName !== company.name;
   const memberCount = company.current_member_count ?? (members?.length ?? 0);
   const obogCount = company.obog_count ?? 0;
-  const ago = updatedAgo(company.updated_at);
   const features = Array.isArray(company.company_features) ? company.company_features : [];
   const _jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
 
