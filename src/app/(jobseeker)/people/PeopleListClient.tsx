@@ -376,10 +376,12 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
   { key: "all",   label: "すべて",         pattern: null },
-  { key: "hr",    label: "人事・採用",     pattern: /人事|採用|hr|recruit/i },
-  { key: "sales", label: "営業・セールス", pattern: /営業|sales|セールス/i },
-  { key: "mktcs", label: "マーケ・CS",     pattern: /マーケ|market|cs|カスタマー|customer/i },
-  { key: "eng",   label: "エンジニア",     pattern: /エンジニア|engineer|開発|dev|tech/i },
+  { key: "sales", label: "営業",           pattern: /営業|sales|セールス|account executive|account manager|business development|フィールドセールス|インサイドセールス|sdr|bdr/i },
+  { key: "cs",    label: "CS",             pattern: /カスタマーサクセス|customer success|csm|cs/i },
+  { key: "mkt",   label: "マーケ",         pattern: /マーケ|market|digital market/i },
+  { key: "eng",   label: "エンジニア",     pattern: /エンジニア|engineer|開発|dev|tech|ソフトウェア|クラウド|システム/i },
+  { key: "hr",    label: "人事・採用",     pattern: /人事|採用|hr|recruit|people.*culture|people & culture/i },
+  { key: "pm",    label: "PM",             pattern: /プロダクトマネージャー|product manager|pm\b/i },
   { key: "exec",  label: "経営・役員",     pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|執行|事業部長/i },
 ] as const;
 
@@ -652,93 +654,68 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
       <div style={{ position: "sticky", top: 60, zIndex: 50, background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
-        {/* ── 行1: 検索バー + 職種チップ + ビュー切替 ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
-
-        {/* フリーワード検索 */}
-        <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8,
-            background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
-            padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
-          }}
-            onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
-            onBlur={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
-          >
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="#8b95a3" strokeWidth="2" strokeLinecap="round"
-              style={{ flexShrink: 0 }} aria-hidden="true"
+        {/* ── 行1: 検索バー ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
+              padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+              onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
+              onBlur={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
             >
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              ref={inputRef}
-              type="search"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="名前・会社名・役職で検索"
-              style={{
-                flex: 1, border: "none", outline: "none",
-                fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                padding: "9px 0", minWidth: 0, fontFamily: "inherit",
-              }}
-            />
-            {keyword && (
-              <button
-                type="button"
-                onClick={() => { setKeyword(""); inputRef.current?.focus(); }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, lineHeight: 1, padding: "2px", flexShrink: 0 }}
-              >×</button>
-            )}
-          </div>
-        </div>
-
-        {/* ロールカテゴリ */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
-            {ROLE_CATEGORIES.filter((cat) => {
-              if (cat.key === "all") return true;
-              return ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length > 0 ||
-                peers.filter((p) => matchesPeerRole(p, cat.key)).length > 0;
-            }).map((cat) => {
-              const count = cat.key === "all"
-                ? ambassadors.length + peers.length
-                : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length +
-                  peers.filter((p) => matchesPeerRole(p, cat.key)).length;
-              const isActive = roleCategory === cat.key;
-              return (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setRoleCategory(cat.key)}
-                  style={{
-                    padding: "5px 12px",
-                    borderRadius: 100,
-                    border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                    background: isActive ? "var(--royal)" : "#fff",
-                    color: isActive ? "#fff" : "var(--ink-soft)",
-                    fontSize: 12, fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {cat.label}
-                  <span style={{
-                    marginLeft: 5,
-                    fontSize: 10,
-                    fontFamily: "Inter, sans-serif",
-                    opacity: isActive ? 0.8 : 0.6,
-                  }}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                ref={inputRef}
+                type="search"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="名前・会社名・役職で検索"
+                style={{ flex: 1, border: "none", outline: "none", fontSize: 13.5, color: "var(--ink)", background: "transparent", padding: "9px 0", minWidth: 0, fontFamily: "inherit" }}
+              />
+              {keyword && (
+                <button type="button" onClick={() => { setKeyword(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, lineHeight: 1, padding: "2px", flexShrink: 0 }}>×</button>
+              )}
+            </div>
           </div>
 
+          {/* ビュー切り替え — 検索バー右端 */}
+          <div style={{ display: "flex", gap: 2, flexShrink: 0, background: "var(--bg-tint)", border: "1.5px solid var(--line)", borderRadius: 9, padding: 3 }}>
+            {([
+              { mode: "list" as const, label: "リスト", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>) },
+              { mode: "grid" as const, label: "グリッド", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>) },
+            ]).map(({ mode, label, icon }) => (
+              <button key={mode} type="button" onClick={() => setViewMode(mode)} title={label} style={{ padding: "5px 10px", borderRadius: 7, border: "none", background: viewMode === mode ? "#fff" : "transparent", color: viewMode === mode ? "var(--royal)" : "var(--ink-mute)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, transition: "all 0.12s" }}>
+                {icon}
+                <span style={{ display: "none" }} className="sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>{/* 行1 end */}
 
-        {/* ── 行2: 企業タイプフィルター + 表示切替（overflowX auto で見切れ解消） ── */}
+        {/* ── 行2: 役割フィルター ── */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none" } as React.CSSProperties}>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>役割</span>
+          {ROLE_CATEGORIES.map((cat) => {
+            const count = cat.key === "all"
+              ? ambassadors.length + peers.length
+              : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length +
+                peers.filter((p) => matchesPeerRole(p, cat.key)).length;
+            if (cat.key !== "all" && count === 0) return null;
+            const isActive = roleCategory === cat.key;
+            return (
+              <button key={cat.key} type="button" onClick={() => setRoleCategory(cat.key)} style={{ padding: "5px 12px", borderRadius: 100, border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`, background: isActive ? "var(--royal)" : "#fff", color: isActive ? "#fff" : "var(--ink-soft)", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+                {cat.label}
+                <span style={{ marginLeft: 5, fontSize: 10, fontFamily: "Inter, sans-serif", opacity: isActive ? 0.8 : 0.6 }}>{count}</span>
+              </button>
+            );
+          })}
+        </div>{/* 行2 end */}
+
+        {/* ── 行3: 企業タイプフィルター ── */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
           {COMPANY_TYPE_FILTERS.map((cat) => {
@@ -775,46 +752,6 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
             );
           })}
 
-          {/* ビュー切り替え — 行2 右端（/companies GridSortBar と同位置） */}
-          <div style={{
-            display: "flex", gap: 2, marginLeft: "auto", flexShrink: 0,
-            background: "var(--bg-tint)", border: "1.5px solid var(--line)",
-            borderRadius: 9, padding: 3,
-          }}>
-            {([
-              { mode: "list" as const, label: "リスト", icon: (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-              )},
-              { mode: "grid" as const, label: "グリッド", icon: (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-              )},
-            ]).map(({ mode, label, icon }) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setViewMode(mode)}
-                title={label}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: 7, border: "none",
-                  background: viewMode === mode ? "#fff" : "transparent",
-                  color: viewMode === mode ? "var(--royal)" : "var(--ink-mute)",
-                  cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 4,
-                  fontSize: 11, fontWeight: 600,
-                  boxShadow: viewMode === mode ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
-                  transition: "all 0.15s",
-                }}
-              >
-                {icon}{label}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* アクティブフィルター表示 */}
