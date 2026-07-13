@@ -3040,6 +3040,58 @@ export default function ProfileEditClient({
     }
   }, []);
 
+  // 企業追加ブロック
+  const [blockSearchQuery, setBlockSearchQuery] = useState("");
+  const [blockSearchResults, setBlockSearchResults] = useState<{ id: string; name: string }[]>([]);
+  const [blockSearchLoading, setBlockSearchLoading] = useState(false);
+  const [addingBlockId, setAddingBlockId] = useState<string | null>(null);
+  const blockSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleBlockSearch = useCallback((q: string) => {
+    setBlockSearchQuery(q);
+    if (blockSearchTimer.current) clearTimeout(blockSearchTimer.current);
+    if (!q.trim()) { setBlockSearchResults([]); return; }
+    blockSearchTimer.current = setTimeout(async () => {
+      setBlockSearchLoading(true);
+      try {
+        const res = await fetch(`/api/companies/search?q=${encodeURIComponent(q.trim())}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          setBlockSearchResults((data.results ?? []) as { id: string; name: string }[]);
+        }
+      } catch {
+        // best-effort
+      } finally {
+        setBlockSearchLoading(false);
+      }
+    }, 300);
+  }, []);
+
+  const handleAddBlock = useCallback(async (company: { id: string; name: string }) => {
+    setAddingBlockId(company.id);
+    try {
+      const res = await fetch("/api/jobseeker/scout-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: company.id }),
+      });
+      if (res.ok) {
+        setBlockedCompanies(prev => {
+          if (prev.some(b => b.company_id === company.id)) return prev;
+          return [...prev, { id: null, company_id: company.id, company_name: company.name, block_reason: "manual" }];
+        });
+        // reload to get the real block id
+        await loadBlockedCompanies();
+        setBlockSearchQuery("");
+        setBlockSearchResults([]);
+      }
+    } catch {
+      // best-effort
+    } finally {
+      setAddingBlockId(null);
+    }
+  }, [loadBlockedCompanies]);
+
   const handleSaveScout = useCallback(async (value: boolean | null) => {
     setScoutEnabled(value);
     setScoutSaving(true);
@@ -4577,6 +4629,72 @@ export default function ProfileEditClient({
                     ))}
                   </div>
                 )}
+
+                {/* 企業を追加でブロックする */}
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
+                    + 企業を追加でブロックする
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      value={blockSearchQuery}
+                      onChange={e => handleBlockSearch(e.target.value)}
+                      placeholder="企業名を検索…"
+                      style={{
+                        width: "100%", padding: "9px 12px", fontSize: 13,
+                        border: "1px solid var(--line)", borderRadius: 8,
+                        fontFamily: "inherit", boxSizing: "border-box",
+                        color: "var(--ink)", background: "#fff",
+                      }}
+                    />
+                    {blockSearchLoading && (
+                      <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--ink-mute)" }}>検索中…</div>
+                    )}
+                    {blockSearchResults.length > 0 && (
+                      <div style={{
+                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10,
+                        background: "#fff", border: "1px solid var(--line)", borderRadius: 8,
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.1)", overflow: "hidden",
+                      }}>
+                        {blockSearchResults.map(c => {
+                          const alreadyBlocked = blockedCompanies.some(b => b.company_id === c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              style={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                padding: "10px 14px", borderBottom: "1px solid var(--line-soft)",
+                              }}
+                            >
+                              <span style={{ fontSize: 13, color: "var(--ink)" }}>{c.name}</span>
+                              {alreadyBlocked ? (
+                                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>ブロック済み</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={addingBlockId === c.id}
+                                  onClick={() => handleAddBlock(c)}
+                                  style={{
+                                    fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                    border: "1px solid var(--line)", background: "var(--bg-tint)",
+                                    color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
+                                    opacity: addingBlockId === c.id ? 0.5 : 1,
+                                  }}
+                                >
+                                  {addingBlockId === c.id ? "追加中…" : "ブロック"}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5 }}>
+                    OPINIOに掲載されている企業のみ検索できます
+                  </div>
+                </div>
               </div>
             </FormSection>
 
