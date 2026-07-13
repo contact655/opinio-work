@@ -71,12 +71,13 @@ export default function ReviewsClient({
   companies: Company[];
 }) {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<"reviews" | "salary">(
-    searchParams.get("tab") === "salary" ? "salary" : "reviews"
-  );
+  const initialTab = searchParams.get("tab") === "salary" ? "salary" : searchParams.get("tab") === "post" ? "post" : "reviews";
+  const [tab, setTab] = useState<"reviews" | "salary" | "post">(initialTab as "reviews" | "salary" | "post");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    setTab(searchParams.get("tab") === "salary" ? "salary" : "reviews");
+    const t = searchParams.get("tab");
+    setTab(t === "salary" ? "salary" : t === "post" ? "post" : "reviews");
   }, [searchParams]);
 
   const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]));
@@ -157,16 +158,20 @@ export default function ReviewsClient({
   const totalReviews = reviewSummaries.reduce((acc, s) => acc + s.count, 0);
   const totalSalaries = salaries.length;
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
+  const tabStyle = (active: boolean, variant: "default" | "warm" = "default"): React.CSSProperties => ({
     padding: "8px 20px",
     borderRadius: 99,
     fontSize: 14,
     fontWeight: active ? 700 : 500,
-    background: active ? "var(--royal)" : "transparent",
+    background: active ? (variant === "warm" ? "var(--warm)" : "var(--royal)") : "transparent",
     color: active ? "#fff" : "var(--ink-soft)",
     border: active ? "none" : "1px solid var(--line)",
     cursor: "pointer",
   });
+
+  const filteredCompanies = searchQuery.trim()
+    ? companies.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : companies;
 
   return (
     <main style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px 80px" }}>
@@ -181,12 +186,15 @@ export default function ReviewsClient({
       </div>
 
       {/* タブ */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 28, flexWrap: "wrap" }}>
         <button style={tabStyle(tab === "reviews")} onClick={() => setTab("reviews")}>
           口コミ <span style={{ fontSize: 12, opacity: 0.75 }}>{totalReviews}</span>
         </button>
         <button style={tabStyle(tab === "salary")} onClick={() => setTab("salary")}>
           給与 <span style={{ fontSize: 12, opacity: 0.75 }}>{totalSalaries}</span>
+        </button>
+        <button style={tabStyle(tab === "post", "warm")} onClick={() => setTab("post")}>
+          ＋ 投稿する
         </button>
       </div>
 
@@ -326,7 +334,84 @@ export default function ReviewsClient({
         )
       )}
 
-      {/* CTA */}
+      {/* 投稿タブ */}
+      {tab === "post" && (
+        <div>
+          <div style={{ marginBottom: 20, padding: "16px 20px", background: "var(--warm-soft)", borderRadius: 12, border: "1px solid #FDE68A" }}>
+            <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#92400E" }}>
+              在籍・在籍経験のある企業を選んで投稿してください
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>
+              匿名で投稿できます。編集部確認後に公開されます。
+            </p>
+          </div>
+
+          {/* 企業検索 */}
+          <div style={{ position: "relative", marginBottom: 16 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"
+              style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="企業名で検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%", boxSizing: "border-box",
+                padding: "10px 14px 10px 36px",
+                border: "1px solid var(--line)", borderRadius: 10,
+                fontSize: 14, color: "var(--ink)", outline: "none",
+                background: "#fff",
+              }}
+            />
+          </div>
+
+          {/* 企業リスト */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {filteredCompanies.slice(0, 30).map((company) => (
+              <Link key={company.id} href={`/companies/${company.id}#reviews`} style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "12px 16px", background: "#fff",
+                  border: "1px solid var(--line)", borderRadius: 12,
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--warm)";
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(245,158,11,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--line)";
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+                  }}
+                >
+                  <CompanyLogo company={company} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{company.name}</div>
+                    {company.industry && (
+                      <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 99, background: "var(--line-soft)", color: "var(--ink-soft)" }}>
+                        {company.industry}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 12, color: "var(--warm)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    口コミ・給与を投稿 →
+                  </span>
+                </div>
+              </Link>
+            ))}
+            {filteredCompanies.length === 0 && (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-mute)" }}>
+                <p style={{ fontSize: 14 }}>「{searchQuery}」に一致する企業が見つかりません</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* CTA（口コミ・給与タブの下部） */}
+      {tab !== "post" && (
       <div style={{ marginTop: 40, padding: "20px 24px", background: "var(--royal-50)", borderRadius: 16, textAlign: "center" }}>
         <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>
           在籍・在籍経験のある企業の口コミ・給与を投稿してください
@@ -334,13 +419,15 @@ export default function ReviewsClient({
         <p style={{ margin: "0 0 16px", fontSize: 12, color: "var(--ink-soft)" }}>
           匿名で投稿できます。編集部確認後に公開されます。
         </p>
-        <Link href="/companies" style={{
+        <button onClick={() => setTab("post")} style={{
           display: "inline-block", padding: "10px 24px", borderRadius: 10,
-          background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
+          background: "var(--warm)", color: "#fff", fontSize: 13, fontWeight: 700,
+          border: "none", cursor: "pointer",
         }}>
-          企業を探して投稿する →
-        </Link>
+          ＋ 口コミ・給与を投稿する
+        </button>
       </div>
+      )}
     </main>
   );
 }
