@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import MypageClient from "./MypageClient";
 import type {
   Bookmark,
@@ -315,9 +316,31 @@ export default async function MypagePage({
     applicationsBadge = appCount ?? 0;
   }
 
+  // Fetch ambassador memberships (面談対応者として登録されているか)
+  type AmbassadorMembership = { id: string; company_id: string; company_name: string; role_title: string | null; display_consent: boolean };
+  let ambassadorMemberships: AmbassadorMembership[] = [];
+  if (owUser) {
+    const adminSupabase = createAdminClient();
+    const { data: memberRows } = await adminSupabase
+      .from("ow_company_members")
+      .select("id, company_id, role_title, display_consent, ow_companies!company_id(name, brand_name)")
+      .eq("user_id", owUser.id);
+    type MRow = { id: string; company_id: string; role_title: string | null; display_consent: boolean; ow_companies: { name: string | null; brand_name: string | null } | null };
+    ambassadorMemberships = (memberRows ?? []).map((r) => {
+      const row = r as unknown as MRow;
+      return {
+        id: row.id,
+        company_id: row.company_id,
+        company_name: row.ow_companies?.brand_name ?? row.ow_companies?.name ?? "—",
+        role_title: row.role_title,
+        display_consent: row.display_consent,
+      };
+    });
+  }
+
   const showSetupBanner = !owUser?.profile_setup_at;
   const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} />;
 }

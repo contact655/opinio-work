@@ -1035,9 +1035,6 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   // toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // ambassador toggle
-  const [ambassadorTogglingId, setAmbassadorTogglingId] = useState<string | null>(null);
-
   const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
 
   // 面談対応者セクション state
@@ -1051,6 +1048,34 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   });
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
+
+  // HR 自己申告 state
+  const [selfRoleTitle, setSelfRoleTitle] = useState("");
+  const [selfRegistering, setSelfRegistering] = useState(false);
+  const selfIsAmbassador = ambassadors.some((a) => a.user_id === currentUserId);
+
+  async function handleSelfRegister() {
+    if (!selfRoleTitle.trim()) return;
+    setSelfRegistering(true);
+    try {
+      const res = await fetch("/api/biz/ambassador/self-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role_title: selfRoleTitle }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setToastMessage(data.error ?? "エラーが発生しました");
+      } else {
+        setToastMessage("面談対応者として登録しました");
+        router.refresh();
+      }
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setSelfRegistering(false);
+    }
+  }
 
   async function handleInviteAmbassador(userId: string) {
     const roleTitle = inviteRoleTitles[userId]?.trim();
@@ -1235,27 +1260,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
     }
   }
 
-  async function handleToggleAmbassador(memberId: string, newValue: boolean) {
-    setAmbassadorTogglingId(memberId);
-    try {
-      const res = await fetch(`/api/biz/members/${memberId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "ambassador", value: String(newValue) }),
-      });
-      const json = await res.json() as { error?: string };
-      if (!res.ok) {
-        setToastMessage(json.error ?? "エラーが発生しました");
-        return;
-      }
-      setToastMessage(newValue ? "「話せる人」バッジを付与しました" : "バッジを外しました");
-      router.refresh();
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setAmbassadorTogglingId(null);
-    }
-  }
+
 
   return (
     <div>
@@ -1593,50 +1598,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   </div>
                 </div>
 
-                {/* 権限バッジ + 話せる人トグル + 操作メニュー */}
+                {/* 権限バッジ + 操作メニュー */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {/* 話せる人バッジトグル:
-                      - admin: 全メンバーを操作可
-                      - 非admin: 自分自身のみ操作可（セルフ申請） */}
-                  {member.is_active && (isAdmin || isSelf) && (
-                    <button
-                      type="button"
-                      onClick={() => handleToggleAmbassador(member.id, !member.is_ambassador)}
-                      disabled={ambassadorTogglingId === member.id}
-                      title={member.is_ambassador ? "「話せる人」バッジを外す" : isSelf ? "話せる人として登録する" : "「話せる人」バッジを付与する"}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "4px 10px",
-                        borderRadius: 6,
-                        border: `1px solid ${member.is_ambassador ? "#FED7AA" : isSelf && !isAdmin ? "var(--royal-100)" : "var(--line)"}`,
-                        background: member.is_ambassador ? "#FFF7ED" : isSelf && !isAdmin ? "var(--royal-50)" : "var(--bg-tint)",
-                        color: member.is_ambassador ? "#C2410C" : isSelf && !isAdmin ? "var(--royal)" : "var(--ink-mute)",
-                        cursor: ambassadorTogglingId === member.id ? "not-allowed" : "pointer",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                        opacity: ambassadorTogglingId === member.id ? 0.6 : 1,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <span style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: member.is_ambassador ? "#F97316" : isSelf && !isAdmin ? "var(--royal)" : "var(--line)",
-                        flexShrink: 0,
-                      }} />
-                      {ambassadorTogglingId === member.id
-                        ? "..."
-                        : member.is_ambassador
-                          ? "話せる人"
-                          : isSelf && !isAdmin
-                            ? "話せる人になる"
-                            : "バッジ付与"}
-                    </button>
-                  )}
                   <span style={{
                     fontSize: 11,
                     fontWeight: 700,
@@ -1731,6 +1694,57 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             </span>
           </p>
         </div>
+
+        {/* HR 自己申告（管理者自身を面談対応者に追加） */}
+        {isAdmin && !selfIsAmbassador && (
+          <div style={{
+            background: "var(--royal-50)",
+            border: "1px solid var(--royal-100)",
+            borderRadius: 10,
+            padding: "14px 16px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, flex: "0 0 auto" }}>
+              自分も面談対応者になる
+            </span>
+            <input
+              type="text"
+              placeholder="役職（例：採用担当）"
+              value={selfRoleTitle}
+              onChange={(e) => setSelfRoleTitle(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 160,
+                padding: "7px 12px",
+                border: "1.5px solid var(--royal-100)",
+                borderRadius: 7,
+                fontSize: 13,
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={handleSelfRegister}
+              disabled={selfRegistering || !selfRoleTitle.trim()}
+              style={{
+                background: selfRegistering || !selfRoleTitle.trim() ? "var(--line)" : "var(--royal)",
+                color: selfRegistering || !selfRoleTitle.trim() ? "var(--ink-mute)" : "#fff",
+                border: "none",
+                borderRadius: 7,
+                padding: "7px 16px",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: selfRegistering || !selfRoleTitle.trim() ? "not-allowed" : "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {selfRegistering ? "登録中..." : "登録する"}
+            </button>
+          </div>
+        )}
 
         {/* 承認済み */}
         {ambassadors.filter((a) => a.display_consent && a.is_public).length > 0 && (

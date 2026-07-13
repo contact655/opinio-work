@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
 import { useMypageMock } from "./_components/MypageMockContext";
@@ -434,11 +435,82 @@ function ProfileCompletenessCard({
 
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
+function AmbassadorWidget({ memberships }: { memberships: AmbassadorMembership[] }) {
+  const router = useRouter();
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  if (memberships.length === 0) return null;
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    try {
+      const res = await fetch("/api/mypage/ambassador-self-remove", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: id }),
+      });
+      if (res.ok) router.refresh();
+    } catch {
+      // silent
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, letterSpacing: "0.05em" }}>
+        面談対応者の設定
+      </div>
+      {memberships.map((m) => (
+        <div key={m.id} style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          background: m.display_consent ? "var(--success-soft)" : "var(--warm-soft)",
+          border: `1px solid ${m.display_consent ? "#6ee7b7" : "#fcd34d"}`,
+          borderRadius: 10,
+          padding: "12px 14px",
+          marginBottom: 8,
+        }}>
+          <span style={{ fontSize: 18 }}>{m.display_consent ? "✅" : "⏳"}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>
+              {m.company_name}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+              {m.role_title ?? "役職未設定"} ·{" "}
+              {m.display_consent ? "話せる人として公開中" : "承認待ち（未公開）"}
+            </div>
+          </div>
+          <button
+            onClick={() => handleRemove(m.id)}
+            disabled={removingId === m.id}
+            style={{
+              background: "none",
+              border: "1px solid var(--line)",
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 12,
+              color: "var(--ink-mute)",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            {removingId === m.id ? "..." : "解除"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DashboardView({
   userId, userName, userInitial, userAvatar,
   currentRole,
   userLocation, userAboutMe, userBirthDate, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
+  ambassadorMemberships = [],
 }: {
   userId: string;
   userName: string; userInitial: string; userAvatar: string;
@@ -455,6 +527,7 @@ function DashboardView({
   }[];
   userCertifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
+  ambassadorMemberships?: AmbassadorMembership[];
 }) {
   // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
   const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
@@ -631,6 +704,9 @@ function DashboardView({
           </section>
         );
       })()}
+
+      {/* 面談対応者の設定（登録がある場合のみ表示） */}
+      <AmbassadorWidget memberships={ambassadorMemberships} />
 
     </div>
   );
@@ -835,6 +911,8 @@ function BookmarksView({ companyBookmarks, jobBookmarks }: { companyBookmarks: B
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type AmbassadorMembership = { id: string; company_id: string; company_name: string; role_title: string | null; display_consent: boolean };
+
 export default function MypageClient({
   owUser,
   skillTags = [],
@@ -850,6 +928,7 @@ export default function MypageClient({
   showSetupBanner = false,
   setupJustDone = false,
   isNewUser = false,
+  ambassadorMemberships = [],
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -870,6 +949,7 @@ export default function MypageClient({
   showSetupBanner?: boolean;
   setupJustDone?: boolean;
   isNewUser?: boolean;
+  ambassadorMemberships?: AmbassadorMembership[];
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -1274,12 +1354,13 @@ export default function MypageClient({
           userLocation={owUser?.location}
           userAboutMe={owUser?.about_me}
           userBirthDate={owUser?.birth_date}
-          
+
           userSocialLinks={owUser?.social_links}
           userSkillTags={skillTags}
           userEducations={educations}
           userCertifications={certifications}
           timelineCareers={timelineCareers}
+          ambassadorMemberships={ambassadorMemberships}
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
