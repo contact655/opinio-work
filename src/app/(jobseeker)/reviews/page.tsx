@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import ReviewsClient from "./ReviewsClient";
@@ -11,6 +13,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ReviewsPage() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/auth?next=/reviews");
+
   const admin = createAdminClient();
 
   const [{ data: reviews }, { data: salaries }, { data: companies }] = await Promise.all([
