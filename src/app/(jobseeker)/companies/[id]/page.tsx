@@ -10,6 +10,7 @@ import {
   getArticlesByCompany,
   getCompanyEmployeesCached,
 } from "@/lib/supabase/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -1381,6 +1382,7 @@ function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) 
                       flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                       fontWeight: 700, fontSize: 13, color: avatarColor.text,
                       overflow: "hidden", border: "1.5px solid var(--line)",
+                      position: "relative",
                     }}>
                       {emp.avatarUrl ? (
                         <EmployeeAvatarImg src={emp.avatarUrl} alt={emp.name} fallbackBg={avatarColor.bg} fallbackText={emp.avatarInitial ?? emp.name.charAt(0)} fallbackColor={avatarColor.text} fontSize={13} />
@@ -1436,6 +1438,7 @@ function EmployeeCard({
         color: avatarColor.text,
         overflow: "hidden",
         border: "2px solid var(--line)",
+        position: "relative",
       }}
     >
       {employee.avatarUrl ? (
@@ -1866,6 +1869,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
           color: avatarColor.text, overflow: "hidden",
           border: "3px solid #fff",
           boxShadow: "0 2px 12px rgba(0,0,0,0.14)",
+          position: "relative",
         }}>
           {employee.avatarUrl ? (
             <EmployeeAvatarImg
@@ -2696,6 +2700,116 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
   );
 }
 
+// ─── Company Posts Section ────────────────────────────────────────────────────
+
+type CompanyPost = {
+  id: string;
+  title: string;
+  body: string | null;
+  category: string | null;
+  cover_image_url: string | null;
+  published_at: string | null;
+};
+
+const POST_CATEGORY_LABEL: Record<string, string> = {
+  culture: "カルチャー",
+  product: "プロダクト",
+  team: "チーム",
+  event: "イベント",
+  other: "その他",
+};
+
+function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
+  if (posts.length === 0) return null;
+  return (
+    <section
+      id="posts"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{
+        padding: "var(--space-6) 32px var(--space-4)",
+        borderBottom: "1px solid var(--line-soft)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <SecTitle
+          iconColor="purple"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          }
+        >
+          企業からの投稿
+        </SecTitle>
+        <span style={{
+          fontSize: 11, fontWeight: 700, color: "var(--purple)",
+          background: "var(--purple-soft)", border: "1px solid #e9d5ff",
+          padding: "2px 10px", borderRadius: 100, fontFamily: "Inter, sans-serif",
+          flexShrink: 0,
+        }}>
+          {posts.length}件
+        </span>
+      </div>
+      <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: 12 }}>
+        {posts.map((post) => {
+          const catLabel = post.category ? (POST_CATEGORY_LABEL[post.category] ?? post.category) : null;
+          const bodyPreview = post.body ? post.body.replace(/[#*`>\-]/g, "").trim().slice(0, 120) : null;
+          return (
+            <div key={post.id} style={{
+              border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
+              background: "#fff", display: "flex", flexDirection: "column", gap: 0,
+            }}>
+              {post.cover_image_url && (
+                <div style={{ position: "relative", height: 160, background: "var(--bg-tint)", flexShrink: 0 }}>
+                  <img
+                    src={post.cover_image_url}
+                    alt={post.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                </div>
+              )}
+              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                {catLabel && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 100,
+                    background: "var(--purple-soft)", color: "var(--purple)",
+                    fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
+                    width: "fit-content",
+                  }}>
+                    {catLabel}
+                  </span>
+                )}
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.5, fontFamily: "var(--font-noto-serif)" }}>
+                  {post.title}
+                </h3>
+                {bodyPreview && (
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                    {bodyPreview}
+                    {post.body && post.body.length > 120 ? "…" : ""}
+                  </p>
+                )}
+                {post.published_at && (
+                  <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                    {new Date(post.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ─── Company Articles Section ─────────────────────────────────────────────────
 
 function CompanyArticlesSection({ articles, company }: { articles: Article[]; company: Company }) {
@@ -3369,13 +3483,20 @@ export default async function CompanyDetailPage({
   const supabase = createClient();
 
   // auth + all DB queries in parallel (auth no longer blocks data fetching)
-  const [authResult, companyResult, photos, recruiters, companyArticles, employees] = await Promise.all([
+  const [authResult, companyResult, photos, recruiters, companyArticles, employees, companyPosts] = await Promise.all([
     supabase.auth.getUser(),
     getCompanyByIdCached(params.id),
     getCompanyPhotosCached(params.id),
     getCompanyRecruitersCached(params.id),
     getArticlesByCompany(params.id),
     getCompanyEmployeesCached(params.id),
+    createAdminClient()
+      .from("ow_company_posts")
+      .select("id, title, body, category, cover_image_url, published_at")
+      .eq("company_id", params.id)
+      .eq("is_published", true)
+      .order("published_at", { ascending: false })
+      .then((r: { data: CompanyPost[] | null }) => r.data ?? []),
   ]);
 
   const authUser = authResult.data.user;
@@ -3439,6 +3560,7 @@ export default async function CompanyDetailPage({
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
           { id: "reviews", label: "口コミ・給与" },
+          ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
         ]} />
         <div
@@ -3535,6 +3657,9 @@ export default async function CompanyDetailPage({
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
             {/* 8. 記事（OPINIO取材記事） */}
+            {/* 企業投稿 */}
+            <CompanyPostsSection posts={companyPosts} />
+
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
             {/* ── ページ末尾CTA ── */}
