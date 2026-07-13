@@ -1226,12 +1226,9 @@ export default function MergedTimeline({
 
           if (entry.kind === "career-same-company") {
             const items = entry.items;
-            // ソートは is_current DESC → started_at DESC で来ているため、items[0] が「最新ポジション」
-            // グループ全体の代表として items[0] の会社情報を使う
             const head = items[0];
             const anyIsCurrent = items.some((c) => c.is_current);
 
-            // グループ全体の期間: 最古 started_at 〜 最新 ended_at（any is_current なら null）
             const earliestStart = items.reduce((earliest, c) =>
               c.started_at < earliest ? c.started_at : earliest, items[0].started_at);
             const latestEnd = anyIsCurrent
@@ -1245,14 +1242,7 @@ export default function MergedTimeline({
 
             return (
               <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "center",
-                    paddingTop: 8,
-                  }}
-                >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 8 }}>
                   <CompanyLogoIcon
                     isCurrent={anyIsCurrent}
                     logo_url={head.logo_url}
@@ -1261,52 +1251,93 @@ export default function MergedTimeline({
                     company_name={head.company_name}
                   />
                 </div>
-                <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
-                  <div>
-                    {/* 会社名ヘッダー */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, flexWrap: "wrap", lineHeight: 1.3 }}>
-                      {head.company_id ? (
-                        <Link href={`/companies/${head.company_id}`} className="company-name-link"
-                          style={{ fontSize: 18, fontWeight: 700, color: "#111", textDecoration: "none" }}>
-                          {shortCompanyName(head.company_name)}
-                        </Link>
-                      ) : (
-                        <span style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>
-                          {shortCompanyName(head.company_name)}
-                        </span>
-                      )}
-                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", fontWeight: 400 }}>
+                <div style={{ paddingTop: 10, paddingBottom: 28, paddingLeft: 8 }}>
+                  {/* 会社名ヘッダー */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap", lineHeight: 1.3 }}>
+                    {head.company_id ? (
+                      <Link href={`/companies/${head.company_id}`} className="company-name-link"
+                        style={{ fontSize: 18, fontWeight: 700, color: "#111", textDecoration: "none" }}>
+                        {shortCompanyName(head.company_name)}
+                      </Link>
+                    ) : (
+                      <span style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>
+                        {shortCompanyName(head.company_name)}
+                      </span>
+                    )}
+                    {head.employment_type && (
+                      <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink-soft)" }}>
+                        · {head.employment_type}
+                      </span>
+                    )}
+                    {duration && (
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)" }}>
                         {duration}
                       </span>
-                      {anyIsCurrent && <CurrentBadge />}
-                    </div>
+                    )}
+                    {anyIsCurrent && <CurrentBadge />}
+                  </div>
 
-                    {/* ポジションリスト — 左ボーダースタイル */}
-                    <div style={{ paddingLeft: 14, borderLeft: "2px solid var(--royal-100)" }}>
-                      {items.map((c, idx) => {
-                        const posDuration = formatDuration(c.started_at, c.ended_at);
-                        const isLast = idx === items.length - 1;
-                        return (
-                          <div key={c.id} style={{ paddingBottom: isLast ? 0 : 16 }}>
-                            <RoleInfoChips parentName={c.role_parent_name} roleName={c.role_label} roleTitle={c.role_title} size="md" />
+                  {/* ポジションリスト — LinkedIn スタイル（縦線＋ドット） */}
+                  <div style={{ position: "relative", paddingLeft: 20 }}>
+                    {/* 縦線 */}
+                    <div style={{
+                      position: "absolute", left: 5, top: 8, bottom: 8,
+                      width: 2, background: "var(--royal-100)",
+                    }} />
 
-                            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
-                              {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
-                              {posDuration && ` · ${posDuration}`}
-                            </div>
-                            {c.description && (
-                              isAuthenticated ? (
-                                <div style={{ maxWidth: 520 }}>
-                                  <ExpandableDesc text={c.description} />
-                                </div>
-                              ) : (
-                                <DescriptionGate />
-                              )
+                    {items.map((c, idx) => {
+                      const posDuration = formatDuration(c.started_at, c.ended_at);
+                      const isLast = idx === items.length - 1;
+                      // 表示するポジション名: role_title > role_label の優先順
+                      const positionLabel = c.role_title || c.role_label;
+
+                      return (
+                        <div key={c.id} style={{ position: "relative", paddingBottom: isLast ? 0 : 20 }}>
+                          {/* ドットマーカー */}
+                          <div style={{
+                            position: "absolute", left: -20 + 5 - 4, top: 6,
+                            width: 8, height: 8, borderRadius: "50%",
+                            background: c.is_current ? "var(--success)" : "var(--royal-100)",
+                            border: `2px solid ${c.is_current ? "var(--success)" : "var(--royal)"}`,
+                            zIndex: 1,
+                          }} />
+
+                          {/* ポジション名（太字ヘッダー） */}
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35 }}>
+                            {positionLabel}
+                            {c.is_current && items.length > 1 && (
+                              <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
+                                在籍中
+                              </span>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
+
+                          {/* 部門 / 職種（サブ情報） */}
+                          {(c.role_parent_name || (c.role_title && c.role_label !== c.role_title)) && (
+                            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3 }}>
+                              {[c.role_parent_name, c.role_title ? c.role_label : null].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
+
+                          {/* 期間 */}
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
+                            {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
+                            {posDuration && ` · ${posDuration}`}
+                          </div>
+
+                          {/* 業務内容 */}
+                          {c.description && (
+                            isAuthenticated ? (
+                              <div style={{ maxWidth: 520 }}>
+                                <ExpandableDesc text={c.description} />
+                              </div>
+                            ) : (
+                              <DescriptionGate />
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
