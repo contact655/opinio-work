@@ -7,7 +7,6 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { CompanyListRow } from "@/lib/supabase/queries";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 import { showToast } from "@/lib/toast";
-import CompareBar from "@/components/companies/CompareBar";
 import SwipeMode from "@/components/companies/SwipeMode";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -791,65 +790,26 @@ function CompanyCardList({ company }: { company: CompanyListRow }) {
           </div>
         </div>
 
-        {/* Right panel: stats + compare */}
+        {/* Right panel: job count */}
         <div
           style={{
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
+            alignItems: "center",
+            justifyContent: "center",
             padding: "14px 16px",
-            gap: 8,
             borderLeft: "1px solid var(--line-soft)",
-            minWidth: 120,
+            minWidth: 80,
           }}
           className="list-card-right-panel"
         >
-          {/* Job count stat */}
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif", lineHeight: 1.1 }}>
-              {company.job_count > 0 ? company.job_count : "—"}
-            </div>
-            <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2, fontWeight: 500 }}>
-              募集中
-            </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif", lineHeight: 1.1 }}>
+            {company.job_count > 0 ? company.job_count : "—"}
           </div>
-
-          {/* Compare button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // compare toggle (dispatch custom event for CompareBar)
-              const stored = JSON.parse(localStorage.getItem("compare-companies") ?? "[]") as string[];
-              const isIn = stored.includes(company.id);
-              const updated = isIn ? stored.filter((id) => id !== company.id) : [...stored, company.id].slice(0, 3);
-              localStorage.setItem("compare-companies", JSON.stringify(updated));
-              window.dispatchEvent(new CustomEvent("compare-update", { detail: updated }));
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "5px 10px",
-              borderRadius: 7,
-              border: "1px solid var(--line)",
-              background: "#fff",
-              color: "var(--ink-soft)",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "border-color 0.15s, background 0.15s",
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
-              <path d="M18 20V10M12 20V4M6 20v-6"/>
-            </svg>
-            比較
-          </button>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 2, fontWeight: 500 }}>
+            募集中
+          </div>
         </div>
       </article>
     </Link>
@@ -1813,7 +1773,6 @@ export default function CompaniesClient({ companies }: { companies: CompanyListR
           .swipe-mode-btn { display: inline-flex !important; }
         }
       `}</style>
-      <CompareBar />
       {swipeMode && <SwipeMode companies={filtered} onClose={() => setSwipeMode(false)} />}
     </div>
   );
