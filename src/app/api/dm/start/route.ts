@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     .eq("id", targetUserId)
     .maybeSingle();
 
-  if (!targetUser || targetUser.visibility === "private" || targetUser.visibility === "login_only") {
+  if (!targetUser || targetUser.visibility === "private") {
     return NextResponse.json({ error: "User not found or not accepting messages" }, { status: 404 });
   }
 
