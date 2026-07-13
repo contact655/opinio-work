@@ -649,7 +649,7 @@ function YearSeparator({ year, age }: { year: number; age: number | null }) {
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
 // ── 部門 / 職種 / 役職の小テーブル ──────────────────────────────────────────
-function RoleInfoChips({
+function _RoleInfoChips({
   parentName,
   roleName,
   roleTitle,
