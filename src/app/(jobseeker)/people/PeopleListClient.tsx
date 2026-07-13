@@ -376,11 +376,11 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
   { key: "all",   label: "すべて",         pattern: null },
+  { key: "hr",    label: "人事・採用",     pattern: /人事|採用|hr|recruit|people.*culture|people & culture/i },
   { key: "sales", label: "営業",           pattern: /営業|sales|セールス|account executive|account manager|business development|フィールドセールス|インサイドセールス|sdr|bdr/i },
   { key: "cs",    label: "CS",             pattern: /カスタマーサクセス|customer success|csm|cs/i },
   { key: "mkt",   label: "マーケ",         pattern: /マーケ|market|digital market/i },
   { key: "eng",   label: "エンジニア",     pattern: /エンジニア|engineer|開発|dev|tech|ソフトウェア|クラウド|システム/i },
-  { key: "hr",    label: "人事・採用",     pattern: /人事|採用|hr|recruit|people.*culture|people & culture/i },
   { key: "pm",    label: "PM",             pattern: /プロダクトマネージャー|product manager|pm\b/i },
   { key: "exec",  label: "経営・役員",     pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|執行|事業部長/i },
 ] as const;
