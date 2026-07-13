@@ -8,7 +8,6 @@ import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 
 type Props = {
   locations: string[];
-  industries?: string[]; // 未使用（INDUSTRY_GROUPS に置き換え済み）
   companySuggestions?: { id: string; name: string }[];
 };
 
@@ -241,7 +240,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ locations, industries: _industries = [], companySuggestions = [] }: Props) {
+export function CompanySearchBar({ locations, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 

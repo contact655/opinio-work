@@ -265,30 +265,6 @@ export async function searchCompanies(
 // ── 業種一覧取得（フィルタ選択肢用）────────────────────────────────────────────
 
 /** 公開企業の distinct industry リスト（ドロップダウン選択肢）— 5分間キャッシュ */
-export const fetchDistinctIndustries = unstable_cache(
-  async (): Promise<string[]> => {
-    const supabase = createPublicClient();
-    const { data } = await supabase
-      .from("ow_companies")
-      .select("industry")
-      .eq("is_published", true)
-      .not("industry", "is", null)
-      .order("industry");
-
-    const seen = new Set<string>();
-    const result: string[] = [];
-    for (const row of data ?? []) {
-      if (row.industry && !seen.has(row.industry)) {
-        seen.add(row.industry);
-        result.push(row.industry);
-      }
-    }
-    return result;
-  },
-  ["distinct-industries"],
-  { revalidate: 300 }
-);
-
 // branch_locations の値（都道府県サフィックスなし）→ 正式な都道府県名 マッピング
 const BRANCH_TO_PREF: Record<string, string> = {
   "大阪": "大阪府", "京都": "京都府", "兵庫": "兵庫県",

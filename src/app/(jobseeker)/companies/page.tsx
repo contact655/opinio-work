@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { fetchDistinctLocations, fetchDistinctIndustries, searchCompanies } from "@/lib/search/companies";
+import { fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
 import { createPublicClient } from "@/lib/supabase/public";
 import { getCompanyReviewSummaries } from "@/lib/supabase/queries";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
@@ -120,11 +120,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
   // 新: 全5クエリを同時に投げて最も遅いものを待つだけ
   const supabase = createPublicClient();
 
-  const [locations, industries, companyNamesResult, allCompaniesResult, experienceResult, reviewSummaries] = await Promise.all([
+  const [locations, companyNamesResult, allCompaniesResult, experienceResult, reviewSummaries] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
-    // フィルターバー用業種リスト（unstable_cache 300s）
-    fetchDistinctIndustries(),
     // 検索サジェスト用企業名リスト
     supabase.from("ow_companies").select("id, name").eq("is_published", true).order("name"),
     // グリッド/リスト: DB側ページネーション + count を1クエリで取得
@@ -175,7 +173,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar locations={locations} industries={industries} companySuggestions={companySuggestions} />
+            <CompanySearchBar locations={locations} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>
