@@ -113,19 +113,22 @@ async function getPeers(): Promise<PeerCard[]> {
   const userIds = validRows.map((r) => r.user_id);
   const authIds = validRows.map((r) => r.ow_users?.auth_id).filter(Boolean) as string[];
 
-  // 現職情報
+  // 現職情報（company_id → ow_companies 名称も取得）
   const { data: exps } = await adminSupabase
     .from("ow_experiences")
-    .select("user_id, role_title, company_text, company_anonymized")
+    .select("user_id, role_title, company_text, company_anonymized, company_id, ow_companies!company_id(name, brand_name)")
     .in("user_id", userIds)
     .eq("is_current", true);
 
   const expByUser = new Map<string, { role_title: string | null; company: string | null }>();
   for (const exp of exps ?? []) {
     if (!expByUser.has(exp.user_id as string)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const co = (exp as any).ow_companies as { name: string | null; brand_name: string | null } | null;
+      const masterName = co?.brand_name ?? co?.name ?? null;
       expByUser.set(exp.user_id as string, {
         role_title: exp.role_title as string | null,
-        company: (exp.company_text as string | null) || (exp.company_anonymized as string | null) || null,
+        company: masterName || (exp.company_text as string | null) || (exp.company_anonymized as string | null) || null,
       });
     }
   }

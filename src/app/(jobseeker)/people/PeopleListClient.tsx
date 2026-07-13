@@ -324,20 +324,26 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
 
 // ── ロールカテゴリ定義 ───────────────────────────────────────────────
 const ROLE_CATEGORIES = [
-  { key: "all",      label: "すべて",       pattern: null },
-  { key: "peers",    label: "キャリア公開中", pattern: null },
-  { key: "hr",       label: "人事・採用",   pattern: /人事|採用|hr|recruit/i },
-  { key: "sales",    label: "営業・セールス", pattern: /営業|sales|セールス/i },
-  { key: "mktcs",   label: "マーケ・CS",   pattern: /マーケ|market|cs|カスタマー|customer/i },
-  { key: "eng",      label: "エンジニア",   pattern: /エンジニア|engineer|開発|dev|tech/i },
-  { key: "exec",     label: "経営・役員",   pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|執行|事業部長/i },
+  { key: "all",   label: "すべて",         pattern: null },
+  { key: "hr",    label: "人事・採用",     pattern: /人事|採用|hr|recruit/i },
+  { key: "sales", label: "営業・セールス", pattern: /営業|sales|セールス/i },
+  { key: "mktcs", label: "マーケ・CS",     pattern: /マーケ|market|cs|カスタマー|customer/i },
+  { key: "eng",   label: "エンジニア",     pattern: /エンジニア|engineer|開発|dev|tech/i },
+  { key: "exec",  label: "経営・役員",     pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|執行|事業部長/i },
 ] as const;
 
 type RoleCategoryKey = typeof ROLE_CATEGORIES[number]["key"];
 
 function matchesRoleCategory(card: AmbassadorCard, key: RoleCategoryKey): boolean {
-  if (key === "all" || key === "peers") return true;
+  if (key === "all") return true;
   const text = `${card.roleTitle ?? ""} ${card.department ?? ""}`;
+  const cat = ROLE_CATEGORIES.find((c) => c.key === key);
+  return cat?.pattern ? cat.pattern.test(text) : true;
+}
+
+function matchesPeerRole(card: PeerCard, key: RoleCategoryKey): boolean {
+  if (key === "all") return true;
+  const text = `${card.jobType ?? ""} ${card.roleTitle ?? ""}`;
   const cat = ROLE_CATEGORIES.find((c) => c.key === key);
   return cat?.pattern ? cat.pattern.test(text) : true;
 }
@@ -535,10 +541,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
   const [keyword, setKeyword] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isPeersMode = roleCategory === "peers";
-
   const filteredAmbassadors = useMemo(() => {
-    if (isPeersMode) return [];
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchesRoleCategory(a, roleCategory)) return false;
@@ -551,17 +554,21 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         (a.department ?? "").toLowerCase().includes(q)
       );
     });
-  }, [ambassadors, roleCategory, companyType, keyword, isPeersMode]);
+  }, [ambassadors, roleCategory, companyType, keyword]);
 
   const filteredPeers = useMemo(() => {
     const q = keyword.trim().toLowerCase();
-    if (!q) return peers;
-    return peers.filter((p) =>
-      p.name.toLowerCase().includes(q) ||
-      (p.companyName ?? "").toLowerCase().includes(q) ||
-      (p.roleTitle ?? "").toLowerCase().includes(q)
-    );
-  }, [peers, isPeersMode, keyword]);
+    return peers.filter((p) => {
+      if (!matchesPeerRole(p, roleCategory)) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.companyName ?? "").toLowerCase().includes(q) ||
+        (p.roleTitle ?? "").toLowerCase().includes(q) ||
+        (p.jobType ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [peers, roleCategory, keyword]);
 
 
   if (ambassadors.length === 0 && peers.length === 0) {
@@ -633,14 +640,14 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         {/* ロールカテゴリ */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
             {ROLE_CATEGORIES.filter((cat) => {
-              if (cat.key === "all" || cat.key === "peers") return true;
-              return ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length > 0;
+              if (cat.key === "all") return true;
+              return ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length > 0 ||
+                peers.filter((p) => matchesPeerRole(p, cat.key)).length > 0;
             }).map((cat) => {
               const count = cat.key === "all"
                 ? ambassadors.length + peers.length
-                : cat.key === "peers"
-                  ? peers.length
-                  : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;
+                : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length +
+                  peers.filter((p) => matchesPeerRole(p, cat.key)).length;
               const isActive = roleCategory === cat.key;
               return (
                 <button
@@ -676,13 +683,8 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
 
         {/* ── 行2: 企業タイプフィルター + 表示切替（overflowX auto で見切れ解消） ── */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
-          {isPeersMode && (
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic", marginRight: 8 }}>
-              ユーザー同士でつながれる方
-            </span>
-          )}
-          {!isPeersMode && <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>}
-          {!isPeersMode && COMPANY_TYPE_FILTERS.map((cat) => {
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>企業タイプ</span>
+          {COMPANY_TYPE_FILTERS.map((cat) => {
             const count = cat.key === "all"
               ? ambassadors.length
               : ambassadors.filter((a) => matchesCompanyType(a, cat.key)).length;
@@ -762,7 +764,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         {(keyword || roleCategory !== "all" || companyType !== "all") && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              {isPeersMode ? filteredPeers.length : filteredAmbassadors.length + filteredPeers.length}名が見つかりました
+              {filteredAmbassadors.length + filteredPeers.length}名が見つかりました
             </span>
             <button
               type="button"
@@ -791,24 +793,17 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
           borderRadius: 14,
           overflow: "hidden",
         }}>
-          {isPeersMode
-            ? filteredPeers.map((card, i) => (
-                <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
-              ))
-            : <>
-                {filteredAmbassadors.map((card, i) => (
-                  <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1 && filteredPeers.length === 0} />
-                ))}
-                {filteredPeers.length > 0 && filteredAmbassadors.length > 0 && (
-                  <div style={{ padding: "8px 20px", background: "var(--bg-tint)", borderTop: "1px solid var(--line)", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
-                    キャリア公開中
-                  </div>
-                )}
-                {filteredPeers.map((card, i) => (
-                  <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
-                ))}
-              </>
-          }
+          {filteredAmbassadors.map((card, i) => (
+            <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1 && filteredPeers.length === 0} />
+          ))}
+          {filteredPeers.length > 0 && filteredAmbassadors.length > 0 && (
+            <div style={{ padding: "8px 20px", background: "var(--bg-tint)", borderTop: "1px solid var(--line)", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
+              キャリア公開中
+            </div>
+          )}
+          {filteredPeers.map((card, i) => (
+            <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
+          ))}
         </div>
       )}
 
@@ -829,22 +824,15 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
             }
           `}</style>
           <div className="people-grid">
-            {isPeersMode
-              ? filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)
-              : <>
-                  {filteredAmbassadors.map((card) => <AmbassadorGridCard key={card.userId} card={card} />)}
-                  {filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)}
-                </>
-            }
+            {filteredAmbassadors.map((card) => <AmbassadorGridCard key={card.userId} card={card} />)}
+            {filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)}
           </div>
         </>
       )}
 
-      {(isPeersMode ? filteredPeers.length : filteredAmbassadors.length + filteredPeers.length) === 0 && (
+      {filteredAmbassadors.length + filteredPeers.length === 0 && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
-          {isPeersMode
-            ? "まだ登録している方がいません。プロフィール設定から有効にできます。"
-            : "該当する方が見つかりません"}
+          該当する方が見つかりません
         </div>
       )}
 
@@ -860,8 +848,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         color: "var(--ink-mute)",
         lineHeight: 1.8,
       }}>
-        ※ 「話せる人」は各企業の採用担当が承認した現役社員です。カジュアル面談（無料）でお話を聞けます。<br />
-        ※ 「キャリア公開中」はキャリア軌跡を公開しているユーザーです。プロフィールから経歴を確認できます。
+        ※ 「話せる人」は各企業の採用担当が承認した現役社員です。カジュアル面談（無料）でお話を聞けます。
       </div>
       </div>
     </>
