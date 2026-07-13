@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
@@ -6,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 // POST /api/biz/ambassador/self-register
 // Body: { role_title: string }
-// 管理者が自分自身を面談対応者として登録（display_consent=true で即確定）
+// 管理者が自分自身を面談対応者として登録
+// RLS対応: INSERT は display_consent=false → UPDATEで本人として true に変更
 export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,13 +39,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "already_registered", id: existing.id }, { status: 409 });
   }
 
-  const { data: member, error } = await adminSupabase
+  // Step 1: adminSupabase で display_consent=false として INSERT（RLS INSERT制約を満たす）
+  const { data: member, error: insertError } = await adminSupabase
     .from("ow_company_members")
     .insert({
       company_id: ctx.tenantId,
       user_id: ctx.currentOwnId,
-      display_consent: true,       // 自己申告なので即時同意
-      consent_at: new Date().toISOString(),
+      display_consent: false,   // RLS: INSERT は false のみ許可
       is_public: true,
       role_title: role_title.trim(),
       invited_at: new Date().toISOString(),
@@ -51,10 +53,23 @@ export async function POST(req: NextRequest) {
     .select("id")
     .single();
 
-  if (error) {
-    console.error("[ambassador self-register]", error.message);
+  if (insertError) {
+    console.error("[ambassador self-register] insert:", insertError.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  return NextResponse.json({ id: member.id });
+  // Step 2: 本人として UPDATE（own_member_consent ポリシーで許可。トリガーが consent_at を自動セット）
+  const supabase = createClient();
+  const { error: updateError } = await supabase
+    .from("ow_company_members")
+    .update({ display_consent: true })
+    .eq("id", member.id);
+
+  if (updateError) {
+    console.error("[ambassador self-register] consent update:", updateError.message);
+    // INSERT は成功しているので承認待ち状態として返す
+    return NextResponse.json({ id: member.id, consented: false, error: updateError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ id: member.id, consented: true });
 }
