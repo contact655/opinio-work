@@ -120,21 +120,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // visibility = 'private'   → 本人以外 null が返る → 404
   if (!user) notFound();
 
+  const owUser = user as OwUser;
+
   // 企業アカウントがアクセスした場合: can_send_scout() で在籍企業ブロックを適用
+  // p_candidate_id = 閲覧対象求職者の auth.users.id（owUser.auth_id）
   // → false なら当該求職者は「この企業に在籍中 or 過去在籍」のため 404
-  if (authUser) {
+  if (authUser && owUser.auth_id) {
     const ctx = await getTenantContext();
     if (ctx) {
       const adminClient = createAdminClient();
       const { data: canSend } = await adminClient.rpc("can_send_scout", {
         p_company_id: ctx.tenantId,
-        p_candidate_id: authUser.id,
+        p_candidate_id: owUser.auth_id,
       });
       if (canSend === false) notFound();
     }
   }
-
-  const owUser = user as OwUser;
 
   const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
   // cover_color が未設定の場合はアバターカラーをカバーに流用（色統一・個性化）

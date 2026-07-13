@@ -26,7 +26,7 @@ export default function robots(): MetadataRoute.Robots {
           "/auth",
           "/feed",
           "/profile/",
-          "/mypage/",
+          "/mypage",
           "/onboarding",
           "/reviews",
           "/career-trajectories",
