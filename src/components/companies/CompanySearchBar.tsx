@@ -579,22 +579,6 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
         @media (max-width: 640px) {
           .csb-bar { gap: 6px; }
         }
-        .csb-swipe-btn {
-          display: none;
-          align-items: center;
-          gap: 5px;
-          font-size: 12.5px;
-          color: var(--ink-soft);
-          cursor: pointer;
-          white-space: nowrap;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 999px;
-          padding: 6px 12px;
-          background: #fff;
-          font-family: inherit;
-          font-weight: 500;
-          flex-shrink: 0;
-        }
         .csb-filter-toggle {
           display: none;
         }
@@ -602,9 +586,6 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
           display: contents;
         }
         @media (max-width: 767px) {
-          .csb-swipe-btn {
-            display: inline-flex;
-          }
           .csb-filter-toggle {
             display: inline-flex;
             align-items: center;
@@ -693,15 +674,6 @@ export function CompanySearchBar({ locations, industries: _industries = [], comp
               </div>
             )}
           </div>
-
-          {/* モバイル用スワイプモードボタン */}
-          <button
-            type="button"
-            className="csb-swipe-btn"
-            onClick={() => router.push("/companies/swipe")}
-          >
-            ↕ スワイプ
-          </button>
 
           {/* モバイル用フィルタートグルボタン */}
           <button
