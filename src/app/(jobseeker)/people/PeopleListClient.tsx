@@ -598,6 +598,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
   const [roleCategory, setRoleCategory] = useState<RoleCategoryKey>("all");
   const [companyType, setCompanyType] = useState<CompanyTypeKey>("all");
   const [keyword, setKeyword] = useState("");
+  const [certifiedOnly, setCertifiedOnly] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredAmbassadors = useMemo(() => {
@@ -616,6 +617,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
   }, [ambassadors, roleCategory, companyType, keyword]);
 
   const filteredPeers = useMemo(() => {
+    if (certifiedOnly) return [];
     const q = keyword.trim().toLowerCase();
     return peers.filter((p) => {
       if (!matchesPeerRole(p, roleCategory)) return false;
@@ -627,7 +629,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         (p.jobType ?? "").toLowerCase().includes(q)
       );
     });
-  }, [peers, roleCategory, keyword]);
+  }, [peers, roleCategory, keyword, certifiedOnly]);
 
 
   if (ambassadors.length === 0 && peers.length === 0) {
@@ -681,6 +683,29 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
               )}
             </div>
           </div>
+
+          {/* 認定フィルター */}
+          <button
+            type="button"
+            onClick={() => setCertifiedOnly(!certifiedOnly)}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "5px 12px", borderRadius: 100, flexShrink: 0,
+              border: `1.5px solid ${certifiedOnly ? "var(--success)" : "var(--line)"}`,
+              background: certifiedOnly ? "var(--success-soft)" : "#fff",
+              color: certifiedOnly ? "var(--success)" : "var(--ink-soft)",
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {certifiedOnly && (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+            ✦ 認定
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, opacity: 0.7 }}>{ambassadors.length}</span>
+          </button>
 
           {/* ビュー切り替え — 検索バー右端 */}
           <div style={{ display: "flex", gap: 2, flexShrink: 0, background: "var(--bg-tint)", border: "1.5px solid var(--line)", borderRadius: 9, padding: 3 }}>
@@ -755,14 +780,14 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
         </div>
 
         {/* アクティブフィルター表示 */}
-        {(keyword || roleCategory !== "all" || companyType !== "all") && (
+        {(keyword || roleCategory !== "all" || companyType !== "all" || certifiedOnly) && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
               {filteredAmbassadors.length + filteredPeers.length}名が見つかりました
             </span>
             <button
               type="button"
-              onClick={() => { setKeyword(""); setRoleCategory("all"); setCompanyType("all"); }}
+              onClick={() => { setKeyword(""); setRoleCategory("all"); setCompanyType("all"); setCertifiedOnly(false); }}
               style={{
                 fontSize: 11, fontWeight: 600,
                 padding: "2px 8px", borderRadius: 100,
