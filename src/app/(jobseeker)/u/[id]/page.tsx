@@ -369,6 +369,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     skillTags.length > 0 ? { id: "skills", label: "スキル" } : null,
     (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
     contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
+    (viewerIsOwner || recentPostsTyped.length > 0) ? { id: "activity", label: "投稿" } : null,
   ].filter(Boolean) as { id: string; label: string }[];
 
   // キャリアパスノード用 年表示
@@ -1261,7 +1262,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
             {/* ── アクティビティ（投稿フォーム + 最近の投稿） ── */}
             {(viewerIsOwner || recentPostsTyped.length > 0) && (
-              <section style={{
+              <section id="activity" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "22px 28px", marginBottom: 20,
                 boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
