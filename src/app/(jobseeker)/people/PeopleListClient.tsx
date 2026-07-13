@@ -3,7 +3,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { JOB_TYPE_DISPLAY_LABELS } from "@/lib/constants/jobTypes";
 
 export type AmbassadorCard = {
   adminId: string;
@@ -396,20 +395,6 @@ function PeerAvatar({ card, size }: { card: PeerCard; size: number }) {
   );
 }
 
-// ── PeerBadge ─────────────────────────────────────────────────────────
-function PeerBadge() {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 10, fontWeight: 700,
-      padding: "2px 8px", borderRadius: 100,
-      background: "var(--purple-soft)", color: "var(--purple)",
-      border: "1px solid #e9d5ff", whiteSpace: "nowrap",
-    }}>
-      キャリア公開中
-    </span>
-  );
-}
 
 // ── PeerGridCard ─────────────────────────────────────────────────────
 function PeerGridCard({ card }: { card: PeerCard }) {
