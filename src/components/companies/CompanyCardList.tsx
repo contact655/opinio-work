@@ -72,18 +72,6 @@ function stripLegalSuffix(name: string): string {
 }
 
 
-/** 更新日を「N日前」に変換 */
-function updatedAgo(updatedAt: string | null | undefined): string | null {
-  if (!updatedAt) return null;
-  const diff = Date.now() - new Date(updatedAt).getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return "今日更新";
-  if (days < 30) return `${days}日前更新`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}ヶ月前更新`;
-  return `${Math.floor(months / 12)}年前更新`;
-}
-
 /** メンバーアバター（写真優先・初期文字フォールバック） */
 function MemberAvatar({ name, photoUrl, size = 24 }: { name: string; photoUrl?: string | null; size?: number }) {
   const initial = name.slice(0, 1);
