@@ -7,9 +7,11 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: ["/", "/biz"],        // /biz ランディングページは公開（企業向けLP）
         disallow: [
+          "/u/",
+          "/people",
           "/admin/",
           "/api/",
-          "/biz/auth",               // ログイン・招待ページはクロール不要
+          "/biz/auth",
           "/biz/dashboard",
           "/biz/company",
           "/biz/jobs",
@@ -23,9 +25,11 @@ export default function robots(): MetadataRoute.Robots {
           "/biz/organization",
           "/auth",
           "/feed",
-          "/profile/edit",
+          "/profile/",
           "/mypage/",
           "/onboarding",
+          "/reviews",
+          "/career-trajectories",
         ],
       },
     ],

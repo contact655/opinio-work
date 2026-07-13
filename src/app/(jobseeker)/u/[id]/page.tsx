@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getTenantContext } from "@/lib/business/dashboard";
 import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
@@ -84,16 +86,14 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data } = await supabase
     .from("ow_users")
-    .select("name, visibility")
+    .select("name")
     .eq("id", params.id)
     .maybeSingle();
-  const isPublic = data?.visibility === "public";
   const title = data ? `${data.name} | OPINIO` : "プロフィール | OPINIO";
   return {
     title: { absolute: title },
-    ...(isPublic ? { alternates: { canonical: `https://opinio.jp/u/${params.id}` } } : {}),
     openGraph: { title },
-    robots: isPublic ? { index: true, follow: true } : { index: false, follow: false },
+    robots: { index: false, follow: false },
   };
 }
 
@@ -115,10 +115,24 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .maybeSingle(),
   ]);
 
-  // 未ログインでも public プロフィールは閲覧可能（RLS が visibility を制御）
+  // ログイン必須（middleware で /u/ に認証ガードを設定済み）
   // visibility = 'login_only' → anon は null が返る → 404
   // visibility = 'private'   → 本人以外 null が返る → 404
   if (!user) notFound();
+
+  // 企業アカウントがアクセスした場合: can_send_scout() で在籍企業ブロックを適用
+  // → false なら当該求職者は「この企業に在籍中 or 過去在籍」のため 404
+  if (authUser) {
+    const ctx = await getTenantContext();
+    if (ctx) {
+      const adminClient = createAdminClient();
+      const { data: canSend } = await adminClient.rpc("can_send_scout", {
+        p_company_id: ctx.tenantId,
+        p_candidate_id: authUser.id,
+      });
+      if (canSend === false) notFound();
+    }
+  }
 
   const owUser = user as OwUser;
 

@@ -25,7 +25,9 @@ export async function middleware(request: NextRequest) {
   const needsAuth =
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
     pathname.startsWith("/admin") ||
-    (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname));
+    (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname)) ||
+    pathname.startsWith("/u/") ||
+    pathname === "/people";
 
   // Supabase セッションクッキーの有無を確認（sb-<ref>-auth-token）
   const hasSessionCookie = request.cookies.getAll().some(
@@ -60,7 +62,8 @@ export async function middleware(request: NextRequest) {
 
   if (needsAuth && !sessionUser) {
     const url = request.nextUrl.clone();
-    url.pathname = pathname.startsWith("/admin") ? "/auth" : "/biz/auth";
+    const isBizPath = pathname.startsWith("/biz") && !pathname.startsWith("/biz/auth");
+    url.pathname = isBizPath ? "/biz/auth" : "/auth";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
