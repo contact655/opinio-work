@@ -75,7 +75,6 @@ export function JobseekerFooter() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
                 { href: "/biz/auth",  label: "企業登録" },
-                { href: "/pricing",  label: "料金プラン" },
                 { href: "/business", label: "掲載について" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
