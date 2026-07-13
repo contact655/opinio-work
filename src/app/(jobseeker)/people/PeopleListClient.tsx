@@ -696,9 +696,9 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
           </div>
         </div>{/* 行1 end */}
 
-        {/* ── 行2: 役割フィルター ── */}
+        {/* ── 行2: 職種フィルター ── */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none" } as React.CSSProperties}>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>役割</span>
+          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>職種</span>
           {ROLE_CATEGORIES.map((cat) => {
             const count = cat.key === "all"
               ? ambassadors.length + peers.length
