@@ -5,7 +5,12 @@ import ConversationsClient, { type Conversation } from "./ConversationsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConversationsPage() {
+export default async function ConversationsPage({
+  searchParams,
+}: {
+  searchParams?: { open?: string };
+}) {
+  const initialOpenConvId = searchParams?.open ?? null;
   const supabase = createClient();
   const {
     data: { user },
@@ -22,7 +27,7 @@ export default async function ConversationsPage() {
     .maybeSingle();
 
   if (!owUser) {
-    return <ConversationsClient initialConversations={[]} />;
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} />;
   }
 
   // Fetch conversations (RLS already filters by participant via migration 066/067)
@@ -42,7 +47,7 @@ export default async function ConversationsPage() {
   const conversationIds = conversations.map((c) => c.id);
 
   if (conversationIds.length === 0) {
-    return <ConversationsClient initialConversations={[]} />;
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} />;
   }
 
   // Fetch unread state: participants + messages in parallel
@@ -78,5 +83,5 @@ export default async function ConversationsPage() {
     return { ...conv, hasUnread };
   });
 
-  return <ConversationsClient initialConversations={conversationsWithUnread} />;
+  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} />;
 }

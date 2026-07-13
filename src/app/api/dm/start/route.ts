@@ -56,16 +56,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { targetUserId: string; message: string };
+  let body: { targetUserId: string; message?: string };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const { targetUserId, message } = body;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!targetUserId || !UUID_RE.test(targetUserId) || !message?.trim()) {
-    return NextResponse.json({ error: "targetUserId and message are required" }, { status: 400 });
+  if (!targetUserId || !UUID_RE.test(targetUserId)) {
+    return NextResponse.json({ error: "targetUserId is required" }, { status: 400 });
   }
-  if (message.trim().length > 2000) {
+  if (message && message.trim().length > 2000) {
     return NextResponse.json({ error: "メッセージは2000文字以内で入力してください" }, { status: 400 });
   }
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       .eq("user_id", owMe.id)
       .maybeSingle();
 
-    if (existingParticipant) {
+    if (existingParticipant && message?.trim()) {
       await admin.from("ow_conversation_messages").insert({
         conversation_id: existingConv.id,
         sender_participant_id: existingParticipant.id,
@@ -174,8 +174,8 @@ export async function POST(request: NextRequest) {
 
   const myParticipant = participants.find((p) => p.user_id === owMe.id);
 
-  // Insert first message
-  if (myParticipant) {
+  // Insert first message (optional)
+  if (myParticipant && message?.trim()) {
     await admin.from("ow_conversation_messages").insert({
       conversation_id: conv.id,
       sender_participant_id: myParticipant.id,

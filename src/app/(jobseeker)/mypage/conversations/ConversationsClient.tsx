@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
+import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 
 export type Conversation = {
@@ -27,135 +30,363 @@ export type Conversation = {
   hasUnread?: boolean;
 };
 
+type MessageRow = {
+  id: string;
+  body: string;
+  sent_at: string;
+  sender_participant_id: string | null;
+  ow_conversation_participants: {
+    role: string;
+    ow_users: { name: string } | null;
+  } | null;
+};
+
+function isGrouped(curr: MessageRow, prev: MessageRow | null, hasSep: boolean) {
+  if (!prev || hasSep) return false;
+  return (
+    curr.sender_participant_id === prev.sender_participant_id &&
+    new Date(curr.sent_at).getTime() - new Date(prev.sent_at).getTime() < 5 * 60 * 1000
+  );
+}
+
+function ConvAvatar({ conv }: { conv: Conversation }) {
+  const displayName =
+    conv.kind === "direct_message"
+      ? conv.mentor?.name ?? "ユーザー"
+      : conv.ow_companies?.name ?? "対話相手";
+  const company = conv.ow_companies;
+
+  if (conv.kind === "direct_message") {
+    return (
+      <div style={{
+        width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 14, fontWeight: 700, color: "#fff",
+      }}>{displayName[0] ?? "?"}</div>
+    );
+  }
+  if (company?.logo_url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={company.logo_url} alt={company.name} loading="lazy"
+      style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />;
+  }
+  return (
+    <div style={{
+      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+      background: "var(--royal-50)", display: "flex", alignItems: "center",
+      justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--royal)",
+    }}>
+      {company?.logo_letter ?? company?.name?.[0] ?? displayName[0] ?? "?"}
+    </div>
+  );
+}
+
 export default function ConversationsClient({
   initialConversations,
+  initialOpenConvId,
 }: {
   initialConversations: Conversation[];
+  initialOpenConvId?: string | null;
 }) {
+  const router = useRouter();
   const [conversations] = useState<Conversation[]>(initialConversations);
+  const [selectedConvId, setSelectedConvId] = useState<string | null>(initialOpenConvId ?? null);
+  const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string | null>(null);
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const retryFetch = useCallback(() => {
-    window.location.reload();
+  const fetchMessages = useCallback(async (convId: string) => {
+    const r = await fetch(`/api/dm/conversation?id=${convId}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    setMessages(data.messages ?? []);
+    setMyParticipantId(data.myParticipantId ?? null);
+    setMyName(data.myName ?? null);
   }, []);
+
+  useEffect(() => {
+    if (!selectedConvId) return;
+    setPanelLoading(true);
+    setMessages([]);
+    setInputText("");
+    setSendError(null);
+    fetchMessages(selectedConvId).finally(() => setPanelLoading(false));
+  }, [selectedConvId, fetchMessages]);
+
+  useEffect(() => {
+    if (!selectedConvId) return;
+    const timer = setInterval(() => fetchMessages(selectedConvId), 10_000);
+    return () => clearInterval(timer);
+  }, [selectedConvId, fetchMessages]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!inputText.trim() || !selectedConvId || sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const res = await fetch("/api/dm/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: selectedConvId, message: inputText.trim() }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "送信に失敗しました");
+      setInputText("");
+      await fetchMessages(selectedConvId);
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : "送信に失敗しました");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const selectedConv = conversations.find((c) => c.id === selectedConvId) ?? null;
+  const displayName = selectedConv
+    ? selectedConv.kind === "direct_message"
+      ? selectedConv.mentor?.name ?? "ユーザー"
+      : selectedConv.kind === "mentor"
+      ? selectedConv.mentor?.name ?? "メンター"
+      : selectedConv.ow_companies?.name ?? "(企業情報なし)"
+    : null;
 
   return (
     <MypageLayout activeKey="conversations">
-      <h1 style={{
-        fontFamily: '"Noto Serif JP", serif', fontSize: 22, fontWeight: 700,
-        color: "var(--ink)", marginBottom: 24,
-      }}>対話一覧</h1>
+      <div style={{ display: "flex", gap: 0, height: "calc(100vh - 160px)", minHeight: 500, border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
 
-      {conversations.length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--line)", padding: "40px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>💬</div>
-          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>まだ対話がありません</p>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.75, marginBottom: 24 }}>
-            気になる企業の在籍ユーザーにDMを送るか、<br />
-            カジュアル面談を申し込んで対話を始めましょう。
-          </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "10px 20px", background: "var(--royal)", color: "#fff",
-              borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              企業を見てDMする
-            </Link>
-            <Link href="/companies" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "10px 20px",
-              border: "1.5px solid var(--royal-100)", background: "var(--royal-50)", color: "var(--royal)",
-              borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
-            }}>
-              カジュアル面談を申し込む
-            </Link>
+        {/* ── 左カラム: 会話リスト ── */}
+        <div style={{
+          width: 300, flexShrink: 0,
+          borderRight: "1px solid var(--line)",
+          display: "flex", flexDirection: "column",
+          overflowY: "auto",
+        }}>
+          {/* 左ヘッダー */}
+          <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--line-soft)", flexShrink: 0 }}>
+            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+              メッセージ
+            </h1>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {conversations.map((conv) => {
-            const company = conv.ow_companies;
-            const displayName =
-              conv.kind === "direct_message"
-                ? conv.mentor?.name ?? "ユーザー"
-                : conv.kind === "mentor"
-                ? conv.mentor?.name ?? "対話相手"
-                : company?.name ?? "(企業情報なし)";
 
-            const hasMessages = conv.last_message_at !== null;
-            const displayDate = hasMessages ? formatRelativeTime(conv.last_message_at!) : null;
-            const hasUnread = conv.hasUnread ?? false;
+          {conversations.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                まだ対話がありません
+              </p>
+              <Link href="/people" style={{
+                display: "inline-block", marginTop: 12,
+                fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none",
+              }}>
+                先輩を探す →
+              </Link>
+            </div>
+          ) : (
+            conversations.map((conv) => {
+              const name =
+                conv.kind === "direct_message"
+                  ? conv.mentor?.name ?? "ユーザー"
+                  : conv.kind === "mentor"
+                  ? conv.mentor?.name ?? "対話相手"
+                  : conv.ow_companies?.name ?? "(企業情報なし)";
+              const isSelected = conv.id === selectedConvId;
+              const hasUnread = conv.hasUnread ?? false;
 
-            return (
-              <Link
-                key={conv.id}
-                href={`/mypage/conversations/${conv.id}`}
-                className="block"
-                aria-label={hasUnread ? `${displayName}（未読あり）` : displayName}
-              >
-                <div className={`bg-white rounded-card border p-4 transition-all duration-150 flex items-center gap-4 ${
-                  hasUnread
-                    ? "border-primary shadow-card-hover"
-                    : "border-card-border hover:border-primary hover:shadow-card-hover"
-                }`}>
-                  {conv.kind === "direct_message" ? (
-                    <div style={{
-                      width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                      background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 14, fontWeight: 700, color: "#fff",
-                    }}>
-                      {displayName[0] ?? "?"}
-                    </div>
-                  ) : company?.logo_url ? (
-                    <img src={company.logo_url} alt={company.name} loading="lazy"
-                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                      {company?.logo_letter ?? company?.name?.[0] ?? displayName[0] ?? "?"}
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span className={`text-sm truncate ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>
-                        {displayName}
-                      </span>
+              return (
+                <button
+                  key={conv.id}
+                  type="button"
+                  onClick={() => setSelectedConvId(conv.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "12px 14px", textAlign: "left", border: "none",
+                    borderBottom: "1px solid var(--line-soft)",
+                    background: isSelected ? "var(--royal-50)" : "transparent",
+                    cursor: "pointer", width: "100%",
+                    borderLeft: isSelected ? "3px solid var(--royal)" : "3px solid transparent",
+                    transition: "background 0.1s",
+                  }}
+                >
+                  <ConvAvatar conv={conv} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{
+                        fontSize: 13, fontWeight: hasUnread ? 700 : 500,
+                        color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        flex: 1,
+                      }}>{name}</span>
                       {conv.kind === "direct_message" && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100, flexShrink: 0,
-                          background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-                          letterSpacing: "0.05em",
-                        }}>DM</span>
+                        <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", flexShrink: 0 }}>DM</span>
                       )}
                     </div>
-                    {displayDate ? (
-                      <div className="text-xs text-gray-400 mt-0.5 tabular-nums">{displayDate}</div>
-                    ) : (
-                      <div className="text-xs mt-0.5" style={{ color: "var(--ink-soft)" }}>これから対話</div>
-                    )}
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                      {conv.last_message_at ? formatRelativeTime(conv.last_message_at) : "これから対話"}
+                    </div>
                   </div>
-
                   {hasUnread && (
-                    <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-primary" aria-label="未読あり" title="未読あり" />
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* ── 右カラム: 会話パネル ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          {!selectedConvId ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--ink-mute)" }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <p style={{ fontSize: 14, color: "var(--ink-mute)" }}>会話を選択してください</p>
+            </div>
+          ) : (
+            <>
+              {/* 右ヘッダー */}
+              <div style={{
+                padding: "12px 16px", borderBottom: "1px solid var(--line)",
+                display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
+              }}>
+                {selectedConv && <ConvAvatar conv={selectedConv} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{displayName}</p>
+                  {selectedConv?.kind === "direct_message" && (
+                    <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: 0 }}>ダイレクトメッセージ</p>
                   )}
                 </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+              </div>
 
-      {/* リロードボタン（エラー時用）*/}
-      <button
-        type="button"
-        onClick={retryFetch}
-        style={{ display: "none" }}
-        id="conversations-retry"
-      />
+              {/* メッセージエリア */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "16px", minHeight: 0 }}>
+                {panelLoading ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                    <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>読み込み中...</span>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                    <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>まだメッセージはありません</p>
+                  </div>
+                ) : (
+                  <div>
+                    {messages.map((msg, i) => {
+                      const prev = i > 0 ? messages[i - 1] : null;
+                      const isMe = msg.sender_participant_id === myParticipantId;
+                      const needsSep = !prev || new Date(msg.sent_at).toDateString() !== new Date(prev.sent_at).toDateString();
+                      const grouped = isGrouped(msg, prev, needsSep);
+                      const senderName = msg.ow_conversation_participants?.ow_users?.name ?? (isMe ? (myName ?? "自分") : "相手");
+
+                      return (
+                        <Fragment key={msg.id}>
+                          {needsSep && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
+                              <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                              <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDateSeparator(msg.sent_at)}</span>
+                              <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                            </div>
+                          )}
+                          <div style={{
+                            display: "flex", flexDirection: "column",
+                            alignItems: isMe ? "flex-end" : "flex-start",
+                            marginTop: grouped ? 2 : 12,
+                          }}>
+                            {!grouped && (
+                              <span style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3 }}>
+                                {isMe ? (myName ?? "自分") : senderName}
+                              </span>
+                            )}
+                            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, flexDirection: isMe ? "row-reverse" : "row" }}>
+                              {!grouped ? (
+                                isMe ? (
+                                  <InitialAvatar name={myName ?? "自"} size={26} />
+                                ) : (
+                                  <InitialAvatar name={senderName} size={26} bgStyle="var(--line)" textColor="var(--ink-soft)" />
+                                )
+                              ) : <div style={{ width: 26, flexShrink: 0 }} />}
+                              <div style={{
+                                maxWidth: "62%", padding: "9px 13px", borderRadius: 16,
+                                borderBottomRightRadius: isMe ? 3 : 16,
+                                borderBottomLeftRadius: isMe ? 16 : 3,
+                                background: isMe ? "var(--royal)" : "#f1f5f9",
+                                color: isMe ? "#fff" : "var(--ink)",
+                                fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                              }}>
+                                {msg.body}
+                              </div>
+                              <span style={{ fontSize: 10, color: "var(--ink-mute)", flexShrink: 0 }}>
+                                {formatRelativeTime(msg.sent_at, { withTime: true })}
+                              </span>
+                            </div>
+                          </div>
+                        </Fragment>
+                      );
+                    })}
+                    <div ref={bottomRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* エラー */}
+              {sendError && (
+                <div style={{ padding: "4px 16px", fontSize: 12, color: "var(--error)", background: "#fef2f2" }}>{sendError}</div>
+              )}
+
+              {/* 入力エリア */}
+              <div style={{
+                borderTop: "1px solid var(--line)", padding: "12px 16px",
+                display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0,
+              }}>
+                <textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="メッセージを入力… (⌘+Enter で送信)"
+                  rows={2}
+                  disabled={sending}
+                  style={{
+                    flex: 1, boxSizing: "border-box",
+                    padding: "9px 12px", borderRadius: 8,
+                    border: "1.5px solid var(--line)", outline: "none",
+                    fontSize: 13, lineHeight: 1.5, resize: "none",
+                    fontFamily: "inherit", color: "var(--ink)",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={sending || !inputText.trim()}
+                  style={{
+                    padding: "9px 18px", borderRadius: 8, border: "none",
+                    fontSize: 13, fontWeight: 700, flexShrink: 0,
+                    cursor: sending || !inputText.trim() ? "not-allowed" : "pointer",
+                    background: sending || !inputText.trim() ? "var(--line)" : "var(--royal)",
+                    color: sending || !inputText.trim() ? "var(--ink-mute)" : "#fff",
+                  }}
+                >
+                  {sending ? "送信中…" : "送信"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </MypageLayout>
   );
 }

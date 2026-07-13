@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
@@ -85,23 +84,10 @@ export default function ConversationDetailClient({
   }, [messages]);
 
   const refreshMessages = useCallback(async () => {
-    const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: msgs, error: msgsError } = await (supabase as any)
-      .from("ow_conversation_messages")
-      .select(
-        `id, body, sent_at, sender_participant_id,
-         ow_conversation_participants!sender_participant_id(
-           role,
-           ow_users(name)
-         )`
-      )
-      .eq("conversation_id", conversationId)
-      .is("deleted_at", null)
-      .order("sent_at", { ascending: true });
-    if (!msgsError) {
-      setMessages((msgs as MessageRow[]) || []);
-    }
+    const r = await fetch(`/api/dm/conversation?id=${conversationId}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data.messages) setMessages(data.messages as MessageRow[]);
   }, [conversationId]);
 
   // 10秒ポーリングで新着メッセージを自動取得
@@ -111,23 +97,20 @@ export default function ConversationDetailClient({
   }, [refreshMessages]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || !myParticipantId || sending) return;
+    if (!inputText.trim() || sending) return;
     if (inputText.trim().length > 5000) {
       setError("メッセージは5000文字以内で入力してください");
       return;
     }
     setSending(true);
-    const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertError } = await (supabase as any)
-      .from("ow_conversation_messages")
-      .insert({
-        conversation_id: conversationId,
-        sender_participant_id: myParticipantId,
-        body: inputText.trim(),
-      });
-    if (insertError) {
-      setError("メッセージの送信に失敗しました");
+    const res = await fetch("/api/dm/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, message: inputText.trim() }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error ?? "メッセージの送信に失敗しました");
     } else {
       setInputText("");
       await refreshMessages();
