@@ -93,7 +93,6 @@ export function JobseekerFooter() {
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
-                { href: "/about",        label: "OPINIOについて" },
                 { href: "/contact",      label: "お問い合わせ" },
                 { href: "/privacy",        label: "プライバシーポリシー" },
                 { href: "/terms",          label: "利用規約（求職者）" },
