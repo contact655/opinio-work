@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 type MessageRow = {
   id: string;
@@ -68,17 +67,17 @@ export function DMButton({ targetUserId, targetName, targetAvatarUrl }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
   }, []);
 
-  const fetchMessages = useCallback(async (cId: string) => {
-    const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
-      .from("ow_conversation_messages")
-      .select(`id, body, sent_at, sender_participant_id, ow_conversation_participants!sender_participant_id(role, ow_users(name))`)
-      .eq("conversation_id", cId)
-      .is("deleted_at", null)
-      .order("sent_at", { ascending: true });
-    if (data) setMessages(data as MessageRow[]);
-  }, []);
+  const refreshThread = useCallback(async () => {
+    const r = await fetch(`/api/dm/start?targetUserId=${targetUserId}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data.conversation) {
+      setConvId(data.conversation.id);
+      setMyParticipantId(data.conversation.myParticipantId);
+      setMyName(data.conversation.myName);
+      setMessages(data.messages ?? []);
+    }
+  }, [targetUserId]);
 
   useEffect(() => {
     if (!open) return;
@@ -117,9 +116,9 @@ export function DMButton({ targetUserId, targetName, targetAvatarUrl }: Props) {
 
   useEffect(() => {
     if (!open || !convId) return;
-    const timer = setInterval(() => fetchMessages(convId), 10_000);
+    const timer = setInterval(refreshThread, 10_000);
     return () => clearInterval(timer);
-  }, [open, convId, fetchMessages]);
+  }, [open, convId, refreshThread]);
 
   async function handleFirstSend() {
     if (!inputText.trim()) return;
@@ -141,14 +140,7 @@ export function DMButton({ targetUserId, targetName, targetAvatarUrl }: Props) {
       setInputText("");
       setComposeMode(false);
 
-      const threadRes = await fetch(`/api/dm/start?targetUserId=${targetUserId}`);
-      const threadData = await threadRes.json();
-      if (threadData.conversation) {
-        setConvId(threadData.conversation.id);
-        setMyParticipantId(threadData.conversation.myParticipantId);
-        setMyName(threadData.conversation.myName);
-        setMessages(threadData.messages ?? []);
-      }
+      await refreshThread();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "送信に失敗しました");
     } finally {
@@ -157,21 +149,29 @@ export function DMButton({ targetUserId, targetName, targetAvatarUrl }: Props) {
   }
 
   async function handleSend() {
-    if (!inputText.trim() || !myParticipantId || !convId || sending) return;
+    if (!inputText.trim() || !convId || sending) return;
     setSending(true);
-    const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertErr } = await (supabase as any)
-      .from("ow_conversation_messages")
-      .insert({ conversation_id: convId, sender_participant_id: myParticipantId, body: inputText.trim() });
-    if (insertErr) {
-      setError("送信に失敗しました");
-    } else {
+    setError(null);
+    try {
+      const res = await fetch("/api/dm/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: convId, message: inputText.trim() }),
+      });
+      if (res.status === 401) {
+        router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "送信に失敗しました");
       setInputText("");
-      await fetchMessages(convId);
+      await refreshThread();
       setTimeout(() => scrollToBottom(true), 50);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "送信に失敗しました");
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -397,13 +397,13 @@ export function DMButton({ targetUserId, targetName, targetAvatarUrl }: Props) {
                     <button
                       type="button"
                       onClick={handleSend}
-                      disabled={sending || !inputText.trim()}
+                      disabled={sending || !inputText.trim() || !convId}
                       style={{
                         padding: "8px 14px", borderRadius: 8, border: "none",
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
-                        cursor: sending || !inputText.trim() ? "not-allowed" : "pointer",
-                        background: sending || !inputText.trim() ? "var(--line)" : "var(--royal)",
-                        color: sending || !inputText.trim() ? "var(--ink-mute)" : "#fff",
+                        cursor: sending || !inputText.trim() || !convId ? "not-allowed" : "pointer",
+                        background: sending || !inputText.trim() || !convId ? "var(--line)" : "var(--royal)",
+                        color: sending || !inputText.trim() || !convId ? "var(--ink-mute)" : "#fff",
                       }}
                     >
                       {sending ? "…" : "送信"}
