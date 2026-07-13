@@ -160,6 +160,7 @@ export default function BizLandingPage() {
                 lineHeight: 1.25,
                 margin: "0 0 20px",
                 letterSpacing: "-0.02em",
+                color: "#fff",
               }}>
                 IT/SaaS業界の優秀な人材と、<br />
                 対話から始める採用を。
