@@ -296,7 +296,7 @@ function Hero({ companyNum, jobNum, newJobsThisWeek }: { companyNum: string; job
               color: "var(--ink)", marginBottom: 18,
               fontFamily: "var(--font-noto-serif)",
             }}>
-              IT/SaaS転職に必要な<br />情報が、ここで完結する。
+              IT転職に必要な<br />情報が、ここで完結する。
             </h1>
 
             <p style={{ fontSize: 15, lineHeight: 1.9, color: "var(--ink-soft)", marginBottom: 32, maxWidth: 480 }}>
