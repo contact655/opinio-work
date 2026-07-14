@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const query = admin
     .from("ow_salary_reports")
-    .select("role_id, ote, annual_salary, years_of_experience, employment_status, ow_roles(id, name, parent_id)")
+    .select("role_id, ote, annual_salary, grade, start_year_month, end_year_month, years_of_experience, employment_status, ow_roles(id, name, parent_id)")
     .eq("company_id", companyId)
     .eq("is_approved", true);
 
@@ -36,7 +36,17 @@ export async function GET(req: NextRequest) {
   const reports = data ?? [];
 
   if (reports.length < SALARY_MIN_REPORTS_TO_DISPLAY) {
-    return NextResponse.json({ summary: null, byRole: [], insufficientData: reports.length > 0 });
+    const rawReports = reports.map((r) => {
+      const salary = ((r as any).ote ?? (r as any).annual_salary) as number | null;
+      return {
+        roleName: ((r as any).ow_roles as { name: string } | null)?.name ?? "不明",
+        salary,
+        grade: (r as any).grade as string | null,
+        startYM: (r as any).start_year_month as string | null,
+        endYM: (r as any).end_year_month as string | null,
+      };
+    }).filter((r) => r.salary != null);
+    return NextResponse.json({ summary: null, byRole: [], insufficientData: reports.length > 0, rawReports });
   }
 
   // COALESCE(ote, annual_salary) — OTE が主フィールド、なければ annual_salary にフォールバック

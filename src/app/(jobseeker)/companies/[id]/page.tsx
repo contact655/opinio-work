@@ -3459,7 +3459,7 @@ export default async function CompanyDetailPage({
   if (!companyResult) return notFound();
 
   const { company, detail, employeeCategories } = companyResult;
-  const pageJobItems = detail.jobs.flatMap((c) => c.items);
+  const _pageJobItems = detail.jobs.flatMap((c) => c.items); void _pageJobItems;
 
   // Only 1 sequential query remains (bookmark lookup needs owUser.id)
   let initialBookmarked = false;
@@ -3607,7 +3607,7 @@ export default async function CompanyDetailPage({
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
             {/* ── 給与データ ── */}
-            <SalaryDataSection companyId={company.id} companyName={company.name} jobs={pageJobItems} />
+            <SalaryDataSection companyId={company.id} companyName={company.name} />
 
             {/* ── ページ末尾CTA ── */}
             {company.accepting_casual_meetings && (

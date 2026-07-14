@@ -4,39 +4,37 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SALARY_MIN_REPORTS_TO_DISPLAY } from "@/lib/constants/salary";
 
-interface JobItem {
-  id?: string;
-  title: string;
-  salaryMin?: number | null;
-  salaryMax?: number | null;
-  dept?: string | null;
-  catchCopy?: string | null;
+interface RawReport {
+  roleName: string;
+  salary: number | null;
+  grade: string | null;
+  startYM: string | null;
+  endYM: string | null;
 }
 
 interface SalaryReport {
   summary: { avg: number; min: number; max: number; count: number } | null;
   byRole: { roleId: string; roleName: string; count: number; avg: number }[];
   insufficientData?: boolean;
+  rawReports?: RawReport[];
 }
 
 interface Props {
   companyId: string;
   companyName: string;
-  jobs: JobItem[];
 }
 
 function fmt(yen: number) {
-  return `${Math.round(yen / 10000)}万円`;
+  return `${Math.round(yen / 10000).toLocaleString()}万円`;
 }
 
-function fmtRange(min?: number | null, max?: number | null) {
-  if (min && max) return `${min}〜${max}万円`;
-  if (min) return `${min}万円〜`;
-  if (max) return `〜${max}万円`;
-  return null;
+function fmtYM(ym: string | null): string | null {
+  if (!ym) return null;
+  const [y, m] = ym.split("-");
+  return `${y}年${parseInt(m)}月`;
 }
 
-export default function SalaryDataSection({ companyId, companyName, jobs }: Props) {
+export default function SalaryDataSection({ companyId, companyName }: Props) {
   const [reports, setReports] = useState<SalaryReport | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,15 +45,13 @@ export default function SalaryDataSection({ companyId, companyName, jobs }: Prop
       .catch(() => setLoading(false));
   }, [companyId]);
 
-  const jobsWithSalary = jobs.filter(
-    (j) => (j.salaryMin && j.salaryMin > 0) || (j.salaryMax && j.salaryMax > 0)
-  );
-
-  const hasJobSalary = jobsWithSalary.length > 0;
   const hasSelfReported = !loading && reports?.summary != null;
   const hasInsufficientData = !loading && reports?.insufficientData;
+  const rawReports = reports?.rawReports ?? [];
+  const hasRawReports = hasInsufficientData && rawReports.length > 0;
+  const hasNoData = !loading && !hasSelfReported && !hasInsufficientData;
 
-  if (!hasJobSalary && !hasSelfReported && !hasInsufficientData && !loading) {
+  if (!loading && !hasSelfReported && !hasInsufficientData && !hasNoData) {
     return null;
   }
 
@@ -71,49 +67,7 @@ export default function SalaryDataSection({ companyId, companyName, jobs }: Prop
         給与データ
       </h2>
 
-      {/* ── セクション1: 求人の提示レンジ（企業が掲示する建前） ─────────────────── */}
-      {hasJobSalary && (
-        <div style={{
-          background: "var(--line-soft)",
-          borderRadius: 14,
-          padding: "20px 24px",
-          marginBottom: 16,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
-              background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-              padding: "2px 8px", borderRadius: 100, fontFamily: "Inter, sans-serif",
-            }}>求人の提示レンジ</span>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>企業が採用時に提示している想定年収</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {jobsWithSalary.map((job, idx) => {
-              const range = fmtRange(job.salaryMin, job.salaryMax);
-              return (
-                <div key={job.id ?? idx} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: "#fff", borderRadius: 10, padding: "12px 16px",
-                  border: "1px solid var(--line)",
-                }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{job.title}</div>
-                    {job.dept && <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{job.dept}</div>}
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
-                    {range}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 10, lineHeight: 1.6 }}>
-            ※ 採用時の提示レンジです。実際の支給額とは異なる場合があります。
-          </p>
-        </div>
-      )}
-
-      {/* ── セクション2: 在籍者の自己申告（実態） ────────────────────────────── */}
+      {/* ── 在籍者の自己申告（実態） ────────────────────────────── */}
       <div style={{
         background: hasSelfReported ? "var(--success-soft)" : "var(--line-soft)",
         borderRadius: 14,
@@ -135,6 +89,7 @@ export default function SalaryDataSection({ companyId, companyName, jobs }: Prop
           <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>読み込み中...</div>
         )}
 
+        {/* 3件以上: 統計表示 */}
         {!loading && hasSelfReported && reports?.summary && (
           <>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
@@ -175,30 +130,74 @@ export default function SalaryDataSection({ companyId, companyName, jobs }: Prop
           </>
         )}
 
-        {!loading && hasInsufficientData && !hasSelfReported && (
-          <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 8 }}>
-              データがまだ少なく表示できません（{SALARY_MIN_REPORTS_TO_DISPLAY}件以上で表示）
+        {/* 1〜2件: 参考値として個別表示 */}
+        {!loading && hasRawReports && (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 10 }}>
+              在籍者の自己申告データ（{rawReports.length}件）
             </div>
-            <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              あなたのデータが集計の助けになります
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {rawReports.map((r, i) => {
+                const startFmt = fmtYM(r.startYM);
+                const endFmt = fmtYM(r.endYM);
+                const period = startFmt
+                  ? endFmt ? `${startFmt} 〜 ${endFmt}` : `${startFmt} 〜 現在`
+                  : null;
+                return (
+                  <div key={i} style={{
+                    background: "#fff", borderRadius: 10, padding: "12px 16px",
+                    border: "1px solid var(--line)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                  }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.roleName}</span>
+                        {r.grade && (
+                          <span style={{ fontSize: 10, color: "var(--ink-mute)", background: "var(--line-soft)", padding: "1px 6px", borderRadius: 6 }}>
+                            {r.grade}
+                          </span>
+                        )}
+                      </div>
+                      {period && (
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{period}</div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <span style={{ fontSize: 17, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
+                        {r.salary != null ? fmt(r.salary) : "—"}
+                      </span>
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
+                        background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A",
+                        padding: "2px 6px", borderRadius: 6, fontFamily: "Inter, sans-serif",
+                      }}>参考値</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+              ※ データが{SALARY_MIN_REPORTS_TO_DISPLAY}件未満のため参考値として表示しています。統計的な信頼性は低い場合があります。<br />
+              ※ 利用規約第13条の4の範囲内でのみ使用されます。
+            </p>
+          </>
+        )}
+
+        {/* 0件: 強い誘導 */}
+        {!loading && hasNoData && (
+          <div style={{ padding: "8px 0 4px" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+              この企業の給与データはまだありません。
+            </div>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              在籍・在籍経験のある方、最初の投稿をお願いします。<br />
+              投稿いただいたデータは匿名で集計され、他の求職者の参考になります。
             </div>
           </div>
         )}
 
-        {!loading && !hasSelfReported && !hasInsufficientData && (
-          <div style={{ textAlign: "center", padding: "12px 0 4px" }}>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4 }}>
-              まだデータがありません
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              現役社員・OBOGのデータが集まると表示されます
-            </div>
-          </div>
-        )}
-
-        {/* CTA to submit */}
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #A7F3D0" }}>
+        {/* CTA */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${hasSelfReported ? "#A7F3D0" : "var(--line)"}` }}>
           <Link
             href={`/mypage/salary/new?company_id=${companyId}&company_name=${encodeURIComponent(companyName)}`}
             style={{
