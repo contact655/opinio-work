@@ -56,6 +56,8 @@ export async function GET(req: Request) {
   const before = searchParams.get("before");
   const userId = searchParams.get("user_id");
 
+  const adminSupabase = createAdminClient();
+
   // ログイン確認（オプション）
   const { data: { user } } = await supabase.auth.getUser();
   let myOwUserId: string | null = null;
@@ -63,7 +65,7 @@ export async function GET(req: Request) {
     myOwUserId = await resolveOwUserId(supabase, user.id);
   }
 
-  let query = supabase
+  let query = adminSupabase
     .from("ow_posts")
     .select(`
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
@@ -111,7 +113,6 @@ export async function GET(req: Request) {
   });
 
   // 現職情報を別クエリで取得
-  const adminSupabase = createAdminClient();
   const userIds = Array.from(new Set(visiblePosts.map((p) => p.user?.id).filter(Boolean) as string[]));
   const expByUser = new Map<string, { roleTitle: string | null; company: string | null }>();
   if (userIds.length > 0) {
