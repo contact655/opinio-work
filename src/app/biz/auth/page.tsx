@@ -694,21 +694,24 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
         return;
       }
 
-      const res = await fetch("/api/company/register", {
+      const res = await fetch("/api/biz/companies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: companyName,
           industry,
-          employee_count: employeeCount,
-          department: contactTitle,
-          role_title: contactTitle,
+          size: employeeCount,
           genres: [],
         }),
       });
 
       if (!res.ok) {
         const result = await res.json();
+        // 同名企業が既存の場合は force_create で強制作成するか選択させる
+        if (result.error === "company_name_exists") {
+          setError(`「${companyName}」という企業が既に登録されています。別の企業名で登録するか、その企業から招待を受けてください。`);
+          return;
+        }
         setError(result.error || "企業情報の登録に失敗しました。もう一度お試しください。");
         return;
       }

@@ -43,6 +43,12 @@ export async function GET(_req: NextRequest) {
 export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!ctx.isPublished) {
+    return NextResponse.json(
+      { error: "運営審査が完了するまでスカウトを送信できません" },
+      { status: 403 }
+    );
+  }
 
   const body = await req.json().catch(() => ({}));
   const { candidate_id, message, job_id } = body as {

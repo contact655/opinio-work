@@ -95,6 +95,27 @@ export default async function BizDashboardPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
+      {/* ── 審査中バナー（未承認企業のみ） ── */}
+      {!ctx.isPublished && (
+        <div style={{
+          background: "var(--warm-soft)", border: "1px solid #FCD34D",
+          borderRadius: 12, padding: "14px 18px", marginBottom: 16,
+          display: "flex", alignItems: "flex-start", gap: 12,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 3 }}>
+              運営審査中です
+            </div>
+            <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
+              承認後、候補者検索・スカウト送信・求人公開をご利用いただけます。審査が完了次第メールでご連絡します。
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Company card ── */}
       <CompanyCard
         tenantId={ctx.tenantId}

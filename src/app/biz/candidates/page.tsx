@@ -26,6 +26,42 @@ export default async function CandidatesPage() {
       </BusinessLayout>
     );
   }
+  // 未承認企業は候補者検索不可
+  if (!ctx.isPublished) {
+    return (
+      <BusinessLayout {...{
+        userName: ctx.userName,
+        tenantName: ctx.tenantName,
+        tenantLogoGradient: ctx.logoGradient,
+        tenantLogoLetter: ctx.logoLetter,
+        memberships: ctx.allCompanies,
+        currentTenantId: ctx.tenantId,
+      }}>
+        <div style={{
+          background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
+          padding: "48px 40px", textAlign: "center", maxWidth: 520, margin: "60px auto",
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: "var(--warm-soft)", display: "flex",
+            alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+          }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+            運営審査が完了するまでお待ちください
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 0 }}>
+            候補者検索・スカウト送信は、運営による企業審査が完了した後にご利用いただけます。<br />
+            審査が完了次第、メールでご連絡します。
+          </p>
+        </div>
+      </BusinessLayout>
+    );
+  }
+
   const supabase = createClient();
   const adminClient = createAdminClient();
 

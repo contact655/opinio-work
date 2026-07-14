@@ -25,6 +25,7 @@ export type TenantCompany = {
 export type TenantContext = {
   tenantId: string;
   tenantName: string;
+  isPublished: boolean;          // ow_companies.is_published — 運営承認済みか
   planType: "performance" | "saas_monthly" | "saas_yearly" | null;
   planLabel: string;
   userName: string;
@@ -122,7 +123,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     // ow_companies / ow_users / ow_tenant_plans を一括並列取得
     const [companiesRes, owUserRes, planRes] = await Promise.all([
       admin.from("ow_companies")
-        .select("id, name, logo_gradient, logo_letter")
+        .select("id, name, logo_gradient, logo_letter, is_published")
         .in("id", allMembershipIds),
       admin.from("ow_users")
         .select("avatar_color")
@@ -170,6 +171,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     return {
       tenantId,
       tenantName: companyRow.name || "—",
+      isPublished: (companyRow as any).is_published === true,
       planType,
       planLabel: planType ? PLAN_LABELS[planType] || "—" : "未設定",
       userName,

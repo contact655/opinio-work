@@ -170,6 +170,21 @@ export async function PATCH(
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
   }
 
+  // 未承認企業は published への昇格不可
+  if (newStatus === "published") {
+    const { data: companyRow } = await supabase
+      .from("ow_companies")
+      .select("is_published")
+      .eq("id", ctx1.companyId)
+      .maybeSingle();
+    if (companyRow && companyRow.is_published !== true) {
+      return NextResponse.json(
+        { error: "運営審査が完了するまで求人を公開できません" },
+        { status: 403 }
+      );
+    }
+  }
+
   const now = new Date().toISOString();
   const patch: Record<string, string | null> = { status: newStatus, updated_at: now };
 
