@@ -126,7 +126,7 @@ function detectPlatform(url: string): string {
   return "other";
 }
 
-type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs_achievements" | "socials_content" | "account";
+type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs_achievements" | "socials_content" | "privacy" | "account";
 
 type OwUser = {
   id: string;
@@ -141,8 +141,6 @@ type OwUser = {
   about_me: string | null;
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
-  can_talk_to_candidates: boolean | null;
-  can_talk_to_hr: boolean | null;
   social_links: Record<string, string> | null;
 } | null;
 
@@ -160,8 +158,6 @@ type SettingsState = {
   coverColor: string;
   visibility: "public" | "login_only" | "private";
   isOpenToWork: boolean;
-  canTalkToCandidates: boolean;
-  canTalkToHr: boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -438,7 +434,8 @@ const PROFILE_TABS: TabItem[] = [
   { key: "preferences",       label: "希望条件" },
   { key: "certs_achievements", label: "資格・実績" },
   { key: "socials_content",   label: "SNS・発信" },
-  { key: "account",           label: "アカウント設定" },
+  { key: "privacy",           label: "公開設定" },
+  { key: "account",           label: "アカウント" },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -2936,23 +2933,19 @@ export default function ProfileEditClient({
       });
   }, []);
 
-  // ── アカウント設定タブの状態（明示保存方式） ────────────────────────────
+  // ── 公開設定タブの状態（明示保存方式） ──────────────────────────────────
   const [settings, setSettings] = useState<SettingsState>({
-    avatarColor:          owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
-    coverColor:           owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
-    visibility:           (owUser?.visibility ?? "public") as SettingsState["visibility"],
-    isOpenToWork:         owUser?.is_open_to_work         ?? false,
-    canTalkToCandidates:  owUser?.can_talk_to_candidates  ?? false,
-    canTalkToHr:          owUser?.can_talk_to_hr          ?? false,
+    avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
+    coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
+    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    isOpenToWork: owUser?.is_open_to_work ?? false,
   });
   // 初期値を保持して変更検知（JSON.stringify 比較）
   const [initialSettings, setInitialSettings] = useState<SettingsState>({
-    avatarColor:          owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
-    coverColor:           owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
-    visibility:           (owUser?.visibility ?? "public") as SettingsState["visibility"],
-    isOpenToWork:         owUser?.is_open_to_work         ?? false,
-    canTalkToCandidates:  owUser?.can_talk_to_candidates  ?? false,
-    canTalkToHr:          owUser?.can_talk_to_hr          ?? false,
+    avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
+    coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
+    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    isOpenToWork: owUser?.is_open_to_work ?? false,
   });
   const [accountSaving,       setAccountSaving]       = useState(false);
   const [accountJustSaved,    setAccountJustSaved]    = useState(false);
@@ -2969,10 +2962,8 @@ export default function ProfileEditClient({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          visibility:             settings.visibility,
-          is_open_to_work:        settings.isOpenToWork,
-          can_talk_to_candidates: settings.canTalkToCandidates,
-          can_talk_to_hr:         settings.canTalkToHr,
+          visibility:      settings.visibility,
+          is_open_to_work: settings.isOpenToWork,
         }),
       });
       if (!res.ok) throw new Error();
@@ -3257,6 +3248,7 @@ export default function ProfileEditClient({
     preferences:       !!(prefJobType || prefWorkStyle || prefSalaryMin || prefSalaryMax || prefTiming),
     certs_achievements: certifications.length > 0 || achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
     socials_content:   Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
+    privacy:           true,
     account:           true,
   };
 
@@ -4254,6 +4246,480 @@ export default function ProfileEditClient({
         )}
 
         {/* アカウント設定タブ（動作） */}
+        {/* ══════════════════════════════════════════════════════════════════
+            公開設定タブ
+        ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === "privacy" && (() => {
+          const isPrivate = settings.visibility === "private";
+          const effectiveScout = !isPrivate && scoutEnabled === true;
+          const currentEmployerNames = initialExperiences
+            .filter((e) => e.isCurrent && e.companyType !== "anon" && e.displayCompanyName)
+            .map((e) => e.displayCompanyName);
+
+          return (
+            <div style={{ maxWidth: 680 }}>
+
+              {/* ── サマリーカード ──────────────────────────────────────────── */}
+              <div style={{
+                background: "linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%)",
+                border: "1.5px solid var(--royal-100)",
+                borderRadius: 14, padding: "20px 24px", marginBottom: 24,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 14, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  あなたの現在の公開状態
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                  {/* 公開範囲 */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--ink)" }}>
+                    <span style={{
+                      flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: isPrivate ? "var(--error-soft)" : "var(--success-soft)",
+                      color: isPrivate ? "var(--error)" : "var(--success)", fontSize: 10, fontWeight: 700,
+                    }}>{isPrivate ? "✗" : "✓"}</span>
+                    <span>
+                      {settings.visibility === "public" && "すべてのOPINIOユーザーに公開"}
+                      {settings.visibility === "login_only" && "ログイン中のOPINIOユーザーに公開"}
+                      {settings.visibility === "private" && <span style={{ color: "var(--ink-soft)" }}>非公開（自分のみ閲覧可）</span>}
+                    </span>
+                  </div>
+                  {/* スカウト */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--ink)" }}>
+                    <span style={{
+                      flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: effectiveScout ? "var(--success-soft)" : "var(--bg-tint)",
+                      color: effectiveScout ? "var(--success)" : "var(--ink-mute)", fontSize: 10, fontWeight: 700,
+                    }}>{effectiveScout ? "✓" : "✗"}</span>
+                    <span style={{ color: effectiveScout ? "var(--ink)" : "var(--ink-soft)" }}>
+                      {isPrivate
+                        ? "非公開設定のため、スカウトは届きません"
+                        : scoutEnabled === true
+                          ? "企業からスカウトを受け取る"
+                          : scoutEnabled === false
+                            ? "スカウトを受け取らない設定"
+                            : "スカウト設定が未設定です"}
+                    </span>
+                  </div>
+                  {/* 自動ブロック */}
+                  {currentEmployerNames.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--ink)" }}>
+                      <span style={{
+                        flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "var(--royal-50)", color: "var(--royal)", fontSize: 10, fontWeight: 700,
+                      }}>✓</span>
+                      <span>
+                        在籍企業からは自動でブロック中
+                        <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 6 }}>
+                          ({currentEmployerNames.join("・")})
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  {/* 転職検討状況 */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--ink)" }}>
+                    <span style={{
+                      flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: settings.isOpenToWork ? "var(--success-soft)" : "var(--bg-tint)",
+                      color: settings.isOpenToWork ? "var(--success)" : "var(--ink-mute)", fontSize: 10, fontWeight: 700,
+                    }}>{settings.isOpenToWork ? "✓" : "✗"}</span>
+                    <span style={{ color: settings.isOpenToWork ? "var(--ink)" : "var(--ink-soft)" }}>
+                      {settings.isOpenToWork ? "「転職検討中」バッジを表示中" : "転職検討中バッジは非表示"}
+                    </span>
+                  </div>
+                </div>
+                {owUser?.id && !isPrivate && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--royal-100)" }}>
+                    <a
+                      href={`/u/${owUser.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
+                      }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                      公開プロフィールを確認する →
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Section 1: プロフィールの公開範囲 ───────────────────────── */}
+              <FormSection
+                title="プロフィールの公開範囲"
+                desc="プロフィールページを誰が閲覧できるかを設定します。"
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(
+                    [
+                      { value: "public",     label: "すべてのOPINIOユーザーに公開",  desc: "ログイン中の求職者・企業担当者が閲覧できます" },
+                      { value: "login_only", label: "ログインユーザーのみ（初期設定）", desc: "ログインしていないゲストには表示されません" },
+                      { value: "private",    label: "非公開",                       desc: "自分だけ閲覧できます" },
+                    ] as const
+                  ).map((opt) => (
+                    <label
+                      key={opt.value}
+                      style={{
+                        display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+                        padding: "10px 14px", borderRadius: 8,
+                        border: `1.5px solid ${settings.visibility === opt.value ? "var(--royal)" : "var(--line)"}`,
+                        background: settings.visibility === opt.value ? "var(--royal-50)" : "#fff",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="visibility"
+                        value={opt.value}
+                        checked={settings.visibility === opt.value}
+                        onChange={() => setSettings((prev) => ({ ...prev, visibility: opt.value }))}
+                        style={{ marginTop: 2, accentColor: "var(--royal)", flexShrink: 0 }}
+                      />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{opt.label}</div>
+                        <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{opt.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </FormSection>
+
+              {/* ── Section 2: スカウト設定 ──────────────────────────────────── */}
+              <FormSection
+                title="スカウト設定"
+                desc="企業からのスカウトを受け取るかどうかを設定します。"
+              >
+                {isPrivate ? (
+                  /* 非公開時グレーアウト */
+                  <div style={{
+                    background: "var(--bg-tint)", borderRadius: 10, padding: "16px 18px",
+                    border: "1px solid var(--line)",
+                    display: "flex", alignItems: "center", gap: 12,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>
+                      非公開設定のため、企業からのスカウトは届きません。
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    {scoutEnabled === null && (
+                      <div style={{
+                        background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
+                        padding: "10px 14px", fontSize: 12, color: "#92400E", marginBottom: 12,
+                      }}>
+                        下記から設定してください。
+                      </div>
+                    )}
+                    <div
+                      role="radio"
+                      aria-checked={scoutEnabled === true}
+                      onClick={() => !scoutSaving && handleSaveScout(true)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "13px 16px", marginBottom: 8, cursor: "pointer",
+                        background: scoutEnabled === true ? "var(--royal-50)" : "var(--bg-tint)",
+                        border: `1.5px solid ${scoutEnabled === true ? "var(--royal)" : "var(--line)"}`,
+                        borderRadius: 10, transition: "all 0.15s",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                          受け取る（推奨）
+                          {scoutEnabled === true && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff" }}>
+                              ✓ 設定中
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>条件に合う企業からスカウトが届きやすくなります。</div>
+                      </div>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                        border: `2px solid ${scoutEnabled === true ? "var(--royal)" : "var(--line)"}`,
+                        background: scoutEnabled === true ? "var(--royal)" : "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {scoutEnabled === true && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+                      </div>
+                    </div>
+                    <div
+                      role="radio"
+                      aria-checked={scoutEnabled === false}
+                      onClick={() => !scoutSaving && handleSaveScout(false)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "13px 16px", cursor: "pointer",
+                        background: "#fff",
+                        border: `1.5px solid ${scoutEnabled === false ? "var(--ink-mute)" : "var(--line)"}`,
+                        borderRadius: 10, transition: "all 0.15s",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                          受け取らない
+                          {scoutEnabled === false && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>
+                              ✓ 設定中
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>企業からは一切見えません</div>
+                      </div>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                        border: `2px solid ${scoutEnabled === false ? "var(--ink-mute)" : "var(--line)"}`,
+                        background: scoutEnabled === false ? "var(--ink-mute)" : "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {scoutEnabled === false && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+                      </div>
+                    </div>
+                    {(scoutSaving || scoutSaved) && (
+                      <div style={{ fontSize: 12, color: scoutSaved ? "var(--success)" : "var(--ink-mute)", marginTop: 8 }}>
+                        {scoutSaved ? "✓ 保存しました" : "保存中..."}
+                      </div>
+                    )}
+
+                    {/* ブロック企業一覧 */}
+                    <div style={{
+                      marginTop: 20,
+                      opacity: scoutEnabled === false ? 0.45 : 1,
+                      pointerEvents: scoutEnabled === false ? "none" : "auto",
+                      transition: "opacity 0.2s",
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                        ブロック中の企業
+                      </div>
+                      {scoutEnabled === false && (
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8 }}>
+                          スカウトを受け取らない設定のため、ブロック設定は使用されません。
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+                        職務経歴に登録した企業からは自動的に見えません。転職活動が今の会社に知られることはありません。
+                      </div>
+                      {blockedLoading ? (
+                        <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 0" }}>読み込み中…</div>
+                      ) : blockedCompanies.length === 0 ? (
+                        <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line)" }}>
+                          ブロック中の企業はありません
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {blockedCompanies.map((b, i) => (
+                            <div key={b.id ?? `${b.company_id}-${i}`} style={{
+                              display: "flex", alignItems: "center", justifyContent: "space-between",
+                              padding: "10px 14px", borderRadius: 8,
+                              background: "var(--bg-tint)", border: "1px solid var(--line)",
+                            }}>
+                              <div>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{b.company_name}</span>
+                                <span style={{
+                                  marginLeft: 8, fontSize: 11, fontWeight: 600,
+                                  padding: "2px 7px", borderRadius: 100,
+                                  background: b.block_reason === "experience" ? "var(--royal-50)" : "var(--line-soft)",
+                                  color: b.block_reason === "experience" ? "var(--royal)" : "var(--ink-soft)",
+                                }}>
+                                  {b.block_reason === "experience" ? "在籍企業（自動）" : "手動でブロック中"}
+                                </span>
+                              </div>
+                              {b.block_reason === "manual" && b.id && (
+                                <button
+                                  type="button"
+                                  disabled={removingBlockId === b.id}
+                                  onClick={() => handleRemoveBlock(b.id!)}
+                                  style={{
+                                    fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                    border: "1px solid var(--line)", background: "#fff",
+                                    color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
+                                    opacity: removingBlockId === b.id ? 0.5 : 1,
+                                  }}
+                                >
+                                  {removingBlockId === b.id ? "解除中…" : "解除"}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
+                          + 企業を追加でブロック
+                        </div>
+                        <div style={{ position: "relative" }}>
+                          <input
+                            type="text"
+                            value={blockSearchQuery}
+                            onChange={e => handleBlockSearch(e.target.value)}
+                            placeholder="企業名を検索…"
+                            style={{
+                              width: "100%", padding: "8px 12px", fontSize: 13,
+                              border: "1px solid var(--line)", borderRadius: 8,
+                              fontFamily: "inherit", boxSizing: "border-box",
+                              color: "var(--ink)", background: "#fff",
+                            }}
+                          />
+                          {blockSearchLoading && (
+                            <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--ink-mute)" }}>検索中…</div>
+                          )}
+                          {blockSearchResults.length > 0 && (
+                            <div style={{
+                              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10,
+                              background: "#fff", border: "1px solid var(--line)", borderRadius: 8,
+                              boxShadow: "0 4px 16px rgba(0,0,0,0.1)", overflow: "hidden",
+                            }}>
+                              {blockSearchResults.map(c => {
+                                const alreadyBlocked = blockedCompanies.some(b => b.company_id === c.id);
+                                return (
+                                  <div key={c.id} style={{
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    padding: "10px 14px", borderBottom: "1px solid var(--line-soft)",
+                                  }}>
+                                    <span style={{ fontSize: 13, color: "var(--ink)" }}>{c.name}</span>
+                                    {alreadyBlocked ? (
+                                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>ブロック済み</span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={addingBlockId === c.id}
+                                        onClick={() => handleAddBlock(c)}
+                                        style={{
+                                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                          border: "1px solid var(--line)", background: "var(--bg-tint)",
+                                          color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
+                                          opacity: addingBlockId === c.id ? 0.5 : 1,
+                                        }}
+                                      >
+                                        {addingBlockId === c.id ? "追加中…" : "ブロック"}
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+                          OPINIOに掲載されている企業のみ検索できます
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </FormSection>
+
+              {/* ── Section 3: 転職検討状況 ──────────────────────────────────── */}
+              <FormSection
+                title="転職検討状況"
+                desc="ONにすると、プロフィールに「転職検討中」バッジが表示されます。"
+              >
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "13px 16px",
+                  background: settings.isOpenToWork ? "#ECFDF5" : "var(--bg-tint)",
+                  border: `1px solid ${settings.isOpenToWork ? "#A7F3D0" : "var(--line)"}`,
+                  borderRadius: 10, transition: "all 0.2s",
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                      転職を検討しています
+                      {settings.isOpenToWork && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "2px 8px", borderRadius: 100,
+                          fontSize: 10, fontWeight: 700,
+                          background: "linear-gradient(135deg, var(--success), #10B981)",
+                          color: "#fff", fontFamily: "'Inter', sans-serif",
+                        }}>
+                          ✓ 有効
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                      {settings.isOpenToWork
+                        ? "企業側の候補者検索でフィルタリングできます"
+                        : "非公開（企業側には表示されません）"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.isOpenToWork}
+                    onClick={() => setSettings((prev) => ({ ...prev, isOpenToWork: !prev.isOpenToWork }))}
+                    style={{
+                      width: 44, height: 24, borderRadius: 100,
+                      background: settings.isOpenToWork ? "var(--success)" : "var(--line)",
+                      border: "none", cursor: "pointer",
+                      position: "relative", flexShrink: 0, transition: "background 0.2s",
+                    }}
+                  >
+                    <span style={{
+                      position: "absolute", top: 3,
+                      left: settings.isOpenToWork ? 23 : 3,
+                      width: 18, height: 18, borderRadius: "50%",
+                      background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                      transition: "left 0.2s",
+                    }} />
+                  </button>
+                </div>
+              </FormSection>
+
+              {/* ── 公開設定タブの保存・キャンセル ─────────────────────────── */}
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)" }}>
+                <button
+                  type="button"
+                  onClick={handleCancelAccount}
+                  disabled={!isAccountDirty || accountSaving || accountJustSaved}
+                  style={{
+                    padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
+                    background: "#fff", color: "var(--ink-soft)",
+                    border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit",
+                    cursor: !isAccountDirty || accountSaving || accountJustSaved ? "default" : "pointer",
+                    opacity: !isAccountDirty || accountSaving || accountJustSaved ? 0.5 : 1,
+                  }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAccount}
+                  disabled={!isAccountDirty || accountSaving || accountJustSaved}
+                  style={{
+                    padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
+                    background: accountJustSaved ? "var(--success)" : (!isAccountDirty || accountSaving) ? "var(--ink-mute)" : "var(--royal)",
+                    color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit",
+                    cursor: !isAccountDirty || accountSaving || accountJustSaved ? "default" : "pointer",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  {accountSaving ? "保存中…" : accountJustSaved ? "✓ 保存しました" : "保存"}
+                </button>
+              </div>
+              {accountToastMsg && (
+                <Toast
+                  message={accountToastMsg}
+                  variant={accountToastVariant}
+                  onDone={() => setAccountToastMsg(null)}
+                />
+              )}
+
+            </div>
+          );
+        })()}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            アカウントタブ
+        ══════════════════════════════════════════════════════════════════ */}
         {activeTab === "account" && (
           <div style={{ maxWidth: 680 }}>
 
@@ -4295,459 +4761,7 @@ export default function ProfileEditClient({
               </div>
             </FormSection>
 
-            {/* ── Section 3: プロフィールの公開設定 ───────────────────────── */}
-            <FormSection
-              title="プロフィールの公開設定"
-              desc="プロフィールページを他のユーザーが閲覧できるかどうかを設定します。"
-            >
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {(
-                  [
-                    { value: "public",     label: "すべてのOPINIOユーザーに公開",  desc: "ログイン中の求職者・企業担当者が閲覧できます" },
-                    { value: "login_only", label: "ログインユーザーのみ（初期設定）", desc: "ログインしていないゲストには表示されません" },
-                    { value: "private",    label: "非公開",                       desc: "自分だけ閲覧できます" },
-                  ] as const
-                ).map((opt) => (
-                  <label
-                    key={opt.value}
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
-                      padding: "10px 14px", borderRadius: 8,
-                      border: `1.5px solid ${settings.visibility === opt.value ? "var(--royal)" : "var(--line)"}`,
-                      background: settings.visibility === opt.value ? "var(--royal-50)" : "#fff",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value={opt.value}
-                      checked={settings.visibility === opt.value}
-                      onChange={() => setSettings((prev) => ({ ...prev, visibility: opt.value }))}
-                      style={{ marginTop: 2, accentColor: "var(--royal)", flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{opt.label}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{opt.desc}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-              <div style={{
-                marginTop: 12, padding: "8px 12px", borderRadius: 6,
-                background: "var(--success-soft)", fontSize: 12, color: "var(--success)",
-                display: "flex", alignItems: "flex-start", gap: 6,
-              }}>
-                <span style={{ flexShrink: 0 }}>✓</span>
-                <span>どの設定でも、在籍企業からのスカウトは自動的にブロックされます。</span>
-              </div>
-              {owUser?.id && settings.visibility !== "private" && (
-                <div style={{ marginTop: "var(--space-3)" }}>
-                  <a
-                    href={`/u/${owUser.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      fontSize: 12, color: "var(--royal)", fontWeight: 600,
-                      textDecoration: "none",
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/>
-                      <line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                    公開プロフィールを見る
-                  </a>
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 10 }}>
-                    企業側からはこのページが表示されます
-                  </span>
-                </div>
-              )}
-            </FormSection>
-
-            {/* ── Section 3b: 転職検討状況 ─────────────────────────────────── */}
-            <FormSection
-              title="転職検討状況"
-              desc="ONにすると、企業側の候補者検索でフィルタリングでき、プロフィールに「転職検討中」バッジが表示されます。"
-            >
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 16px",
-                background: settings.isOpenToWork ? "#ECFDF5" : "var(--bg-tint)",
-                border: `1px solid ${settings.isOpenToWork ? "#A7F3D0" : "var(--line)"}`,
-                borderRadius: 10,
-                transition: "all 0.2s",
-              }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
-                    転職を検討しています
-                    {settings.isOpenToWork && (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        padding: "2px var(--space-2)", borderRadius: 100,
-                        fontSize: 10, fontWeight: 700,
-                        background: "linear-gradient(135deg, var(--success), #10B981)",
-                        color: "#fff",
-                        fontFamily: "'Inter', sans-serif",
-                      }}>
-                        ✓ 有効
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-                    {settings.isOpenToWork
-                      ? "プロフィールに「転職検討中」バッジが表示されます"
-                      : "非公開（企業側には表示されません）"}
-                  </div>
-                </div>
-                {/* Toggle switch */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={settings.isOpenToWork}
-                  onClick={() => setSettings((prev) => ({ ...prev, isOpenToWork: !prev.isOpenToWork }))}
-                  style={{
-                    width: 44, height: 24, borderRadius: 100,
-                    background: settings.isOpenToWork ? "var(--success)" : "var(--line)",
-                    border: "none", cursor: "pointer",
-                    position: "relative", flexShrink: 0,
-                    transition: "background 0.2s",
-                  }}
-                >
-                  <span style={{
-                    position: "absolute", top: 3,
-                    left: settings.isOpenToWork ? 23 : 3,
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: "#fff",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-                    transition: "left 0.2s",
-                  }} />
-                </button>
-              </div>
-            </FormSection>
-
-            {/* ── Section 3c: 話しかけを受け付ける ────────────────────────── */}
-            <FormSection
-              title="話しかけを受け付ける"
-              desc="ONにすると、対象の人からの話しかけ・相談リクエストを受け付けます。コンタクト方法はOPINIOが仲介します。"
-            >
-              {/* ① 他の候補者と話してOK */}
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 16px", marginBottom: 8,
-                background: settings.canTalkToCandidates ? "var(--royal-50)" : "var(--bg-tint)",
-                border: `1px solid ${settings.canTalkToCandidates ? "var(--royal-100)" : "var(--line)"}`,
-                borderRadius: 10,
-                transition: "all 0.2s",
-              }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
-                    他の候補者と話してOK
-                    {settings.canTalkToCandidates && (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        padding: "2px var(--space-2)", borderRadius: 100,
-                        fontSize: 10, fontWeight: 700,
-                        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                        color: "#fff",
-                        fontFamily: "'Inter', sans-serif",
-                      }}>
-                        ✓ 有効
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-                    同じような立場の候補者からの相談・話しかけを受け付けます
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={settings.canTalkToCandidates}
-                  onClick={() => setSettings((prev) => ({ ...prev, canTalkToCandidates: !prev.canTalkToCandidates }))}
-                  style={{
-                    width: 44, height: 24, borderRadius: 100,
-                    background: settings.canTalkToCandidates ? "var(--royal)" : "var(--line)",
-                    border: "none", cursor: "pointer",
-                    position: "relative", flexShrink: 0,
-                    transition: "background 0.2s",
-                  }}
-                >
-                  <span style={{
-                    position: "absolute", top: 3,
-                    left: settings.canTalkToCandidates ? 23 : 3,
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: "#fff",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-                    transition: "left 0.2s",
-                  }} />
-                </button>
-              </div>
-
-              {/* ② 企業の人事と話してOK */}
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 16px",
-                background: settings.canTalkToHr ? "var(--royal-50)" : "var(--bg-tint)",
-                border: `1px solid ${settings.canTalkToHr ? "var(--royal-100)" : "var(--line)"}`,
-                borderRadius: 10,
-                transition: "all 0.2s",
-              }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
-                    企業の人事と話してOK
-                    {settings.canTalkToHr && (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        padding: "2px var(--space-2)", borderRadius: 100,
-                        fontSize: 10, fontWeight: 700,
-                        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                        color: "#fff",
-                        fontFamily: "'Inter', sans-serif",
-                      }}>
-                        ✓ 有効
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-                    企業の人事担当者からの話しかけ・面談依頼を受け付けます
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={settings.canTalkToHr}
-                  onClick={() => setSettings((prev) => ({ ...prev, canTalkToHr: !prev.canTalkToHr }))}
-                  style={{
-                    width: 44, height: 24, borderRadius: 100,
-                    background: settings.canTalkToHr ? "var(--royal)" : "var(--line)",
-                    border: "none", cursor: "pointer",
-                    position: "relative", flexShrink: 0,
-                    transition: "background 0.2s",
-                  }}
-                >
-                  <span style={{
-                    position: "absolute", top: 3,
-                    left: settings.canTalkToHr ? 23 : 3,
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: "#fff",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-                    transition: "left 0.2s",
-                  }} />
-                </button>
-              </div>
-            </FormSection>
-
-            {/* ── Section 3d: スカウト設定 ─────────────────────────────────── */}
-            <FormSection
-              title="スカウト設定"
-              desc="企業からのスカウトを受け取るかどうかを設定します。在籍企業・過去の在籍企業からは自動的にブロックされます。"
-            >
-              {/* scout_enabled 未設定の注意 */}
-              {scoutEnabled === null && (
-                <div style={{
-                  background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
-                  padding: "10px 14px", fontSize: 12, color: "#92400E", marginBottom: 12,
-                }}>
-                  オンボーディングで設定されていません。下記から設定してください。
-                </div>
-              )}
-              {/* 受け取る */}
-              <div
-                role="radio"
-                aria-checked={scoutEnabled === true}
-                onClick={() => !scoutSaving && handleSaveScout(true)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", marginBottom: 8, cursor: "pointer",
-                  background: scoutEnabled === true ? "var(--royal-50)" : "var(--bg-tint)",
-                  border: `1.5px solid ${scoutEnabled === true ? "var(--royal)" : "var(--line)"}`,
-                  borderRadius: 10, transition: "all 0.15s",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
-                    受け取る（推奨）
-                    {scoutEnabled === true && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff" }}>
-                        ✓ 設定中
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>企業があなたのプロフィールを見て、直接連絡できるようになります</div>
-                </div>
-                <div style={{
-                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                  border: `2px solid ${scoutEnabled === true ? "var(--royal)" : "var(--line)"}`,
-                  background: scoutEnabled === true ? "var(--royal)" : "#fff",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  {scoutEnabled === true && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
-                </div>
-              </div>
-              {/* 受け取らない */}
-              <div
-                role="radio"
-                aria-checked={scoutEnabled === false}
-                onClick={() => !scoutSaving && handleSaveScout(false)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", cursor: "pointer",
-                  background: scoutEnabled === false ? "var(--bg-tint)" : "#fff",
-                  border: `1.5px solid ${scoutEnabled === false ? "var(--ink-mute)" : "var(--line)"}`,
-                  borderRadius: 10, transition: "all 0.15s",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
-                    受け取らない
-                    {scoutEnabled === false && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>
-                        ✓ 設定中
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>企業からは一切見えません</div>
-                </div>
-                <div style={{
-                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                  border: `2px solid ${scoutEnabled === false ? "var(--ink-mute)" : "var(--line)"}`,
-                  background: scoutEnabled === false ? "var(--ink-mute)" : "#fff",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  {scoutEnabled === false && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
-                </div>
-              </div>
-              {/* 保存フィードバック */}
-              {(scoutSaving || scoutSaved) && (
-                <div style={{ fontSize: 12, color: scoutSaved ? "var(--success)" : "var(--ink-mute)", marginTop: 8 }}>
-                  {scoutSaved ? "✓ 保存しました" : "保存中..."}
-                </div>
-              )}
-              {/* ブロック企業一覧 */}
-              <div style={{ marginTop: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
-                  あなたのプロフィールをブロックしている企業
-                </div>
-                <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-                  職務経歴に登録した企業からは自動的に見えません。転職活動が今の会社に知られることはありません。
-                </div>
-                {blockedLoading ? (
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 0" }}>読み込み中…</div>
-                ) : blockedCompanies.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line)" }}>
-                    ブロック中の企業はありません
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {blockedCompanies.map((b, i) => (
-                      <div key={b.id ?? `${b.company_id}-${i}`} style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "10px 14px", borderRadius: 8,
-                        background: b.block_reason === "experience" ? "var(--bg-tint)" : "#fff",
-                        border: `1px solid ${b.block_reason === "experience" ? "var(--line)" : "var(--line)"}`,
-                      }}>
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{b.company_name}</span>
-                          <span style={{
-                            marginLeft: 8, fontSize: 11, fontWeight: 600,
-                            padding: "2px 7px", borderRadius: 100,
-                            background: b.block_reason === "experience" ? "var(--royal-50)" : "var(--line-soft)",
-                            color: b.block_reason === "experience" ? "var(--royal)" : "var(--ink-soft)",
-                          }}>
-                            {b.block_reason === "experience" ? "在籍企業（自動）" : "手動でブロック中"}
-                          </span>
-                        </div>
-                        {b.block_reason === "manual" && b.id && (
-                          <button
-                            type="button"
-                            disabled={removingBlockId === b.id}
-                            onClick={() => handleRemoveBlock(b.id!)}
-                            style={{
-                              fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                              border: "1px solid var(--line)", background: "#fff",
-                              color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
-                              opacity: removingBlockId === b.id ? 0.5 : 1,
-                            }}
-                          >
-                            {removingBlockId === b.id ? "解除中…" : "解除"}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* 企業を追加でブロックする */}
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
-                    + 企業を追加でブロックする
-                  </div>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      value={blockSearchQuery}
-                      onChange={e => handleBlockSearch(e.target.value)}
-                      placeholder="企業名を検索…"
-                      style={{
-                        width: "100%", padding: "9px 12px", fontSize: 13,
-                        border: "1px solid var(--line)", borderRadius: 8,
-                        fontFamily: "inherit", boxSizing: "border-box",
-                        color: "var(--ink)", background: "#fff",
-                      }}
-                    />
-                    {blockSearchLoading && (
-                      <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--ink-mute)" }}>検索中…</div>
-                    )}
-                    {blockSearchResults.length > 0 && (
-                      <div style={{
-                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10,
-                        background: "#fff", border: "1px solid var(--line)", borderRadius: 8,
-                        boxShadow: "0 4px 16px rgba(0,0,0,0.1)", overflow: "hidden",
-                      }}>
-                        {blockSearchResults.map(c => {
-                          const alreadyBlocked = blockedCompanies.some(b => b.company_id === c.id);
-                          return (
-                            <div
-                              key={c.id}
-                              style={{
-                                display: "flex", alignItems: "center", justifyContent: "space-between",
-                                padding: "10px 14px", borderBottom: "1px solid var(--line-soft)",
-                              }}
-                            >
-                              <span style={{ fontSize: 13, color: "var(--ink)" }}>{c.name}</span>
-                              {alreadyBlocked ? (
-                                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>ブロック済み</span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  disabled={addingBlockId === c.id}
-                                  onClick={() => handleAddBlock(c)}
-                                  style={{
-                                    fontSize: 11, padding: "4px 10px", borderRadius: 6,
-                                    border: "1px solid var(--line)", background: "var(--bg-tint)",
-                                    color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
-                                    opacity: addingBlockId === c.id ? 0.5 : 1,
-                                  }}
-                                >
-                                  {addingBlockId === c.id ? "追加中…" : "ブロック"}
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5 }}>
-                    OPINIOに掲載されている企業のみ検索できます
-                  </div>
-                </div>
-              </div>
-            </FormSection>
-
-            {/* ── Section 4: メール通知設定 ────────────────────────────────── */}
+            {/* ── Section 3: メール通知設定 ────────────────────────────────── */}
             <NotificationSettingsSection />
 
             {/* ── Danger zone ──────────────────────────────────────────────── */}
@@ -4776,48 +4790,6 @@ export default function ProfileEditClient({
                 アカウントを削除する
               </button>
             </div>
-
-            {/* ── アカウント設定タブの保存・キャンセル ───────────────────── */}
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)" }}>
-              <button
-                type="button"
-                onClick={handleCancelAccount}
-                disabled={!isAccountDirty || accountSaving || accountJustSaved}
-                style={{
-                  padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
-                  background: "#fff", color: "var(--ink-soft)",
-                  border: "1px solid var(--line)", borderRadius: 8,
-                  fontFamily: "inherit",
-                  cursor: !isAccountDirty || accountSaving || accountJustSaved ? "default" : "pointer",
-                  opacity: !isAccountDirty || accountSaving || accountJustSaved ? 0.5 : 1,
-                }}
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveAccount}
-                disabled={!isAccountDirty || accountSaving || accountJustSaved}
-                style={{
-                  padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
-                  background: accountJustSaved ? "var(--success)" : (!isAccountDirty || accountSaving) ? "var(--ink-mute)" : "var(--royal)",
-                  color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontFamily: "inherit",
-                  cursor: !isAccountDirty || accountSaving || accountJustSaved ? "default" : "pointer",
-                  transition: "background 0.2s",
-                }}
-              >
-                {accountSaving ? "保存中…" : accountJustSaved ? "✓ 保存しました" : "保存"}
-              </button>
-            </div>
-            {accountToastMsg && (
-              <Toast
-                message={accountToastMsg}
-                variant={accountToastVariant}
-                onDone={() => setAccountToastMsg(null)}
-              />
-            )}
 
           </div>
         )}

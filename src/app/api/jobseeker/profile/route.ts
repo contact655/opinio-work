@@ -20,7 +20,7 @@ export async function PUT(req: Request) {
   }
 
   // 許可フィールドのみ（auth_id, id 等は変更不可）
-  const allowed = ["name", "avatar_color", "cover_color", "about_me", "birth_date", "location", "future_aspirations", "social_links", "visibility", "strengths_finder", "is_open_to_work", "can_talk_to_candidates", "can_talk_to_hr", "profile_setup_at"];
+  const allowed = ["name", "avatar_color", "cover_color", "about_me", "birth_date", "location", "future_aspirations", "social_links", "visibility", "strengths_finder", "is_open_to_work", "profile_setup_at"];
   const TEXT_LIMITS: Record<string, number> = { name: 100, about_me: 2000, future_aspirations: 2000, location: 100 };
   const VALID_VISIBILITY = new Set(["public", "login_only", "private"]);
   const patch: Record<string, unknown> = {};

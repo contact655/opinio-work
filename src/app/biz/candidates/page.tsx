@@ -42,7 +42,7 @@ export default async function CandidatesPage() {
   // Supabase の自動 JOIN は使わず、auth_id 経由で手動結合する
   const { data: rawUsers } = await supabase
     .from("ow_users")
-    .select("id, name, location, is_mentor, can_talk_to_hr, created_at, auth_id")
+    .select("id, name, location, is_mentor, created_at, auth_id")
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
     .limit(500);
@@ -154,7 +154,6 @@ export default async function CandidatesPage() {
         name: (u.name as string) || "名前未設定",
         location: (u.location as string) || null,
         isMentor: (u.is_mentor as boolean) || false,
-        canTalkToHr: (u.can_talk_to_hr as boolean) || false,
         currentRole: currentExp?.role_title ?? null,
         currentCompany: currentExp?.company ?? null,
         jobType: profile?.job_type || null,

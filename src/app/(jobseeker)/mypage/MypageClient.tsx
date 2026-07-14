@@ -284,7 +284,7 @@ function CheckIcon({ done, next }: { done: boolean; next: boolean }) {
   );
 }
 
-function ProfileCompletenessCard({
+function _ProfileCompletenessCard({
   userName, userAboutMe, userSkillTags, timelineCareers, hasCareerPreferences, userCertifications,
 }: {
   userName: string;

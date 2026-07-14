@@ -20,7 +20,7 @@ export default async function ProfileEditPage({
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, is_open_to_work, can_talk_to_candidates, can_talk_to_hr, social_links")
+    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, is_open_to_work, social_links")
     .eq("auth_id", user.id)
     .maybeSingle();
 
