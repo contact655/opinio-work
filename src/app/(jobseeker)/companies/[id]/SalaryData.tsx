@@ -19,6 +19,7 @@ export default function SalaryDataSection({ companyId, companyName }: { companyI
   const [summary, setSummary] = useState<SalarySummary | null>(null);
   const [byJobType, setByJobType] = useState<ByJobType>({});
   const [loading, setLoading] = useState(true);
+  const [insufficientData, setInsufficientData] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -32,7 +33,7 @@ export default function SalaryDataSection({ companyId, companyName }: { companyI
   useEffect(() => {
     fetch(`/api/salary-reports?company_id=${companyId}`)
       .then((r) => r.json())
-      .then((d) => { setSummary(d.summary); setByJobType(d.byJobType ?? {}); })
+      .then((d) => { setSummary(d.summary); setByJobType(d.byJobType ?? {}); setInsufficientData(!!d.insufficientData); })
       .finally(() => setLoading(false));
   }, [companyId]);
 
@@ -181,10 +182,10 @@ export default function SalaryDataSection({ companyId, companyName }: { companyI
         <div style={{ background: "var(--bg-tint)", border: "1.5px dashed var(--line)", borderRadius: 12, padding: "32px 20px", textAlign: "center" }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>💰</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
-            まだ給与データがありません
+            {insufficientData ? "まだ十分なデータがありません" : "まだ給与データがありません"}
           </div>
           <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-            在籍者・OBの方はぜひ投稿してください
+            {insufficientData ? "5件以上の投稿が集まると統計が表示されます" : "在籍者・OBの方はぜひ投稿してください"}
           </div>
         </div>
       )}

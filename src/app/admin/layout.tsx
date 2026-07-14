@@ -50,6 +50,12 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: "システム",
+    items: [
+      { label: "設定", href: "/admin/settings", icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
     label: "オペレーション",
     items: [
       { label: "請求管理",            href: "/admin/billing",          icon: <Receipt       size={16} strokeWidth={2} /> },

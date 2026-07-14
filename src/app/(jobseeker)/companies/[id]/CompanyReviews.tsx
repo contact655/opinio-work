@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import { RATING_AXES } from "@/lib/constants/reviewAxes";
 import { createClient } from "@/lib/supabase/client";
@@ -95,6 +94,7 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [reportingReviewId, setReportingReviewId] = useState<string | null>(null);
 
   const fetchReviews = useCallback(async () => {
     const res = await fetch(`/api/company-reviews?company_id=${companyId}`);
@@ -165,12 +165,6 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
               </svg>
               口コミを書く
             </button>
-            <Link
-              href={`/companies/${companyId}/review`}
-              style={{ fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}
-            >
-              専用ページで書く →
-            </Link>
           </div>
         )}
       </div>
@@ -237,6 +231,13 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
                 <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: "auto" }}>
                   {new Date(r.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short" })}
                 </span>
+                <button
+                  onClick={() => setReportingReviewId(r.id)}
+                  title="通報"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 11, padding: "2px 6px", borderRadius: 4 }}
+                >
+                  通報
+                </button>
               </div>
               {r.pros && (
                 <div style={{ marginBottom: 8 }}>
@@ -285,6 +286,14 @@ export default function CompanyReviewsSection({ companyId, companyName }: { comp
           companyName={companyName}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setSubmitted(true); setShowModal(false); }}
+        />
+      )}
+
+      {/* 通報モーダル */}
+      {reportingReviewId && (
+        <ReportModal
+          reviewId={reportingReviewId}
+          onClose={() => setReportingReviewId(null)}
         />
       )}
     </section>
@@ -447,6 +456,80 @@ function ReviewModal({ companyId, companyName, onClose, onSuccess }: {
             投稿内容は編集部が確認後に公開されます。個人を特定できる情報は含めないでください。
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+const REPORT_REASONS = ["虚偽の内容", "誹謗中傷", "個人が特定できる内容", "その他"];
+
+function ReportModal({ reviewId, onClose }: { reviewId: string; onClose: () => void }) {
+  const [reason, setReason] = useState("");
+  const [detail, setDetail] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function submit() {
+    if (!reason) return;
+    setSubmitting(true);
+    const res = await fetch("/api/review-reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ review_id: reviewId, reason, detail, contact_email: email }),
+    });
+    setSubmitting(false);
+    if (res.ok) setDone(true);
+  }
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1001, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 420, padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        {done ? (
+          <div style={{ textAlign: "center", padding: "16px 0" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>通報を受け付けました</div>
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>内容を確認の上、対応いたします。</div>
+            <button onClick={onClose} style={{ marginTop: 20, padding: "8px 24px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 13, cursor: "pointer" }}>閉じる</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>口コミを通報</h3>
+              <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--ink-mute)" }}>×</button>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 6 }}>通報理由 *</label>
+              <select value={reason} onChange={(e) => setReason(e.target.value)}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit" }}>
+                <option value="">選択してください</option>
+                {REPORT_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 6 }}>詳細</label>
+              <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={3} placeholder="具体的な内容があればご記入ください"
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }} />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 6 }}>連絡先メールアドレス</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="返信が必要な場合のみ"
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit" }} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={onClose} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 13, cursor: "pointer", color: "var(--ink-soft)" }}>
+                キャンセル
+              </button>
+              <button onClick={submit} disabled={!reason || submitting}
+                style={{ flex: 2, padding: "9px 0", borderRadius: 8, border: "none", background: !reason || submitting ? "var(--line)" : "var(--error)", color: !reason || submitting ? "var(--ink-mute)" : "#fff", fontSize: 13, fontWeight: 700, cursor: !reason || submitting ? "not-allowed" : "pointer" }}>
+                {submitting ? "送信中..." : "通報する"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

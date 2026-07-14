@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
 
   const reports = data ?? [];
   if (reports.length === 0) return NextResponse.json({ reports: [], summary: null });
+  if (reports.length < 5) return NextResponse.json({ reports: [], summary: null, insufficientData: true });
 
   const salaries = reports.map((r) => r.annual_salary);
   const avg = Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length);
@@ -72,6 +73,10 @@ export async function POST(req: NextRequest) {
     is_approved: false,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    if (error.code === "P0004") return NextResponse.json({ error: "P0004" }, { status: 401 });
+    if (error.code === "P0005") return NextResponse.json({ error: "P0005" }, { status: 403 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const { error } = await admin
+  const { error } = await supabase
     .from("ow_company_reviews")
     .upsert({
       company_id,
@@ -97,7 +97,11 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }, { onConflict: "company_id,user_id" });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    if (error.code === "P0004") return NextResponse.json({ error: "P0004" }, { status: 401 });
+    if (error.code === "P0005") return NextResponse.json({ error: "P0005" }, { status: 403 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
