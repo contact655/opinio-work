@@ -661,6 +661,7 @@ const JOB_DETAIL_COLS = [
 export const getJobs = unstable_cache(
   async (): Promise<{ jobs: Job[]; companies: Company[] }> => {
     const supabase = createPublicClient();
+    const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let jobQuery: any = supabase
@@ -671,16 +672,31 @@ export const getJobs = unstable_cache(
       jobQuery = jobQuery.in("status", ["active", "published"]);
     }
 
-    const [{ data: jobRows, error: jobErr }, { data: compRows }] = await Promise.all([
+    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }] = await Promise.all([
       jobQuery,
       supabase.from("ow_companies").select(COMPANY_LIST_COLS),
+      // ow_job_roles: 全求人の職種紐づけを一括取得（admin: RLS バイパス）
+      admin.from("ow_job_roles").select("job_id, role_id"),
     ]);
 
     if (jobErr) console.error("[getJobs]", jobErr.message);
 
+    // job_id → role_id[] マップを構築
+    const jobRoleMap = new Map<string, string[]>();
+    for (const r of (jobRoleRows ?? [])) {
+      const jid = r.job_id as string;
+      if (!jobRoleMap.has(jid)) jobRoleMap.set(jid, []);
+      jobRoleMap.get(jid)!.push(r.role_id as string);
+    }
+
     const companies = (compRows ?? []).map((row) => mapCompany(row));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jobs = (jobRows ?? []).map((row: Record<string, any>) => mapJob(row));
+    const jobs = (jobRows ?? []).map((row: Record<string, any>) => {
+      const job = mapJob(row);
+      const roleIds = jobRoleMap.get(job.id);
+      if (roleIds && roleIds.length > 0) job.roleIds = roleIds;
+      return job;
+    });
 
     return { jobs, companies };
   },

@@ -30,7 +30,8 @@ export type Job = {
   company_id: string;
   role: string;
   dept: string;
-  role_category_id?: string; // ow_roles 親カテゴリ UUID (/jobs?category= フィルタ用)
+  role_category_id?: string; // ow_roles 親カテゴリ UUID (/jobs?category= フィルタ用, 非推奨)
+  roleIds?: string[];        // ow_job_roles 由来の全職種 UUID（複数職種対応）
   employment_type: string;
   location: string;
   work_style: string;

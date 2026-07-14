@@ -1677,12 +1677,17 @@ export default function JobsClient({
           .filter((a) => a.alias.toLowerCase().includes(lq))
           .map((a) => a.roleId)
       );
+      const jobMatchesAlias = (j: (typeof list)[number]) => {
+        // ow_job_roles の全職種 UUID で判定（複数職種対応）
+        const ids = j.roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
+        return ids.some((id) => aliasMatchedRoleIds.has(id));
+      };
       list = list.filter(
         (j) =>
           j.role.toLowerCase().includes(lq) ||
           (companyMap.get(j.company_id)?.name ?? "").toLowerCase().includes(lq) ||
           j.highlight.toLowerCase().includes(lq) ||
-          (j.role_category_id ? aliasMatchedRoleIds.has(j.role_category_id) : false)
+          jobMatchesAlias(j)
       );
     }
 
@@ -1693,8 +1698,11 @@ export default function JobsClient({
       list = list.filter((j) => bizIds.has(j.role_category_id ?? ""));
     }
 
-    // ow_roles 親カテゴリフィルタ (role_category_id が親 UUID に直接紐づく前提)
-    if (category) list = list.filter((j) => j.role_category_id === category);
+    // ow_roles 親カテゴリフィルタ — ow_job_roles の全職種 UUID で判定（複数職種対応）
+    if (category) list = list.filter((j) => {
+      const ids = j.roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
+      return ids.includes(category);
+    });
 
     // 旧 dept フィルタ (後方互換、URLに ?dept= が残っている場合)
     if (!category && dept) list = list.filter((j) => j.dept === dept);
