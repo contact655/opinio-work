@@ -13,6 +13,72 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-07-15 セッション26 更新）
+
+### ✅ 完了 2026-07-15 セッション26: JSON-LD修正・テストデータ削除・ソフト404修正・フィード自動集約
+
+  **JSON-LD（JobPosting）修正（`src/app/(jobseeker)/jobs/[id]/page.tsx` 他）:**
+  - `datePosted` がリクエスト時刻（虚偽）→ 実際の `published_at` に修正
+  - `validThrough` を追加（2026-10-12）
+  - `description` を充実（`catch_copy + description + requirements` の結合）
+  - `identifier`（PropertyValue）を追加
+  - `jobLocationType: TELECOMMUTE` を追加
+  - `getJobById` に `status` フィルタを追加（非公開求人が UUID 直アクセスで閲覧可能だったバグを修正）
+
+  **テストデータ削除（Migration 231）:**
+  - `published_at` が null の106件（Salesforce Japan のテストデータ）を削除
+  - 公開求人 180件 → 74件
+  - JSON-LD 出力率 41% → 100%
+
+  **求人ライフサイクル（Migration 232）:**
+  - `expires_at` を74件に `NOW() + 90日`（2026-10-12）でバックフィル
+  - ステータス4値の設計（draft / published / closed / expired）を定義
+  - cron の expired 自動遷移は DRY RUN のまま（未有効化）
+
+  **ソフト404の修正（重要な Next.js 知見）:**
+  - 存在しない URL が 200 を返していた（/jobs, /companies, /articles, /feed の詳細ページ4ルート）
+  - 根本原因: 親ディレクトリの `loading.tsx` が子セグメント全体を Suspense でラップしていた
+    → 詳細ページの `notFound()` が 404 を返せず 200 が返っていた
+  - 解決: 一覧ページを `(list)` Route Group に分離
+    → `loading.tsx` のスコープを一覧のみに限定
+    → 詳細ページの `notFound()` が正しく 404 を返すように修正
+  - 対象ディレクトリ: `/jobs/(list)/`, `/companies/(list)/`, `/articles/(list)/`, `/feed/(list)/`
+  - ⚠️ **知見**: Next.js App Router の `loading.tsx` は「配置したセグメント以下すべて」に Suspense を張る。
+    一覧と詳細が同じディレクトリにあると詳細の `notFound()` が機能しない。Route Group で分離すること。
+
+  **フィード自動集約（Migration 233 / 234 / 235）:**
+  - `ow_posts` に `post_type` / `ref_company_id` / `ref_job_id` / `ref_article_id` カラムを追加
+  - `ow_users` に `is_system` フラグを追加
+  - システムユーザー作成（名前: OPINIO / visibility: private / is_system: true）
+    固定 UUID: `00000000-0000-0000-0000-000000000001`
+  - 遡及生成: 企業80 + 求人74 + 記事16 = 170件（2件の user_post と合わせて計172件）
+  - post_type ごとのリッチカード UI:
+    - `company_joined`: royal 青背景 + 企業ページリンク
+    - `job_posted`: 緑背景 + 給与 + 求人ページリンク
+    - `article_published`: amber 背景 + 記事リンク（slug ベース）
+  - 部分 UNIQUE インデックス3本で重複防止（Migration 235）
+  - 新規公開時の自動 INSERT（best-effort / 案B / 23505 エラー無視）:
+    - `job_posted`: `PATCH /api/biz/jobs/[id]` status=published 時
+    - `article_published`: `toggleArticlePublished`（false→true 時のみ）
+    - `company_joined`: `PATCH /api/biz/company` isPublished=true 時
+  - バグ修正:
+    - `hasMore` 初期値が `initialPosts.length === 20` → `> 0` に修正（「もっと見る」が消えていた）
+    - load-more API が `supabase`（anon）→ `adminSupabase` に変更（system user が「不明」表示になっていた）
+    - visibility フィルターで `is_system=true` の投稿が除外されていた問題を修正
+  - 整合性チェッククエリ: `docs/feed-integrity-check.sql`
+  - ⚠️ **知見**: `visibility='private'` のユーザーは anon クライアントの JOIN で RLS に弾かれ NULL になる。
+    システムユーザー投稿の表示には `adminSupabase` が必要。
+
+### 🟢 次の優先候補（2026-07-15 セッション26後）
+- **/salary の再設計（優先度：高）** — `ow_salary_reports`（ユーザー投稿）が0件でページ未機能。
+  `ow_jobs` の74件・15職種以上の給与レンジデータで「IT/SaaS職種別 年収相場」ページを作るとSEO集客源になる。
+- **E2Eテスト（未実施）** — 次に本物の求人を `/biz/jobs` から登録するとき、フィード自動投稿を確認。
+- **/biz/dashboard 初回オンボーディング** — 企業紐付け後・求人0件のチェックリスト型導線が必要。
+- **cron expired 自動遷移（未有効化）** — `expires_at` が全件2026-10-12。10月までに `/biz` から求人を closed にする UI を整備しないと74件が一斉に消える。
+- **Migration 197 手動適用** — `supabase/migrations/197_create_mentor_reservations.sql`（メンター予約 API が有効化される）
+
+---
+
 ## 🎯 次のセッションでやること（2026-07-08 セッション25 更新）
 
 ### ✅ 完了 2026-07-08 セッション25: StatusPill統合・オンボーディング改善・dead code削除
