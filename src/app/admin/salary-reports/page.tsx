@@ -11,7 +11,9 @@ export default async function AdminSalaryReportsPage() {
       .from("ow_salary_reports")
       .select(`
         id, company_id, user_id, role_id,
-        annual_salary, base_salary, bonus_salary, incentive, stock_options,
+        ote, annual_salary, base_salary, bonus_salary, incentive, stock_options,
+        allowances, fixed_overtime,
+        start_year_month, end_year_month, grade, achievement_rate,
         years_of_experience, employment_status, prefecture,
         is_approved, is_flagged, proxy_note, created_at,
         ow_companies(name),
@@ -34,27 +36,37 @@ export default async function AdminSalaryReportsPage() {
     return <div style={{ padding: 32, color: "var(--error)" }}>エラー: {reportsRes.error.message}</div>;
   }
 
-  const reports = (reportsRes.data ?? []).map((r) => ({
-    id: r.id,
-    company_id: r.company_id,
-    user_id: (r.user_id as string | null),
-    role_id: r.role_id,
-    annual_salary: r.annual_salary,
-    base_salary: (r as Record<string, unknown>).base_salary as number | null ?? null,
-    bonus_salary: (r as Record<string, unknown>).bonus_salary as number | null ?? null,
-    incentive: (r as Record<string, unknown>).incentive as number | null ?? null,
-    stock_options: (r as Record<string, unknown>).stock_options as number | null ?? null,
-    years_of_experience: r.years_of_experience,
-    employment_status: r.employment_status,
-    prefecture: r.prefecture,
-    is_approved: r.is_approved,
-    is_flagged: r.is_flagged,
-    proxy_note: (r as Record<string, unknown>).proxy_note as string | null ?? null,
-    created_at: r.created_at,
-    company_name: ((r.ow_companies as unknown) as { name: string } | null)?.name ?? null,
-    role_name: ((r.ow_roles as unknown) as { name: string } | null)?.name ?? null,
-    user_name: ((r.ow_users as unknown) as { name: string } | null)?.name ?? null,
-  }));
+  const reports = (reportsRes.data ?? []).map((row) => {
+    const r = row as unknown as Record<string, unknown>;
+    return {
+      id: r["id"] as string,
+      company_id: r["company_id"] as string,
+      user_id: r["user_id"] as string | null,
+      role_id: r["role_id"] as string,
+      ote: r["ote"] as number | null,
+      annual_salary: r["annual_salary"] as number | null,
+      base_salary: r["base_salary"] as number | null,
+      bonus_salary: r["bonus_salary"] as number | null,
+      incentive: r["incentive"] as number | null,
+      stock_options: r["stock_options"] as number | null,
+      allowances: r["allowances"] as number | null,
+      fixed_overtime: r["fixed_overtime"] as number | null,
+      start_year_month: r["start_year_month"] as string | null,
+      end_year_month: r["end_year_month"] as string | null,
+      grade: r["grade"] as string | null,
+      achievement_rate: r["achievement_rate"] as number | null,
+      years_of_experience: r["years_of_experience"] as number | null,
+      employment_status: r["employment_status"] as string,
+      prefecture: r["prefecture"] as string | null,
+      is_approved: r["is_approved"] as boolean,
+      is_flagged: r["is_flagged"] as boolean,
+      proxy_note: r["proxy_note"] as string | null,
+      created_at: r["created_at"] as string,
+      company_name: (r["ow_companies"] as { name: string } | null)?.name ?? null,
+      role_name: (r["ow_roles"] as { name: string } | null)?.name ?? null,
+      user_name: (r["ow_users"] as { name: string } | null)?.name ?? null,
+    };
+  });
 
   const companies = (companiesRes.data ?? []).map((c) => ({
     id: c.id,

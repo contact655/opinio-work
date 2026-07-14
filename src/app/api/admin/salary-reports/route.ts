@@ -2,6 +2,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+const YM_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 async function requireAdmin() {
   const supabase = createClient();
   const { data: isAdmin } = await supabase.rpc("auth_is_admin");
@@ -24,11 +26,18 @@ export async function POST(req: NextRequest) {
   const {
     company_id,
     role_id,
+    ote,
     annual_salary,
     base_salary,
     bonus_salary,
     incentive,
     stock_options,
+    allowances,
+    fixed_overtime,
+    start_year_month,
+    end_year_month,
+    grade,
+    achievement_rate,
     employment_status,
     years_of_experience,
     prefecture,
@@ -36,26 +45,43 @@ export async function POST(req: NextRequest) {
   } = body as {
     company_id?: string;
     role_id?: string;
-    annual_salary?: number;
+    ote?: number;
+    annual_salary?: number | null;
     base_salary?: number | null;
     bonus_salary?: number | null;
     incentive?: number | null;
     stock_options?: number | null;
+    allowances?: number | null;
+    fixed_overtime?: number | null;
+    start_year_month?: string | null;
+    end_year_month?: string | null;
+    grade?: string | null;
+    achievement_rate?: number | null;
     employment_status?: string;
     years_of_experience?: number | null;
     prefecture?: string | null;
     proxy_note?: string | null;
   };
 
-  if (!company_id || !role_id || !annual_salary || !employment_status) {
-    return NextResponse.json({ error: "company_id, role_id, annual_salary, employment_status are required" }, { status: 400 });
+  if (!company_id || !role_id || !ote || !employment_status) {
+    return NextResponse.json({ error: "company_id, role_id, ote, employment_status は必須です" }, { status: 400 });
   }
   if (!["current", "alumni"].includes(employment_status)) {
     return NextResponse.json({ error: "invalid employment_status" }, { status: 400 });
   }
-  if (annual_salary < 100 || annual_salary > 100000) {
-    return NextResponse.json({ error: "annual_salary は万円単位で 100〜100000 の範囲で入力してください" }, { status: 400 });
+  if (ote < 100 || ote > 100000) {
+    return NextResponse.json({ error: "ote は万円単位で 100〜100000 の範囲で入力してください" }, { status: 400 });
   }
+  if (start_year_month && !YM_RE.test(start_year_month)) {
+    return NextResponse.json({ error: "start_year_month は YYYY-MM 形式で入力してください" }, { status: 400 });
+  }
+  if (end_year_month && !YM_RE.test(end_year_month)) {
+    return NextResponse.json({ error: "end_year_month は YYYY-MM 形式で入力してください" }, { status: 400 });
+  }
+
+  const oteYen = ote * 10000;
+  // annual_salary: 実支給が OTE と異なる場合のみ指定。未指定なら OTE と同値
+  const annualYen = annual_salary ? annual_salary * 10000 : oteYen;
 
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -63,17 +89,24 @@ export async function POST(req: NextRequest) {
     .insert({
       company_id,
       role_id,
-      user_id: null,          // 代理投稿は user_id=NULL（proxy_note に追跡情報を記録）
-      annual_salary: annual_salary * 10000,
-      base_salary:   base_salary   ? base_salary   * 10000 : null,
-      bonus_salary:  bonus_salary  ? bonus_salary  * 10000 : null,
-      incentive:     incentive     ? incentive     * 10000 : null,
-      stock_options: stock_options ? stock_options * 10000 : null,
+      user_id: null,
+      ote:            oteYen,
+      annual_salary:  annualYen,
+      base_salary:    base_salary    ? base_salary    * 10000 : null,
+      bonus_salary:   bonus_salary   ? bonus_salary   * 10000 : null,
+      incentive:      incentive      ? incentive      * 10000 : null,
+      stock_options:  stock_options  ? stock_options  * 10000 : null,
+      allowances:     allowances     ? allowances     * 10000 : null,
+      fixed_overtime: fixed_overtime ? fixed_overtime * 10000 : null,
+      start_year_month: start_year_month || null,
+      end_year_month:   end_year_month   || null,
+      grade:            grade            || null,
+      achievement_rate: achievement_rate ?? null,
       employment_status,
       years_of_experience: years_of_experience ?? null,
       prefecture: prefecture ?? null,
       proxy_note: proxy_note || null,
-      is_approved: true,   // 代理投稿は審査不要で直接公開
+      is_approved: true,
       is_flagged: false,
     })
     .select("id")

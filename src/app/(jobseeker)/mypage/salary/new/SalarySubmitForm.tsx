@@ -18,18 +18,82 @@ const PREFECTURES = [
   "岡山県","奈良県","長野県","新潟県","その他",
 ];
 
+const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+const YEARS = Array.from({ length: 15 }, (_, i) => String(new Date().getFullYear() - i));
+
+function YearMonthPicker({
+  label, required, value, onChange,
+}: {
+  label: string; required?: boolean; value: string; onChange: (v: string) => void;
+}) {
+  const [year, month] = value ? value.split("-") : ["", ""];
+  function update(y: string, m: string) {
+    if (y && m) onChange(`${y}-${m}`);
+    else onChange("");
+  }
+  return (
+    <div>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
+        {label} {required && <span style={{ color: "var(--error)" }}>*</span>}
+      </label>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <select
+          value={year}
+          onChange={(e) => update(e.target.value, month)}
+          style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
+        >
+          <option value="">年</option>
+          {YEARS.map((y) => <option key={y} value={y}>{y}年</option>)}
+        </select>
+        <select
+          value={month}
+          onChange={(e) => update(year, e.target.value)}
+          style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
+        >
+          <option value="">月</option>
+          {MONTHS.map((m) => <option key={m} value={m}>{parseInt(m)}月</option>)}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCompanyName }: Props) {
   const router = useRouter();
-  const [companyId] = useState(prefillCompanyId ?? "");
+
+  // 企業・職種
   const [companySearch, setCompanySearch] = useState(prefillCompanyName ?? "");
+  const [resolvedCompanyId, setResolvedCompanyId] = useState(prefillCompanyId ?? "");
+  const [companySuggestions, setCompanySuggestions] = useState<{ id: string; name: string }[]>([]);
   const [roleParent, setRoleParent] = useState("");
   const [roleId, setRoleId] = useState("");
-  const [salaryMan, setSalaryMan] = useState("");
+
+  // 期間
+  const [startYM, setStartYM] = useState("");
+  const [endYM, setEndYM] = useState("");
+
+  // 想定年収・OTE
+  const [oteMan, setOteMan] = useState("");
+
+  // グレード
+  const [grade, setGrade] = useState("");
+
+  // 内訳（任意）
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [baseMan, setBaseMan] = useState("");
+  const [incentiveMan, setIncentiveMan] = useState("");
+  const [bonusMan, setBonusMan] = useState("");
+  const [stockMan, setStockMan] = useState("");
+  const [allowancesMan, setAllowancesMan] = useState("");
+  const [fixedOTMan, setFixedOTMan] = useState("");
+  const [achievementRate, setAchievementRate] = useState("");
+
+  // その他
+  const [status, setStatus] = useState<"current" | "alumni">("alumni");
   const [yoe, setYoe] = useState("");
-  const [status, setStatus] = useState<"current" | "alumni">("current");
   const [prefecture, setPrefecture] = useState("東京都");
-  const [companySuggestions, setCompanySuggestions] = useState<{ id: string; name: string }[]>([]);
-  const [resolvedCompanyId, setResolvedCompanyId] = useState(companyId);
+
+  // UI状態
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -49,9 +113,10 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
     setError("");
     if (!resolvedCompanyId) { setError("企業を選択してください"); return; }
     if (!roleId) { setError("職種を選択してください"); return; }
-    const sal = parseInt(salaryMan, 10);
-    if (!salaryMan || isNaN(sal) || sal < 100 || sal > 50000) {
-      setError("年収を正しく入力してください（100万〜50000万円）");
+    if (!startYM) { setError("開始年月を選択してください"); return; }
+    const ote = parseInt(oteMan, 10);
+    if (!oteMan || isNaN(ote) || ote < 100 || ote > 50000) {
+      setError("想定年収（OTE）を正しく入力してください（100万〜50000万円）");
       return;
     }
 
@@ -62,7 +127,17 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
       body: JSON.stringify({
         company_id: resolvedCompanyId,
         role_id: roleId,
-        annual_salary_man: sal,
+        ote_man: ote,
+        start_year_month: startYM,
+        end_year_month: endYM || null,
+        grade: grade || null,
+        achievement_rate: achievementRate ? parseInt(achievementRate, 10) : null,
+        base_salary_man:    baseMan       ? parseInt(baseMan, 10)       : null,
+        incentive_man:      incentiveMan  ? parseInt(incentiveMan, 10)  : null,
+        bonus_salary_man:   bonusMan      ? parseInt(bonusMan, 10)      : null,
+        stock_options_man:  stockMan      ? parseInt(stockMan, 10)      : null,
+        allowances_man:     allowancesMan ? parseInt(allowancesMan, 10) : null,
+        fixed_overtime_man: fixedOTMan    ? parseInt(fixedOTMan, 10)    : null,
         years_of_experience: yoe ? parseInt(yoe, 10) : null,
         employment_status: status,
         prefecture,
@@ -96,9 +171,22 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
     );
   }
 
+  const inp: React.CSSProperties = {
+    padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14,
+    background: "#fff", width: "100%", boxSizing: "border-box",
+  };
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Company */}
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+      {/* ── 説明 ── */}
+      <div style={{ padding: "14px 18px", background: "var(--royal-50)", borderRadius: 12, border: "1px solid var(--royal-100)", fontSize: 13, color: "var(--royal)", lineHeight: 1.8 }}>
+        <strong>入力のポイント:</strong> 入社年・退職年は源泉徴収票が月割りになるため、実際の年収水準とずれます。
+        その職位で<strong>フル稼働した場合の想定年収（OTE）</strong>を入力してください。
+        「同じ会社で職種が変わった場合は、職種ごとに分けて登録するとキャリアの軌跡がわかりやすくなります。まとめて1件でも登録できます。」
+      </div>
+
+      {/* ── 企業 ── */}
       <div>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
           企業名 <span style={{ color: "var(--error)" }}>*</span>
@@ -113,8 +201,8 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
               type="text"
               value={companySearch}
               onChange={(e) => { setCompanySearch(e.target.value); searchCompany(e.target.value); setResolvedCompanyId(""); }}
-              placeholder="企業名を入力"
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, boxSizing: "border-box" }}
+              placeholder="企業名を入力して検索"
+              style={inp}
             />
             {companySuggestions.length > 0 && (
               <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid var(--line)", borderRadius: 10, boxShadow: "0 4px 16px rgba(0,0,0,.08)", zIndex: 50 }}>
@@ -134,7 +222,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         )}
       </div>
 
-      {/* Role — 2-step: parent → child */}
+      {/* ── 職種 ── */}
       <div>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
           職種カテゴリ <span style={{ color: "var(--error)" }}>*</span>
@@ -142,12 +230,10 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         <select
           value={roleParent}
           onChange={(e) => { setRoleParent(e.target.value); setRoleId(""); }}
-          style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
+          style={inp}
         >
           <option value="">カテゴリを選択</option>
-          {grouped.map((g) => (
-            <option key={g.id} value={g.id}>{g.name}</option>
-          ))}
+          {grouped.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
       </div>
 
@@ -156,49 +242,126 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
             職種 <span style={{ color: "var(--error)" }}>*</span>
           </label>
-          <select
-            value={roleId}
-            onChange={(e) => setRoleId(e.target.value)}
-            style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
-          >
+          <select value={roleId} onChange={(e) => setRoleId(e.target.value)} style={inp}>
             <option value="">職種を選択</option>
             <option value={selectedParent.id}>{selectedParent.name}（その他）</option>
-            {selectedParent.children.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
+            {selectedParent.children.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
       )}
 
-      {/* Annual salary */}
+      {/* ── 期間 ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <YearMonthPicker label="開始年月" required value={startYM} onChange={setStartYM} />
+        <YearMonthPicker label="終了年月（現職なら空欄）" value={endYM} onChange={setEndYM} />
+      </div>
+
+      {/* ── 想定年収（OTE）── */}
       <div>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
-          年収 <span style={{ color: "var(--error)" }}>*</span>
+        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 4 }}>
+          その職位での、フル稼働1年間の想定年収（OTE）<span style={{ color: "var(--error)" }}>*</span>
         </label>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 8px", lineHeight: 1.6 }}>
+          外資SaaS営業の場合は「基本給 ＋ インセンティブ目標額」の合計（＝ OTE）を入力してください。
+        </p>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input
             type="number"
-            value={salaryMan}
-            onChange={(e) => setSalaryMan(e.target.value)}
-            placeholder="例: 800"
+            value={oteMan}
+            onChange={(e) => setOteMan(e.target.value)}
+            placeholder="例: 1200"
             min={100}
             max={50000}
             style={{ width: 160, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14 }}
           />
           <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>万円</span>
-          {salaryMan && !isNaN(parseInt(salaryMan)) && (
+          {oteMan && !isNaN(parseInt(oteMan)) && (
             <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>
-              = {parseInt(salaryMan).toLocaleString()}万円
+              = {parseInt(oteMan).toLocaleString()}万円
             </span>
           )}
         </div>
       </div>
 
-      {/* Employment status */}
+      {/* ── グレード（任意）── */}
+      <div>
+        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
+          グレード・等級（任意）
+        </label>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 8px" }}>
+          例: Grade 4、L5、主任、Senior AE など（自由入力）
+        </p>
+        <input
+          type="text"
+          value={grade}
+          onChange={(e) => setGrade(e.target.value)}
+          placeholder="例: Grade 4"
+          maxLength={50}
+          style={{ ...inp, width: 240 }}
+        />
+      </div>
+
+      {/* ── 内訳（任意・折りたたみ）── */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowBreakdown((v) => !v)}
+          style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6 }}
+        >
+          {showBreakdown ? "▼" : "▶"} 内訳・実支給を詳しく入力する（任意）
+        </button>
+
+        {showBreakdown && (
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 16, padding: "16px", background: "var(--bg-tint)", borderRadius: 12, border: "1px solid var(--line)" }}>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.7 }}>
+              内訳を入力することで、他のユーザーが「基本給の割合」「インセンティブ比率」を把握しやすくなります。
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px 16px" }}>
+              {([
+                ["固定給（基本給）", baseMan, setBaseMan],
+                ["インセンティブ目標額", incentiveMan, setIncentiveMan],
+                ["賞与", bonusMan, setBonusMan],
+                ["株式報酬（RSU/SO）", stockMan, setStockMan],
+                ["手当（住宅・家族等）", allowancesMan, setAllowancesMan],
+                ["固定残業代", fixedOTMan, setFixedOTMan],
+              ] as [string, string, React.Dispatch<React.SetStateAction<string>>][]).map(([label, val, setter]) => (
+                <div key={label}>
+                  <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4 }}>{label}（万円）</div>
+                  <input
+                    type="number" min="0" max="99999" placeholder="—"
+                    value={val}
+                    onChange={(e) => setter(e.target.value)}
+                    style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, width: "100%", boxSizing: "border-box" }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 5 }}>
+                  達成率（%）— 任意
+                </label>
+                <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "0 0 6px" }}>
+                  インセンティブ達成率。例: 120
+                </p>
+                <input
+                  type="number" min="0" max="500" placeholder="例: 120"
+                  value={achievementRate}
+                  onChange={(e) => setAchievementRate(e.target.value)}
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, width: 100 }}
+                />
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", marginLeft: 6 }}>%</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 在籍状況 ── */}
       <div>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 8 }}>在籍状況</label>
         <div style={{ display: "flex", gap: 10 }}>
-          {(["current", "alumni"] as const).map((s) => (
+          {(["alumni", "current"] as const).map((s) => (
             <button
               key={s}
               type="button"
@@ -210,43 +373,35 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
                 borderColor: status === s ? "var(--royal)" : "var(--line)",
               }}
             >
-              {s === "current" ? "現役社員" : "OB/OG"}
+              {s === "current" ? "現役社員" : "OB/OG（退職済み）"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Years of experience */}
-      <div>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
-          業界経験年数（任意）
-        </label>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <input
-            type="number"
-            value={yoe}
-            onChange={(e) => setYoe(e.target.value)}
-            placeholder="例: 5"
-            min={0}
-            max={50}
-            style={{ width: 100, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14 }}
-          />
-          <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>年</span>
+      {/* ── 経験年数・勤務地（任意）── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
+            業界経験年数（任意）
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="number" value={yoe} onChange={(e) => setYoe(e.target.value)}
+              placeholder="例: 5" min={0} max={50}
+              style={{ width: 90, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14 }}
+            />
+            <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>年</span>
+          </div>
         </div>
-      </div>
-
-      {/* Prefecture */}
-      <div>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
-          勤務都道府県（任意）
-        </label>
-        <select
-          value={prefecture}
-          onChange={(e) => setPrefecture(e.target.value)}
-          style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
-        >
-          {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
+            勤務都道府県（任意）
+          </label>
+          <select value={prefecture} onChange={(e) => setPrefecture(e.target.value)} style={inp}>
+            {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
       </div>
 
       {error && (
@@ -260,8 +415,10 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
           type="submit"
           disabled={submitting}
           style={{
-            width: "100%", padding: "14px", background: submitting ? "var(--line)" : "var(--success)",
-            color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer",
+            width: "100%", padding: "14px",
+            background: submitting ? "var(--line)" : "var(--success)",
+            color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700,
+            cursor: submitting ? "not-allowed" : "pointer",
           }}
         >
           {submitting ? "送信中..." : "投稿する（匿名）"}

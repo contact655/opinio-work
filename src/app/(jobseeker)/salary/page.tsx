@@ -43,7 +43,7 @@ export default async function SalaryPage() {
     (() => {
       let q = admin
         .from("ow_salary_reports")
-        .select("role_id, annual_salary, user_id")
+        .select("role_id, ote, annual_salary, user_id")
         .eq("is_approved", true);
       if (optedOutIds.length > 0) {
         q = q.not("user_id", "in", `(${optedOutIds.join(",")})`);
@@ -82,7 +82,9 @@ export default async function SalaryPage() {
     if (!reportMap[roleId]) {
       reportMap[roleId] = { salaries: [], roleName: roleInfo.name, parentName: roleInfo.parentName };
     }
-    reportMap[roleId].salaries.push(r.annual_salary as number);
+    const salary = ((r as Record<string, unknown>).ote ?? r.annual_salary) as number | null;
+    if (salary == null) continue;
+    reportMap[roleId].salaries.push(salary);
   }
 
   // Aggregate jobs by job_category (approximate role mapping)
