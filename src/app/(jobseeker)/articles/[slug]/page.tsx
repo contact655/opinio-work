@@ -28,7 +28,7 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug);
-  if (!article) return { title: { absolute: "記事 | OPINIO" } };
+  if (!article) notFound();
 
   const typeLabel =
     article.type === "employee" ? "社員インタビュー"

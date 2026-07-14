@@ -46,7 +46,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const result = await getCompanyByIdCached(params.id);
-  if (!result) return { title: { absolute: "企業が見つかりません | OPINIO" } };
+  if (!result) notFound();
   const { company } = result;
 
   const description = company.tagline

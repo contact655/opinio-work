@@ -7,6 +7,7 @@
  */
 
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
@@ -572,7 +573,7 @@ export async function getSimilarCompanies(companyId: string, industry: string, p
   return data.map((row) => mapCompany(row));
 }
 
-export async function getCompanyById(
+export const getCompanyById = cache(async function getCompanyById(
   id: string
 ): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[] } | null> {
   const supabase = createAdminClient();
@@ -621,7 +622,7 @@ export async function getCompanyById(
   const detail = buildCompanyDetail(data, jobRows ?? [], roleRows ?? []);
 
   return { company, detail, employeeCategories };
-}
+});
 
 // ─── Role queries ─────────────────────────────────────────────────────────────
 
@@ -785,7 +786,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 }
 
 
-export async function getJobById(
+export const getJobById = cache(async function getJobById(
   id: string
 ): Promise<{ job: Job; company: Company; relatedJobs: Job[] } | null> {
   const supabase = createAdminClient();
@@ -831,7 +832,7 @@ export async function getJobById(
     company: mapCompany(compData),
     relatedJobs,
   };
-}
+});
 
 // ─── Company photos ───────────────────────────────────────────────────────────
 
@@ -1307,7 +1308,7 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
   return articles;
 }
 
-export async function getArticleBySlug(slug: string): Promise<Article | null> {
+export const getArticleBySlug = cache(async function getArticleBySlug(slug: string): Promise<Article | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("ow_articles")
@@ -1325,7 +1326,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return mapDbArticle(data as Record<string, any>);
-}
+});
 
 export async function getArticlesByCompany(companyId: string): Promise<Article[]> {
   const supabase = createAdminClient();

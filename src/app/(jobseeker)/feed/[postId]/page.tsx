@@ -23,7 +23,7 @@ type RawPost = {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateMetadata({ params }: { params: { postId: string } }): Promise<Metadata> {
-  if (!UUID_RE.test(params.postId)) return { title: "投稿 | OPINIO" };
+  if (!UUID_RE.test(params.postId)) notFound();
 
   const adminSupabase = createAdminClient();
   const { data: raw } = await adminSupabase
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: { postId: string } 
     .eq("id", params.postId)
     .maybeSingle();
 
-  if (!raw) return { title: "投稿 | OPINIO" };
+  if (!raw) notFound();
   const p = raw as unknown as { content: string; user: { name: string } | null };
   const excerpt = p.content.slice(0, 50) + (p.content.length > 50 ? "…" : "");
   const authorName = p.user?.name ?? "ユーザー";
