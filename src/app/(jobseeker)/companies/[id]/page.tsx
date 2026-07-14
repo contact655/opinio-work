@@ -1520,23 +1520,28 @@ function EmployeeCard({
   );
 }
 
-// employee-grid: 均等2列 (md以上) / 3列 (xl以上) — CSS classで定義
+// person-card-grid: 全人物カードセクション共通（面談OK/現役社員/OBOG）
 const EMPLOYEE_GRID_CSS = `
+  .person-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 767px) {
+    .person-card-grid { grid-template-columns: 1fr; }
+  }
   .employee-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 16px;
   }
   @media (max-width: 767px) {
     .employee-grid { grid-template-columns: 1fr; }
   }
-  @media (min-width: 1280px) {
-    .employee-grid { grid-template-columns: repeat(3, 1fr); }
-  }
   .alumni-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 16px;
   }
   @media (max-width: 767px) {
     .alumni-grid { grid-template-columns: 1fr; }
@@ -3672,7 +3677,7 @@ export default async function CompanyDetailPage({
                     選考なし・完全無料。この会社のことを直接聞けます。転職意欲がなくてもOK。
                   </p>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                <div className="person-card-grid">
                   {ambassadors.map((a) => {
                     const gradient = a.ow_users?.avatar_color?.startsWith("linear-gradient")
                       ? a.ow_users.avatar_color
