@@ -1272,6 +1272,7 @@ function JobDetailPane({
 function SidebarFilters({
   parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
+  industries, industryId,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
@@ -1280,9 +1281,11 @@ function SidebarFilters({
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
+  industries: { id: string; parent_id: string | null; name: string; slug: string }[];
+  industryId: string;
 }) {
   // ③ アコーディオン: デフォルトで年収・雇用形態・地域は折りたたむ
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["salary", "empType", "bizModel", "prefecture"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "salary", "empType", "bizModel", "prefecture"]));
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -1333,6 +1336,32 @@ function SidebarFilters({
           </span>
         </div>
       </div>
+
+      {/* 業種 — アコーディオン（デフォルト折りたたみ、industryマスタある場合のみ）*/}
+      {industries.length > 0 && (() => {
+        const parentIndustries = industries.filter((i) => !i.parent_id);
+        return (
+          <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+            <SectionHeader label="業種" sectionKey="industry" hasActive={!!industryId} />
+            {!collapsed.has("industry") && (
+              <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+                {parentIndustries.map((ind) => {
+                  const isActive = industryId === ind.id;
+                  return (
+                    <button key={ind.id} type="button" onClick={() => setParam("industry_id", isActive ? "" : ind.id)}
+                      style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                      onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                      onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                    >
+                      {isActive ? "✓ " : ""}{ind.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 職種 — アコーディオン（デフォルト展開）*/}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
@@ -1493,12 +1522,16 @@ export default function JobsClient({
   parentRoles,
   recommendations = [],
   reviewSummaries = {},
+  roleAliases = [],
+  industries = [],
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
   recommendations?: RecommendedJob[];
   reviewSummaries?: Record<string, CompanyReviewSummary>;
+  roleAliases?: { alias: string; roleId: string }[];
+  industries?: { id: string; parent_id: string | null; name: string; slug: string }[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1509,6 +1542,7 @@ export default function JobsClient({
   const work_style = searchParams.get("work_style") ?? "";
   const salary = searchParams.get("salary") ?? "";
   const industry = searchParams.get("industry") ?? "";
+  const industryId = searchParams.get("industry_id") ?? "";
   const prefecture = searchParams.get("prefecture") ?? "";
   const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター
   const bizModel = searchParams.get("biz_model") ?? ""; // 業態タグフィルター
@@ -1637,11 +1671,18 @@ export default function JobsClient({
 
     if (q.trim()) {
       const lq = q.trim().toLowerCase();
+      // エイリアスにマッチするroleIdを収集（例: "サーバーサイド" → バックエンドのrole_id）
+      const aliasMatchedRoleIds = new Set(
+        roleAliases
+          .filter((a) => a.alias.toLowerCase().includes(lq))
+          .map((a) => a.roleId)
+      );
       list = list.filter(
         (j) =>
           j.role.toLowerCase().includes(lq) ||
           (companyMap.get(j.company_id)?.name ?? "").toLowerCase().includes(lq) ||
-          j.highlight.toLowerCase().includes(lq)
+          j.highlight.toLowerCase().includes(lq) ||
+          (j.role_category_id ? aliasMatchedRoleIds.has(j.role_category_id) : false)
       );
     }
 
@@ -1679,6 +1720,22 @@ export default function JobsClient({
         .filter((c) => normalizeIndustry(c.industry) === industry)
         .map((c) => c.id);
       list = list.filter((j) => companyIds.includes(j.company_id));
+    }
+
+    // industry_id フィルター（ow_industries マスタ使用。親IDを選択した場合は子IDも含む）
+    if (industryId) {
+      const childIds = new Set(
+        industries.filter((i) => i.parent_id === industryId).map((i) => i.id)
+      );
+      const companyIds = new Set(
+        companies
+          .filter((c) => {
+            const cid = (c as { industry_id?: string | null }).industry_id;
+            return cid && (cid === industryId || childIds.has(cid));
+          })
+          .map((c) => c.id)
+      );
+      list = list.filter((j) => companyIds.has(j.company_id));
     }
 
     // 都道府県フィルタ (job.location から抽出した都道府県と完全一致)
@@ -1721,7 +1778,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, prefecture, empType, meetingOnly, sort, companies, companyMap]);
+  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件）
   const filteredForDisplay = useMemo(() => {
@@ -1746,7 +1803,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, prefecture, empType, sort, q, bizOnly].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1759,7 +1816,7 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || prefecture || empType || meetingOnly || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || bizOnly);
 
   // 面談受付中の求人数（全件から）
   const meetingCount = useMemo(
@@ -2093,6 +2150,8 @@ export default function JobsClient({
                 q={q}
                 onReset={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
                 meetingCount={meetingCount}
+                industries={industries}
+                industryId={industryId}
               />
             </aside>
 

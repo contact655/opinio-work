@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { useAutoSave } from "@/hooks/useAutoSave";
@@ -238,20 +238,27 @@ function Hint({ children }: { children: React.ReactNode }) {
 
 // ─── メインコンポーネント ────────────────────────────────────────────────────
 
+export type RoleItem = { id: string; parent_id: string | null; name: string; level: number };
+type SelectedRole = { roleId: string; isPrimary: boolean };
+
 type Props = {
   mode: FormMode;
   initialJob?: BizJob | null;
   initialAssigneeIds?: string[];
+  initialJobRoles?: SelectedRole[];
   companyId?: string;
   teamMembers?: TeamMember[];
+  roles?: RoleItem[];
 };
 
 export function JobEditForm({
   mode,
   initialJob = null,
   initialAssigneeIds,
+  initialJobRoles = [],
   companyId,
   teamMembers,
+  roles = [],
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
@@ -266,6 +273,35 @@ export function JobEditForm({
   // currentJobId: 新規モードでも自動保存後の ID を追跡する
   // 初期値は initialJob?.id（編集モード）または null（新規モード）
   const [currentJobId, setCurrentJobId] = useState<string | null>(initialJob?.id ?? null);
+  const [selectedRoles, setSelectedRoles] = useState<SelectedRole[]>(initialJobRoles);
+  const [roleParentId, setRoleParentId] = useState("");
+  const [roleChildId, setRoleChildId] = useState("");
+
+  const parentRoles = useMemo(() => roles.filter((r) => r.parent_id === null), [roles]);
+  const childRoles = useMemo(() => roleParentId ? roles.filter((r) => r.parent_id === roleParentId) : [], [roleParentId, roles]);
+
+  const addRole = () => {
+    const targetId = childRoles.length > 0 ? roleChildId : roleParentId;
+    if (!targetId || selectedRoles.some((r) => r.roleId === targetId)) return;
+    const isPrimary = selectedRoles.length === 0;
+    setSelectedRoles((prev) => [...prev, { roleId: targetId, isPrimary }]);
+    setRoleChildId("");
+  };
+
+  const removeRole = (roleId: string) => {
+    setSelectedRoles((prev) => {
+      const next = prev.filter((r) => r.roleId !== roleId);
+      // 削除後に primary がなければ先頭を primary に
+      if (next.length > 0 && !next.some((r) => r.isPrimary)) {
+        next[0] = { ...next[0], isPrimary: true };
+      }
+      return next;
+    });
+  };
+
+  const setPrimary = (roleId: string) => {
+    setSelectedRoles((prev) => prev.map((r) => ({ ...r, isPrimary: r.roleId === roleId })));
+  };
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
@@ -283,25 +319,21 @@ export function JobEditForm({
       const res = await fetch("/api/biz/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, companyId }),
+        body: JSON.stringify({ ...form, companyId, jobRoles: selectedRoles }),
       });
       if (!res.ok) throw new Error("create failed");
       const { id } = (await res.json()) as { id: string };
       setCurrentJobId(id);
-      // router.replace はページリロード相当で form state が消えるため使わない。
-      // URLバーのみ書き換えてリロードなしで編集を継続できるようにする。
       window.history.replaceState({}, "", `/biz/jobs/${id}/edit`);
     } else {
-      // 既存レコード更新（編集モード、または新規モードでの2回目以降の自動保存）
-      // status は PUT に含まれないため、自動保存が draft 以外に変わることはない。
       const res = await fetch(`/api/biz/jobs/${currentJobId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, jobRoles: selectedRoles }),
       });
       if (!res.ok) throw new Error("save failed");
     }
-  }, [form, currentJobId, companyId]);
+  }, [form, selectedRoles, currentJobId, companyId]);
 
   const { saveState, trigger: triggerAutosave } = useAutoSave({ onSave: doSave });
 
@@ -314,6 +346,12 @@ export function JobEditForm({
       triggerAutosave();
     }
   }
+
+  // selectedRoles が変わるたびに自動保存トリガー
+  useEffect(() => {
+    if (currentJobId) triggerAutosave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoles]);
 
   const handleCreate = useCallback(async () => {
     if (!form.title.trim()) { showError("求人タイトルを入力してください。"); return; }
@@ -453,6 +491,60 @@ export function JobEditForm({
                   <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
                 </FormGroup>
               </div>
+              {/* 職種マスタ連携 */}
+              {roles.length > 0 && (
+                <FormGroup>
+                  <FormLabel optional>職種（マスタ紐づけ）</FormLabel>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <select
+                      value={roleParentId}
+                      onChange={(e) => { setRoleParentId(e.target.value); setRoleChildId(""); }}
+                      style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, background: "#fff" }}
+                    >
+                      <option value="">大分類を選ぶ</option>
+                      {parentRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                    {childRoles.length > 0 && (
+                      <select
+                        value={roleChildId}
+                        onChange={(e) => setRoleChildId(e.target.value)}
+                        style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, background: "#fff" }}
+                      >
+                        <option value="">小分類を選ぶ</option>
+                        {childRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      </select>
+                    )}
+                    <button
+                      type="button"
+                      onClick={addRole}
+                      disabled={!(childRoles.length > 0 ? roleChildId : roleParentId)}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid var(--royal)", background: "var(--royal-50)", color: "var(--royal)", fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+                    >
+                      ＋ 追加
+                    </button>
+                  </div>
+                  {selectedRoles.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {selectedRoles.map((sr) => {
+                        const role = roles.find((r) => r.id === sr.roleId);
+                        return (
+                          <div key={sr.roleId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: sr.isPrimary ? "var(--royal-50)" : "var(--bg-tint)", border: `1px solid ${sr.isPrimary ? "var(--royal-100)" : "var(--line)"}` }}>
+                            <input type="radio" name="primary-role" checked={sr.isPrimary} onChange={() => setPrimary(sr.roleId)} style={{ accentColor: "var(--royal)", cursor: "pointer" }} />
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: sr.isPrimary ? 700 : 400, color: sr.isPrimary ? "var(--royal)" : "var(--ink)" }}>
+                              {role?.name ?? sr.roleId}
+                              {sr.isPrimary && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--ink-mute)", fontWeight: 400 }}>（代表）</span>}
+                            </span>
+                            <button type="button" onClick={() => removeRole(sr.roleId)} style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>解除</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6 }}>
+                    複数選択可。ラジオボタンで代表職種を1つ指定してください。
+                  </p>
+                </FormGroup>
+              )}
               <FormGroup>
                 <FormLabel optional htmlFor="jef-business-model">業態タグ（プロダクト特性）</FormLabel>
                 <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>

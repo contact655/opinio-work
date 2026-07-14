@@ -35,6 +35,8 @@ export type Company = {
   mission?: string | null;
   fit_positives?: string[] | null;
   brand_name?: string | null;
+  industry_id?: string | null;
+  saas_category_id?: string | null;
 };
 
 export const MOCK_COMPANIES: Company[] = [

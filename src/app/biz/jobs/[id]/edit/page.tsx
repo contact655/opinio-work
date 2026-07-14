@@ -4,7 +4,9 @@ import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchJobById, fetchTeamMembers } from "@/lib/business/jobs";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
+import type { RoleItem } from "@/components/business/JobEditForm";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +20,11 @@ export default async function JobEditPage({ params }: { params: { id: string } }
   if (!ctx) return <BizNoTenantPage />;
 
   const supabase = createClient();
-  const [jobData, teamMembers] = await Promise.all([
+  const adminClient = createAdminClient();
+  const [jobData, teamMembers, rolesResult] = await Promise.all([
     fetchJobById(supabase, params.id),
     fetchTeamMembers(supabase, ctx.tenantId),
+    adminClient.from("ow_roles").select("id, parent_id, name, level").eq("is_active", true).order("display_order", { ascending: true }),
   ]);
 
   if (!jobData) {
@@ -33,10 +37,11 @@ export default async function JobEditPage({ params }: { params: { id: string } }
     );
   }
 
-  // IDOR guard: ensure the job belongs to this tenant
   if (jobData.companyId !== ctx.tenantId) {
     notFound();
   }
+
+  const roles: RoleItem[] = (rolesResult.data ?? []) as RoleItem[];
 
   return (
     <BusinessLayout
@@ -52,8 +57,10 @@ export default async function JobEditPage({ params }: { params: { id: string } }
         mode="edit"
         initialJob={jobData.job}
         initialAssigneeIds={jobData.assigneeIds}
+        initialJobRoles={jobData.jobRoles}
         companyId={ctx.tenantId}
         teamMembers={teamMembers}
+        roles={roles}
       />
     </BusinessLayout>
   );

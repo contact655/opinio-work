@@ -16,6 +16,8 @@ export type BizCompany = {
   mission: string;
   tagline: string;          // 公開ページ ヒーロー直下に表示
   industry: string;
+  industryId: string;       // ow_industries.id（新マスタ）
+  saasCategoryId: string;   // ow_saas_categories.id（IT/SaaS企業のみ）
   genres: string[];         // slug 配列。ow_company_genres と同期。空配列を許容
   phase: string;
   url: string;

@@ -43,6 +43,10 @@ type Props = {
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
+  /** ow_industries 全件 */
+  industries?: { id: string; parent_id: string | null; name: string; slug: string; display_order: number }[];
+  /** ow_saas_categories 全件 */
+  saasCategories?: { id: string; name: string; slug: string; display_order: number }[];
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -302,10 +306,29 @@ export function CompanyEditClient({
   availableGenres = [],
   initialTermsAgreed = false,
   userId = "",
+  industries = [],
+  saasCategories = [],
 }: Props) {
   const router = useRouter();
 
   const [form, setForm] = useState<BizCompany>({ ...initialCompany });
+
+  // 業種マスタ: 大分類（parent_id null）/ 中分類（parent_id あり）
+  const parentIndustries = useMemo(() => industries.filter((i) => i.parent_id === null), [industries]);
+  const selectedParentId = useMemo(() => {
+    if (!form.industryId) return "";
+    const child = industries.find((i) => i.id === form.industryId);
+    return child?.parent_id ?? form.industryId;
+  }, [form.industryId, industries]);
+  const childIndustries = useMemo(
+    () => selectedParentId ? industries.filter((i) => i.parent_id === selectedParentId) : [],
+    [selectedParentId, industries]
+  );
+  const selectedChildSlug = useMemo(
+    () => industries.find((i) => i.id === form.industryId)?.slug ?? "",
+    [form.industryId, industries]
+  );
+  const showSaasCategory = selectedChildSlug === "it-saas";
   const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
   const [termsChecked, setTermsChecked] = useState(false);
   const [isRecordingAgreement, setIsRecordingAgreement] = useState(false);
@@ -631,11 +654,74 @@ export function CompanyEditClient({
                 <FormInput id="ce-tagline" value={form.tagline} onChange={(v) => update("tagline", v)} placeholder="例: MA領域でシリーズCのスタートアップ" />
                 <FormHint>企業詳細ページのミッション直下に表示される短いサブテキストです。SEOの meta description にも使用されます。</FormHint>
               </FormGroup>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {/* 業種 2段階セレクト */}
+              {industries.length > 0 ? (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 0 }}>
+                    <FormGroup>
+                      <FormLabel required htmlFor="ce-industry-parent">業種（大分類）</FormLabel>
+                      <select
+                        id="ce-industry-parent"
+                        value={selectedParentId}
+                        onChange={(e) => {
+                          const pid = e.target.value;
+                          const children = industries.filter((i) => i.parent_id === pid);
+                          // 大分類変更時: 子がなければ大分類IDを直接セット、あれば空にリセット
+                          update("industryId", children.length === 0 ? pid : "");
+                          update("saasCategoryId", "");
+                        }}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
+                      >
+                        <option value="">選択してください</option>
+                        {parentIndustries.map((i) => (
+                          <option key={i.id} value={i.id}>{i.name}</option>
+                        ))}
+                      </select>
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel htmlFor="ce-industry-child">業種（中分類）</FormLabel>
+                      <select
+                        id="ce-industry-child"
+                        value={childIndustries.length > 0 ? form.industryId : ""}
+                        onChange={(e) => {
+                          update("industryId", e.target.value);
+                          update("saasCategoryId", "");
+                        }}
+                        disabled={childIndustries.length === 0}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: childIndustries.length === 0 ? "var(--bg-tint)" : "#fff", color: childIndustries.length === 0 ? "var(--ink-mute)" : "inherit" }}
+                      >
+                        <option value="">選択してください</option>
+                        {childIndustries.map((i) => (
+                          <option key={i.id} value={i.id}>{i.name}</option>
+                        ))}
+                      </select>
+                    </FormGroup>
+                  </div>
+                  {showSaasCategory && (
+                    <FormGroup>
+                      <FormLabel htmlFor="ce-saas-category" optional>SaaSカテゴリ</FormLabel>
+                      <select
+                        id="ce-saas-category"
+                        value={form.saasCategoryId}
+                        onChange={(e) => update("saasCategoryId", e.target.value)}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
+                      >
+                        <option value="">選択してください（任意）</option>
+                        {saasCategories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      <FormHint>SaaS企業のみ。HR Tech / CRM / AI・データ など、プロダクトのカテゴリを選択してください。</FormHint>
+                    </FormGroup>
+                  )}
+                </>
+              ) : (
                 <FormGroup>
                   <FormLabel required htmlFor="ce-industry">業種</FormLabel>
                   <FormSelect id="ce-industry" value={form.industry} onChange={(v) => update("industry", v)} options={INDUSTRY_OPTIONS} />
                 </FormGroup>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
                   <FormLabel htmlFor="ce-phase">事業ステージ</FormLabel>
                   <FormSelect id="ce-phase" value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_OPTIONS} />

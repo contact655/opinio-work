@@ -34,20 +34,30 @@ export default async function BizCompanyPage() {
     : { data: null };
   const termsAgreed = !!existingAgreement;
 
-  const [initialPhotos, genresResult, publishedGenresResult, companyRaw] = await Promise.all([
+  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, saasCatsResult] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
-    supabase
+    adminClient
       .from("ow_genres")
       .select("slug, name, display_order")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    (adminClient as any)
       .from("ow_company_genres")
       .select("ow_genres(slug)")
       .eq("company_id", ctx.tenantId)
       .eq("is_human_approved", true),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
+    adminClient
+      .from("ow_industries")
+      .select("id, parent_id, name, slug, display_order")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true }),
+    adminClient
+      .from("ow_saas_categories")
+      .select("id, name, slug, display_order")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true }),
   ]);
 
   if (!companyRaw) redirect("/biz/dashboard");
@@ -64,6 +74,12 @@ export default async function BizCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
+  type IndustryItem = { id: string; parent_id: string | null; name: string; slug: string; display_order: number };
+  type SaasCatItem = { id: string; name: string; slug: string; display_order: number };
+
+  const industries: IndustryItem[] = (industriesResult.data ?? []) as IndustryItem[];
+  const saasCategories: SaasCatItem[] = (saasCatsResult.data ?? []) as SaasCatItem[];
+
   return (
     <CompanyEditClient
       initialCompany={company}
@@ -78,6 +94,8 @@ export default async function BizCompanyPage() {
       availableGenres={availableGenres}
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
+      industries={industries}
+      saasCategories={saasCategories}
     />
   );
 }

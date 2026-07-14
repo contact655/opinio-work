@@ -11,9 +11,12 @@ export type TeamMember = {
   initial: string;
 };
 
+export type JobRole = { roleId: string; isPrimary: boolean };
+
 export type JobEditData = {
   job: BizJob;
   assigneeIds: string[];
+  jobRoles: JobRole[];
   companyId: string;
 };
 
@@ -223,6 +226,16 @@ export async function fetchJobById(
   const row = data as unknown as DbJobFull;
   const assigneeIds = (row.ow_job_assignees ?? []).map((a) => a.user_id);
 
+  // ow_job_roles を別途ロード
+  const { data: roleRows } = await supabase
+    .from("ow_job_roles")
+    .select("role_id, is_primary")
+    .eq("job_id", data.id);
+  const jobRoles: JobRole[] = (roleRows ?? []).map((r: { role_id: string; is_primary: boolean }) => ({
+    roleId: r.role_id,
+    isPrimary: r.is_primary,
+  }));
+
   const job: BizJob = {
     id: row.id,
     title: row.title ?? "(タイトル未設定)",
@@ -262,7 +275,7 @@ export async function fetchJobById(
     incentiveNote: row.incentive_note ?? undefined,
   };
 
-  return { job, assigneeIds, companyId: row.company_id ?? "" };
+  return { job, assigneeIds, jobRoles, companyId: row.company_id ?? "" };
 }
 
 // ─── fetchTeamMembers ──────────────────────────────────

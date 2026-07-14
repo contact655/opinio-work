@@ -10,6 +10,8 @@ export type DbCompany = {
   why_join: string | null;
   company_features: string[] | null;
   industry: string | null;
+  industry_id: string | null;
+  saas_category_id: string | null;
   phase: string | null;
   business_stage: string | null;
   url: string | null;
@@ -51,7 +53,7 @@ export type DbCompany = {
 
 const SELECT_COLUMNS = [
   "id", "user_id", "name", "tagline", "mission", "why_join", "company_features",
-  "industry", "phase", "business_stage", "url", "careers_url",
+  "industry", "industry_id", "saas_category_id", "phase", "business_stage", "url", "careers_url",
   "logo_gradient", "logo_letter", "logo_url", "about_markdown", "employee_count", "established_at",
   "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
@@ -92,6 +94,8 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     whyJoin: row.why_join ?? "",
     companyFeatures: Array.isArray(row.company_features) ? row.company_features : [],
     industry: row.industry ?? "",
+    industryId: (row.industry_id as string | null) ?? "",
+    saasCategoryId: (row.saas_category_id as string | null) ?? "",
     genres,
     phase: row.phase ?? row.business_stage ?? "",
     url: row.url ?? "",
@@ -150,6 +154,8 @@ export function transformFormToDb(form: BizCompany): Record<string, unknown> {
     why_join: form.whyJoin || null,
     company_features: form.companyFeatures.length > 0 ? form.companyFeatures : null,
     industry: form.industry || null,
+    industry_id: form.industryId || null,
+    saas_category_id: form.saasCategoryId || null,
     genres: form.genres ?? [],
     phase: form.phase || null,
     url: form.url || null,

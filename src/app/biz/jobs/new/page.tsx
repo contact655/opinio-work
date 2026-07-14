@@ -4,6 +4,8 @@ import { JobEditForm } from "@/components/business/JobEditForm";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchTeamMembers } from "@/lib/business/jobs";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { RoleItem } from "@/components/business/JobEditForm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,13 @@ export default async function JobNewPage() {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage userName={userName} />;
 
-  const teamMembers = await fetchTeamMembers(supabase, ctx.tenantId);
+  const adminClient = createAdminClient();
+  const [teamMembers, rolesResult] = await Promise.all([
+    fetchTeamMembers(supabase, ctx.tenantId),
+    adminClient.from("ow_roles").select("id, parent_id, name, level").eq("is_active", true).order("display_order", { ascending: true }),
+  ]);
+
+  const roles: RoleItem[] = (rolesResult.data ?? []) as RoleItem[];
 
   return (
     <BusinessLayout
@@ -35,6 +43,7 @@ export default async function JobNewPage() {
         mode="new"
         companyId={ctx.tenantId}
         teamMembers={teamMembers}
+        roles={roles}
       />
     </BusinessLayout>
   );

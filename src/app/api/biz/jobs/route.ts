@@ -164,5 +164,16 @@ export async function POST(req: Request) {
     }
   }
 
+  // ow_job_roles 同期（best-effort）
+  const jobRoles = Array.isArray(body.jobRoles) ? body.jobRoles as { roleId: string; isPrimary: boolean }[] : [];
+  if (jobRoles.length > 0) {
+    try {
+      await supabase.from("ow_job_roles").delete().eq("job_id", newJob.id);
+      await supabase.from("ow_job_roles").insert(
+        jobRoles.map((r) => ({ job_id: newJob.id, role_id: r.roleId, is_primary: r.isPrimary }))
+      );
+    } catch { /* best-effort */ }
+  }
+
   return NextResponse.json({ id: newJob.id });
 }

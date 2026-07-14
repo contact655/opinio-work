@@ -120,7 +120,7 @@ export async function PATCH(req: Request) {
     "tagline", "description", "mission", "culture", "benefits",
     "avg_salary", "avg_age", "female_ratio", "fit_positives", "fit_negatives", "why_join",
     "remote_work_status", "flex_time", "side_job_ok", "accepting_casual_meetings",
-    "location", "url", "founded_year", "employee_count", "industry", "phase",
+    "location", "url", "founded_year", "employee_count", "industry", "industry_id", "saas_category_id", "phase",
     "logo_url", "logo_gradient", "logo_letter",
   ];
   const allowedPayload: Record<string, unknown> = {};

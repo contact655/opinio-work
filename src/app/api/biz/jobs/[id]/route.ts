@@ -104,6 +104,17 @@ export async function PUT(
     }
   }
 
+  // ow_job_roles 同期（best-effort）
+  const jobRoles = Array.isArray(body.jobRoles) ? body.jobRoles as { roleId: string; isPrimary: boolean }[] : [];
+  try {
+    await supabase.from("ow_job_roles").delete().eq("job_id", jobId);
+    if (jobRoles.length > 0) {
+      await supabase.from("ow_job_roles").insert(
+        jobRoles.map((r) => ({ job_id: jobId, role_id: r.roleId, is_primary: r.isPrimary }))
+      );
+    }
+  } catch { /* best-effort */ }
+
   // Activity: job_updated (best-effort) — ctx0 を再利用
   const jobRow = await supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle();
   if (jobRow.data?.company_id) {

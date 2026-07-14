@@ -90,6 +90,8 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     is_editors_pick: false,
     is_dimmed: false,
     brand_name: (row.brand_name as string | null) ?? null,
+    industry_id: (row.industry_id as string | null) ?? null,
+    saas_category_id: (row.saas_category_id as string | null) ?? null,
   };
 }
 
@@ -486,7 +488,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
 // ─── Company queries ──────────────────────────────────────────────────────────
 
 const COMPANY_LIST_COLS = [
-  "id", "name", "name_en", "brand_name", "tagline", "industry", "phase", "employee_count",
+  "id", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count",
   "logo_gradient", "logo_letter", "logo_url", "url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
 ].join(", ");
@@ -1536,3 +1538,33 @@ export async function getCompanyReviewSummaries(): Promise<Record<string, Compan
   }
   return result;
 }
+
+// ─── Role alias map (alias → role_id) ────────────────────────────────────────
+export type RoleAlias = { alias: string; roleId: string };
+
+export const getRoleAliases = unstable_cache(
+  async (): Promise<RoleAlias[]> => {
+    const supabase = createPublicClient();
+    const { data } = await supabase.from("ow_role_aliases").select("alias, role_id");
+    return (data ?? []).map((r) => ({ alias: r.alias as string, roleId: r.role_id as string }));
+  },
+  ["role-aliases"],
+  { revalidate: 3600 }
+);
+
+// ─── Industries (for search filter) ──────────────────────────────────────────
+export type IndustryForFilter = { id: string; parent_id: string | null; name: string; slug: string };
+
+export const getIndustriesForFilter = unstable_cache(
+  async (): Promise<IndustryForFilter[]> => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("ow_industries")
+      .select("id, parent_id, name, slug")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true });
+    return (data ?? []) as IndustryForFilter[];
+  },
+  ["industries-filter"],
+  { revalidate: 3600 }
+);

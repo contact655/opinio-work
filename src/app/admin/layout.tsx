@@ -42,6 +42,7 @@ const NAV_GROUPS = [
     items: [
       { label: "企業審査",            href: "/admin/companies",        icon: <Briefcase    size={16} strokeWidth={2} /> },
       { label: "求人審査",            href: "/admin/jobs",             icon: <FileText     size={16} strokeWidth={2} /> },
+      { label: "職種マスタ",          href: "/admin/roles",            icon: <Briefcase    size={16} strokeWidth={2} /> },
       { label: "記事管理",            href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },
       { label: "発信管理",            href: "/admin/posts",            icon: <Newspaper    size={16} strokeWidth={2} /> },
       { label: "口コミ審査",          href: "/admin/reviews",          icon: <Star         size={16} strokeWidth={2} /> },
