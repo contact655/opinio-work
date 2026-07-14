@@ -3535,6 +3535,7 @@ export default async function CompanyDetailPage({
           ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
+          ...(ambassadors.length > 0 ? [{ id: "ambassadors", label: `話せる人 ${ambassadors.length}名` }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
@@ -3623,21 +3624,21 @@ export default async function CompanyDetailPage({
             {/* 6. 社員の声（キャッチフレーズ） */}
             <EmployeeVoicesSection employees={employees.current} />
 
-            {/* 話せる人 (face-to-face ambassadors) */}
+            {/* 話せる人 (カジュアル面談OK) */}
             {ambassadors.length > 0 && (
               <div id="ambassadors" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--warm)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
                     CASUAL TALK
                   </div>
                   <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-                    カジュアルに話せる人
+                    カジュアル面談OK（{ambassadors.length}名）
                   </h2>
                   <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                    選考なしで直接話を聞けます。転職意欲がなくてもOK。
+                    選考なし・完全無料。この会社のことを直接聞けます。転職意欲がなくてもOK。
                   </p>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
                   {ambassadors.map((a) => {
                     const gradient = a.ow_users?.avatar_color?.startsWith("linear-gradient")
                       ? a.ow_users.avatar_color
@@ -3646,46 +3647,48 @@ export default async function CompanyDetailPage({
                     const initial = name.charAt(0);
                     const themes: string[] = a.talk_themes ?? [];
                     return (
-                      <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                        <div style={{
-                          width: 48, height: 48, borderRadius: "50%", background: gradient, flexShrink: 0,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          color: "#fff", fontWeight: 700, fontSize: 18, overflow: "hidden",
-                        }}>
-                          {a.ow_users?.avatar_url
-                            ? <img src={a.ow_users.avatar_url} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            : initial}
+                      <div key={a.id} style={{
+                        border: "1px solid var(--line)", borderRadius: 12, padding: "16px",
+                        display: "flex", flexDirection: "column", gap: 12,
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{
+                            width: 48, height: 48, borderRadius: "50%", background: gradient, flexShrink: 0,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#fff", fontWeight: 700, fontSize: 18, overflow: "hidden",
+                          }}>
+                            {a.ow_users?.avatar_url
+                              ? <img src={a.ow_users.avatar_url} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              : initial}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{name}</div>
+                            {a.role_title && <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>{a.role_title}</div>}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{name}</div>
-                          {a.role_title && <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>{a.role_title}</div>}
-                          {themes.length > 0 && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-                              {themes.map((t) => (
-                                <span key={t} style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        {themes.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {themes.map((t) => (
+                              <span key={t} style={{ fontSize: 11, background: "var(--warm-soft)", color: "#92400e", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
+                            ))}
+                          </div>
+                        )}
+                        <Link
+                          href={`/companies/${company.id}/casual-meeting?member_id=${a.id}`}
+                          style={{
+                            display: "block", textAlign: "center",
+                            padding: "9px 16px",
+                            background: "linear-gradient(135deg, #F59E0B, #F97316)",
+                            color: "#fff", borderRadius: 8,
+                            fontSize: 13, fontWeight: 700, textDecoration: "none",
+                          }}
+                        >
+                          {name.split(" ")[0]}さんに話を聞く →
+                        </Link>
                       </div>
                     );
                   })}
                 </div>
-                {company.accepting_casual_meetings && (
-                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
-                    <Link
-                      href={`/companies/${company.id}/casual-meeting`}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        background: "var(--warm)", color: "#fff", borderRadius: 8,
-                        padding: "10px 20px", fontWeight: 700, fontSize: 14,
-                        textDecoration: "none",
-                      }}
-                    >
-                      カジュアル面談を申し込む →
-                    </Link>
-                  </div>
-                )}
               </div>
             )}
 
