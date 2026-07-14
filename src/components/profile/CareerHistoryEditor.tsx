@@ -1212,6 +1212,9 @@ export default function CareerHistoryEditor({
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
 
+  // Salary prompt — shown after a career entry is added for a master company
+  const [salaryPrompt, setSalaryPrompt] = useState<{ companyId: string; companyName: string } | null>(null);
+
 
   // ── Toast helper ────────────────────────────────────────────────────────────
   const showToast = useCallback(
@@ -1437,6 +1440,10 @@ export default function CareerHistoryEditor({
 
       setStints((prev) => sortStints([...prev, newStint]));
       showToast("職歴を追加しました");
+      // Prompt salary submission only when a master company was selected (companyId != null)
+      if (addDraft.companyId) {
+        setSalaryPrompt({ companyId: addDraft.companyId, companyName: addDraft.companyName });
+      }
       setAddJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
       cancelAdd();
@@ -1767,6 +1774,49 @@ export default function CareerHistoryEditor({
       {/* Toast */}
       {toastMsg && (
         <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />
+      )}
+
+      {/* Salary prompt — shown after adding a career entry for a master company */}
+      {salaryPrompt && (
+        <div style={{
+          position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
+          zIndex: 1200, width: "min(480px, calc(100vw - 32px)",
+          background: "#fff", border: "2px solid #A7F3D0", borderRadius: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12)", padding: "18px 20px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+              💡 {salaryPrompt.companyName} の給与データを登録しませんか？
+            </span>
+            <button
+              onClick={() => setSalaryPrompt(null)}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "var(--ink-mute)", padding: "0 0 0 8px", lineHeight: 1 }}
+            >×</button>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.6 }}>
+            実際の年収を匿名で投稿して、同じ職種を目指す人の参考に。運営が確認後に公開されます。
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <a
+              href={`/mypage/salary/new?company_id=${salaryPrompt.companyId}&company_name=${encodeURIComponent(salaryPrompt.companyName)}`}
+              style={{
+                padding: "8px 18px", background: "var(--success)", color: "#fff",
+                borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13,
+              }}
+            >
+              ¥ 給与を登録する
+            </a>
+            <button
+              onClick={() => setSalaryPrompt(null)}
+              style={{
+                padding: "8px 14px", background: "none", border: "1px solid var(--line)",
+                borderRadius: 8, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer",
+              }}
+            >
+              後で
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
+import { SALARY_MIN_REPORTS_TO_DISPLAY } from "@/lib/constants/salary";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   const reports = data ?? [];
 
-  if (reports.length < 5) {
+  if (reports.length < SALARY_MIN_REPORTS_TO_DISPLAY) {
     return NextResponse.json({ summary: null, byRole: [], insufficientData: reports.length > 0 });
   }
 
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
   }
 
   const byRole = Object.entries(byRoleMap)
-    .filter(([, v]) => v.count >= 5)
+    .filter(([, v]) => v.count >= SALARY_MIN_REPORTS_TO_DISPLAY)
     .map(([roleId, v]) => ({
       roleId,
       roleName: v.roleName,

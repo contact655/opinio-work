@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { SALARY_MIN_REPORTS_TO_DISPLAY, SALARY_REFERENCE_THRESHOLD } from "@/lib/constants/salary";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,7 @@ export default async function SalaryPage() {
   }
 
   const groups: RoleSalaryGroup[] = Object.entries(reportMap)
-    .filter(([, v]) => v.salaries.length >= 5)
+    .filter(([, v]) => v.salaries.length >= SALARY_MIN_REPORTS_TO_DISPLAY)
     .map(([roleId, v]) => {
       const avg = Math.round(v.salaries.reduce((a, b) => a + b, 0) / v.salaries.length);
       const min = Math.min(...v.salaries);
@@ -122,8 +123,8 @@ export default async function SalaryPage() {
         borderRadius: 12, padding: "14px 18px", marginBottom: 28,
         fontSize: 13, color: "var(--royal)", lineHeight: 1.7,
       }}>
-        <strong>データについて</strong>：在籍者の実額は5件以上投稿されたグループのみ表示します。
-        個人を特定できる情報は一切含まれません。利用規約第13条の4に基づき、統計処理のみに使用されます。
+        <strong>データについて</strong>：在籍者が自己申告した年収データです。
+        件数が少ないデータには「参考値」と表示します。個人を特定できる情報は一切含まれません。
       </div>
 
       {groups.length === 0 ? (
@@ -167,7 +168,12 @@ export default async function SalaryPage() {
                       background: "var(--success-soft)", border: "1px solid #A7F3D0",
                       borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "inline-block",
                     }}>
-                      <div style={{ fontSize: 10, color: "#059669", fontWeight: 600, marginBottom: 4 }}>在籍者の実額（{g.reportCount}件）</div>
+                      <div style={{ fontSize: 10, color: "#059669", fontWeight: 600, marginBottom: 4 }}>
+                        在籍者の実額（{g.reportCount}件）
+                        {g.reportCount < SALARY_REFERENCE_THRESHOLD && (
+                          <span style={{ marginLeft: 6, background: "#FEF3C7", color: "#92400E", borderRadius: 4, padding: "1px 5px" }}>参考値</span>
+                        )}
+                      </div>
                       <div style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
                         <span style={{ fontSize: 20, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
                           {g.reportAvg ? fmt(g.reportAvg) : "—"}

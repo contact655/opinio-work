@@ -658,7 +658,7 @@ function DashboardView({
         </div>
       </section>
 
-      {/* ── 在籍経験企業に口コミ・給与を投稿 ── */}
+      {/* ── 給与データを投稿 ── */}
       {(() => {
         const companies = Array.from(
           new Map(
@@ -667,31 +667,23 @@ function DashboardView({
               .map((c) => [c.company_id as string, { id: c.company_id as string, name: c.company_name }])
           ).values()
         ).slice(0, 5);
-        if (companies.length === 0) return null;
         return (
           <section style={{
             background: "#fff", border: "1px solid var(--line)",
             borderRadius: 14, padding: "24px 28px", marginBottom: 20,
           }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
-              <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>口コミ・給与を投稿</span>
+              <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>給与データを投稿</span>
               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>CONTRIBUTE</span>
             </div>
             <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.7 }}>
-              在籍経験のある企業の口コミ・給与情報を投稿して、同じ職種を目指す人を助けましょう。投稿は運営が確認後に公開されます（匿名）。
+              在籍・在籍経験のある企業の給与情報を匿名で投稿できます。投稿は運営が確認後に公開されます。
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {companies.map(({ id, name }) => (
-                <div key={id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--bg-tint)", borderRadius: 10, border: "1px solid var(--line)" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{name}</span>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Link href={`/companies/${id}#reviews`} style={{
-                      fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none",
-                      padding: "5px 12px", borderRadius: 7, border: "1.5px solid var(--royal-100)",
-                      background: "var(--royal-50)", whiteSpace: "nowrap" as const,
-                    }}>
-                      ★ 口コミを書く
-                    </Link>
+            {companies.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {companies.map(({ id, name }) => (
+                  <div key={id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--bg-tint)", borderRadius: 10, border: "1px solid var(--line)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{name}</span>
                     <Link href={`/mypage/salary/new?company_id=${id}&company_name=${encodeURIComponent(name ?? "")}`} style={{
                       fontSize: 12, fontWeight: 600, color: "var(--success)", textDecoration: "none",
                       padding: "5px 12px", borderRadius: 7, border: "1.5px solid #A7F3D0",
@@ -700,9 +692,20 @@ function DashboardView({
                       ¥ 給与を登録
                     </Link>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                <Link href="/mypage/salary/new" style={{ fontSize: 12, color: "var(--ink-soft)", textDecoration: "none", marginTop: 4 }}>
+                  + 他の企業を選んで投稿する
+                </Link>
+              </div>
+            ) : (
+              <Link href="/mypage/salary/new" style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "10px 20px", background: "var(--success)", color: "#fff",
+                borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 13,
+              }}>
+                ¥ 給与データを投稿する
+              </Link>
+            )}
           </section>
         );
       })()}
