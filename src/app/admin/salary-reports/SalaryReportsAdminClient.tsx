@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 
 interface Report {
   id: string;
@@ -60,19 +60,32 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0
 const YEARS = Array.from({ length: 15 }, (_, i) => String(new Date().getFullYear() - i));
 
 function YMPicker({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string; }) {
-  const [year, month] = value ? value.split("-") : ["", ""];
-  function update(y: string, m: string) {
-    if (y && m) onChange(`${y}-${m}`);
-    else onChange("");
+  const [year, setYear] = useState(() => value ? value.split("-")[0] ?? "" : "");
+  const [month, setMonth] = useState(() => value ? value.split("-")[1] ?? "" : "");
+  const prevRef = useRef(value);
+  useEffect(() => {
+    if (prevRef.current !== value) {
+      prevRef.current = value;
+      setYear(value ? value.split("-")[0] ?? "" : "");
+      setMonth(value ? value.split("-")[1] ?? "" : "");
+    }
+  }, [value]);
+  function handleYear(y: string) {
+    setYear(y);
+    if (y && month) onChange(`${y}-${month}`);
+  }
+  function handleMonth(m: string) {
+    setMonth(m);
+    if (year && m) onChange(`${year}-${m}`);
   }
   return (
     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      {placeholder && !value && <span style={{ fontSize: 11, color: "var(--ink-mute)", marginRight: 4 }}>{placeholder}</span>}
-      <select value={year} onChange={(e) => update(e.target.value, month)} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 12, background: "#fff" }}>
+      {placeholder && !year && !month && <span style={{ fontSize: 11, color: "var(--ink-mute)", marginRight: 4 }}>{placeholder}</span>}
+      <select value={year} onChange={(e) => handleYear(e.target.value)} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 12, background: "#fff" }}>
         <option value="">年</option>
         {YEARS.map((y) => <option key={y} value={y}>{y}年</option>)}
       </select>
-      <select value={month} onChange={(e) => update(year, e.target.value)} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 12, background: "#fff" }}>
+      <select value={month} onChange={(e) => handleMonth(e.target.value)} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 12, background: "#fff" }}>
         <option value="">月</option>
         {MONTHS.map((m) => <option key={m} value={m}>{parseInt(m)}月</option>)}
       </select>

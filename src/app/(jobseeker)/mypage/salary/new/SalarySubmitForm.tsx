@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface RoleChild { id: string; name: string; }
@@ -26,10 +26,23 @@ function YearMonthPicker({
 }: {
   label: string; required?: boolean; value: string; onChange: (v: string) => void;
 }) {
-  const [year, month] = value ? value.split("-") : ["", ""];
-  function update(y: string, m: string) {
-    if (y && m) onChange(`${y}-${m}`);
-    else onChange("");
+  const [year, setYear] = useState(() => value ? value.split("-")[0] ?? "" : "");
+  const [month, setMonth] = useState(() => value ? value.split("-")[1] ?? "" : "");
+  const prevRef = useRef(value);
+  useEffect(() => {
+    if (prevRef.current !== value) {
+      prevRef.current = value;
+      setYear(value ? value.split("-")[0] ?? "" : "");
+      setMonth(value ? value.split("-")[1] ?? "" : "");
+    }
+  }, [value]);
+  function handleYear(y: string) {
+    setYear(y);
+    if (y && month) onChange(`${y}-${month}`);
+  }
+  function handleMonth(m: string) {
+    setMonth(m);
+    if (year && m) onChange(`${year}-${m}`);
   }
   return (
     <div>
@@ -39,7 +52,7 @@ function YearMonthPicker({
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <select
           value={year}
-          onChange={(e) => update(e.target.value, month)}
+          onChange={(e) => handleYear(e.target.value)}
           style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
         >
           <option value="">年</option>
@@ -47,7 +60,7 @@ function YearMonthPicker({
         </select>
         <select
           value={month}
-          onChange={(e) => update(year, e.target.value)}
+          onChange={(e) => handleMonth(e.target.value)}
           style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
         >
           <option value="">月</option>
