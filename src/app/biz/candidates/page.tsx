@@ -73,13 +73,15 @@ export default async function CandidatesPage() {
     .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const blockedCandidateIds = new Set((blockedPlacements ?? []).map((p: any) => p.candidate_id as string));
 
-  // 公開プロフィールの求職者を取得（visibility = 'public'）
-  // ow_profiles.user_id = auth.users.id（= ow_users.auth_id）のため
-  // Supabase の自動 JOIN は使わず、auth_id 経由で手動結合する
+  // スカウト同意済みの求職者候補を取得
+  // - visibility = 'private' は明示的な非表示意思表示なので除外
+  // - is_system = true のシステムユーザーを除外
+  // - 実際の候補者絞り込みは scout_enabled = true（下のフィルタで実施）
   const { data: rawUsers } = await supabase
     .from("ow_users")
     .select("id, name, location, is_mentor, created_at, auth_id")
-    .eq("visibility", "public")
+    .neq("visibility", "private")
+    .not("is_system", "eq", true)
     .order("created_at", { ascending: false })
     .limit(500);
 
