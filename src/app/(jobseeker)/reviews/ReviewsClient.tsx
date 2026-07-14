@@ -197,28 +197,17 @@ export default function ReviewsClient({
     .filter((s) => companyMap[s.companyId])
     .sort((a, b) => b.avgSalary - a.avgSalary);
 
-  const totalReviews = reviewSummaries.reduce((acc, s) => acc + s.count, 0);
-  const totalSalaries = salaries.length;
+  const _totalReviews = reviewSummaries.reduce((acc, s) => acc + s.count, 0);
+  const _totalSalaries = salaries.length;
 
   const gateActive = accessInfo?.gateEnabled && !accessInfo.hasAccess;
-
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    padding: "8px 20px",
-    borderRadius: 99,
-    fontSize: 14,
-    fontWeight: active ? 700 : 500,
-    background: active ? "var(--royal)" : "transparent",
-    color: active ? "#fff" : "var(--ink-soft)",
-    border: active ? "none" : "1px solid var(--line)",
-    cursor: "pointer",
-  });
 
   return (
     <main style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px 80px" }}>
       {/* ヘッダー */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ margin: "0 0 8px", fontSize: 26, fontWeight: 900, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
-          口コミ・給与
+          {tab === "reviews" ? "口コミ" : "給与"}
         </h1>
         <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)" }}>
           IT/SaaS企業で働く社員・OBによるリアルな声。
@@ -234,16 +223,6 @@ export default function ReviewsClient({
           </span>
         </div>
       )}
-
-      {/* タブ */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 28, flexWrap: "wrap" }}>
-        <button style={tabStyle(tab === "reviews")} onClick={() => setTab("reviews")}>
-          口コミ <span style={{ fontSize: 12, opacity: 0.75 }}>{totalReviews}</span>
-        </button>
-        <button style={tabStyle(tab === "salary")} onClick={() => setTab("salary")}>
-          給与 <span style={{ fontSize: 12, opacity: 0.75 }}>{totalSalaries}</span>
-        </button>
-      </div>
 
       {/* Give First ゲート */}
       {gateActive && (
