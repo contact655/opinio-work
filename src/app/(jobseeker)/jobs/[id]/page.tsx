@@ -423,6 +423,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             },
           } : undefined,
           datePosted: job.published_at,
+          ...(job.expires_at ? { validThrough: job.expires_at } : {}),
           employmentType: job.employment_type ?? "FULL_TIME",
           description,
           url: `https://opinio.jp/jobs/${params.id}`,

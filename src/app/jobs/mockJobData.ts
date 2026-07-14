@@ -58,6 +58,7 @@ export type Job = {
   related_article_excerpt: string;
   // SEO / structured data
   published_at?: string | null;
+  expires_at?: string | null;
   // enrichment fields (Migration 147)
   why_hire?: string | null;
   team_composition?: string | null;

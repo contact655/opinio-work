@@ -178,6 +178,7 @@ function mapJob(row: Record<string, any>): Job {
     sales_hunter_farmer: (row.sales_hunter_farmer as string) ?? null,
     incentive_note: (row.incentive_note as string) ?? null,
     published_at: (row.published_at as string) ?? null,
+    expires_at: (row.expires_at as string) ?? null,
   };
 }
 

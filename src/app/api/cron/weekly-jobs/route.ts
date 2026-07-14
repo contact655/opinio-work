@@ -35,6 +35,23 @@ export async function GET(request: Request) {
   const supabase = createClient(url, key);
 
   try {
+    // 期限切れ求人を expired に遷移（DRY RUN: 件数をログするのみ、実際の UPDATE はコメントアウト）
+    const { data: expiredCandidates } = await supabase
+      .from("ow_jobs")
+      .select("id, title")
+      .eq("status", "published")
+      .lt("expires_at", new Date().toISOString());
+    console.log(
+      `[weekly-jobs] expired candidates (DRY RUN): ${expiredCandidates?.length ?? 0} jobs`,
+      expiredCandidates?.map((j) => j.id) ?? []
+    );
+    // TODO: DRY RUN 確認後に以下のコメントを外す（1週間様子を見てから）
+    // if (expiredCandidates && expiredCandidates.length > 0) {
+    //   const ids = expiredCandidates.map((j) => j.id);
+    //   await supabase.from("ow_jobs").update({ status: "expired" }).in("id", ids);
+    //   console.log(`[weekly-jobs] expired ${ids.length} jobs`);
+    // }
+
     // 過去7日以内に追加された求人を取得
     const sevenDaysAgo = new Date(
       Date.now() - 7 * 24 * 60 * 60 * 1000
