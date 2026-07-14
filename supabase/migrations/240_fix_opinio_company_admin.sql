@@ -8,8 +8,7 @@
 -- 対応:
 --   1. hshiba@opinio.co.jp を株式会社Opinio の admin として追加
 --   2. s.hisato1020@gmail.com を株式会社Opinio の admin として追加（副管理者）
---   3. 旧 admin レコードを is_active=false に維持（既に false）
---   4. 株式会社TEST を削除（テストデータ、求人0件）
+--   旧 admin（hshiba+01@third-box.jp）は触らない（is_active=false のまま維持）
 
 -- 1. hshiba@opinio.co.jp → 株式会社Opinio の admin に追加
 INSERT INTO ow_company_admins (user_id, company_id, permission, is_active)
@@ -30,6 +29,3 @@ VALUES (
   true
 )
 ON CONFLICT (user_id, company_id) DO UPDATE SET permission = 'admin', is_active = true;
-
--- 3. 株式会社TEST を削除（テストデータ、求人0件、admin は s.hisato1020@gmail.com のみ）
-DELETE FROM ow_companies WHERE id = '4039a638-229d-421c-b8be-c2835bf0b9c7';
