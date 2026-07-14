@@ -38,35 +38,50 @@ export default async function SalaryPage() {
     .eq("statistics_opt_out", true);
   const optedOutIds = (optedOut ?? []).map((u: { id: string }) => u.id);
 
-  let reportQuery = admin
-    .from("ow_salary_reports")
-    .select("role_id, annual_salary, ow_roles(id, name, parent_id, ow_roles(name))")
-    .eq("is_approved", true);
-  if (optedOutIds.length > 0) {
-    reportQuery = reportQuery.not("user_id", "in", `(${optedOutIds.join(",")})`);
-  }
-  const { data: reports } = await reportQuery;
+  // Fetch roles separately (ow_salary_reports has no FK to ow_roles)
+  const [reportsRes, jobsRes, rolesRes] = await Promise.all([
+    (() => {
+      let q = admin
+        .from("ow_salary_reports")
+        .select("role_id, annual_salary, user_id")
+        .eq("is_approved", true);
+      if (optedOutIds.length > 0) {
+        q = q.not("user_id", "in", `(${optedOutIds.join(",")})`);
+      }
+      return q;
+    })(),
+    admin
+      .from("ow_jobs")
+      .select("job_category, salary_min, salary_max")
+      .in("status", ["published", "active"])
+      .or("salary_min.gt.0,salary_max.gt.0"),
+    admin
+      .from("ow_roles")
+      .select("id, name, parent_id"),
+  ]);
 
-  // ── 求人の提示レンジ ───────────────────────────────────────────────────────
-  const { data: jobs } = await admin
-    .from("ow_jobs")
-    .select("job_category, salary_min, salary_max")
-    .in("status", ["published", "active"])
-    .or("salary_min.gt.0,salary_max.gt.0");
+  const reports = reportsRes.data ?? [];
+  const jobs = jobsRes.data ?? [];
+  const allRolesData = rolesRes.data ?? [];
+
+  // Build role lookup: id → { name, parentName }
+  const roleById: Record<string, { name: string; parentName: string | null }> = {};
+  for (const role of allRolesData) {
+    const parent = allRolesData.find((r) => r.id === role.parent_id);
+    roleById[role.id] = { name: role.name, parentName: parent?.name ?? null };
+  }
 
   // Aggregate reports by role
   const reportMap: Record<string, { salaries: number[]; roleName: string; parentName: string | null }> = {};
-  for (const r of reports ?? []) {
-    const role = (r as any).ow_roles as { id: string; name: string; ow_roles?: { name: string } | null } | null;
-    if (!role) continue;
-    if (!reportMap[role.id]) {
-      reportMap[role.id] = {
-        salaries: [],
-        roleName: role.name,
-        parentName: role.ow_roles?.name ?? null,
-      };
+  for (const r of reports) {
+    const roleId = r.role_id as string | null;
+    if (!roleId) continue;
+    const roleInfo = roleById[roleId];
+    if (!roleInfo) continue;
+    if (!reportMap[roleId]) {
+      reportMap[roleId] = { salaries: [], roleName: roleInfo.name, parentName: roleInfo.parentName };
     }
-    reportMap[role.id].salaries.push((r as any).annual_salary as number);
+    reportMap[roleId].salaries.push(r.annual_salary as number);
   }
 
   // Aggregate jobs by job_category (approximate role mapping)
