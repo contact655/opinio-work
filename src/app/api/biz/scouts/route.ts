@@ -4,6 +4,41 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
+// GET: list scouts sent by this company
+export async function GET(_req: NextRequest) {
+  const ctx = await getTenantContext();
+  if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const admin = createAdminClient();
+  const { data: scouts, error } = await admin
+    .from("ow_scouts")
+    .select("id, status, sent_at, replied_at, conversation_id, message, candidate_id, ow_jobs(id, title)")
+    .eq("company_id", ctx.tenantId)
+    .order("sent_at", { ascending: false });
+
+  if (error) {
+    console.error("[GET /api/biz/scouts]", error);
+    return NextResponse.json({ error: "fetch failed" }, { status: 500 });
+  }
+
+  if (!scouts?.length) return NextResponse.json({ scouts: [] });
+
+  // Resolve candidate ow_users info via auth_id
+  const authIds = Array.from(new Set(scouts.map((s) => s.candidate_id).filter(Boolean)));
+  const { data: users } = await admin
+    .from("ow_users")
+    .select("id, auth_id, name, avatar_color")
+    .in("auth_id", authIds);
+
+  const userMap = new Map((users ?? []).map((u) => [u.auth_id, u]));
+  const result = scouts.map((s) => ({
+    ...s,
+    candidate: userMap.get(s.candidate_id) ?? null,
+  }));
+
+  return NextResponse.json({ scouts: result });
+}
+
 // POST: send a scout to a candidate
 export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
