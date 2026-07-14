@@ -692,7 +692,7 @@ function DashboardView({
                     }}>
                       ★ 口コミを書く
                     </Link>
-                    <Link href={`/companies/${id}#salary`} style={{
+                    <Link href={`/mypage/salary/new?company_id=${id}&company_name=${encodeURIComponent(name ?? "")}`} style={{
                       fontSize: 12, fontWeight: 600, color: "var(--success)", textDecoration: "none",
                       padding: "5px 12px", borderRadius: 7, border: "1.5px solid #A7F3D0",
                       background: "var(--success-soft)", whiteSpace: "nowrap" as const,

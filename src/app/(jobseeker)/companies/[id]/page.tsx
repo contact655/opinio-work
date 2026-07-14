@@ -23,6 +23,7 @@ import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 // import { GenreCarousel } from "@/components/companies/GenreCarousel";
 import EvaluationText from "./EvaluationText";
+import SalaryDataSection from "./SalaryData";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
@@ -3508,6 +3509,7 @@ export default async function CompanyDetailPage({
   if (!companyResult) return notFound();
 
   const { company, detail, employeeCategories } = companyResult;
+  const pageJobItems = detail.jobs.flatMap((c) => c.items);
 
   // Only 1 sequential query remains (bookmark lookup needs owUser.id)
   let initialBookmarked = false;
@@ -3559,6 +3561,7 @@ export default async function CompanyDetailPage({
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
+          { id: "salary", label: "給与データ" },
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -3652,6 +3655,9 @@ export default async function CompanyDetailPage({
             <CompanyPostsSection posts={companyPosts} />
 
             <CompanyArticlesSection articles={companyArticles} company={company} />
+
+            {/* ── 給与データ ── */}
+            <SalaryDataSection companyId={company.id} companyName={company.name} jobs={pageJobItems} />
 
             {/* ── ページ末尾CTA ── */}
             {company.accepting_casual_meetings && (

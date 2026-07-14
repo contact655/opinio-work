@@ -48,6 +48,7 @@ const NAV_GROUPS = [
   {
     label: "オペレーション",
     items: [
+      { label: "給与レポート審査",      href: "/admin/salary-reports",   icon: <Receipt       size={16} strokeWidth={2} /> },
       { label: "請求管理",            href: "/admin/billing",          icon: <Receipt       size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
