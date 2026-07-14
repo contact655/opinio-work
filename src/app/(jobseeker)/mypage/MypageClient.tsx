@@ -672,9 +672,14 @@ function DashboardView({
             background: "#fff", border: "1px solid var(--line)",
             borderRadius: 14, padding: "24px 28px", marginBottom: 20,
           }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
-              <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>給与データを投稿</span>
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>CONTRIBUTE</span>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>給与データを投稿</span>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>CONTRIBUTE</span>
+              </div>
+              <Link href="/mypage/salary" style={{ fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
+                投稿した一覧 →
+              </Link>
             </div>
             <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.7 }}>
               在籍・在籍経験のある企業の給与情報を匿名で投稿できます。投稿は運営が確認後に公開されます。
