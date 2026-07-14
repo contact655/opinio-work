@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SALARY_MIN_REPORTS_TO_DISPLAY } from "@/lib/constants/salary";
+import { SALARY_MIN_REPORTS_TO_DISPLAY, SALARY_STATS_MIN } from "@/lib/constants/salary";
 
 interface RawReport {
   roleName: string;
@@ -177,7 +177,7 @@ export default function SalaryDataSection({ companyId, companyName }: Props) {
               })}
             </div>
             <p style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-              ※ データが{SALARY_MIN_REPORTS_TO_DISPLAY}件未満のため参考値として表示しています。統計的な信頼性は低い場合があります。<br />
+              ※ データが{SALARY_STATS_MIN}件未満のため参考値として表示しています。統計的な信頼性は低い場合があります。<br />
               ※ 利用規約第13条の4の範囲内でのみ使用されます。
             </p>
           </>

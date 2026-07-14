@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
-import { SALARY_MIN_REPORTS_TO_DISPLAY } from "@/lib/constants/salary";
+import { SALARY_MIN_REPORTS_TO_DISPLAY, SALARY_STATS_MIN } from "@/lib/constants/salary";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   const reports = data ?? [];
 
-  if (reports.length < SALARY_MIN_REPORTS_TO_DISPLAY) {
+  if (reports.length < SALARY_STATS_MIN) {
     const rawReports = reports.map((r) => {
       const salary = ((r as any).ote ?? (r as any).annual_salary) as number | null;
       return {
