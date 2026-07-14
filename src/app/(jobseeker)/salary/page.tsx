@@ -120,25 +120,8 @@ export default async function SalaryPage() {
     })
     .sort((a, b) => (b.reportAvg ?? 0) - (a.reportAvg ?? 0));
 
-  // DEBUG: temporary — remove after diagnosis
-  const _firstReport = reports[0] as Record<string, unknown> | undefined;
-  const _firstRoleId = _firstReport?.role_id as string | undefined;
-  const _debug = {
-    reportsCount: reports.length,
-    reportsError: reportsRes.error?.message ?? null,
-    rolesCount: allRolesData.length,
-    rolesError: rolesRes.error?.message ?? null,
-    firstRoleId: _firstRoleId ?? null,
-    roleIdInMap: _firstRoleId ? (_firstRoleId in roleById) : null,
-    reportMapKeys: Object.keys(reportMap).length,
-    groupsCount: groups.length,
-    salaryMin: SALARY_MIN_REPORTS_TO_DISPLAY,
-  };
-
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
-      {/* DEBUG — remove after diagnosis */}
-      <div id="__salary_debug" style={{ display: "none" }} data-debug={JSON.stringify(_debug)} />
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ margin: "0 0 8px", fontSize: 26, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
