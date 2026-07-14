@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 function str(v: unknown, max: number): string | null {
   return typeof v === "string" ? v.slice(0, max) || null : null;
@@ -202,6 +205,26 @@ export async function PATCH(
         target_type: "job",
         target_id: jobId,
       });
+
+      // Feed: job_posted (best-effort, 重複は 23505 で無視)
+      try {
+        const adminSupabase = createAdminClient();
+        const coRow = await adminSupabase.from("ow_companies").select("name, brand_name").eq("id", jobRow1.data.company_id).maybeSingle();
+        const coName = coRow.data?.brand_name ?? coRow.data?.name ?? "";
+        const title = jobRow1.data.title ?? "—";
+        const { error: feedErr } = await adminSupabase.from("ow_posts").insert({
+          user_id: SYSTEM_USER_ID,
+          post_type: "job_posted",
+          ref_job_id: jobId,
+          ref_company_id: jobRow1.data.company_id,
+          content: `${coName}が「${title}」の募集を開始しました。`,
+        });
+        if (feedErr && feedErr.code !== "23505") {
+          console.error("[feed job_posted]", feedErr.message);
+        }
+      } catch (feedErr) {
+        console.error("[feed job_posted]", feedErr);
+      }
     }
   }
 

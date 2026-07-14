@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
+
 async function assertAdmin(): Promise<void> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -28,6 +30,27 @@ export async function toggleArticlePublished(
     updated_at: nowIso,
   }).eq("id", articleId);
   if (error) return { ok: false, error: "更新に失敗しました" };
+
+  // Feed: article_published (公開時のみ、best-effort, 重複は 23505 で無視)
+  if (!current) {
+    try {
+      const { data: article } = await admin.from("ow_articles").select("title").eq("id", articleId).maybeSingle();
+      if (article?.title) {
+        const { error: feedErr } = await admin.from("ow_posts").insert({
+          user_id: SYSTEM_USER_ID,
+          post_type: "article_published",
+          ref_article_id: articleId,
+          content: `【取材記事】${article.title}`,
+        });
+        if (feedErr && feedErr.code !== "23505") {
+          console.error("[feed article_published]", feedErr.message);
+        }
+      }
+    } catch (feedErr) {
+      console.error("[feed article_published]", feedErr);
+    }
+  }
+
   revalidatePath("/admin/articles");
   return { ok: true };
 }
