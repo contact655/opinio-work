@@ -84,7 +84,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
         <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800, color: "var(--success)" }}>投稿を受け付けました</h2>
         <p style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 24 }}>
-          管理者が確認後、5件以上集まったグループから公開されます。ありがとうございます。
+          管理者が確認後、集計データとして公開されます。ありがとうございます。
         </p>
         <button
           onClick={() => router.push("/salary")}
@@ -267,7 +267,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
           {submitting ? "送信中..." : "投稿する（匿名）"}
         </button>
         <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", marginTop: 8, lineHeight: 1.6 }}>
-          投稿データは匿名集計にのみ使用されます。管理者の承認後、5件以上で公開されます。
+          投稿データは匿名集計にのみ使用されます。管理者の承認後に公開されます。
         </p>
       </div>
     </form>

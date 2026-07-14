@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SALARY_MIN_REPORTS_TO_DISPLAY } from "@/lib/constants/salary";
 
 interface JobItem {
   id?: string;
@@ -168,7 +169,7 @@ export default function SalaryDataSection({ companyId, companyName, jobs }: Prop
             )}
 
             <p style={{ fontSize: 11, color: "#065F46", marginTop: 12, lineHeight: 1.6 }}>
-              ※ 会員の自己申告データを統計処理したものです。5件未満のグループは非表示です。<br />
+              ※ 会員の自己申告データを統計処理したものです。{SALARY_MIN_REPORTS_TO_DISPLAY}件未満のグループは非表示です。<br />
               ※ 利用規約第13条の4の範囲内でのみ使用されます。
             </p>
           </>
@@ -177,7 +178,7 @@ export default function SalaryDataSection({ companyId, companyName, jobs }: Prop
         {!loading && hasInsufficientData && !hasSelfReported && (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 8 }}>
-              データがまだ少なく表示できません（5件以上で表示）
+              データがまだ少なく表示できません（{SALARY_MIN_REPORTS_TO_DISPLAY}件以上で表示）
             </div>
             <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
               あなたのデータが集計の助けになります

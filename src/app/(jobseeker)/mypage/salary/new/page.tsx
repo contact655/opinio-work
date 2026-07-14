@@ -34,7 +34,7 @@ export default async function SalaryNewPage({
         給与データを投稿
       </h1>
       <p style={{ margin: "0 0 24px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        匿名で投稿されます。5件以上集まると公開集計に使われます。
+        匿名で投稿されます。データは管理者が確認後、公開集計に使われます。
         個人が特定できる情報は収集しません。
       </p>
       <SalarySubmitForm
