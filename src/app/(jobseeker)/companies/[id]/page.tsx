@@ -3610,7 +3610,7 @@ export default async function CompanyDetailPage({
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
             {/* ── 給与データ ── */}
-            <SalaryDataSection companyId={company.id} companyName={company.name} />
+            <SalaryDataSection companyId={company.id} />
 
             {/* ── ページ末尾CTA ── */}
             {company.accepting_casual_meetings && (
@@ -3664,6 +3664,19 @@ export default async function CompanyDetailPage({
                   >
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
                     話を聞く（カジュアル面談）
+                  </Link>
+                </div>
+                <div style={{ paddingTop: 12, borderTop: "1px solid #FDE68A" }}>
+                  <Link
+                    href={`/mypage/salary/new?company_id=${company.id}&company_name=${encodeURIComponent(company.name)}`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      fontSize: 12, fontWeight: 600, color: "#B45309",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                    この企業の給与データを投稿する
                   </Link>
                 </div>
               </div>
