@@ -64,14 +64,6 @@ export default async function SalaryPage() {
   const jobs = jobsRes.data ?? [];
   const allRolesData = rolesRes.data ?? [];
 
-  // DEBUG: temporary — remove after diagnosis
-  const _debug = {
-    reportsCount: reports.length,
-    reportsError: reportsRes.error?.message ?? null,
-    rolesCount: allRolesData.length,
-    rolesError: rolesRes.error?.message ?? null,
-  };
-
   // Build role lookup: id → { name, parentName }
   const roleById: Record<string, { name: string; parentName: string | null }> = {};
   for (const role of allRolesData) {
@@ -126,6 +118,21 @@ export default async function SalaryPage() {
       };
     })
     .sort((a, b) => (b.reportAvg ?? 0) - (a.reportAvg ?? 0));
+
+  // DEBUG: temporary — remove after diagnosis
+  const _firstReport = reports[0] as Record<string, unknown> | undefined;
+  const _firstRoleId = _firstReport?.role_id as string | undefined;
+  const _debug = {
+    reportsCount: reports.length,
+    reportsError: reportsRes.error?.message ?? null,
+    rolesCount: allRolesData.length,
+    rolesError: rolesRes.error?.message ?? null,
+    firstRoleId: _firstRoleId ?? null,
+    roleIdInMap: _firstRoleId ? (_firstRoleId in roleById) : null,
+    reportMapKeys: Object.keys(reportMap).length,
+    groupsCount: groups.length,
+    salaryMin: SALARY_MIN_REPORTS_TO_DISPLAY,
+  };
 
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
