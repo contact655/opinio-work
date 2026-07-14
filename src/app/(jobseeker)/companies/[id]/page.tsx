@@ -3486,6 +3486,41 @@ export default async function CompanyDetailPage({
   const { company, detail, employeeCategories } = companyResult;
   const _pageJobItems = detail.jobs.flatMap((c) => c.items); void _pageJobItems;
 
+  // フィード投稿 (会社ID + 求人ID OR + 記事ID OR)
+  type ActivityPost = {
+    id: string;
+    post_type: string;
+    content: string;
+    created_at: string;
+    ref_job_id: string | null;
+    ref_article_id: string | null;
+    ref_company_id: string | null;
+    ow_jobs: { id: string; title: string } | null;
+    ow_articles: { id: string; slug: string; title: string } | null;
+  };
+
+  const companyJobIds = detail.jobs.flatMap((c) => c.items.map((j) => j.id));
+
+  // 記事IDをDBから直接取得（ARTICLE_LIST_COLS に id は含まれていないため）
+  const { data: articleIdRows } = await adminSupabase
+    .from("ow_articles")
+    .select("id")
+    .eq("company_id", params.id);
+  const companyArticleIds = (articleIdRows ?? []).map((r: { id: string }) => r.id);
+
+  const orParts: string[] = [`ref_company_id.eq.${params.id}`];
+  if (companyJobIds.length > 0) orParts.push(`ref_job_id.in.(${companyJobIds.join(",")})`);
+  if (companyArticleIds.length > 0) orParts.push(`ref_article_id.in.(${companyArticleIds.join(",")})`);
+
+  const activityPostsRaw = await adminSupabase
+    .from("ow_posts")
+    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
+    .or(orParts.join(","))
+    .order("created_at", { ascending: false })
+    .limit(6);
+
+  const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
+
   // Only 1 sequential query remains (bookmark lookup needs owUser.id)
   let initialBookmarked = false;
   const owUserId = owUserResult?.data?.id ?? null;
@@ -3537,6 +3572,7 @@ export default async function CompanyDetailPage({
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
+          ...(activityPosts.length > 0 ? [{ id: "activity", label: "最近の動き" }] : []),
           ...(hasSalarySection ? [{ id: "salary", label: "給与データ" }] : []),
         ]} />
         <div
@@ -3699,6 +3735,71 @@ export default async function CompanyDetailPage({
             <CompanyPostsSection posts={companyPosts} />
 
             <CompanyArticlesSection articles={companyArticles} company={company} />
+
+            {/* ── この企業の最近の動き ── */}
+            {activityPosts.length > 0 && (
+              <div id="activity" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+                    ACTIVITY
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+                    この企業の最近の動き
+                  </h2>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {activityPosts.slice(0, 5).map((post, idx) => {
+                    const isLast = idx === Math.min(4, activityPosts.length - 1);
+                    const date = new Date(post.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+                    const icon = post.post_type === "company_joined" ? "🏢"
+                      : post.post_type === "job_posted" ? "💼"
+                      : post.post_type === "article_published" ? "📝"
+                      : "💬";
+                    const href = post.post_type === "job_posted" && post.ref_job_id
+                      ? `/jobs/${post.ref_job_id}`
+                      : post.post_type === "article_published" && post.ow_articles?.slug
+                      ? `/articles/${post.ow_articles.slug}`
+                      : post.post_type === "company_joined"
+                      ? `/companies/${params.id}`
+                      : null;
+                    return (
+                      <div key={post.id} style={{
+                        display: "flex", gap: 14, paddingBottom: isLast ? 0 : 16,
+                        marginBottom: isLast ? 0 : 16,
+                        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
+                        alignItems: "flex-start",
+                      }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: "50%", background: "var(--bg-tint)",
+                          border: "1px solid var(--line)", display: "flex", alignItems: "center",
+                          justifyContent: "center", fontSize: 16, flexShrink: 0,
+                        }}>
+                          {icon}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{date}</div>
+                          {href ? (
+                            <Link href={href} style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, textDecoration: "none", lineHeight: 1.5, display: "block" }}
+                              className="hover:underline">
+                              {post.content}
+                            </Link>
+                          ) : (
+                            <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.5 }}>{post.content}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {activityPosts.length > 5 && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-soft)", textAlign: "center" }}>
+                    <Link href="/feed" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                      フィードをすべて見る →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── 給与データ（3件以上のときのみ） ── */}
             {hasSalarySection && <SalaryDataSection companyId={company.id} />}
