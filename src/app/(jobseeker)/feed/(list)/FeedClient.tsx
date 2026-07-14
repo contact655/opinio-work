@@ -20,13 +20,19 @@ type PostUser = {
   name: string;
   avatar_color: string | null;
   avatar_url: string | null;
+  is_system?: boolean;
   roleTitle?: string | null;
   company?: string | null;
 };
 
+type RefCompany = { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
+type RefArticle = { id: string; slug: string; title: string } | null;
+
 type PostItem = {
   id: string;
   content: string;
+  post_type: string;
   image_url: string | null;
   created_at: string;
   user: PostUser;
@@ -38,6 +44,9 @@ type PostItem = {
   link_image_url: string | null;
   link_description: string | null;
   link_domain: string | null;
+  ref_company?: RefCompany;
+  ref_job?: RefJob;
+  ref_article?: RefArticle;
 };
 
 type CommentItem = {
@@ -866,7 +875,7 @@ function PostCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const router = useRouter();
 
-  const isOwner = myUserId !== null && post.user.id === myUserId;
+  const isOwner = myUserId !== null && !post.user.is_system && post.user.id === myUserId;
 
   const handleLike = async () => {
     if (!myUserId) { router.push("/auth?next=/feed"); return; }
@@ -919,23 +928,40 @@ function PostCard({
         }}
       >
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Link href={`/u/${post.user.id}`}>
+          {post.user.is_system ? (
             <Avatar user={post.user} size={44} />
-          </Link>
-          <div>
-            <Link
-              href={`/u/${post.user.id}`}
-              style={{
-                fontFamily: '"Noto Sans JP", sans-serif',
-                fontWeight: 700,
-                fontSize: 15,
-                color: "var(--ink)",
-                textDecoration: "none",
-              }}
-            >
-              {post.user.name}
+          ) : (
+            <Link href={`/u/${post.user.id}`}>
+              <Avatar user={post.user} size={44} />
             </Link>
-            {(post.user.roleTitle || post.user.company) && (
+          )}
+          <div>
+            {post.user.is_system ? (
+              <span
+                style={{
+                  fontFamily: '"Noto Sans JP", sans-serif',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "var(--royal)",
+                }}
+              >
+                {post.user.name}
+              </span>
+            ) : (
+              <Link
+                href={`/u/${post.user.id}`}
+                style={{
+                  fontFamily: '"Noto Sans JP", sans-serif',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "var(--ink)",
+                  textDecoration: "none",
+                }}
+              >
+                {post.user.name}
+              </Link>
+            )}
+            {!post.user.is_system && (post.user.roleTitle || post.user.company) && (
               <div
                 style={{
                   fontFamily: '"Noto Sans JP", sans-serif',
@@ -947,19 +973,17 @@ function PostCard({
                 {[post.user.roleTitle, post.user.company].filter(Boolean).join(" · ")}
               </div>
             )}
-            <Link
-              href={`/feed/${post.id}`}
+            <span
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontSize: 12,
                 color: "var(--ink-mute)",
                 marginTop: 2,
                 display: "block",
-                textDecoration: "none",
               }}
             >
               {relativeTime(post.created_at)}
-            </Link>
+            </span>
           </div>
         </div>
 
@@ -1044,6 +1068,116 @@ function PostCard({
       >
         {post.content}
       </p>
+
+      {/* システム投稿: リッチカード */}
+      {post.post_type === "company_joined" && post.ref_company && (
+        <Link
+          href={`/companies/${post.ref_company.id}`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: "var(--royal-50)",
+            border: "1px solid var(--royal-100)",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginBottom: 12,
+            textDecoration: "none",
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: post.ref_company.logo_gradient ?? "linear-gradient(135deg, #001233, #002366)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 16,
+              fontFamily: "Inter, sans-serif",
+              flexShrink: 0,
+              overflow: "hidden",
+            }}
+          >
+            {post.ref_company.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={post.ref_company.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              (post.ref_company.logo_letter ?? (post.ref_company.brand_name ?? post.ref_company.name).charAt(0))
+            )}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--royal)" }}>
+              {post.ref_company.brand_name ?? post.ref_company.name}
+            </div>
+            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+              企業ページを見る →
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {post.post_type === "job_posted" && post.ref_job && (
+        <Link
+          href={`/jobs/${post.ref_job.id}`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: "var(--success-soft)",
+            border: "1px solid #a7f3d0",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginBottom: 12,
+            textDecoration: "none",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>
+              {post.ref_job.title}
+            </div>
+            {(post.ref_job.salary_min || post.ref_job.salary_max) && (
+              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
+                {post.ref_job.salary_min && post.ref_job.salary_max
+                  ? `${post.ref_job.salary_min}〜${post.ref_job.salary_max}万円`
+                  : post.ref_job.salary_min ? `${post.ref_job.salary_min}万円〜` : `〜${post.ref_job.salary_max}万円`}
+              </div>
+            )}
+          </div>
+          <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+            求人を見る →
+          </div>
+        </Link>
+      )}
+
+      {post.post_type === "article_published" && post.ref_article && (
+        <Link
+          href={`/articles/${post.ref_article.slug}`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: "var(--warm-soft)",
+            border: "1px solid #fde68a",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginBottom: 12,
+            textDecoration: "none",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {post.ref_article.title}
+            </div>
+            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+              取材記事を読む →
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* 画像 */}
       {post.image_url && (

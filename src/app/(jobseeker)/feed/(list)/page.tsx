@@ -10,9 +10,17 @@ export const metadata: Metadata = {
   description: "IT/SaaS業界で働く人たちの投稿",
 };
 
+type RefCompany = { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
+type RefArticle = { id: string; slug: string; title: string } | null;
+
 type RawPost = {
   id: string;
   content: string;
+  post_type: string;
+  ref_company_id: string | null;
+  ref_job_id: string | null;
+  ref_article_id: string | null;
   image_url: string | null;
   link_url: string | null;
   link_title: string | null;
@@ -20,7 +28,10 @@ type RawPost = {
   link_description: string | null;
   link_domain: string | null;
   created_at: string;
-  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
+  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
+  ref_company: RefCompany;
+  ref_job: RefJob;
+  ref_article: RefArticle;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -47,8 +58,12 @@ export default async function FeedPage() {
   const { data: rawPosts } = await adminSupabase
     .from("ow_posts")
     .select(`
-      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
+      id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
+      image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
+      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
+      ref_company:ow_companies!ref_company_id(id, name, brand_name, logo_letter, logo_gradient, logo_url),
+      ref_job:ow_jobs!ref_job_id(id, title, salary_min, salary_max, work_style),
+      ref_article:ow_articles!ref_article_id(id, slug, title),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `)
@@ -69,8 +84,9 @@ export default async function FeedPage() {
     likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
   }
 
-  // visibility フィルター（private は全員非表示 / login_only は未ログイン時も非表示）
+  // visibility フィルター（is_system=true のシステム投稿は visibility に関わらず表示）
   const visiblePosts = posts.filter((p) => {
+    if (p.user?.is_system) return true;
     const v = p.user?.visibility;
     if (v === "private") return false;
     if (v === "login_only" && !user) return false;
@@ -229,6 +245,7 @@ export default async function FeedPage() {
     return {
       id: p.id,
       content: p.content,
+      post_type: p.post_type ?? "user_post",
       image_url: p.image_url,
       link_url: p.link_url,
       link_title: p.link_title,
@@ -237,8 +254,11 @@ export default async function FeedPage() {
       link_domain: p.link_domain,
       created_at: p.created_at,
       user: p.user
-        ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
-        : { id: "", name: "不明", avatar_color: null, avatar_url: null, roleTitle: null, company: null },
+        ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, is_system: p.user.is_system ?? false, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
+        : { id: "", name: "不明", avatar_color: null, avatar_url: null, is_system: false, roleTitle: null, company: null },
+      ref_company: p.ref_company ?? null,
+      ref_job: p.ref_job ?? null,
+      ref_article: p.ref_article ?? null,
       like_count: p.likes?.[0]?.count ?? 0,
       comment_count: p.comments?.[0]?.count ?? 0,
       liked_by_me: likedPostIds.has(p.id),
