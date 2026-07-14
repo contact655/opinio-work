@@ -39,6 +39,12 @@ export async function PUT(
 
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
   const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
+  if (!salaryMin || !salaryMax || isNaN(salaryMin) || isNaN(salaryMax)) {
+    return NextResponse.json({ error: "給与レンジ（最低・最高）は必須です" }, { status: 422 });
+  }
+  if (salaryMax < salaryMin) {
+    return NextResponse.json({ error: "最高給与は最低給与以上に設定してください" }, { status: 422 });
+  }
   const now = new Date().toISOString();
 
   const { error: updateErr } = await supabase
@@ -48,8 +54,8 @@ export async function PUT(
       employment_type: str(body.employmentType, 50),
       job_category: str(body.jobCategory, 100),
       department: str(body.department, 100),
-      salary_min: isNaN(salaryMin as number) ? null : salaryMin,
-      salary_max: isNaN(salaryMax as number) ? null : salaryMax,
+      salary_min: salaryMin,
+      salary_max: salaryMax,
       salary_note: str(body.salaryNote, 200),
       location: str(body.location, 200),
       remote_work_status: str(body.remoteWorkStatus, 50),

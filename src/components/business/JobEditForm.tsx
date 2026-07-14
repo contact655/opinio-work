@@ -407,7 +407,7 @@ export function JobEditForm({
   // セクション完成度チェック
   const sectionComplete = useMemo(() => ({
     basic:        !!form.title.trim(),
-    salary:       !!(form.salaryMin || form.salaryMax),
+    salary:       !!(form.salaryMin && form.salaryMax),
     content:      !!form.descriptionMarkdown.trim(),
     requirements: form.requiredSkills.length > 0 || !!form.cultureFit.trim(),
     process:      form.selectionSteps.length > 0,
@@ -596,6 +596,16 @@ export function JobEditForm({
                   <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
                   <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                 </div>
+                {/* Validation feedback */}
+                {(!form.salaryMin || !form.salaryMax) && (
+                  <p style={{ fontSize: 12, color: "var(--error)", marginTop: 4 }}>最低・最高の両方を入力してください（必須）</p>
+                )}
+                {form.salaryMin && form.salaryMax && Number(form.salaryMax) < Number(form.salaryMin) && (
+                  <p style={{ fontSize: 12, color: "var(--error)", marginTop: 4 }}>最高給与は最低給与以上に設定してください</p>
+                )}
+                {form.salaryMin && form.salaryMax && Number(form.salaryMax) >= Number(form.salaryMin) && (Number(form.salaryMax) - Number(form.salaryMin)) > 250 && (
+                  <p style={{ fontSize: 12, color: "var(--warm)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
+                )}
                 <Hint>固定報酬ベースのレンジです。求職者側では「基本給 {form.salaryMin || "?"}〜{form.salaryMax || "?"}万円」と表示されます</Hint>
               </FormGroup>
 

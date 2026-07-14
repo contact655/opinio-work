@@ -25,8 +25,6 @@ import CustomerCasesClient from "./CustomerCasesClient";
 import EvaluationText from "./EvaluationText";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
-import CompanyReviewsSection from "./CompanyReviews";
-import SalaryDataSection from "./SalaryData";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 
@@ -3559,7 +3557,6 @@ export default async function CompanyDetailPage({
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
-          { id: "reviews", label: "口コミ・給与" },
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
         ]} />
@@ -3645,12 +3642,6 @@ export default async function CompanyDetailPage({
 
             {/* 6. 社員の声（キャッチフレーズ） */}
             <EmployeeVoicesSection employees={employees.current} />
-
-            {/* 6b. 口コミ・評価 */}
-            <CompanyReviewsSection companyId={company.id} companyName={company.name} />
-
-            {/* 6c. 給与データ */}
-            <SalaryDataSection companyId={company.id} companyName={company.name} />
 
             {/* 7. 現役社員・OBOGプロフィール */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />

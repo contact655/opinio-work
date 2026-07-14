@@ -8,17 +8,27 @@ function str(v: unknown, max: number): string | null {
   return typeof v === "string" ? v.slice(0, max) || null : null;
 }
 
-function buildJobRecord(body: Record<string, unknown>, companyId: string) {
-  const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
-  const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
+function parseSalary(body: Record<string, unknown>): { salaryMin: number; salaryMax: number } | { error: string } {
+  const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : NaN;
+  const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : NaN;
+  if (isNaN(salaryMin) || isNaN(salaryMax) || salaryMin <= 0 || salaryMax <= 0) {
+    return { error: "給与レンジ（最低・最高）は必須です" };
+  }
+  if (salaryMax < salaryMin) {
+    return { error: "最高給与は最低給与以上に設定してください" };
+  }
+  return { salaryMin, salaryMax };
+}
+
+function buildJobRecord(body: Record<string, unknown>, companyId: string, salaryMin: number, salaryMax: number) {
   return {
     company_id: companyId,
     title: str(body.title, 200),
     employment_type: str(body.employmentType, 50),
     job_category: str(body.jobCategory, 100),
     department: str(body.department, 100),
-    salary_min: isNaN(salaryMin as number) ? null : salaryMin,
-    salary_max: isNaN(salaryMax as number) ? null : salaryMax,
+    salary_min: salaryMin,
+    salary_max: salaryMax,
     salary_note: str(body.salaryNote, 200),
     location: str(body.location, 200),
     remote_work_status: str(body.remoteWorkStatus, 50),
@@ -135,7 +145,11 @@ export async function POST(req: Request) {
 
   try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
 
-  const record = buildJobRecord(body, companyId);
+  const salaryResult = parseSalary(body);
+  if ("error" in salaryResult) {
+    return NextResponse.json({ error: salaryResult.error }, { status: 422 });
+  }
+  const record = buildJobRecord(body, companyId, salaryResult.salaryMin, salaryResult.salaryMax);
   const { data: newJob, error: insertErr } = await supabase
     .from("ow_jobs")
     .insert(record)

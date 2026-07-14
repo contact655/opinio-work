@@ -17,8 +17,6 @@ import {
   Briefcase,
   CalendarCheck,
   Receipt,
-  Star,
-  DollarSign,
   Award,
   Send,
 } from "lucide-react";
@@ -45,14 +43,6 @@ const NAV_GROUPS = [
       { label: "職種マスタ",          href: "/admin/roles",            icon: <Briefcase    size={16} strokeWidth={2} /> },
       { label: "記事管理",            href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },
       { label: "発信管理",            href: "/admin/posts",            icon: <Newspaper    size={16} strokeWidth={2} /> },
-      { label: "口コミ審査",          href: "/admin/reviews",          icon: <Star         size={16} strokeWidth={2} /> },
-      { label: "給与レポート審査",    href: "/admin/salary-reports",   icon: <DollarSign   size={16} strokeWidth={2} /> },
-    ],
-  },
-  {
-    label: "システム",
-    items: [
-      { label: "設定", href: "/admin/settings", icon: <LayoutDashboard size={16} strokeWidth={2} /> },
     ],
   },
   {
