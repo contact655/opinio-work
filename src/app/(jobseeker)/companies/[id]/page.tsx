@@ -1622,7 +1622,7 @@ function CurrentEmployeesSection({
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle icon={SECTION_ICON}>
-          この企業で働いた人
+          現役社員
           <span
             style={{
               fontFamily: "Inter, sans-serif",
@@ -1635,9 +1635,7 @@ function CurrentEmployeesSection({
             ({employees.length}名)
           </span>
         </SecTitle>
-        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--ink-mute)" }}>
-          ※ ユーザーの自己申告に基づく情報です
-        </p>
+
       </div>
       <div style={{ padding: "var(--space-6)" }}>
       {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
