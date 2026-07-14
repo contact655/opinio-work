@@ -1313,7 +1313,7 @@ export default function FeedClient({
 }: Props) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialPosts.length === 20);
+  const [hasMore, setHasMore] = useState(initialPosts.length > 0);
 
   const handlePostCreated = useCallback((newPost: PostItem) => {
     setPosts((prev) => [newPost, ...prev]);
