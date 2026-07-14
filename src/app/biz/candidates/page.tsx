@@ -98,11 +98,11 @@ export default async function CandidatesPage() {
   // scout_enabled=true ユーザーの auth_id 一覧
   const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
 
-  // ow_users 取得（birth_year・is_open_to_work を追加）
+  // ow_users 取得（birth_date・is_open_to_work を取得）
   const { data: rawUsers } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
-        .select("id, name, location, is_mentor, is_open_to_work, birth_year, created_at, auth_id")
+        .select("id, name, location, is_mentor, is_open_to_work, birth_date, created_at, auth_id")
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
@@ -213,7 +213,7 @@ export default async function CandidatesPage() {
         location: (u.location as string) || null,
         isMentor: (u.is_mentor as boolean) || false,
         isOpenToWork: (u.is_open_to_work as boolean) || false,
-        birthYear: (u.birth_year as number) || null,
+        birthYear: (u.birth_date as string) ? new Date(u.birth_date as string).getFullYear() : null,
         currentRole: currentExp?.role_title ?? null,
         currentCompany: currentExp?.company ?? null,
         employmentType: currentExp?.employment_type ?? null,
