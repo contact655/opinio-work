@@ -1314,6 +1314,7 @@ export const getArticleBySlug = cache(async function getArticleBySlug(slug: stri
     .from("ow_articles")
     .select(ARTICLE_DETAIL_COLS)
     .eq("slug", slug)
+    .eq("is_published", true)
     .single();
 
   if (error || !data) {
