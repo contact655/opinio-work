@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 // POST /api/biz/ambassador/invite
-// Body: { user_id: string; role_title: string }
+// Body: { user_id?: string; email?: string; role_title: string }
+// user_id OR email のどちらかを指定する
 export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,23 +17,72 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "管理者のみ操作できます" }, { status: 403 });
   }
 
-  let body: { user_id?: string; role_title?: string };
+  let body: { user_id?: string; email?: string; role_title?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { user_id, role_title } = body;
-  if (!user_id || typeof user_id !== "string") {
-    return NextResponse.json({ error: "user_id required" }, { status: 400 });
-  }
+  const { role_title } = body;
   if (!role_title || typeof role_title !== "string" || role_title.trim().length === 0) {
     return NextResponse.json({ error: "role_title required" }, { status: 400 });
   }
 
   const supabase = createClient();
   const adminSupabase = createAdminClient();
+
+  // user_id または email からユーザーを特定
+  type OwUserRow = { id: string; name: string | null; email: string | null; auth_id: string | null };
+  let user_id = body.user_id;
+  let owUser: OwUserRow | null = null;
+
+  if (user_id) {
+    const { data } = await adminSupabase
+      .from("ow_users")
+      .select("id, name, email, auth_id")
+      .eq("id", user_id)
+      .maybeSingle();
+    owUser = data as OwUserRow | null;
+  } else if (body.email) {
+    const email = body.email.trim().toLowerCase();
+    // ow_users.email で検索
+    const { data: byEmail } = await adminSupabase
+      .from("ow_users")
+      .select("id, name, email, auth_id")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (byEmail) {
+      owUser = byEmail as OwUserRow | null;
+      user_id = owUser!.id;
+    } else {
+      // auth.users で検索（Supabase admin）
+      const { data: authList } = await adminSupabase.auth.admin.listUsers();
+      const authUser = authList?.users?.find((u) => u.email?.toLowerCase() === email);
+      if (authUser) {
+        // ow_users が存在するか確認
+        const { data: byAuthId } = await adminSupabase
+          .from("ow_users")
+          .select("id, name, email, auth_id")
+          .eq("auth_id", authUser.id)
+          .maybeSingle();
+        if (byAuthId) {
+          owUser = byAuthId as OwUserRow | null;
+          user_id = owUser!.id;
+        }
+      }
+    }
+
+    if (!user_id) {
+      return NextResponse.json(
+        { error: "このメールアドレスのユーザーはOPINIOに登録されていません" },
+        { status: 404 }
+      );
+    }
+  } else {
+    return NextResponse.json({ error: "user_id または email が必要です" }, { status: 400 });
+  }
 
   // 既に登録済みかチェック
   const { data: existing } = await adminSupabase
@@ -72,14 +122,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  // 招待対象のメールアドレスと名前を取得
-  const { data: owUser } = await adminSupabase
-    .from("ow_users")
-    .select("name, email, auth_id")
-    .eq("id", user_id)
-    .maybeSingle();
-
-  // auth.users からメールを取得
+  // メールアドレスを確定
   let email: string | null = owUser?.email ?? null;
   if (!email && owUser?.auth_id) {
     const { data: authData } = await adminSupabase.auth.admin.getUserById(owUser.auth_id);
@@ -91,7 +134,7 @@ export async function POST(req: NextRequest) {
       ambassadorInviteTemplate({
         to: email,
         userName: owUser?.name ?? "ユーザー",
-        companyName: ctx.tenantName,
+        companyName: ctx.tenantName ?? "",
         roleTitle: role_title.trim(),
         token: member.invite_token,
       })

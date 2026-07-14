@@ -3436,28 +3436,44 @@ export default async function CompanyDetailPage({
   const supabase = createClient();
 
   // auth + all DB queries in parallel (auth no longer blocks data fetching)
-  const [authResult, companyResult, photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult] = await Promise.all([
+  const adminSupabase = createAdminClient();
+  const [authResult, companyResult, photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult, ambassadorsResult] = await Promise.all([
     supabase.auth.getUser(),
     getCompanyByIdCached(params.id),
     getCompanyPhotosCached(params.id),
     getCompanyRecruitersCached(params.id),
     getArticlesByCompany(params.id),
     getCompanyEmployeesCached(params.id),
-    createAdminClient()
+    adminSupabase
       .from("ow_company_posts")
       .select("id, title, body, category, cover_image_url, published_at")
       .eq("company_id", params.id)
       .eq("is_published", true)
       .order("published_at", { ascending: false })
       .then((r: { data: CompanyPost[] | null }) => r.data ?? []),
-    createAdminClient()
+    adminSupabase
       .from("ow_salary_reports")
       .select("id", { count: "exact", head: true })
       .eq("company_id", params.id)
       .eq("is_approved", true),
+    adminSupabase
+      .from("ow_company_members")
+      .select("id, role_title, talk_themes, ow_users!user_id(name, avatar_color, avatar_url)")
+      .eq("company_id", params.id)
+      .eq("display_consent", true)
+      .eq("is_public", true)
+      .then((r) => r.data ?? []),
   ]);
 
   const hasSalarySection = (salaryCountResult.count ?? 0) >= SALARY_STATS_MIN;
+
+  type PublicAmbassador = {
+    id: string;
+    role_title: string | null;
+    talk_themes: string[] | null;
+    ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
+  };
+  const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
 
   const authUser = authResult.data.user;
   const isAuthenticated = !!authUser;
@@ -3606,6 +3622,72 @@ export default async function CompanyDetailPage({
 
             {/* 6. 社員の声（キャッチフレーズ） */}
             <EmployeeVoicesSection employees={employees.current} />
+
+            {/* 話せる人 (face-to-face ambassadors) */}
+            {ambassadors.length > 0 && (
+              <div id="ambassadors" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+                    CASUAL TALK
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+                    カジュアルに話せる人
+                  </h2>
+                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                    選考なしで直接話を聞けます。転職意欲がなくてもOK。
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {ambassadors.map((a) => {
+                    const gradient = a.ow_users?.avatar_color?.startsWith("linear-gradient")
+                      ? a.ow_users.avatar_color
+                      : "linear-gradient(135deg, #002366, #3B5FD9)";
+                    const name = a.ow_users?.name ?? "—";
+                    const initial = name.charAt(0);
+                    const themes: string[] = a.talk_themes ?? [];
+                    return (
+                      <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                        <div style={{
+                          width: 48, height: 48, borderRadius: "50%", background: gradient, flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#fff", fontWeight: 700, fontSize: 18, overflow: "hidden",
+                        }}>
+                          {a.ow_users?.avatar_url
+                            ? <img src={a.ow_users.avatar_url} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : initial}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{name}</div>
+                          {a.role_title && <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>{a.role_title}</div>}
+                          {themes.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                              {themes.map((t) => (
+                                <span key={t} style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {company.accepting_casual_meetings && (
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
+                    <Link
+                      href={`/companies/${company.id}/casual-meeting`}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        background: "var(--warm)", color: "#fff", borderRadius: 8,
+                        padding: "10px 20px", fontWeight: 700, fontSize: 14,
+                        textDecoration: "none",
+                      }}
+                    >
+                      カジュアル面談を申し込む →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 7. 現役社員・OBOGプロフィール */}
             <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />

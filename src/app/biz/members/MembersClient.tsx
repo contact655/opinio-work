@@ -20,6 +20,7 @@ export type AmbassadorRecord = {
   display_consent: boolean;
   is_public: boolean;
   invited_at: string | null;
+  talk_themes: string[];
 };
 
 export type AmbassadorCandidate = {
@@ -1070,6 +1071,20 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
 
+  // メールアドレス招待 state
+  const [emailInviteOpen, setEmailInviteOpen] = useState(false);
+  const [emailInviteEmail, setEmailInviteEmail] = useState("");
+  const [emailInviteRole, setEmailInviteRole] = useState("");
+  const [emailInviting, setEmailInviting] = useState(false);
+
+  // talk_themes 編集 state
+  const [editingThemesMemberId, setEditingThemesMemberId] = useState<string | null>(null);
+  const [themesInput, setThemesInput] = useState("");
+  const [savingThemes, setSavingThemes] = useState(false);
+
+  // is_public トグル pending state
+  const [togglingPublicId, setTogglingPublicId] = useState<string | null>(null);
+
   // HR 自己申告 state
   const [selfRoleTitle, setSelfRoleTitle] = useState("");
   const [selfRegistering, setSelfRegistering] = useState(false);
@@ -1143,6 +1158,83 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       setRevokingMemberId(null);
     }
   }
+  async function handleEmailInvite() {
+    const email = emailInviteEmail.trim();
+    const roleTitle = emailInviteRole.trim();
+    if (!email || !roleTitle) return;
+    setEmailInviting(true);
+    try {
+      const res = await fetch("/api/biz/ambassador/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, role_title: roleTitle }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setToastMessage(data.error ?? "エラーが発生しました");
+      } else {
+        setToastMessage("招待メールを送信しました");
+        setEmailInviteEmail("");
+        setEmailInviteRole("");
+        setEmailInviteOpen(false);
+        router.refresh();
+      }
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setEmailInviting(false);
+    }
+  }
+
+  async function handleSaveThemes(memberId: string) {
+    setSavingThemes(true);
+    const themes = themesInput.split(/[,、\n]/).map((t) => t.trim()).filter(Boolean);
+    try {
+      const res = await fetch("/api/biz/ambassador/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: memberId, talk_themes: themes }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setToastMessage(data.error ?? "エラーが発生しました");
+      } else {
+        setAmbassadors((prev) =>
+          prev.map((a) => a.id === memberId ? { ...a, talk_themes: themes } : a)
+        );
+        setEditingThemesMemberId(null);
+        setToastMessage("保存しました");
+      }
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setSavingThemes(false);
+    }
+  }
+
+  async function handleTogglePublic(memberId: string, current: boolean) {
+    setTogglingPublicId(memberId);
+    try {
+      const res = await fetch("/api/biz/ambassador/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: memberId, is_public: !current }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setToastMessage(data.error ?? "エラーが発生しました");
+      } else {
+        setAmbassadors((prev) =>
+          prev.map((a) => a.id === memberId ? { ...a, is_public: !current } : a)
+        );
+      }
+    } catch {
+      setToastMessage("通信エラーが発生しました");
+    } finally {
+      setTogglingPublicId(null);
+    }
+  }
+
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
@@ -1695,39 +1787,92 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
 
       {/* ── 面談対応者セクション ── */}
       <div style={{ marginTop: 48 }}>
-        <div style={{ marginBottom: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--ink)", margin: "0 0 4px" }}>
-            面談対応者
-          </h2>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
-            候補者と直接話してもらう社員です。<br />
-            <span style={{
-              display: "inline-block",
-              background: "var(--success-soft)",
-              color: "var(--success)",
-              fontWeight: 700,
-              fontSize: 11,
-              padding: "2px 8px",
-              borderRadius: 4,
-              marginTop: 4,
-            }}>
-              ✓ 管理画面へのアクセス権は付与されません
-            </span>
-          </p>
+        <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--ink)", margin: "0 0 4px" }}>
+              面談対応者
+            </h2>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
+              候補者と直接話してもらう社員です。承認制・管理画面アクセス権なし。
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setEmailInviteOpen((v) => !v)}
+              style={{
+                background: "var(--royal)", color: "#fff", border: "none",
+                borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13,
+                cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              + メールで招待
+            </button>
+          )}
         </div>
+
+        {/* メールアドレス招待フォーム */}
+        {isAdmin && emailInviteOpen && (
+          <div style={{
+            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+            borderRadius: 10, padding: "16px 20px", marginBottom: 20,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 12 }}>
+              メールアドレスで招待
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div style={{ flex: "1 1 200px" }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>メールアドレス</label>
+                <input
+                  type="email"
+                  placeholder="user@example.com"
+                  value={emailInviteEmail}
+                  onChange={(e) => setEmailInviteEmail(e.target.value)}
+                  style={{ width: "100%", padding: "8px 12px", border: "1.5px solid var(--royal-100)", borderRadius: 7, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              <div style={{ flex: "1 1 160px" }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>役職（公開されます）</label>
+                <input
+                  type="text"
+                  placeholder="例：エンジニア"
+                  value={emailInviteRole}
+                  onChange={(e) => setEmailInviteRole(e.target.value)}
+                  style={{ width: "100%", padding: "8px 12px", border: "1.5px solid var(--royal-100)", borderRadius: 7, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={handleEmailInvite}
+                  disabled={emailInviting || !emailInviteEmail.trim() || !emailInviteRole.trim()}
+                  style={{
+                    background: emailInviting || !emailInviteEmail.trim() || !emailInviteRole.trim() ? "var(--line)" : "var(--royal)",
+                    color: emailInviting || !emailInviteEmail.trim() || !emailInviteRole.trim() ? "var(--ink-mute)" : "#fff",
+                    border: "none", borderRadius: 7, padding: "8px 16px", fontWeight: 700, fontSize: 13,
+                    cursor: emailInviting ? "wait" : "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  {emailInviting ? "送信中..." : "招待メールを送る"}
+                </button>
+                <button
+                  onClick={() => { setEmailInviteOpen(false); setEmailInviteEmail(""); setEmailInviteRole(""); }}
+                  style={{ background: "none", border: "1px solid var(--line)", borderRadius: 7, padding: "8px 12px", fontSize: 13, color: "var(--ink-mute)", cursor: "pointer" }}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8 }}>
+              ※ OPINIOに登録済みのメールアドレスのみ招待できます
+            </div>
+          </div>
+        )}
 
         {/* HR 自己申告（管理者自身を面談対応者に追加） */}
         {isAdmin && !selfIsAmbassador && (
           <div style={{
-            background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)",
-            borderRadius: 10,
-            padding: "14px 16px",
-            marginBottom: 20,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexWrap: "wrap",
+            background: "#fff", border: "1px dashed var(--royal-100)",
+            borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
           }}>
             <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, flex: "0 0 auto" }}>
               自分も面談対応者になる
@@ -1738,13 +1883,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               value={selfRoleTitle}
               onChange={(e) => setSelfRoleTitle(e.target.value)}
               style={{
-                flex: 1,
-                minWidth: 160,
-                padding: "7px 12px",
-                border: "1.5px solid var(--royal-100)",
-                borderRadius: 7,
-                fontSize: 13,
-                outline: "none",
+                flex: 1, minWidth: 160, padding: "7px 12px",
+                border: "1.5px solid var(--royal-100)", borderRadius: 7, fontSize: 13, outline: "none",
               }}
             />
             <button
@@ -1753,13 +1893,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               style={{
                 background: selfRegistering || !selfRoleTitle.trim() ? "var(--line)" : "var(--royal)",
                 color: selfRegistering || !selfRoleTitle.trim() ? "var(--ink-mute)" : "#fff",
-                border: "none",
-                borderRadius: 7,
-                padding: "7px 16px",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: selfRegistering || !selfRoleTitle.trim() ? "not-allowed" : "pointer",
-                whiteSpace: "nowrap",
+                border: "none", borderRadius: 7, padding: "7px 16px",
+                fontWeight: 700, fontSize: 13,
+                cursor: selfRegistering || !selfRoleTitle.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap",
               }}
             >
               {selfRegistering ? "登録中..." : "登録する"}
@@ -1768,50 +1904,121 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         )}
 
         {/* 承認済み */}
-        {ambassadors.filter((a) => a.display_consent && a.is_public).length > 0 && (
+        {ambassadors.filter((a) => a.display_consent).length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.05em" }}>
-              ■ 承認済み
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              承認済み
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {ambassadors.filter((a) => a.display_consent && a.is_public).map((a) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {ambassadors.filter((a) => a.display_consent).map((a) => (
                 <div key={a.id} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: 10,
-                  padding: "12px 16px",
+                  background: "#fff", border: "1px solid var(--line)",
+                  borderRadius: 12, padding: "14px 16px",
                 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: a.gradient,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
-                    overflow: "hidden",
-                  }}>
-                    {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: "50%", background: a.gradient,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: "hidden",
+                    }}>
+                      {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
+                      <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "役職未設定"}</div>
+                    </div>
+                    {/* is_public トグル */}
+                    {isAdmin && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{a.is_public ? "公開中" : "非公開"}</span>
+                        <button
+                          onClick={() => handleTogglePublic(a.id, a.is_public)}
+                          disabled={togglingPublicId === a.id}
+                          title={a.is_public ? "非公開にする" : "公開する"}
+                          style={{
+                            width: 38, height: 22, borderRadius: 11, border: "none",
+                            background: a.is_public ? "var(--success)" : "var(--line)",
+                            cursor: "pointer", position: "relative", transition: "background 0.2s",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span style={{
+                            position: "absolute", top: 3, left: a.is_public ? 18 : 3,
+                            width: 16, height: 16, borderRadius: "50%", background: "#fff",
+                            transition: "left 0.2s", display: "block",
+                          }} />
+                        </button>
+                      </div>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleRevokeAmbassador(a.id)}
+                        disabled={revokingMemberId === a.id}
+                        style={{
+                          background: "none", border: "1px solid var(--line)", borderRadius: 6,
+                          padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer",
+                        }}
+                      >
+                        {revokingMemberId === a.id ? "..." : "解除"}
+                      </button>
+                    )}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "—"}</div>
-                  </div>
-                  <span style={{ background: "var(--success-soft)", color: "var(--success)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
-                    承認済み
-                  </span>
+
+                  {/* talk_themes 表示・編集 */}
                   {isAdmin && (
-                    <button
-                      onClick={() => handleRevokeAmbassador(a.id)}
-                      disabled={revokingMemberId === a.id}
-                      style={{
-                        background: "none", border: "1px solid var(--line)", borderRadius: 6,
-                        padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {revokingMemberId === a.id ? "..." : "解除"}
-                    </button>
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line-soft)" }}>
+                      {editingThemesMemberId === a.id ? (
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>
+                            話せるテーマ（カンマ区切り）
+                          </label>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                              type="text"
+                              value={themesInput}
+                              onChange={(e) => setThemesInput(e.target.value)}
+                              placeholder="例：採用、組織設計、エンジニアのキャリア"
+                              style={{ flex: 1, padding: "6px 10px", border: "1.5px solid var(--royal-100)", borderRadius: 6, fontSize: 12, outline: "none" }}
+                            />
+                            <button
+                              onClick={() => handleSaveThemes(a.id)}
+                              disabled={savingThemes}
+                              style={{
+                                background: "var(--royal)", color: "#fff", border: "none",
+                                borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                              }}
+                            >
+                              {savingThemes ? "..." : "保存"}
+                            </button>
+                            <button
+                              onClick={() => setEditingThemesMemberId(null)}
+                              style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer" }}
+                            >
+                              取消
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>話せるテーマ:</span>
+                          {a.talk_themes.length > 0 ? (
+                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                              {a.talk_themes.map((t) => (
+                                <span key={t} style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic" }}>未設定</span>
+                          )}
+                          <button
+                            onClick={() => { setEditingThemesMemberId(a.id); setThemesInput(a.talk_themes.join("、")); }}
+                            style={{ marginLeft: "auto", background: "none", border: "1px solid var(--line)", borderRadius: 5, padding: "2px 8px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer", flexShrink: 0 }}
+                          >
+                            編集
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -1819,30 +2026,22 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
-        {/* 承認待ち */}
+        {/* 招待中（承認待ち） */}
         {ambassadors.filter((a) => !a.display_consent).length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.05em" }}>
-              ■ 承認待ち
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              招待中（承認待ち）
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {ambassadors.filter((a) => !a.display_consent).map((a) => (
                 <div key={a.id} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: 10,
-                  padding: "12px 16px",
-                  opacity: 0.8,
+                  display: "flex", alignItems: "center", gap: 12,
+                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 16px", opacity: 0.85,
                 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: a.gradient,
+                    width: 36, height: 36, borderRadius: "50%", background: a.gradient,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
-                    overflow: "hidden",
+                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: "hidden",
                   }}>
                     {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
                   </div>
@@ -1850,18 +2049,14 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
                     <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "—"}</div>
                   </div>
-                  <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
+                  <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, flexShrink: 0 }}>
                     招待中
                   </span>
                   {isAdmin && (
                     <button
                       onClick={() => handleRevokeAmbassador(a.id)}
                       disabled={revokingMemberId === a.id}
-                      style={{
-                        background: "none", border: "1px solid var(--line)", borderRadius: 6,
-                        padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)",
-                        cursor: "pointer",
-                      }}
+                      style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer" }}
                     >
                       {revokingMemberId === a.id ? "..." : "取消"}
                     </button>
@@ -1875,26 +2070,19 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         {/* 指名できる社員（候補） */}
         {ambassadorCandidates.length > 0 && isAdmin && (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.05em" }}>
-              ■ 指名できる社員（OPINIOに登録している自社の社員）
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              OPINIOに登録している自社の社員
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {ambassadorCandidates.map((c) => (
                 <div key={c.user_id} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: "var(--bg-tint)",
-                  border: "1px dashed var(--line)",
-                  borderRadius: 10,
-                  padding: "12px 16px",
+                  display: "flex", alignItems: "center", gap: 12,
+                  background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10, padding: "12px 16px",
                 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: c.gradient,
+                    width: 36, height: 36, borderRadius: "50%", background: c.gradient,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
-                    overflow: "hidden",
+                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: "hidden",
                   }}>
                     {c.avatar_url ? <img src={c.avatar_url} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : c.initial}
                   </div>
@@ -1905,35 +2093,20 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                       placeholder="役職を入力（例：エンジニア）"
                       value={inviteRoleTitles[c.user_id] ?? ""}
                       onChange={(e) => setInviteRoleTitles((prev) => ({ ...prev, [c.user_id]: e.target.value }))}
-                      style={{
-                        fontSize: 12, border: "1px solid var(--line)", borderRadius: 6,
-                        padding: "3px 8px", color: "var(--ink)", marginTop: 4,
-                        width: "100%", maxWidth: 200, outline: "none",
-                      }}
+                      style={{ fontSize: 12, border: "1px solid var(--line)", borderRadius: 6, padding: "3px 8px", color: "var(--ink)", marginTop: 4, width: "100%", maxWidth: 200, outline: "none" }}
                     />
                   </div>
                   <button
                     onClick={() => handleInviteAmbassador(c.user_id)}
                     disabled={invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()}
                     style={{
-                      background: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()
-                        ? "var(--line)"
-                        : "var(--royal)",
-                      color: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()
-                        ? "var(--ink-mute)"
-                        : "#fff",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "6px 14px",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()
-                        ? "not-allowed"
-                        : "pointer",
-                      whiteSpace: "nowrap",
+                      background: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--line)" : "var(--royal)",
+                      color: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--ink-mute)" : "#fff",
+                      border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700,
+                      cursor: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap",
                     }}
                   >
-                    {invitingUserId === c.user_id ? "送信中..." : "面談対応者にする"}
+                    {invitingUserId === c.user_id ? "送信中..." : "招待する"}
                   </button>
                 </div>
               ))}
@@ -1941,18 +2114,13 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
-        {ambassadors.length === 0 && ambassadorCandidates.length === 0 && (
+        {ambassadors.length === 0 && ambassadorCandidates.length === 0 && !emailInviteOpen && (
           <div style={{
-            background: "var(--bg-tint)",
-            border: "1px dashed var(--line)",
-            borderRadius: 10,
-            padding: "24px",
-            textAlign: "center",
-            color: "var(--ink-mute)",
-            fontSize: 13,
+            background: "var(--bg-tint)", border: "1px dashed var(--line)",
+            borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
           }}>
-            OPINIOに登録している自社の社員がいません。<br />
-            社員が職務経歴に自社を登録すると、ここに表示されます。
+            まだ面談対応者がいません。<br />
+            「メールで招待」ボタンからOPINIO登録済みの社員を招待できます。
           </div>
         )}
       </div>
