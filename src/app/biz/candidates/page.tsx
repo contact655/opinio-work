@@ -73,43 +73,15 @@ export default async function CandidatesPage() {
     .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const blockedCandidateIds = new Set((blockedPlacements ?? []).map((p: any) => p.candidate_id as string));
 
-  // スカウト同意済みの求職者候補を取得
-  // - visibility = 'private' は明示的な非表示意思表示なので除外
-  // - is_system = true のシステムユーザーを除外
-  // - 実際の候補者絞り込みは scout_enabled = true（下のフィルタで実施）
-  const { data: rawUsers } = await supabase
-    .from("ow_users")
-    .select("id, name, location, is_mentor, created_at, auth_id")
-    .neq("visibility", "private")
-    .not("is_system", "eq", true)
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  const userIds = (rawUsers ?? []).map((u: any) => u.id as string);
-  const authIds = (rawUsers ?? [])
-    .filter((u: any) => u.auth_id)
-    .map((u: any) => u.auth_id as string);
-
-  // ow_profiles: user_id = auth.users.id（= ow_users.auth_id）経由で取得
-  const profilesByAuthId = new Map<string, {
-    onboarding_completed: boolean;
-    desired_work_style: string | null;
-    job_type: string | null;
-    desired_phase: string[] | null;
-    transfer_timing: string | null;
-    scout_enabled: boolean | null;
-  }>();
-
-  // プロフィール + 送信枠 を並列取得
+  // scout_enabled=true のユーザーを DBレベルで絞り込む
+  // ow_profiles.user_id = ow_users.auth_id（異テーブルキー結合）のため
+  // ow_profiles 起点でクエリし、ow_users を別途取得して結合する
   const [profileRows, quotaRow] = await Promise.all([
-    authIds.length > 0
-      ? adminClient
-          .from("ow_profiles")
-          .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled")
-          .in("user_id", authIds)
-          .then(r => r.data ?? [])
-      : Promise.resolve([]),
-    // スカウト送信枠
+    adminClient
+      .from("ow_profiles")
+      .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled")
+      .eq("scout_enabled", true)
+      .then(r => r.data ?? []),
     adminClient
       .from("ow_scout_quotas")
       .select("monthly_limit, bonus_credits, used_this_month, period_start")
@@ -118,6 +90,32 @@ export default async function CandidatesPage() {
       .then(r => r.data),
   ]);
 
+  // scout_enabled=true ユーザーの auth_id 一覧（= ow_profiles.user_id）
+  const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
+
+  // auth_id から ow_users を取得（visibility='private' と is_system を除外）
+  const { data: rawUsers } = scoutAuthIds.length > 0
+    ? await adminClient
+        .from("ow_users")
+        .select("id, name, location, is_mentor, created_at, auth_id")
+        .in("auth_id", scoutAuthIds)
+        .neq("visibility", "private")
+        .not("is_system", "eq", true)
+        .order("created_at", { ascending: false })
+        .limit(500)
+    : { data: [] };
+
+  const userIds = (rawUsers ?? []).map((u: any) => u.id as string);
+
+  // auth_id → profile のマップ
+  const profilesByAuthId = new Map<string, {
+    onboarding_completed: boolean;
+    desired_work_style: string | null;
+    job_type: string | null;
+    desired_phase: string[] | null;
+    transfer_timing: string | null;
+    scout_enabled: boolean | null;
+  }>();
   for (const p of profileRows) {
     profilesByAuthId.set(p.user_id as string, p as any);
   }
@@ -128,12 +126,10 @@ export default async function CandidatesPage() {
   const usedThisMonth = quotaRow?.used_this_month ?? 0;
   const remainingQuota = Math.max(0, monthlyLimit + bonusCredits - usedThisMonth);
 
-  // Step 1: scout_enabled = true の候補者だけに絞る（転職勧奨禁止も除外）
+  // Step 1: 転職勧奨禁止ユーザーを除外（scout_enabled=true はDB絞り込み済み）
   const scoutEnabledUsers = (rawUsers ?? []).filter((u: any) => {
     if (blockedCandidateIds.has(u.id as string)) return false;
-    const authId = u.auth_id as string | null;
-    const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
-    return profile?.scout_enabled === true;
+    return true;
   });
 
   // Step 2: can_send_scout(company_id, candidate_auth_id) RPC で名前マッチも含めてフィルタ
