@@ -668,6 +668,13 @@ function AuthPageInner() {
                   </a>
                   {" "}に同意したものとみなします。
                 </p>
+                <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.8, marginTop: 6, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
+                  当社は、お預かりした情報を匿名化・統計化した上で、職種別の待遇水準等として公表することがあります（
+                  <a href="/terms#統計的利用" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink-mute)", textDecoration: "underline" }}>
+                    利用規約 第13条の4
+                  </a>
+                  ）。統計利用の停止をご希望の場合は、お問い合わせ窓口までご連絡ください。
+                </p>
               </form>
             </>
           )}
