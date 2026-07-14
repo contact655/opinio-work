@@ -57,7 +57,8 @@ export default async function SalaryPage() {
       .or("salary_min.gt.0,salary_max.gt.0"),
     admin
       .from("ow_roles")
-      .select("id, name, parent_id"),
+      .select("id, name, parent_id")
+      .limit(500),
   ]);
 
   const reports = reportsRes.data ?? [];
