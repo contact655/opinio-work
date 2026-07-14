@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
     start_year_month,
     end_year_month,
     grade,
-    achievement_rate,
     employment_status,
     years_of_experience,
     prefecture,
@@ -56,7 +55,6 @@ export async function POST(req: NextRequest) {
     start_year_month?: string | null;
     end_year_month?: string | null;
     grade?: string | null;
-    achievement_rate?: number | null;
     employment_status?: string;
     years_of_experience?: number | null;
     prefecture?: string | null;
@@ -101,7 +99,6 @@ export async function POST(req: NextRequest) {
       start_year_month: start_year_month || null,
       end_year_month:   end_year_month   || null,
       grade:            grade            || null,
-      achievement_rate: achievement_rate ?? null,
       employment_status,
       years_of_experience: years_of_experience ?? null,
       prefecture: prefecture ?? null,

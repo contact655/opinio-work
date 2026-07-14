@@ -100,7 +100,6 @@ export async function POST(req: NextRequest) {
     start_year_month,
     end_year_month,
     grade,
-    achievement_rate,
     annual_salary_man,
     base_salary_man,
     bonus_salary_man,
@@ -118,7 +117,6 @@ export async function POST(req: NextRequest) {
     start_year_month?: string;
     end_year_month?: string | null;
     grade?: string | null;
-    achievement_rate?: number | null;
     annual_salary_man?: number | null;
     base_salary_man?: number | null;
     bonus_salary_man?: number | null;
@@ -162,7 +160,6 @@ export async function POST(req: NextRequest) {
     start_year_month,
     end_year_month: end_year_month || null,
     grade: grade || null,
-    achievement_rate: achievement_rate ?? null,
     base_salary:    base_salary_man    ? base_salary_man    * 10000 : null,
     bonus_salary:   bonus_salary_man   ? bonus_salary_man   * 10000 : null,
     incentive:      incentive_man      ? incentive_man      * 10000 : null,

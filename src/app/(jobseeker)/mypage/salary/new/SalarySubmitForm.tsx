@@ -99,7 +99,6 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
   const [stockMan, setStockMan] = useState("");
   const [allowancesMan, setAllowancesMan] = useState("");
   const [fixedOTMan, setFixedOTMan] = useState("");
-  const [achievementRate, setAchievementRate] = useState("");
 
   // その他
   const [status, setStatus] = useState<"current" | "alumni">("alumni");
@@ -144,7 +143,6 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         start_year_month: startYM,
         end_year_month: endYM || null,
         grade: grade || null,
-        achievement_rate: achievementRate ? parseInt(achievementRate, 10) : null,
         base_salary_man:    baseMan       ? parseInt(baseMan, 10)       : null,
         incentive_man:      incentiveMan  ? parseInt(incentiveMan, 10)  : null,
         bonus_salary_man:   bonusMan      ? parseInt(bonusMan, 10)      : null,
@@ -348,23 +346,6 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
                   />
                 </div>
               ))}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 5 }}>
-                  達成率（%）— 任意
-                </label>
-                <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "0 0 6px" }}>
-                  インセンティブ達成率。例: 120
-                </p>
-                <input
-                  type="number" min="0" max="500" placeholder="例: 120"
-                  value={achievementRate}
-                  onChange={(e) => setAchievementRate(e.target.value)}
-                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, width: 100 }}
-                />
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", marginLeft: 6 }}>%</span>
-              </div>
             </div>
           </div>
         )}

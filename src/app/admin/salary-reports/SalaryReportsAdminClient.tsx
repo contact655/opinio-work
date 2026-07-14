@@ -18,7 +18,6 @@ interface Report {
   start_year_month: string | null;
   end_year_month: string | null;
   grade: string | null;
-  achievement_rate: number | null;
   years_of_experience: number | null;
   employment_status: string;
   prefecture: string | null;
@@ -103,7 +102,6 @@ const PROXY_EMPTY = {
   stock_options: "",
   allowances: "",
   fixed_overtime: "",
-  achievement_rate: "",
   start_year_month: "",
   end_year_month: "",
   grade: "",
@@ -119,7 +117,6 @@ interface EditState {
   end_year_month: string;
   grade: string;
   ote: string;
-  achievement_rate: string;
   allowances: string;
   fixed_overtime: string;
   base_salary: string;
@@ -135,7 +132,6 @@ function makeEditState(r: Report): EditState {
     end_year_month: r.end_year_month ?? "",
     grade: r.grade ?? "",
     ote: manStr(r.ote),
-    achievement_rate: r.achievement_rate ? String(r.achievement_rate) : "",
     allowances: manStr(r.allowances),
     fixed_overtime: manStr(r.fixed_overtime),
     base_salary: manStr(r.base_salary),
@@ -207,7 +203,6 @@ export default function SalaryReportsAdminClient({
       if (form.stock_options)   body.stock_options    = parseInt(form.stock_options, 10);
       if (form.allowances)      body.allowances       = parseInt(form.allowances, 10);
       if (form.fixed_overtime)  body.fixed_overtime   = parseInt(form.fixed_overtime, 10);
-      if (form.achievement_rate) body.achievement_rate = parseInt(form.achievement_rate, 10);
 
       const res = await fetch("/api/admin/salary-reports", {
         method: "POST",
@@ -236,7 +231,6 @@ export default function SalaryReportsAdminClient({
         start_year_month: form.start_year_month || null,
         end_year_month: form.end_year_month || null,
         grade: form.grade || null,
-        achievement_rate: form.achievement_rate ? parseInt(form.achievement_rate, 10) : null,
         years_of_experience: form.years_of_experience ? parseInt(form.years_of_experience, 10) : null,
         employment_status: form.employment_status,
         prefecture: form.prefecture || null,
@@ -296,7 +290,6 @@ export default function SalaryReportsAdminClient({
       end_year_month: editState.end_year_month || null,
       grade: editState.grade || null,
       ote: editState.ote ? parseInt(editState.ote, 10) * 10000 : null,
-      achievement_rate: editState.achievement_rate ? parseInt(editState.achievement_rate, 10) : null,
       allowances: man2yen(editState.allowances),
       fixed_overtime: man2yen(editState.fixed_overtime),
       base_salary: man2yen(editState.base_salary),
@@ -418,18 +411,6 @@ export default function SalaryReportsAdminClient({
                 />
               </div>
 
-              {/* 達成率 */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 5 }}>達成率（%、任意）</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <input
-                    type="number" min="0" max="500" placeholder="例: 120"
-                    value={form.achievement_rate} onChange={(e) => setF("achievement_rate", e.target.value)}
-                    style={{ ...inp, width: 90 }}
-                  />
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>%</span>
-                </div>
-              </div>
 
               {/* 内訳 */}
               <div style={{ gridColumn: "1 / -1" }}>
@@ -588,7 +569,6 @@ export default function SalaryReportsAdminClient({
                       <span style={{ color: "var(--error)" }}>⚠ 期間未設定</span>
                     )}
                     {r.grade && <span style={{ background: "var(--royal-50)", color: "var(--royal)", fontWeight: 600, borderRadius: 6, padding: "1px 7px" }}>{r.grade}</span>}
-                    {r.achievement_rate != null && <span>達成率 {r.achievement_rate}%</span>}
                   </div>
 
                   {/* Breakdown */}
@@ -641,13 +621,6 @@ export default function SalaryReportsAdminClient({
                         <div>
                           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>グレード</div>
                           <input type="text" maxLength={50} value={editState.grade} onChange={(e) => setEditState((s) => s ? { ...s, grade: e.target.value } : s)} style={{ ...inp, width: "100%" }} placeholder="例: Grade 4" />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>達成率 (%)</div>
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                            <input type="number" min="0" max="500" value={editState.achievement_rate} onChange={(e) => setEditState((s) => s ? { ...s, achievement_rate: e.target.value } : s)} style={{ ...inp, width: 80 }} />
-                            <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>%</span>
-                          </div>
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8, marginTop: 10 }}>
