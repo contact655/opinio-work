@@ -4000,9 +4000,7 @@ export default function ProfileEditClient({
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <strong style={{ color: "var(--royal)" }}>希望条件は企業側に公開されます。</strong>
-              しかし OPINIO ではスカウトはできない設計です。
-              企業はこの情報を参考に、自社への関心を持ちやすい求職者に気づきます。
-              ダイレクトメッセージは送れません。
+              条件に合う企業からスカウトが届きやすくなります。
             </div>
           </div>
         )}
