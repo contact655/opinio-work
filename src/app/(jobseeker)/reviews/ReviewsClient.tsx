@@ -35,7 +35,7 @@ type AccessInfo = {
   gateEnabled: boolean;
 };
 
-type ReviewableCompany = { id: string; name: string; isCurrent: boolean };
+type ReviewableCompany = { id: string | null; name: string; isCurrent: boolean; isRegistered: boolean };
 
 const JOB_TYPES_MAJOR = [
   "営業", "マーケティング", "カスタマーサクセス", "プロダクトマネージャー",
@@ -534,35 +534,69 @@ function PostModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
                     職務経歴を登録する →
                   </Link>
                 </div>
+              ) : companies.every(c => !c.isRegistered) ? (
+                <div style={{ textAlign: "center", padding: "32px 0" }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>🏢</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+                    在籍企業がOPINIOにまだ掲載されていません
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.7 }}>
+                    現在、口コミはOPINIOに掲載済みの企業のみ投稿できます。
+                  </p>
+                  <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7 }}>
+                    掲載を希望する場合は <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)" }}>contact@opinio.co.jp</a> までご連絡ください。
+                  </p>
+                  {companies.map(c => (
+                    <div key={c.name} style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 4 }}>· {c.name}</div>
+                  ))}
+                </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-soft)" }}>
                     職務経歴に登録されている企業のみ選択できます。
                   </p>
                   {companies.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => { setSelectedCompany(c); setStep(2); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-                        background: "#fff", border: "1.5px solid var(--line)", borderRadius: 12,
-                        cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit",
-                        transition: "border-color 0.15s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{c.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                          {c.isCurrent ? "現職" : "元在籍"}
+                    c.isRegistered ? (
+                      <button
+                        key={c.id ?? c.name}
+                        type="button"
+                        onClick={() => { setSelectedCompany(c); setStep(2); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+                          background: "#fff", border: "1.5px solid var(--line)", borderRadius: 12,
+                          cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit",
+                          transition: "border-color 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                            {c.isCurrent ? "現職" : "元在籍"}
+                          </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ marginLeft: "auto" }}>
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <div
+                        key={c.name}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+                          background: "var(--line-soft)", border: "1.5px solid var(--line)", borderRadius: 12,
+                          cursor: "not-allowed", opacity: 0.65,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)" }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                            {c.isCurrent ? "現職" : "元在籍"} · OPINIOに未掲載のため投稿不可
+                          </div>
                         </div>
                       </div>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ marginLeft: "auto" }}>
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </button>
+                    )
                   ))}
                 </div>
               )}
