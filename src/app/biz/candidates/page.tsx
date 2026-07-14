@@ -1,13 +1,12 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import CandidatesClient from "./CandidatesClient";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "求職者を探す | OPINIO Business" },
+  title: { absolute: "候補者を探す | OPINIO Business" },
 };
 
 export default async function CandidatesPage() {
@@ -26,6 +25,7 @@ export default async function CandidatesPage() {
       </BusinessLayout>
     );
   }
+
   // 未承認企業は候補者検索不可
   if (!ctx.isPublished) {
     return (
@@ -62,21 +62,10 @@ export default async function CandidatesPage() {
     );
   }
 
-  const supabase = createClient();
   const adminClient = createAdminClient();
 
-  // 転職勧奨禁止期間中の候補者IDを取得（就職後2年以内かつ在職中）
-  const { data: blockedPlacements } = await adminClient
-    .from("ow_placements")
-    .select("candidate_id")
-    .is("resigned_at", null)
-    .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
-  const blockedCandidateIds = new Set((blockedPlacements ?? []).map((p: any) => p.candidate_id as string));
-
-  // scout_enabled=true のユーザーを DBレベルで絞り込む
-  // ow_profiles.user_id = ow_users.auth_id（異テーブルキー結合）のため
-  // ow_profiles 起点でクエリし、ow_users を別途取得して結合する
-  const [profileRows, quotaRow] = await Promise.all([
+  // 並列取得: プロフィール・枠・転職禁止・スカウト済みセット
+  const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
       .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled")
@@ -88,16 +77,32 @@ export default async function CandidatesPage() {
       .eq("company_id", ctx.tenantId)
       .maybeSingle()
       .then(r => r.data),
+    // 転職勧奨禁止（就職後2年以内かつ在職中）
+    adminClient
+      .from("ow_placements")
+      .select("candidate_id")
+      .is("resigned_at", null)
+      .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+      .then(r => r.data ?? []),
+    // この企業が既にスカウトを送った candidate_id（auth_id）セット
+    adminClient
+      .from("ow_scouts")
+      .select("candidate_id")
+      .eq("company_id", ctx.tenantId)
+      .then(r => r.data ?? []),
   ]);
 
-  // scout_enabled=true ユーザーの auth_id 一覧（= ow_profiles.user_id）
+  const blockedCandidateIds = new Set((blockedPlacements).map((p: any) => p.candidate_id as string));
+  const scoutedAuthIds = new Set((sentScouts).map((s: any) => s.candidate_id as string));
+
+  // scout_enabled=true ユーザーの auth_id 一覧
   const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
 
-  // auth_id から ow_users を取得（visibility='private' と is_system を除外）
+  // ow_users 取得（birth_year・is_open_to_work を追加）
   const { data: rawUsers } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
-        .select("id, name, location, is_mentor, created_at, auth_id")
+        .select("id, name, location, is_mentor, is_open_to_work, birth_year, created_at, auth_id")
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
@@ -107,7 +112,7 @@ export default async function CandidatesPage() {
 
   const userIds = (rawUsers ?? []).map((u: any) => u.id as string);
 
-  // auth_id → profile のマップ
+  // auth_id → profile マップ
   const profilesByAuthId = new Map<string, {
     onboarding_completed: boolean;
     desired_work_style: string | null;
@@ -120,22 +125,18 @@ export default async function CandidatesPage() {
     profilesByAuthId.set(p.user_id as string, p as any);
   }
 
-  // 送信枠の計算
+  // 送信枠
   const monthlyLimit = quotaRow?.monthly_limit ?? 30;
   const bonusCredits = quotaRow?.bonus_credits ?? 0;
   const usedThisMonth = quotaRow?.used_this_month ?? 0;
   const remainingQuota = Math.max(0, monthlyLimit + bonusCredits - usedThisMonth);
 
-  // Step 1: 転職勧奨禁止ユーザーを除外（scout_enabled=true はDB絞り込み済み）
-  const scoutEnabledUsers = (rawUsers ?? []).filter((u: any) => {
-    if (blockedCandidateIds.has(u.id as string)) return false;
-    return true;
-  });
+  // 転職勧奨禁止除外
+  const eligibleUsers = (rawUsers ?? []).filter((u: any) => !blockedCandidateIds.has(u.id as string));
 
-  // Step 2: can_send_scout(company_id, candidate_auth_id) RPC で名前マッチも含めてフィルタ
-  // （company_id=NULL の職務経歴でも会社名正規化で突き合わせる）
+  // can_send_scout RPC（自社在籍者除外）
   const canSendResults = await Promise.all(
-    scoutEnabledUsers.map(async (u: any) => {
+    eligibleUsers.map(async (u: any) => {
       const authId = u.auth_id as string | null;
       if (!authId) return false;
       const { data } = await adminClient.rpc("can_send_scout", {
@@ -146,17 +147,21 @@ export default async function CandidatesPage() {
     })
   );
 
-  // 現職情報を別取得（is_current = true の最初の 1 件）
+  // 現職情報 + 在籍期間（employment_type・started_at 追加）
   const { data: currentExps } = userIds.length > 0
-    ? await supabase
+    ? await adminClient
         .from("ow_experiences")
-        .select("user_id, role_title, company_text, company_anonymized")
+        .select("user_id, role_title, company_text, company_anonymized, employment_type, started_at")
         .in("user_id", userIds)
         .eq("is_current", true)
     : { data: [] };
 
-  // user_id → current exp のマップ
-  const currentExpByUser = new Map<string, { role_title: string | null; company: string | null }>();
+  const currentExpByUser = new Map<string, {
+    role_title: string | null;
+    company: string | null;
+    employment_type: string | null;
+    started_at: string | null;
+  }>();
   for (const exp of currentExps ?? []) {
     if (!currentExpByUser.has(exp.user_id as string)) {
       const company = (exp.company_text as string | null)
@@ -165,11 +170,29 @@ export default async function CandidatesPage() {
       currentExpByUser.set(exp.user_id as string, {
         role_title: exp.role_title as string | null,
         company,
+        employment_type: exp.employment_type as string | null,
+        started_at: exp.started_at as string | null,
       });
     }
   }
 
-  // 自社の求人一覧（スカウト送信時の求人選択に使う）
+  // スキルタグ（user_id → labels）
+  const { data: skillRows } = userIds.length > 0
+    ? await adminClient
+        .from("ow_user_skill_tags")
+        .select("user_id, label, sort_order")
+        .in("user_id", userIds)
+        .order("sort_order")
+    : { data: [] };
+
+  const skillsByUser = new Map<string, string[]>();
+  for (const s of skillRows ?? []) {
+    const uid = s.user_id as string;
+    if (!skillsByUser.has(uid)) skillsByUser.set(uid, []);
+    skillsByUser.get(uid)!.push(s.label as string);
+  }
+
+  // 自社求人一覧
   const { data: companyJobs } = await adminClient
     .from("ow_jobs")
     .select("id, title")
@@ -177,46 +200,45 @@ export default async function CandidatesPage() {
     .in("status", ["published", "active"])
     .order("title");
 
-  const candidates = scoutEnabledUsers
+  const candidates = eligibleUsers
     .filter((_u: any, i: number) => canSendResults[i] === true)
     .map((u: any) => {
       const authId = u.auth_id as string | null;
       const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
       const currentExp = currentExpByUser.get(u.id as string) ?? null;
+      const alreadyScouted = authId ? scoutedAuthIds.has(authId) : false;
       return {
         id: u.id as string,
         name: (u.name as string) || "名前未設定",
         location: (u.location as string) || null,
         isMentor: (u.is_mentor as boolean) || false,
+        isOpenToWork: (u.is_open_to_work as boolean) || false,
+        birthYear: (u.birth_year as number) || null,
         currentRole: currentExp?.role_title ?? null,
         currentCompany: currentExp?.company ?? null,
+        employmentType: currentExp?.employment_type ?? null,
+        startedAt: currentExp?.started_at ?? null,
+        skills: skillsByUser.get(u.id as string) ?? [],
         jobType: profile?.job_type || null,
         workStyle: profile?.desired_work_style || null,
         desiredPhase: profile?.desired_phase || null,
         transferTiming: profile?.transfer_timing || null,
         onboardingCompleted: profile?.onboarding_completed || false,
+        alreadyScouted,
         createdAt: u.created_at as string,
       };
     });
 
-  const layoutProps = ctx
-    ? {
-        userName: ctx.userName,
-        tenantName: ctx.tenantName,
-        tenantLogoGradient: ctx.logoGradient,
-        tenantLogoLetter: ctx.logoLetter,
-        memberships: ctx.allCompanies,
-        currentTenantId: ctx.tenantId,
-      }
-    : { userName: "担当者" };
-
-  const scoutQuota = {
-    monthlyLimit,
-    bonusCredits,
-    usedThisMonth,
-    remaining: remainingQuota,
+  const layoutProps = {
+    userName: ctx.userName,
+    tenantName: ctx.tenantName,
+    tenantLogoGradient: ctx.logoGradient,
+    tenantLogoLetter: ctx.logoLetter,
+    memberships: ctx.allCompanies,
+    currentTenantId: ctx.tenantId,
   };
 
+  const scoutQuota = { monthlyLimit, bonusCredits, usedThisMonth, remaining: remainingQuota };
   const jobOptions = (companyJobs ?? []).map((j: any) => ({ id: j.id as string, title: j.title as string }));
 
   return (

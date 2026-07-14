@@ -8,13 +8,19 @@ type Candidate = {
   name: string;
   location: string | null;
   isMentor: boolean;
+  isOpenToWork: boolean;
+  birthYear: number | null;
   currentRole: string | null;
   currentCompany: string | null;
+  employmentType: string | null;
+  startedAt: string | null;
+  skills: string[];
   jobType: string | null;
   workStyle: string | null;
   desiredPhase: string[] | null;
   transferTiming: string | null;
   onboardingCompleted: boolean;
+  alreadyScouted: boolean;
   createdAt: string;
 };
 
@@ -25,9 +31,14 @@ const WORK_STYLE_LABELS: Record<string, string> = {
   flexible: "柔軟に対応",
 };
 
-// フィルタ専用: legacy 値をカテゴリにマッピングする。
-// JOB_TYPE_CATEGORIES 定数自体は変えず、ここだけで legacy を拾う。
-// profile/edit の optgroup には影響しない。
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  full_time: "正社員",
+  contract: "契約社員",
+  part_time: "パート・アルバイト",
+  freelance: "フリーランス",
+  intern: "インターン",
+};
+
 const LEGACY_CATEGORY_MAP: Record<string, string> = {
   "インサイドセールス": "sales",
   "エンジニア":        "engineering",
@@ -49,6 +60,22 @@ function getGradient(id: string) {
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
+// birth_year → 年代ラベル（nullなら null）
+function toDecade(birthYear: number | null): string | null {
+  if (!birthYear) return null;
+  const age = new Date().getFullYear() - birthYear;
+  if (age < 20) return "10代";
+  const decade = Math.floor(age / 10) * 10;
+  return `${decade}代`;
+}
+
+// started_at → 在籍開始年月表示
+function formatStarted(startedAt: string | null): string | null {
+  if (!startedAt) return null;
+  const d = new Date(startedAt);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月〜`;
+}
+
 const PHASE_OPTIONS = ["シリーズA", "シリーズB", "シリーズC", "上場"];
 
 const TRANSFER_TIMING_OPTIONS = [
@@ -59,7 +86,6 @@ const TRANSFER_TIMING_OPTIONS = [
   { value: "情報収集中", label: "情報収集中" },
 ];
 
-// カテゴリ chip 用スタイルヘルパー
 function catChipStyle(active: boolean): React.CSSProperties {
   return {
     height: 30, padding: "0 12px", borderRadius: 15,
@@ -106,6 +132,7 @@ export default function CandidatesClient({
 }) {
   const [q, setQ] = useState("");
   const [workStyle, setWorkStyle] = useState("");
+  const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
 
   // Scout modal state
   const [scoutTarget, setScoutTarget] = useState<Candidate | null>(null);
@@ -149,12 +176,12 @@ export default function CandidatesClient({
       setScoutSending(false);
     }
   }
-  // 職種フィルタ: カテゴリ選択 → 配下職種選択の2段構成
+
   const [jobCategoryKey, setJobCategoryKey] = useState<string | null>(null);
   const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
   const [phase, setPhase] = useState("");
   const [transferTiming, setTransferTiming] = useState("");
-  // カテゴリ選択時: 職種選択をリセット
+
   function selectCategory(key: string | null) {
     setJobCategoryKey(key);
     setSelectedJobType(null);
@@ -162,25 +189,26 @@ export default function CandidatesClient({
 
   const filtered = useMemo(() => {
     let list = candidates;
+
+    if (hideAlreadyScouted) list = list.filter((c) => !c.alreadyScouted);
+
     if (q.trim()) {
       const lower = q.toLowerCase();
       list = list.filter((c) =>
         c.name.toLowerCase().includes(lower) ||
         (c.currentRole ?? "").toLowerCase().includes(lower) ||
         (c.currentCompany ?? "").toLowerCase().includes(lower) ||
-        (c.location ?? "").includes(lower)
+        (c.location ?? "").includes(lower) ||
+        c.skills.some((s) => s.toLowerCase().includes(lower))
       );
     }
     if (workStyle) list = list.filter((c) => c.workStyle === workStyle);
 
     if (selectedJobType) {
-      // 職種まで絞り込み: 完全一致（DB保存値との一致）
       list = list.filter((c) => c.jobType === selectedJobType);
     } else if (jobCategoryKey) {
-      // カテゴリのみ選択: 配下の全職種 + legacy値にマッチ
       const cat = getVisibleCategories().find((c) => c.key === jobCategoryKey);
       const types = (cat?.types ?? []) as readonly string[];
-      // LEGACY_CATEGORY_MAP でこのカテゴリに対応する legacy 値を追加
       const legacyForCat = Object.entries(LEGACY_CATEGORY_MAP)
         .filter(([, catKey]) => catKey === jobCategoryKey)
         .map(([jt]) => jt);
@@ -193,11 +221,16 @@ export default function CandidatesClient({
     if (transferTiming) list = list.filter((c) => c.transferTiming === transferTiming);
 
     return list;
-  }, [candidates, q, workStyle, jobCategoryKey, selectedJobType, phase, transferTiming]);
+  }, [candidates, q, workStyle, jobCategoryKey, selectedJobType, phase, transferTiming, hideAlreadyScouted]);
 
-  // jobCategoryKey / selectedJobType はどちらか一方でも選択されていれば「1フィルタ」としてカウント
   const jobTypeFilterActive = jobCategoryKey !== null;
-  const activeFilterCount = [workStyle, jobTypeFilterActive ? "x" : "", phase, transferTiming].filter(Boolean).length;
+  const activeFilterCount = [
+    workStyle,
+    jobTypeFilterActive ? "x" : "",
+    phase,
+    transferTiming,
+    hideAlreadyScouted ? "x" : "",
+  ].filter(Boolean).length;
 
   function clearAllFilters() {
     setWorkStyle("");
@@ -205,10 +238,12 @@ export default function CandidatesClient({
     setSelectedJobType(null);
     setPhase("");
     setTransferTiming("");
+    setHideAlreadyScouted(false);
   }
 
-  // 現在選択中のカテゴリの配下職種
   const selectedCat = getVisibleCategories().find((c) => c.key === jobCategoryKey);
+  const alreadyScoutedCount = candidates.filter((c) => c.alreadyScouted).length;
+  const showQuota = scoutQuota && scoutQuota.usedThisMonth > 0;
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
@@ -216,36 +251,35 @@ export default function CandidatesClient({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>
-            求職者を探す
+            候補者を探す
           </h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
             スカウトを受け取る設定をした求職者が表示されます。
           </p>
         </div>
-        {/* Scout quota */}
-        {scoutQuota && (
+        {/* Scout quota — 1通以上送った後のみ表示 */}
+        {showQuota && (
           <div style={{
-            background: scoutQuota.remaining === 0 ? "var(--error-soft)" : "var(--royal-50)",
-            border: `1px solid ${scoutQuota.remaining === 0 ? "#FECACA" : "var(--royal-100)"}`,
-            borderRadius: 10, padding: "10px 16px", textAlign: "right", flexShrink: 0,
+            background: scoutQuota.remaining === 0 ? "var(--error-soft)" : "var(--bg-tint)",
+            border: `1px solid ${scoutQuota.remaining === 0 ? "#FECACA" : "var(--line)"}`,
+            borderRadius: 8, padding: "8px 14px", flexShrink: 0,
+            display: "flex", alignItems: "center", gap: 8,
           }}>
-            <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 2 }}>今月の残り送信枠</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>残り</span>
+            <span style={{
+              fontSize: 16, fontWeight: 800, fontFamily: "Inter, sans-serif",
+              color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--ink)",
+            }}>
               {scoutQuota.remaining}
-              <span style={{ fontSize: 12, fontWeight: 400, color: "var(--ink-mute)", marginLeft: 4 }}>
-                / {scoutQuota.monthlyLimit + scoutQuota.bonusCredits} 通
-              </span>
-            </div>
-            {scoutQuota.bonusCredits > 0 && (
-              <div style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                （追加枠 +{scoutQuota.bonusCredits} 通含む）
-              </div>
-            )}
+            </span>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+              / {scoutQuota.monthlyLimit + scoutQuota.bonusCredits} 通
+            </span>
           </div>
         )}
       </div>
 
-      {/* Scout send modal */}
+      {/* Scout modal */}
       {scoutTarget && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
@@ -285,7 +319,6 @@ export default function CandidatesClient({
                   </h3>
                   <button type="button" onClick={() => setScoutTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--ink-mute)" }}>×</button>
                 </div>
-                {/* Job selection */}
                 {jobOptions.length > 0 && (
                   <label style={{ display: "block", marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>求人を指定（任意）</div>
@@ -301,7 +334,6 @@ export default function CandidatesClient({
                     </select>
                   </label>
                 )}
-                {/* Message */}
                 <label style={{ display: "block", marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
                     メッセージ <span style={{ color: "var(--error)" }}>*</span>
@@ -328,7 +360,13 @@ export default function CandidatesClient({
                     type="button"
                     onClick={sendScout}
                     disabled={scoutSending || !scoutMessage.trim()}
-                    style={{ background: scoutSending || !scoutMessage.trim() ? "var(--ink-mute)" : "var(--royal)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: scoutSending || !scoutMessage.trim() ? "default" : "pointer", fontFamily: "inherit" }}
+                    style={{
+                      background: scoutSending || !scoutMessage.trim() ? "var(--ink-mute)" : "var(--royal)",
+                      color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px",
+                      fontSize: 14, fontWeight: 600,
+                      cursor: scoutSending || !scoutMessage.trim() ? "default" : "pointer",
+                      fontFamily: "inherit",
+                    }}
                   >
                     {scoutSending ? "送信中..." : "スカウトを送る"}
                   </button>
@@ -344,14 +382,14 @@ export default function CandidatesClient({
         background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 24,
       }}>
-        {/* Row 1: search + work-style select + count/clear */}
+        {/* Row 1: search + work-style + count/clear */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
           <div style={{ position: "relative", flex: "1 1 200px" }}>
             <input
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="名前・職種・会社・地域で検索..."
+              placeholder="名前・職種・会社・スキル・地域で検索..."
               aria-label="候補者を検索"
               style={{
                 width: "100%", height: 36, padding: q ? "0 32px 0 12px" : "0 12px",
@@ -371,13 +409,10 @@ export default function CandidatesClient({
                   color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}
-              >
-                ×
-              </button>
+              >×</button>
             )}
           </div>
           <select
-            id="candidates-work-style"
             value={workStyle}
             aria-label="勤務スタイルで絞り込み"
             onChange={(e) => setWorkStyle(e.target.value)}
@@ -393,7 +428,6 @@ export default function CandidatesClient({
               <option key={v} value={v}>{l}</option>
             ))}
           </select>
-          {/* Result count + clear */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
               <strong style={{ color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>{filtered.length}</strong>
@@ -417,7 +451,7 @@ export default function CandidatesClient({
         </div>
 
         {/* Row 2: 職種カテゴリ chip */}
-        <div style={{ marginBottom: selectedCat ? 8 : 12 }}>
+        <div style={{ marginBottom: selectedCat ? 8 : 10 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>職種:</span>
             {getVisibleCategories().map((cat) => (
@@ -435,11 +469,11 @@ export default function CandidatesClient({
           </div>
         </div>
 
-        {/* Row 2b: 配下職種 chip（カテゴリ選択時のみ展開） */}
+        {/* Row 2b: 配下職種 chip */}
         {selectedCat && (
           <div style={{
             display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center",
-            padding: "8px 10px", marginBottom: 12,
+            padding: "8px 10px", marginBottom: 10,
             background: "var(--royal-50)", borderRadius: 8,
             border: "1px solid var(--royal-100)",
           }}>
@@ -472,7 +506,7 @@ export default function CandidatesClient({
           </div>
         )}
 
-        {/* Row 3: phase pills + transfer timing pills */}
+        {/* Row 3: phase + transfer timing + 除外フィルタ */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>企業フェーズ:</span>
           {["", ...PHASE_OPTIONS].map((v) => (
@@ -515,6 +549,26 @@ export default function CandidatesClient({
               {v || "全て"}
             </button>
           ))}
+
+          {/* スカウト済み除外トグル */}
+          {alreadyScoutedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setHideAlreadyScouted(!hideAlreadyScouted)}
+              aria-pressed={hideAlreadyScouted}
+              style={{
+                height: 28, padding: "0 10px", borderRadius: 14, marginLeft: "auto",
+                fontSize: 11, fontWeight: hideAlreadyScouted ? 700 : 400,
+                border: hideAlreadyScouted ? "1.5px solid var(--ink)" : "1px solid var(--line)",
+                background: hideAlreadyScouted ? "var(--ink)" : "#fff",
+                color: hideAlreadyScouted ? "#fff" : "var(--ink-soft)",
+                cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+                transition: "all 0.15s",
+              }}
+            >
+              スカウト済みを除く（{alreadyScoutedCount}人）
+            </button>
+          )}
         </div>
       </div>
 
@@ -530,150 +584,209 @@ export default function CandidatesClient({
             </svg>
           </div>
           <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>
-            条件に合う求職者が見つかりませんでした
+            条件に合う候補者が見つかりませんでした
           </p>
           <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
             {candidates.length === 0
-              ? "現在、公開プロフィールを設定している求職者はいません"
+              ? "現在、スカウトを受け取る設定をしている求職者はいません"
               : "フィルター条件を変えてみてください"}
           </p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 16 }}>
-          {filtered.map((c) => (
-            <a
-              key={c.id}
-              href={`/u/${c.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: "none", display: "block" }}
-            >
-              <div style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "18px 20px",
-                transition: "box-shadow 0.15s, transform 0.15s",
-                cursor: "pointer",
-                height: "100%",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(0,35,102,0.10)";
-                (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-                (e.currentTarget as HTMLDivElement).style.transform = "none";
-              }}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+          {filtered.map((c) => {
+            const decade = toDecade(c.birthYear);
+            const startedLabel = formatStarted(c.startedAt);
+            const empLabel = c.employmentType ? (EMPLOYMENT_TYPE_LABELS[c.employmentType] ?? c.employmentType) : null;
+            return (
+              <a
+                key={c.id}
+                href={`/u/${c.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none", display: "block" }}
               >
-                {/* Avatar + name */}
-                <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-                    background: getGradient(c.id),
-                    color: "#fff", display: "flex", alignItems: "center",
-                    justifyContent: "center", fontSize: 17, fontWeight: 700,
-                  }}>
-                    {c.name.charAt(0) || "?"}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                        {c.name}
-                      </span>
+                <div
+                  style={{
+                    background: "#fff",
+                    border: c.alreadyScouted ? "1px solid #E2E8F0" : "1px solid var(--line)",
+                    borderRadius: 14, padding: "18px 20px",
+                    transition: "box-shadow 0.15s, transform 0.15s",
+                    cursor: "pointer",
+                    height: "100%",
+                    opacity: c.alreadyScouted ? 0.75 : 1,
+                    position: "relative",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(0,35,102,0.10)";
+                    (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+                    (e.currentTarget as HTMLDivElement).style.transform = "none";
+                  }}
+                >
+                  {/* スカウト済みバッジ */}
+                  {c.alreadyScouted && (
+                    <div style={{
+                      position: "absolute", top: 12, right: 12,
+                      fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                      background: "var(--bg-tint)", color: "var(--ink-mute)",
+                      border: "1px solid var(--line)",
+                    }}>
+                      送信済み
                     </div>
-                    {(c.currentRole || c.currentCompany) ? (
-                      <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
-                        {[c.currentRole, c.currentCompany].filter(Boolean).join(" @ ")}
+                  )}
+
+                  {/* Avatar + name + badges */}
+                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                      background: getGradient(c.id),
+                      color: "#fff", display: "flex", alignItems: "center",
+                      justifyContent: "center", fontSize: 17, fontWeight: 700,
+                    }}>
+                      {c.name.charAt(0) || "?"}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 2 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                          {c.name}
+                        </span>
+                        {decade && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 100,
+                            background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-mute)",
+                          }}>{decade}</span>
+                        )}
+                        {c.isOpenToWork && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                            background: "var(--success-soft)", border: "1px solid #6EE7B7", color: "var(--success)",
+                          }}>転職検討中</span>
+                        )}
+                        {c.isMentor && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                            background: "var(--purple-soft)", border: "1px solid #DDD6FE", color: "var(--purple)",
+                          }}>メンター</span>
+                        )}
                       </div>
-                    ) : c.jobType ? (
-                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                        {JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}
-                      </div>
-                    ) : null}
+                      {/* 現職情報 */}
+                      {(c.currentRole || c.currentCompany) ? (
+                        <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+                          {c.currentRole && <span style={{ fontWeight: 600 }}>{c.currentRole}</span>}
+                          {c.currentRole && c.currentCompany && <span style={{ color: "var(--ink-mute)" }}> @ </span>}
+                          {c.currentCompany && <span>{c.currentCompany}</span>}
+                          {(empLabel || startedLabel) && (
+                            <span style={{ color: "var(--ink-mute)", fontSize: 11 }}>
+                              {" "}·{" "}
+                              {[empLabel, startedLabel].filter(Boolean).join("  ")}
+                            </span>
+                          )}
+                        </div>
+                      ) : c.jobType ? (
+                        <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                          {JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
 
-                {/* Tags */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
-                  {c.location && (
-                    <span style={{
-                      fontSize: 11, padding: "3px 8px", borderRadius: 100,
-                      background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
-                    }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{c.location}
-                    </span>
+                  {/* スキルタグ（最大6件） */}
+                  {c.skills.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
+                      {c.skills.slice(0, 6).map((skill) => (
+                        <span key={skill} style={{
+                          fontSize: 10, padding: "2px 7px", borderRadius: 100,
+                          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                          color: "var(--accent)", fontWeight: 600,
+                        }}>
+                          {skill}
+                        </span>
+                      ))}
+                      {c.skills.length > 6 && (
+                        <span style={{
+                          fontSize: 10, padding: "2px 7px", borderRadius: 100,
+                          background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-mute)",
+                        }}>
+                          +{c.skills.length - 6}
+                        </span>
+                      )}
+                    </div>
                   )}
-                  {c.workStyle && (
-                    <span style={{
-                      fontSize: 11, padding: "3px 8px", borderRadius: 100,
-                      background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--accent)",
-                      fontWeight: 600,
-                    }}>
-                      {WORK_STYLE_LABELS[c.workStyle] ?? c.workStyle}
-                    </span>
-                  )}
-                  {c.transferTiming && (
-                    <span style={{
-                      fontSize: 11, padding: "3px 8px", borderRadius: 100,
-                      background: "var(--warm-soft)", border: "1px solid #FDE68A", color: "#92400E",
-                      fontWeight: 600,
-                    }}>
-                      ⏱ {c.transferTiming}
-                    </span>
-                  )}
-                  {c.desiredPhase && c.desiredPhase.length > 0 && (
-                    <span style={{
-                      fontSize: 11, padding: "3px 8px", borderRadius: 100,
-                      background: "var(--success-soft)", border: "1px solid #a7f3d0", color: "var(--success)",
-                      fontWeight: 600,
-                    }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>{c.desiredPhase.join("・")}
-                    </span>
-                  )}
-                </div>
 
-                {/* Footer */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{
-                    fontSize: 10, padding: "3px 8px", borderRadius: 100,
-                    background: c.onboardingCompleted ? "var(--success-soft)" : "var(--bg-tint)",
-                    color: c.onboardingCompleted ? "var(--success)" : "var(--ink-mute)",
-                    border: `1px solid ${c.onboardingCompleted ? "#a7f3d0" : "var(--line)"}`,
-                    fontWeight: 600,
-                  }}>
-                    {c.onboardingCompleted ? "✓ プロフィール設定済み" : "設定中"}
-                  </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {/* 属性タグ行 */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
+                    {c.location && (
+                      <span style={{
+                        fontSize: 11, padding: "2px 7px", borderRadius: 100,
+                        background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {c.location}
+                      </span>
+                    )}
+                    {c.workStyle && (
+                      <span style={{
+                        fontSize: 11, padding: "2px 7px", borderRadius: 100,
+                        background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--accent)",
+                        fontWeight: 600,
+                      }}>
+                        {WORK_STYLE_LABELS[c.workStyle] ?? c.workStyle}
+                      </span>
+                    )}
+                    {c.transferTiming && (
+                      <span style={{
+                        fontSize: 11, padding: "2px 7px", borderRadius: 100,
+                        background: "var(--warm-soft)", border: "1px solid #FDE68A", color: "#92400E",
+                        fontWeight: 600,
+                      }}>
+                        ⏱ {c.transferTiming}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Footer: スカウトボタン */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                     <button
                       type="button"
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); openScout(c); }}
                       disabled={(scoutQuota?.remaining ?? 1) === 0}
                       style={{
-                        fontSize: 11, padding: "5px 12px", borderRadius: 6,
-                        background: (scoutQuota?.remaining ?? 1) === 0 ? "var(--bg-tint)" : "var(--royal)",
-                        color: (scoutQuota?.remaining ?? 1) === 0 ? "var(--ink-mute)" : "#fff",
-                        border: "none", cursor: (scoutQuota?.remaining ?? 1) === 0 ? "default" : "pointer",
+                        fontSize: 12, padding: "6px 14px", borderRadius: 6,
+                        background: (scoutQuota?.remaining ?? 1) === 0
+                          ? "var(--bg-tint)"
+                          : c.alreadyScouted
+                            ? "#fff"
+                            : "var(--royal)",
+                        color: (scoutQuota?.remaining ?? 1) === 0
+                          ? "var(--ink-mute)"
+                          : c.alreadyScouted
+                            ? "var(--royal)"
+                            : "#fff",
+                        border: c.alreadyScouted ? "1px solid var(--royal)" : "none",
+                        cursor: (scoutQuota?.remaining ?? 1) === 0 ? "default" : "pointer",
                         fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap",
                       }}
                     >
-                      スカウトを送る
+                      {c.alreadyScouted ? "再スカウト" : "スカウトを送る"}
                     </button>
                     <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>詳細 →</span>
                   </div>
                 </div>
-              </div>
-            </a>
-          ))}
+              </a>
+            );
+          })}
         </div>
       )}
 
-      {/* Info note */}
       <div style={{
         marginTop: 32, padding: "14px 18px", background: "var(--royal-50)",
         border: "1px solid var(--royal-100)", borderRadius: 10,
         fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
       }}>
         表示されるのは「スカウトを受け取る」設定をした求職者のみです。在籍企業・手動ブロック企業のスカウトは自動でブロックされます。
-        スカウト送信枠が不足する場合は管理者にお問い合わせください。
       </div>
     </div>
   );

@@ -46,10 +46,15 @@ export default async function BizScoutsPage() {
     candidate: userMap.get(s.candidate_id) as { id: string; name: string; avatar_color: string | null } | null,
   }));
 
+  const interestedCount = rows.filter((r) => r.status === "interested").length;
+  const readOrMore = rows.filter((r) => r.status !== "sent").length; // read + interested + declined
+  const replyRate = readOrMore > 0 ? Math.round((interestedCount / readOrMore) * 100) : null;
+
   const counts = {
     total: rows.length,
-    interested: rows.filter((r) => r.status === "interested").length,
+    interested: interestedCount,
     pending: rows.filter((r) => r.status === "sent" || r.status === "read").length,
+    replyRate,
   };
 
   return (
@@ -71,9 +76,10 @@ export default async function BizScoutsPage() {
         {/* Stats strip */}
         <div style={{ display: "flex", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
           {[
-            { label: "送信合計", value: counts.total, color: "var(--ink)" },
-            { label: "返答待ち", value: counts.pending, color: "var(--royal)" },
-            { label: "興味あり", value: counts.interested, color: "var(--success)" },
+            { label: "送信合計", value: `${counts.total}件`, color: "var(--ink)" },
+            { label: "返答待ち", value: `${counts.pending}件`, color: "var(--royal)" },
+            { label: "興味あり", value: `${counts.interested}件`, color: "var(--success)" },
+            ...(counts.replyRate !== null ? [{ label: "返信率", value: `${counts.replyRate}%`, color: "#7C3AED" }] : []),
           ].map((stat) => (
             <div key={stat.label} style={{
               background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
