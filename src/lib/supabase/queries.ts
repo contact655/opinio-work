@@ -177,6 +177,7 @@ function mapJob(row: Record<string, any>): Job {
     sales_segment: Array.isArray(row.sales_segment) ? (row.sales_segment as string[]) : null,
     sales_hunter_farmer: (row.sales_hunter_farmer as string) ?? null,
     incentive_note: (row.incentive_note as string) ?? null,
+    published_at: (row.published_at as string) ?? null,
   };
 }
 
@@ -651,6 +652,7 @@ const JOB_LIST_COLS = [
 
 const JOB_DETAIL_COLS = [
   ...JOB_LIST_COLS.split(", "),
+  "status", "expires_at",
   "description", "requirements", "preferred_skills", "selection_process",
   "message_to_candidates", "what_youll_do_intro", "who_we_want_intro",
   "why_hire", "team_composition", "first_90_days",
@@ -791,6 +793,7 @@ export async function getJobById(
     .from("ow_jobs")
     .select(JOB_DETAIL_COLS)
     .eq("id", id)
+    .in("status", ["active", "published"])
     .single();
 
   if (error || !data) {

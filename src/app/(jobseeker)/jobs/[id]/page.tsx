@@ -369,42 +369,72 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   return (
     <>
       <ReadingProgress />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "JobPosting",
-            title: job.role,
-            hiringOrganization: {
-              "@type": "Organization",
-              name: company.name,
+      {(() => {
+        // published_at が null の求人は JSON-LD を出力しない。
+        // created_at フォールバックは使用しない（2026-06-12 のデータ移行日が全件に入るため）。
+        if (!job.published_at) return null;
+
+        // description: catch_copy + overview + required_skills を結合。空なら出力しない。
+        const descParts: string[] = [];
+        if (job.highlight) descParts.push(`<p>${job.highlight}</p>`);
+        if (job.overview) descParts.push(`<p>${job.overview}</p>`);
+        if (job.required_skills.length > 0) {
+          descParts.push(`<p>必須要件</p><ul>${job.required_skills.map((s) => `<li>${s}</li>`).join("")}</ul>`);
+        }
+        const description = descParts.join("");
+        if (!description) return null;
+
+        const isFullRemote = job.work_style.includes("フルリモート");
+
+        const jsonLd: Record<string, unknown> = {
+          "@context": "https://schema.org",
+          "@type": "JobPosting",
+          title: job.role,
+          identifier: {
+            "@type": "PropertyValue",
+            name: company.name,
+            value: params.id,
+          },
+          hiringOrganization: {
+            "@type": "Organization",
+            name: company.name,
+            sameAs: `https://opinio.jp/companies/${job.company_id}`,
+          },
+          jobLocation: {
+            "@type": "Place",
+            address: {
+              "@type": "PostalAddress",
+              addressCountry: "JP",
+              addressLocality: job.location || "東京",
             },
-            jobLocation: {
-              "@type": "Place",
-              address: {
-                "@type": "PostalAddress",
-                addressCountry: "JP",
-                addressLocality: job.location ?? "東京",
-              },
+          },
+          ...(isFullRemote ? {
+            jobLocationType: "TELECOMMUTE",
+            applicantLocationRequirements: { "@type": "Country", name: "JP" },
+          } : {}),
+          baseSalary: job.salary_min ? {
+            "@type": "MonetaryAmount",
+            currency: "JPY",
+            value: {
+              "@type": "QuantitativeValue",
+              minValue: job.salary_min * 10000,
+              ...(job.salary_max ? { maxValue: job.salary_max * 10000 } : {}),
+              unitText: "YEAR",
             },
-            baseSalary: job.salary_min ? {
-              "@type": "MonetaryAmount",
-              currency: "JPY",
-              value: {
-                "@type": "QuantitativeValue",
-                minValue: job.salary_min * 10000,
-                maxValue: job.salary_max ? job.salary_max * 10000 : undefined,
-                unitText: "YEAR",
-              },
-            } : undefined,
-            datePosted: new Date().toISOString(),
-            employmentType: job.employment_type ?? "FULL_TIME",
-            description: job.highlight ?? "",
-            url: `https://opinio.jp/jobs/${params.id}`,
-          }).replace(/</g, "\\u003c"),
-        }}
-      />
+          } : undefined,
+          datePosted: job.published_at,
+          employmentType: job.employment_type ?? "FULL_TIME",
+          description,
+          url: `https://opinio.jp/jobs/${params.id}`,
+        };
+
+        return (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+          />
+        );
+      })()}
       {/* Breadcrumb */}
       <nav aria-label="パンくずリスト" style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
