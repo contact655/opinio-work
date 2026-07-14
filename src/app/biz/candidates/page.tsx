@@ -99,7 +99,7 @@ export default async function CandidatesPage() {
   const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
 
   // ow_users 取得（birth_date・is_open_to_work を取得）
-  const { data: rawUsers } = scoutAuthIds.length > 0
+  const { data: rawUsers, error: rawUsersError } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
         .select("id, name, location, is_mentor, is_open_to_work, birth_date, created_at, auth_id")
@@ -108,7 +108,11 @@ export default async function CandidatesPage() {
         .not("is_system", "eq", true)
         .order("created_at", { ascending: false })
         .limit(500)
-    : { data: [] };
+    : { data: [], error: null };
+
+  if (rawUsersError) {
+    console.error("[candidates] ow_users fetch error:", rawUsersError);
+  }
 
   const userIds = (rawUsers ?? []).map((u: any) => u.id as string);
 
