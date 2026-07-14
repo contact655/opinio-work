@@ -8,19 +8,16 @@ function str(v: unknown, max: number): string | null {
   return typeof v === "string" ? v.slice(0, max) || null : null;
 }
 
-function parseSalary(body: Record<string, unknown>): { salaryMin: number; salaryMax: number } | { error: string } {
-  const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : NaN;
-  const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : NaN;
-  if (isNaN(salaryMin) || isNaN(salaryMax) || salaryMin <= 0 || salaryMax <= 0) {
-    return { error: "給与レンジ（最低・最高）は必須です" };
-  }
-  if (salaryMax < salaryMin) {
+function parseSalary(body: Record<string, unknown>): { salaryMin: number | null; salaryMax: number | null } | { error: string } {
+  const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
+  const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
+  if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin) {
     return { error: "最高給与は最低給与以上に設定してください" };
   }
   return { salaryMin, salaryMax };
 }
 
-function buildJobRecord(body: Record<string, unknown>, companyId: string, salaryMin: number, salaryMax: number) {
+function buildJobRecord(body: Record<string, unknown>, companyId: string, salaryMin: number | null, salaryMax: number | null) {
   return {
     company_id: companyId,
     title: str(body.title, 200),

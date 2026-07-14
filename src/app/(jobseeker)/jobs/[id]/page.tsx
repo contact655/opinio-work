@@ -464,11 +464,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {job.role}
               </h1>
 
-              {/* ② Salary — success green, prominent below title */}
-              {(job.salary_min || job.salary_max) && (
+              {/* ② Salary — always shown; 給与非公開の場合はその旨を明示 */}
               <div style={{ marginBottom: "var(--space-2)" }}>
                 {/* セールス職の場合は基本給 + OTE を並べて表示 */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                {(job.salary_min || job.salary_max) ? (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "5px 14px", borderRadius: 100,
@@ -484,6 +484,16 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     : job.salary_min ? `${job.salary_min}万円〜`
                     : `〜${job.salary_max}万円`}
                 </span>
+                ) : (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "5px 14px", borderRadius: 100,
+                  background: "var(--line-soft)", border: "1px solid var(--line)",
+                  color: "var(--ink-mute)", fontSize: 13, fontWeight: 500,
+                }}>
+                  給与非公開
+                </span>
+                )}
                 {/* OTE ピル（営業職かつ入力あり） */}
                 {isSalesJob(job.dept) && (job.ote_min || job.ote_max) && (
                   <span style={{
@@ -530,7 +540,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 )}
               </div>
-              )}
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                 {[job.employment_type, job.work_style, job.location, job.experience].filter(Boolean).map((b) => (

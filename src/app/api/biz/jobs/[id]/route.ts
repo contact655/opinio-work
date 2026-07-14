@@ -39,10 +39,7 @@ export async function PUT(
 
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
   const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
-  if (!salaryMin || !salaryMax || isNaN(salaryMin) || isNaN(salaryMax)) {
-    return NextResponse.json({ error: "給与レンジ（最低・最高）は必須です" }, { status: 422 });
-  }
-  if (salaryMax < salaryMin) {
+  if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin) {
     return NextResponse.json({ error: "最高給与は最低給与以上に設定してください" }, { status: 422 });
   }
   const now = new Date().toISOString();
