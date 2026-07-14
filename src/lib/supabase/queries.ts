@@ -988,12 +988,24 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     (allRoles ?? []).map((r) => [r.id as string, r])
   );
 
+  // 企業が非表示にした experience_id を取得
+  const { data: hiddenRows } = await supabase
+    .from("ow_company_hidden_experiences")
+    .select("experience_id")
+    .eq("company_id", companyId);
+  const hiddenIds = (hiddenRows ?? []).map((r) => r.experience_id as string);
+
   // 現役社員 (is_current = true)
-  const { data: currentRows, error: e1 } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
     .eq("company_id", companyId)
     .eq("is_current", true);
+  if (hiddenIds.length > 0) {
+    currentQuery = currentQuery.not("id", "in", `(${hiddenIds.join(",")})`);
+  }
+  const { data: currentRows, error: e1 } = await currentQuery;
 
   if (e1) {
     console.error("[getCompanyEmployees current]", e1.message);
@@ -1001,13 +1013,18 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   }
 
   // OB 社員 (is_current = false, ended_at あり)
-  const { data: alumniRows, error: e2 } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
     .order("ended_at", { ascending: false });
+  if (hiddenIds.length > 0) {
+    alumniQuery = alumniQuery.not("id", "in", `(${hiddenIds.join(",")})`);
+  }
+  const { data: alumniRows, error: e2 } = await alumniQuery;
 
   if (e2) {
     console.error("[getCompanyEmployees alumni]", e2.message);
@@ -1055,8 +1072,10 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
-  const currentEmps = dedupeByUser((currentRows ?? []).map((r) => mapEmp(r)));
-  const alumniEmps  = dedupeByUser((alumniRows ?? []).map((r) => mapEmp(r, r.ended_at, r.started_at)));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentEmps = dedupeByUser((currentRows ?? []).map((r: any) => mapEmp(r)));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const alumniEmps  = dedupeByUser((alumniRows ?? []).map((r: any) => mapEmp(r, r.ended_at, r.started_at)));
 
   // OB/OG の「退職後の現在キャリア」を取得（is_current=true の経験から）
   if (alumniEmps.length > 0) {
