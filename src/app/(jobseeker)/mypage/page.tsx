@@ -30,7 +30,7 @@ export default async function MypagePage({
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, cover_color, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
+    .select("id, name, avatar_color, avatar_url, cover_color, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
     .eq("auth_id", user.id)
     .maybeSingle();
 

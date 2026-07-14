@@ -12,6 +12,7 @@ import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS, getVisibleCategories } from "@/lib/constants/jobTypes";
+import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -3387,6 +3388,30 @@ export default function ProfileEditClient({
             </Link>
           </div>
         </div>
+
+        {/* ── プロフィール完成度バー ────────────────────────────────────────── */}
+        {(() => {
+          const completionData: CompletionInput = {
+            hasName:               !!basicInfo.name && basicInfo.name.trim() !== "" && basicInfo.name !== "ユーザー",
+            hasAboutMe:            !!basicInfo.aboutMe && basicInfo.aboutMe.trim().length > 0,
+            hasLocation:           !!basicInfo.location && basicInfo.location.trim().length > 0,
+            hasBirthDate:          !!birthYear && !!birthMonth && !!birthDay,
+            hasAvatar:             !!owUser?.avatar_url,
+            experienceCount:       initialExperiences.length,
+            educationCount:        educations.length,
+            skillCount:            skillTags.length,
+            hasPreferences:        !!(prefJobType || prefWorkStyle || prefTiming),
+            certOrAchievementCount: certifications.length + achievements.length + awards.length + mediaAppearances.length,
+            socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
+          };
+          return (
+            <ProfileCompletionBar
+              data={completionData}
+              mode="edit"
+              onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
+            />
+          );
+        })()}
 
         {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
         <Tabs

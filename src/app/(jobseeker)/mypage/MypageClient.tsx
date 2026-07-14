@@ -18,11 +18,13 @@ import {
   type Bookmark,
 } from "@/app/mypage/mockMypageData";
 import { StatusPill } from "@/components/common/StatusPill";
+import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 
 type OwUser = {
   id: string;
   name: string;
   avatar_color: string | null;
+  avatar_url: string | null;
   cover_color: string | null;
   about_me: string | null;
   birth_date: string | null;
@@ -1018,15 +1020,23 @@ export default function MypageClient({
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* プロフィール完成度（マイルストーン式） */}
-      <ProfileCompletenessCard
-        userName={userName}
-        userAboutMe={owUser?.about_me}
-        userSkillTags={skillTags}
-        timelineCareers={timelineCareers}
-        hasCareerPreferences={hasCareerPreferences}
-        userCertifications={certifications}
-      />
+      {/* プロフィール完成度バー */}
+      {(() => {
+        const completionData: CompletionInput = {
+          hasName:               !!userName && userName !== "ユーザー",
+          hasAboutMe:            !!owUser?.about_me && owUser.about_me.trim().length > 0,
+          hasLocation:           !!owUser?.location && owUser.location.trim().length > 0,
+          hasBirthDate:          !!owUser?.birth_date,
+          hasAvatar:             !!owUser?.avatar_url,
+          experienceCount:       timelineCareers?.length ?? 0,
+          educationCount:        educations?.length ?? 0,
+          skillCount:            skillTags?.length ?? 0,
+          hasPreferences:        hasCareerPreferences,
+          certOrAchievementCount: certifications?.length ?? 0,
+          socialOrContentCount:  Object.values(owUser?.social_links ?? {}).filter(Boolean).length,
+        };
+        return <ProfileCompletionBar data={completionData} mode="mypage" />;
+      })()}
 
       {/* 最近の申込 */}
       <div>
