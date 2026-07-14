@@ -407,7 +407,7 @@ export function JobEditForm({
   // セクション完成度チェック
   const sectionComplete = useMemo(() => ({
     basic:        !!form.title.trim(),
-    salary:       !!(form.salaryMin || form.salaryMax),
+    salary:       !!(form.salaryMin && form.salaryMax),
     content:      !!form.descriptionMarkdown.trim(),
     requirements: form.requiredSkills.length > 0 || !!form.cultureFit.trim(),
     process:      form.selectionSteps.length > 0,
