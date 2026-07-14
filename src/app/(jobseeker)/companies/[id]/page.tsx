@@ -11,6 +11,7 @@ import {
   getCompanyEmployeesCached,
 } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { SALARY_STATS_MIN } from "@/lib/constants/salary";
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -3435,7 +3436,7 @@ export default async function CompanyDetailPage({
   const supabase = createClient();
 
   // auth + all DB queries in parallel (auth no longer blocks data fetching)
-  const [authResult, companyResult, photos, recruiters, companyArticles, employees, companyPosts] = await Promise.all([
+  const [authResult, companyResult, photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult] = await Promise.all([
     supabase.auth.getUser(),
     getCompanyByIdCached(params.id),
     getCompanyPhotosCached(params.id),
@@ -3449,7 +3450,14 @@ export default async function CompanyDetailPage({
       .eq("is_published", true)
       .order("published_at", { ascending: false })
       .then((r: { data: CompanyPost[] | null }) => r.data ?? []),
+    createAdminClient()
+      .from("ow_salary_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", params.id)
+      .eq("is_approved", true),
   ]);
+
+  const hasSalarySection = (salaryCountResult.count ?? 0) >= SALARY_STATS_MIN;
 
   const authUser = authResult.data.user;
   const isAuthenticated = !!authUser;
@@ -3514,7 +3522,7 @@ export default async function CompanyDetailPage({
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
-          { id: "salary", label: "給与データ" },
+          ...(hasSalarySection ? [{ id: "salary", label: "給与データ" }] : []),
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -3609,8 +3617,8 @@ export default async function CompanyDetailPage({
 
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
-            {/* ── 給与データ ── */}
-            <SalaryDataSection companyId={company.id} />
+            {/* ── 給与データ（3件以上のときのみ） ── */}
+            {hasSalarySection && <SalaryDataSection companyId={company.id} />}
 
             {/* ── ページ末尾CTA ── */}
             {company.accepting_casual_meetings && (
