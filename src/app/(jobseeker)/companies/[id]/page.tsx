@@ -1958,7 +1958,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: alumni.length <= 2 ? "1fr" : "repeat(2, 1fr)", gap: 8 }}>
+          <div className="alumni-grid">
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
