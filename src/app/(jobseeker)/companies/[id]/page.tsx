@@ -1537,6 +1537,9 @@ const EMPLOYEE_GRID_CSS = `
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
+  @media (max-width: 767px) {
+    .alumni-grid { grid-template-columns: 1fr; }
+  }
 `;
 
 
@@ -1822,7 +1825,6 @@ function CurrentEmployeesSection({
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
 
-  // 在籍期間を計算（"YYYY-MM" 形式）
   function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
     if (!startedAt || !endedAt) return null;
     const [sy, sm] = startedAt.split("-").map(Number);
@@ -1837,9 +1839,9 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   }
 
   const tenure = calcTenure(employee.startedAt, employee.endedAt);
-  const period = employee.startedAt && employee.endedAt
-    ? `${employee.startedAt.slice(0, 7).replace("-", ".")} 〜 ${employee.endedAt.replace("-", ".")}`
-    : employee.endedAt ? `〜 ${employee.endedAt.replace("-", ".")} 退職` : null;
+  const period = employee.startedAt
+    ? `${employee.startedAt.slice(0, 7).replace("-", ".")} 〜 ${employee.endedAt ? employee.endedAt.slice(0, 7).replace("-", ".") : "現在"}`
+    : null;
 
   return (
     <a
@@ -1847,120 +1849,68 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
       className="employee-card-link"
       style={{
         display: "flex",
-        flexDirection: "column",
+        alignItems: "center",
         gap: 12,
-        padding: "16px",
+        padding: "12px 14px",
         background: "#fff",
         border: "1px solid var(--line)",
-        borderRadius: 14,
+        borderRadius: 12,
         textDecoration: "none",
-        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+        transition: "border-color 0.15s, box-shadow 0.15s",
       }}
     >
-      {/* 上段: アバター + 名前・役職 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: "50%",
-          background: avatarColor.bg,
-          flexShrink: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 24,
-          color: avatarColor.text, overflow: "hidden",
-          border: "3px solid #fff",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.14)",
-          position: "relative",
-        }}>
-          {employee.avatarUrl ? (
-            <EmployeeAvatarImg
-              src={employee.avatarUrl}
-              alt={employee.name}
-              fallbackBg={avatarColor.bg}
-              fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
-              fallbackColor={avatarColor.text}
-              fontSize={22}
-            />
-          ) : employee.avatarInitial}
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
+      {/* アバター */}
+      <div style={{
+        width: 48, height: 48, borderRadius: "50%",
+        background: avatarColor.bg, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
+        color: avatarColor.text, overflow: "hidden",
+        border: "2px solid var(--line)", position: "relative",
+      }}>
+        {employee.avatarUrl ? (
+          <EmployeeAvatarImg
+            src={employee.avatarUrl} alt={employee.name}
+            fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
+            fallbackColor={avatarColor.text} fontSize={18}
+          />
+        ) : (employee.avatarInitial ?? employee.name.charAt(0))}
+      </div>
+
+      {/* テキスト列 */}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
             {employee.name}
           </span>
-          {employee.roleTitle && (
-            <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {employee.roleTitle}
-            </p>
-          )}
-          {/* 在籍期間 */}
-          {(period || tenure) && (
-            <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", marginTop: 3, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-              {period && <span>{period}</span>}
-              {tenure && (
-                <span style={{ background: "var(--royal-50)", color: "var(--royal)", padding: "1px 6px", borderRadius: 100, fontWeight: 600, fontSize: 10 }}>
-                  {tenure}
-                </span>
-              )}
-            </p>
+          {tenure && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
+              {tenure}
+            </span>
           )}
         </div>
+        {/* 役職 + 在籍期間（1行） */}
+        <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {[employee.roleTitle, period].filter(Boolean).join(" · ")}
+        </p>
+        {/* 現在のキャリア（インライン） */}
+        {employee.currentCompanyName && (
+          <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            現在: {employee.currentCompanyName}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
+          </p>
+        )}
+        {/* catchphrase（コンパクト引用） */}
+        {employee.catchphrase && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--royal)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            &ldquo;{employee.catchphrase}&rdquo;
+          </p>
+        )}
       </div>
 
-      {/* 中段: 現在のキャリア */}
-      {employee.currentCompanyName && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "6px 10px", borderRadius: 8,
-          background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
-          fontSize: 11,
-        }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-          <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>現在:</span>
-          <span style={{ color: "var(--ink-soft)", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {employee.currentCompanyName}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
-          </span>
-        </div>
-      )}
-
-      {/* catchphrase: 相談できること */}
-      {employee.catchphrase && (
-        <div style={{
-          padding: "10px 14px", borderRadius: 10,
-          background: "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
-          border: "1px solid var(--royal-100)",
-          position: "relative",
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", opacity: 0.65, letterSpacing: "0.06em", marginBottom: 5, fontFamily: "Inter, sans-serif", textTransform: "uppercase" }}>
-            コメント
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--royal)" style={{ flexShrink: 0, marginTop: 1, opacity: 0.35 }}>
-              <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-              <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
-            </svg>
-            <span style={{ fontSize: 13, color: "var(--royal)", lineHeight: 1.6, fontWeight: 600 }}>{employee.catchphrase}</span>
-          </div>
-        </div>
-      )}
-
-      {/* 下段: CTAボタン */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center",
-          padding: "6px 14px", borderRadius: 8,
-          background: "var(--royal)", color: "#fff",
-          fontSize: 12, fontWeight: 700,
-          gap: 5,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          キャリアを見る
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
+      {/* シェブロン */}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
     </a>
   );
 }
