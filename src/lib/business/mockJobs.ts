@@ -40,6 +40,8 @@ export type BizJob = {
   salesSegment?: string[] | null;
   salesHunterFarmer?: string | null;
   incentiveNote?: string | null;
+  // 技術スタック (Migration 245)
+  techStack?: string[] | null;
 };
 
 

@@ -58,6 +58,8 @@ type DbJobFull = {
   sales_segment: string[] | null;
   sales_hunter_farmer: string | null;
   incentive_note: string | null;
+  // 技術スタック (Migration 245)
+  tech_stack: string[] | null;
   ow_job_assignees: { user_id: string }[] | null;
 };
 
@@ -213,7 +215,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -273,6 +275,7 @@ export async function fetchJobById(
     salesSegment: row.sales_segment ?? undefined,
     salesHunterFarmer: row.sales_hunter_farmer ?? undefined,
     incentiveNote: row.incentive_note ?? undefined,
+    techStack: row.tech_stack ?? [],
   };
 
   return { job, assigneeIds, jobRoles, companyId: row.company_id ?? "" };

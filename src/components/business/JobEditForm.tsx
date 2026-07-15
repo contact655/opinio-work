@@ -13,6 +13,7 @@ import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS, isSalesJob } from "@/lib/constants/salesFields";
+import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,8 @@ type FormState = {
   salesSegment: string[];
   salesHunterFarmer: string;
   incentiveNote: string;
+  // 技術スタック (Migration 245)
+  techStack: string[];
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -82,6 +85,7 @@ function jobToForm(job: BizJob | null): FormState {
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
     whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
     oteMin: "", oteMax: "", salesSegment: [], salesHunterFarmer: "", incentiveNote: "",
+    techStack: [],
   };
   return {
     title: job.title,
@@ -113,6 +117,7 @@ function jobToForm(job: BizJob | null): FormState {
     salesSegment: job.salesSegment ?? [],
     salesHunterFarmer: job.salesHunterFarmer ?? "",
     incentiveNote: job.incentiveNote ?? "",
+    techStack: job.techStack ?? [],
   };
 }
 
@@ -577,6 +582,64 @@ export function JobEditForm({
                     );
                   })}
                 </div>
+              </FormGroup>
+
+              {/* 技術スタック (Migration 245) */}
+              <FormGroup>
+                <FormLabel optional>技術スタック</FormLabel>
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 12, lineHeight: 1.6 }}>
+                  このポジションで主に使う技術・ツールを選択してください（複数可、任意）。
+                </p>
+                {TECH_STACK_CATEGORIES.map((cat) => (
+                  <div key={cat.label} style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+                      {cat.label}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                      {cat.items.map((tech) => {
+                        const isActive = form.techStack.includes(tech);
+                        return (
+                          <button
+                            key={tech}
+                            type="button"
+                            onClick={() => {
+                              const next = isActive
+                                ? form.techStack.filter((t) => t !== tech)
+                                : [...form.techStack, tech];
+                              updateForm("techStack", next);
+                            }}
+                            style={{
+                              padding: "5px 12px",
+                              borderRadius: 20,
+                              border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
+                              background: isActive ? "var(--royal-50)" : "#fff",
+                              color: isActive ? "var(--royal)" : "var(--ink-soft)",
+                              fontSize: 13,
+                              fontWeight: isActive ? 700 : 400,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                              transition: "all 0.1s",
+                            }}
+                          >
+                            {isActive && <span style={{ marginRight: 4 }}>✓</span>}{tech}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {form.techStack.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--ink-mute)", marginRight: 4 }}>選択中:</span>
+                    {form.techStack.map((t) => (
+                      <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700 }}>
+                        {t}
+                        <button type="button" onClick={() => updateForm("techStack", form.techStack.filter((x) => x !== t))}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--royal)", fontSize: 14, lineHeight: 1, padding: 0, fontFamily: "inherit" }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </FormGroup>
             </FormSection>
           </>

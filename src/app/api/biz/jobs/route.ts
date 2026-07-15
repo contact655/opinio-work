@@ -45,6 +45,7 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     sales_segment: Array.isArray(body.salesSegment) ? (body.salesSegment as string[]).filter((s) => typeof s === "string").slice(0, 3) : null,
     sales_hunter_farmer: str(body.salesHunterFarmer, 20) || null,
     incentive_note: str(body.incentiveNote, 1000) || null,
+    tech_stack: Array.isArray(body.techStack) ? (body.techStack as string[]).filter((s) => typeof s === "string").slice(0, 40) : [],
     status: "draft",
     updated_at: new Date().toISOString(),
   };
