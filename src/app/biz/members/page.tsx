@@ -4,7 +4,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate } from "./MembersClient";
+import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +115,8 @@ export default async function MembersPage() {
 
   const supabase = createClient();
 
+  const adminSupabase = createAdminClient();
+
   const [members, pendingInvites, ambassadors] = await Promise.all([
     fetchMembersForCompany(supabase, ctx.tenantId),
     fetchPendingInvitesForCompany(supabase, ctx.tenantId),
@@ -122,7 +124,29 @@ export default async function MembersPage() {
   ]);
 
   const existingUserIds = ambassadors.map((a) => a.user_id);
-  const candidates = await fetchAmbassadorCandidates(ctx.tenantId, existingUserIds);
+  const [candidates, meetingStatsRaw] = await Promise.all([
+    fetchAmbassadorCandidates(ctx.tenantId, existingUserIds),
+    adminSupabase
+      .from("ow_casual_meetings")
+      .select("assignee_user_id, status, completed_at")
+      .eq("company_id", ctx.tenantId)
+      .not("assignee_user_id", "is", null),
+  ]);
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const statsMap = new Map<string, MeetingStat>();
+  for (const row of (meetingStatsRaw.data ?? [])) {
+    const uid = row.assignee_user_id as string;
+    if (!statsMap.has(uid)) statsMap.set(uid, { user_id: uid, total: 0, completed: 0, this_month_completed: 0 });
+    const s = statsMap.get(uid)!;
+    s.total += 1;
+    if (row.status === "completed") {
+      s.completed += 1;
+      if (row.completed_at && row.completed_at >= monthStart) s.this_month_completed += 1;
+    }
+  }
+  const meetingStats = Array.from(statsMap.values());
 
   return (
     <BusinessLayout
@@ -140,6 +164,7 @@ export default async function MembersPage() {
         isAdmin={ctx.currentPermission === "admin"}
         ambassadors={ambassadors}
         ambassadorCandidates={candidates}
+        meetingStats={meetingStats}
       />
     </BusinessLayout>
   );

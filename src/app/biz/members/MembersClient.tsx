@@ -33,6 +33,13 @@ export type AmbassadorCandidate = {
   current_company: string | null;
 };
 
+export type MeetingStat = {
+  user_id: string;
+  total: number;
+  completed: number;
+  this_month_completed: number;
+};
+
 type Props = {
   initialMembers: MemberRecord[];
   initialPendingInvites: PendingInviteRecord[];
@@ -40,6 +47,7 @@ type Props = {
   isAdmin?: boolean;
   ambassadors?: AmbassadorRecord[];
   ambassadorCandidates?: AmbassadorCandidate[];
+  meetingStats?: MeetingStat[];
 };
 
 const PERM_LABELS: Record<MemberRecord["permission"], string> = {
@@ -1033,7 +1041,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [] }: Props) {
+export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [] }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("active");
 
@@ -1926,6 +1934,27 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
                       <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "役職未設定"}</div>
+                      {(() => {
+                        const stat = meetingStats.find((s) => s.user_id === a.user_id);
+                        if (!stat) return null;
+                        return (
+                          <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>
+                              面談 担当{stat.total}件
+                            </span>
+                            {stat.completed > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)" }}>
+                                完了{stat.completed}件
+                              </span>
+                            )}
+                            {stat.this_month_completed > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--warm-soft)", color: "#92400E" }}>
+                                今月{stat.this_month_completed}件
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                     {/* is_public トグル */}
                     {isAdmin && (

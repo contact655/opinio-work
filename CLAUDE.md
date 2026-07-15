@@ -13,6 +13,17 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## ⚠️ 未実装課題メモ
+
+### カジュアル面談の個人指名機能が未実装
+- 現状: 面談申込は企業宛（`company_id`）で、担当者は企業側が自己アサイン（`action: "assign_to_me"`）するのみ
+- 問題: `/companies/[id]` の「生藤さんに話を聞く →」ボタンを押しても、生藤さんが対応するとは限らない
+  - `member_id` を URL パラメータで渡しているが、`ow_casual_meetings` には `member_id`（指名先）を記録するカラムがない
+- 将来実装: `ow_casual_meetings` に `requested_member_id UUID` を追加し、求職者が特定の社員を指名できる仕組みを作る
+- 関連ファイル: `src/app/(jobseeker)/companies/[id]/casual-meeting/page.tsx`、`src/app/api/casual-meeting/route.ts`
+
+---
+
 ## 🎯 次のセッションでやること（2026-07-15 セッション26 更新）
 
 ### ✅ 完了 2026-07-15 セッション26: JSON-LD修正・テストデータ削除・ソフト404修正・フィード自動集約

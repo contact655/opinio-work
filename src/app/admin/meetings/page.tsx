@@ -22,6 +22,9 @@ type Meeting = {
   intent: string | null;
   status: string;
   createdAt: string;
+  completedAt: string | null;
+  assigneeUserId: string | null;
+  assigneeName: string | null;
 };
 
 async function getMeetings(): Promise<Meeting[]> {
@@ -37,9 +40,12 @@ async function getMeetings(): Promise<Meeting[]> {
       intent,
       status,
       created_at,
+      completed_at,
+      assignee_user_id,
       user:ow_users!user_id(name, email),
       company:ow_companies!company_id(name),
-      job:ow_jobs!job_id(title)
+      job:ow_jobs!job_id(title),
+      assignee:ow_users!assignee_user_id(name)
     `)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -61,12 +67,24 @@ async function getMeetings(): Promise<Meeting[]> {
     intent: row.intent as string | null,
     status: (row.status as string) ?? "pending",
     createdAt: row.created_at as string,
+    completedAt: row.completed_at as string | null,
+    assigneeUserId: row.assignee_user_id as string | null,
+    assigneeName: (row.assignee as { name: string | null } | null)?.name ?? null,
   }));
 }
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" });
 }
+
+type AssigneeStat = {
+  userId: string;
+  name: string;
+  companyName: string | null;
+  total: number;
+  completed: number;
+  thisMonthCompleted: number;
+};
 
 export default async function AdminMeetingsPage() {
   const meetings = await getMeetings();
@@ -77,6 +95,31 @@ export default async function AdminMeetingsPage() {
     completed: meetings.filter((m) => m.status === "completed").length,
     total: meetings.length,
   };
+
+  // 担当者別集計
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const assigneeMap = new Map<string, AssigneeStat>();
+  for (const m of meetings) {
+    if (!m.assigneeUserId || !m.assigneeName) continue;
+    if (!assigneeMap.has(m.assigneeUserId)) {
+      assigneeMap.set(m.assigneeUserId, {
+        userId: m.assigneeUserId,
+        name: m.assigneeName,
+        companyName: m.companyName,
+        total: 0,
+        completed: 0,
+        thisMonthCompleted: 0,
+      });
+    }
+    const s = assigneeMap.get(m.assigneeUserId)!;
+    s.total += 1;
+    if (m.status === "completed") {
+      s.completed += 1;
+      if (m.completedAt && m.completedAt >= monthStart) s.thisMonthCompleted += 1;
+    }
+  }
+  const assigneeStats = Array.from(assigneeMap.values()).sort((a, b) => b.total - a.total);
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1200, margin: "0 auto" }}>
@@ -209,6 +252,67 @@ export default async function AdminMeetingsPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* 担当者別集計 */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 14, marginTop: 0 }}>
+          担当者別 面談実績
+        </h2>
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, overflow: "hidden" }}>
+          {assigneeStats.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8" }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>📊</div>
+              <p style={{ fontSize: 13, margin: 0 }}>まだ面談データがありません。</p>
+              <p style={{ fontSize: 12, margin: "4px 0 0", color: "#CBD5E1" }}>
+                面談が申し込まれ担当者が設定されると自動で集計されます。
+              </p>
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                  {["担当者", "所属企業", "担当件数", "完了件数", "今月完了"].map((h) => (
+                    <th key={h} style={{
+                      textAlign: "left", padding: "10px 16px",
+                      fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                      letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap",
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {assigneeStats.map((s) => (
+                  <tr key={s.userId} style={{ borderBottom: "1px solid #F8FAFC" }}>
+                    <td style={{ padding: "12px 16px", fontWeight: 600, color: "#0F172A" }}>
+                      <Link href={`/u/${s.userId}`} target="_blank" style={{ color: "var(--royal)", textDecoration: "none" }}>
+                        {s.name}
+                      </Link>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#475569" }}>{s.companyName ?? "—"}</td>
+                    <td style={{ padding: "12px 16px", fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#0F172A" }}>
+                      {s.total}件
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      {s.completed > 0 ? (
+                        <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#059669" }}>
+                          {s.completed}件
+                        </span>
+                      ) : <span style={{ color: "#CBD5E1" }}>0件</span>}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      {s.thisMonthCompleted > 0 ? (
+                        <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#B45309" }}>
+                          {s.thisMonthCompleted}件
+                        </span>
+                      ) : <span style={{ color: "#CBD5E1" }}>0件</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );
