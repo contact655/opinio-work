@@ -1078,8 +1078,8 @@ function PostCard({
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 14,
-        padding: "16px 20px",
-        marginBottom: 10,
+        padding: "14px 16px",
+        marginBottom: 8,
         boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
       }}
     >
@@ -1097,10 +1097,10 @@ function PostCard({
           {post.user.is_system ? (
             <div
               style={{
-                width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                width: 38, height: 38, borderRadius: 8, flexShrink: 0,
                 background: post.user.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 18,
+                color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15,
                 overflow: "hidden",
               }}
             >
@@ -1110,7 +1110,7 @@ function PostCard({
             </div>
           ) : (
             <Link href={`/u/${post.user.id}`}>
-              <Avatar user={post.user} size={44} />
+              <Avatar user={post.user} size={38} />
             </Link>
           )}
           <div>
@@ -1441,14 +1441,13 @@ function PostCard({
         </div>
       )}
 
-      {/* フッター: いいね + コメント */}
+      {/* フッター: いいね + コメント + ブックマーク */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 4,
           paddingTop: 8,
-          borderTop: "1px solid var(--line)",
         }}
       >
         {/* いいねボタン — 未ログイン時は /auth へ誘導 */}
@@ -1470,6 +1469,7 @@ function PostCard({
             fontSize: 14,
             fontWeight: post.liked_by_me ? 700 : 400,
             transition: "background 0.15s, color 0.15s",
+            opacity: post.like_count === 0 && !post.liked_by_me ? 0.55 : 1,
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
@@ -1498,6 +1498,7 @@ function PostCard({
             fontFamily: '"Noto Sans JP", sans-serif',
             fontSize: 14,
             transition: "background 0.15s, color 0.15s",
+            opacity: commentCount === 0 && !showComments ? 0.55 : 1,
           }}
           onMouseEnter={(e) => {
             if (!showComments)
@@ -1511,6 +1512,36 @@ function PostCard({
         >
           <span style={{ fontSize: 16 }}>💬</span>
           <span>{commentCount}</span>
+        </button>
+
+        {/* ブックマークボタン (右端) */}
+        <button
+          title="保存"
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 6px",
+            borderRadius: 6,
+            color: "var(--ink-mute)",
+            opacity: 0.55,
+            transition: "opacity 0.15s, background 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.opacity = "0.55";
+            (e.currentTarget as HTMLButtonElement).style.background = "none";
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
         </button>
       </div>
 
