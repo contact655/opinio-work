@@ -538,25 +538,21 @@ function PostComposer({
                 onClick={handleSubmit}
                 disabled={!content.trim() || posting || uploading}
                 style={{
-                  background:
-                    content.trim() && !posting && !uploading
-                      ? "var(--royal)"
-                      : "var(--line)",
-                  color:
-                    content.trim() && !posting && !uploading
-                      ? "#fff"
-                      : "var(--ink-mute)",
+                  background: "var(--royal)",
+                  color: "#fff",
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 20px",
                   fontFamily: '"Noto Sans JP", sans-serif',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   fontSize: 14,
                   cursor:
                     content.trim() && !posting && !uploading
                       ? "pointer"
                       : "not-allowed",
-                  transition: "background 0.2s, color 0.2s",
+                  opacity:
+                    content.trim() && !posting && !uploading ? 1 : 0.4,
+                  transition: "opacity 0.2s",
                 }}
               >
                 {posting ? "投稿中…" : "投稿する"}
@@ -884,9 +880,9 @@ const MORE_LINK_STYLE: React.CSSProperties = {
   display: "block",
   marginTop: 10,
   fontSize: 12,
-  color: "var(--royal)",
+  color: "var(--ink-soft)",
   fontFamily: '"Noto Sans JP", sans-serif',
-  fontWeight: 600,
+  fontWeight: 500,
   textDecoration: "none",
 };
 
@@ -1089,7 +1085,7 @@ function PostCard({
   return (
     <div
       style={{
-        padding: "16px",
+        padding: "18px",
         borderBottom: showDivider ? "0.5px solid var(--line)" : "none",
       }}
     >
@@ -1102,7 +1098,7 @@ function PostCard({
           marginBottom: 10,
         }}
       >
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
           {/* アバター: システム(企業)=角丸正方形, 個人=円形 */}
           {post.user.is_system ? (
             <div
@@ -1119,20 +1115,21 @@ function PostCard({
                 : nameInitial(post.user.name)}
             </div>
           ) : (
-            <Link href={`/u/${post.user.id}`}>
+            <Link href={`/u/${post.user.id}`} style={{ flexShrink: 0 }}>
               <Avatar user={post.user} size={38} />
             </Link>
           )}
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {/* 名前行: 名前 + バッジ + ・日付(インライン) */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
               {post.user.is_system ? (
-                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>
+                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 500, fontSize: 15, color: "var(--royal)" }}>
                   {post.user.name}
                 </span>
               ) : (
                 <Link
                   href={`/u/${post.user.id}`}
-                  style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
+                  style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 500, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
                 >
                   {post.user.name}
                 </Link>
@@ -1148,15 +1145,17 @@ function PostCard({
                   面談OK
                 </span>
               )}
+              {/* 日付インライン */}
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)" }}>
+                · {relativeTime(post.created_at)}
+              </span>
             </div>
+            {/* 役職タグライン: roleTitle があれば役職、なければ会社名 */}
             {!post.user.is_system && (post.user.roleTitle || post.user.company) && (
-              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
-                {[post.user.roleTitle, post.user.company].filter(Boolean).join(" · ")}
+              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>
+                {post.user.roleTitle ?? post.user.company}
               </div>
             )}
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginTop: 2, display: "block" }}>
-              {relativeTime(post.created_at)}
-            </span>
           </div>
         </div>
 
@@ -1230,11 +1229,11 @@ function PostCard({
       {/* 本文 */}
       <p
         style={{
-          margin: "0 0 10px",
+          margin: "0 0 14px",
           fontFamily: '"Noto Sans JP", sans-serif',
           fontSize: 15,
           color: "var(--ink)",
-          lineHeight: 1.7,
+          lineHeight: 1.65,
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
         }}
@@ -1456,8 +1455,8 @@ function PostCard({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 4,
-          paddingTop: 8,
+          gap: 18,
+          paddingTop: 14,
         }}
       >
         {/* いいねボタン — 未ログイン時は /auth へ誘導 */}
@@ -1479,7 +1478,7 @@ function PostCard({
             fontSize: 14,
             fontWeight: post.liked_by_me ? 700 : 400,
             transition: "background 0.15s, color 0.15s",
-            opacity: post.like_count === 0 && !post.liked_by_me ? 0.55 : 1,
+            opacity: post.like_count === 0 && !post.liked_by_me ? 0.5 : 1,
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
@@ -1540,7 +1539,7 @@ function PostCard({
             fontFamily: '"Noto Sans JP", sans-serif',
             fontSize: 14,
             transition: "background 0.15s, color 0.15s",
-            opacity: commentCount === 0 && !showComments ? 0.55 : 1,
+            opacity: commentCount === 0 && !showComments ? 0.5 : 1,
           }}
           onMouseEnter={(e) => {
             if (!showComments)
