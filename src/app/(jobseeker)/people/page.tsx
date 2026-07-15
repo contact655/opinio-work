@@ -2,7 +2,7 @@ export const revalidate = 300;
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
-import { PeopleListClient, type AmbassadorCard, type PeerCard } from "./PeopleListClient";
+import { PeopleListClient, type AmbassadorCard } from "./PeopleListClient";
 
 export const metadata: Metadata = {
   title: { absolute: "先輩を知る | OPINIO" },
@@ -85,89 +85,8 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
     });
 }
 
-async function getPeers(): Promise<PeerCard[]> {
-  const adminSupabase = createAdminClient();
-
-  // キャリア軌跡を公開しているユーザーを取得
-  const { data: careerProfiles, error } = await adminSupabase
-    .from("ow_career_profiles")
-    .select("user_id, headline, years_of_experience, birth_year, ow_users(id, name, avatar_color, avatar_url, auth_id, visibility)")
-    .eq("is_published", true)
-    .order("updated_at", { ascending: false });
-
-  if (error || !careerProfiles || careerProfiles.length === 0) return [];
-
-  type CareerRow = {
-    user_id: string;
-    headline: string | null;
-    years_of_experience: number | null;
-    birth_year: number | null;
-    ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; auth_id: string | null; visibility: string | null } | null;
-  };
-
-  const rows = careerProfiles as unknown as CareerRow[];
-  const validRows = rows.filter((r) => r.ow_users?.visibility !== "private" && r.ow_users?.name);
-
-  if (validRows.length === 0) return [];
-
-  const userIds = validRows.map((r) => r.user_id);
-  const authIds = validRows.map((r) => r.ow_users?.auth_id).filter(Boolean) as string[];
-
-  // 現職情報（company_id → ow_companies 名称も取得）
-  const { data: exps } = await adminSupabase
-    .from("ow_experiences")
-    .select("user_id, role_title, company_text, company_anonymized, company_id, ow_companies!company_id(name, brand_name)")
-    .in("user_id", userIds)
-    .eq("is_current", true);
-
-  const expByUser = new Map<string, { role_title: string | null; company: string | null }>();
-  for (const exp of exps ?? []) {
-    if (!expByUser.has(exp.user_id as string)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const co = (exp as any).ow_companies as { name: string | null; brand_name: string | null } | null;
-      const masterName = co?.brand_name ?? co?.name ?? null;
-      expByUser.set(exp.user_id as string, {
-        role_title: exp.role_title as string | null,
-        company: masterName || (exp.company_text as string | null) || (exp.company_anonymized as string | null) || null,
-      });
-    }
-  }
-
-  // job_type
-  const jobTypeByAuthId = new Map<string, string | null>();
-  if (authIds.length > 0) {
-    const { data: profiles } = await adminSupabase
-      .from("ow_profiles")
-      .select("user_id, job_type")
-      .in("user_id", authIds);
-    for (const p of profiles ?? []) {
-      jobTypeByAuthId.set(p.user_id as string, p.job_type as string | null);
-    }
-  }
-
-  return validRows.map((r) => {
-    const u = r.ow_users!;
-    const gradient = u.avatar_color?.startsWith("linear-gradient") ? u.avatar_color : FALLBACK_GRADIENT;
-    const exp = expByUser.get(r.user_id) ?? null;
-    const jobType = u.auth_id ? (jobTypeByAuthId.get(u.auth_id) ?? null) : null;
-    return {
-      userId: r.user_id,
-      name: u.name ?? "名前未設定",
-      initial: (u.name ?? "?").charAt(0),
-      gradient,
-      avatarUrl: u.avatar_url ?? null,
-      roleTitle: exp?.role_title ?? null,
-      companyName: exp?.company ?? null,
-      jobType,
-      headline: r.headline,
-      yearsOfExperience: r.years_of_experience,
-      birthYear: r.birth_year ?? null,
-    };
-  });
-}
-
 export default async function PeoplePage() {
-  const [ambassadors, peers] = await Promise.all([getAmbassadors(), getPeers()]);
+  const ambassadors = await getAmbassadors();
 
   // 企業ごとにグループ化してフィルター用のリストを作成
   const companies = Array.from(
@@ -178,7 +97,7 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={ambassadors} peers={peers} companies={companies} />
+      <PeopleListClient ambassadors={ambassadors} companies={companies} />
     </div>
   );
 }

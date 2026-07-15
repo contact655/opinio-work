@@ -4,57 +4,6 @@ import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-// 英語ロールタイトル → 日本語の一般的な職種名
-const ROLE_JA_MAP: Record<string, string> = {
-  // 営業系
-  "account executive": "法人営業",
-  "enterprise account executive": "法人営業",
-  "senior account executive": "法人営業",
-  "account manager": "法人営業",
-  "sales representative": "営業",
-  "sales development representative": "インサイドセールス",
-  "sales development representative（sdr）": "インサイドセールス",
-  "sdr": "インサイドセールス",
-  "business development representative": "インサイドセールス",
-  "bdr": "インサイドセールス",
-  "inside sales": "インサイドセールス",
-  // CS
-  "customer success manager": "カスタマーサクセス",
-  "customer success": "カスタマーサクセス",
-  "csm": "カスタマーサクセス",
-  // マーケティング
-  "marketing manager": "マーケティング",
-  "marketing specialist": "マーケティング",
-  "digital marketer": "マーケティング",
-  // エンジニア
-  "software engineer": "エンジニア",
-  "cloud engineer": "エンジニア",
-  "system engineer": "エンジニア",
-  "solutions engineer": "プリセールス",
-  "pre-sales engineer": "プリセールス",
-  // 人事
-  "people & culture manager": "人事・採用",
-  "people and culture manager": "人事・採用",
-  "hr manager": "人事",
-  // プロダクト
-  "product manager": "プロダクトマネージャー",
-  // コンサル
-  "it consultant": "ITコンサルタント",
-  "senior consultant": "コンサルタント",
-  "consultant": "コンサルタント",
-};
-
-function hasJapanese(str: string): boolean {
-  return /[　-鿿]/.test(str);
-}
-
-function getJaLabel(roleTitle: string | null): string | null {
-  if (!roleTitle) return null;
-  if (hasJapanese(roleTitle)) return null; // 既に日本語ならラベル不要
-  const key = roleTitle.toLowerCase().trim();
-  return ROLE_JA_MAP[key] ?? null;
-}
-
 export type AmbassadorCard = {
   adminId: string;
   userId: string;
@@ -74,25 +23,10 @@ export type AmbassadorCard = {
   companyLogoLetter: string | null;
 };
 
-export type PeerCard = {
-  userId: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  avatarUrl: string | null;
-  roleTitle: string | null;
-  companyName: string | null;
-  jobType: string | null;
-  headline: string | null;
-  yearsOfExperience: number | null;
-  birthYear: number | null;
-};
-
 type Company = { id: string; name: string };
 
 type Props = {
   ambassadors: AmbassadorCard[];
-  peers: PeerCard[];
   companies: Company[];
 };
 
@@ -327,10 +261,8 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
-      {/* アバター */}
       <Avatar card={card} size={52} />
 
-      {/* 名前・役職・タグ */}
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
@@ -347,7 +279,6 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
         {tags.length > 0 && <TopicTags tags={tags} />}
       </div>
 
-      {/* CTAボタン */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "center" }}>
         <Link
           href={`/people/${card.adminId}/reserve`}
@@ -394,13 +325,6 @@ function matchesRoleCategory(card: AmbassadorCard, key: RoleCategoryKey): boolea
   return cat?.pattern ? cat.pattern.test(text) : true;
 }
 
-function matchesPeerRole(card: PeerCard, key: RoleCategoryKey): boolean {
-  if (key === "all") return true;
-  const text = `${card.jobType ?? ""} ${card.roleTitle ?? ""}`;
-  const cat = ROLE_CATEGORIES.find((c) => c.key === key);
-  return cat?.pattern ? cat.pattern.test(text) : true;
-}
-
 // ── 企業タイプフィルター定義 ─────────────────────────────────────────
 const COMPANY_TYPE_FILTERS = [
   { key: "all",        label: "すべての企業",   phasePattern: null as RegExp | null },
@@ -418,7 +342,6 @@ function matchesCompanyType(card: AmbassadorCard, key: CompanyTypeKey): boolean 
   const name = (card.companyName ?? "").toLowerCase();
   const cat = COMPANY_TYPE_FILTERS.find((c) => c.key === key);
   if (!cat?.phasePattern) return true;
-  // 企業名に「外資」含む場合も enterprise にマッチ
   if (key === "enterprise") {
     return cat.phasePattern.test(card.companyPhase ?? "") ||
       /外資|global|インターナショナル/i.test(name);
@@ -426,179 +349,12 @@ function matchesCompanyType(card: AmbassadorCard, key: CompanyTypeKey): boolean 
   return cat.phasePattern.test(phase);
 }
 
-// ── PeerAvatar ────────────────────────────────────────────────────────
-function PeerAvatar({ card, size }: { card: PeerCard; size: number }) {
-  const fontSize = size * 0.38;
-  if (card.avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={card.avatarUrl}
-        alt={card.name}
-        style={{
-          width: size, height: size, borderRadius: "50%", objectFit: "cover",
-          border: "2px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", flexShrink: 0,
-        }}
-      />
-    );
-  }
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%", background: card.gradient,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize, fontWeight: 800, color: "#fff", flexShrink: 0,
-      border: "2px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
-    }}>
-      {card.initial}
-    </div>
-  );
-}
-
-
-// ── PeerGridCard ─────────────────────────────────────────────────────
-function PeerGridCard({ card }: { card: PeerCard }) {
-  const router = useRouter();
-  const age = card.birthYear ? (2026 - card.birthYear) : null;
-
-  return (
-    <div
-      onClick={() => router.push(`/u/${card.userId}`)}
-      style={{
-        background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
-        padding: "24px 20px 20px", display: "flex", flexDirection: "column", alignItems: "center",
-        gap: 0, transition: "box-shadow 0.15s, transform 0.15s", cursor: "pointer",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 24px rgba(0,35,102,0.10)";
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
-      }}
-    >
-      {/* 写真：中央 */}
-      <div style={{ marginBottom: 12 }}>
-        <PeerAvatar card={card} size={72} />
-      </div>
-
-      {/* 名前 */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, textAlign: "center" }}>
-        {card.name}
-      </div>
-
-      {/* 役職 */}
-      {card.roleTitle && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, textAlign: "center" }}>
-          {card.roleTitle}
-          {getJaLabel(card.roleTitle) && (
-            <span style={{ color: "var(--ink-mute)" }}>（{getJaLabel(card.roleTitle)}）</span>
-          )}
-        </div>
-      )}
-
-      {/* 現職企業名 */}
-      {card.companyName && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, textAlign: "center" }}>
-          {card.companyName}
-        </div>
-      )}
-
-      {/* 年齢・経験年数 */}
-      {(age || card.yearsOfExperience) && (
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 16, textAlign: "center", display: "flex", gap: 8, justifyContent: "center" }}>
-          {age && <span>{age}歳</span>}
-          {age && card.yearsOfExperience && <span style={{ color: "var(--line)" }}>|</span>}
-          {card.yearsOfExperience && <span>経験 {card.yearsOfExperience}年</span>}
-        </div>
-      )}
-
-      <div style={{ marginTop: "auto", width: "100%" }}>
-        <Link
-          href={`/u/${card.userId}`}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "block", textAlign: "center", padding: "9px 16px",
-            background: "linear-gradient(135deg, var(--purple), #9333ea)",
-            color: "#fff", borderRadius: 9, fontSize: 13, fontWeight: 700,
-            textDecoration: "none",
-          }}
-        >
-          プロフィールを見る →
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ── PeerListRow ──────────────────────────────────────────────────────
-function PeerListRow({ card, isLast }: { card: PeerCard; isLast: boolean }) {
-  const router = useRouter();
-  const age = card.birthYear ? (2026 - card.birthYear) : null;
-
-  return (
-    <div
-      onClick={() => router.push(`/u/${card.userId}`)}
-      style={{
-        display: "grid", gridTemplateColumns: "64px 1fr auto", alignItems: "center",
-        gap: 16, padding: "18px 24px",
-        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-        background: "#fff", transition: "background 0.1s",
-        cursor: "pointer",
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
-    >
-      <PeerAvatar card={card} size={52} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
-          {card.name}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2 }}>
-          {card.roleTitle ?? ""}
-          {getJaLabel(card.roleTitle) && (
-            <span style={{ color: "var(--ink-mute)" }}>（{getJaLabel(card.roleTitle)}）</span>
-          )}
-          {card.companyName && (
-            <span style={{ color: "var(--ink-mute)" }}>
-              {card.roleTitle ? " · " : ""}{card.companyName}
-            </span>
-          )}
-        </div>
-        {(age || card.yearsOfExperience) && (
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", gap: 6 }}>
-            {age && <span>{age}歳</span>}
-            {age && card.yearsOfExperience && <span>·</span>}
-            {card.yearsOfExperience && <span>経験 {card.yearsOfExperience}年</span>}
-          </div>
-        )}
-      </div>
-      <div style={{ flexShrink: 0 }}>
-        <Link
-          href={`/u/${card.userId}`}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "8px 16px",
-            background: "linear-gradient(135deg, var(--purple), #9333ea)",
-            color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700,
-            textDecoration: "none", whiteSpace: "nowrap",
-          }}
-        >
-          プロフィール →
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, peers, companies: _companies }: Props) {
+export function PeopleListClient({ ambassadors, companies: _companies }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [roleCategory, setRoleCategory] = useState<RoleCategoryKey>("all");
   const [companyType, setCompanyType] = useState<CompanyTypeKey>("all");
   const [keyword, setKeyword] = useState("");
-  const [certifiedOnly, setCertifiedOnly] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredAmbassadors = useMemo(() => {
@@ -616,23 +372,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
     });
   }, [ambassadors, roleCategory, companyType, keyword]);
 
-  const filteredPeers = useMemo(() => {
-    if (certifiedOnly) return [];
-    const q = keyword.trim().toLowerCase();
-    return peers.filter((p) => {
-      if (!matchesPeerRole(p, roleCategory)) return false;
-      if (!q) return true;
-      return (
-        p.name.toLowerCase().includes(q) ||
-        (p.companyName ?? "").toLowerCase().includes(q) ||
-        (p.roleTitle ?? "").toLowerCase().includes(q) ||
-        (p.jobType ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [peers, roleCategory, keyword, certifiedOnly]);
-
-
-  if (ambassadors.length === 0 && peers.length === 0) {
+  if (ambassadors.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "80px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>💬</div>
@@ -652,7 +392,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
 
       <div style={{ paddingTop: "var(--space-3)" }} />
 
-      {/* ── Sticky フィルターバー（企業ページと同パターン） ── */}
+      {/* ── Sticky フィルターバー ── */}
       <div style={{ position: "sticky", top: 60, zIndex: 50, background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
 
@@ -684,30 +424,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
             </div>
           </div>
 
-          {/* 認定フィルター */}
-          <button
-            type="button"
-            onClick={() => setCertifiedOnly(!certifiedOnly)}
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "5px 12px", borderRadius: 100, flexShrink: 0,
-              border: `1.5px solid ${certifiedOnly ? "var(--success)" : "var(--line)"}`,
-              background: certifiedOnly ? "var(--success-soft)" : "#fff",
-              color: certifiedOnly ? "var(--success)" : "var(--ink-soft)",
-              fontSize: 12, fontWeight: 600, cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-          >
-            {certifiedOnly && (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-            ✦ 認定
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, opacity: 0.7 }}>{ambassadors.length}</span>
-          </button>
-
-          {/* ビュー切り替え — 検索バー右端 */}
+          {/* ビュー切り替え */}
           <div style={{ display: "flex", gap: 2, flexShrink: 0, background: "var(--bg-tint)", border: "1.5px solid var(--line)", borderRadius: 9, padding: 3 }}>
             {([
               { mode: "list" as const, label: "リスト", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>) },
@@ -719,16 +436,15 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
               </button>
             ))}
           </div>
-        </div>{/* 行1 end */}
+        </div>
 
         {/* ── 行2: 職種フィルター ── */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none" } as React.CSSProperties}>
           <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", marginRight: 2 }}>職種</span>
           {ROLE_CATEGORIES.map((cat) => {
             const count = cat.key === "all"
-              ? ambassadors.length + peers.length
-              : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length +
-                peers.filter((p) => matchesPeerRole(p, cat.key)).length;
+              ? ambassadors.length
+              : ambassadors.filter((a) => matchesRoleCategory(a, cat.key)).length;
             if (cat.key !== "all" && count === 0) return null;
             const isActive = roleCategory === cat.key;
             return (
@@ -738,7 +454,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
               </button>
             );
           })}
-        </div>{/* 行2 end */}
+        </div>
 
         {/* ── 行3: 企業タイプフィルター ── */}
         <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", scrollbarWidth: "none", paddingTop: 2 } as React.CSSProperties}>
@@ -765,29 +481,23 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
                 }}
               >
                 {cat.label}
-                <span style={{
-                  marginLeft: 5,
-                  fontSize: 10,
-                  fontFamily: "Inter, sans-serif",
-                  opacity: isActive ? 0.8 : 0.6,
-                }}>
+                <span style={{ marginLeft: 5, fontSize: 10, fontFamily: "Inter, sans-serif", opacity: isActive ? 0.8 : 0.6 }}>
                   {count}
                 </span>
               </button>
             );
           })}
-
         </div>
 
         {/* アクティブフィルター表示 */}
-        {(keyword || roleCategory !== "all" || companyType !== "all" || certifiedOnly) && (
+        {(keyword || roleCategory !== "all" || companyType !== "all") && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              {filteredAmbassadors.length + filteredPeers.length}名が見つかりました
+              {filteredAmbassadors.length}名が見つかりました
             </span>
             <button
               type="button"
-              onClick={() => { setKeyword(""); setRoleCategory("all"); setCompanyType("all"); setCertifiedOnly(false); }}
+              onClick={() => { setKeyword(""); setRoleCategory("all"); setCompanyType("all"); }}
               style={{
                 fontSize: 11, fontWeight: 600,
                 padding: "2px 8px", borderRadius: 100,
@@ -813,15 +523,7 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
           overflow: "hidden",
         }}>
           {filteredAmbassadors.map((card, i) => (
-            <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1 && filteredPeers.length === 0} />
-          ))}
-          {filteredPeers.length > 0 && filteredAmbassadors.length > 0 && (
-            <div style={{ padding: "8px 20px", background: "var(--bg-tint)", borderTop: "1px solid var(--line)", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
-              キャリア公開中
-            </div>
-          )}
-          {filteredPeers.map((card, i) => (
-            <PeerListRow key={card.userId} card={card} isLast={i === filteredPeers.length - 1} />
+            <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1} />
           ))}
         </div>
       )}
@@ -844,17 +546,15 @@ export function PeopleListClient({ ambassadors, peers, companies: _companies }: 
           `}</style>
           <div className="people-grid">
             {filteredAmbassadors.map((card) => <AmbassadorGridCard key={card.userId} card={card} />)}
-            {filteredPeers.map((card) => <PeerGridCard key={card.userId} card={card} />)}
           </div>
         </>
       )}
 
-      {filteredAmbassadors.length + filteredPeers.length === 0 && (
+      {filteredAmbassadors.length === 0 && (
         <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
           該当する方が見つかりません
         </div>
       )}
-
 
       {/* ── 注意書き ── */}
       <div style={{
