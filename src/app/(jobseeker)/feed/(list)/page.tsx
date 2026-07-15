@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   description: "IT/SaaS業界で働く人たちの投稿",
 };
 
+// サイドバー用型
+export type SidebarFollow = { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
+export type SidebarJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
+export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
+
 type RefCompany = { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
 type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
@@ -142,6 +147,61 @@ export default async function FeedPage() {
     };
   });
 
+  // ── サイドバーデータ（並列取得） ─────────────────────────────────────────────
+  const [followResult, bookmarkResult, mentorResult] = await Promise.all([
+    // (a) フォロー中の企業 (max 5)
+    myOwUserId
+      ? adminSupabase
+          .from("ow_company_follows")
+          .select("ow_companies!company_id(id, name, brand_name, logo_letter, logo_gradient, logo_url)")
+          .eq("follower_user_id", myOwUserId)
+          .limit(5)
+      : Promise.resolve({ data: [] }),
+    // (b) 気になる求人 (max 3) — ow_bookmarks target_type='job'
+    myOwUserId
+      ? adminSupabase
+          .from("ow_bookmarks")
+          .select("target_id")
+          .eq("user_id", myOwUserId)
+          .eq("target_type", "job")
+          .limit(3)
+      : Promise.resolve({ data: [] }),
+    // (c) 面談OKな人 (max 3)
+    adminSupabase
+      .from("ow_mentors")
+      .select("id, name, avatar_color, photo_url, current_role, current_company")
+      .eq("is_available", true)
+      .order("display_order", { ascending: true })
+      .limit(3),
+  ]);
+
+  const sidebarFollows: SidebarFollow[] = (followResult.data ?? [])
+    .map((r: Record<string, unknown>) => r["ow_companies"])
+    .filter(Boolean) as SidebarFollow[];
+
+  // 気になる求人: job IDリストを取得してから jobs をフェッチ
+  const bookmarkedJobIds = (bookmarkResult.data ?? []).map((r: { target_id: string }) => r.target_id);
+  let sidebarSavedJobs: SidebarJob[] = [];
+  if (bookmarkedJobIds.length > 0) {
+    const { data: jobRows } = await adminSupabase
+      .from("ow_jobs")
+      .select("id, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
+      .in("id", bookmarkedJobIds)
+      .in("status", ["published", "active"]);
+    sidebarSavedJobs = (jobRows ?? []).map((j: Record<string, unknown>) => {
+      const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;
+      return {
+        id: j.id as string,
+        title: j.title as string,
+        salary_min: j.salary_min as number | null,
+        salary_max: j.salary_max as number | null,
+        companyName: co?.brand_name ?? co?.name ?? null,
+      };
+    });
+  }
+
+  const sidebarMentors: SidebarMentor[] = (mentorResult.data ?? []) as SidebarMentor[];
+
   return (
     <FeedClient
       initialPosts={initialPosts}
@@ -150,6 +210,9 @@ export default async function FeedPage() {
       myAvatarColor={owUser?.avatar_color ?? null}
       myAvatarUrl={owUser?.avatar_url ?? null}
       myLikedPostIds={Array.from(likedPostIds)}
+      sidebarFollows={sidebarFollows}
+      sidebarSavedJobs={sidebarSavedJobs}
+      sidebarMentors={sidebarMentors}
     />
   );
 }

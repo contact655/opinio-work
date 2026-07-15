@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
+import type { SidebarFollow, SidebarJob, SidebarMentor } from "./page";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,9 @@ type Props = {
   myAvatarColor: string | null;
   myAvatarUrl: string | null;
   myLikedPostIds: string[];
+  sidebarFollows: SidebarFollow[];
+  sidebarSavedJobs: SidebarJob[];
+  sidebarMentors: SidebarMentor[];
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -843,6 +847,160 @@ function CommentSection({
   );
 }
 
+// ─── FeedSidebar ──────────────────────────────────────────────────────────────
+
+const PANEL_STYLE: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid var(--line)",
+  borderRadius: 14,
+  padding: "16px 18px",
+  marginBottom: 12,
+  boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+};
+
+const PANEL_TITLE_STYLE: React.CSSProperties = {
+  fontFamily: '"Noto Sans JP", sans-serif',
+  fontSize: 12,
+  fontWeight: 700,
+  color: "var(--ink-mute)",
+  letterSpacing: "0.05em",
+  marginBottom: 12,
+  textTransform: "uppercase" as const,
+};
+
+const MORE_LINK_STYLE: React.CSSProperties = {
+  display: "block",
+  marginTop: 10,
+  fontSize: 12,
+  color: "var(--royal)",
+  fontFamily: '"Noto Sans JP", sans-serif',
+  fontWeight: 600,
+  textDecoration: "none",
+};
+
+function formatSalary(min: number | null, max: number | null): string {
+  const hasMn = min != null && min > 0;
+  const hasMx = max != null && max > 0;
+  if (!hasMn && !hasMx) return "応相談";
+  if (hasMn && hasMx) return `${min}〜${max}万円`;
+  if (hasMn) return `${min}万円〜`;
+  return `〜${max}万円`;
+}
+
+function FeedSidebar({
+  follows,
+  savedJobs,
+  mentors,
+}: {
+  follows: SidebarFollow[];
+  savedJobs: SidebarJob[];
+  mentors: SidebarMentor[];
+}) {
+  return (
+    <div style={{ width: 260, flexShrink: 0 }}>
+      {/* (a) フォロー中の企業 */}
+      {follows.length > 0 && (
+        <div style={PANEL_STYLE}>
+          <p style={PANEL_TITLE_STYLE}>フォロー中の企業</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {follows.map((co) => (
+              <Link
+                key={co.id}
+                href={`/companies/${co.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+                    background: co.logo_gradient ?? "linear-gradient(135deg, #001233, #002366)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Inter, sans-serif",
+                    overflow: "hidden",
+                  }}
+                >
+                  {co.logo_url
+                    ? <img src={co.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : (co.logo_letter ?? (co.brand_name ?? co.name).charAt(0))}
+                </div>
+                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {co.brand_name ?? co.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+          <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
+        </div>
+      )}
+
+      {/* (b) 気になる求人 */}
+      {savedJobs.length > 0 && (
+        <div style={PANEL_STYLE}>
+          <p style={PANEL_TITLE_STYLE}>気になる求人</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {savedJobs.map((job) => (
+              <Link
+                key={job.id}
+                href={`/jobs/${job.id}`}
+                style={{ display: "flex", flexDirection: "column", gap: 2, textDecoration: "none" }}
+              >
+                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {job.title}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {job.companyName && (
+                    <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                      {job.companyName}
+                    </span>
+                  )}
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+                    {formatSalary(job.salary_min, job.salary_max)}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
+        </div>
+      )}
+
+      {/* (c) 面談OKな人 */}
+      {mentors.length > 0 && (
+        <div style={PANEL_STYLE}>
+          <p style={PANEL_TITLE_STYLE}>面談OKな人</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {mentors.map((m) => (
+              <Link
+                key={m.id}
+                href={`/mentors/${m.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+              >
+                {m.photo_url ? (
+                  <img src={m.photo_url} alt={m.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: m.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "Inter, sans-serif", flexShrink: 0 }}>
+                    {(m.name ?? "?").charAt(0)}
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {m.name}
+                  </div>
+                  {(m.current_role || m.current_company) && (
+                    <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {[m.current_role, m.current_company].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link href="/mentors" style={MORE_LINK_STYLE}>先輩一覧を見る →</Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── PostCard ─────────────────────────────────────────────────────────────────
 
 function PostCard({
@@ -1368,8 +1526,19 @@ export default function FeedClient({
   myAvatarColor,
   myAvatarUrl,
   myLikedPostIds: _myLikedPostIds,
+  sidebarFollows,
+  sidebarSavedJobs,
+  sidebarMentors,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
+  // レスポンシブ: 768px 以上でサイドバーを表示
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length > 0);
@@ -1458,8 +1627,13 @@ export default function FeedClient({
 
   const showLoadMore = tab === "all" ? (hasMore && posts.length > 0) : (followedHasMore && (followedPosts ?? []).length > 0);
 
+  const hasSidebar = sidebarFollows.length > 0 || sidebarSavedJobs.length > 0 || sidebarMentors.length > 0;
+  const showSidebar = isDesktop && hasSidebar;
+
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 16px 64px" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
+      {/* 中央フィードカラム */}
+      <div style={{ flex: 1, minWidth: 0 }}>
       {/* ページタイトル */}
       <h1
         style={{
@@ -1608,6 +1782,18 @@ export default function FeedClient({
           >
             {loadingMore ? "読み込み中…" : "もっと見る"}
           </button>
+        </div>
+      )}
+      </div>{/* /中央フィードカラム */}
+
+      {/* 右サイドバー */}
+      {showSidebar && (
+        <div style={{ position: "sticky", top: 80 }}>
+          <FeedSidebar
+            follows={sidebarFollows}
+            savedJobs={sidebarSavedJobs}
+            mentors={sidebarMentors}
+          />
         </div>
       )}
     </div>
