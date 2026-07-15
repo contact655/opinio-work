@@ -62,6 +62,8 @@ type Props = {
   myName: string | null;
   myAvatarColor: string | null;
   myAvatarUrl: string | null;
+  myRoleTitle?: string | null;
+  myCompany?: string | null;
   myLikedPostIds: string[];
   sidebarFollows: SidebarFollow[];
   sidebarSavedJobs: SidebarJob[];
@@ -895,6 +897,192 @@ function formatSalary(min: number | null, max: number | null): string {
   return `〜${max}万円`;
 }
 
+// ─── 左カラム: ミニプロフィール + ナビ ────────────────────────────────────────
+
+function FeedLeftPanel({
+  myUserId,
+  myName,
+  myAvatarColor,
+  myAvatarUrl,
+  myRoleTitle,
+  myCompany,
+}: {
+  myUserId: string | null;
+  myName: string | null;
+  myAvatarColor: string | null;
+  myAvatarUrl: string | null;
+  myRoleTitle?: string | null;
+  myCompany?: string | null;
+}) {
+  const NAV_ITEMS = [
+    {
+      href: "/mypage",
+      label: "マイページ",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      ),
+    },
+    {
+      href: "/mypage/bookmarks",
+      label: "保存した投稿",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
+    },
+    {
+      href: "/feed?tab=followed",
+      label: "フォロー中",
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      ),
+    },
+  ];
+
+  const tagline = myRoleTitle ?? myCompany ?? null;
+
+  return (
+    <div style={{ width: 200, flexShrink: 0 }}>
+      {/* ミニプロフィールカード */}
+      <div style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        overflow: "hidden",
+        marginBottom: 10,
+        boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+      }}>
+        {/* カバー帯 */}
+        <div style={{
+          height: 44,
+          background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+        }} />
+        {/* アバター + 名前 */}
+        <div style={{ padding: "0 14px 14px", textAlign: "center" }}>
+          <div style={{ marginTop: -20, display: "flex", justifyContent: "center" }}>
+            <div style={{ border: "2.5px solid #fff", borderRadius: "50%", display: "inline-block" }}>
+              <Avatar
+                user={{ name: myName, avatar_color: myAvatarColor, avatar_url: myAvatarUrl }}
+                size={36}
+              />
+            </div>
+          </div>
+          <div style={{
+            fontFamily: '"Noto Sans JP", sans-serif',
+            fontWeight: 500,
+            fontSize: 14,
+            color: "var(--ink)",
+            marginTop: 6,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {myName ?? "ゲスト"}
+          </div>
+          {tagline && (
+            <div style={{
+              fontFamily: '"Noto Sans JP", sans-serif',
+              fontSize: 11,
+              color: "var(--ink-soft)",
+              marginTop: 2,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}>
+              {tagline}
+            </div>
+          )}
+          {myUserId && (
+            <Link
+              href={`/u/${myUserId}`}
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                fontSize: 11,
+                fontFamily: '"Noto Sans JP", sans-serif',
+                fontWeight: 600,
+                color: "var(--royal)",
+                textDecoration: "none",
+                padding: "4px 12px",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 100,
+                background: "var(--royal-50)",
+              }}
+            >
+              プロフィールを見る
+            </Link>
+          )}
+          {!myUserId && (
+            <Link
+              href="/auth"
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                fontSize: 11,
+                fontFamily: '"Noto Sans JP", sans-serif',
+                fontWeight: 600,
+                color: "#fff",
+                textDecoration: "none",
+                padding: "4px 12px",
+                borderRadius: 100,
+                background: "var(--royal)",
+              }}
+            >
+              ログイン
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* ナビカード */}
+      <div style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        overflow: "hidden",
+        boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+      }}>
+        {NAV_ITEMS.map((item, i) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "10px 14px",
+              textDecoration: "none",
+              fontFamily: '"Noto Sans JP", sans-serif',
+              fontSize: 13,
+              color: "var(--ink-soft)",
+              borderBottom: i < NAV_ITEMS.length - 1 ? "1px solid var(--line)" : "none",
+              transition: "background 0.12s, color 0.12s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
+              (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "";
+              (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
+            }}
+          >
+            <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── 右サイドバー ─────────────────────────────────────────────────────────────
+
 function FeedSidebar({
   follows,
   savedJobs,
@@ -913,7 +1101,7 @@ function FeedSidebar({
   };
 
   return (
-    <div style={{ width: 260, flexShrink: 0 }}>
+    <div style={{ width: 220, flexShrink: 0 }}>
       {/* (a) フォロー中の企業 */}
       <div style={PANEL_STYLE}>
         <p style={PANEL_TITLE_STYLE}>フォロー中の企業</p>
@@ -1611,16 +1799,22 @@ export default function FeedClient({
   myName,
   myAvatarColor,
   myAvatarUrl,
+  myRoleTitle,
+  myCompany,
   myLikedPostIds: _myLikedPostIds,
   sidebarFollows,
   sidebarSavedJobs,
   sidebarMentors,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
-  // レスポンシブ: 768px 以上でサイドバーを表示
+  // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isWide, setIsWide] = useState(false);
   useEffect(() => {
-    const check = () => setIsDesktop(window.innerWidth >= 768);
+    const check = () => {
+      setIsDesktop(window.innerWidth >= 768);
+      setIsWide(window.innerWidth >= 1024);
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -1713,10 +1907,23 @@ export default function FeedClient({
 
   const showLoadMore = tab === "all" ? (hasMore && posts.length > 0) : (followedHasMore && (followedPosts ?? []).length > 0);
 
-  const showSidebar = isDesktop;
-
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 18, alignItems: "flex-start" }}>
+
+      {/* 左カラム: ミニプロフィール + ナビ (≥1024px) */}
+      {isWide && (
+        <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
+          <FeedLeftPanel
+            myUserId={myUserId}
+            myName={myName}
+            myAvatarColor={myAvatarColor}
+            myAvatarUrl={myAvatarUrl}
+            myRoleTitle={myRoleTitle}
+            myCompany={myCompany}
+          />
+        </div>
+      )}
+
       {/* 中央フィードカラム */}
       <div style={{ flex: 1, minWidth: 0 }}>
       {/* タブ */}
@@ -1869,9 +2076,9 @@ export default function FeedClient({
       )}
       </div>{/* /中央フィードカラム */}
 
-      {/* 右サイドバー */}
-      {showSidebar && (
-        <div style={{ position: "sticky", top: 80 }}>
+      {/* 右サイドバー (≥768px) */}
+      {isDesktop && (
+        <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
           <FeedSidebar
             follows={sidebarFollows}
             savedJobs={sidebarSavedJobs}

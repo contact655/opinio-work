@@ -59,8 +59,27 @@ export default async function FeedPage() {
 
   const myOwUserId = owUser?.id ?? null;
 
-  // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
+  // adminClient (SSR / RLS バイパス)
   const adminSupabase = createAdminClient();
+
+  // ログインユーザー自身の現職情報
+  let myRoleTitle: string | null = null;
+  let myCompany: string | null = null;
+  if (myOwUserId) {
+    const { data: myExp } = await adminSupabase
+      .from("ow_experiences")
+      .select("role_title, company_text, company_anonymized")
+      .eq("user_id", myOwUserId)
+      .eq("is_current", true)
+      .limit(1)
+      .maybeSingle();
+    if (myExp) {
+      myRoleTitle = myExp.role_title ?? null;
+      myCompany = myExp.company_text || myExp.company_anonymized || null;
+    }
+  }
+
+  // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
   const { data: rawPosts } = await adminSupabase
     .from("ow_posts")
     .select(`
@@ -225,6 +244,8 @@ export default async function FeedPage() {
       myName={owUser?.name ?? null}
       myAvatarColor={owUser?.avatar_color ?? null}
       myAvatarUrl={owUser?.avatar_url ?? null}
+      myRoleTitle={myRoleTitle}
+      myCompany={myCompany}
       myLikedPostIds={Array.from(likedPostIds)}
       sidebarFollows={sidebarFollows}
       sidebarSavedJobs={sidebarSavedJobs}
