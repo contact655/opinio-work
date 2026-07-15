@@ -1129,9 +1129,6 @@ function JobListItem({
           >
             <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
           </button>
-          <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-            {job.updated_days_ago === 0 ? "今日" : `${job.updated_days_ago}日前`}
-          </span>
         </div>
       </Link>
     </div>
