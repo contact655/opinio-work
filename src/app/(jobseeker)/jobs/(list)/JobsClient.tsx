@@ -1292,6 +1292,8 @@ function SidebarFilters({
 }) {
   // ③ アコーディオン: デフォルトで年収・雇用形態・地域は折りたたむ
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "salary", "empType", "bizModel", "prefecture"]));
+  // 「詳細条件」アコーディオン（デフォルト閉じ）
+  const [detailOpen, setDetailOpen] = useState(false);
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -1343,62 +1345,6 @@ function SidebarFilters({
         </div>
       </div>
 
-      {/* 企業ステージ */}
-      <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--line-soft)" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>企業ステージ</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {([
-            { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
-            { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
-            { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
-          ] as const).map(({ key, label, color, bg }) => {
-            const active = companyStage === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onCompanyStageChange(active ? "" : key)}
-                style={{
-                  padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500,
-                  border: `1.5px solid ${active ? color : "var(--line)"}`,
-                  background: active ? bg : "#fff",
-                  color: active ? color : "var(--ink-soft)",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 業種 — アコーディオン（デフォルト折りたたみ、industryマスタある場合のみ）*/}
-      {industries.length > 0 && (() => {
-        const parentIndustries = industries.filter((i) => !i.parent_id);
-        return (
-          <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-            <SectionHeader label="業種" sectionKey="industry" hasActive={!!industryId} />
-            {!collapsed.has("industry") && (
-              <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-                {parentIndustries.map((ind) => {
-                  const isActive = industryId === ind.id;
-                  return (
-                    <button key={ind.id} type="button" onClick={() => setParam("industry_id", isActive ? "" : ind.id)}
-                      style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                      onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                      onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                    >
-                      {isActive ? "✓ " : ""}{ind.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* 職種 — アコーディオン（デフォルト展開）*/}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
         <SectionHeader label="職種" sectionKey="roles" hasActive={!!category} />
@@ -1437,27 +1383,6 @@ function SidebarFilters({
         })()}
       </div>
 
-      {/* 勤務形態 — アコーディオン（デフォルト展開）*/}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="勤務形態" sectionKey="workStyle" hasActive={!!workStyle} />
-        {!collapsed.has("workStyle") && (
-          <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
-              const isActive = workStyle === opt.value;
-              return (
-                <button key={opt.value} type="button" onClick={() => setParam("work_style", isActive ? "" : opt.value)}
-                  style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  {isActive ? "✓ " : ""}{opt.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* 年収（下限）— アコーディオン（デフォルト折りたたみ）*/}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
         <SectionHeader label="年収（下限）" sectionKey="salary" hasActive={!!salary} />
@@ -1479,16 +1404,16 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* 雇用形態 — アコーディオン（デフォルト折りたたみ）*/}
-      <div style={{ borderBottom: availablePrefectures.length > 1 ? "1px solid var(--line-soft)" : "none" }}>
-        <SectionHeader label="雇用形態" sectionKey="empType" hasActive={!!empType} />
-        {!collapsed.has("empType") && (
+      {/* 勤務形態 — アコーディオン（デフォルト展開）*/}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="勤務形態" sectionKey="workStyle" hasActive={!!workStyle} />
+        {!collapsed.has("workStyle") && (
           <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
-              const isActive = empType === opt.value;
+            {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
+              const isActive = workStyle === opt.value;
               return (
-                <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
-                  style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                <button key={opt.value} type="button" onClick={() => setParam("work_style", isActive ? "" : opt.value)}
+                  style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
                   onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                   onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
@@ -1522,30 +1447,197 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* 地域 — アコーディオン（デフォルト折りたたみ）*/}
-      {availablePrefectures.length > 1 && (
-        <div>
-          <SectionHeader label="地域" sectionKey="prefecture" hasActive={!!prefecture} />
-          {!collapsed.has("prefecture") && (
-            <div style={{ padding: "0 12px 8px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
-                {availablePrefectures.map((p) => {
-                  const isActive = prefecture === p;
+      {/* 詳細条件 — アコーディオン（業種 / 雇用形態 / 企業ステージ / 地域）*/}
+      <div>
+        <button type="button" onClick={() => setDetailOpen((v) => !v)}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 5, color: (!!industryId || !!empType || !!companyStage || !!prefecture) ? "var(--royal)" : "var(--ink-mute)" }}>
+            {(!!industryId || !!empType || !!companyStage || !!prefecture) && (
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
+            )}
+            詳細条件
+          </span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transition: "transform 0.2s", transform: detailOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}>
+            <path d="M1 1l4 4 4-4" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+
+        <div style={{ display: detailOpen ? "block" : "none" }}>
+          {/* 業種 — デフォルト折りたたみ */}
+          {industries.length > 0 && (() => {
+            const parentIndustries = industries.filter((i) => !i.parent_id);
+            return (
+              <div style={{ borderTop: "1px solid var(--line-soft)" }}>
+                <SectionHeader label="業種" sectionKey="industry" hasActive={!!industryId} />
+                {!collapsed.has("industry") && (
+                  <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+                    {parentIndustries.map((ind) => {
+                      const isActive = industryId === ind.id;
+                      return (
+                        <button key={ind.id} type="button" onClick={() => setParam("industry_id", isActive ? "" : ind.id)}
+                          style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                          onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                          onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                        >
+                          {isActive ? "✓ " : ""}{ind.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* 雇用形態 — デフォルト折りたたみ */}
+          <div style={{ borderTop: "1px solid var(--line-soft)" }}>
+            <SectionHeader label="雇用形態" sectionKey="empType" hasActive={!!empType} />
+            {!collapsed.has("empType") && (
+              <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+                {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
+                  const isActive = empType === opt.value;
                   return (
-                    <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
-                      style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
+                    <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
+                      style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
                       onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                       onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                     >
-                      {isActive ? "✓ " : ""}{p}
+                      {isActive ? "✓ " : ""}{opt.label}
                     </button>
                   );
                 })}
               </div>
+            )}
+          </div>
+
+          {/* 企業ステージ */}
+          <div style={{ borderTop: "1px solid var(--line-soft)", padding: "10px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: companyStage ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
+              {companyStage && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
+              企業ステージ
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {([
+                { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
+                { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
+                { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
+              ] as const).map(({ key, label, color, bg }) => {
+                const active = companyStage === key;
+                return (
+                  <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
+                    style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer", transition: "all 0.15s" }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 地域 — デフォルト折りたたみ */}
+          {availablePrefectures.length > 1 && (
+            <div style={{ borderTop: "1px solid var(--line-soft)" }}>
+              <SectionHeader label="地域" sectionKey="prefecture" hasActive={!!prefecture} />
+              {!collapsed.has("prefecture") && (
+                <div style={{ padding: "0 12px 8px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
+                    {availablePrefectures.map((p) => {
+                      const isActive = prefecture === p;
+                      return (
+                        <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
+                          style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
+                          onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                          onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                        >
+                          {isActive ? "✓ " : ""}{p}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+// ─── モバイル「詳細条件」アコーディオン ────────────────────────────────────────────
+
+function MobileDetailSection({
+  industryId, empType, companyStage, industries, setParam, onCompanyStageChange,
+}: {
+  industryId: string; empType: string; companyStage: string;
+  industries: { id: string; parent_id: string | null; name: string; slug: string }[];
+  setParam: (key: string, value: string) => void;
+  onCompanyStageChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasActive = !!industryId || !!empType || !!companyStage;
+  const parentIndustries = industries.filter((i) => !i.parent_id);
+  return (
+    <div style={{ borderRadius: 10, border: `1.5px solid ${hasActive ? "var(--royal)" : "var(--line)"}`, overflow: "hidden" }}>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", background: hasActive ? "var(--royal-50)" : "#fff", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 700, color: hasActive ? "var(--royal)" : "var(--ink-soft)", display: "flex", alignItems: "center", gap: 6 }}>
+          {hasActive && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
+          詳細条件
+        </span>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transition: "transform 0.2s", transform: open ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}>
+          <path d="M1 1l4 4 4-4" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </button>
+      <div style={{ display: open ? "flex" : "none", flexDirection: "column", gap: 16, padding: "14px 14px" }}>
+        {/* 業種 */}
+        {parentIndustries.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>業種</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {parentIndustries.map((ind) => (
+                <button key={ind.id} type="button" onClick={() => setParam("industry_id", industryId === ind.id ? "" : ind.id)}
+                  style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${industryId === ind.id ? "var(--royal)" : "var(--line)"}`, background: industryId === ind.id ? "var(--royal-50)" : "#fff", color: industryId === ind.id ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: industryId === ind.id ? 700 : 400 }}>
+                  {ind.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* 雇用形態 */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {["正社員", "業務委託", "副業"].map(v => (
+              <button key={v} type="button" onClick={() => setParam("emp_type", empType === v ? "" : v)}
+                style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${empType === v ? "var(--royal)" : "var(--line)"}`, background: empType === v ? "var(--royal-50)" : "#fff", color: empType === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: empType === v ? 700 : 400 }}>
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* 企業ステージ */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>企業ステージ</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {([
+              { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
+              { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
+              { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
+            ] as const).map(({ key, label, color, bg }) => {
+              const active = companyStage === key;
+              return (
+                <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
+                  style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: active ? 700 : 400, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer" }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2600,18 +2692,24 @@ export default function JobsClient({
                 </div>
               </div>
 
-              {/* 雇用形態 */}
+              {/* 業態 */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>業態</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {["正社員", "業務委託", "副業"].map(v => (
-                    <button key={v} onClick={() => setParam("emp_type", empType === v ? "" : v)}
-                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${empType === v ? "var(--royal)" : "var(--line)"}`, background: empType === v ? "var(--royal-50)" : "#fff", color: empType === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: empType === v ? 700 : 400 }}>
-                      {v}
+                  {BUSINESS_MODELS.map(m => (
+                    <button key={m.key} onClick={() => setParam("biz_model", bizModel === m.key ? "" : m.key)}
+                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${bizModel === m.key ? "var(--purple)" : "var(--line)"}`, background: bizModel === m.key ? "var(--purple-soft)" : "#fff", color: bizModel === m.key ? "var(--purple)" : "var(--ink-soft)", cursor: "pointer", fontWeight: bizModel === m.key ? 700 : 400 }}>
+                      {m.label}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* 詳細条件アコーディオン */}
+              <MobileDetailSection
+                industryId={industryId} empType={empType} companyStage={companyStage}
+                industries={industries} setParam={setParam} onCompanyStageChange={setCompanyStage}
+              />
             </div>
 
             {/* フッターボタン */}
