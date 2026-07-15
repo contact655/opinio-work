@@ -2713,6 +2713,16 @@ function _SimilarCompaniesSection({ companies, currentIndustry }: { companies: C
 
 // ─── Company Posts Section ────────────────────────────────────────────────────
 
+type PublicAmbassador = {
+  id: string;
+  user_id: string;
+  role_title: string | null;
+  talk_themes: string[] | null;
+  ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
+};
+
+type AmbassadorInfo = { memberId: string; themes: string[] };
+
 type CompanyPost = {
   id: string;
   title: string;
@@ -3117,12 +3127,14 @@ function Sidebar({
   company,
   detail,
   currentEmployees: _currentEmployees = [],
-  allEmployees = [],
+  allEmployees: _allEmployees = [],
+  ambassadors = [],
 }: {
   company: Company;
   detail: CompanyDetail;
   currentEmployees?: CompanyEmployee[];
   allEmployees?: CompanyEmployee[];
+  ambassadors?: PublicAmbassador[];
 }) {
   return (
     <aside
@@ -3292,51 +3304,56 @@ function Sidebar({
         );
       })()}
 
-      {/* 社員・OBにDMウィジェット */}
-      {allEmployees.length > 0 && (
+      {/* カジュアル面談OKウィジェット */}
+      {ambassadors.length > 0 && (
         <div style={{
           background: "#fff",
-          border: "1px solid var(--line)",
+          border: "1px solid #FCD34D",
           borderRadius: 14,
           padding: "16px",
           boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
         }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
-            💬 社員・OBに直接DMできます
+            💬 カジュアル面談OK
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 10 }}>
-            {allEmployees.slice(0, 5).map((emp, i) => (
-              <a key={emp.userId} href={`/u/${emp.userId}`}
-                style={{ display: "block", marginLeft: i === 0 ? 0 : -8, position: "relative", zIndex: 5 - i, flexShrink: 0 }}>
-                {emp.avatarUrl ? (
-                  <img src={emp.avatarUrl} alt={emp.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }} />
-                ) : (
-                  <div style={{
-                    width: 34, height: 34, borderRadius: "50%",
-                    background: emp.avatarGradient || "linear-gradient(135deg,var(--royal),#3B5FD9)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 12, fontWeight: 700, color: "#fff", border: "2px solid #fff",
-                  }}>
-                    {emp.avatarInitial || emp.name.charAt(0)}
-                  </div>
-                )}
-              </a>
-            ))}
+            {ambassadors.slice(0, 5).map((amb, i) => {
+              const name = amb.ow_users?.name ?? "";
+              const avatarUrl = amb.ow_users?.avatar_url ?? null;
+              const avatarColor = amb.ow_users?.avatar_color ?? null;
+              return (
+                <a key={amb.id} href={`/u/${amb.user_id}`}
+                  style={{ display: "block", marginLeft: i === 0 ? 0 : -8, position: "relative", zIndex: 5 - i, flexShrink: 0 }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }} />
+                  ) : (
+                    <div style={{
+                      width: 34, height: 34, borderRadius: "50%",
+                      background: avatarColor || "linear-gradient(135deg,var(--royal),#3B5FD9)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 700, color: "#fff", border: "2px solid #fff",
+                    }}>
+                      {name.charAt(0)}
+                    </div>
+                  )}
+                </a>
+              );
+            })}
             <span style={{ marginLeft: 10, fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
-              {allEmployees.length}名登録中
+              {ambassadors.length}名が対応可能
             </span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.5 }}>
-            求人票に書けないリアルを、直接聞けます
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+            選考なし・完全無料。この会社のことを直接聞けます。<br />転職意欲がなくてもOK。
           </div>
-          <a href="/auth" style={{
+          <a href={`#current-employees`} style={{
             display: "flex", alignItems: "center", justifyContent: "center",
             width: "100%", padding: "9px 0", borderRadius: 8,
             fontSize: 12, fontWeight: 700, textDecoration: "none",
-            background: "var(--royal)", color: "#fff",
+            background: "var(--warm)", color: "#fff",
             boxSizing: "border-box",
           }}>
-            無料登録してDMを送る →
+            カジュアル面談を申し込む →
           </a>
         </div>
       )}
@@ -3525,17 +3542,9 @@ export default async function CompanyDetailPage({
 
   const hasSalarySection = (salaryCountResult.count ?? 0) >= SALARY_STATS_MIN;
 
-  type PublicAmbassador = {
-    id: string;
-    user_id: string;
-    role_title: string | null;
-    talk_themes: string[] | null;
-    ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
-  };
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
 
   // userId → ambassador情報のマップ（EmployeeCardの面談OKバッジ用）
-  type AmbassadorInfo = { memberId: string; themes: string[] };
   const ambassadorMap = new Map<string, AmbassadorInfo>();
   for (const a of ambassadors) {
     ambassadorMap.set(a.user_id, { memberId: a.id, themes: a.talk_themes ?? [] });
@@ -3885,7 +3894,7 @@ export default async function CompanyDetailPage({
 
           </main>
 
-          <Sidebar company={company} detail={detail} currentEmployees={employees.current} allEmployees={[...employees.current, ...employees.alumni]} />
+          <Sidebar company={company} detail={detail} currentEmployees={employees.current} allEmployees={[...employees.current, ...employees.alumni]} ambassadors={ambassadors} />
         </div>
       </div>
 
