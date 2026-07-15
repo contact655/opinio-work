@@ -1414,12 +1414,17 @@ function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) 
 function EmployeeCard({
   employee,
   showEndedAt,
+  ambassadorInfo,
+  companyId,
 }: {
   employee: CompanyEmployee;
   showEndedAt?: boolean;
+  ambassadorInfo?: { memberId: string; themes: string[] } | null;
+  companyId?: string;
 }) {
   // γ-3 修正②: 職種カテゴリ（親カテゴリ優先）でアバター色を統一
   const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
+  const isAmbassador = !!ambassadorInfo;
 
   const avatar = (
     <div
@@ -1455,6 +1460,17 @@ function EmployeeCard({
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
           {employee.name}
         </span>
+        {isAmbassador && (
+          <span style={{
+            fontSize: 10, fontWeight: 700,
+            padding: "2px 7px", borderRadius: 100,
+            background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
+            color: "#92400E", border: "1px solid #FCD34D",
+            whiteSpace: "nowrap", flexShrink: 0,
+          }}>
+            💬 面談OK
+          </span>
+        )}
       </div>
       {employee.roleTitle && (
         <p
@@ -1482,8 +1498,54 @@ function EmployeeCard({
           退職: {employee.endedAt}
         </p>
       )}
+      {/* 面談テーマ */}
+      {isAmbassador && ambassadorInfo.themes.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+          {ambassadorInfo.themes.map((t) => (
+            <span key={t} style={{ fontSize: 10, background: "var(--warm-soft)", color: "#92400E", padding: "2px 7px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
+          ))}
+        </div>
+      )}
     </div>
   );
+
+  // アンバサダー: div + 内部リンク + 面談ボタン
+  if (isAmbassador && companyId) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          padding: "var(--space-3) 14px",
+          background: "#FFFBEB",
+          border: "1px solid #FCD34D",
+          borderRadius: 12,
+        }}
+      >
+        <a
+          href={`/u/${employee.userId}`}
+          className="employee-card-link"
+          style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", textDecoration: "none" }}
+        >
+          {avatar}
+          {nameAndRole}
+        </a>
+        <Link
+          href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
+          style={{
+            display: "block", textAlign: "center",
+            padding: "8px 16px",
+            background: "linear-gradient(135deg, #F59E0B, #F97316)",
+            color: "#fff", borderRadius: 8,
+            fontSize: 12, fontWeight: 700, textDecoration: "none",
+          }}
+        >
+          {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <a
@@ -1495,27 +1557,13 @@ function EmployeeCard({
         gap: "var(--space-3)",
         padding: "var(--space-3) 14px",
         background: "var(--bg-tint)",
-        border: employee.canCasualMeeting ? "1px solid rgba(245,158,11,0.35)" : "1px solid var(--line)",
+        border: "1px solid var(--line)",
         borderRadius: 12,
         textDecoration: "none",
       }}
     >
       {avatar}
       {nameAndRole}
-      {/* カジュアル面談受付中の人だけボタン表示 */}
-      {employee.canCasualMeeting && (
-        <span style={{
-          flexShrink: 0,
-          fontSize: 10.5, fontWeight: 700,
-          padding: "4px 10px", borderRadius: 100,
-          background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
-          color: "#92400E",
-          border: "1px solid #FCD34D",
-          whiteSpace: "nowrap",
-        }}>
-          話を聞ける
-        </span>
-      )}
     </a>
   );
 }
@@ -1552,9 +1600,13 @@ const EMPLOYEE_GRID_CSS = `
 function CurrentEmployeesSection({
   employees,
   categories,
+  ambassadorMap,
+  companyId,
 }: {
   employees: CompanyEmployee[];
   categories: CompanyEmployeeCategoryItem[];
+  ambassadorMap: Map<string, { memberId: string; themes: string[] }>;
+  companyId: string;
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
 
@@ -1699,7 +1751,7 @@ function CurrentEmployeesSection({
         // カテゴリ設定なし → レスポンシブ列
         <div className="employee-grid">
           {employees.map((emp) => (
-            <EmployeeCard key={emp.userId} employee={emp} />
+            <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
           ))}
         </div>
       ) : (
@@ -1744,7 +1796,7 @@ function CurrentEmployeesSection({
                   // 親直: 子見出しなしでグリッドを直接表示
                   <div className="employee-grid">
                     {(empsByCategory.get(group.children[0].roleId ?? "") ?? []).map((emp) => (
-                      <EmployeeCard key={emp.userId} employee={emp} />
+                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
                     ))}
                   </div>
                 ) : (
@@ -1785,7 +1837,7 @@ function CurrentEmployeesSection({
                           </div>
                           <div className="employee-grid">
                             {empsInCat.map((emp) => (
-                              <EmployeeCard key={emp.userId} employee={emp} />
+                              <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
                             ))}
                           </div>
                         </div>
@@ -1814,7 +1866,7 @@ function CurrentEmployeesSection({
               </div>
               <div className="employee-grid">
                 {uncategorized.map((emp) => (
-                  <EmployeeCard key={emp.userId} employee={emp} />
+                  <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
                 ))}
               </div>
             </div>
@@ -1886,7 +1938,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
 
       {/* テキスト列 */}
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
             {employee.name}
           </span>
@@ -1895,6 +1947,9 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
               {tenure}
             </span>
           )}
+          <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", background: "var(--bg-tint)", padding: "1px 6px", borderRadius: 100, border: "1px solid var(--line)", flexShrink: 0 }}>
+            💬 DM可
+          </span>
         </div>
         {/* 役職 + 在籍期間（1行） */}
         <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -3461,7 +3516,7 @@ export default async function CompanyDetailPage({
       .eq("is_approved", true),
     adminSupabase
       .from("ow_company_members")
-      .select("id, role_title, talk_themes, ow_users!user_id(name, avatar_color, avatar_url)")
+      .select("id, user_id, role_title, talk_themes, ow_users!user_id(name, avatar_color, avatar_url)")
       .eq("company_id", params.id)
       .eq("display_consent", true)
       .eq("is_public", true)
@@ -3472,11 +3527,19 @@ export default async function CompanyDetailPage({
 
   type PublicAmbassador = {
     id: string;
+    user_id: string;
     role_title: string | null;
     talk_themes: string[] | null;
     ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
   };
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
+
+  // userId → ambassador情報のマップ（EmployeeCardの面談OKバッジ用）
+  type AmbassadorInfo = { memberId: string; themes: string[] };
+  const ambassadorMap = new Map<string, AmbassadorInfo>();
+  for (const a of ambassadors) {
+    ambassadorMap.set(a.user_id, { memberId: a.id, themes: a.talk_themes ?? [] });
+  }
 
   const authUser = authResult.data.user;
   const isAuthenticated = !!authUser;
@@ -3573,8 +3636,7 @@ export default async function CompanyDetailPage({
           ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
-          ...(ambassadors.length > 0 ? [{ id: "ambassadors", label: `話せる人 ${ambassadors.length}名` }] : []),
-          ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: `社員・OB/OG` }] : []),
+          ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: ambassadorMap.size > 0 ? `社員・OB/OG（面談OK ${ambassadorMap.size}名）` : `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
           ...(activityPosts.length > 0 ? [{ id: "activity", label: "最近の動き" }] : []),
@@ -3663,76 +3725,13 @@ export default async function CompanyDetailPage({
             {/* 6. 社員の声（キャッチフレーズ） */}
             <EmployeeVoicesSection employees={employees.current} />
 
-            {/* 話せる人 (カジュアル面談OK) */}
-            {ambassadors.length > 0 && (
-              <div id="ambassadors" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--warm)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-                    CASUAL TALK
-                  </div>
-                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-                    カジュアル面談OK（{ambassadors.length}名）
-                  </h2>
-                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                    選考なし・完全無料。この会社のことを直接聞けます。転職意欲がなくてもOK。
-                  </p>
-                </div>
-                <div className="person-card-grid">
-                  {ambassadors.map((a) => {
-                    const gradient = a.ow_users?.avatar_color?.startsWith("linear-gradient")
-                      ? a.ow_users.avatar_color
-                      : "linear-gradient(135deg, #002366, #3B5FD9)";
-                    const name = a.ow_users?.name ?? "—";
-                    const initial = name.charAt(0);
-                    const themes: string[] = a.talk_themes ?? [];
-                    return (
-                      <div key={a.id} style={{
-                        border: "1px solid var(--line)", borderRadius: 12, padding: "16px",
-                        display: "flex", flexDirection: "column", gap: 12,
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{
-                            width: 48, height: 48, borderRadius: "50%", background: gradient, flexShrink: 0,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "#fff", fontWeight: 700, fontSize: 18, overflow: "hidden",
-                          }}>
-                            {a.ow_users?.avatar_url
-                              ? <img src={a.ow_users.avatar_url} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                              : initial}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{name}</div>
-                            {a.role_title && <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>{a.role_title}</div>}
-                          </div>
-                        </div>
-                        {themes.length > 0 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                            {themes.map((t) => (
-                              <span key={t} style={{ fontSize: 11, background: "var(--warm-soft)", color: "#92400e", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
-                            ))}
-                          </div>
-                        )}
-                        <Link
-                          href={`/companies/${company.id}/casual-meeting?member_id=${a.id}`}
-                          style={{
-                            display: "block", textAlign: "center",
-                            padding: "9px 16px",
-                            background: "linear-gradient(135deg, #F59E0B, #F97316)",
-                            color: "#fff", borderRadius: 8,
-                            fontSize: 13, fontWeight: 700, textDecoration: "none",
-                          }}
-                        >
-                          {name.split(" ")[0]}さんに話を聞く →
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 7. 現役社員・OBOGプロフィール */}
-            <CurrentEmployeesSection employees={employees.current} categories={employeeCategories} />
+            {/* 7. 現役社員・OBOGプロフィール（面談OKバッジはカード内に統合） */}
+            <CurrentEmployeesSection
+              employees={employees.current}
+              categories={employeeCategories}
+              ambassadorMap={ambassadorMap}
+              companyId={company.id}
+            />
             {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
 
             {/* 8. 記事（OPINIO取材記事） */}
