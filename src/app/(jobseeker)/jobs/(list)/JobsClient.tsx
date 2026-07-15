@@ -1274,17 +1274,16 @@ function JobDetailPane({
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly, salaryOnly,
-  availablePrefectures, setParam, onMeetingOnlyChange, onSalaryOnlyChange, hasFilter, q, onReset, meetingCount,
+  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
+  availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
   industries, industryId,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
   bizModel: string;
-  meetingOnly: boolean; salaryOnly: boolean; availablePrefectures: string[];
+  meetingOnly: boolean; availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
-  onSalaryOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
   industries: { id: string; parent_id: string | null; name: string; slug: string }[];
   industryId: string;
@@ -1339,16 +1338,6 @@ function SidebarFilters({
           <span suppressHydrationWarning style={{ fontSize: 10, color: "#C2410C", background: "#FFF7ED", padding: "1px 6px", borderRadius: 100, border: "1px solid #FDBA74", flexShrink: 0, visibility: meetingCount > 0 ? "visible" : "hidden" }}>
             {meetingCount}件
           </span>
-        </div>
-      </div>
-
-      {/* 給与記載ありトグル */}
-      <div style={{ padding: "9px 12px", borderBottom: "1px solid var(--line-soft)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onSalaryOnlyChange(!salaryOnly)}>
-          <div style={{ width: 36, height: 20, borderRadius: 10, background: salaryOnly ? "var(--success)" : "#e2e8f0", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-            <div style={{ position: "absolute", top: 2, left: salaryOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: salaryOnly ? "var(--success)" : "var(--ink)", flex: 1 }}>給与記載ありのみ</span>
         </div>
       </div>
 
@@ -1590,9 +1579,6 @@ export default function JobsClient({
   // 面談受付中のみフィルター
   const [meetingOnly, setMeetingOnly] = useState(false);
 
-  // 給与記載ありのみフィルター
-  const [salaryOnly, setSalaryOnly] = useState(false);
-
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -1784,11 +1770,6 @@ export default function JobsClient({
       list = list.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings);
     }
 
-    // 給与記載ありのみフィルタ
-    if (salaryOnly) {
-      list = list.filter((j) => hasSalaryData(j.salary_min, j.salary_max));
-    }
-
     // ソート
     const PHASE_ORDER: Record<string, number> = {
       "Pre-seed": 0, "Seed": 1,
@@ -1815,7 +1796,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, salaryOnly, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件）
   const filteredForDisplay = useMemo(() => {
@@ -1840,7 +1821,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, salaryOnly].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1853,7 +1834,7 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || salaryOnly || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || bizOnly);
 
   // 面談受付中の求人数（全件から）
   const meetingCount = useMemo(
@@ -1967,26 +1948,6 @@ export default function JobsClient({
               }}
             >
               {meetingOnly && <span style={{ marginRight: 4 }}>✓</span>}面談受付中
-            </button>
-
-            {/* 給与記載あり */}
-            <button
-              type="button"
-              onClick={() => setSalaryOnly((v) => !v)}
-              aria-pressed={salaryOnly}
-              className="jobs-filterbar-sidebar-dup"
-              style={{
-                height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
-                fontWeight: salaryOnly ? 700 : 500,
-                border: `1.5px solid ${salaryOnly ? "var(--success)" : "#e2e8f0"}`,
-                background: salaryOnly ? "var(--success)" : "#fff",
-                color: salaryOnly ? "#fff" : "var(--ink-soft)",
-                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                boxShadow: salaryOnly ? "0 2px 10px rgba(5,150,105,0.25)" : "none",
-                transition: "all 0.15s",
-              }}
-            >
-              {salaryOnly && <span style={{ marginRight: 4 }}>✓</span>}給与記載あり
             </button>
 
             {/* 職種 select — デスクトップではサイドバーに同機能あるため非表示 */}
@@ -2200,14 +2161,12 @@ export default function JobsClient({
                 bizModel={bizModel}
                 prefecture={prefecture}
                 meetingOnly={meetingOnly}
-                salaryOnly={salaryOnly}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 onMeetingOnlyChange={setMeetingOnly}
-                onSalaryOnlyChange={setSalaryOnly}
                 hasFilter={hasFilter}
                 q={q}
-                onReset={() => { setQ(""); setMeetingOnly(false); setSalaryOnly(false); router.replace("/jobs"); }}
+                onReset={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
                 meetingCount={meetingCount}
                 industries={industries}
                 industryId={industryId}
@@ -2564,15 +2523,6 @@ export default function JobsClient({
                       <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)" }}>面談受付中のみ</span>
-                  </button>
-                  <button
-                    onClick={() => setSalaryOnly(v => !v)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${salaryOnly ? "var(--success)" : "var(--line)"}`, background: salaryOnly ? "var(--success-soft)" : "#fff", cursor: "pointer", textAlign: "left" }}
-                  >
-                    <div style={{ width: 36, height: 20, borderRadius: 10, background: salaryOnly ? "var(--success)" : "#e2e8f0", position: "relative", flexShrink: 0 }}>
-                      <div style={{ position: "absolute", top: 2, left: salaryOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: salaryOnly ? "var(--success)" : "var(--ink)" }}>給与記載ありのみ</span>
                   </button>
                 </div>
               </div>
