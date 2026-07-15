@@ -34,6 +34,9 @@ type RawPost = {
   link_image_url: string | null;
   link_description: string | null;
   link_domain: string | null;
+  event_title: string | null;
+  event_starts_at: string | null;
+  event_location: string | null;
   created_at: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   ref_company: RefCompany;
@@ -43,11 +46,101 @@ type RawPost = {
   comments: { count: number }[];
 };
 
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+async function getLikedIds(admin: AdminClient, myOwUserId: string | null, posts: RawPost[]): Promise<Set<string>> {
+  if (!myOwUserId || posts.length === 0) return new Set();
+  const { data } = await admin
+    .from("ow_post_likes")
+    .select("post_id")
+    .eq("user_id", myOwUserId)
+    .in("post_id", posts.map((p) => p.id));
+  return new Set((data ?? []).map((r: { post_id: string }) => r.post_id));
+}
+
+async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<string, { roleTitle: string | null; company: string | null }>> {
+  const userIds = Array.from(new Set(posts.map((p) => p.user?.id).filter(Boolean) as string[]));
+  const map = new Map<string, { roleTitle: string | null; company: string | null }>();
+  if (userIds.length === 0) return map;
+  const { data: exps } = await admin
+    .from("ow_experiences")
+    .select("user_id, role_title, company_text, company_anonymized")
+    .in("user_id", userIds)
+    .eq("is_current", true);
+  for (const exp of exps ?? []) {
+    if (!map.has(exp.user_id)) {
+      map.set(exp.user_id, {
+        roleTitle: exp.role_title ?? null,
+        company: exp.company_text || exp.company_anonymized || null,
+      });
+    }
+  }
+  return map;
+}
+
+function filterVisible(posts: RawPost[], myOwUserId: string | null): RawPost[] {
+  return posts.filter((p) => {
+    if (p.user?.is_system) return true;
+    const v = p.user?.visibility;
+    if (v === "private") return false;
+    if (v === "login_only" && !myOwUserId) return false;
+    return true;
+  });
+}
+
+function formatPosts(
+  posts: RawPost[],
+  myOwUserId: string | null,
+  likedIds: Set<string>,
+  expByUser: Map<string, { roleTitle: string | null; company: string | null }>
+) {
+  return filterVisible(posts, myOwUserId).map((p) => {
+    const exp = p.user ? expByUser.get(p.user.id) : undefined;
+    return {
+      id: p.id,
+      content: p.content,
+      post_type: p.post_type ?? "user_post",
+      image_url: p.image_url,
+      link_url: p.link_url,
+      link_title: p.link_title,
+      link_image_url: p.link_image_url,
+      link_description: p.link_description,
+      link_domain: p.link_domain,
+      event_title: (p as unknown as { event_title?: string | null }).event_title ?? null,
+      event_starts_at: (p as unknown as { event_starts_at?: string | null }).event_starts_at ?? null,
+      event_location: (p as unknown as { event_location?: string | null }).event_location ?? null,
+      created_at: p.created_at,
+      user: p.user
+        ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, is_system: p.user.is_system ?? false, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
+        : { id: "", name: "不明", avatar_color: null, avatar_url: null, is_system: false, roleTitle: null, company: null },
+      ref_company: p.ref_company ?? null,
+      ref_job: p.ref_job ?? null,
+      ref_article: p.ref_article ?? null,
+      like_count: p.likes?.[0]?.count ?? 0,
+      comment_count: p.comments?.[0]?.count ?? 0,
+      liked_by_me: likedIds.has(p.id),
+    };
+  });
+}
+
+const POST_SELECT = `
+  id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
+  image_url, link_url, link_title, link_image_url, link_description, link_domain,
+  event_title, event_starts_at, event_location, created_at,
+  user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
+  ref_company:ow_companies!ref_company_id(id, name, brand_name, logo_letter, logo_gradient, logo_url),
+  ref_job:ow_jobs!ref_job_id(id, title, salary_min, salary_max, work_style),
+  ref_article:ow_articles!ref_article_id(id, slug, title),
+  likes:ow_post_likes(count),
+  comments:ow_post_comments(count)
+`;
+
 // GET /api/jobseeker/posts — フィード取得
 // クエリパラメータ:
-//   limit  (default 20)
-//   before (ISO日時, cursor pagination)
+//   limit   (default 20)
+//   before  (ISO日時, cursor pagination)
 //   user_id (特定ユーザーの投稿だけ取得)
+//   tab     "followed" → ログインユーザーがフォローした企業の投稿のみ
 export async function GET(req: Request) {
   const supabase = createClient();
   const { searchParams } = new URL(req.url);
@@ -55,6 +148,7 @@ export async function GET(req: Request) {
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") ?? "20", 10), 1), 50);
   const before = searchParams.get("before");
   const userId = searchParams.get("user_id");
+  const tab = searchParams.get("tab"); // "followed" | null
 
   const adminSupabase = createAdminClient();
 
@@ -65,18 +159,69 @@ export async function GET(req: Request) {
     myOwUserId = await resolveOwUserId(supabase, user.id);
   }
 
+  // ── フォロー中タブ ────────────────────────────────────────────────────────
+  if (tab === "followed") {
+    if (!myOwUserId) {
+      // 未ログインは空リストを返す
+      return NextResponse.json({ posts: [] });
+    }
+
+    // フォロー中企業 ID 一覧
+    const { data: followRows } = await adminSupabase
+      .from("ow_company_follows")
+      .select("company_id")
+      .eq("follower_user_id", myOwUserId);
+
+    const followedCompanyIds = (followRows ?? []).map((r: { company_id: string }) => r.company_id);
+
+    if (followedCompanyIds.length === 0) {
+      return NextResponse.json({ posts: [] });
+    }
+
+    // プライバシー同意済みメンバーの user_id 一覧
+    const { data: memberRows } = await adminSupabase
+      .from("ow_company_members")
+      .select("user_id")
+      .in("company_id", followedCompanyIds)
+      .eq("is_public", true)
+      .eq("display_consent", true);
+
+    const consentedUserIds = (memberRows ?? []).map((r: { user_id: string }) => r.user_id);
+
+    // (a) ref_company_id が followed OR (b) user_id が consented member
+    let followedQuery = adminSupabase
+      .from("ow_posts")
+      .select(POST_SELECT)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (before) followedQuery = followedQuery.lt("created_at", before);
+
+    // OR フィルタ
+    const orParts: string[] = [`ref_company_id.in.(${followedCompanyIds.join(",")})`];
+    if (consentedUserIds.length > 0) {
+      orParts.push(`user_id.in.(${consentedUserIds.join(",")})`);
+    }
+    followedQuery = followedQuery.or(orParts.join(","));
+
+    const { data: followedData, error: followedError } = await followedQuery;
+    if (followedError) {
+      console.error("[GET /api/jobseeker/posts?tab=followed]", followedError.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+
+    const fposts = (followedData ?? []) as unknown as RawPost[];
+    const [fLiked, fExp] = await Promise.all([
+      getLikedIds(adminSupabase, myOwUserId, fposts),
+      getExpByUser(adminSupabase, fposts),
+    ]);
+    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, fLiked, fExp) });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   let query = adminSupabase
     .from("ow_posts")
-    .select(`
-      id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
-      image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
-      ref_company:ow_companies!ref_company_id(id, name, brand_name, logo_letter, logo_gradient, logo_url),
-      ref_job:ow_jobs!ref_job_id(id, title, salary_min, salary_max, work_style),
-      ref_article:ow_articles!ref_article_id(id, slug, title),
-      likes:ow_post_likes(count),
-      comments:ow_post_comments(count)
-    `)
+    .select(POST_SELECT)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -91,72 +236,12 @@ export async function GET(req: Request) {
   }
 
   const posts = (data ?? []) as unknown as RawPost[];
+  const [likedIds, expByUser] = await Promise.all([
+    getLikedIds(adminSupabase, myOwUserId, posts),
+    getExpByUser(adminSupabase, posts),
+  ]);
 
-  // liked_by_me: ログイン済みの場合のみ取得
-  let likedPostIds = new Set<string>();
-  if (myOwUserId && posts.length > 0) {
-    const postIds = posts.map((p) => p.id);
-    const { data: likedRows } = await supabase
-      .from("ow_post_likes")
-      .select("post_id")
-      .eq("user_id", myOwUserId)
-      .in("post_id", postIds);
-    likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
-  }
-
-  const visiblePosts = posts.filter((p) => {
-    if (p.user?.is_system) return true;
-    const v = p.user?.visibility;
-    if (v === "private") return false;
-    if (v === "login_only" && !myOwUserId) return false;
-    return true;
-  });
-
-  // 現職情報を別クエリで取得
-  const userIds = Array.from(new Set(visiblePosts.map((p) => p.user?.id).filter(Boolean) as string[]));
-  const expByUser = new Map<string, { roleTitle: string | null; company: string | null }>();
-  if (userIds.length > 0) {
-    const { data: exps } = await adminSupabase
-      .from("ow_experiences")
-      .select("user_id, role_title, company_text, company_anonymized")
-      .in("user_id", userIds)
-      .eq("is_current", true);
-    for (const exp of exps ?? []) {
-      if (!expByUser.has(exp.user_id)) {
-        expByUser.set(exp.user_id, {
-          roleTitle: exp.role_title ?? null,
-          company: exp.company_text || exp.company_anonymized || null,
-        });
-      }
-    }
-  }
-
-  const result = visiblePosts.map((p) => {
-    const exp = p.user ? expByUser.get(p.user.id) : undefined;
-    return {
-      id: p.id,
-      content: p.content,
-      post_type: p.post_type ?? "user_post",
-      image_url: p.image_url,
-      link_url: p.link_url,
-      link_title: p.link_title,
-      link_image_url: p.link_image_url,
-      link_description: p.link_description,
-      link_domain: p.link_domain,
-      created_at: p.created_at,
-      user: p.user
-        ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, is_system: p.user.is_system ?? false, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
-        : { id: "", name: "不明", avatar_color: null, avatar_url: null, is_system: false, roleTitle: null, company: null },
-      ref_company: p.ref_company ?? null,
-      ref_job: p.ref_job ?? null,
-      ref_article: p.ref_article ?? null,
-      like_count: p.likes?.[0]?.count ?? 0,
-      comment_count: p.comments?.[0]?.count ?? 0,
-      liked_by_me: likedPostIds.has(p.id),
-    };
-  });
-
-  return NextResponse.json({ posts: result });
+  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, likedIds, expByUser) });
 }
 
 // POST /api/jobseeker/posts — 投稿作成

@@ -19,7 +19,7 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
-import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg } from "./CompanyDetailClient";
+import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 // import { GenreCarousel } from "@/components/companies/GenreCarousel";
@@ -112,6 +112,7 @@ function Hero({
   company,
   detail,
   initialBookmarked,
+  initialFollowed,
   isAuthenticated,
   recruiters,
   coverPhotoUrl,
@@ -119,6 +120,7 @@ function Hero({
   company: Company;
   detail: CompanyDetail;
   initialBookmarked: boolean;
+  initialFollowed: boolean;
   isAuthenticated: boolean;
   recruiters: CompanyRecruiter[];
   coverPhotoUrl?: string | null;
@@ -367,6 +369,12 @@ function Hero({
                   initialBookmarked={initialBookmarked}
                   isAuthenticated={isAuthenticated}
                   variant="pill"
+                />
+                {/* フォローボタン */}
+                <FollowButton
+                  companyId={company.id}
+                  initialFollowed={initialFollowed}
+                  isAuthenticated={isAuthenticated}
                 />
               </div>
 
@@ -3598,18 +3606,28 @@ export default async function CompanyDetailPage({
 
   const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
 
-  // Only 1 sequential query remains (bookmark lookup needs owUser.id)
+  // bookmark + follow lookup (sequential — both need owUserId)
   let initialBookmarked = false;
+  let initialFollowed = false;
   const owUserId = owUserResult?.data?.id ?? null;
   if (owUserId) {
-    const { data: bmark } = await supabase
-      .from("ow_bookmarks")
-      .select("id")
-      .eq("user_id", owUserId)
-      .eq("target_type", "company")
-      .eq("target_id", params.id)
-      .maybeSingle();
-    initialBookmarked = !!bmark;
+    const [bmarkResult, followResult] = await Promise.all([
+      supabase
+        .from("ow_bookmarks")
+        .select("id")
+        .eq("user_id", owUserId)
+        .eq("target_type", "company")
+        .eq("target_id", params.id)
+        .maybeSingle(),
+      createAdminClient()
+        .from("ow_company_follows")
+        .select("id")
+        .eq("follower_user_id", owUserId)
+        .eq("company_id", params.id)
+        .maybeSingle(),
+    ]);
+    initialBookmarked = !!bmarkResult.data;
+    initialFollowed = !!followResult.data;
   }
 
   return (
@@ -3634,7 +3652,7 @@ export default async function CompanyDetailPage({
       />
       <RecentlyViewedTracker id={params.id} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb company={company} />
-      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
+      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} initialFollowed={initialFollowed} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[

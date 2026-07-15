@@ -1359,6 +1359,8 @@ function PostCard({
 
 // ─── FeedClient（メイン） ─────────────────────────────────────────────────────
 
+type Tab = "all" | "followed";
+
 export default function FeedClient({
   initialPosts,
   myUserId,
@@ -1367,9 +1369,38 @@ export default function FeedClient({
   myAvatarUrl,
   myLikedPostIds: _myLikedPostIds,
 }: Props) {
+  const [tab, setTab] = useState<Tab>("all");
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length > 0);
+
+  // フォロー中タブの状態
+  const [followedPosts, setFollowedPosts] = useState<PostItem[] | null>(null); // null = 未ロード
+  const [followedLoading, setFollowedLoading] = useState(false);
+  const [followedHasMore, setFollowedHasMore] = useState(false);
+
+  const activePosts = tab === "all" ? posts : (followedPosts ?? []);
+
+  const loadFollowed = useCallback(async () => {
+    if (followedPosts !== null || followedLoading) return;
+    setFollowedLoading(true);
+    try {
+      const res = await fetch("/api/jobseeker/posts?tab=followed&limit=20");
+      if (!res.ok) return;
+      const { posts: data } = await res.json();
+      setFollowedPosts(data ?? []);
+      setFollowedHasMore((data ?? []).length >= 20);
+    } catch {
+      setFollowedPosts([]);
+    } finally {
+      setFollowedLoading(false);
+    }
+  }, [followedPosts, followedLoading]);
+
+  const handleTabChange = (t: Tab) => {
+    setTab(t);
+    if (t === "followed" && followedPosts === null) loadFollowed();
+  };
 
   const handlePostCreated = useCallback((newPost: PostItem) => {
     setPosts((prev) => [newPost, ...prev]);
@@ -1393,14 +1424,26 @@ export default function FeedClient({
   );
 
   const handleLoadMore = async () => {
+    if (tab === "followed") {
+      if (loadingMore || !followedHasMore || !followedPosts?.length) return;
+      const oldest = followedPosts[followedPosts.length - 1];
+      setLoadingMore(true);
+      try {
+        const res = await fetch(`/api/jobseeker/posts?tab=followed&limit=20&before=${encodeURIComponent(oldest.created_at)}`);
+        if (!res.ok) return;
+        const { posts: more } = await res.json();
+        if (!more || more.length === 0) { setFollowedHasMore(false); return; }
+        setFollowedPosts((prev) => [...(prev ?? []), ...more]);
+        if (more.length < 20) setFollowedHasMore(false);
+      } catch { /* best-effort */ } finally { setLoadingMore(false); }
+      return;
+    }
     if (loadingMore || !hasMore) return;
     const oldest = posts[posts.length - 1];
     if (!oldest) return;
     setLoadingMore(true);
     try {
-      const res = await fetch(
-        `/api/jobseeker/posts?limit=20&before=${encodeURIComponent(oldest.created_at)}`
-      );
+      const res = await fetch(`/api/jobseeker/posts?limit=20&before=${encodeURIComponent(oldest.created_at)}`);
       if (!res.ok) return;
       const { posts: more } = await res.json();
       if (!more || more.length === 0) { setHasMore(false); return; }
@@ -1413,6 +1456,8 @@ export default function FeedClient({
     }
   };
 
+  const showLoadMore = tab === "all" ? (hasMore && posts.length > 0) : (followedHasMore && (followedPosts ?? []).length > 0);
+
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 16px 64px" }}>
       {/* ページタイトル */}
@@ -1422,11 +1467,47 @@ export default function FeedClient({
           fontSize: 22,
           fontWeight: 700,
           color: "var(--ink)",
-          marginBottom: 16,
+          marginBottom: 12,
         }}
       >
         投稿
       </h1>
+
+      {/* タブ */}
+      <div
+        style={{
+          display: "flex",
+          borderBottom: "1px solid var(--line)",
+          marginBottom: 16,
+          gap: 0,
+        }}
+      >
+        {(["all", "followed"] as const).map((t) => {
+          const label = t === "all" ? "すべて" : "フォロー中";
+          const active = tab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => handleTabChange(t)}
+              style={{
+                background: "none",
+                border: "none",
+                borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
+                padding: "8px 18px",
+                fontFamily: '"Noto Sans JP", sans-serif',
+                fontSize: 14,
+                fontWeight: active ? 700 : 400,
+                color: active ? "var(--royal)" : "var(--ink-soft)",
+                cursor: "pointer",
+                transition: "color 0.15s, border-color 0.15s",
+                marginBottom: -1,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* 投稿コンポーザー */}
       {myUserId && (
@@ -1471,7 +1552,19 @@ export default function FeedClient({
       )}
 
       {/* 投稿リスト */}
-      {posts.length === 0 ? (
+      {tab === "followed" && followedLoading ? (
+        <div style={{ textAlign: "center", padding: "48px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif', fontSize: 14 }}>
+          読み込み中…
+        </div>
+      ) : tab === "followed" && followedPosts !== null && followedPosts.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🏢</div>
+          <p style={{ fontSize: 15, margin: 0, fontWeight: 700, color: "var(--ink-soft)" }}>フォロー中の企業がありません</p>
+          <p style={{ fontSize: 13, marginTop: 6, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+            企業ページの「フォロー」ボタンを押すと<br />その企業の投稿がここに流れます
+          </p>
+        </div>
+      ) : activePosts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
           <p style={{ fontSize: 15, margin: 0 }}>まだ投稿がありません</p>
@@ -1482,7 +1575,7 @@ export default function FeedClient({
           )}
         </div>
       ) : (
-        posts.map((post) => (
+        activePosts.map((post) => (
           <PostCard
             key={post.id}
             post={post}
@@ -1497,7 +1590,7 @@ export default function FeedClient({
       )}
 
       {/* もっと見るボタン */}
-      {hasMore && posts.length > 0 && (
+      {showLoadMore && (
         <div style={{ textAlign: "center", marginTop: 8 }}>
           <button
             onClick={handleLoadMore}

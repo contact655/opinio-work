@@ -207,6 +207,69 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
   );
 }
 
+// ─── FollowButton ─────────────────────────────────────────────────────────────
+
+export function FollowButton({
+  companyId,
+  initialFollowed,
+  isAuthenticated,
+}: {
+  companyId: string;
+  initialFollowed: boolean;
+  isAuthenticated: boolean;
+}) {
+  const [followed, setFollowed] = useState(initialFollowed);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const toggle = async () => {
+    if (!isAuthenticated) {
+      router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    const next = !followed;
+    setFollowed(next);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/jobseeker/companies/${companyId}/follow`, {
+        method: next ? "POST" : "DELETE",
+      });
+      if (!res.ok) setFollowed(!next);
+    } catch {
+      setFollowed(!next);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={loading}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700,
+        border: `1px solid ${followed ? "var(--royal)" : "var(--line)"}`,
+        background: followed ? "var(--royal-50)" : "rgba(255,255,255,0.9)",
+        color: followed ? "var(--royal)" : "var(--ink-soft)",
+        cursor: loading ? "default" : "pointer",
+        transition: "all 0.2s",
+        opacity: loading ? 0.7 : 1,
+      }}
+      aria-pressed={followed}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill={followed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {followed
+          ? <><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></>
+          : <><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></>
+        }
+      </svg>
+      {followed ? "フォロー中" : "フォロー"}
+    </button>
+  );
+}
+
 export default function BookmarkButton({
   companyName,
   companyId,
