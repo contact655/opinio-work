@@ -1037,6 +1037,7 @@ function PostCard({
   myAvatarUrl,
   onDelete,
   onLikeToggle,
+  showDivider = false,
 }: {
   post: PostItem;
   myUserId: string | null;
@@ -1045,6 +1046,7 @@ function PostCard({
   myAvatarUrl: string | null;
   onDelete: (id: string) => void;
   onLikeToggle: (id: string, liked: boolean, delta: number) => void;
+  showDivider?: boolean;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
@@ -1087,12 +1089,8 @@ function PostCard({
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "14px 16px",
-        marginBottom: 8,
-        boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        padding: "16px",
+        borderBottom: showDivider ? "0.5px solid var(--line)" : "none",
       }}
     >
       {/* ヘッダー: アバター + 名前 + 時刻 + 削除 */}
@@ -1824,18 +1822,29 @@ export default function FeedClient({
           )}
         </div>
       ) : (
-        activePosts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            myUserId={myUserId}
-            myName={myName}
-            myAvatarColor={myAvatarColor}
-            myAvatarUrl={myAvatarUrl}
-            onDelete={handleDelete}
-            onLikeToggle={handleLikeToggle}
-          />
-        ))
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: 12,
+            overflow: "hidden",
+            marginBottom: 8,
+          }}
+        >
+          {activePosts.map((post, index) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              myUserId={myUserId}
+              myName={myName}
+              myAvatarColor={myAvatarColor}
+              myAvatarUrl={myAvatarUrl}
+              onDelete={handleDelete}
+              onLikeToggle={handleLikeToggle}
+              showDivider={index < activePosts.length - 1}
+            />
+          ))}
+        </div>
       )}
 
       {/* もっと見るボタン */}
