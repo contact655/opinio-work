@@ -157,13 +157,12 @@ export default async function FeedPage() {
           .eq("follower_user_id", myOwUserId)
           .limit(5)
       : Promise.resolve({ data: [] }),
-    // (b) 気になる求人 (max 3) — ow_bookmarks target_type='job'
+    // (b) 気になる求人 (max 3) — ow_saved_jobs
     myOwUserId
       ? adminSupabase
-          .from("ow_bookmarks")
-          .select("target_id")
+          .from("ow_saved_jobs")
+          .select("job_id")
           .eq("user_id", myOwUserId)
-          .eq("target_type", "job")
           .limit(3)
       : Promise.resolve({ data: [] }),
     // (c) 面談OKな人 (max 3)
@@ -180,7 +179,7 @@ export default async function FeedPage() {
     .filter(Boolean) as SidebarFollow[];
 
   // 気になる求人: job IDリストを取得してから jobs をフェッチ
-  const bookmarkedJobIds = (bookmarkResult.data ?? []).map((r: { target_id: string }) => r.target_id);
+  const bookmarkedJobIds = (bookmarkResult.data ?? []).map((r: { job_id: string }) => r.job_id).filter(Boolean);
   let sidebarSavedJobs: SidebarJob[] = [];
   if (bookmarkedJobIds.length > 0) {
     const { data: jobRows } = await adminSupabase
