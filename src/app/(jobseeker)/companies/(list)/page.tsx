@@ -115,12 +115,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const isListView  = !hasFilter && view === "list";
   const needsGrid = isGridView || isListView;
 
-  // ── 全クエリを1段の Promise.all で並列実行 ──────────────────────────────────
-  // 旧: searchCompanies → await → ow_experiences（直列2段）
-  // 新: 全5クエリを同時に投げて最も遅いものを待つだけ
+  // ── 全クエリを並列実行（experiences は企業IDが確定してから絞り込み） ──────────
   const supabase = createPublicClient();
 
-  const [locations, companyNamesResult, allCompaniesResult, experienceResult, reviewSummaries] = await Promise.all([
+  const [locations, companyNamesResult, allCompaniesResult, reviewSummaries] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
     // 検索サジェスト用企業名リスト
@@ -133,13 +131,15 @@ export default async function CompaniesPage({ searchParams }: Props) {
           salaryMin: salaryMin ? parseInt(salaryMin, 10) : undefined,
         })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
-    // 在籍メンバー: 全社分を並列取得し、後でメモリ内フィルター
-    needsGrid
-      ? supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name, photo_url)").eq("is_current", true)
-      : Promise.resolve({ data: null }),
     // 口コミ平均スコア
     needsGrid ? getCompanyReviewSummaries() : Promise.resolve({} as Record<string, { avg: number; count: number }>),
   ]);
+
+  // 在籍メンバー: 表示中の企業IDに絞って取得（全件スキャン防止）
+  const displayedCompanyIds = allCompaniesResult.companies.map((c) => c.id);
+  const experienceResult = needsGrid && displayedCompanyIds.length > 0
+    ? await supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name, photo_url)").eq("is_current", true).in("company_id", displayedCompanyIds)
+    : { data: null };
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];

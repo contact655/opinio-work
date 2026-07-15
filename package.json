@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.86.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -22,7 +21,6 @@
     "next": "14.2.35",
     "nextjs-toploader": "^3.9.17",
     "open-graph-scraper": "^6.12.0",
-    "pg": "^8.20.0",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",

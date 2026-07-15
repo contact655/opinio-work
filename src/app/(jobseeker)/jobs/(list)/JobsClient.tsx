@@ -981,10 +981,9 @@ function JobListItem({
 
           {/* 行1: 求人タイトル + 面談受付中バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
-            <span style={{
+            <span className="job-title-clamp" style={{
               fontSize: 16, fontWeight: 800, color: "var(--ink)",
               lineHeight: 1.4, letterSpacing: "-0.02em",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               maxWidth: "calc(100% - 110px)",
             }}>
               {job.role}
