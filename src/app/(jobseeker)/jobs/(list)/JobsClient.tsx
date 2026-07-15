@@ -1275,13 +1275,15 @@ function JobDetailPane({
 
 function SidebarFilters({
   parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
+  companyStage, onCompanyStageChange,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
   industries, industryId,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
   bizModel: string;
-  meetingOnly: boolean; availablePrefectures: string[];
+  meetingOnly: boolean; companyStage: string; onCompanyStageChange: (v: string) => void;
+  availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
@@ -1338,6 +1340,36 @@ function SidebarFilters({
           <span suppressHydrationWarning style={{ fontSize: 10, color: "#C2410C", background: "#FFF7ED", padding: "1px 6px", borderRadius: 100, border: "1px solid #FDBA74", flexShrink: 0, visibility: meetingCount > 0 ? "visible" : "hidden" }}>
             {meetingCount}件
           </span>
+        </div>
+      </div>
+
+      {/* 企業ステージ */}
+      <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--line-soft)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>企業ステージ</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {([
+            { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
+            { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
+            { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
+          ] as const).map(({ key, label, color, bg }) => {
+            const active = companyStage === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onCompanyStageChange(active ? "" : key)}
+                style={{
+                  padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500,
+                  border: `1.5px solid ${active ? color : "var(--line)"}`,
+                  background: active ? bg : "#fff",
+                  color: active ? color : "var(--ink-soft)",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1579,6 +1611,9 @@ export default function JobsClient({
   // 面談受付中のみフィルター
   const [meetingOnly, setMeetingOnly] = useState(false);
 
+  // 企業ステージフィルター
+  const [companyStage, setCompanyStage] = useState("");
+
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -1770,21 +1805,20 @@ export default function JobsClient({
       list = list.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings);
     }
 
+    // 企業ステージフィルタ
+    if (companyStage) {
+      list = list.filter((j) => {
+        const phase = (companyMap.get(j.company_id)?.phase ?? "").toLowerCase();
+        if (companyStage === "unicorn") return /unicorn|ユニコーン/.test(phase);
+        if (companyStage === "listed")  return /上場|listed|nasdaq|nyse|グロース|プライム/.test(phase);
+        if (companyStage === "startup") return /seed|シード|series|シリーズ/.test(phase);
+        return true;
+      });
+    }
+
     // ソート
-    const PHASE_ORDER: Record<string, number> = {
-      "Pre-seed": 0, "Seed": 1,
-      "Series A": 2, "Series B": 3, "Series C": 4, "Series D": 5, "Series E": 6,
-      "東証グロース": 7, "東証プライム": 8,
-      "上場 (NASDAQ)": 9, "上場 (NYSE)": 9, "上場": 9,
-    };
     if (sort === "salary") {
       list = [...list].sort((a, b) => (b.salary_max ?? 0) - (a.salary_max ?? 0));
-    } else if (sort === "phase") {
-      list = [...list].sort((a, b) => {
-        const pa = PHASE_ORDER[companyMap.get(a.company_id)?.phase ?? ""] ?? 99;
-        const pb = PHASE_ORDER[companyMap.get(b.company_id)?.phase ?? ""] ?? 99;
-        return pa - pb;
-      });
     } else {
       // デフォルト: 給与記載あり優先、次に更新日降順
       list = [...list].sort((a, b) => {
@@ -1796,7 +1830,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件）
   const filteredForDisplay = useMemo(() => {
@@ -1821,7 +1855,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, companyStage].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1834,7 +1868,7 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || companyStage || bizOnly);
 
   // 面談受付中の求人数（全件から）
   const meetingCount = useMemo(
@@ -2000,7 +2034,6 @@ export default function JobsClient({
             {([
               { value: "updated", label: "新着順" },
               { value: "salary",  label: "年収順" },
-              { value: "phase",   label: "ステージ順", title: "アーリー（シード）→ 成熟（上場）の順" },
             ] as const).map((opt) => {
               const active = sort === opt.value;
               return (
@@ -2008,7 +2041,6 @@ export default function JobsClient({
                   key={opt.value}
                   type="button"
                   onClick={() => setParam("sort", opt.value)}
-                  title={"title" in opt ? opt.title : undefined}
                   style={{
                     height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
                     fontWeight: active ? 700 : 500,
@@ -2161,12 +2193,14 @@ export default function JobsClient({
                 bizModel={bizModel}
                 prefecture={prefecture}
                 meetingOnly={meetingOnly}
+                companyStage={companyStage}
+                onCompanyStageChange={setCompanyStage}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 onMeetingOnlyChange={setMeetingOnly}
                 hasFilter={hasFilter}
                 q={q}
-                onReset={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
+                onReset={() => { setQ(""); setMeetingOnly(false); setCompanyStage(""); router.replace("/jobs"); }}
                 meetingCount={meetingCount}
                 industries={industries}
                 industryId={industryId}
