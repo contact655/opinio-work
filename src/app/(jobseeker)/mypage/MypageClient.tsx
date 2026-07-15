@@ -939,6 +939,7 @@ export default function MypageClient({
   setupJustDone = false,
   isNewUser = false,
   ambassadorMemberships = [],
+  showScoutBanner = false,
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -960,6 +961,7 @@ export default function MypageClient({
   setupJustDone?: boolean;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
+  showScoutBanner?: boolean;
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -973,6 +975,8 @@ export default function MypageClient({
 
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
+  const [scoutBannerSaving, setScoutBannerSaving] = useState(false);
   const { isMentor: _isMentorMock } = useMypageMock();
 
   const navigate = useCallback((v: ActiveView) => {
@@ -1359,6 +1363,76 @@ export default function MypageClient({
           }}>
             3ステップで公開する →
           </a>
+        </div>
+      )}
+
+      {/* スカウト設定未完了バナー（案C） */}
+      {scoutBannerVisible && (
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 14,
+          background: "linear-gradient(135deg, #FEF9C3 0%, #FEF3C7 100%)",
+          border: "1.5px solid #FCD34D", borderRadius: 12,
+          padding: "16px 20px", marginBottom: 16,
+          flexWrap: "wrap",
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+              📬 スカウト設定が未完了です
+            </div>
+            <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.6 }}>
+              企業からのスカウトを受け取るか設定してください。あとからいつでも変更できます。
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              disabled={scoutBannerSaving}
+              onClick={async () => {
+                setScoutBannerSaving(true);
+                try {
+                  await fetch("/api/jobseeker/scout-settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ scout_enabled: true }),
+                  });
+                  setScoutBannerVisible(false);
+                } finally {
+                  setScoutBannerSaving(false);
+                }
+              }}
+              style={{
+                padding: "9px 16px", background: "#D97706", color: "#fff",
+                border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
+              }}
+            >
+              受け取る
+            </button>
+            <button
+              type="button"
+              disabled={scoutBannerSaving}
+              onClick={async () => {
+                setScoutBannerSaving(true);
+                try {
+                  await fetch("/api/jobseeker/scout-settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ scout_enabled: false }),
+                  });
+                  setScoutBannerVisible(false);
+                } finally {
+                  setScoutBannerSaving(false);
+                }
+              }}
+              style={{
+                padding: "9px 16px", background: "none", color: "#92400E",
+                border: "1.5px solid #FCD34D", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
+              }}
+            >
+              受け取らない
+            </button>
+          </div>
         </div>
       )}
 

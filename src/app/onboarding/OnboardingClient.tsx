@@ -30,6 +30,17 @@ const STEPS: Step[] = [
     options: [],  // 2段階UIのため options は未使用。カテゴリは JOB_TYPE_CATEGORIES から描画
   },
   {
+    id: "scout_enabled",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.7 12.1 19.79 19.79 0 0 1 1.61 3.56 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/>
+      </svg>
+    ),
+    question: "企業からのスカウトを受け取りますか?",
+    sub: "あとから変更できます",
+    options: [],  // scout_enabled は特別UIのため options は未使用
+  },
+  {
     id: "experience_years",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -57,17 +68,6 @@ const STEPS: Step[] = [
       "スタートアップに興味がある",
       "まず話を聞いてみたい",
     ],
-  },
-  {
-    id: "scout_enabled",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.7 12.1 19.79 19.79 0 0 1 1.61 3.56 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/>
-      </svg>
-    ),
-    question: "企業からのスカウトを受け取りますか?",
-    sub: "あとから変更できます",
-    options: [],  // scout_enabled は特別UIのため options は未使用
   },
 ];
 
@@ -648,6 +648,13 @@ function OnboardingInner() {
             <button
               type="button"
               onClick={async () => {
+                // scout_enabled ステップより前にいる場合はスキップせずそこへ飛ぶ
+                const scoutIndex = STEPS.findIndex((s) => s.id === "scout_enabled");
+                if (step < scoutIndex) {
+                  setStep(scoutIndex);
+                  return;
+                }
+                // scout より後ならそのまま完了扱い
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {

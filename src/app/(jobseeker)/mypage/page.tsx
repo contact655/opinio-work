@@ -281,10 +281,11 @@ export default async function MypagePage({
 
   // Fetch ow_profiles career preferences (user_id = auth.users.id)
   let hasCareerPreferences = false;
+  let showScoutBanner = false;
   if (owUser) {
     const { data: profile } = await supabase
       .from("ow_profiles")
-      .select("job_type, desired_work_style, desired_salary_min, transfer_timing")
+      .select("job_type, desired_work_style, desired_salary_min, transfer_timing, onboarding_completed, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
     hasCareerPreferences = !!(
@@ -293,6 +294,8 @@ export default async function MypagePage({
       profile?.desired_salary_min ||
       profile?.transfer_timing
     );
+    // オンボーディング完了済みだがscout_enabled未設定の場合バナー表示
+    showScoutBanner = profile?.onboarding_completed === true && profile?.scout_enabled == null;
   }
 
   // Fetch notification badge counts
@@ -342,5 +345,5 @@ export default async function MypagePage({
   const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} />;
 }
