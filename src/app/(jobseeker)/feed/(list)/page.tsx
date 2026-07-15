@@ -119,6 +119,23 @@ export default async function FeedPage() {
     }
   }
 
+  // top_likers: いいねしたユーザーのアバター（最大3件）をバッチ取得
+  const topLikersMap = new Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]>();
+  if (visiblePosts.length > 0) {
+    const pIds = visiblePosts.map((p) => p.id);
+    const { data: likerRows } = await adminSupabase
+      .from("ow_post_likes")
+      .select("post_id, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
+      .in("post_id", pIds)
+      .order("created_at", { ascending: false });
+    for (const row of likerRows ?? []) {
+      const r = row as unknown as { post_id: string; user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null } };
+      if (!topLikersMap.has(r.post_id)) topLikersMap.set(r.post_id, []);
+      const arr = topLikersMap.get(r.post_id)!;
+      if (arr.length < 3) arr.push(r.user);
+    }
+  }
+
   const initialPosts = visiblePosts.map((p) => {
     const exp = p.user ? expByUser.get(p.user.id) : undefined;
     return {
@@ -144,6 +161,7 @@ export default async function FeedPage() {
       like_count: p.likes?.[0]?.count ?? 0,
       comment_count: p.comments?.[0]?.count ?? 0,
       liked_by_me: likedPostIds.has(p.id),
+      top_likers: topLikersMap.get(p.id) ?? [],
     };
   });
 

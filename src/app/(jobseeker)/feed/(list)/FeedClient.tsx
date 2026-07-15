@@ -23,6 +23,8 @@ type RefCompany = { id: string; name: string; brand_name: string | null; logo_le
 type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
+type LikerUser = { id: string; name: string; avatar_color: string | null; avatar_url: string | null };
+
 type PostItem = {
   id: string;
   content: string;
@@ -33,6 +35,7 @@ type PostItem = {
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
+  top_likers?: LikerUser[];
   link_url: string | null;
   link_title: string | null;
   link_image_url: string | null;
@@ -473,42 +476,51 @@ function PostComposer({
             </p>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: 12,
-              gap: 8,
-            }}
-          >
-            {/* 画像添付 */}
+          {/* 投稿タイプボタン行 */}
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              title="画像を添付"
               style={{
-                background: "none",
-                border: "none",
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "5px 13px",
+                borderRadius: 20,
+                border: `1px solid ${imagePreview ? "var(--royal-100)" : "var(--line)"}`,
+                background: imagePreview ? "var(--royal-50)" : "#fff",
+                color: imagePreview ? "var(--royal)" : "var(--ink-soft)",
+                fontFamily: '"Noto Sans JP", sans-serif',
+                fontSize: 12, fontWeight: 600,
                 cursor: uploading ? "not-allowed" : "pointer",
-                padding: "6px 10px",
-                borderRadius: 8,
-                color: "var(--ink-soft)",
-                fontSize: 18,
-                transition: "background 0.15s",
-                opacity: uploading ? 0.5 : 1,
+                opacity: uploading ? 0.6 : 1,
+                transition: "all 0.15s",
               }}
             >
-              📷
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              {uploading ? "アップロード中…" : "写真"}
             </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleFileChange}
-            />
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              marginTop: 10,
+              gap: 8,
+            }}
+          >
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {/* 文字数カウンター */}
@@ -1481,6 +1493,38 @@ function PostCard({
           <span style={{ fontSize: 16 }}>{post.liked_by_me ? "❤️" : "🤍"}</span>
           <span>{post.like_count}</span>
         </button>
+
+        {/* リアクションしたユーザーのアバター (1件以上のとき) */}
+        {post.like_count > 0 && post.top_likers && post.top_likers.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", marginLeft: 2 }}>
+            {post.top_likers.slice(0, 3).map((liker, i) => (
+              <div
+                key={liker.id}
+                title={liker.name}
+                style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  marginLeft: i === 0 ? 0 : -6,
+                  border: "1.5px solid #fff",
+                  zIndex: 3 - i,
+                  position: "relative",
+                  background: liker.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontWeight: 700, fontSize: 8, fontFamily: "Inter, sans-serif",
+                  overflow: "hidden", flexShrink: 0,
+                }}
+              >
+                {liker.avatar_url
+                  ? <img src={liker.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : nameInitial(liker.name)}
+              </div>
+            ))}
+            {post.like_count > 3 && (
+              <span style={{ marginLeft: 5, fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                +{post.like_count - 3}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* コメントボタン */}
         <button

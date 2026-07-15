@@ -88,11 +88,32 @@ function filterVisible(posts: RawPost[], myOwUserId: string | null): RawPost[] {
   });
 }
 
+async function getTopLikers(
+  admin: AdminClient,
+  posts: RawPost[]
+): Promise<Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]>> {
+  const map = new Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]>();
+  if (posts.length === 0) return map;
+  const { data } = await admin
+    .from("ow_post_likes")
+    .select("post_id, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
+    .in("post_id", posts.map((p) => p.id))
+    .order("created_at", { ascending: false });
+  for (const row of data ?? []) {
+    const r = row as unknown as { post_id: string; user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null } };
+    if (!map.has(r.post_id)) map.set(r.post_id, []);
+    const arr = map.get(r.post_id)!;
+    if (arr.length < 3) arr.push(r.user);
+  }
+  return map;
+}
+
 function formatPosts(
   posts: RawPost[],
   myOwUserId: string | null,
   likedIds: Set<string>,
-  expByUser: Map<string, { roleTitle: string | null; company: string | null }>
+  expByUser: Map<string, { roleTitle: string | null; company: string | null }>,
+  topLikersMap: Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]> = new Map()
 ) {
   return filterVisible(posts, myOwUserId).map((p) => {
     const exp = p.user ? expByUser.get(p.user.id) : undefined;
@@ -119,6 +140,7 @@ function formatPosts(
       like_count: p.likes?.[0]?.count ?? 0,
       comment_count: p.comments?.[0]?.count ?? 0,
       liked_by_me: likedIds.has(p.id),
+      top_likers: topLikersMap.get(p.id) ?? [],
     };
   });
 }
@@ -211,11 +233,12 @@ export async function GET(req: Request) {
     }
 
     const fposts = (followedData ?? []) as unknown as RawPost[];
-    const [fLiked, fExp] = await Promise.all([
+    const [fLiked, fExp, fTopLikers] = await Promise.all([
       getLikedIds(adminSupabase, myOwUserId, fposts),
       getExpByUser(adminSupabase, fposts),
+      getTopLikers(adminSupabase, fposts),
     ]);
-    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, fLiked, fExp) });
+    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, fLiked, fExp, fTopLikers) });
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -236,12 +259,13 @@ export async function GET(req: Request) {
   }
 
   const posts = (data ?? []) as unknown as RawPost[];
-  const [likedIds, expByUser] = await Promise.all([
+  const [likedIds, expByUser, topLikersMap] = await Promise.all([
     getLikedIds(adminSupabase, myOwUserId, posts),
     getExpByUser(adminSupabase, posts),
+    getTopLikers(adminSupabase, posts),
   ]);
 
-  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, likedIds, expByUser) });
+  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, likedIds, expByUser, topLikersMap) });
 }
 
 // POST /api/jobseeker/posts — 投稿作成
