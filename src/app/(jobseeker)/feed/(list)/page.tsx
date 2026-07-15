@@ -2,8 +2,6 @@ import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import FeedClient from "./FeedClient";
-import type { SidebarJob, SidebarPerson } from "@/components/feed/FeedSidebar";
-import type { FeedProfileData } from "@/components/feed/FeedProfileCard";
 
 export const metadata: Metadata = {
   title: "投稿 | OPINIO",
@@ -116,134 +114,6 @@ export default async function FeedPage() {
     }
   }
 
-  // ── 左カラム: 自分のプロフィールサマリー（失敗してもフィード本体は壊れない） ──
-  let feedProfile: FeedProfileData | null = null;
-  if (myOwUserId && owUser) {
-    try {
-      // 現職情報
-      const { data: myExp } = await adminSupabase
-        .from("ow_experiences")
-        .select("role_title, company_text, company_anonymized")
-        .eq("user_id", myOwUserId)
-        .eq("is_current", true)
-        .limit(1)
-        .maybeSingle();
-
-      // 完成度計算用データ
-      const [{ data: owProfile }, { data: skillTags }, { data: careers }] = await Promise.all([
-        adminSupabase.from("ow_users").select("about_me").eq("id", myOwUserId).maybeSingle(),
-        adminSupabase.from("ow_user_skill_tags").select("id").eq("user_id", myOwUserId).limit(1),
-        adminSupabase.from("ow_experiences").select("id").eq("user_id", myOwUserId).limit(1),
-      ]);
-
-      const hasName   = !!owUser.name && owUser.name !== "ユーザー";
-      const hasAbout  = !!owProfile?.about_me && (owProfile.about_me as string).trim().length > 0;
-      const hasSkills = (skillTags?.length ?? 0) > 0;
-      const hasCareer = (careers?.length ?? 0) > 0;
-
-      let profileStage: 1 | 2 | 3 = 1;
-      if (hasName && hasAbout && hasSkills) profileStage = hasCareer ? 3 : 2;
-
-      feedProfile = {
-        userId: myOwUserId,
-        name: owUser.name ?? "ユーザー",
-        avatarColor: owUser.avatar_color ?? null,
-        avatarUrl: owUser.avatar_url ?? null,
-        roleTitle: myExp?.role_title ?? null,
-        companyName: myExp?.company_text || myExp?.company_anonymized || null,
-        profileStage,
-      };
-    } catch (e) {
-      console.error("[feed profile card]", e);
-    }
-  }
-
-  // ── サイドバー用データ（失敗してもフィード本体は壊れない） ───────────────────
-  const sidebarJobs: SidebarJob[] = [];
-  const sidebarPeople: SidebarPerson[] = [];
-
-  try {
-    const WORK_STYLE_LABELS: Record<string, string> = {
-      full_remote: "フルリモート",
-      hybrid: "ハイブリッド",
-      on_site: "原則出社",
-    };
-    const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-
-    // 新着求人（会社制約なし、新着3件そのまま）
-    const { data: jobRows } = await adminSupabase
-      .from("ow_jobs")
-      .select("id, title, job_category, salary_min, salary_max, work_style, ow_companies!inner(id, name, brand_name, logo_letter, logo_gradient, logo_url)")
-      .in("status", ["published", "active"])
-      .order("published_at", { ascending: false })
-      .limit(3);
-
-    for (const row of (jobRows ?? []) as unknown as Array<{
-      id: string; title: string; job_category: string | null;
-      salary_min: number | null; salary_max: number | null; work_style: string | null;
-      ow_companies: { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
-    }>) {
-      const co = row.ow_companies;
-      if (!co) continue;
-      const ws = row.work_style;
-      sidebarJobs.push({
-        id: row.id,
-        title: row.title,
-        companyName: co.brand_name ?? co.name,
-        dept: row.job_category,
-        salaryMin: row.salary_min,
-        salaryMax: row.salary_max,
-        workStyle: ws ? (WORK_STYLE_LABELS[ws] ?? ws) : null,
-        logoUrl: co.logo_url,
-        logoGradient: co.logo_gradient,
-        logoLetter: co.logo_letter,
-      });
-    }
-
-    // 話せる人（is_ambassador=true, 3人）
-    const { data: ambassadors } = await adminSupabase
-      .from("ow_company_admins")
-      .select(`
-        user_id,
-        role_title,
-        department,
-        user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
-        company:ow_companies!company_id(name, brand_name)
-      `)
-      .eq("is_ambassador", true)
-      .eq("is_active", true)
-      .not("user_id", "is", null)
-      .limit(10);
-
-    if (ambassadors) {
-      const seen = new Set<string>();
-      for (const r of ambassadors as unknown as Array<{
-        user_id: string; role_title: string | null; department: string | null;
-        user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
-        company: { name: string; brand_name: string | null } | null;
-      }>) {
-        if (!r.user || r.user.visibility !== "public" || seen.has(r.user_id)) continue;
-        seen.add(r.user_id);
-        const gradient = r.user.avatar_color?.startsWith("linear-gradient")
-          ? r.user.avatar_color
-          : FALLBACK_GRADIENT;
-        sidebarPeople.push({
-          userId: r.user.id,
-          name: r.user.name,
-          initial: r.user.name.charAt(0),
-          gradient,
-          avatarUrl: r.user.avatar_url,
-          roleTitle: r.role_title ?? r.department ?? null,
-          companyName: r.company?.brand_name ?? r.company?.name ?? "",
-        });
-        if (sidebarPeople.length >= 3) break;
-      }
-    }
-  } catch (e) {
-    console.error("[feed sidebar]", e);
-    // フォールバック: 空配列のまま（フィード本体には影響なし）
-  }
-
   const initialPosts = visiblePosts.map((p) => {
     const exp = p.user ? expByUser.get(p.user.id) : undefined;
     return {
@@ -280,9 +150,6 @@ export default async function FeedPage() {
       myAvatarColor={owUser?.avatar_color ?? null}
       myAvatarUrl={owUser?.avatar_url ?? null}
       myLikedPostIds={Array.from(likedPostIds)}
-      sidebarJobs={sidebarJobs}
-      sidebarPeople={sidebarPeople}
-      feedProfile={feedProfile}
     />
   );
 }

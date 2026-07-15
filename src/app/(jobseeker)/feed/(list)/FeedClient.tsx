@@ -4,14 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import FeedSidebar, {
-  FeedInsertJobCard,
-  FeedInsertPersonCard,
-  type SidebarJob,
-  type SidebarPerson,
-} from "@/components/feed/FeedSidebar";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
-import FeedProfileCard, { type FeedProfileData } from "@/components/feed/FeedProfileCard";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -66,9 +59,6 @@ type Props = {
   myAvatarColor: string | null;
   myAvatarUrl: string | null;
   myLikedPostIds: string[];
-  sidebarJobs?: SidebarJob[];
-  sidebarPeople?: SidebarPerson[];
-  feedProfile?: FeedProfileData | null;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1375,11 +1365,7 @@ export default function FeedClient({
   myName,
   myAvatarColor,
   myAvatarUrl,
-  // myLikedPostIds は initialPosts に liked_by_me として既に組み込まれているため直接参照しない
   myLikedPostIds: _myLikedPostIds,
-  sidebarJobs = [],
-  sidebarPeople = [],
-  feedProfile = null,
 }: Props) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -1417,11 +1403,7 @@ export default function FeedClient({
       );
       if (!res.ok) return;
       const { posts: more } = await res.json();
-      if (!more || more.length === 0) {
-        setHasMore(false);
-        return;
-      }
-      // liked_by_me は API が返す値をそのまま使う
+      if (!more || more.length === 0) { setHasMore(false); return; }
       setPosts((prev) => [...prev, ...more]);
       if (more.length < 20) setHasMore(false);
     } catch {
@@ -1431,29 +1413,8 @@ export default function FeedClient({
     }
   };
 
-  const hasSidebar = sidebarJobs.length > 0 || sidebarPeople.length > 0;
-  const hasProfile = !!feedProfile;
-
   return (
-    <div
-      style={{
-        maxWidth: hasProfile || hasSidebar ? 1160 : 680,
-        margin: "0 auto",
-        padding: "24px 16px 64px",
-        display: "flex",
-        gap: 24,
-        alignItems: "flex-start",
-      }}
-    >
-      {/* 左カラム: プロフィールサマリー（デスクトップのみ） */}
-      {hasProfile && (
-        <div className="feed-profile-wrapper">
-          <FeedProfileCard profile={feedProfile!} />
-        </div>
-      )}
-
-      {/* メインフィード */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 16px 64px" }}>
       {/* ページタイトル */}
       <h1
         style={{
@@ -1467,7 +1428,7 @@ export default function FeedClient({
         投稿
       </h1>
 
-      {/* 投稿コンポーザー（ログイン済みのみ） */}
+      {/* 投稿コンポーザー */}
       {myUserId && (
         <PostComposer
           myUserId={myUserId}
@@ -1493,28 +1454,15 @@ export default function FeedClient({
             gap: 12,
           }}
         >
-          <p
-            style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
-              fontSize: 14,
-              color: "var(--royal)",
-              margin: 0,
-            }}
-          >
+          <p style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 14, color: "var(--royal)", margin: 0 }}>
             ログインすると投稿・いいね・コメントができます
           </p>
           <Link
             href="/auth"
             style={{
-              background: "var(--royal)",
-              color: "#fff",
-              borderRadius: 8,
-              padding: "8px 16px",
-              fontFamily: '"Noto Sans JP", sans-serif',
-              fontWeight: 700,
-              fontSize: 13,
-              textDecoration: "none",
-              whiteSpace: "nowrap",
+              background: "var(--royal)", color: "#fff", borderRadius: 8,
+              padding: "8px 16px", fontFamily: '"Noto Sans JP", sans-serif',
+              fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap",
             }}
           >
             ログイン
@@ -1524,14 +1472,7 @@ export default function FeedClient({
 
       {/* 投稿リスト */}
       {posts.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "64px 0",
-            color: "var(--ink-mute)",
-            fontFamily: '"Noto Sans JP", sans-serif',
-          }}
-        >
+        <div style={{ textAlign: "center", padding: "64px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
           <p style={{ fontSize: 15, margin: 0 }}>まだ投稿がありません</p>
           {myUserId && (
@@ -1541,40 +1482,18 @@ export default function FeedClient({
           )}
         </div>
       ) : (
-        // 投稿間差し込み: 3件ごとに求人/話せる人を交互挿入（モバイルのみ表示）
-        posts.flatMap((post, i) => {
-          const elements: React.ReactNode[] = [
-            <PostCard
-              key={post.id}
-              post={post}
-              myUserId={myUserId}
-              myName={myName}
-              myAvatarColor={myAvatarColor}
-              myAvatarUrl={myAvatarUrl}
-              onDelete={handleDelete}
-              onLikeToggle={handleLikeToggle}
-            />,
-          ];
-          // 3件目・6件目・9件目…（0-indexed: index 2, 5, 8…）の直後に差し込む
-          if ((i + 1) % 3 === 0) {
-            const insertCount = Math.floor((i + 1) / 3) - 1; // 0-based差し込み回数
-            if (insertCount % 2 === 0 && sidebarJobs.length > 0) {
-              // 偶数回 = 求人（0回目, 2回目…）、巡回
-              const job = sidebarJobs[insertCount % sidebarJobs.length];
-              elements.push(
-                <FeedInsertJobCard key={`insert-job-${i}`} job={job} />
-              );
-            } else if (insertCount % 2 === 1 && sidebarPeople.length > 0) {
-              // 奇数回 = 話せる人（1回目, 3回目…）、巡回
-              const person = sidebarPeople[insertCount % sidebarPeople.length];
-              elements.push(
-                <FeedInsertPersonCard key={`insert-person-${i}`} person={person} />
-              );
-            }
-            // どちらも0件ならスキップ（空カードを出さない）
-          }
-          return elements;
-        })
+        posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            myUserId={myUserId}
+            myName={myName}
+            myAvatarColor={myAvatarColor}
+            myAvatarUrl={myAvatarUrl}
+            onDelete={handleDelete}
+            onLikeToggle={handleLikeToggle}
+          />
+        ))
       )}
 
       {/* もっと見るボタン */}
@@ -1584,37 +1503,18 @@ export default function FeedClient({
             onClick={handleLoadMore}
             disabled={loadingMore}
             style={{
-              background: "#fff",
-              border: "1px solid var(--line)",
-              borderRadius: 10,
-              padding: "12px 32px",
-              fontFamily: '"Noto Sans JP", sans-serif',
-              fontSize: 14,
-              fontWeight: 700,
+              background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
+              padding: "12px 32px", fontFamily: '"Noto Sans JP", sans-serif',
+              fontSize: 14, fontWeight: 700,
               color: loadingMore ? "var(--ink-mute)" : "var(--royal)",
               cursor: loadingMore ? "not-allowed" : "pointer",
-              boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              transition: "background 0.15s",
+              boxShadow: "0 1px 4px rgba(15,23,42,0.06)", transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => {
-              if (!loadingMore)
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "var(--bg-tint)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-            }}
+            onMouseEnter={(e) => { if (!loadingMore) (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
           >
             {loadingMore ? "読み込み中…" : "もっと見る"}
           </button>
-        </div>
-      )}
-      </div>{/* /メインフィード */}
-
-      {/* デスクトップサイドバー（lg以上のみ） */}
-      {hasSidebar && (
-        <div className="feed-sidebar-wrapper">
-          <FeedSidebar jobs={sidebarJobs} people={sidebarPeople} />
         </div>
       )}
     </div>
