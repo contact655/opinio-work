@@ -68,7 +68,7 @@ export default async function CandidatesPage() {
   const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled")
+      .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled, desired_salary_min, desired_salary_max")
       .eq("scout_enabled", true)
       .then(r => r.data ?? []),
     adminClient
@@ -124,6 +124,8 @@ export default async function CandidatesPage() {
     desired_phase: string[] | null;
     transfer_timing: string | null;
     scout_enabled: boolean | null;
+    desired_salary_min: number | null;
+    desired_salary_max: number | null;
   }>();
   for (const p of profileRows) {
     profilesByAuthId.set(p.user_id as string, p as any);
@@ -227,6 +229,8 @@ export default async function CandidatesPage() {
         workStyle: profile?.desired_work_style || null,
         desiredPhase: profile?.desired_phase || null,
         transferTiming: profile?.transfer_timing || null,
+        desiredSalaryMin: profile?.desired_salary_min ?? null,
+        desiredSalaryMax: profile?.desired_salary_max ?? null,
         onboardingCompleted: profile?.onboarding_completed || false,
         alreadyScouted,
         createdAt: u.created_at as string,

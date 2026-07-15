@@ -19,6 +19,8 @@ type Candidate = {
   workStyle: string | null;
   desiredPhase: string[] | null;
   transferTiming: string | null;
+  desiredSalaryMin: number | null;
+  desiredSalaryMax: number | null;
   onboardingCompleted: boolean;
   alreadyScouted: boolean;
   createdAt: string;
@@ -177,6 +179,10 @@ export default function CandidatesClient({
   const [selectedDecades, setSelectedDecades] = useState<string[]>([]);
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [selectedSkillTags, setSelectedSkillTags] = useState<string[]>([]);
+  // 0 = 指定なし（万円単位）
+  const [salaryMin, setSalaryMin] = useState(0);
+  // デフォルトON: 年収未設定の候補者も通す
+  const [includeNoSalary, setIncludeNoSalary] = useState(true);
 
   // ── モバイル サイドバー開閉 ─────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -306,11 +312,23 @@ export default function CandidatesClient({
       );
     }
 
+    // 希望年収フィルター
+    // desired_salary_max を判定軸とする: 候補者の希望レンジ上限が選択下限以上なら「出せる候補」
+    // desired_salary_min だけ設定されているケースは稀なので max 優先、max が null なら min で補完
+    if (salaryMin > 0) {
+      list = list.filter((c) => {
+        const salaryVal = c.desiredSalaryMax ?? c.desiredSalaryMin;
+        if (salaryVal === null) return includeNoSalary; // 未設定は includeNoSalary に従う
+        return salaryVal >= salaryMin;
+      });
+    }
+
     return list;
   }, [
     candidates, q, workStyle, jobCategoryKey, selectedJobType,
     phase, transferTiming, hideAlreadyScouted,
     selectedDecades, selectedPrefectures, selectedSkillTags,
+    salaryMin, includeNoSalary,
   ]);
 
   const jobTypeFilterActive = jobCategoryKey !== null;
@@ -323,6 +341,7 @@ export default function CandidatesClient({
     selectedDecades.length ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     selectedSkillTags.length ? "x" : "",
+    salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
 
   function clearAllFilters() {
@@ -336,6 +355,8 @@ export default function CandidatesClient({
     setSelectedDecades([]);
     setSelectedPrefectures([]);
     setSelectedSkillTags([]);
+    setSalaryMin(0);
+    setIncludeNoSalary(true);
   }
 
   function toggleMulti<T>(arr: T[], val: T): T[] {
@@ -500,6 +521,40 @@ export default function CandidatesClient({
           )}
         </div>
       )}
+
+      {/* 希望年収 */}
+      <div>
+        <SidebarLabel>希望年収（下限）</SidebarLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {([
+            { value: 0,    label: "指定なし" },
+            { value: 400,  label: "400万〜" },
+            { value: 600,  label: "600万〜" },
+            { value: 800,  label: "800万〜" },
+            { value: 1000, label: "1000万〜" },
+            { value: 1200, label: "1200万〜" },
+          ] as const).map(({ value, label }) => (
+            <Pill key={value} active={salaryMin === value} color="royal"
+              onClick={() => setSalaryMin(value)}>
+              {label}
+            </Pill>
+          ))}
+        </div>
+        {/* 年収下限指定中のみ「未設定含む」チェックを表示 */}
+        {salaryMin > 0 && (
+          <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={includeNoSalary}
+              onChange={(e) => setIncludeNoSalary(e.target.checked)}
+              style={{ width: 13, height: 13, accentColor: "var(--royal)", cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4 }}>
+              年収未設定の候補者も含む
+            </span>
+          </label>
+        )}
+      </div>
 
       {/* スキルタグ — 複数選択 OR */}
       {uniqueSkillTags.length > 0 && (
