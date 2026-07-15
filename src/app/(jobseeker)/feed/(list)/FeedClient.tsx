@@ -1647,19 +1647,6 @@ export default function FeedClient({
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
       {/* 中央フィードカラム */}
       <div style={{ flex: 1, minWidth: 0 }}>
-      {/* ページタイトル */}
-      <h1
-        style={{
-          fontFamily: '"Noto Serif JP", serif',
-          fontSize: 22,
-          fontWeight: 700,
-          color: "var(--ink)",
-          marginBottom: 12,
-        }}
-      >
-        投稿
-      </h1>
-
       {/* タブ */}
       <div
         style={{
