@@ -71,6 +71,8 @@ export type Job = {
   sales_segment?: string[] | null;
   sales_hunter_farmer?: string | null;
   incentive_note?: string | null;
+  // 技術スタック (Migration 245)
+  tech_stack?: string[] | null;
 };
 
 // ─── Avatar gradient palette ──────────────────────────────────────────────────

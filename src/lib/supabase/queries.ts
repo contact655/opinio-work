@@ -178,6 +178,8 @@ function mapJob(row: Record<string, any>): Job {
     sales_segment: Array.isArray(row.sales_segment) ? (row.sales_segment as string[]) : null,
     sales_hunter_farmer: (row.sales_hunter_farmer as string) ?? null,
     incentive_note: (row.incentive_note as string) ?? null,
+    // 技術スタック (Migration 245)
+    tech_stack: Array.isArray(row.tech_stack) ? (row.tech_stack as string[]) : [],
     published_at: (row.published_at as string) ?? null,
     expires_at: (row.expires_at as string) ?? null,
   };
@@ -650,6 +652,8 @@ const JOB_LIST_COLS = [
   "business_model",
   // セールス職専用項目 (Migration 212) — 一覧カードでも OTE 表示に使う
   "ote_min", "ote_max", "sales_segment",
+  // 技術スタック (Migration 245)
+  "tech_stack",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [

@@ -12,6 +12,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getVisibleRoles } from "@/lib/constants/jobTypes";
 import { BUSINESS_MODELS, getBusinessModelLabel } from "@/lib/constants/businessModels";
+import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { isSalesJob, getSalesSegmentLabel } from "@/lib/constants/salesFields";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
@@ -1275,7 +1276,7 @@ function JobDetailPane({
 
 function SidebarFilters({
   parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
-  companyStage, onCompanyStageChange,
+  companyStage, onCompanyStageChange, techStack, onTechStackChange,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
   industries, industryId,
 }: {
@@ -1283,6 +1284,7 @@ function SidebarFilters({
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
   bizModel: string;
   meetingOnly: boolean; companyStage: string; onCompanyStageChange: (v: string) => void;
+  techStack: string[]; onTechStackChange: (v: string[]) => void;
   availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onMeetingOnlyChange: (v: boolean) => void;
@@ -1291,7 +1293,7 @@ function SidebarFilters({
   industryId: string;
 }) {
   // ③ アコーディオン: デフォルトで年収・雇用形態・地域は折りたたむ
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "salary", "empType", "bizModel", "prefecture"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "salary", "empType", "bizModel", "prefecture", "techStack"]));
   // 「詳細条件」アコーディオン（デフォルト閉じ）
   const [detailOpen, setDetailOpen] = useState(false);
   function toggleSection(key: string) {
@@ -1443,6 +1445,44 @@ function SidebarFilters({
                 </button>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* 技術スタック — アコーディオン（Tier1: 職種の下に常時表示）*/}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="技術スタック" sectionKey="techStack" hasActive={techStack.length > 0} />
+        {!collapsed.has("techStack") && (
+          <div style={{ padding: "0 12px 12px" }}>
+            {techStack.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                {techStack.map((t) => (
+                  <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontSize: 11, fontWeight: 700 }}>
+                    {t}
+                    <button type="button" onClick={() => onTechStackChange(techStack.filter((x) => x !== t))}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--royal)", fontSize: 13, lineHeight: 1, padding: 0, fontFamily: "inherit" }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {TECH_STACK_CATEGORIES.map((cat) => (
+              <div key={cat.label} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 5 }}>{cat.label}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {cat.items.map((tech) => {
+                    const active = techStack.includes(tech);
+                    return (
+                      <button key={tech} type="button"
+                        onClick={() => onTechStackChange(active ? techStack.filter((t) => t !== tech) : [...techStack, tech])}
+                        style={{ padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: active ? 700 : 400, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", transition: "all 0.1s", fontFamily: "inherit" }}
+                      >
+                        {tech}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -1706,6 +1746,9 @@ export default function JobsClient({
   // 企業ステージフィルター
   const [companyStage, setCompanyStage] = useState("");
 
+  // 技術スタックフィルター（複数選択 AND）
+  const [techStack, setTechStack] = useState<string[]>([]);
+
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -1908,6 +1951,15 @@ export default function JobsClient({
       });
     }
 
+    // 技術スタックフィルタ（AND: 選択タグをすべて含む求人のみ）
+    if (techStack.length > 0) {
+      list = list.filter((j) => {
+        const ts = j.tech_stack;
+        if (!ts || ts.length === 0) return false;
+        return techStack.every((t) => ts.includes(t));
+      });
+    }
+
     // ソート
     if (sort === "salary") {
       list = [...list].sort((a, b) => (b.salary_max ?? 0) - (a.salary_max ?? 0));
@@ -1922,7 +1974,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件）
   const filteredForDisplay = useMemo(() => {
@@ -1947,7 +1999,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, companyStage].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, companyStage, techStack.join(",")].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1960,7 +2012,7 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || companyStage || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || companyStage || techStack.length || bizOnly);
 
   // 面談受付中の求人数（全件から）
   const meetingCount = useMemo(
@@ -2113,7 +2165,7 @@ export default function JobsClient({
             )}
 
             {(hasFilter || q || meetingOnly) && (
-              <button type="button" onClick={() => { setQ(""); setMeetingOnly(false); router.replace("/jobs"); }}
+              <button type="button" onClick={() => { setQ(""); setMeetingOnly(false); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
                 className="jobs-filterbar-sidebar-dup"
                 style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
               >✕ リセット</button>
@@ -2249,7 +2301,18 @@ export default function JobsClient({
                   地域: {prefecture} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
                 </button>
               )}
-              <button type="button" onClick={() => { setQ(""); router.replace("/jobs"); }} style={{
+              {techStack.map((t) => (
+                <button key={`ts-${t}`} type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 10px", borderRadius: 100,
+                  background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                  color: "var(--royal)", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  {t} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                </button>
+              ))}
+              <button type="button" onClick={() => { setQ(""); setTechStack([]); router.replace("/jobs"); }} style={{
                 fontSize: 11, color: "var(--ink-mute)", background: "none",
                 border: "none", cursor: "pointer", padding: "3px 4px",
                 fontFamily: "inherit", textDecoration: "underline",
@@ -2287,12 +2350,14 @@ export default function JobsClient({
                 meetingOnly={meetingOnly}
                 companyStage={companyStage}
                 onCompanyStageChange={setCompanyStage}
+                techStack={techStack}
+                onTechStackChange={setTechStack}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 onMeetingOnlyChange={setMeetingOnly}
                 hasFilter={hasFilter}
                 q={q}
-                onReset={() => { setQ(""); setMeetingOnly(false); setCompanyStage(""); router.replace("/jobs"); }}
+                onReset={() => { setQ(""); setMeetingOnly(false); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
                 meetingCount={meetingCount}
                 industries={industries}
                 industryId={industryId}
@@ -2705,6 +2770,38 @@ export default function JobsClient({
                 </div>
               </div>
 
+              {/* 技術スタック */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>技術スタック</div>
+                {techStack.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                    {techStack.map((t) => (
+                      <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 999, background: "var(--royal)", color: "#fff", fontSize: 11, fontWeight: 700 }}>
+                        {t}
+                        <button type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, opacity: 0.8 }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {TECH_STACK_CATEGORIES.map((cat) => (
+                  <div key={cat.label} style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{cat.label}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      {cat.items.map((tech) => {
+                        const active = techStack.includes(tech);
+                        return (
+                          <button key={tech} type="button"
+                            onClick={() => setTechStack(active ? techStack.filter((t) => t !== tech) : [...techStack, tech])}
+                            style={{ padding: "5px 10px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                            {tech}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {/* 詳細条件アコーディオン */}
               <MobileDetailSection
                 industryId={industryId} empType={empType} companyStage={companyStage}
@@ -2715,7 +2812,7 @@ export default function JobsClient({
             {/* フッターボタン */}
             <div style={{ padding: "12px 20px 24px", borderTop: "1px solid var(--line)", display: "flex", gap: 10 }}>
               <button
-                onClick={() => { setMeetingOnly(false); router.replace("/jobs"); setFilterSheetOpen(false); }}
+                onClick={() => { setMeetingOnly(false); setTechStack([]); setCompanyStage(""); router.replace("/jobs"); setFilterSheetOpen(false); }}
                 style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer" }}
               >
                 リセット
