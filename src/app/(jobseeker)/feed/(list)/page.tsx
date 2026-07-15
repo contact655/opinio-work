@@ -170,7 +170,6 @@ export default async function FeedPage() {
       .from("ow_mentors")
       .select("id, name, avatar_color, photo_url, current_role, current_company")
       .eq("is_available", true)
-      .order("display_order", { ascending: true })
       .limit(3),
   ]);
 

@@ -896,12 +896,22 @@ function FeedSidebar({
   savedJobs: SidebarJob[];
   mentors: SidebarMentor[];
 }) {
+  const EMPTY_STYLE: React.CSSProperties = {
+    fontFamily: '"Noto Sans JP", sans-serif',
+    fontSize: 12,
+    color: "var(--ink-mute)",
+    margin: "4px 0 8px",
+    lineHeight: 1.6,
+  };
+
   return (
     <div style={{ width: 260, flexShrink: 0 }}>
       {/* (a) フォロー中の企業 */}
-      {follows.length > 0 && (
-        <div style={PANEL_STYLE}>
-          <p style={PANEL_TITLE_STYLE}>フォロー中の企業</p>
+      <div style={PANEL_STYLE}>
+        <p style={PANEL_TITLE_STYLE}>フォロー中の企業</p>
+        {follows.length === 0 ? (
+          <p style={EMPTY_STYLE}>企業をフォローすると<br />ここに表示されます</p>
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {follows.map((co) => (
               <Link
@@ -928,14 +938,16 @@ function FeedSidebar({
               </Link>
             ))}
           </div>
-          <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
-        </div>
-      )}
+        )}
+        <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
+      </div>
 
       {/* (b) 気になる求人 */}
-      {savedJobs.length > 0 && (
-        <div style={PANEL_STYLE}>
-          <p style={PANEL_TITLE_STYLE}>気になる求人</p>
+      <div style={PANEL_STYLE}>
+        <p style={PANEL_TITLE_STYLE}>気になる求人</p>
+        {savedJobs.length === 0 ? (
+          <p style={EMPTY_STYLE}>求人を保存すると<br />ここに表示されます</p>
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {savedJobs.map((job) => (
               <Link
@@ -959,14 +971,16 @@ function FeedSidebar({
               </Link>
             ))}
           </div>
-          <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
-        </div>
-      )}
+        )}
+        <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
+      </div>
 
       {/* (c) 面談OKな人 */}
-      {mentors.length > 0 && (
-        <div style={PANEL_STYLE}>
-          <p style={PANEL_TITLE_STYLE}>面談OKな人</p>
+      <div style={PANEL_STYLE}>
+        <p style={PANEL_TITLE_STYLE}>面談OKな人</p>
+        {mentors.length === 0 ? (
+          <p style={EMPTY_STYLE}>まだ登録がありません</p>
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {mentors.map((m) => (
               <Link
@@ -994,9 +1008,9 @@ function FeedSidebar({
               </Link>
             ))}
           </div>
-          <Link href="/mentors" style={MORE_LINK_STYLE}>先輩一覧を見る →</Link>
-        </div>
-      )}
+        )}
+        <Link href="/mentors" style={MORE_LINK_STYLE}>先輩一覧を見る →</Link>
+      </div>
     </div>
   );
 }
@@ -1627,8 +1641,7 @@ export default function FeedClient({
 
   const showLoadMore = tab === "all" ? (hasMore && posts.length > 0) : (followedHasMore && (followedPosts ?? []).length > 0);
 
-  const hasSidebar = sidebarFollows.length > 0 || sidebarSavedJobs.length > 0 || sidebarMentors.length > 0;
-  const showSidebar = isDesktop && hasSidebar;
+  const showSidebar = isDesktop;
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
