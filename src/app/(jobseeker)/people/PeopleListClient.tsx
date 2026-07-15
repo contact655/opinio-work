@@ -174,9 +174,10 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 16,
-        padding: "24px 20px 20px",
+        padding: "28px 20px 20px",
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
         gap: 0,
         transition: "box-shadow 0.15s, transform 0.15s",
         cursor: "pointer",
@@ -191,15 +192,15 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
       }}
     >
       <div style={{ marginBottom: 14 }}>
-        <Avatar card={card} size={64} />
+        <Avatar card={card} size={72} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap", justifyContent: "center" }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
         <TalkBadge />
       </div>
 
-      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10, textAlign: "center" }}>
         {roleDisplay}
         {showDept && <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>}
       </div>
@@ -209,13 +210,26 @@ function AmbassadorGridCard({ card }: { card: AmbassadorCard }) {
       </div>
 
       {tags.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>テーマ</div>
-          <TopicTags tags={tags} />
+        <div style={{ marginBottom: 16, width: "100%" }}>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5, textAlign: "center" }}>テーマ</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
+            {tags.map((tag) => (
+              <span key={tag} style={{
+                fontSize: 10, fontWeight: 600,
+                padding: "2px 8px", borderRadius: 100,
+                background: "var(--royal-50)",
+                color: "var(--royal)",
+                border: "1px solid var(--royal-100)",
+                whiteSpace: "nowrap",
+              }}>
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
-      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
         <Link
           href={`/people/${card.adminId}/reserve`}
           onClick={(e) => e.stopPropagation()}
