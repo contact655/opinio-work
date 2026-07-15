@@ -44,6 +44,9 @@ type PostItem = {
   link_image_url: string | null;
   link_description: string | null;
   link_domain: string | null;
+  event_title: string | null;
+  event_starts_at: string | null;
+  event_location: string | null;
   ref_company?: RefCompany;
   ref_job?: RefJob;
   ref_article?: RefArticle;
@@ -928,60 +931,58 @@ function PostCard({
         }}
       >
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          {/* アバター: システム(企業)=角丸正方形, 個人=円形 */}
           {post.user.is_system ? (
-            <Avatar user={post.user} size={44} />
+            <div
+              style={{
+                width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                background: post.user.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 18,
+                overflow: "hidden",
+              }}
+            >
+              {post.user.avatar_url
+                ? <img src={post.user.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : nameInitial(post.user.name)}
+            </div>
           ) : (
             <Link href={`/u/${post.user.id}`}>
               <Avatar user={post.user} size={44} />
             </Link>
           )}
           <div>
-            {post.user.is_system ? (
-              <span
-                style={{
-                  fontFamily: '"Noto Sans JP", sans-serif',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "var(--royal)",
-                }}
-              >
-                {post.user.name}
-              </span>
-            ) : (
-              <Link
-                href={`/u/${post.user.id}`}
-                style={{
-                  fontFamily: '"Noto Sans JP", sans-serif',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "var(--ink)",
-                  textDecoration: "none",
-                }}
-              >
-                {post.user.name}
-              </Link>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {post.user.is_system ? (
+                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>
+                  {post.user.name}
+                </span>
+              ) : (
+                <Link
+                  href={`/u/${post.user.id}`}
+                  style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
+                >
+                  {post.user.name}
+                </Link>
+              )}
+              {/* バッジ */}
+              {post.user.is_system && (
+                <span style={{ fontSize: 10, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
+                  企業
+                </span>
+              )}
+              {!post.user.is_system && post.post_type === "mentor_post" && (
+                <span style={{ fontSize: 10, fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 4, padding: "1px 5px" }}>
+                  面談OK
+                </span>
+              )}
+            </div>
             {!post.user.is_system && (post.user.roleTitle || post.user.company) && (
-              <div
-                style={{
-                  fontFamily: '"Noto Sans JP", sans-serif',
-                  fontSize: 12,
-                  color: "var(--ink-soft)",
-                  marginTop: 2,
-                }}
-              >
+              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
                 {[post.user.roleTitle, post.user.company].filter(Boolean).join(" · ")}
               </div>
             )}
-            <span
-              style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: 12,
-                color: "var(--ink-mute)",
-                marginTop: 2,
-                display: "block",
-              }}
-            >
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginTop: 2, display: "block" }}>
               {relativeTime(post.created_at)}
             </span>
           </div>
@@ -1139,13 +1140,19 @@ function PostCard({
             <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>
               {post.ref_job.title}
             </div>
-            {(post.ref_job.salary_min || post.ref_job.salary_max) && (
-              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
-                {post.ref_job.salary_min && post.ref_job.salary_max
-                  ? `${post.ref_job.salary_min}〜${post.ref_job.salary_max}万円`
-                  : post.ref_job.salary_min ? `${post.ref_job.salary_min}万円〜` : `〜${post.ref_job.salary_max}万円`}
-              </div>
-            )}
+            {(() => {
+              const mn = post.ref_job.salary_min;
+              const mx = post.ref_job.salary_max;
+              const hasMn = mn != null && mn > 0;
+              const hasMx = mx != null && mx > 0;
+              return hasMn || hasMx ? (
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
+                  {hasMn && hasMx ? `${mn}〜${mx}万円` : hasMn ? `${mn}万円〜` : `〜${mx}万円`}
+                </div>
+              ) : (
+                <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>応相談</div>
+              );
+            })()}
           </div>
           <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
             求人を見る →
@@ -1177,6 +1184,69 @@ function PostCard({
             </div>
           </div>
         </Link>
+      )}
+
+      {/* イベントカード */}
+      {post.post_type === "event" && post.event_title && (
+        <div
+          style={{
+            background: "var(--purple-soft)",
+            border: "1px solid #ddd6fe",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>📅</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--purple)" }}>
+                {post.event_title}
+              </div>
+              {post.event_starts_at && (
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-soft)", marginTop: 4 }}>
+                  🕐 {new Date(post.event_starts_at).toLocaleString("ja-JP", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+              {post.event_location && (
+                <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+                  📍 {post.event_location}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* メンター投稿: カジュアル面談CTA */}
+      {post.post_type === "mentor_post" && !post.user.is_system && (
+        <div
+          style={{
+            background: "var(--success-soft)",
+            border: "1px solid #a7f3d0",
+            borderRadius: 10,
+            padding: "10px 14px",
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13, color: "var(--success)" }}>
+            {post.user.name}さんに話を聞いてみる
+          </span>
+          <Link
+            href={`/u/${post.user.id}`}
+            style={{
+              fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 12,
+              color: "var(--success)", background: "#fff", border: "1px solid #a7f3d0",
+              borderRadius: 6, padding: "5px 12px", textDecoration: "none", whiteSpace: "nowrap",
+            }}
+          >
+            プロフィールを見る →
+          </Link>
+        </div>
       )}
 
       {/* 画像 */}

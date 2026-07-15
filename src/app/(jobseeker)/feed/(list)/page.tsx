@@ -27,6 +27,9 @@ type RawPost = {
   link_image_url: string | null;
   link_description: string | null;
   link_domain: string | null;
+  event_title: string | null;
+  event_starts_at: string | null;
+  event_location: string | null;
   created_at: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   ref_company: RefCompany;
@@ -59,7 +62,8 @@ export default async function FeedPage() {
     .from("ow_posts")
     .select(`
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
-      image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
+      image_url, link_url, link_title, link_image_url, link_description, link_domain,
+      event_title, event_starts_at, event_location, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ref_company:ow_companies!ref_company_id(id, name, brand_name, logo_letter, logo_gradient, logo_url),
       ref_job:ow_jobs!ref_job_id(id, title, salary_min, salary_max, work_style),
@@ -252,6 +256,9 @@ export default async function FeedPage() {
       link_image_url: p.link_image_url,
       link_description: p.link_description,
       link_domain: p.link_domain,
+      event_title: p.event_title ?? null,
+      event_starts_at: p.event_starts_at ?? null,
+      event_location: p.event_location ?? null,
       created_at: p.created_at,
       user: p.user
         ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, is_system: p.user.is_system ?? false, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
