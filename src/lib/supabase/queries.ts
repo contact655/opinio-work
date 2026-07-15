@@ -1074,8 +1074,11 @@ export async function getCompanyEmployees(companyId: string): Promise<{
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEmps = dedupeByUser((currentRows ?? []).map((r: any) => mapEmp(r)));
+  // 現役社員と同一ユーザーはOB/OGから除外（同じ企業に過去在籍歴があっても現役優先）
+  const currentUserIds = new Set(currentEmps.map((e) => e.userId));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const alumniEmps  = dedupeByUser((alumniRows ?? []).map((r: any) => mapEmp(r, r.ended_at, r.started_at)));
+  const alumniEmps  = dedupeByUser((alumniRows ?? []).map((r: any) => mapEmp(r, r.ended_at, r.started_at)))
+    .filter((e) => !currentUserIds.has(e.userId));
 
   // OB/OG の「退職後の現在キャリア」を取得（is_current=true の経験から）
   if (alumniEmps.length > 0) {
