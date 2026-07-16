@@ -29,7 +29,7 @@ export default async function BizScoutsPage() {
   // Resolve candidate ow_users info via auth_id
   const authIds = Array.from(new Set((scouts ?? []).map((s: any) => s.candidate_id).filter(Boolean)));
   const { data: users } = authIds.length > 0
-    ? await admin.from("ow_users").select("id, auth_id, name, avatar_color").in("auth_id", authIds)
+    ? await admin.from("ow_users").select("id, auth_id, name, avatar_color").in("auth_id", authIds).not("email", "ilike", "%@seed.internal")
     : { data: [] };
 
   const userMap = new Map((users ?? []).map((u: any) => [u.auth_id, u]));

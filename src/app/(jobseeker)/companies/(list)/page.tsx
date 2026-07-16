@@ -138,7 +138,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   // 在籍メンバー: 表示中の企業IDに絞って取得（全件スキャン防止）
   const displayedCompanyIds = allCompaniesResult.companies.map((c) => c.id);
   const experienceResult = needsGrid && displayedCompanyIds.length > 0
-    ? await supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name, photo_url)").eq("is_current", true).in("company_id", displayedCompanyIds)
+    ? await supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name, photo_url, email)").eq("is_current", true).in("company_id", displayedCompanyIds)
     : { data: null };
 
   const companySuggestions: { id: string; name: string }[] =
@@ -153,10 +153,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
       if (!pageCompanyIds.has(companyId)) continue;
       if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
       if (membersByCompany[companyId].length < 8) {
-        const user = exp.ow_users as { id: string; name: string; photo_url?: string | null } | { id: string; name: string; photo_url?: string | null }[] | null;
+        const user = exp.ow_users as { id: string; name: string; photo_url?: string | null; email?: string | null } | { id: string; name: string; photo_url?: string | null; email?: string | null }[] | null;
         if (user) {
           const u = Array.isArray(user) ? user[0] : user;
-          if (u) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.photo_url ?? null });
+          if (u && !u.email?.endsWith("@seed.internal")) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.photo_url ?? null });
         }
       }
     }

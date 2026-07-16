@@ -106,6 +106,7 @@ export default async function CandidatesPage() {
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
+        .not("email", "ilike", "%@seed.internal")
         .order("created_at", { ascending: false })
         .limit(500)
     : { data: [], error: null };

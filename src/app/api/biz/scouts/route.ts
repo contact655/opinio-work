@@ -28,7 +28,8 @@ export async function GET(_req: NextRequest) {
   const { data: users } = await admin
     .from("ow_users")
     .select("id, auth_id, name, avatar_color")
-    .in("auth_id", authIds);
+    .in("auth_id", authIds)
+    .not("email", "ilike", "%@seed.internal");
 
   const userMap = new Map((users ?? []).map((u) => [u.auth_id, u]));
   const result = scouts.map((s) => ({

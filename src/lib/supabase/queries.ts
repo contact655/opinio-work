@@ -754,7 +754,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 
   const { data: expRows } = await supabase
     .from("ow_experiences")
-    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility)")
+    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility, email)")
     .in("role_category_id", roleIds);
 
   if (!expRows || expRows.length === 0) return [];
@@ -768,6 +768,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
   for (const exp of expData) {
     const user = exp.ow_users as Record<string, any> | null;
     if (!user || user.visibility !== "public") continue;
+    if ((user.email as string | null)?.endsWith("@seed.internal")) continue;
     const uid = user.id as string;
     if (seen.has(uid)) continue;
     seen.add(uid);
@@ -871,7 +872,8 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
     const { data: users } = await supabase
       .from("ow_users")
       .select("id, name")
-      .in("id", taggedUserIds);
+      .in("id", taggedUserIds)
+      .not("email", "ilike", "%@seed.internal");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (users ?? []).forEach((u: any) => userMap.set(u.id as string, { id: u.id as string, name: (u.name as string) ?? "" }));
   }
@@ -927,7 +929,8 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
   const { data: userRows } = await supabase
     .from("ow_users")
     .select("id, name, avatar_color, catchphrase")
-    .in("id", userIds);
+    .in("id", userIds)
+    .not("email", "ilike", "%@seed.internal");
 
   const userMap = new Map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1003,7 +1006,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email)")
     .eq("company_id", companyId)
     .eq("is_current", true);
   if (hiddenIds.length > 0) {
@@ -1020,7 +1023,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -1076,12 +1079,15 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
+  // seed ユーザーを除外（@seed.internal ドメインは非表示）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentEmps = dedupeByUser((currentRows ?? []).map((r: any) => mapEmp(r)));
+  const isSeedRow = (r: any) => (r.ow_users as any)?.email?.endsWith("@seed.internal");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentEmps = dedupeByUser((currentRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r)));
   // 現役社員と同一ユーザーはOB/OGから除外（同じ企業に過去在籍歴があっても現役優先）
   const currentUserIds = new Set(currentEmps.map((e) => e.userId));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const alumniEmps  = dedupeByUser((alumniRows ?? []).map((r: any) => mapEmp(r, r.ended_at, r.started_at)))
+  const alumniEmps  = dedupeByUser((alumniRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r, r.ended_at, r.started_at)))
     .filter((e) => !currentUserIds.has(e.userId));
 
   // OB/OG の「退職後の現在キャリア」を取得（is_current=true の経験から）
@@ -1484,7 +1490,8 @@ export async function getJobAlumniMap(
     .select("id, name, avatar_color")
     .in("id", userIds)
     .eq("visibility", "public")
-    .not("name", "is", null);
+    .not("name", "is", null)
+    .not("email", "ilike", "%@seed.internal");
 
   if (!users?.length) return {};
 
