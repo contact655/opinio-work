@@ -1,6 +1,8 @@
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { SALARY_MIN_REPORTS_TO_DISPLAY, SALARY_REFERENCE_THRESHOLD } from "@/lib/constants/salary";
+import MyReportsSection, { type MySalaryReportForEdit, type RoleOptionForEdit } from "./MyReportsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,16 @@ function fmt(yen: number) {
 
 export default async function SalaryPage() {
   const admin = createAdminClient();
+
+  // ── ログインユーザー確認 ───────────────────────────────────────────────────
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let myOwUserId: string | null = null;
+  if (user) {
+    const { data: owUser } = await admin
+      .from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+    myOwUserId = owUser?.id ?? null;
+  }
 
   // ── 在籍者の自己申告データ (statistics_opt_out 除外) ─────────────────────
   const { data: optedOut } = await admin
@@ -98,6 +110,55 @@ export default async function SalaryPage() {
     jobMap[cat].push([min ?? 0, max ?? 0]);
   }
 
+  // ── ログインユーザー自身の投稿（編集・削除用） ───────────────────────────
+  let myReports: MySalaryReportForEdit[] = [];
+  const roles: RoleOptionForEdit[] = allRolesData.map((r) => ({
+    id: r.id, name: r.name, parent_id: r.parent_id as string | null,
+  }));
+  if (myOwUserId) {
+    const { data: myRows } = await admin
+      .from("ow_salary_reports")
+      .select(`
+        id, company_id, role_id,
+        ote, annual_salary, base_salary, bonus_salary, incentive, stock_options,
+        allowances, fixed_overtime,
+        start_year_month, end_year_month, grade,
+        years_of_experience, employment_status, prefecture,
+        is_approved, is_flagged, created_at,
+        ow_companies(name),
+        ow_roles(name)
+      `)
+      .eq("user_id", myOwUserId)
+      .order("created_at", { ascending: false });
+
+    myReports = (myRows ?? []).map((row) => {
+      const r = row as unknown as Record<string, unknown>;
+      return {
+        id: r["id"] as string,
+        company_name: (r["ow_companies"] as { name: string } | null)?.name ?? null,
+        role_id: r["role_id"] as string,
+        role_name: (r["ow_roles"] as { name: string } | null)?.name ?? null,
+        ote: r["ote"] as number | null,
+        annual_salary: r["annual_salary"] as number | null,
+        base_salary: r["base_salary"] as number | null,
+        bonus_salary: r["bonus_salary"] as number | null,
+        incentive: r["incentive"] as number | null,
+        stock_options: r["stock_options"] as number | null,
+        allowances: r["allowances"] as number | null,
+        fixed_overtime: r["fixed_overtime"] as number | null,
+        start_year_month: r["start_year_month"] as string | null,
+        end_year_month: r["end_year_month"] as string | null,
+        grade: r["grade"] as string | null,
+        years_of_experience: r["years_of_experience"] as number | null,
+        employment_status: r["employment_status"] as string,
+        prefecture: r["prefecture"] as string | null,
+        is_approved: r["is_approved"] as boolean,
+        is_flagged: r["is_flagged"] as boolean,
+        created_at: r["created_at"] as string,
+      };
+    });
+  }
+
   const groups: RoleSalaryGroup[] = Object.entries(reportMap)
     .filter(([, v]) => v.salaries.length >= SALARY_MIN_REPORTS_TO_DISPLAY)
     .map(([roleId, v]) => {
@@ -144,6 +205,11 @@ export default async function SalaryPage() {
         <strong>データについて</strong>：在籍者が自己申告した年収データです。
         件数が少ないデータには「参考値」と表示します。個人を特定できる情報は一切含まれません。
       </div>
+
+      {/* 自分の投稿（ログインユーザーのみ表示） */}
+      {myReports.length > 0 && (
+        <MyReportsSection reports={myReports} roles={roles} />
+      )}
 
       {groups.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--ink-mute)" }}>
