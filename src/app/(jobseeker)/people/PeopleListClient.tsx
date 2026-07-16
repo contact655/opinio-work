@@ -48,10 +48,11 @@ const EXP_OPTIONS = [
   { value: "8plus", label: "8年以上", min: 8, max: 999 },
 ];
 
-const WORK_OPTIONS = [
-  { value: "remote",  label: "🏡 フルリモート" },
-  { value: "hybrid",  label: "🔀 ハイブリッド" },
-  { value: "onsite",  label: "🏢 出社のみ"    },
+const COMPANY_TYPE_OPTIONS = [
+  { value: "startup",    label: "スタートアップ", phasePattern: /シード|seed|シリーズ[ABC]|series[_-]?[abc]/i },
+  { value: "listed",     label: "上場企業",       phasePattern: /listed|上場|IPO/i },
+  { value: "unicorn",    label: "ユニコーン",     phasePattern: /unicorn|ユニコーン/i },
+  { value: "enterprise", label: "大手・外資",     phasePattern: /大手|enterprise|外資/i },
 ];
 
 const SORT_OPTIONS = [
@@ -425,13 +426,14 @@ function matchExp(card: AmbassadorCard, v: string): boolean {
   if (!opt || card.experienceYears == null) return false;
   return card.experienceYears >= opt.min && card.experienceYears <= opt.max;
 }
-function matchWork(card: AmbassadorCard, v: string): boolean {
+function matchCompanyType(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
-  const ws = (card.workStyle ?? "").toLowerCase();
-  if (v === "remote") return ws.includes("remote") || ws.includes("リモート") || ws.includes("full_remote");
-  if (v === "hybrid") return ws.includes("hybrid") || ws.includes("ハイブリッド");
-  if (v === "onsite") return ws.includes("onsite") || ws.includes("出社") || ws.includes("office");
-  return true;
+  const phase = (card.companyPhase ?? "").toLowerCase();
+  const name = (card.companyName ?? "").toLowerCase();
+  const opt = COMPANY_TYPE_OPTIONS.find((o) => o.value === v);
+  if (!opt) return true;
+  if (v === "enterprise") return opt.phasePattern.test(card.companyPhase ?? "") || /外資|global|インターナショナル/i.test(name);
+  return opt.phasePattern.test(phase);
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
@@ -439,7 +441,7 @@ export function PeopleListClient({ ambassadors }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [role, setRole] = useState("");
   const [exp, setExp] = useState("");
-  const [work, setWork] = useState("");
+  const [companyType, setCompanyType] = useState("");
   const [sort, setSort] = useState("newest");
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -467,7 +469,7 @@ export function PeopleListClient({ ambassadors }: Props) {
     return ambassadors.filter((a) => {
       if (!matchRole(a, role)) return false;
       if (!matchExp(a, exp)) return false;
-      if (!matchWork(a, work)) return false;
+      if (!matchCompanyType(a, companyType)) return false;
       if (!q) return true;
       return (
         a.name.toLowerCase().includes(q) ||
@@ -477,17 +479,17 @@ export function PeopleListClient({ ambassadors }: Props) {
         a.skillTags.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [ambassadors, role, exp, work, keyword]);
+  }, [ambassadors, role, exp, companyType, keyword]);
 
   const sorted = useMemo(() => {
     if (sort === "exp") return [...filtered].sort((a, b) => (b.experienceYears ?? 0) - (a.experienceYears ?? 0));
     return filtered; // newest: server order (created_at desc)
   }, [filtered, sort]);
 
-  const hasFilter = !!(keyword || role || exp || work);
+  const hasFilter = !!(keyword || role || exp || companyType);
 
   function clearAll() {
-    setKeyword(""); setRole(""); setExp(""); setWork("");
+    setKeyword(""); setRole(""); setExp(""); setCompanyType("");
   }
 
   if (ambassadors.length === 0) {
@@ -659,7 +661,7 @@ export function PeopleListClient({ ambassadors }: Props) {
             {/* モバイル: フィルタトグルボタン */}
             <button
               type="button"
-              className={`ppl-filter-toggle${(role || exp || work) ? " active" : ""}`}
+              className={`ppl-filter-toggle${(role || exp || companyType) ? " active" : ""}`}
               onClick={() => setFiltersExpanded(!filtersExpanded)}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -691,14 +693,14 @@ export function PeopleListClient({ ambassadors }: Props) {
                 onToggle={() => toggleChip("exp")}
               />
 
-              {/* 働き方 */}
+              {/* 企業タイプ */}
               <FilterChip
-                label="働き方▾"
-                value={work}
-                options={WORK_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                onSelect={(v) => { setWork(v ?? ""); setOpenChip(null); }}
-                isOpen={openChip === "work"}
-                onToggle={() => toggleChip("work")}
+                label="企業タイプ▾"
+                value={companyType}
+                options={COMPANY_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                onSelect={(v) => { setCompanyType(v ?? ""); setOpenChip(null); }}
+                isOpen={openChip === "companyType"}
+                onToggle={() => toggleChip("companyType")}
               />
 
               {hasFilter && (
@@ -746,9 +748,9 @@ export function PeopleListClient({ ambassadors }: Props) {
                   {EXP_OPTIONS.find((o) => o.value === exp)?.label}<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
                 </button>
               )}
-              {work && (
-                <button type="button" onClick={() => setWork("")} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
-                  {WORK_OPTIONS.find((o) => o.value === work)?.label}<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
+              {companyType && (
+                <button type="button" onClick={() => setCompanyType("")} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+                  {COMPANY_TYPE_OPTIONS.find((o) => o.value === companyType)?.label}<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
                 </button>
               )}
             </div>
