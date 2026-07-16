@@ -258,13 +258,29 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
   const roleDisplay = card.roleTitle ?? card.department ?? "採用担当";
   const showDept = card.department && card.roleTitle && card.department !== card.roleTitle;
 
+  const talkBtn = (
+    <Link
+      href={`/people/${card.adminId}/reserve`}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        padding: "8px 18px",
+        background: "linear-gradient(135deg, #F59E0B, #F97316)",
+        color: "#fff", borderRadius: 8,
+        fontSize: 12, fontWeight: 700,
+        textDecoration: "none", whiteSpace: "nowrap",
+      }}
+    >
+      話を聞く →
+    </Link>
+  );
+
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       style={{
-        display: "grid",
-        gridTemplateColumns: "64px 1fr auto",
-        alignItems: "center",
+        display: "flex",
+        alignItems: "flex-start",
         gap: 16,
         padding: "18px 24px",
         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
@@ -275,44 +291,48 @@ function AmbassadorListRow({ card, isLast }: { card: AmbassadorCard; isLast: boo
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
-      <Avatar card={card} size={52} />
+      {/* Avatar */}
+      <div style={{ flexShrink: 0 }}>
+        <Avatar card={card} size={56} />
+      </div>
 
-      <div style={{ minWidth: 0 }}>
+      {/* Info column */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* 名前 + 面談可バッジ */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
           <TalkBadge />
         </div>
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
+
+        {/* 役職 */}
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 5 }}>
           {roleDisplay}
-          {showDept && (
-            <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>
-          )}
-          <span style={{ margin: "0 6px", color: "var(--line)" }}>|</span>
+          {showDept && <span style={{ color: "var(--ink-mute)" }}> · {card.department}</span>}
+        </div>
+
+        {/* 会社（独立した行） */}
+        <div style={{ marginBottom: tags.length > 0 ? 8 : 0 }}>
           <CompanyBadge card={card} />
         </div>
-        {tags.length > 0 && <TopicTags tags={tags} />}
+
+        {/* テーマタグ */}
+        {tags.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <TopicTags tags={tags} />
+          </div>
+        )}
+
+        {/* ボタン: モバイルのみ（info列内） */}
+        <div className="people-list-btn-mobile">
+          {talkBtn}
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 4 }}>カジュアル面談（無料）</div>
+        </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "center" }}>
-        <Link
-          href={`/people/${card.adminId}/reserve`}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "8px 18px",
-            background: "linear-gradient(135deg, #F59E0B, #F97316)",
-            color: "#fff",
-            borderRadius: 8,
-            fontSize: 12, fontWeight: 700,
-            textDecoration: "none",
-            whiteSpace: "nowrap",
-          }}
-        >
-          話を聞く →
-        </Link>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-          カジュアル面談（無料）
-        </div>
+      {/* ボタン: デスクトップのみ（右端） */}
+      <div className="people-list-btn-desktop" style={{ flexShrink: 0, alignSelf: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        {talkBtn}
+        <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>カジュアル面談（無料）</div>
       </div>
     </div>
   );
@@ -530,16 +550,26 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
 
       {/* ── リストビュー ── */}
       {viewMode === "list" && (
-        <div style={{
-          background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 14,
-          overflow: "hidden",
-        }}>
-          {filteredAmbassadors.map((card, i) => (
-            <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1} />
-          ))}
-        </div>
+        <>
+          <style>{`
+            .people-list-btn-mobile { display: none; }
+            .people-list-btn-desktop { display: flex; }
+            @media (max-width: 600px) {
+              .people-list-btn-mobile { display: block; }
+              .people-list-btn-desktop { display: none !important; }
+            }
+          `}</style>
+          <div style={{
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: 14,
+            overflow: "hidden",
+          }}>
+            {filteredAmbassadors.map((card, i) => (
+              <AmbassadorListRow key={card.userId} card={card} isLast={i === filteredAmbassadors.length - 1} />
+            ))}
+          </div>
+        </>
       )}
 
       {/* ── グリッドビュー ── */}
@@ -548,14 +578,17 @@ export function PeopleListClient({ ambassadors, companies: _companies }: Props) 
           <style>{`
             .people-grid {
               display: grid;
-              grid-template-columns: repeat(3, minmax(0, 1fr));
+              grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 16px;
             }
-            @media (max-width: 900px) {
-              .people-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            @media (max-width: 1100px) {
+              .people-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             }
-            @media (max-width: 560px) {
-              .people-grid { grid-template-columns: minmax(0, 1fr); }
+            @media (max-width: 768px) {
+              .people-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+            }
+            @media (max-width: 480px) {
+              .people-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
             }
           `}</style>
           <div className="people-grid">
