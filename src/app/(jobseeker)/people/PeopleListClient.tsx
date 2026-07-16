@@ -320,11 +320,6 @@ function GridCard({ card }: { card: AmbassadorCard }) {
 
       <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 6, textAlign: "center", lineHeight: 1.5 }}>
         {role}
-        {card.experienceYears != null && (
-          <span style={{ marginLeft: 6, verticalAlign: "middle" }}>
-            <ExpBadge years={card.experienceYears} />
-          </span>
-        )}
       </div>
 
       <div style={{ marginBottom: 10 }}>
