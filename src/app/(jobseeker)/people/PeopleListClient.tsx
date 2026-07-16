@@ -381,8 +381,6 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
-      <TalkBadge style={{ position: "absolute", top: 12, right: 20 }} />
-
       <div style={{ flexShrink: 0 }}>
         <Avatar card={card} size={52} />
       </div>
@@ -390,6 +388,7 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
+          <TalkBadge />
           {card.experienceYears != null && <ExpBadge years={card.experienceYears} />}
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 5 }}>{role}</div>
