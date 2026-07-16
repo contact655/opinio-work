@@ -214,7 +214,6 @@ export default function SalaryListClient({
         years_of_experience: editState.years_of_experience ? parseInt(editState.years_of_experience, 10) : null,
         employment_status: editState.employment_status,
         prefecture: editState.prefecture || null,
-        is_approved: false, // 案B: 編集で再審査に
       } : r)));
       setEditingId(null);
       setEditState(null);
@@ -365,7 +364,7 @@ export default function SalaryListClient({
                   {/* 承認待ち note */}
                   {!r.is_approved && (
                     <div style={{ marginTop: 10, fontSize: 12, color: "#92400E", background: "var(--warm-soft)", borderRadius: 8, padding: "8px 12px" }}>
-                      現在、編集部が内容を確認中です。承認されると /salary ページに公開されます。編集すると再審査が必要になります。
+                      現在、編集部が内容を確認中です。承認されると /salary ページに公開されます。
                     </div>
                   )}
                 </>
@@ -540,11 +539,6 @@ export default function SalaryListClient({
                         ))}
                       </div>
                     </div>
-                  </div>
-
-                  {/* 案B 注記 */}
-                  <div style={{ marginTop: 12, fontSize: 12, color: "var(--ink-mute)", background: "var(--line-soft)", borderRadius: 8, padding: "8px 12px" }}>
-                    ※ 編集後は再度、編集部の承認が必要になります（承認待ちの間は /salary に非表示）。
                   </div>
 
                   {editError && (

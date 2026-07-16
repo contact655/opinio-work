@@ -98,8 +98,6 @@ export async function PATCH(
 
   // Build update payload (only provided fields)
   const patch: Record<string, unknown> = {
-    // 編集したら再審査（案B）
-    is_approved: false,
     updated_at: new Date().toISOString(),
   };
   if (role_id !== undefined)            patch.role_id = role_id;

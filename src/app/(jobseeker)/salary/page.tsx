@@ -197,7 +197,11 @@ export default async function SalaryPage() {
                           {g.reportAvg ? fmt(g.reportAvg) : "—"}
                         </span>
                         <span style={{ fontSize: 12, color: "#059669" }}>
-                          {g.reportMin ? fmt(g.reportMin) : "—"} 〜 {g.reportMax ? fmt(g.reportMax) : "—"}
+                          {g.reportMin && g.reportMax
+                            ? g.reportMin === g.reportMax
+                              ? fmt(g.reportMin)
+                              : `${fmt(g.reportMin)} 〜 ${fmt(g.reportMax)}`
+                            : "—"}
                         </span>
                       </div>
                     </div>
@@ -210,7 +214,11 @@ export default async function SalaryPage() {
                       }}>
                         <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600, marginBottom: 4 }}>求人の提示レンジ（{g.jobCount}件平均）</div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                          {g.jobAvgMin ? `${g.jobAvgMin}万` : "—"} 〜 {g.jobAvgMax ? `${g.jobAvgMax}万円` : "—"}
+                          {g.jobAvgMin && g.jobAvgMax
+                            ? g.jobAvgMin === g.jobAvgMax
+                              ? `${g.jobAvgMin}万円`
+                              : `${g.jobAvgMin}万 〜 ${g.jobAvgMax}万円`
+                            : "—"}
                         </div>
                       </div>
                     )}
