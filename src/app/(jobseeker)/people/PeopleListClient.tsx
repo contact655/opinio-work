@@ -331,11 +331,6 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         <CompanyBadge card={card} />
       </div>
 
-      {card.skillTags.length > 0 && (
-        <div style={{ marginBottom: 12, width: "100%", display: "flex", justifyContent: "center" }}>
-          <SkillTags tags={card.skillTags} max={3} />
-        </div>
-      )}
 
       <div style={{ marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
         <Link
