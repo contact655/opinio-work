@@ -213,7 +213,7 @@ function CompanyBadge({ card }: { card: AmbassadorCard }) {
   );
 }
 
-function TalkBadge() {
+function TalkBadge({ style: extraStyle }: { style?: React.CSSProperties } = {}) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
@@ -221,6 +221,7 @@ function TalkBadge() {
       padding: "2px 8px", borderRadius: 100,
       background: "#FFF7ED", color: "#C2410C",
       border: "1px solid #FED7AA", whiteSpace: "nowrap",
+      ...extraStyle,
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316" }} />
       面談可
@@ -308,14 +309,16 @@ function GridCard({ card }: { card: AmbassadorCard }) {
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       className="ppl-grid-card"
+      style={{ position: "relative" }}
     >
+      <TalkBadge style={{ position: "absolute", top: 10, right: 10 }} />
+
       <div style={{ marginBottom: 12 }}>
         <Avatar card={card} size={68} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap", justifyContent: "center" }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
-        <TalkBadge />
       </div>
 
       <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 6, textAlign: "center", lineHeight: 1.5 }}>
@@ -368,6 +371,7 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       style={{
+        position: "relative",
         display: "flex", alignItems: "flex-start", gap: 14,
         padding: "16px 20px",
         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
@@ -376,6 +380,8 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
+      <TalkBadge style={{ position: "absolute", top: 12, right: 20 }} />
+
       <div style={{ flexShrink: 0 }}>
         <Avatar card={card} size={52} />
       </div>
@@ -383,7 +389,6 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
-          <TalkBadge />
           {card.experienceYears != null && <ExpBadge years={card.experienceYears} />}
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 5 }}>{role}</div>
