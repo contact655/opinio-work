@@ -14,6 +14,10 @@ export type Graduate = {
   faculty: string | null;
   degree: string | null;
   graduatedAt: string | null;
+  // キャリア情報
+  currentCompany: string | null;
+  currentRoleTitle: string | null;
+  careerSummary: string | null;
 };
 
 type Props = { graduates: Graduate[] };
@@ -77,12 +81,36 @@ function GridCard({ g }: { g: Graduate }) {
         {g.name}
       </div>
 
+      {/* 現職 */}
+      {(g.currentRoleTitle || g.currentCompany) && (
+        <div style={{
+          fontSize: 11, fontWeight: 600, color: "var(--royal)",
+          marginBottom: 4, textAlign: "center", lineHeight: 1.4,
+          overflow: "hidden", display: "-webkit-box",
+          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+        }}>
+          {[g.currentRoleTitle, g.currentCompany].filter(Boolean).join(" @ ")}
+        </div>
+      )}
+
       {sub && (
         <div style={{
-          fontSize: 11, color: "var(--ink-soft)", marginBottom: 8,
+          fontSize: 11, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 5 : 8,
           textAlign: "center", lineHeight: 1.5,
         }}>
           {sub}
+        </div>
+      )}
+
+      {/* キャリアの流れ */}
+      {g.careerSummary && (
+        <div style={{
+          fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.5,
+          marginBottom: 8, textAlign: "center",
+          overflow: "hidden", display: "-webkit-box",
+          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+        }}>
+          {g.careerSummary}
         </div>
       )}
 
@@ -107,6 +135,92 @@ function GridCard({ g }: { g: Graduate }) {
             background: "var(--royal-50)", border: "1px solid var(--royal-100)",
             color: "var(--royal)", borderRadius: 9,
             fontSize: 12, fontWeight: 600, textDecoration: "none",
+          }}
+        >
+          プロフィールを見る
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── 横帯カード（1〜2名用） ───────────────────────────────────────────────────
+
+function BandCard({ g }: { g: Graduate }) {
+  const router = useRouter();
+  const sub = subText(g);
+  return (
+    <div
+      onClick={() => router.push(`/u/${g.userId}`)}
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        padding: "20px 24px",
+        display: "flex",
+        alignItems: "center",
+        gap: 20,
+        cursor: "pointer",
+        transition: "box-shadow 0.15s, border-color 0.15s",
+      }}
+      className="sch-band-card"
+    >
+      <div style={{ flexShrink: 0 }}>
+        <Avatar g={g} size={72} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>
+          {g.name}
+        </div>
+
+        {/* 現職 */}
+        {(g.currentRoleTitle || g.currentCompany) && (
+          <div style={{
+            fontSize: 13, fontWeight: 600, color: "var(--royal)",
+            marginBottom: 4, lineHeight: 1.4,
+          }}>
+            {[g.currentRoleTitle, g.currentCompany].filter(Boolean).join(" @ ")}
+          </div>
+        )}
+
+        {sub && (
+          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 4 : 0 }}>
+            {sub}
+          </div>
+        )}
+
+        {/* キャリアの流れ */}
+        {g.careerSummary && (
+          <div style={{
+            fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5,
+            marginBottom: g.catchphrase ? 6 : 0,
+          }}>
+            {g.careerSummary}
+          </div>
+        )}
+
+        {g.catchphrase && (
+          <div style={{
+            fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6,
+            overflow: "hidden", display: "-webkit-box",
+            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+          }}>
+            {g.catchphrase}
+          </div>
+        )}
+      </div>
+
+      <div style={{ flexShrink: 0 }}>
+        <Link
+          href={`/u/${g.userId}`}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: "inline-flex", alignItems: "center",
+            padding: "9px 18px",
+            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+            color: "var(--royal)", borderRadius: 9,
+            fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
           }}
         >
           プロフィールを見る
@@ -209,6 +323,18 @@ export default function SchoolGraduatesClient({ graduates }: Props) {
           border-color: var(--royal-100);
           transform: translateY(-1px);
         }
+
+        .sch-band-stack { display: flex; flex-direction: column; gap: 12px; }
+        .sch-band-card:hover {
+          box-shadow: 0 4px 20px rgba(0,0,0,0.09);
+          border-color: var(--royal-100);
+        }
+        @media (max-width: 600px) {
+          .sch-band-card {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+        }
       `}</style>
 
       {/* ── ツールバー ── */}
@@ -276,7 +402,13 @@ export default function SchoolGraduatesClient({ graduates }: Props) {
             <ListRow key={g.userId} g={g} isLast={i === graduates.length - 1} />
           ))}
         </div>
+      ) : graduates.length <= 2 ? (
+        /* 1〜2名: 横帯レイアウト */
+        <div className="sch-band-stack">
+          {graduates.map((g) => <BandCard key={g.userId} g={g} />)}
+        </div>
       ) : (
+        /* 3名以上: グリッド */
         <div className="sch-grid">
           {graduates.map((g) => <GridCard key={g.userId} g={g} />)}
         </div>

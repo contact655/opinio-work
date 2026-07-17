@@ -33,9 +33,18 @@ async function getSchool(id: string): Promise<SchoolRow | null> {
   return data as SchoolRow;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function resolveExpCompanyName(exp: Record<string, any>): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const co = exp.ow_companies as Record<string, any> | null;
+  if (co?.name) return co.name as string;
+  return (exp.company_text as string | null) ?? null;
+}
+
 async function getGraduates(schoolId: string): Promise<Graduate[]> {
   const supabase = createAdminClient();
 
+  // ── STEP 1: この学校の education 一覧 ─────────────────────────────────────
   const { data, error } = await supabase
     .from("ow_user_educations")
     .select(`
@@ -76,7 +85,7 @@ async function getGraduates(schoolId: string): Promise<Graduate[]> {
   // 同一ユーザーの重複を除去（同校に複数educationがある場合）
   const seen = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return filtered.reduce<Graduate[]>((acc, r) => {
+  const baseGraduates = filtered.reduce<Omit<Graduate, "currentCompany" | "currentRoleTitle" | "careerSummary">[]>((acc, r) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const u = r.ow_users as Record<string, any>;
     const uid = u.id as string;
@@ -99,6 +108,57 @@ async function getGraduates(schoolId: string): Promise<Graduate[]> {
     });
     return acc;
   }, []);
+
+  if (baseGraduates.length === 0) return [];
+
+  // ── STEP 2: 出身者の職歴を一括取得 ────────────────────────────────────────
+  const userIds = baseGraduates.map((g) => g.userId);
+  const { data: expRows } = await supabase
+    .from("ow_experiences")
+    .select("user_id, role_title, company_text, is_current, started_at, visibility_company, ow_companies(name)")
+    .in("user_id", userIds)
+    .order("started_at", { ascending: true });
+
+  // user_id → experiences のマップ
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const expByUser = new Map<string, Array<Record<string, any>>>();
+  for (const exp of expRows ?? []) {
+    const uid = exp.user_id as string;
+    if (!expByUser.has(uid)) expByUser.set(uid, []);
+    expByUser.get(uid)!.push(exp as Record<string, unknown>);
+  }
+
+  // ── STEP 3: 各出身者にキャリア情報を付与 ──────────────────────────────────
+  return baseGraduates.map((g) => {
+    const exps = expByUser.get(g.userId) ?? [];
+
+    // 現職 (is_current=true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentExp = exps.find((e: Record<string, any>) => e.is_current === true);
+    const currentCompany = currentExp ? resolveExpCompanyName(currentExp) : null;
+    const currentRoleTitle = currentExp ? ((currentExp.role_title as string | null) ?? null) : null;
+
+    // キャリアの流れ: hidden 除外、masked は「非公開」、real は社名
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const visibleNames = exps
+      .filter((e: Record<string, any>) => (e.visibility_company as string | null) !== "hidden")
+      .map((e: Record<string, any>) => {
+        const vis = (e.visibility_company as string | null) ?? "real";
+        if (vis === "masked") return "非公開";
+        return resolveExpCompanyName(e) ?? "非公開";
+      })
+      .filter(Boolean) as string[];
+
+    // 連続する同一企業を除去 → 直近3社 + 「…」
+    const deduped = visibleNames.filter((n, i) => i === 0 || n !== visibleNames[i - 1]);
+    let careerSummary: string | null = null;
+    if (deduped.length > 0) {
+      const tail = deduped.length > 3 ? ["…", ...deduped.slice(-3)] : deduped;
+      careerSummary = tail.join(" → ");
+    }
+
+    return { ...g, currentCompany, currentRoleTitle, careerSummary };
+  });
 }
 
 // ─── メタデータ ───────────────────────────────────────────────────────────────
