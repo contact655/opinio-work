@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Users } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import SchoolGraduatesClient, { type Graduate } from "./SchoolGraduatesClient";
 
 export const revalidate = 300;
 
@@ -17,18 +18,6 @@ type SchoolRow = {
   logo_letter: string | null;
   country: string | null;
   type: string | null;
-};
-
-type Graduate = {
-  userId: string;
-  name: string;
-  avatarInitial: string;
-  avatarGradient: string;
-  avatarUrl: string | null;
-  catchphrase: string | null;
-  faculty: string | null;
-  degree: string | null;
-  graduatedAt: string | null;
 };
 
 // ─── データ取得 ───────────────────────────────────────────────────────────────
@@ -140,14 +129,6 @@ function schoolTypeLabel(type: string | null): string {
   }
 }
 
-// ─── 卒業年フォーマット ───────────────────────────────────────────────────────
-
-function formatGradYear(graduatedAt: string | null): string | null {
-  if (!graduatedAt) return null;
-  const year = graduatedAt.slice(0, 4);
-  return `${year}年卒`;
-}
-
 // ─── ページ ───────────────────────────────────────────────────────────────────
 
 export default async function SchoolPage(
@@ -238,7 +219,7 @@ export default async function SchoolPage(
       </div>
 
       {/* ── 出身者一覧 ──────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px 64px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px" }}>
         {graduates.length === 0 ? (
           <div
             style={{
@@ -252,140 +233,10 @@ export default async function SchoolPage(
             <p>この学校の出身者はまだ登録されていません。</p>
           </div>
         ) : (
-          <>
-            <h2
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: "var(--ink-soft)",
-                letterSpacing: "0.05em",
-                marginBottom: 16,
-              }}
-            >
-              出身者 ({graduates.length}名)
-            </h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                gap: 16,
-              }}
-            >
-              {graduates.map((g) => (
-                <GraduateCard key={g.userId} graduate={g} />
-              ))}
-            </div>
-          </>
+          <SchoolGraduatesClient graduates={graduates} />
         )}
       </div>
     </main>
   );
 }
 
-// ─── 出身者カード ─────────────────────────────────────────────────────────────
-
-function GraduateCard({ graduate: g }: { graduate: Graduate }) {
-  const gradYear = formatGradYear(g.graduatedAt);
-  const subText = [g.faculty, g.degree, gradYear].filter(Boolean).join(" · ");
-
-  return (
-    <Link
-      href={`/u/${g.userId}`}
-      style={{ textDecoration: "none" }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 12,
-          border: "1px solid var(--line)",
-          padding: "16px 18px",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 14,
-          transition: "box-shadow 0.15s, border-color 0.15s",
-        }}
-        className="graduate-card"
-      >
-        {/* Avatar */}
-        {g.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={g.avatarUrl}
-            alt=""
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              objectFit: "cover",
-              flexShrink: 0,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              background: g.avatarGradient,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#fff",
-            }}
-          >
-            {g.avatarInitial}
-          </div>
-        )}
-
-        {/* テキスト */}
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "var(--ink)",
-              marginBottom: 2,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {g.name}
-          </div>
-          {subText && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--ink-soft)",
-                marginBottom: g.catchphrase ? 6 : 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {subText}
-            </div>
-          )}
-          {g.catchphrase && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--ink-soft)",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                lineHeight: 1.5,
-              }}
-            >
-              {g.catchphrase}
-            </div>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}
