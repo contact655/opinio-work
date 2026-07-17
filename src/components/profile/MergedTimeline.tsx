@@ -821,15 +821,30 @@ function EducationContent({ data }: { data: EducationEntry }) {
     <div style={{ paddingTop: 8, paddingBottom: 18, paddingLeft: 14 }}>
       {/* School + badge */}
       <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: "#111",
-          }}
-        >
-          {data.school}
-        </span>
+        {data.school_id ? (
+          <Link
+            href={`/schools/${data.school_id}`}
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#111",
+              textDecoration: "none",
+            }}
+            className="school-name-link"
+          >
+            {data.school}
+          </Link>
+        ) : (
+          <span
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#111",
+            }}
+          >
+            {data.school}
+          </span>
+        )}
         {data.is_current && <EnrolledBadge />}
       </div>
 
