@@ -5,6 +5,7 @@ import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 
 export type JobAccordionData = {
   id?: string;
+  slug?: string | null;
   title: string;
   salary: string;
   is_new?: boolean;
@@ -244,7 +245,7 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
             <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
               {job.id && (
                 <Link
-                  href={`/jobs/${job.id}`}
+                  href={`/jobs/${job.slug ?? job.id}`}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "9px 20px", borderRadius: 8, fontSize: "var(--text-sm)", fontWeight: 700,

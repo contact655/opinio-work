@@ -139,6 +139,7 @@ function mapJob(row: Record<string, any>): Job {
 
   return {
     id: row.id as string,
+    slug: (row.slug as string | null) ?? null,
     company_id: row.company_id as string,
     role: (row.title as string) ?? "",
     dept: (row.job_category as string) ?? "",
@@ -224,6 +225,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
             const salary = sMin && sMax ? `¥${sMin}–${sMax}万` : "応相談";
             const item: JobItem = {
               id: j.id as string,
+              slug: (j.slug as string | null) ?? null,
               title: (j.title as string) ?? "",
               tags: [],
               salary,
@@ -601,7 +603,7 @@ export const getCompanyById = cache(async function getCompanyById(
   const [{ data: jobRows }, { data: roleRows }, employeeCategories, { data: genreRows }] = await Promise.all([
     supabase
       .from("ow_jobs")
-      .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
+      .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id),
     supabase
       .from("ow_roles")
@@ -686,7 +688,7 @@ export const getParentRoles = unstable_cache(
 // ─── Job queries ──────────────────────────────────────────────────────────────
 
 const JOB_LIST_COLS = [
-  "id", "company_id", "title", "job_category", "role_category_id", "employment_type",
+  "id", "slug", "company_id", "title", "job_category", "role_category_id", "employment_type",
   "location", "work_style", "salary_min", "salary_max",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
   "business_model",
@@ -878,6 +880,28 @@ export const getJobById = cache(async function getJobById(
     relatedJobs,
   };
 });
+
+export async function getJobBySlugOrId(
+  slugOrId: string
+): Promise<{ job: Job; company: Company; relatedJobs: Job[]; resolvedId: string; slug: string | null } | null> {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+  const supabase = createAdminClient();
+
+  let idQuery = supabase.from("ow_jobs").select("id, slug").in("status", ["active", "published"]).limit(1);
+  if (isUUID) { idQuery = idQuery.eq("id", slugOrId); }
+  else { idQuery = idQuery.eq("slug", slugOrId); }
+
+  const { data: idRows } = await idQuery;
+  const idRow = idRows?.[0];
+  if (!idRow) return null;
+
+  const resolvedId = idRow.id as string;
+  const slug = (idRow.slug as string | null) ?? null;
+
+  const result = await getJobById(resolvedId);
+  if (!result) return null;
+  return { ...result, resolvedId, slug };
+}
 
 // ─── Company photos ───────────────────────────────────────────────────────────
 

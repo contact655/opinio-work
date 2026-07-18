@@ -21,7 +21,7 @@ export default async function ApplicationsPage() {
       .from("ow_job_applications")
       .select(
         `*,
-        ow_jobs(id, title, job_category, salary_min, salary_max, location,
+        ow_jobs(id, slug, title, job_category, salary_min, salary_max, location,
           ow_companies(id, name, logo_url,
             ow_company_office_photos(image_url, caption)
           )

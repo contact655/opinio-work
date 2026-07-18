@@ -265,7 +265,7 @@ function JobCard({
         />
       </button>
     <Link
-      href={`/jobs/${job.id}`}
+      href={`/jobs/${job.slug ?? job.id}`}
       prefetch={true}
       style={{
         display: "flex",
@@ -945,7 +945,7 @@ function JobListItem({
   return (
     <div>
       <Link
-        href={`/jobs/${job.id}`}
+        href={`/jobs/${job.slug ?? job.id}`}
         prefetch
         className="job-list-item-link"
         onClick={onSelect ? (e) => { if (window.innerWidth >= 1024) { e.preventDefault(); onSelect(job.id); } } : undefined}
@@ -1246,7 +1246,7 @@ function JobDetailPane({
 
         {/* CTAs */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Link href={`/jobs/${job.id}`} style={{
+          <Link href={`/jobs/${job.slug ?? job.id}`} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
             padding: "11px", borderRadius: 8, background: "var(--royal)",
             color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none",
@@ -2380,7 +2380,7 @@ export default function JobsClient({
                 {recommendations.slice(0, 3).map(({ job }) => (
                   <a
                     key={job.id}
-                    href={`/jobs/${job.id}`}
+                    href={`/jobs/${job.slug ?? job.id}`}
                     style={{
                       fontSize: 11, padding: "3px 10px", borderRadius: 100,
                       background: "#fff", color: "var(--royal)",

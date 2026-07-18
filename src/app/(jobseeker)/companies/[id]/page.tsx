@@ -2095,7 +2095,7 @@ function JobEmbedCard({
   }
   const badge = daysAgoBadge();
 
-  const href = job.id ? `/jobs/${job.id}` : "#jobs";
+  const href = job.id ? `/jobs/${job.slug ?? job.id}` : "#jobs";
 
   return (
     <Link

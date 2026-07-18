@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
+import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobById as fetchJobById, getJobPositionMembers, type JobPositionMember } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, type JobPositionMember } from "@/lib/supabase/queries";
+
+const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
 import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
@@ -21,9 +25,10 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const result = await fetchJobById(params.id);
+  const result = await getJobBySlugOrIdCached(params.id);
   if (!result) notFound();
-  const { job, company } = result;
+  const { job, company, slug: jobSlug } = result;
+  const canonicalId = jobSlug ?? params.id;
 
   const salaryText = job.salary_min && job.salary_max
     ? `年収${job.salary_min}〜${job.salary_max}万円`
@@ -41,13 +46,13 @@ export async function generateMetadata({
   return {
     title: { absolute: `${job.role} — ${company.name} | OPINIO` },
     description,
-    alternates: { canonical: `/jobs/${params.id}` },
+    alternates: { canonical: `/jobs/${canonicalId}` },
     keywords: [job.role, company.name, job.dept ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),
     openGraph: {
       title: `${job.role} — ${company.name} | OPINIO`,
       description,
       type: "website",
-      url: `/jobs/${params.id}`,
+      url: `/jobs/${canonicalId}`,
       images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${job.role} — ${company.name}` }],
     },
     twitter: {
@@ -63,6 +68,7 @@ export async function generateMetadata({
 
 type RelatedJob = {
   id: string;
+  slug?: string | null;
   title: string;
   companyName: string;
   logoUrl: string | null;
@@ -147,7 +153,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {jobs.map((rj) => (
-          <Link key={rj.id} href={`/jobs/${rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+          <Link key={rj.id} href={`/jobs/${rj.slug ?? rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
             <CompanyLogo
               name={rj.companyName}
               logoUrl={rj.logoUrl}
@@ -289,10 +295,16 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default async function JobDetailPage({ params }: { params: { id: string } }) {
-  const result = await fetchJobById(params.id);
+  const result = await getJobBySlugOrIdCached(params.id);
   if (!result) notFound();
 
-  const { job, company, relatedJobs } = result;
+  const { job, company, relatedJobs, resolvedId, slug: jobSlug } = result;
+
+  // UUID → slug 308 redirect
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
+  if (isUUID && jobSlug) { permanentRedirect(`/jobs/${jobSlug}`); }
+
+  const jobId = resolvedId;
 
   const initial = company.name.charAt(0).toUpperCase();
 
@@ -327,16 +339,17 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   if (job.dept) {
     const { data: sameCatRaw } = await supabase
       .from("ow_jobs")
-      .select("id, title, job_category, salary_min, salary_max, company_id, updated_at, ow_companies!inner(id, name, logo_url, logo_letter, logo_gradient)")
+      .select("id, slug, title, job_category, salary_min, salary_max, company_id, updated_at, ow_companies!inner(id, name, logo_url, logo_letter, logo_gradient)")
       .in("status", ["published", "active"])
       .eq("job_category", job.dept)
-      .neq("id", params.id)
+      .neq("id", jobId)
       .order("updated_at", { ascending: false })
       .limit(3);
 
     if (sameCatRaw) {
       for (const row of sameCatRaw as unknown as Array<{
         id: string;
+        slug?: string | null;
         title: string;
         salary_min: number | null;
         salary_max: number | null;
@@ -345,6 +358,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         const c = row.ow_companies;
         sameCategoryJobs.push({
           id: row.id,
+          slug: row.slug ?? null,
           title: row.title,
           companyName: c.name,
           logoUrl: c.logo_url,
@@ -393,12 +407,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           identifier: {
             "@type": "PropertyValue",
             name: company.name,
-            value: params.id,
+            value: jobSlug ?? jobId,
           },
           hiringOrganization: {
             "@type": "Organization",
             name: company.name,
-            sameAs: `https://opinio.jp/companies/${job.company_id}`,
+            sameAs: `https://opinio.jp/companies/${company.slug ?? job.company_id}`,
           },
           jobLocation: {
             "@type": "Place",
@@ -426,7 +440,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           ...(job.expires_at ? { validThrough: job.expires_at } : {}),
           employmentType: job.employment_type ?? "FULL_TIME",
           description,
-          url: `https://opinio.jp/jobs/${params.id}`,
+          url: `https://opinio.jp/jobs/${jobSlug ?? jobId}`,
         };
 
         return (
@@ -594,7 +608,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* スクロール検知スティッキーCTA — ヒーロー直下にセンチネルを置き、通過後に表示 */}
       <JobMobileStickyBar
-        casualHref={company.jobs_public ? `/companies/${job.company_id}/casual-meeting?job_id=${job.id}` : undefined}
+        casualHref={company.jobs_public ? `/companies/${company.slug ?? job.company_id}/casual-meeting?job_id=${job.id}` : undefined}
         applyHref={`/jobs/${job.id}/apply`}
       />
 
@@ -1233,7 +1247,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </SecTitle>
                   <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
                     {relatedJobs.map((rj) => (
-                      <Link key={rj.id} href={`/jobs/${rj.id}`} style={{
+                      <Link key={rj.id} href={`/jobs/${rj.slug ?? rj.id}`} style={{
                         display: "flex", gap: "var(--space-3)", alignItems: "flex-start",
                         padding: 14, border: "1px solid var(--line)", borderRadius: 10,
                         background: "var(--bg-tint)", textDecoration: "none",
@@ -1293,7 +1307,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {/* ③ Primary: カジュアル面談 — warm orange, OPINIO思想に合わせてトップに */}
                   {company.jobs_public && (
-                    <Link href={`/companies/${job.company_id}/casual-meeting?job_id=${job.id}`} style={{
+                    <Link href={`/companies/${company.slug ?? job.company_id}/casual-meeting?job_id=${job.id}`} style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                       width: "100%", padding: "15px var(--space-6)",
                       background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",

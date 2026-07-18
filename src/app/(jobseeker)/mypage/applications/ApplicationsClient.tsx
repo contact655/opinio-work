@@ -11,6 +11,7 @@ export type Application = {
   updated_at: string;
   ow_jobs: {
     id: string;
+    slug?: string | null;
     title: string;
     job_category: string | null;
     salary_min: number | null;
@@ -174,7 +175,7 @@ export default function ApplicationsClient({ initialApplications }: { initialApp
                     <div className="flex-1 p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <Link href={`/jobs/${job?.id}`} className="font-medium hover:text-primary transition-colors">
+                          <Link href={`/jobs/${job?.slug ?? job?.id}`} className="font-medium hover:text-primary transition-colors">
                             {job?.title}
                           </Link>
                           <p className="text-xs text-gray-600 mt-0.5">{company?.name}</p>

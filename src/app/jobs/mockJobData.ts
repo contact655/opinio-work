@@ -27,6 +27,7 @@ export type BenefitRow = {
 
 export type Job = {
   id: string;
+  slug?: string | null;
   company_id: string;
   role: string;
   dept: string;

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 // サイドバー用型
 export type SidebarFollow = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
-export type SidebarJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
+export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
 export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
@@ -88,7 +88,7 @@ export default async function FeedPage() {
       event_title, event_starts_at, event_location, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url),
-      ref_job:ow_jobs!ref_job_id(id, title, salary_min, salary_max, work_style),
+      ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style),
       ref_article:ow_articles!ref_article_id(id, slug, title),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -220,13 +220,14 @@ export default async function FeedPage() {
   if (bookmarkedJobIds.length > 0) {
     const { data: jobRows } = await adminSupabase
       .from("ow_jobs")
-      .select("id, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
+      .select("id, slug, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
       .in("id", bookmarkedJobIds)
       .in("status", ["published", "active"]);
     sidebarSavedJobs = (jobRows ?? []).map((j: Record<string, unknown>) => {
       const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;
       return {
         id: j.id as string,
+        slug: (j.slug as string | null) ?? null,
         title: j.title as string,
         salary_min: j.salary_min as number | null,
         salary_max: j.salary_max as number | null,

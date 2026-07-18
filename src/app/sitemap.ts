@@ -6,7 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: jobs } = await supabase
     .from("ow_jobs")
-    .select("id, updated_at")
+    .select("id, slug, updated_at")
     .in("status", ["active", "published"]);
 
   const { data: companies } = await supabase
@@ -67,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     // ── Dynamic: jobs ────────────────────────────────────────────────────────
     ...(jobs?.map((job) => ({
-      url: `${baseUrl}/jobs/${job.id}`,
+      url: `${baseUrl}/jobs/${job.slug ?? job.id}`,
       lastModified: new Date(job.updated_at),
       changeFrequency: "weekly" as const,
       priority: 0.75,

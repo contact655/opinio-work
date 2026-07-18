@@ -20,7 +20,7 @@ type PostUser = {
 };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null; // slug already included
-type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
+type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
 type LikerUser = { id: string; name: string; avatar_color: string | null; avatar_url: string | null };
@@ -1148,7 +1148,7 @@ function FeedSidebar({
             {savedJobs.map((job) => (
               <Link
                 key={job.id}
-                href={`/jobs/${job.id}`}
+                href={`/jobs/${job.slug ?? job.id}`}
                 style={{ display: "flex", flexDirection: "column", gap: 2, textDecoration: "none" }}
               >
                 <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1482,7 +1482,7 @@ function PostCard({
 
       {post.post_type === "job_posted" && post.ref_job && (
         <Link
-          href={`/jobs/${post.ref_job.id}`}
+          href={`/jobs/${post.ref_job.slug ?? post.ref_job.id}`}
           style={{
             display: "flex",
             alignItems: "center",

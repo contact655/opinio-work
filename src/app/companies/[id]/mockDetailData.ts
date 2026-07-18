@@ -10,6 +10,7 @@ export type FreshnessItem = {
 
 export type JobItem = {
   id?: string;
+  slug?: string | null;
   title: string;
   tags: string[];
   salary: string;
