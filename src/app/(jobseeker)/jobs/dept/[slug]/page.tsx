@@ -8,7 +8,7 @@ export const revalidate = 3600;
 
 // ─── カテゴリ定義 ─────────────────────────────────────────────────────────────
 
-export const DEPT_SLUG_MAP: Record<string, {
+const DEPT_SLUG_MAP: Record<string, {
   label: string;
   labelEn: string;
   description: string;
@@ -110,6 +110,24 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
   );
 
   return (
+    <>
+    <style>{`
+      .dept-job-card-link { text-decoration: none; display: block; }
+      .dept-job-card {
+        background: #fff; border: 1px solid var(--line); border-radius: 16px;
+        padding: 20px 22px; transition: box-shadow 0.15s, border-color 0.15s;
+      }
+      .dept-job-card-link:hover .dept-job-card {
+        box-shadow: 0 4px 20px rgba(0,35,102,0.10); border-color: var(--royal-100);
+      }
+      .dept-cat-chip {
+        display: block; padding: 12px 14px; border-radius: 12px;
+        background: #fff; border: 1px solid var(--line);
+        text-decoration: none; font-size: 13px; font-weight: 600; color: var(--ink);
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .dept-cat-chip:hover { border-color: var(--royal-100); background: var(--royal-50); }
+    `}</style>
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 20px 80px" }}>
       {/* ─ ヘッダー ─ */}
       <div style={{ marginBottom: 32 }}>
@@ -170,24 +188,9 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
               <Link
                 key={job.id}
                 href={jobUrl}
-                style={{ textDecoration: "none", display: "block" }}
+                className="dept-job-card-link"
               >
-                <div style={{
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: 16,
-                  padding: "20px 22px",
-                  transition: "box-shadow 0.15s, border-color 0.15s",
-                }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(0,35,102,0.10)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "var(--royal-100)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                    (e.currentTarget as HTMLElement).style.borderColor = "var(--line)";
-                  }}
-                >
+                <div className="dept-job-card">
                   <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                     {/* ロゴ */}
                     {company && (
@@ -279,20 +282,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
               <Link
                 key={slug}
                 href={`/jobs/dept/${slug}`}
-                style={{
-                  display: "block", padding: "12px 14px", borderRadius: 12,
-                  background: "#fff", border: "1px solid var(--line)",
-                  textDecoration: "none", fontSize: 13, fontWeight: 600, color: "var(--ink)",
-                  transition: "border-color 0.15s, background 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--royal-100)";
-                  (e.currentTarget as HTMLElement).style.background = "var(--royal-50)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--line)";
-                  (e.currentTarget as HTMLElement).style.background = "#fff";
-                }}
+                className="dept-cat-chip"
               >
                 {info.label}
               </Link>
@@ -318,5 +308,6 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
         </Link>
       </div>
     </div>
+    </>
   );
 }
