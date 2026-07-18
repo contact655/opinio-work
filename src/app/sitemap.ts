@@ -87,6 +87,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
+    // ── Static: careers hub ──────────────────────────────────────────────────
+    { url: `${baseUrl}/careers`, lastModified: new Date(), changeFrequency: "monthly" as const, priority: 0.85 },
+    // ── Static: people role pages ────────────────────────────────────────────
+    ...["sales", "cs", "mkt", "eng", "pm", "hr", "exec"].map((slug) => ({
+      url: `${baseUrl}/people/role/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    })),
     // ── Dynamic: jobs ────────────────────────────────────────────────────────
     ...(jobs?.map((job) => ({
       url: `${baseUrl}/jobs/${job.slug ?? job.id}`,
