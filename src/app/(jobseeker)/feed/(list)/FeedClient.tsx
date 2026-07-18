@@ -19,7 +19,7 @@ type PostUser = {
   company?: string | null;
 };
 
-type RefCompany = { id: string; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null; // slug already included
 type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
@@ -1112,7 +1112,7 @@ function FeedSidebar({
             {follows.map((co) => (
               <Link
                 key={co.id}
-                href={`/companies/${co.id}`}
+                href={`/companies/${co.slug ?? co.id}`}
                 style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
               >
                 <div
@@ -1432,7 +1432,7 @@ function PostCard({
       {/* システム投稿: リッチカード */}
       {post.post_type === "company_joined" && post.ref_company && (
         <Link
-          href={`/companies/${post.ref_company.id}`}
+          href={`/companies/${post.ref_company.slug ?? post.ref_company.id}`}
           style={{
             display: "flex",
             alignItems: "center",

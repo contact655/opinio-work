@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       supabase
         .from("ow_companies")
         .select(
-          "id, name, name_en, tagline, industry, funding_stage, employee_count, description, " +
+          "id, slug, name, name_en, tagline, industry, funding_stage, employee_count, description, " +
           "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
           "current_member_count, obog_count"
         )

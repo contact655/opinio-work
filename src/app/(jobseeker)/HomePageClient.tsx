@@ -13,6 +13,7 @@ import { LogoWall } from "@/components/companies/LogoWall";
 const FEATURED_COMPANIES = [
   {
     id: "c3664ef1-5571-4645-b30f-1474e7961c17",
+    slug: "salesforce",
     name: "株式会社セールスフォース・ジャパン",
     brandName: "Salesforce Japan",
     industry: "CRM・営業支援",
@@ -24,6 +25,7 @@ const FEATURED_COMPANIES = [
   },
   {
     id: "81aa95dc-2304-4faa-9c4a-f2f5454e8e11",
+    slug: "smarthr",
     name: "SmartHR株式会社",
     brandName: "SmartHR",
     industry: "HR Tech",
@@ -35,6 +37,7 @@ const FEATURED_COMPANIES = [
   },
   {
     id: "f98f5d13-c72f-42fa-9c91-ee4647de2793",
+    slug: null,
     name: "freee株式会社",
     brandName: "freee",
     industry: "FinTech",
@@ -58,7 +61,7 @@ function FeaturedThreeCards() {
           {FEATURED_COMPANIES.map((co) => {
             const showLogo = co.logoUrl && !imgErrors.has(co.id);
             return (
-              <Link key={co.id} href={`/companies/${co.id}`} style={{ textDecoration: "none", display: "block" }}>
+              <Link key={co.id} href={`/companies/${co.slug ?? co.id}`} style={{ textDecoration: "none", display: "block" }}>
                 <div style={{
                   borderRadius: 14, border: "1px solid var(--line)",
                   overflow: "hidden", background: "#fff",
@@ -224,10 +227,10 @@ function BriefcaseIcon() {
 
 // ─── Hero company preview cards ───────────────────────────────────────────────
 const HERO_COMPANIES = [
-  { id: "c3664ef1-5571-4645-b30f-1474e7961c17", name: "Salesforce Japan", industry: "グローバルCRM", phase: "上場", gradient: "linear-gradient(135deg,#00A1E0,#0066CC)", letter: "SF", jobs: 106 },
-  { id: "81aa95dc-2304-4faa-9c4a-f2f5454e8e11", name: "SmartHR", industry: "HR Tech", phase: "シリーズD", gradient: "linear-gradient(135deg,#1E3A5F,#2E5077)", letter: "SH", jobs: 3 },
-  { id: "a6b3aef3-6c56-4c95-99f5-08be757b12d7", name: "medimo", industry: "Medical AI", phase: "シリーズA", gradient: "linear-gradient(135deg,#059669,#047857)", letter: "ME", jobs: 25 },
-  { id: "f98f5d13-c72f-42fa-9c91-ee4647de2793", name: "freee", industry: "FinTech", phase: "上場", gradient: "linear-gradient(135deg,#7C3AED,#5B21B6)", letter: "fr", jobs: 3 },
+  { id: "c3664ef1-5571-4645-b30f-1474e7961c17", slug: "salesforce", name: "Salesforce Japan", industry: "グローバルCRM", phase: "上場", gradient: "linear-gradient(135deg,#00A1E0,#0066CC)", letter: "SF", jobs: 106 },
+  { id: "81aa95dc-2304-4faa-9c4a-f2f5454e8e11", slug: "smarthr", name: "SmartHR", industry: "HR Tech", phase: "シリーズD", gradient: "linear-gradient(135deg,#1E3A5F,#2E5077)", letter: "SH", jobs: 3 },
+  { id: "a6b3aef3-6c56-4c95-99f5-08be757b12d7", slug: "medimo", name: "medimo", industry: "Medical AI", phase: "シリーズA", gradient: "linear-gradient(135deg,#059669,#047857)", letter: "ME", jobs: 25 },
+  { id: "f98f5d13-c72f-42fa-9c91-ee4647de2793", slug: null, name: "freee", industry: "FinTech", phase: "上場", gradient: "linear-gradient(135deg,#7C3AED,#5B21B6)", letter: "fr", jobs: 3 },
 ];
 
 function HeroCompanyPreview() {
@@ -247,7 +250,7 @@ function HeroCompanyPreview() {
       </div>
       <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, position: "relative" }}>
         {HERO_COMPANIES.map((co) => (
-          <Link key={co.id} href={`/companies/${co.id}`} style={{ textDecoration: "none" }}>
+          <Link key={co.id} href={`/companies/${co.slug ?? co.id}`} style={{ textDecoration: "none" }}>
             <div style={{
               background: "rgba(255,255,255,0.07)",
               border: "1px solid rgba(255,255,255,0.1)",
@@ -381,6 +384,7 @@ function Hero({ companyNum, jobNum, newJobsThisWeek }: { companyNum: string; job
 
 type PreviewCompany = {
   id: string;
+  slug?: string | null;
   name: string;
   industry: string | null;
   phase: string | null;
@@ -405,7 +409,7 @@ const PHASE_COLORS: Record<string, { bg: string; color: string }> = {
 function CompanyMiniCard({ c }: { c: PreviewCompany }) {
   const phaseStyle = c.phase ? (PHASE_COLORS[c.phase] ?? { bg: "var(--line-soft)", color: "var(--ink-mute)" }) : null;
   return (
-    <Link href={`/companies/${c.id}`} style={{ textDecoration: "none" }}>
+    <Link href={`/companies/${c.slug ?? c.id}`} style={{ textDecoration: "none" }}>
       <div className="company-mini-card" style={{
         background: "#fff",
         border: "1px solid var(--line)",
@@ -642,6 +646,7 @@ function _FeaturedCompaniesSection({ initialCompanies }: { initialCompanies: Pre
 function LogoWallSection({ companies }: { companies: PreviewCompany[] }) {
   const wallData = companies.map((c) => ({
     id: c.id,
+    slug: c.slug,
     name: c.name,
     logoUrl: c.logoUrl,
     letter: c.letter,

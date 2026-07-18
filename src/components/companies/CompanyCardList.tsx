@@ -216,7 +216,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           }
         `}</style>
         <Link
-          href={`/companies/${company.id}`}
+          href={`/companies/${company.slug ?? company.id}`}
           className="clv-card"
           style={{
             display: "flex",
@@ -417,7 +417,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         .company-list-card:hover .clc-name { color: var(--royal) !important; }
       `}</style>
       <Link
-        href={`/companies/${company.id}`}
+        href={`/companies/${company.slug ?? company.id}`}
         className="company-list-card"
         style={{
           display: "flex",
@@ -601,7 +601,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 color: "#fff", border: "none", cursor: "pointer", whiteSpace: "nowrap",
                 boxShadow: "0 2px 8px rgba(0,35,102,0.20)",
               }}
-              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}#jobs`); }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}#jobs`); }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                 <rect x="2" y="7" width="20" height="14" rx="2"/>
@@ -618,7 +618,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 background: "var(--royal-50)", color: "var(--royal)",
                 border: "1px solid var(--royal-100)", cursor: "pointer", whiteSpace: "nowrap",
               }}
-              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
             >
               詳細を見る →
             </button>

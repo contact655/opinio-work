@@ -370,8 +370,8 @@ function JobCard({
             <span
               role="link"
               tabIndex={0}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}}
               className="company-name-link"
               style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, cursor: "pointer" }}
             >
@@ -1004,8 +1004,8 @@ function JobListItem({
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
             <span
               role="link" tabIndex={0}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); }}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.id}`); } }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); } }}
               className="company-name-link"
               style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
             >
@@ -1181,7 +1181,7 @@ function JobDetailPane({
       <div style={{ padding: "30px 18px 20px" }}>
         {/* Company name + phase */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-          <Link href={`/companies/${company.id}`} style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>
+          <Link href={`/companies/${company.slug ?? company.id}`} style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {(company as any).brand_name ?? company.name}
           </Link>
@@ -1255,7 +1255,7 @@ function JobDetailPane({
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
           </Link>
           {hasMeeting && (
-            <Link href={`/companies/${company.id}/casual-meeting`} style={{
+            <Link href={`/companies/${company.slug ?? company.id}/casual-meeting`} style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
               padding: "10px", borderRadius: 8,
               border: "1.5px solid #EA580C", color: "#EA580C",

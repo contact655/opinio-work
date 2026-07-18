@@ -17,6 +17,7 @@ type Meeting = {
   userName: string | null;
   userEmail: string | null;
   companyId: string | null;
+  companySlug: string | null;
   companyName: string | null;
   jobTitle: string | null;
   intent: string | null;
@@ -43,7 +44,7 @@ async function getMeetings(): Promise<Meeting[]> {
       completed_at,
       assignee_user_id,
       user:ow_users!user_id(name, email),
-      company:ow_companies!company_id(name),
+      company:ow_companies!company_id(slug, name),
       job:ow_jobs!job_id(title),
       assignee:ow_users!assignee_user_id(name)
     `)
@@ -62,6 +63,7 @@ async function getMeetings(): Promise<Meeting[]> {
     userName: (row.user as { name: string | null } | null)?.name ?? null,
     userEmail: (row.user as { email: string | null } | null)?.email ?? null,
     companyId: row.company_id as string | null,
+    companySlug: (row.company as { slug: string | null } | null)?.slug ?? null,
     companyName: (row.company as { name: string | null } | null)?.name ?? null,
     jobTitle: (row.job as { title: string | null } | null)?.title ?? null,
     intent: row.intent as string | null,
@@ -210,7 +212,7 @@ export default async function AdminMeetingsPage() {
                     {/* 申込先企業 */}
                     <td style={{ padding: "12px 16px" }}>
                       {m.companyId ? (
-                        <Link href={`/companies/${m.companyId}`} target="_blank" style={{ fontWeight: 600, color: "#0F172A", textDecoration: "none" }}>
+                        <Link href={`/companies/${m.companySlug ?? m.companyId}`} target="_blank" style={{ fontWeight: 600, color: "#0F172A", textDecoration: "none" }}>
                           {m.companyName ?? "—"}
                         </Link>
                       ) : (

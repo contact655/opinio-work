@@ -17,6 +17,7 @@ import Link from "next/link";
 
 export type LogoWallCompany = {
   id: string;
+  slug?: string | null;
   name: string;
   logoUrl: string | null;
   letter: string;
@@ -45,7 +46,7 @@ export function LogoWall({ companies }: Props) {
           return (
             <Link
               key={c.id}
-              href={`/companies/${c.id}`}
+              href={`/companies/${c.slug ?? c.id}`}
               className="logo-wall-card"
               title={c.name}
             >

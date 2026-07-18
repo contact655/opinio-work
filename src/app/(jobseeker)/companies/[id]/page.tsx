@@ -3,8 +3,9 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { permanentRedirect } from "next/navigation";
 import {
-  getCompanyById,
+  getCompanyBySlugOrId,
   getCompanyPhotosCached,
   getCompanyRecruitersCached,
   getArticlesByCompany,
@@ -30,9 +31,9 @@ import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 
-// Deduplicate getCompanyById calls within a single request
+// Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
-const getCompanyByIdCached = cache(getCompanyById);
+const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
 
 
 
@@ -46,10 +47,11 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const result = await getCompanyByIdCached(params.id);
+  const result = await getCompanyBySlugOrIdCached(params.id);
   if (!result) notFound();
-  const { company } = result;
+  const { company, slug } = result;
 
+  const canonicalId = slug ?? params.id;
   const description = company.tagline
     ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}業界・${company.employee_count ? company.employee_count.toString() + "名規模" : "詳細はページへ"}。カジュアル面談受付中。`
     : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。カジュアル面談で現場の声を聞けます。`;
@@ -59,13 +61,13 @@ export async function generateMetadata({
   return {
     title: { absolute: `${company.name} — 企業情報・求人 | OPINIO` },
     description,
-    alternates: { canonical: `/companies/${params.id}` },
+    alternates: { canonical: `/companies/${canonicalId}` },
     keywords: [company.name, company.industry ?? "", "カジュアル面談", "IT転職", "SaaS転職"].filter(Boolean),
     openGraph: {
       title: `${company.name} | OPINIO`,
       description,
       type: "website",
-      url: `/companies/${params.id}`,
+      url: `/companies/${canonicalId}`,
       images: [{ url: ogImageUrl, width: 1200, height: 630, alt: company.name }],
     },
     twitter: {
@@ -3518,31 +3520,48 @@ export default async function CompanyDetailPage({
 }) {
   const supabase = createClient();
 
-  // auth + all DB queries in parallel (auth no longer blocks data fetching)
   const adminSupabase = createAdminClient();
-  const [authResult, companyResult, photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult, ambassadorsResult] = await Promise.all([
+
+  // Phase 1: auth + company lookup in parallel (company lookup resolves slug→uuid)
+  const [authResult, companyResult] = await Promise.all([
     supabase.auth.getUser(),
-    getCompanyByIdCached(params.id),
-    getCompanyPhotosCached(params.id),
-    getCompanyRecruitersCached(params.id),
-    getArticlesByCompany(params.id),
-    getCompanyEmployeesCached(params.id),
+    getCompanyBySlugOrIdCached(params.id),
+  ]);
+
+  if (!companyResult) return notFound();
+
+  const { company, detail, employeeCategories, resolvedId, slug: companySlug } = companyResult;
+
+  // UUID が渡されてスラッグがある場合は 308 リダイレクト
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
+  if (isUUID && companySlug) {
+    permanentRedirect(`/companies/${companySlug}`);
+  }
+
+  // Phase 2: 残りのデータを companyId（UUID）で並列取得
+  const companyId = resolvedId;
+
+  const [photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult, ambassadorsResult] = await Promise.all([
+    getCompanyPhotosCached(companyId),
+    getCompanyRecruitersCached(companyId),
+    getArticlesByCompany(companyId),
+    getCompanyEmployeesCached(companyId),
     adminSupabase
       .from("ow_company_posts")
       .select("id, title, body, category, cover_image_url, published_at")
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_published", true)
       .order("published_at", { ascending: false })
       .then((r: { data: CompanyPost[] | null }) => r.data ?? []),
     adminSupabase
       .from("ow_salary_reports")
       .select("id", { count: "exact", head: true })
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_approved", true),
     adminSupabase
       .from("ow_company_members")
       .select("id, user_id, role_title, talk_themes, ow_users!user_id(name, avatar_color, avatar_url)")
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("display_consent", true)
       .eq("is_public", true)
       .then((r) => r.data ?? []),
@@ -3566,9 +3585,6 @@ export default async function CompanyDetailPage({
     ? await supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
     : { data: null, error: null };
 
-  if (!companyResult) return notFound();
-
-  const { company, detail, employeeCategories } = companyResult;
   const _pageJobItems = detail.jobs.flatMap((c) => c.items); void _pageJobItems;
 
   // フィード投稿 (会社ID + 求人ID OR + 記事ID OR)
@@ -3590,10 +3606,10 @@ export default async function CompanyDetailPage({
   const { data: articleIdRows } = await adminSupabase
     .from("ow_articles")
     .select("id")
-    .eq("company_id", params.id);
+    .eq("company_id", companyId);
   const companyArticleIds = (articleIdRows ?? []).map((r: { id: string }) => r.id);
 
-  const orParts: string[] = [`ref_company_id.eq.${params.id}`];
+  const orParts: string[] = [`ref_company_id.eq.${companyId}`];
   if (companyJobIds.length > 0) orParts.push(`ref_job_id.in.(${companyJobIds.join(",")})`);
   if (companyArticleIds.length > 0) orParts.push(`ref_article_id.in.(${companyArticleIds.join(",")})`);
 
@@ -3617,13 +3633,13 @@ export default async function CompanyDetailPage({
         .select("id")
         .eq("user_id", owUserId)
         .eq("target_type", "company")
-        .eq("target_id", params.id)
+        .eq("target_id", companyId)
         .maybeSingle(),
       createAdminClient()
         .from("ow_company_follows")
         .select("id")
         .eq("follower_user_id", owUserId)
-        .eq("company_id", params.id)
+        .eq("company_id", companyId)
         .maybeSingle(),
     ]);
     initialBookmarked = !!bmarkResult.data;
@@ -3642,7 +3658,7 @@ export default async function CompanyDetailPage({
             "@type": "Organization",
             name: company.name,
             description: company.tagline ?? undefined,
-            url: `https://opinio.jp/companies/${params.id}`,
+            url: `https://opinio.jp/companies/${companySlug ?? companyId}`,
             numberOfEmployees: company.employee_count > 0 ? {
               "@type": "QuantitativeValue",
               value: company.employee_count,
@@ -3650,7 +3666,7 @@ export default async function CompanyDetailPage({
           }),
         }}
       />
-      <RecentlyViewedTracker id={params.id} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
+      <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb company={company} />
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} initialFollowed={initialFollowed} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
@@ -3791,7 +3807,7 @@ export default async function CompanyDetailPage({
                       : post.post_type === "article_published" && post.ow_articles?.slug
                       ? `/articles/${post.ow_articles.slug}`
                       : post.post_type === "company_joined"
-                      ? `/companies/${params.id}`
+                      ? `/companies/${companySlug ?? companyId}`
                       : null;
                     return (
                       <div key={post.id} style={{

@@ -19,6 +19,7 @@ export type Genre = {
 
 export type CompanyForCarousel = {
   id: string;
+  slug?: string | null;             // URL-safe slug（例: "salesforce"）。null の場合は id で代替
   name: string;
   name_en?: string | null;             // 英語社名（ブランド表記用）
   tagline: string | null;              // 企業キャッチコピー（1行）

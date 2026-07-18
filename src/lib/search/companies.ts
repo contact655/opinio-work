@@ -134,7 +134,7 @@ export async function searchCompanies(
     supabase
       .from("ow_companies")
       .select(
-        "id, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, is_foreign, " +
+        "id, slug, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, is_foreign, " +
         "accepting_casual_meetings, remote_work_status, location, branch_locations, logo_letter, logo_gradient, logo_url, updated_at, " +
         "current_member_count, obog_count, avg_salary, company_features, reality_disclosure",
         useDbPagination ? { count: "exact" } : undefined

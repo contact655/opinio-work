@@ -138,7 +138,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
       });
       if (res.status === 401) {
         setBookmarked(prev);
-        router.push(`/auth?next=/companies/${company.id}`);
+        router.push(`/auth?next=/companies/${company.slug ?? company.id}`);
       } else if (!res.ok) {
         setBookmarked(prev);
       } else {
@@ -162,7 +162,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
 
   return (
     <Link
-      href={`/companies/${company.id}`}
+      href={`/companies/${company.slug ?? company.id}`}
       className="genre-card"
     >
 

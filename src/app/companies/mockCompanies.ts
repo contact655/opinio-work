@@ -8,6 +8,8 @@ export type CompanyGenre = {
 
 export type Company = {
   id: string;
+  /** URL-safe slug (e.g. "salesforce"). Falls back to id when null. */
+  slug?: string | null;
   name: string;
   name_en?: string | null;
   tagline: string;

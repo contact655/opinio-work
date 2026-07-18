@@ -64,6 +64,7 @@ function deriveWorkStyles(row: {
 function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre[] = []): Company {
   return {
     id: row.id as string,
+    slug: (row.slug as string | null) ?? null,
     name: (row.name as string) ?? "",
     name_en: (row.name_en as string | null) ?? null,
     tagline: (row.tagline as string) ?? "",
@@ -358,6 +359,7 @@ function buildCompanyNumbers(row: Record<string, any>): CompanyNumbers {
 
 export type CompanyListRow = {
   id: string;
+  slug: string | null;
   name: string;
   /** 英語表記の会社名（例: "Datadog Japan"） */
   name_en: string | null;
@@ -390,7 +392,7 @@ export type CompanyListRow = {
 };
 
 const COMPANY_LISTPAGE_COLS = [
-  "id", "name", "name_en", "tagline", "industry", "phase", "employee_count",
+  "id", "slug", "name", "name_en", "tagline", "industry", "phase", "employee_count",
   "avg_salary", "logo_gradient", "logo_letter", "logo_url",
   "location", "url", "accepting_casual_meetings", "remote_work_status",
   "is_published", "jobs_public", "updated_at", "company_features",
@@ -463,6 +465,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (companyRows ?? []).map((row: Record<string, any>): CompanyListRow => ({
     id: row.id as string,
+    slug: (row.slug as string | null) ?? null,
     name: (row.name as string) ?? "",
     name_en: (row.name_en as string) ?? null,
     tagline: (row.tagline as string) ?? "",
@@ -493,7 +496,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
 // ─── Company queries ──────────────────────────────────────────────────────────
 
 const COMPANY_LIST_COLS = [
-  "id", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count",
+  "id", "slug", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count",
   "logo_gradient", "logo_letter", "logo_url", "url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
 ].join(", ");
@@ -625,6 +628,43 @@ export const getCompanyById = cache(async function getCompanyById(
 
   return { company, detail, employeeCategories };
 });
+
+/**
+ * スラッグ or UUID どちらでも企業詳細を取得する。
+ * UUID が渡された場合でも slug がある企業は slug を返す（呼び出し元で redirect する）。
+ */
+export async function getCompanyBySlugOrId(
+  slugOrId: string
+): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[]; resolvedId: string; slug: string | null } | null> {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+  const supabase = createAdminClient();
+
+  let idQuery = supabase
+    .from("ow_companies")
+    .select("id, slug")
+    .limit(1);
+
+  if (isUUID) {
+    idQuery = idQuery.eq("id", slugOrId);
+  } else {
+    idQuery = idQuery.eq("slug", slugOrId);
+  }
+  if (process.env.NODE_ENV !== "development") {
+    idQuery = idQuery.eq("is_published", true);
+  }
+
+  const { data: idRows } = await idQuery;
+  const idRow = idRows?.[0];
+  if (!idRow) return null;
+
+  const resolvedId = idRow.id as string;
+  const slug = (idRow.slug as string | null) ?? null;
+
+  const result = await getCompanyById(resolvedId);
+  if (!result) return null;
+
+  return { ...result, resolvedId, slug };
+}
 
 // ─── Role queries ─────────────────────────────────────────────────────────────
 

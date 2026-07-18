@@ -16,7 +16,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("ow_companies")
     .select(
-      "id, name, industry, phase, logo_gradient, logo_letter, logo_url, accepting_casual_meetings, employee_count"
+      "id, slug, name, industry, phase, logo_gradient, logo_letter, logo_url, accepting_casual_meetings, employee_count"
     )
     .eq("is_published", true)
     .order("updated_at", { ascending: false })
@@ -60,6 +60,7 @@ export async function GET() {
     const id = row.id as string;
     return {
       id,
+      slug: (row.slug as string | null) ?? null,
       name: row.name as string,
       industry: row.industry as string | null,
       phase: row.phase as string | null,

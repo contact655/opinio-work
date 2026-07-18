@@ -18,7 +18,7 @@ const NAV_LINKS = [
 ];
 
 type SuggestResult = {
-  companies: { id: string; name: string; industry: string | null; logo_letter: string | null; logo_gradient: string | null }[];
+  companies: { id: string; slug?: string | null; name: string; industry: string | null; logo_letter: string | null; logo_gradient: string | null }[];
   jobs: { id: string; title: string; job_category: string | null }[];
 };
 
@@ -513,7 +513,7 @@ export function JobseekerHeader() {
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>企業</div>
                       {suggestions.companies.map((c) => (
-                        <a key={c.id} href={`/companies/${c.id}`} onClick={() => setSearchOpen(false)}
+                        <a key={c.id} href={`/companies/${c.slug ?? c.id}`} onClick={() => setSearchOpen(false)}
                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
                           onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>

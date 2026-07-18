@@ -194,7 +194,7 @@ export default async function MypagePage({
         const companyIds = companyBmarks.map((b) => b.target_id as string);
         const { data: companies } = await supabase
           .from("ow_companies")
-          .select("id, name, industry, employee_count, phase")
+          .select("id, slug, name, industry, employee_count, phase")
           .in("id", companyIds);
         if (companies) {
           const companyMap = new Map(companies.map((c) => [c.id, c]));
@@ -208,7 +208,7 @@ export default async function MypagePage({
                 id: b.id as string, type: "company",
                 title: c.name as string, meta,
                 badge_label: (c.industry as string) ?? "企業",
-                href: `/companies/${c.id}`,
+                href: `/companies/${c.slug ?? c.id}`,
               };
             })
             .filter((b): b is Bookmark => b !== null);

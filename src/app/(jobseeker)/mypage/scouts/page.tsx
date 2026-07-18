@@ -18,7 +18,7 @@ export default async function ScoutsPage() {
 
   const { data: scouts } = await admin
     .from("ow_scouts")
-    .select("id, company_id, job_id, message, status, sent_at, conversation_id, ow_companies(id, name, logo_gradient, logo_letter), ow_jobs(id, title)")
+    .select("id, company_id, job_id, message, status, sent_at, conversation_id, ow_companies(id, slug, name, logo_gradient, logo_letter), ow_jobs(id, title)")
     .eq("candidate_id", user.id)
     .order("sent_at", { ascending: false });
 
@@ -32,7 +32,7 @@ export default async function ScoutsPage() {
 
   const scoutList = (scouts ?? []).map((s: any) => ({
     id: s.id as string,
-    companyId: (s.ow_companies as any)?.id as string ?? s.company_id as string,
+    companyId: (s.ow_companies as any)?.slug ?? (s.ow_companies as any)?.id as string ?? s.company_id as string,
     companyName: (s.ow_companies as any)?.name as string ?? "企業",
     companyGradient: (s.ow_companies as any)?.logo_gradient as string | null,
     companyLetter: (s.ow_companies as any)?.logo_letter as string | null,

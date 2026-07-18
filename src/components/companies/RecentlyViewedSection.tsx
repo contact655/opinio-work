@@ -120,7 +120,7 @@ export function RecentlyViewedSection() {
           const gradient = c.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
 
           return (
-            <Link key={c.id} href={`/companies/${c.id}`} className="rv-mini-card">
+            <Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="rv-mini-card">
               {/* 上段: ロゴ帯 */}
               <div style={{
                 height: 52, background: gradient,

@@ -76,7 +76,7 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }, { data: adminRows }, { data: userRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, name, brand_name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
+        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
         .order("sort_order", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false }),
       supabase
@@ -477,7 +477,7 @@ export default function AdminCompaniesPage() {
 
                       {/* 企業ページへのリンク */}
                       <td style={{ padding: "10px 14px" }}>
-                        <Link href={`/companies/${c.id}`} target="_blank"
+                        <Link href={`/companies/${(c as any).slug ?? c.id}`} target="_blank"
                           style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                           表示

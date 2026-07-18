@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   ] = await Promise.all([
     supabase
       .from("ow_companies")
-      .select("id, name, industry, logo_letter, logo_gradient")
+      .select("id, slug, name, industry, logo_letter, logo_gradient")
       .ilike("name", pattern)
       .eq("is_published", true)
       .limit(4),
