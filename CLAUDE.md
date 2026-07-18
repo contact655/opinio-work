@@ -24,6 +24,41 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 🎯 次のセッションでやること（2026-07-19 セッション27 更新）
+
+### ✅ 完了 2026-07-19 セッション27: URL改善8フェーズ・フッターリンク・BIZオンボーディング・DB修正
+
+  **URL アーキテクチャ改善 8フェーズ（全完了）:**
+  - Phase 4: `/jobs/dept/[slug]` — 7職種別求人ランディングページ（sales/marketing/management/corporate/product/engineer/infra）
+  - Phase 5: `/salary` + `/salary/[slug]` — 職種別年収相場（9職種、`ow_jobs`の給与データから集計）
+  - Phase 6: `/articles/type/[slug]` — 記事カテゴリ別（employee/mentor/ceo/report）
+  - Phase 7: `/careers` — IT/SaaS転職ガイドハブ（4ステップ・FAQ・職種別リンク）
+  - Phase 8: `/people/role/[slug]` — 役割別アンバサダー一覧（7役割）
+  - `sitemap.ts` に全 URL を追加済み
+  - ⚠️ **知見**: Next.js page.tsx での `export const DEPT_SLUG_MAP` は型エラーになる → `const`（非エクスポート）にすること
+  - ⚠️ **知見**: Server Component で `onMouseEnter`/`onMouseLeave` は使えない → `<style>` タグ + CSS クラスで代替
+
+  **フッターリンク追加（`src/components/jobseeker/JobseekerFooter.tsx`）:**
+  - 「求職者の方」カラムに `/salary`（年収相場）・`/careers`（転職ガイド）を追加
+
+  **/biz/dashboard 初回オンボーディング（`src/app/biz/dashboard/page.tsx`）:**
+  - 企業公開済み・求人0件の場合にスタートガイドを表示
+  - 4ステップチェックリスト（企業情報→求人作成→求人公開→面談受付）
+  - 完了済みステップはグリーン ✓ + 取り消し線で表示
+
+  **Migration 257（手動適用済み ✅）:**
+  - `expires_at` を全求人で NULL に設定（期限管理不要）
+  - 2026-10-12 一斉消滅の問題を解消
+
+  **Migration 197（手動適用済み ✅）:**
+  - `ow_mentor_reservations` テーブル作成
+  - アンバサダー相談予約 API が有効化
+
+### 🟢 次の優先候補（2026-07-19 セッション27後）
+- **実ユーザー招待・オンボーディング** — DB・機能・UI 全て準備完了
+- **② 内部リンクのさらなる強化** — ナビヘッダーに `/salary` `/careers` リンクを追加（フッターは済み）
+- **カジュアル面談の個人指名機能** — `ow_casual_meetings` に `requested_member_id` を追加
+
 ## 🎯 次のセッションでやること（2026-07-15 セッション26 更新）
 
 ### ✅ 完了 2026-07-15 セッション26: JSON-LD修正・テストデータ削除・ソフト404修正・フィード自動集約
