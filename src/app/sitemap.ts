@@ -65,6 +65,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.4,
     },
+    // ── Static: salary pages ─────────────────────────────────────────────────
+    { url: `${baseUrl}/salary`, lastModified: new Date(), changeFrequency: "weekly" as const, priority: 0.85 },
+    ...["enterprise-sales", "customer-success", "sales-engineer", "solutions-architect", "backend-engineer", "ml-engineer", "product-manager", "smb-sales", "other"].map((slug) => ({
+      url: `${baseUrl}/salary/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
     // ── Static: job dept pages ───────────────────────────────────────────────
     ...["sales", "marketing", "management", "corporate", "product", "engineer", "infra"].map((slug) => ({
       url: `${baseUrl}/jobs/dept/${slug}`,

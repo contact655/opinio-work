@@ -1,311 +1,137 @@
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { SALARY_MIN_REPORTS_TO_DISPLAY, SALARY_REFERENCE_THRESHOLD } from "@/lib/constants/salary";
-import MyReportsSection, { type MySalaryReportForEdit, type RoleOptionForEdit } from "./MyReportsSection";
+import { getJobs } from "@/lib/supabase/queries";
+import { buildSalaryStats } from "./salaryData";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-export const metadata = {
-  title: "給与データ | OPINIO",
-  description: "IT/SaaS業界の職種別給与データ。企業が提示する求人レンジと、在籍者の自己申告データを分けて掲載。",
+export const metadata: Metadata = {
+  title: { absolute: "IT/SaaS職種別 年収相場 | OPINIO" },
+  description:
+    "外資系・IT/SaaS企業の職種別年収相場を実際の求人データから集計。エンタープライズ営業・カスタマーサクセス・セールスエンジニアなど職種ごとの年収レンジを確認できます。",
+  keywords: ["IT年収", "SaaS年収", "外資系年収", "職種別年収", "年収相場", "転職年収"],
+  alternates: { canonical: "/salary" },
+  openGraph: {
+    title: "IT/SaaS職種別 年収相場 | OPINIO",
+    description: "外資系・IT/SaaS企業の職種別年収相場を実際の求人データから集計。",
+    type: "website",
+    url: "/salary",
+  },
 };
 
-interface RoleSalaryGroup {
-  roleId: string;
-  roleName: string;
-  parentName: string | null;
-  // Self-reported aggregate (≥5 required)
-  reportCount: number;
-  reportAvg: number | null;
-  reportMin: number | null;
-  reportMax: number | null;
-  // Job offer ranges from ow_jobs
-  jobCount: number;
-  jobAvgMin: number | null;
-  jobAvgMax: number | null;
-}
-
-function fmt(yen: number) {
-  return `${Math.round(yen / 10000)}万円`;
-}
-
 export default async function SalaryPage() {
-  const admin = createAdminClient();
+  const { jobs } = await getJobs();
+  const stats = buildSalaryStats(jobs);
 
-  // ── ログインユーザー確認 ───────────────────────────────────────────────────
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  let myOwUserId: string | null = null;
-  if (user) {
-    const { data: owUser } = await admin
-      .from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
-    myOwUserId = owUser?.id ?? null;
-  }
-
-  // ── 在籍者の自己申告データ (statistics_opt_out 除外) ─────────────────────
-  const { data: optedOut } = await admin
-    .from("ow_users")
-    .select("id")
-    .eq("statistics_opt_out", true);
-  const optedOutIds = (optedOut ?? []).map((u: { id: string }) => u.id);
-
-  // Fetch roles separately (ow_salary_reports has no FK to ow_roles)
-  const [reportsRes, jobsRes, rolesRes] = await Promise.all([
-    (() => {
-      let q = admin
-        .from("ow_salary_reports")
-        .select("role_id, ote, annual_salary, user_id")
-        .eq("is_approved", true);
-      if (optedOutIds.length > 0) {
-        q = q.not("user_id", "in", `(${optedOutIds.join(",")})`);
-      }
-      return q;
-    })(),
-    admin
-      .from("ow_jobs")
-      .select("job_category, salary_min, salary_max")
-      .in("status", ["published", "active"])
-      .or("salary_min.gt.0,salary_max.gt.0"),
-    admin
-      .from("ow_roles")
-      .select("id, name, parent_id")
-      .limit(500),
-  ]);
-
-  const reports = reportsRes.data ?? [];
-  const jobs = jobsRes.data ?? [];
-  const allRolesData = rolesRes.data ?? [];
-
-  // Build role lookup: id → { name, parentName }
-  const roleById: Record<string, { name: string; parentName: string | null }> = {};
-  for (const role of allRolesData) {
-    const parent = allRolesData.find((r) => r.id === role.parent_id);
-    roleById[role.id] = { name: role.name, parentName: parent?.name ?? null };
-  }
-
-  // Aggregate reports by role
-  const reportMap: Record<string, { salaries: number[]; roleName: string; parentName: string | null }> = {};
-  for (const r of reports) {
-    const roleId = r.role_id as string | null;
-    if (!roleId) continue;
-    const roleInfo = roleById[roleId];
-    if (!roleInfo) continue;
-    if (!reportMap[roleId]) {
-      reportMap[roleId] = { salaries: [], roleName: roleInfo.name, parentName: roleInfo.parentName };
-    }
-    const salary = ((r as Record<string, unknown>).ote ?? r.annual_salary) as number | null;
-    if (salary == null) continue;
-    reportMap[roleId].salaries.push(salary);
-  }
-
-  // Aggregate jobs by job_category (approximate role mapping)
-  const jobMap: Record<string, number[][]> = {};
-  for (const j of jobs ?? []) {
-    const cat = (j as any).job_category as string | null;
-    if (!cat) continue;
-    if (!jobMap[cat]) jobMap[cat] = [];
-    const min = (j as any).salary_min as number | null;
-    const max = (j as any).salary_max as number | null;
-    jobMap[cat].push([min ?? 0, max ?? 0]);
-  }
-
-  // ── ログインユーザー自身の投稿（編集・削除用） ───────────────────────────
-  let myReports: MySalaryReportForEdit[] = [];
-  const roles: RoleOptionForEdit[] = allRolesData.map((r) => ({
-    id: r.id, name: r.name, parent_id: r.parent_id as string | null,
-  }));
-  if (myOwUserId) {
-    const { data: myRows } = await admin
-      .from("ow_salary_reports")
-      .select(`
-        id, company_id, role_id,
-        ote, annual_salary, base_salary, bonus_salary, incentive, stock_options,
-        allowances, fixed_overtime,
-        start_year_month, end_year_month, grade,
-        years_of_experience, employment_status, prefecture,
-        is_approved, is_flagged, created_at,
-        ow_companies(name),
-        ow_roles(name)
-      `)
-      .eq("user_id", myOwUserId)
-      .order("created_at", { ascending: false });
-
-    myReports = (myRows ?? []).map((row) => {
-      const r = row as unknown as Record<string, unknown>;
-      return {
-        id: r["id"] as string,
-        company_name: (r["ow_companies"] as { name: string } | null)?.name ?? null,
-        role_id: r["role_id"] as string,
-        role_name: (r["ow_roles"] as { name: string } | null)?.name ?? null,
-        ote: r["ote"] as number | null,
-        annual_salary: r["annual_salary"] as number | null,
-        base_salary: r["base_salary"] as number | null,
-        bonus_salary: r["bonus_salary"] as number | null,
-        incentive: r["incentive"] as number | null,
-        stock_options: r["stock_options"] as number | null,
-        allowances: r["allowances"] as number | null,
-        fixed_overtime: r["fixed_overtime"] as number | null,
-        start_year_month: r["start_year_month"] as string | null,
-        end_year_month: r["end_year_month"] as string | null,
-        grade: r["grade"] as string | null,
-        years_of_experience: r["years_of_experience"] as number | null,
-        employment_status: r["employment_status"] as string,
-        prefecture: r["prefecture"] as string | null,
-        is_approved: r["is_approved"] as boolean,
-        is_flagged: r["is_flagged"] as boolean,
-        created_at: r["created_at"] as string,
-      };
-    });
-  }
-
-  const groups: RoleSalaryGroup[] = Object.entries(reportMap)
-    .filter(([, v]) => v.salaries.length >= SALARY_MIN_REPORTS_TO_DISPLAY)
-    .map(([roleId, v]) => {
-      const avg = Math.round(v.salaries.reduce((a, b) => a + b, 0) / v.salaries.length);
-      const min = Math.min(...v.salaries);
-      const max = Math.max(...v.salaries);
-      const jPairs = jobMap[v.roleName] ?? [];
-      const jMins = jPairs.map((p) => p[0]).filter(Boolean);
-      const jMaxs = jPairs.map((p) => p[1]).filter(Boolean);
-      return {
-        roleId,
-        roleName: v.roleName,
-        parentName: v.parentName,
-        reportCount: v.salaries.length,
-        reportAvg: avg,
-        reportMin: min,
-        reportMax: max,
-        jobCount: jPairs.length,
-        jobAvgMin: jMins.length > 0 ? Math.round(jMins.reduce((a, b) => a + b, 0) / jMins.length) : null,
-        jobAvgMax: jMaxs.length > 0 ? Math.round(jMaxs.reduce((a, b) => a + b, 0) / jMaxs.length) : null,
-      };
-    })
-    .sort((a, b) => (b.reportAvg ?? 0) - (a.reportAvg ?? 0));
+  const MAX_BAR = Math.max(...stats.map((s) => s.avgMax), 1);
+  const totalJobs = stats.reduce((a, s) => a + s.jobCount, 0);
+  const topMax = Math.max(...stats.map((s) => s.maxSalary));
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ margin: "0 0 8px", fontSize: 26, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-          職種別 給与データ
-        </h1>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          IT/SaaS業界で働くOPINIO会員の自己申告データと、企業が求人票に掲示している提示レンジを分けて掲載しています。<br />
-          2つのデータは意味が異なります。企業提示レンジは「これから払う」建前の額。在籍者実額は「実際にもらっている」額です。
-        </p>
-      </div>
+    <>
+      <style>{`
+        .sc-card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px 24px; text-decoration:none; display:block; transition:box-shadow .15s,border-color .15s; }
+        .sc-card:hover { box-shadow:0 4px 20px rgba(0,35,102,.10); border-color:var(--royal-100); }
+        .sc-bar-outer { background:var(--line-soft); border-radius:100px; height:10px; overflow:hidden; margin-top:10px; }
+        .sc-bar-inner { height:10px; border-radius:100px; background:linear-gradient(90deg,var(--royal),#3B5FD9); }
+      `}</style>
 
-      {/* Notice banner */}
-      <div style={{
-        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-        borderRadius: 12, padding: "14px 18px", marginBottom: 28,
-        fontSize: 13, color: "var(--royal)", lineHeight: 1.7,
-      }}>
-        <strong>データについて</strong>：在籍者が自己申告した年収データです。
-        件数が少ないデータには「参考値」と表示します。個人を特定できる情報は一切含まれません。
-      </div>
-
-      {/* 自分の投稿（ログインユーザーのみ表示） */}
-      {myReports.length > 0 && (
-        <MyReportsSection reports={myReports} roles={roles} />
-      )}
-
-      {groups.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--ink-mute)" }}>
-          <div style={{ fontSize: 18, marginBottom: 8 }}>まだデータが集まっていません</div>
-          <div style={{ fontSize: 14, marginBottom: 20 }}>あなたの投稿が最初の一歩になります</div>
-          <Link href="/mypage/salary/new" style={{
-            display: "inline-block", padding: "10px 24px",
-            background: "var(--success)", color: "#fff",
-            borderRadius: 10, textDecoration: "none", fontWeight: 600,
-          }}>
-            給与データを投稿する
-          </Link>
-        </div>
-      ) : (
-        <>
-          {/* Legend */}
-          <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink-soft)" }}>
-              <span style={{ width: 12, height: 12, background: "var(--success-soft)", border: "1px solid #6EE7B7", borderRadius: 3, display: "inline-block" }} />
-              在籍者の実額（自己申告）
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink-soft)" }}>
-              <span style={{ width: 12, height: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 3, display: "inline-block" }} />
-              求人の提示レンジ（企業公開）
-            </div>
+      {/* ─ ヒーロー ─ */}
+      <div style={{ background: "linear-gradient(155deg,#edf0fa 0%,#ece8ff 40%,#f6f0ff 70%,#fff 100%)", padding: "48px 24px 40px" }}>
+        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 12 }}>
+            Salary Insights
           </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {groups.map((g) => (
-              <div key={g.roleId} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px 20px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-                  <div>
-                    {g.parentName && (
-                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3 }}>{g.parentName}</div>
-                    )}
-                    <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>{g.roleName}</div>
-
-                    {/* Self-reported */}
-                    <div style={{
-                      background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                      borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "inline-block",
-                    }}>
-                      <div style={{ fontSize: 10, color: "#059669", fontWeight: 600, marginBottom: 4 }}>
-                        在籍者の実額（{g.reportCount}件）
-                        {g.reportCount < SALARY_REFERENCE_THRESHOLD && (
-                          <span style={{ marginLeft: 6, background: "#FEF3C7", color: "#92400E", borderRadius: 4, padding: "1px 5px" }}>参考値</span>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
-                        <span style={{ fontSize: 20, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
-                          {g.reportAvg ? fmt(g.reportAvg) : "—"}
-                        </span>
-                        <span style={{ fontSize: 12, color: "#059669" }}>
-                          {g.reportMin && g.reportMax
-                            ? g.reportMin === g.reportMax
-                              ? fmt(g.reportMin)
-                              : `${fmt(g.reportMin)} 〜 ${fmt(g.reportMax)}`
-                            : "—"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Job offer range */}
-                    {g.jobCount > 0 && (
-                      <div style={{
-                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                        borderRadius: 10, padding: "10px 14px", display: "inline-block", marginLeft: 8,
-                      }}>
-                        <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600, marginBottom: 4 }}>求人の提示レンジ（{g.jobCount}件平均）</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
-                          {g.jobAvgMin && g.jobAvgMax
-                            ? g.jobAvgMin === g.jobAvgMax
-                              ? `${g.jobAvgMin}万円`
-                              : `${g.jobAvgMin}万 〜 ${g.jobAvgMax}万円`
-                            : "—"}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+          <h1 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 14px", lineHeight: 1.25 }}>
+            IT / SaaS 職種別<br />年収相場
+          </h1>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 24px", lineHeight: 1.7, maxWidth: 520 }}>
+            外資系・SaaS企業の実際の求人データをもとに、職種ごとの年収レンジを集計しました。転職活動の年収交渉や市場価値の把握にお役立てください。
+          </p>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {[
+              { num: `${stats.length}`, label: "職種のデータ" },
+              { num: `${totalJobs}`, label: "件の求人から集計" },
+              { num: `〜${topMax}万円`, label: "最高年収レンジ", green: true },
+            ].map(({ num, label, green }) => (
+              <div key={label} style={{ background: "#fff", border: "1px solid var(--royal-100)", borderRadius: 12, padding: "10px 18px", fontSize: 13 }}>
+                <span style={{ fontWeight: 700, color: green ? "var(--success)" : "var(--royal)", fontFamily: "Inter,sans-serif" }}>{num}</span>
+                <span style={{ color: "var(--ink-soft)", marginLeft: 5 }}>{label}</span>
               </div>
             ))}
           </div>
+        </div>
+      </div>
 
-          <div style={{ marginTop: 32, textAlign: "center" }}>
-            <Link href="/mypage/salary/new" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "12px 28px", background: "var(--success)", color: "#fff",
-              borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 14,
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              給与データを投稿して、精度を上げる
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "36px 20px 80px" }}>
+
+        {/* 注記 */}
+        <div style={{ background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 12, padding: "12px 16px", marginBottom: 28, fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
+          <strong>データについて：</strong>OPINIOに掲載されている求人票に記載された年収レンジをもとに集計しています。企業・経験・スキルにより実際の年収は異なります。
+        </div>
+
+        {/* ─ 職種一覧 ─ */}
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 16px" }}>
+          職種別 年収レンジ一覧
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {stats.map((s) => {
+            const barPct = Math.round((s.avgMax / MAX_BAR) * 100);
+            return (
+              <Link key={s.slug} href={`/salary/${s.slug}`} className="sc-card">
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{s.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                        求人{s.jobCount}件
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 22, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>
+                        {s.avgMin}〜{s.avgMax}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)", marginLeft: 4 }}>万円（平均レンジ）</span>
+                    </div>
+                    <div className="sc-bar-outer">
+                      <div className="sc-bar-inner" style={{ width: `${barPct}%` }} />
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 2 }}>最高</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "Inter,sans-serif" }}>
+                      {s.maxSalary}<span style={{ fontSize: 11, fontWeight: 500 }}>万円</span>
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
+                      詳細を見る →
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* ─ 注記 ─ */}
+        <div style={{ marginTop: 28, padding: "14px 18px", background: "var(--bg-tint)", borderRadius: 12, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          ※ 本データはOPINIOに掲載中の求人票に記載された年収レンジをもとに集計したものです。企業・経験・スキルにより実際の年収は異なります。職種ごとのページで実際の求人を確認できます。
+        </div>
+
+        {/* ─ CTA ─ */}
+        <div style={{ marginTop: 40, padding: "28px 24px", borderRadius: 16, background: "linear-gradient(135deg,var(--royal),#3B5FD9)", textAlign: "center" }}>
+          <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, margin: "0 0 16px", lineHeight: 1.6 }}>
+            年収アップを目指すなら、先輩社員に実際の話を聞くのが一番の近道です。
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/jobs" style={{ display: "inline-block", padding: "10px 24px", borderRadius: 100, background: "#fff", color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+              求人を見る →
+            </Link>
+            <Link href="/companies" style={{ display: "inline-block", padding: "10px 24px", borderRadius: 100, background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)" }}>
+              企業を探す
             </Link>
           </div>
-        </>
-      )}
-    </main>
+        </div>
+      </div>
+    </>
   );
 }
