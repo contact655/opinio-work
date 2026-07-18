@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -33,7 +32,7 @@ function subText(g: Graduate): string {
   return [g.faculty, g.degree, formatGradYear(g.graduatedAt)].filter(Boolean).join(" · ");
 }
 
-// ─── Avatar (/ people と同じ見た目) ──────────────────────────────────────────
+// ─── Avatar ──────────────────────────────────────────────────────────────────
 
 function Avatar({ g, size }: { g: Graduate; size: number }) {
   if (g.avatarUrl) {
@@ -63,7 +62,7 @@ function Avatar({ g, size }: { g: Graduate; size: number }) {
   );
 }
 
-// ─── グリッドカード ───────────────────────────────────────────────────────────
+// ─── グリッドカード（3名以上） ────────────────────────────────────────────────
 
 function GridCard({ g }: { g: Graduate }) {
   const router = useRouter();
@@ -81,7 +80,6 @@ function GridCard({ g }: { g: Graduate }) {
         {g.name}
       </div>
 
-      {/* 現職 */}
       {(g.currentRoleTitle || g.currentCompany) && (
         <div style={{
           fontSize: 11, fontWeight: 600, color: "var(--royal)",
@@ -102,7 +100,6 @@ function GridCard({ g }: { g: Graduate }) {
         </div>
       )}
 
-      {/* キャリアの流れ */}
       {g.careerSummary && (
         <div style={{
           fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.5,
@@ -144,7 +141,7 @@ function GridCard({ g }: { g: Graduate }) {
   );
 }
 
-// ─── 横帯カード（1〜2名用） ───────────────────────────────────────────────────
+// ─── 横帯カード（1〜2名） ────────────────────────────────────────────────────
 
 function BandCard({ g }: { g: Graduate }) {
   const router = useRouter();
@@ -174,7 +171,6 @@ function BandCard({ g }: { g: Graduate }) {
           {g.name}
         </div>
 
-        {/* 現職 */}
         {(g.currentRoleTitle || g.currentCompany) && (
           <div style={{
             fontSize: 13, fontWeight: 600, color: "var(--royal)",
@@ -190,7 +186,6 @@ function BandCard({ g }: { g: Graduate }) {
           </div>
         )}
 
-        {/* キャリアの流れ */}
         {g.careerSummary && (
           <div style={{
             fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5,
@@ -230,71 +225,9 @@ function BandCard({ g }: { g: Graduate }) {
   );
 }
 
-// ─── リスト行 ─────────────────────────────────────────────────────────────────
-
-function ListRow({ g, isLast }: { g: Graduate; isLast: boolean }) {
-  const router = useRouter();
-  const sub = subText(g);
-  return (
-    <div
-      onClick={() => router.push(`/u/${g.userId}`)}
-      style={{
-        display: "flex", alignItems: "flex-start", gap: 14,
-        padding: "16px 20px",
-        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-        background: "#fff", cursor: "pointer", transition: "background 0.1s",
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
-    >
-      <div style={{ flexShrink: 0 }}>
-        <Avatar g={g} size={52} />
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-          {g.name}
-        </div>
-        {sub && (
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: g.catchphrase ? 5 : 0 }}>
-            {sub}
-          </div>
-        )}
-        {g.catchphrase && (
-          <div style={{
-            fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6,
-            overflow: "hidden", display: "-webkit-box",
-            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-          }}>
-            {g.catchphrase}
-          </div>
-        )}
-      </div>
-
-      <div style={{ flexShrink: 0, alignSelf: "center" }}>
-        <Link
-          href={`/u/${g.userId}`}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            padding: "7px 16px",
-            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-            color: "var(--royal)", borderRadius: 8,
-            fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
-          }}
-        >
-          プロフィールを見る
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 // ─── メインコンポーネント ─────────────────────────────────────────────────────
 
 export default function SchoolGraduatesClient({ graduates }: Props) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
   return (
     <>
       <style>{`
@@ -337,78 +270,28 @@ export default function SchoolGraduatesClient({ graduates }: Props) {
         }
       `}</style>
 
-      {/* ── ツールバー ── */}
+      {/* ── ヘッダー ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginBottom: 16, flexWrap: "wrap", gap: 8,
+        marginBottom: 16,
       }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.05em", margin: 0 }}>
           出身者
         </h2>
-
-        {/* 右: ビュートグル + 件数 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", gap: 2, background: "var(--line-soft)", borderRadius: 8, padding: 2 }}>
-            {([
-              { mode: "grid" as const, label: "一覧", icon: (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-              )},
-              { mode: "list" as const, label: "詳細", icon: (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                  <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
-                  <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-                  <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
-                </svg>
-              )},
-            ]).map(({ mode, label, icon }) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setViewMode(mode)}
-                style={{
-                  background: viewMode === mode ? "var(--royal)" : "transparent",
-                  color: viewMode === mode ? "#fff" : "var(--ink-mute)",
-                  border: "none", cursor: "pointer", borderRadius: 6,
-                  padding: "5px 10px", display: "flex", alignItems: "center", gap: 5,
-                  fontSize: 12, fontWeight: 600, transition: "all 0.15s",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {icon}
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-
-          <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-            <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>
-              {graduates.length}
-            </strong>
-            <span style={{ marginLeft: 2 }}>名</span>
-          </span>
-        </div>
+        <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
+          <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>
+            {graduates.length}
+          </strong>
+          <span style={{ marginLeft: 2 }}>名</span>
+        </span>
       </div>
 
-      {/* ── コンテンツ ── */}
-      {viewMode === "list" ? (
-        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
-          {graduates.map((g, i) => (
-            <ListRow key={g.userId} g={g} isLast={i === graduates.length - 1} />
-          ))}
-        </div>
-      ) : graduates.length <= 2 ? (
-        /* 1〜2名: 横帯レイアウト */
+      {/* ── カード ── */}
+      {graduates.length <= 2 ? (
         <div className="sch-band-stack">
           {graduates.map((g) => <BandCard key={g.userId} g={g} />)}
         </div>
       ) : (
-        /* 3名以上: グリッド */
         <div className="sch-grid">
           {graduates.map((g) => <GridCard key={g.userId} g={g} />)}
         </div>
