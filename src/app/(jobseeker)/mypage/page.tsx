@@ -147,6 +147,32 @@ export default async function MypagePage({
     );
   }
 
+  // 母校の同窓人数（自分除外・seed除外・private除外）
+  const schoolPeerCounts: Record<string, number> = {};
+  if (owUser) {
+    const schoolIds = educations
+      .filter((e) => e.school_id)
+      .map((e) => e.school_id as string);
+    if (schoolIds.length > 0) {
+      const adminForSchools = createAdminClient();
+      const { data: peerRows } = await adminForSchools
+        .from("ow_user_educations")
+        .select("school_id, ow_users!inner(visibility, email)")
+        .in("school_id", schoolIds)
+        .neq("user_id", owUser.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const row of (peerRows ?? []) as Array<Record<string, any>>) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const u = row.ow_users as Record<string, any> | null;
+        if (!u) continue;
+        if (u.visibility === "private") continue;
+        if ((u.email as string | null)?.endsWith("@seed.internal")) continue;
+        const sid = row.school_id as string;
+        schoolPeerCounts[sid] = (schoolPeerCounts[sid] ?? 0) + 1;
+      }
+    }
+  }
+
   // Fetch bookmarks for company and job
   let companyBookmarks: Bookmark[] = [];
   let jobBookmarks: Bookmark[] = [];
@@ -345,5 +371,5 @@ export default async function MypagePage({
   const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} />;
+  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }

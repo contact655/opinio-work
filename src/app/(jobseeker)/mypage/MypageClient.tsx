@@ -513,6 +513,7 @@ function DashboardView({
   userLocation, userAboutMe, userBirthDate, userSocialLinks,
   userSkillTags, userEducations, userCertifications, timelineCareers,
   ambassadorMemberships = [],
+  schoolPeerCounts = {},
 }: {
   userId: string;
   userName: string; userInitial: string; userAvatar: string;
@@ -530,6 +531,7 @@ function DashboardView({
   userCertifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
   ambassadorMemberships?: AmbassadorMembership[];
+  schoolPeerCounts?: Record<string, number>;
 }) {
   // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
   const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
@@ -554,6 +556,119 @@ function DashboardView({
         userCertifications={userCertifications}
         isMentor={false}
       />
+
+      {/* ── あなたの母校 ── */}
+      {(() => {
+        const schoolEdus = (userEducations ?? []).filter(
+          (e) => e.school_id && e.school_master
+        );
+        if (schoolEdus.length === 0) return null;
+        const univ = schoolEdus.filter((e) => e.degree !== "高校卒");
+        const hs = schoolEdus.filter((e) => e.degree === "高校卒");
+        return (
+          <section style={{
+            background: "#fff", border: "1px solid var(--line)",
+            borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+          }}>
+            <div style={{
+              display: "flex", alignItems: "baseline", justifyContent: "space-between",
+              marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)",
+            }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+                  あなたの母校
+                </span>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
+                  ALUMNI
+                </span>
+              </div>
+              <Link href="/people" style={{ fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
+                すべて見る →
+              </Link>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {univ.map((e) => {
+                const sm = e.school_master!;
+                const peerCount = schoolPeerCounts[e.school_id!] ?? 0;
+                const sub = [e.faculty, e.degree, e.graduated_at ? `${e.graduated_at.slice(0, 4)}年卒` : null].filter(Boolean).join(" · ");
+                return (
+                  <Link key={e.id} href={`/schools/${e.school_id}`} style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: "14px 16px",
+                    background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    borderRadius: 12, textDecoration: "none",
+                    transition: "border-color 0.15s, box-shadow 0.15s",
+                  }} className="request-item-row">
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                      background: sm.logo_gradient ?? "linear-gradient(135deg, #7C3AED, #a855f7)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>
+                        {sm.logo_letter ?? sm.name.charAt(0)}
+                      </span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: sub ? 2 : 0 }}>
+                        {sm.name}
+                      </div>
+                      {sub && (
+                        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: peerCount > 0 ? 3 : 0 }}>
+                          {sub}
+                        </div>
+                      )}
+                      {peerCount > 0 && (
+                        <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
+                          自分以外の同窓 {peerCount}名
+                        </div>
+                      )}
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  </Link>
+                );
+              })}
+              {hs.map((e) => {
+                const sm = e.school_master!;
+                const peerCount = schoolPeerCounts[e.school_id!] ?? 0;
+                return (
+                  <Link key={e.id} href={`/schools/${e.school_id}`} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 16px",
+                    background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    borderRadius: 10, textDecoration: "none",
+                    transition: "border-color 0.15s",
+                  }} className="request-item-row">
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      background: sm.logo_gradient ?? "linear-gradient(135deg, #7C3AED, #a855f7)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>
+                        {sm.logo_letter ?? sm.name.charAt(0)}
+                      </span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)" }}>
+                        {sm.name}
+                      </span>
+                      {peerCount > 0 && (
+                        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                          同窓 {peerCount}名
+                        </span>
+                      )}
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* 経歴タイムライン（キャリア + 学歴を統合表示） */}
       {hasMergedTimeline && (
@@ -940,6 +1055,7 @@ export default function MypageClient({
   isNewUser = false,
   ambassadorMemberships = [],
   showScoutBanner = false,
+  schoolPeerCounts = {},
 }: {
   owUser: OwUser;
   skillTags?: { id: string; label: string; sort_order: number }[];
@@ -962,6 +1078,7 @@ export default function MypageClient({
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   showScoutBanner?: boolean;
+  schoolPeerCounts?: Record<string, number>;
 }) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -1453,6 +1570,7 @@ export default function MypageClient({
           userCertifications={certifications}
           timelineCareers={timelineCareers}
           ambassadorMemberships={ambassadorMemberships}
+          schoolPeerCounts={schoolPeerCounts}
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
