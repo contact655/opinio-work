@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Users } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import SchoolGraduatesClient, { type Graduate } from "./SchoolGraduatesClient";
+import SchoolGraduatesClient, { type Graduate, type SchoolPost } from "./SchoolGraduatesClient";
 
 export const revalidate = 300;
 
@@ -161,6 +161,47 @@ async function getGraduates(schoolId: string): Promise<Graduate[]> {
   });
 }
 
+async function getSchoolPosts(userIds: string[]): Promise<SchoolPost[]> {
+  if (userIds.length === 0) return [];
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("ow_posts")
+    .select(`
+      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
+      ow_users!user_id(id, name, avatar_color, avatar_url)
+    `)
+    .in("user_id", userIds)
+    .eq("post_type", "user_post")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) {
+    console.error("[schools] fetch posts error:", error.message);
+    return [];
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((row) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = row as Record<string, any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const u = r.ow_users as Record<string, any> | null;
+    return {
+      id: r.id as string,
+      content: (r.content as string | null) ?? "",
+      imageUrl: (r.image_url as string | null) ?? null,
+      linkUrl: (r.link_url as string | null) ?? null,
+      linkTitle: (r.link_title as string | null) ?? null,
+      linkImageUrl: (r.link_image_url as string | null) ?? null,
+      linkDescription: (r.link_description as string | null) ?? null,
+      linkDomain: (r.link_domain as string | null) ?? null,
+      createdAt: r.created_at as string,
+      userId: (u?.id as string | null) ?? "",
+      userName: (u?.name as string | null) ?? "—",
+      userAvatarColor: (u?.avatar_color as string | null) ?? null,
+      userAvatarUrl: (u?.avatar_url as string | null) ?? null,
+    };
+  });
+}
+
 // ─── メタデータ ───────────────────────────────────────────────────────────────
 
 export async function generateMetadata(
@@ -201,6 +242,9 @@ export default async function SchoolPage(
   ]);
 
   if (!school) notFound();
+
+  const userIds = graduates.map((g) => g.userId);
+  const schoolPosts = await getSchoolPosts(userIds);
 
   const typeLabel = schoolTypeLabel(school.type);
 
@@ -265,36 +309,27 @@ export default async function SchoolPage(
               <h1 style={{ fontSize: 26, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.25 }}>
                 {school.name}
               </h1>
-              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <Users size={14} color="rgba(255,255,255,0.7)" />
                 <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
                   {graduates.length > 0
                     ? `OPINIO登録中の出身者 ${graduates.length}名`
                     : "現在出身者の登録はありません"}
                 </span>
+                {school.country && (
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
+                    · {school.country === "JP" ? "日本" : school.country}
+                  </span>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── 出身者一覧 ──────────────────────────────────────────────────── */}
+      {/* ── 出身者一覧 / 投稿タブ ────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px" }}>
-        {graduates.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "60px 24px",
-              color: "var(--ink-soft)",
-              fontSize: 15,
-            }}
-          >
-            <GraduationCap size={40} color="var(--ink-mute)" style={{ marginBottom: 12 }} />
-            <p>この学校の出身者はまだ登録されていません。</p>
-          </div>
-        ) : (
-          <SchoolGraduatesClient graduates={graduates} />
-        )}
+        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} />
       </div>
     </main>
   );
