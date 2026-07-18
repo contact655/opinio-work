@@ -164,6 +164,49 @@ export default async function BizDashboardPage() {
         </div>
       )}
 
+      {/* ── スタートガイド（求人0件の場合のみ表示） ── */}
+      {ctx.isPublished && jobStatusCounts.active === 0 && jobStatusCounts.draft === 0 && (
+        <div style={{
+          background: "linear-gradient(135deg,var(--royal-50) 0%,#f0f4ff 100%)",
+          border: "1px solid var(--royal-100)", borderRadius: 16,
+          padding: "24px 26px", marginTop: 16,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>スタートガイド</div>
+              <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>最初の求人を公開して候補者との接点を作りましょう</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { done: ctx.isPublished, label: "企業情報を入力する", href: "/biz/company", hint: "取材済み・開示情報が候補者の判断材料になります" },
+              { done: false, label: "求人を作成する", href: "/biz/jobs", hint: "ポジション・給与・業務内容を登録しましょう" },
+              { done: false, label: "求人を公開する", href: "/biz/jobs", hint: "公開後すぐ候補者に表示されます" },
+              { done: false, label: "カジュアル面談の受付を開始する", href: "/biz/company", hint: "「面談受付中」バッジが企業ページに表示されます" },
+            ].map(({ done, label, href, hint }) => (
+              <Link key={label} href={href} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 16px", borderRadius: 10, background: "#fff", border: `1px solid ${done ? "#A7F3D0" : "var(--line)"}`, textDecoration: "none", transition: "border-color .15s" }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: done ? "var(--success)" : "var(--line)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                  {done
+                    ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
+                  }
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: done ? 500 : 700, color: done ? "var(--ink-mute)" : "var(--ink)", textDecoration: done ? "line-through" : "none", marginBottom: 2 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{hint}</div>
+                </div>
+                {!done && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" style={{ flexShrink: 0, marginTop: 4 }}><path d="M9 18l6-6-6-6"/></svg>}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
       <div style={{
         display: "grid",
