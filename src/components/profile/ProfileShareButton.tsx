@@ -2,15 +2,16 @@
 
 import { useState, useRef, useEffect } from "react";
 
-export function ProfileShareButton({ userId, name }: { userId: string; name: string }) {
+export function ProfileShareButton({ userId, name, userSlug }: { userId: string; name: string; userSlug?: string | null }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const profileId = userSlug ?? userId;
   const url =
     typeof window !== "undefined"
-      ? `${window.location.origin}/u/${userId}`
-      : `https://opinio.jp/u/${userId}`;
+      ? `${window.location.origin}/u/${profileId}`
+      : `https://opinio.jp/u/${profileId}`;
 
   // 外側クリックで閉じる
   useEffect(() => {

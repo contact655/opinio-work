@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
@@ -80,27 +82,48 @@ type Certification = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const IS_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveUserId(slugOrId: string): Promise<{ resolvedId: string; username: string | null } | null> {
+  const admin = createAdminClient();
+  const isUUID = IS_UUID.test(slugOrId);
+  const q = admin.from("ow_users").select("id, username").limit(1);
+  const { data } = await (isUUID ? q.eq("id", slugOrId) : q.eq("username", slugOrId));
+  const row = data?.[0];
+  if (!row) return null;
+  return { resolvedId: row.id as string, username: (row.username as string | null) ?? null };
+}
+
 export async function generateMetadata({ params }: { params: { id: string } }) {
+  const resolved = await resolveUserId(params.id);
+  if (!resolved) return { title: { absolute: "プロフィール | OPINIO" } };
   const supabase = createClient();
-  const { data } = await supabase
-    .from("ow_users")
-    .select("name")
-    .eq("id", params.id)
-    .maybeSingle();
+  const { data } = await supabase.from("ow_users").select("name").eq("id", resolved.resolvedId).maybeSingle();
   const title = data ? `${data.name} | OPINIO` : "プロフィール | OPINIO";
+  const canonicalId = resolved.username ?? resolved.resolvedId;
   return {
     title: { absolute: title },
+    alternates: { canonical: `/u/${canonicalId}` },
     openGraph: { title },
     robots: { index: false, follow: false },
   };
 }
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
+  // Phase 1: username or UUID → resolvedId
+  const resolved = await resolveUserId(params.id);
+  if (!resolved) notFound();
+
+  const { resolvedId, username: profileUsername } = resolved;
+
+  // UUID → username redirect (308)
+  if (IS_UUID.test(params.id) && profileUsername) {
+    permanentRedirect(`/u/${profileUsername}`);
+  }
+
   const supabase = createClient();
 
-  // RLS handles visibility: anon sees public only, authenticated sees public+login_only+own.
-  // maybeSingle() returns null for private/nonexistent → notFound()
-  // auth.getUser() と ow_users fetch を並列実行
+  // Phase 2: RLS チェック付きで全フィールド取得（visibility フィルタ適用）
   const [
     { data: { user: authUser } },
     { data: user },
@@ -109,11 +132,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase
       .from("ow_users")
       .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
-      .eq("id", params.id)
+      .eq("id", resolvedId)
       .maybeSingle(),
   ]);
 
-  // ログイン必須（middleware で /u/ に認証ガードを設定済み）
   // visibility = 'login_only' → anon は null が返る → 404
   // visibility = 'private'   → 本人以外 null が返る → 404
   if (!user) notFound();
@@ -470,7 +492,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -60, position: "relative" }}>
             {/* Share button — absolute top-right */}
             <div style={{ position: "absolute", top: 16, right: 24, zIndex: 10 }}>
-              <ProfileShareButton userId={owUser.id} name={owUser.name} />
+              <ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />
             </div>
             {/* Avatar: photo or gradient letter */}
             <div className="profile-avatar profile-avatar-wrap" style={{
