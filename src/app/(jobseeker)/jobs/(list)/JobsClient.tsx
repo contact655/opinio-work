@@ -880,25 +880,28 @@ function FilterChip({
 // ─── スキルタグ抽出・色分け ───────────────────────────────────────────────────────
 
 // ビジネス系キーワード（アンバー）
-const BIZ_KEYWORDS = new Set(["SaaS", "B2B", "BtoB", "CRM", "ERP", "Salesforce", "HubSpot", "B2C", "DX", "SFA"]);
+// ── スキルタグ 3カテゴリ色分け ──────────────────────────────────────────────────
+// 言語・英語スキル系 → green
+const LANG_KW = ["英語", "ネイティブ", "TOEIC", "TOEFL", "中国語", "韓国語", "ビジネスレベル"];
+// 技術系キーワード → blue
+const TECH_KW = ["TypeScript","JavaScript","Python","Golang","Ruby","Java","Rust","Swift","Kotlin","PHP","Scala","React","Vue","Angular","Next","Rails","Django","FastAPI","Spring","AWS","GCP","Azure","Docker","Kubernetes","Terraform","Linux","SQL","MySQL","PostgreSQL","MongoDB","Redis","BigQuery","Snowflake","Figma","Sketch","機械学習","自然言語処理","MLOps","LLM","Node"];
+// ビジネス系 → amber
+const BIZ_KW = ["SaaS","B2B","BtoB","CRM","ERP","Salesforce","HubSpot","B2C","DX","SFA","営業経験","法人","エンタープライズ"];
 
 function skillChipStyle(skill: string, isTechStack: boolean): React.CSSProperties {
-  if (isTechStack) {
-    // tech_stack フィールドから来た場合: カテゴリ判定
-    if (BIZ_KEYWORDS.has(skill)) {
-      return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", whiteSpace: "nowrap" as const };
-    }
-    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", whiteSpace: "nowrap" as const };
+  // 言語系: green
+  if (LANG_KW.some(k => skill.includes(k))) {
+    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#F0FDF4", color: "#15803D", border: "1px solid #BBF7D0", whiteSpace: "nowrap" as const };
   }
-  // 要件文から抽出: テック系かビジネス系か判定
-  if (BIZ_KEYWORDS.has(skill)) {
-    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", whiteSpace: "nowrap" as const };
+  // 技術系: blue
+  if (isTechStack || TECH_KW.some(k => skill.toLowerCase().includes(k.toLowerCase()))) {
+    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", whiteSpace: "nowrap" as const };
   }
-  // テック系ワード（大文字で始まる・英字多め）かどうかで判定
-  const isTechLike = /^[A-Z]/.test(skill) || /[A-Z]{2,}/.test(skill);
-  if (isTechLike) {
-    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", whiteSpace: "nowrap" as const };
+  // ビジネス系: amber
+  if (BIZ_KW.some(k => skill.includes(k))) {
+    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#FFFBEB", color: "#B45309", border: "1px solid #FDE68A", whiteSpace: "nowrap" as const };
   }
+  // その他: gray
   return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", whiteSpace: "nowrap" as const };
 }
 
@@ -1041,7 +1044,16 @@ function JobListItem({
   const isSelected = selectedJobId === job.id;
 
   return (
-    <div>
+    <div
+      className="job-list-card"
+      style={{
+        borderRadius: 10,
+        border: `1.5px solid ${isSelected ? "var(--royal)" : hasMeeting ? "#FDBA74" : "var(--line)"}`,
+        boxShadow: isSelected ? "0 0 0 3px rgba(0,35,102,0.06)" : "0 1px 4px rgba(0,0,0,0.04)",
+        overflow: "hidden",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+      }}
+    >
       <Link
         href={`/jobs/${job.slug ?? job.id}`}
         prefetch
@@ -1055,8 +1067,6 @@ function JobListItem({
           minHeight: 80,
           background: isSelected ? "var(--royal-50)" : "#fff",
           textDecoration: "none",
-          borderBottom: "1px solid var(--line-soft)",
-          borderLeft: isSelected ? "4px solid var(--royal)" : hasMeeting ? "4px solid #FDBA74" : "4px solid transparent",
           transition: "background 0.15s",
         }}
       >
@@ -1293,35 +1303,26 @@ function JobListItem({
               </span>
             </button>
           )}
-          {/* ⑥ 詳細CTAリンク */}
-          <span style={{
-            fontSize: 10, fontWeight: 700, color: "var(--royal)",
-            display: "flex", alignItems: "center", gap: 2,
-            whiteSpace: "nowrap", marginTop: 2,
-          }}>
-            詳細
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </span>
         </div>
       </Link>
       {/* Quick 面談CTA — 面談受付中企業のみ・リスト内で企業ごとに1回だけ表示 */}
       {hasMeeting && showMeetingCta && (
         <div style={{
-          padding: "0 16px 8px 84px",
-          borderBottom: "1px solid var(--line-soft)",
+          padding: "8px 16px 10px 86px",
+          borderTop: "1px solid var(--line-soft)",
+          background: "#FFFDF9",
         }}>
           <a
             href={`/companies/${company.slug ?? company.id}/casual-meeting`}
             onClick={(e) => e.stopPropagation()}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
+              display: "inline-flex", alignItems: "center", gap: 5,
               fontSize: 10, fontWeight: 700,
               color: "#C2410C",
-              background: "transparent",
-              border: "none",
-              padding: "0",
+              background: "#FFF7ED",
+              border: "1px solid #FDBA74",
+              padding: "5px 12px",
+              borderRadius: 6,
               textDecoration: "none",
             }}
             className="job-meeting-cta"
@@ -2416,13 +2417,13 @@ export default function JobsClient({
           <div ref={searchBarRef} style={{ position: "relative" }}>
             <div role="search" style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
-              padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
+              background: "#fff", border: "2px solid #e6e9ef", borderRadius: 999,
+              padding: "0 16px", transition: "border-color 0.15s, box-shadow 0.15s",
             }}
               onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
               onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
               <input
@@ -2435,8 +2436,8 @@ export default function JobsClient({
                 onKeyDown={(e) => { if (e.key === "Escape") setShowSuggest(false); }}
                 style={{
                   flex: 1, border: "none", outline: "none",
-                  fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                  padding: "10px 0", minWidth: 0,
+                  fontSize: 14.5, color: "var(--ink)", background: "transparent",
+                  padding: "12px 0", minWidth: 0,
                 }}
               />
               {q && (
@@ -3118,7 +3119,10 @@ export default function JobsClient({
           transform: translateY(-2px) !important;
           transition-duration: 0.06s !important;
         }
-        /* ── 縦リスト行のhover ── */
+        /* ── 縦リストカードhover ── */
+        .job-list-card:hover {
+          box-shadow: 0 3px 14px rgba(0,35,102,0.10) !important;
+        }
         .job-list-item-link:hover {
           background: var(--royal-50) !important;
         }
@@ -3140,14 +3144,11 @@ export default function JobsClient({
         .jobs-detail-pane { display: none; }
         /* filter bar: always visible */
         .jobs-mobile-filterbar { display: block; position: sticky; top: 64px; }
-        /* 縦リスト: 1カラム */
+        /* 縦リスト: 1カラム — 個別カード方式 */
         .jobs-list-desktop {
           display: flex;
           flex-direction: column;
-          background: #fff;
-          border: 1px solid var(--line);
-          border-radius: 10px;
-          overflow: hidden;
+          gap: 8px;
         }
 
         /* desktop grid mode (旧カードグリッド: 残置) */
