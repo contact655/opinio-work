@@ -1105,7 +1105,7 @@ function JobListItem({
             )}
           </div>
 
-          {/* 行2: 会社名 + フェーズバッジ + 職種タグ */}
+          {/* 行2: 会社名のみ */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
             <span
               role="link" tabIndex={0}
@@ -1117,34 +1117,8 @@ function JobListItem({
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(company as any).brand_name ?? company.name}
             </span>
-            {phaseBadge && (
-              <span style={{
-                fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
-                background: phaseBadge.bg, color: phaseBadge.color,
-                border: `1px solid ${phaseBadge.color}40`, flexShrink: 0,
-              }}>
-                {phaseBadge.label}
-              </span>
-            )}
-            {job.dept && (
-              <span
-                role="button"
-                tabIndex={0}
-                title={`「${job.dept}」で絞り込む`}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); }}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); } }}
-                style={{
-                  fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, lineHeight: 1,
-                  background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-                  flexShrink: 0, cursor: "pointer", display: "inline-flex", alignItems: "center",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {shortDept(job.dept)}
-              </span>
-            )}
             {isApplied && (
-              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 4, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", flexShrink: 0 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", flexShrink: 0 }}>
                 ✓ 応募済み
               </span>
             )}
@@ -1161,15 +1135,44 @@ function JobListItem({
             </div>
           )}
 
-
-          {/* 行3: スキルタグ（tech_stack 優先、なければ要件文から技術キーワードを抽出） */}
+          {/* 行3: ①フェーズ ②職種 ③スキルチップ */}
           {(() => {
             const techTags = job.tech_stack ?? [];
             const chips = extractSkillChips(job.required_skills, techTags);
             const isTechStack = techTags.length > 0;
-            if (chips.length === 0) return null;
+            const hasRow = phaseBadge || job.dept || chips.length > 0;
+            if (!hasRow) return null;
             return (
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 5 }}>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 5, alignItems: "center" }}>
+                {/* ① フェーズバッジ（ユニコーン等） */}
+                {phaseBadge && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                    background: phaseBadge.bg, color: phaseBadge.color,
+                    border: `1px solid ${phaseBadge.color}40`, flexShrink: 0,
+                  }}>
+                    {phaseBadge.label}
+                  </span>
+                )}
+                {/* ② 職種タグ（エンジニア等） */}
+                {job.dept && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    title={`「${job.dept}」で絞り込む`}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); } }}
+                    style={{
+                      fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100, lineHeight: 1,
+                      background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+                      flexShrink: 0, cursor: "pointer", display: "inline-flex", alignItems: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {shortDept(job.dept)}
+                  </span>
+                )}
+                {/* ③ スキルチップ */}
                 {chips.map((skill) => (
                   <span key={skill} style={skillChipStyle(skill, isTechStack)}>
                     {skill}
@@ -1179,17 +1182,8 @@ function JobListItem({
             );
           })()}
 
-          {/* 行4: 年収 · 勤務地 · 勤務形態 */}
+          {/* 行4: 勤務地 · 勤務形態 · 年収 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
-              color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success)" : "var(--ink-mute)",
-            }}>
-              {formatSalary(job.salary_min, job.salary_max)}
-            </span>
-            {job.location && (
-              <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
-            )}
             {job.location && (
               <span style={{ fontSize: 11, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2 }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -1209,6 +1203,15 @@ function JobListItem({
                 {job.work_style}
               </span>
             )}
+            {hasSalaryData(job.salary_min, job.salary_max) && (
+              <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
+            )}
+            <span style={{
+              fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
+              color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success)" : "var(--ink-mute)",
+            }}>
+              {formatSalary(job.salary_min, job.salary_max)}
+            </span>
             {reviewSummary && reviewSummary.count >= 1 && (
               <>
                 <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
