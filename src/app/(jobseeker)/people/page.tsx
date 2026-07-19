@@ -26,7 +26,6 @@ type DbAmbassador = {
     logo_gradient: string | null;
     logo_letter: string | null;
     phase: string | null;
-    industry: string | null;
   } | null;
 };
 
@@ -45,7 +44,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       talk_themes,
       created_at,
       ow_users!user_id(id, name, avatar_color, avatar_url, visibility, email),
-      ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase, industry)
+      ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)
     `)
     .eq("display_consent", true)
     .eq("is_public", true)
@@ -67,27 +66,10 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
 
   // Fetch profiles for all user_ids in bulk
   const userIds = filteredRows.map((r) => r.user_id);
-  const [profilesRes, skillsRes, careerRes] = await Promise.all([
-    adminSupabase
-      .from("ow_user_profiles")
-      .select("user_id, current_job_type, experience_years, work_style, preferred_locations")
-      .in("user_id", userIds),
-    adminSupabase
-      .from("ow_user_skill_tags")
-      .select("user_id, label, sort_order")
-      .in("user_id", userIds)
-      .order("sort_order", { ascending: true }),
-    adminSupabase
-      .from("ow_career_profiles")
-      .select("user_id, birth_year")
-      .in("user_id", userIds),
-  ]);
-
-  const profileMap: Record<string, { current_job_type: string | null; experience_years: number | null; work_style: string | null; preferred_locations: string[] | null }> = {};
-  for (const p of profilesRes.data ?? []) {
-    const pp = p as { user_id: string; current_job_type: string | null; experience_years: number | null; work_style: string | null; preferred_locations: string[] | null };
-    profileMap[pp.user_id] = pp;
-  }
+  const careerRes = await adminSupabase
+    .from("ow_career_profiles")
+    .select("user_id, birth_year")
+    .in("user_id", userIds);
 
   const birthYearMap: Record<string, number | null> = {};
   for (const c of careerRes.data ?? []) {
@@ -95,20 +77,11 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
     birthYearMap[cc.user_id] = cc.birth_year;
   }
 
-  const skillMap: Record<string, string[]> = {};
-  for (const s of skillsRes.data ?? []) {
-    const ss = s as { user_id: string; label: string };
-    if (!skillMap[ss.user_id]) skillMap[ss.user_id] = [];
-    skillMap[ss.user_id].push(ss.label);
-  }
-
   return filteredRows.map((r) => {
     const gradient =
       r.ow_users?.avatar_color?.startsWith("linear-gradient")
         ? r.ow_users.avatar_color
         : FALLBACK_GRADIENT;
-
-    const profile = profileMap[r.user_id] ?? null;
 
     return {
       adminId: r.id,
@@ -118,21 +91,14 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       gradient,
       avatarUrl: r.ow_users?.avatar_url ?? null,
       roleTitle: r.role_title,
-      department: null,
       talkThemes: r.talk_themes ?? [],
       companyId: r.ow_companies?.id ?? r.company_id,
       companyName: r.ow_companies?.brand_name ?? r.ow_companies?.name ?? "—",
       companyPhase: r.ow_companies?.phase ?? null,
-      companyIndustry: r.ow_companies?.industry ?? null,
       companyLogoUrl: r.ow_companies?.logo_url ?? null,
       companyLogoGradient: r.ow_companies?.logo_gradient ?? null,
       companyLogoLetter: r.ow_companies?.logo_letter ?? null,
-      currentJobType: profile?.current_job_type ?? null,
-      experienceYears: profile?.experience_years ?? null,
       birthYear: birthYearMap[r.user_id] ?? null,
-      workStyle: profile?.work_style ?? null,
-      preferredLocations: profile?.preferred_locations ?? null,
-      skillTags: skillMap[r.user_id] ?? [],
       createdAt: r.created_at ?? null,
     };
   });

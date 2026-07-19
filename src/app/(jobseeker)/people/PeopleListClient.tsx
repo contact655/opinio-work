@@ -12,21 +12,14 @@ export type AmbassadorCard = {
   gradient: string;
   avatarUrl: string | null;
   roleTitle: string | null;
-  department: string | null;
   talkThemes: string[];
   companyId: string;
   companyName: string;
   companyPhase: string | null;
-  companyIndustry: string | null;
   companyLogoUrl: string | null;
   companyLogoGradient: string | null;
   companyLogoLetter: string | null;
-  currentJobType: string | null;
-  experienceYears: number | null;
   birthYear: number | null;
-  workStyle: string | null;
-  preferredLocations: string[] | null;
-  skillTags: string[];
   createdAt: string | null;
 };
 
@@ -203,7 +196,7 @@ function CompanyBadge({ card, large }: { card: AmbassadorCard; large?: boolean }
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
-  const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
+  const role = card.roleTitle ?? "—";
   const isAvailable = card.talkThemes.length > 0;
 
   return (
@@ -269,16 +262,15 @@ function GridCard({ card }: { card: AmbassadorCard }) {
 // ── リスト行 ──────────────────────────────────────────────────────────
 function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
   const router = useRouter();
-  const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
-  const themes = card.talkThemes.slice(0, 2);
+  const role = card.roleTitle ?? "—";
   const isAvailable = card.talkThemes.length > 0;
 
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       style={{
-        display: "flex", alignItems: "flex-start", gap: 16,
-        padding: "20px 24px",
+        display: "flex", alignItems: "center", gap: 16,
+        padding: "16px 24px",
         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
         background: "#fff", cursor: "pointer", transition: "background 0.1s",
       }}
@@ -286,12 +278,11 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
       <div style={{ flexShrink: 0 }}>
-        <Avatar card={card} size={58} />
+        <Avatar card={card} size={52} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* 名前行 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>{card.name}</span>
           {isAvailable && (
             <span style={{
@@ -305,103 +296,25 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
               面談可
             </span>
           )}
-          {card.experienceYears != null && (
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              padding: "2px 8px", borderRadius: 100,
-              background: "var(--success-soft)", color: "var(--success)",
-              border: "1px solid #A7F3D0",
-            }}>
-              IT業界 {card.experienceYears}年
-            </span>
-          )}
         </div>
-
-        {/* 役職 */}
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6 }}>{role}</div>
-
-        {/* 会社バッジ */}
-        <div style={{ marginBottom: 8 }}>
-          <CompanyBadge card={card} />
-        </div>
-
-        {/* 相談テーマ */}
-        {themes.length > 0 && (
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 7 }}>
-            {themes.map((t, i) => (
-              <span key={i} style={{
-                fontSize: 11, fontWeight: 500,
-                padding: "3px 10px", borderRadius: 100,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)",
-              }}>
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* モバイル CTA */}
-        <div className="ppl-row-btn-mobile">
-          <div style={{ display: "flex", gap: 8 }}>
-            {isAvailable && (
-              <Link
-                href={`/people/${card.adminId}/reserve`}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: "inline-flex", alignItems: "center", padding: "8px 16px",
-                  background: "linear-gradient(135deg, #F59E0B, #F97316)",
-                  color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none",
-                }}
-              >話を聞く →</Link>
-            )}
-            <Link
-              href={`/u/${card.userId}`}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                display: "inline-flex", alignItems: "center", padding: "8px 14px",
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                color: "var(--royal)", borderRadius: 8, fontSize: 11, fontWeight: 600, textDecoration: "none",
-              }}
-            >プロフィール</Link>
-          </div>
-        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 5 }}>{role}</div>
+        <CompanyBadge card={card} />
       </div>
 
-      {/* デスクトップ CTA */}
-      <div className="ppl-row-btn-desktop" style={{ flexShrink: 0, alignSelf: "center" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {isAvailable && (
-            <Link
-              href={`/people/${card.adminId}/reserve`}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                padding: "9px 20px",
-                background: "linear-gradient(135deg, #F59E0B, #F97316)",
-                color: "#fff", borderRadius: 8,
-                fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap",
-                boxShadow: "0 2px 8px rgba(249,115,22,0.25)",
-              }}
-            >
-              話を聞く →
-            </Link>
-          )}
-          <Link
-            href={`/u/${card.userId}`}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              padding: "7px 14px",
-              background: "#fff", border: "1.5px solid var(--royal-100)",
-              color: "var(--royal)", borderRadius: 8,
-              fontSize: 11, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
-            }}
-          >
-            プロフィール
-          </Link>
-        </div>
-      </div>
+      <Link
+        href={`/u/${card.userId}`}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          flexShrink: 0,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          padding: "7px 14px",
+          background: "#fff", border: "1.5px solid var(--royal-100)",
+          color: "var(--royal)", borderRadius: 8,
+          fontSize: 11, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
+        }}
+      >
+        プロフィール
+      </Link>
     </div>
   );
 }
@@ -409,7 +322,7 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
 // ── フィルタ判定 ─────────────────────────────────────────────────────
 function matchRole(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
-  const text = `${card.roleTitle ?? ""} ${card.department ?? ""} ${card.currentJobType ?? ""}`;
+  const text = card.roleTitle ?? "";
   const opt = ROLE_OPTIONS.find((o) => o.value === v);
   return opt ? opt.pattern.test(text) : true;
 }
@@ -468,15 +381,13 @@ export function PeopleListClient({ ambassadors }: Props) {
         a.name.toLowerCase().includes(q) ||
         a.companyName.toLowerCase().includes(q) ||
         (a.roleTitle ?? "").toLowerCase().includes(q) ||
-        (a.currentJobType ?? "").toLowerCase().includes(q) ||
-        a.skillTags.some((t) => t.toLowerCase().includes(q)) ||
         a.talkThemes.some((t) => t.toLowerCase().includes(q))
       );
     });
   }, [ambassadors, role, age, companyType, keyword]);
 
   const sorted = useMemo(() => {
-    if (sort === "exp") return [...filtered].sort((a, b) => (b.experienceYears ?? 0) - (a.experienceYears ?? 0));
+    if (sort === "exp") return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     return filtered;
   }, [filtered, sort]);
 
