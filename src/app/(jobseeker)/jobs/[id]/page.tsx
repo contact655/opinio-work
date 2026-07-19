@@ -666,6 +666,64 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </section>
               )}
 
+              {/* Skills */}
+              {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--warm)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                }>
+                  必須スキル / 歓迎スキル
+                </SecTitle>
+                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
+                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
+                      fontSize: 11, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em",
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                      </svg>
+                      必須スキル
+                    </div>
+                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                      {job.required_skills.map((s, i) => (
+                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
+                            <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
+                          </svg>
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
+                      fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em",
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                      歓迎スキル
+                    </div>
+                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                      {job.preferred_skills.map((s, i) => (
+                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
+                            <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
+                          </svg>
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              )}
+
               {/* 勤務条件 */}
               {(job.salary_min || job.salary_max || job.location || job.work_style || job.employment_type) && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
@@ -925,64 +983,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   ))}
                 </ul>
               </section>
-              )}
-
-              {/* Skills */}
-              {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--warm)" icon={
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                }>
-                  必須スキル / 歓迎スキル
-                </SecTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
-                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
-                      fontSize: 11, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em",
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-                      </svg>
-                      必須スキル
-                    </div>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                      {job.required_skills.map((s, i) => (
-                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
-                            <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
-                          </svg>
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
-                      fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em",
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                      歓迎スキル
-                    </div>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                      {job.preferred_skills.map((s, i) => (
-                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
-                            <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
-                          </svg>
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </section>
-
               )}
 
 
