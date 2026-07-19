@@ -14,6 +14,7 @@ import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { isSalesJob, getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
+import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -950,6 +951,133 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                   )}
                 </div>
+              </section>
+              )}
+
+              {/* ── 企業について ── */}
+              {(company.about || company.why_join) && (
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                }>
+                  企業について
+                </SecTitle>
+                {company.about && (
+                  <div style={{ marginBottom: company.why_join ? 24 : 0 }}>
+                    {company.about.split("\n").filter((line: string) => line.trim()).map((line: string, i: number) => (
+                      <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+                        {line.trim()}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {company.why_join && (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" }}>
+                        この会社の魅力
+                      </h3>
+                      <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      {company.why_join.split(/。(?!\s*$)/).filter((s: string) => s.trim()).map((sentence: string, i: number) => (
+                        <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                          <span style={{
+                            flexShrink: 0, width: 22, height: 22, borderRadius: "50%",
+                            background: "var(--royal-50)", color: "var(--royal)",
+                            border: "1.5px solid var(--royal-100)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 11, fontWeight: 800, fontFamily: "Inter", marginTop: 2,
+                          }}>{i + 1}</span>
+                          <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
+                            {sentence.trim().replace(/。$/, "")}。
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
+                  <Link href={`/companies/${company.id}`} style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    {company.name}の企業詳細を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </Link>
+                </div>
+              </section>
+              )}
+
+              {/* ── 福利厚生・評価制度 ── */}
+              {((company.benefits && company.benefits.length > 0) || company.evaluationSystem) && (
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                }>
+                  福利厚生・評価制度
+                </SecTitle>
+
+                {/* 福利厚生 */}
+                {company.benefits && company.benefits.length > 0 && (() => {
+                  type BenefitIconDef = { svg: React.ReactNode; color: string; bg: string; border: string };
+                  function getBenefitIconDef(b: string): BenefitIconDef {
+                    const royal: BenefitIconDef = {
+                      color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)",
+                      svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                    };
+                    if (b.includes("リモート") || b.includes("在宅") || b.includes("テレワーク"))
+                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> };
+                    if (b.includes("フレックス") || b.includes("時差出勤"))
+                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> };
+                    if (b.includes("副業") || b.includes("兼業"))
+                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> };
+                    if (b.includes("ストックオプション") || b.includes("SO") || b.includes("確定拠出") || b.includes("退職金"))
+                      return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> };
+                    if (b.includes("書籍") || b.includes("学習") || b.includes("研修") || b.includes("資格"))
+                      return { color: "#5b21b6", bg: "#ede9fe", border: "#ddd6fe", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
+                    if (b.includes("育休") || b.includes("産休") || b.includes("子育て"))
+                      return { color: "#9a3412", bg: "#ffedd5", border: "#fed7aa", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> };
+                    if (b.includes("健康") || b.includes("医療") || b.includes("保険"))
+                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> };
+                    if (b.includes("RSU") || b.includes("持株"))
+                      return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
+                    return royal;
+                  }
+                  return (
+                    <div style={{ marginBottom: company.evaluationSystem ? 24 : 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", whiteSpace: "nowrap" as const }}>福利厚生</h3>
+                        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+                        {company.benefits!.map((b: string) => {
+                          const def = getBenefitIconDef(b);
+                          return (
+                            <div key={b} style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, padding: "14px 14px", background: def.bg, border: `1px solid ${def.border}`, borderRadius: 12 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", border: `1px solid ${def.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: def.color, flexShrink: 0 }}>
+                                <span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>
+                              </div>
+                              <span style={{ fontSize: 12, color: def.color, fontWeight: 700, lineHeight: 1.4 }}>{b}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 評価制度 */}
+                {company.evaluationSystem && (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", whiteSpace: "nowrap" as const }}>評価制度</h3>
+                      <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                    </div>
+                    <EvaluationText text={company.evaluationSystem} />
+                  </div>
+                )}
               </section>
               )}
 

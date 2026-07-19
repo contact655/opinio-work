@@ -39,6 +39,10 @@ export type Company = {
   brand_name?: string | null;
   industry_id?: string | null;
   saas_category_id?: string | null;
+  about?: string | null;
+  why_join?: string | null;
+  benefits?: string[] | null;
+  evaluationSystem?: string | null;
 };
 
 export const MOCK_COMPANIES: Company[] = [

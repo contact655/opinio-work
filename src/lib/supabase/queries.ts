@@ -94,6 +94,17 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     brand_name: (row.brand_name as string | null) ?? null,
     industry_id: (row.industry_id as string | null) ?? null,
     saas_category_id: (row.saas_category_id as string | null) ?? null,
+    mission: (row.mission as string | null) ?? null,
+    fit_positives: Array.isArray(row.fit_positives) ? (row.fit_positives as string[]) : null,
+    about: (row.description as string | null) ?? null,
+    why_join: (() => {
+      const wj = row.why_join as string | null | undefined;
+      const desc = row.description as string | null | undefined;
+      if (typeof wj === "string" && wj.trim() && wj.trim() !== (desc ?? "").trim()) return wj.trim();
+      return null;
+    })(),
+    benefits: Array.isArray(row.benefits) && (row.benefits as string[]).length > 0 ? (row.benefits as string[]) : null,
+    evaluationSystem: (row.evaluation_system as string | null) ?? null,
   };
 }
 
@@ -501,6 +512,8 @@ const COMPANY_LIST_COLS = [
   "id", "slug", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count",
   "logo_gradient", "logo_letter", "logo_url", "url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
+  "description", "why_join", "benefits", "evaluation_system",
+  "jobs_public", "mission", "fit_positives",
 ].join(", ");
 
 const COMPANY_DETAIL_COLS = [
