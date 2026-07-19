@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { updateEngagementStatus, updateJobsPublic, updateIsPublished, updateSortOrder } from "./actions";
+import { updateEngagementStatus, updateJobsPublic, updateIsPublished, updateSortOrder, updateApproval } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -47,6 +47,7 @@ type Company = {
   location: string | null;
   employee_count: string | number | null;
   is_published: boolean;
+  is_approved: boolean;
   accepting_casual_meetings: boolean;
   listing_status: ListingStatus | null;
   engagement_status: EngagementStatus | null;
@@ -77,7 +78,7 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }, { data: adminRows }, { data: userRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url")
+        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url")
         .order("sort_order", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false }),
       supabase
@@ -154,6 +155,17 @@ export default function AdminCompaniesPage() {
     setActionLoading(company.id);
     await updateIsPublished(company.id, newValue);
     setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
+    setActionLoading(null);
+  }
+
+  // 承認 / 却下
+  async function handleApproval(company: Company, approved: boolean) {
+    setActionLoading(company.id);
+    await updateApproval(company.id, approved);
+    setCompanies((prev) => prev.map((c) => c.id === company.id
+      ? { ...c, is_approved: approved, is_published: approved }
+      : c
+    ));
     setActionLoading(null);
   }
 
@@ -321,7 +333,7 @@ export default function AdminCompaniesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["", "企業名", "ロゴURL", "業界", "担当者", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "ロゴURL", "業界", "担当者", "承認/掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -431,17 +443,35 @@ export default function AdminCompaniesPage() {
                         )}
                       </td>
 
-                      {/* 掲載 (is_published) */}
+                      {/* 承認 / 掲載 */}
                       <td style={{ padding: "10px 14px" }}>
-                        <button type="button" onClick={() => handleTogglePublish(c)} disabled={isLoading}
-                          style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, cursor: "pointer",
-                            background: c.is_published ? "#ECFDF5" : "#F1F5F9",
-                            color: c.is_published ? "var(--success)" : "#94A3B8",
-                            border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
-                            opacity: isLoading ? 0.5 : 1,
-                          }}>
-                          {c.is_published ? "掲載中" : "非掲載"}
-                        </button>
+                        {c.is_approved ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                              background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
+                              ✓ 承認済み・掲載中
+                            </span>
+                            <button type="button" onClick={() => handleApproval(c, false)} disabled={isLoading}
+                              style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100, cursor: "pointer",
+                                background: "#FEE2E2", color: "var(--error)", border: "1px solid #FECACA",
+                                opacity: isLoading ? 0.5 : 1 }}>
+                              承認を取り消す
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                              background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D", whiteSpace: "nowrap" }}>
+                              ⏳ 承認待ち
+                            </span>
+                            <button type="button" onClick={() => handleApproval(c, true)} disabled={isLoading}
+                              style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, cursor: "pointer",
+                                background: "var(--royal)", color: "#fff", border: "none",
+                                opacity: isLoading ? 0.5 : 1 }}>
+                              承認して掲載
+                            </button>
+                          </div>
+                        )}
                       </td>
 
                       {/* 企業ステータス（engagement_status） */}

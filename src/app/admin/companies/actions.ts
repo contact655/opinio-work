@@ -50,6 +50,19 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
   revalidatePath("/admin/companies");
 }
 
+// 承認フロー: is_approved + is_published を同時に更新
+export async function updateApproval(companyId: string, approved: boolean): Promise<void> {
+  if (!UUID_RE.test(companyId)) throw new Error("Invalid companyId");
+  await assertAdmin();
+  const admin = createAdminClient();
+  await admin.from("ow_companies").update({
+    is_approved: approved,
+    is_published: approved, // 承認と同時に掲載 / 却下と同時に非掲載
+    updated_at: new Date().toISOString(),
+  }).eq("id", companyId);
+  revalidatePath("/admin/companies");
+}
+
 export async function updateSortOrder(items: { id: string; sort_order: number }[]): Promise<void> {
   await assertAdmin();
   const admin = createAdminClient();

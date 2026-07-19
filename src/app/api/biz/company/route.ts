@@ -97,16 +97,21 @@ export async function PATCH(req: Request) {
 
   const now = new Date().toISOString();
 
-  // draft_data を取得
+  // draft_data + is_approved を取得
   const { data: currentRow, error: fetchError } = await supabase
     .from("ow_companies")
-    .select("draft_data")
+    .select("draft_data, is_approved")
     .eq("id", companyId)
     .single();
 
   if (fetchError) {
     console.error("[company PATCH fetch]", fetchError.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+  // 未承認の企業は公開不可
+  if (body.isPublished && !currentRow?.is_approved) {
+    return NextResponse.json({ error: "Not approved by admin yet" }, { status: 403 });
   }
 
   // draft_data.genres を取り出して ow_company_genres 反映用に保持

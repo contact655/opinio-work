@@ -96,7 +96,7 @@ export default async function BizDashboardPage() {
       currentTenantId={ctx.tenantId}
     >
       {/* ── 審査中バナー（未承認企業のみ） ── */}
-      {!ctx.isPublished && (
+      {!ctx.isApproved && (
         <div style={{
           background: "var(--warm-soft)", border: "1px solid #FCD34D",
           borderRadius: 12, padding: "14px 18px", marginBottom: 16,
@@ -204,8 +204,8 @@ export default async function BizDashboardPage() {
         </div>
       )}
 
-      {/* ── スタートガイド（求人0件の場合のみ表示） ── */}
-      {ctx.isPublished && jobStatusCounts.active === 0 && jobStatusCounts.draft === 0 && (
+      {/* ── スタートガイド（承認済み・求人0件の場合のみ表示） ── */}
+      {ctx.isApproved && jobStatusCounts.active === 0 && jobStatusCounts.draft === 0 && (
         <div style={{
           background: "linear-gradient(135deg,var(--royal-50) 0%,#f0f4ff 100%)",
           border: "1px solid var(--royal-100)", borderRadius: 16,
