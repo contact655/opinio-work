@@ -1192,6 +1192,29 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   return { current: currentEmps, alumni: alumniEmps };
 }
 
+/**
+ * 求人詳細ページ用: 同社 × 同ロールカテゴリの社員・OBOG を取得
+ * roleCategoryId が null の場合は company 全員を返す（フォールバック）
+ */
+export async function getJobEmployees(
+  companyId: string,
+  roleCategoryId: string | null
+): Promise<{ current: CompanyEmployee[]; alumni: CompanyEmployee[] }> {
+  const all = await getCompanyEmployees(companyId);
+  if (!roleCategoryId) return all;
+
+  const matchRole = (emp: CompanyEmployee) =>
+    emp.roleCategoryId === roleCategoryId ||
+    emp.roleParentId === roleCategoryId;
+
+  const current = all.current.filter(matchRole);
+  const alumni  = all.alumni.filter(matchRole);
+
+  // ロール一致がゼロなら全員フォールバック
+  if (current.length === 0 && alumni.length === 0) return all;
+  return { current, alumni };
+}
+
 // キャッシュ済みバリアント（ページ速度改善用）
 export const getCompanyPhotosCached = unstable_cache(
   getCompanyPhotos,

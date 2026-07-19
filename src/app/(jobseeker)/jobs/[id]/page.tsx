@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobBySlugOrId, getJobPositionMembers, type JobPositionMember } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
 import { createClient } from "@/lib/supabase/server";
@@ -197,6 +197,137 @@ function StatusBadge({ status, label }: { status: PositionMember["status"]; labe
   );
 }
 
+// ── 求人詳細: 現役社員・OB/OG セクション ────────────────────────────────────
+
+const JOB_AVATAR_COLORS: { bg: string; text: string }[] = [
+  { bg: "linear-gradient(135deg, #002366 0%, #3B5FD9 100%)", text: "rgba(255,255,255,0.9)" },
+  { bg: "linear-gradient(135deg, #065F46 0%, #059669 100%)", text: "rgba(255,255,255,0.9)" },
+  { bg: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)", text: "rgba(255,255,255,0.9)" },
+  { bg: "linear-gradient(135deg, #92400E 0%, #F59E0B 100%)", text: "rgba(255,255,255,0.9)" },
+  { bg: "linear-gradient(135deg, #1E40AF 0%, #0891B2 100%)", text: "rgba(255,255,255,0.9)" },
+];
+
+function JobEmployeeCard({ emp, companyId }: { emp: CompanyEmployee; companyId: string }) {
+  const colorIdx = emp.userId.charCodeAt(0) % JOB_AVATAR_COLORS.length;
+  const color = JOB_AVATAR_COLORS[colorIdx];
+  const initial = emp.avatarInitial ?? emp.name.charAt(0);
+
+  return (
+    <a
+      href={`/u/${emp.userId}`}
+      style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 14px", borderRadius: 12,
+        border: "1px solid var(--line)",
+        background: "#fff",
+        textDecoration: "none",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+      }}
+      className="job-emp-card"
+    >
+      <div style={{
+        width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
+        background: emp.avatarUrl ? undefined : color.bg,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
+        color: color.text, overflow: "hidden", border: "2px solid var(--line)",
+      }}>
+        {emp.avatarUrl ? (
+          <img src={emp.avatarUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : initial}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.name}</div>
+        {emp.roleTitle && (
+          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.roleTitle}</div>
+        )}
+        {emp.catchphrase && (
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" as const }}>{emp.catchphrase}</div>
+        )}
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+    </a>
+  );
+}
+
+function JobEmployeesSection({
+  current,
+  alumni,
+  companyId,
+  companyName,
+}: {
+  current: CompanyEmployee[];
+  alumni: CompanyEmployee[];
+  companyId: string;
+  companyName: string;
+}) {
+  if (current.length === 0 && alumni.length === 0) return null;
+
+  return (
+    <>
+      <style>{`
+        .job-emp-card:hover { border-color: var(--royal-100) !important; box-shadow: 0 2px 8px rgba(0,35,102,0.08) !important; }
+      `}</style>
+
+      {/* 現役社員 */}
+      {current.length > 0 && (
+        <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: "var(--text-lg)", color: "var(--ink)" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </span>
+              この職種の現役メンバー
+            </div>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>{current.length}名</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
+            {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
+          </div>
+          <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-4)", borderTop: "1px solid var(--line-soft)" }}>
+            <a
+              href={`/companies/${companyId}/casual-meeting`}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "10px 20px", borderRadius: 10, width: "100%",
+                background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              {companyName.replace(/^(株式会社|有限会社|合同会社)/, "").replace(/(株式会社|有限会社|合同会社)$/, "")}の社員に話を聞く（無料）
+            </a>
+          </div>
+        </section>
+      )}
+
+      {/* OB/OG */}
+      {alumni.length > 0 && (
+        <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: "var(--text-lg)", color: "var(--ink)" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </span>
+              この職種を経験したOB/OG
+            </div>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>{alumni.length}名</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
+            {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
+
 function PositionMembersSection({ members, jobCategory }: { members: JobPositionMember[]; jobCategory: string }) {
   if (members.length === 0) return null;
   return (
@@ -310,6 +441,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   // Position members — people with matching role experience
   const positionMembers = await getJobPositionMembers(job.dept ?? "");
+
+  // 求人ロールに紐づいた現役社員・OBOG
+  const jobEmployees = await getJobEmployees(job.company_id, job.role_category_id ?? null);
 
   // Auth + bookmark state
   const supabase = createClient();
@@ -1194,6 +1328,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {company.name} の企業ページで詳細を見る →
                 </Link>
               </section>
+
+              {/* 現役社員・OB/OG — 職種マッチ */}
+              <JobEmployeesSection
+                current={jobEmployees.current}
+                alumni={jobEmployees.alumni}
+                companyId={job.company_id}
+                companyName={company.name}
+              />
 
               {/* Position members — role-matched alumni/current employees */}
               <PositionMembersSection members={positionMembers} jobCategory={job.dept ?? ""} />
