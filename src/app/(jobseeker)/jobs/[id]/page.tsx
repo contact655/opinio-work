@@ -207,7 +207,7 @@ const JOB_AVATAR_COLORS: { bg: string; text: string }[] = [
   { bg: "linear-gradient(135deg, #1E40AF 0%, #0891B2 100%)", text: "rgba(255,255,255,0.9)" },
 ];
 
-function JobEmployeeCard({ emp, companyId }: { emp: CompanyEmployee; companyId: string }) {
+function JobEmployeeCard({ emp, companyId: _companyId }: { emp: CompanyEmployee; companyId: string }) {
   const colorIdx = emp.userId.charCodeAt(0) % JOB_AVATAR_COLORS.length;
   const color = JOB_AVATAR_COLORS[colorIdx];
   const initial = emp.avatarInitial ?? emp.name.charAt(0);
@@ -510,7 +510,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   const salaryMax = job.salary_max ?? 0;
   const showSalaryContext = salaryMin > 0 && salaryMax > 0 && salaryMax - salaryMin >= 200;
   const salaryMidpoint = showSalaryContext ? Math.round((salaryMin + salaryMax) / 2) : 0;
-  const salaryMidPct = showSalaryContext
+  const _salaryMidPct = showSalaryContext
     ? Math.round(((salaryMidpoint - salaryMin) / (salaryMax - salaryMin)) * 100)
     : 50;
 
