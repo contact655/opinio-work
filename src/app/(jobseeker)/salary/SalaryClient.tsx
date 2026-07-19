@@ -213,15 +213,85 @@ export function SalaryClient({ stats, maxBar, freeCount }: Props) {
           ))}
         </div>
 
-        {/* ── 職種別サマリーヘッダー ── */}
+        {/* ── ① ユーザー投稿年収（メインセクション・現在は空状態）── */}
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+              匿名年収レポート
+            </h2>
+            <span style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", borderRadius: 100, padding: "3px 10px", fontWeight: 600 }}>
+              0 件（準備中）
+            </span>
+          </div>
+
+          {/* 空状態 */}
+          <div style={{ background: "#fff", border: "2px dashed var(--royal-100)", borderRadius: 20, padding: "48px 24px", textAlign: "center" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 24 }}>
+              📊
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 8px" }}>
+              まだ年収レポートがありません
+            </h3>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 6px", lineHeight: 1.75, maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>
+              あなたが最初の報告者になりましょう。<br />
+              報告が集まると、職種別・企業別の実績年収データが閲覧できるようになります。
+            </p>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 24px" }}>
+              完全匿名・無料・1分で完了
+            </p>
+            <Link
+              href="/profile/edit"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 2px 12px rgba(0,35,102,0.2)" }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+              </svg>
+              最初の年収を報告する
+            </Link>
+
+            {/* データが集まるとこうなる（イメージ） */}
+            <div style={{ marginTop: 32, padding: "16px", background: "var(--bg-tint)", borderRadius: 12, textAlign: "left" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                データが集まると表示されるもの（イメージ）
+              </p>
+              {DUMMY_REPORTS.map((r) => (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line-soft)", opacity: 0.4 }}>
+                  <span style={{ flex: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.role}</span>
+                  <span style={{ flex: 2, fontSize: 12, color: "var(--ink-soft)" }}>{r.company}</span>
+                  <span style={{ flex: 1, textAlign: "right", fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>{r.salary}万</span>
+                  <span style={{ flex: 1, textAlign: "right", fontSize: 12, color: "var(--ink-mute)" }}>{r.yoe}年</span>
+                </div>
+              ))}
+              <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "10px 0 0", textAlign: "center" }}>
+                ※ これはイメージです。実際のデータは報告が集まり次第表示されます。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── ② 参考データ（求人票ベース・明確にラベリング）── */}
+        <div style={{ padding: "20px 24px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 16, marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#92400e", margin: "0 0 4px" }}>
+                以下は「求人票」ベースの参考データです
+              </p>
+              <p style={{ fontSize: 12, color: "#b45309", margin: 0, lineHeight: 1.65 }}>
+                企業が求人票に記載した希望年収レンジの集計値であり、<strong>実際に在籍した社員の年収ではありません。</strong>
+                参考情報としてご活用ください。実際の年収はこれより高い・低い場合があります。
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-            職種別 年収サマリー
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-soft)", margin: 0 }}>
+            📋 参考：求人票の年収レンジ
             {filtered.length < stats.length && (
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 8 }}>{filtered.length}件</span>
             )}
           </h2>
-          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>※ 求人票データをもとに算出</span>
         </div>
 
         {/* 検索結果なし */}
@@ -233,132 +303,48 @@ export function SalaryClient({ stats, maxBar, freeCount }: Props) {
           </div>
         )}
 
-        {/* 公開カード */}
+        {/* 求人票カード（全件表示・ゲートなし） */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {freeItems.map((s) => {
+          {filtered.map((s) => {
             const barPct = Math.round((s.avgMax / maxBar) * 100);
             return (
-              <Link key={s.slug} href={`/salary/${s.slug}`} className="sc-card">
+              <Link key={s.slug} href={`/salary/${s.slug}`} className="sc-card" style={{ opacity: 0.85 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{s.label}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
-                        {s.jobCount}件の求人データ
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" }}>
+                        求人票 {s.jobCount}件
                       </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                      <span style={{ fontSize: 22, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
                         {s.avgMin}〜{s.avgMax}
                       </span>
-                      <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>万円（平均レンジ）</span>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>万円（求人票平均レンジ）</span>
                     </div>
-                    <div className="sc-bar-outer">
-                      <div className="sc-bar-inner" style={{ width: `${barPct}%` }} />
+                    <div className="sc-bar-outer" style={{ marginTop: 10 }}>
+                      <div style={{ height: 8, borderRadius: 100, background: "linear-gradient(90deg,#d97706,#f59e0b)", width: `${barPct}%` }} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter,sans-serif" }}>
-                      <span>P25 {s.avgMin}万</span>
-                      <span>中央値 {Math.round((s.avgMin + s.avgMax) / 2)}万</span>
-                      <span>P75 {s.avgMax}万</span>
+                      <span>下限 {s.avgMin}万</span>
+                      <span>中央 {Math.round((s.avgMin + s.avgMax) / 2)}万</span>
+                      <span>上限 {s.avgMax}万</span>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 2 }}>最高</div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "Inter,sans-serif" }}>
+                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 2 }}>求人票最高</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
                       {s.maxSalary}<span style={{ fontSize: 11, fontWeight: 500 }}>万円</span>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
-                      詳細を見る →
+                    <div style={{ marginTop: 6, fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                      求人を見る →
                     </div>
                   </div>
                 </div>
               </Link>
             );
           })}
-        </div>
-
-        {/* Give to Get ゲート */}
-        {lockedItems.length > 0 && (
-          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-            {lockedItems.map((s) => (
-              <div key={s.slug} style={{ background: "#f8fafc", border: "1.5px dashed var(--line)", borderRadius: 16, padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--line)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-mute)" }}>{s.label}</span>
-                </div>
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>報告後に閲覧可</span>
-              </div>
-            ))}
-
-            <div style={{ marginTop: 8, padding: "24px", background: "var(--royal-50)", border: "1.5px solid var(--royal-100)", borderRadius: 16, textAlign: "center" }}>
-              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>
-                残り {lockedItems.length} 職種のデータを閲覧するには
-              </p>
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.65 }}>
-                自分の在籍年収を匿名で報告すると、全 {stats.length} 職種 + 個人報告データが閲覧できます
-              </p>
-              <Link
-                href="/profile/edit"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}
-              >
-                🔓 年収を報告して全データを見る
-              </Link>
-              <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 10 }}>完全無料・匿名・1分で完了</p>
-            </div>
-          </div>
-        )}
-
-        {/* 匿名報告データプレビュー */}
-        <div style={{ marginTop: 48 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-              匿名年収レポート（個人報告）
-            </h2>
-            <span style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", borderRadius: 100, padding: "3px 10px", fontWeight: 600 }}>
-              🔒 報告後に閲覧可
-            </span>
-          </div>
-
-          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ display: "flex", padding: "10px 20px", background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)" }}>
-              <span style={{ flex: 2 }}>職種</span>
-              <span style={{ flex: 2 }}>企業</span>
-              <span style={{ flex: 1, textAlign: "right" }}>年収</span>
-              <span style={{ flex: 1, textAlign: "right" }}>経験年数</span>
-            </div>
-            {DUMMY_REPORTS.map((r) => (
-              <div key={r.id} className="report-row">
-                <span style={{ flex: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.role}</span>
-                <span style={{ flex: 2, fontSize: 12, color: "var(--ink-soft)" }}>{r.company}</span>
-                <span style={{ flex: 1, textAlign: "right", fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>{r.salary}万</span>
-                <span style={{ flex: 1, textAlign: "right", fontSize: 12, color: "var(--ink-mute)" }}>{r.yoe}年</span>
-              </div>
-            ))}
-            <div style={{ padding: "20px", textAlign: "center", background: "var(--bg-tint)", borderTop: "1px solid var(--line)" }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>
-                🔒 あと {Math.max(0, 6 - DUMMY_REPORTS.length)} 件の個人年収レポートがあります
-              </p>
-              <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 12px" }}>
-                自分の年収を報告すると閲覧できます
-              </p>
-              <Link
-                href="/profile/edit"
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}
-              >
-                🔓 報告して全件閲覧する
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* 注記 */}
-        <div style={{ marginTop: 28, padding: "14px 18px", background: "var(--bg-tint)", borderRadius: 12, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-          ※ 職種別サマリーはOPINIOに掲載中の求人票に記載された年収レンジをもとに算出した参考値です。個人報告データ（Give to Get）は今後実装予定です。
         </div>
 
         {/* 締めCTA */}
