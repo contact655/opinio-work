@@ -2824,7 +2824,7 @@ export default function JobsClient({
               </span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
                 {recommendations.slice(0, 3).map(({ job }) => {
-                  const recCompany = companyMap[job.company_id];
+                  const recCompany = companyMap.get(job.company_id);
                   return (
                     <a
                       key={job.id}
