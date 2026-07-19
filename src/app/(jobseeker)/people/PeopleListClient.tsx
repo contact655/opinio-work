@@ -33,7 +33,8 @@ type Props = { ambassadors: AmbassadorCard[] };
 
 // ── フィルタ・ソート定数 ────────────────────────────────────────────
 const ROLE_OPTIONS = [
-  { value: "sales", label: "営業", pattern: /営業|sales|セールス|account executive|account manager|フィールドセールス|インサイドセールス|sdr|bdr/i },
+  { value: "inside_sales",  label: "インサイドセールス", pattern: /インサイドセールス|inside sales|sdr|bdr|テレセールス/i },
+  { value: "field_sales",   label: "フィールドセールス", pattern: /フィールドセールス|field sales|account executive|account manager|ae\b|営業/i },
   { value: "cs",    label: "カスタマーサクセス", pattern: /カスタマーサクセス|customer success|csm/i },
   { value: "mkt",   label: "マーケティング",     pattern: /マーケ|market/i },
   { value: "eng",   label: "エンジニア",         pattern: /エンジニア|engineer|開発|dev|tech|ソフトウェア/i },
@@ -42,17 +43,11 @@ const ROLE_OPTIONS = [
   { value: "exec",  label: "経営・役員",          pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|事業部長/i },
 ];
 
-const EXP_OPTIONS = [
-  { value: "1to3", label: "1〜3年",  min: 1, max: 3   },
-  { value: "4to7", label: "4〜7年",  min: 4, max: 7   },
-  { value: "8plus", label: "8年以上", min: 8, max: 999 },
-];
-
 const COMPANY_TYPE_OPTIONS = [
   { value: "startup",    label: "スタートアップ", phasePattern: /シード|seed|シリーズ[ABC]|series[_-]?[abc]/i },
-  { value: "listed",     label: "上場企業",       phasePattern: /listed|上場|IPO/i },
   { value: "unicorn",    label: "ユニコーン",     phasePattern: /unicorn|ユニコーン/i },
-  { value: "enterprise", label: "大手・外資",     phasePattern: /大手|enterprise|外資/i },
+  { value: "enterprise", label: "大手企業",       phasePattern: /大手/i },
+  { value: "foreign",    label: "外資系企業",     phasePattern: /外資/i },
 ];
 
 const SORT_OPTIONS = [
@@ -250,16 +245,6 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3 }}>
           {card.name}
         </div>
-        {card.experienceYears != null && (
-          <span style={{
-            display: "inline-block", fontSize: 10, fontWeight: 700,
-            padding: "2px 8px", borderRadius: 100, marginBottom: 6,
-            background: "var(--success-soft)", color: "var(--success)",
-            border: "1px solid #A7F3D0",
-          }}>
-            IT業界 {card.experienceYears}年
-          </span>
-        )}
         <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.5, minHeight: 20 }}>
           {role}
         </div>
@@ -474,19 +459,13 @@ function matchRole(card: AmbassadorCard, v: string): boolean {
   const opt = ROLE_OPTIONS.find((o) => o.value === v);
   return opt ? opt.pattern.test(text) : true;
 }
-function matchExp(card: AmbassadorCard, v: string): boolean {
-  if (!v) return true;
-  const opt = EXP_OPTIONS.find((o) => o.value === v);
-  if (!opt || card.experienceYears == null) return false;
-  return card.experienceYears >= opt.min && card.experienceYears <= opt.max;
-}
 function matchCompanyType(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
-  const phase = (card.companyPhase ?? "").toLowerCase();
-  const name = (card.companyName ?? "").toLowerCase();
+  const phase = card.companyPhase ?? "";
+  const name = card.companyName ?? "";
   const opt = COMPANY_TYPE_OPTIONS.find((o) => o.value === v);
   if (!opt) return true;
-  if (v === "enterprise") return opt.phasePattern.test(card.companyPhase ?? "") || /外資|global|インターナショナル/i.test(name);
+  if (v === "foreign") return /外資|global|インターナショナル/i.test(name) || opt.phasePattern.test(phase);
   return opt.phasePattern.test(phase);
 }
 
@@ -494,7 +473,6 @@ function matchCompanyType(card: AmbassadorCard, v: string): boolean {
 export function PeopleListClient({ ambassadors }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [role, setRole] = useState("");
-  const [exp, setExp] = useState("");
   const [companyType, setCompanyType] = useState("");
   const [sort, setSort] = useState("newest");
   const [keyword, setKeyword] = useState("");
@@ -521,7 +499,6 @@ export function PeopleListClient({ ambassadors }: Props) {
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchRole(a, role)) return false;
-      if (!matchExp(a, exp)) return false;
       if (!matchCompanyType(a, companyType)) return false;
       if (!q) return true;
       return (
@@ -540,10 +517,10 @@ export function PeopleListClient({ ambassadors }: Props) {
     return filtered;
   }, [filtered, sort]);
 
-  const hasFilter = !!(keyword || role || exp || companyType);
+  const hasFilter = !!(keyword || role || companyType);
 
   function clearAll() {
-    setKeyword(""); setRole(""); setExp(""); setCompanyType("");
+    setKeyword(""); setRole(""); setCompanyType("");
   }
 
   if (ambassadors.length === 0) {
@@ -717,7 +694,6 @@ export function PeopleListClient({ ambassadors }: Props) {
             {/* フィルタチップ */}
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
-              <FilterChip label="経験年数" value={exp} options={EXP_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setExp(v ?? ""); setOpenChip(null); }} isOpen={openChip === "exp"} onToggle={() => toggleChip("exp")} />
               <FilterChip label="企業タイプ" value={companyType} options={COMPANY_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setCompanyType(v ?? ""); setOpenChip(null); }} isOpen={openChip === "companyType"} onToggle={() => toggleChip("companyType")} />
               {hasFilter && (
                 <button type="button" onClick={clearAll} style={{ fontSize: 12.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
