@@ -598,7 +598,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       </nav>
 
       {/* Hero */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-6) 0" }}>
+      <div style={{ background: "linear-gradient(160deg, #eef3fd 0%, #f4f7fe 40%, #fafbff 75%, #fff 100%)", borderBottom: "1px solid var(--line)", padding: "var(--space-6) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
           <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
             <CompanyLogo
@@ -717,7 +717,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* Body */}
       <div style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
           <div className="grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]">
 
             {/* ── Main column ── */}
@@ -756,7 +756,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Overview → 仕事内容 */}
               {job.overview && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section style={{ background: "#fff", borderRadius: 14, padding: "var(--space-6) var(--space-6) var(--space-5)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -765,7 +765,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   仕事内容
                 </SecTitle>
-                <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{job.overview}</p>
+                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 2.0, whiteSpace: "pre-wrap" }}>{job.overview}</p>
               </section>
               )}
 
@@ -779,54 +779,51 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   必須スキル / 歓迎スキル
                 </SecTitle>
-                <div className={job.preferred_skills.length > 0 ? "grid grid-cols-1 sm:grid-cols-2" : "grid grid-cols-1"} style={{ gap: 14 }}>
-                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
-                      fontSize: 11, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em",
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-                      </svg>
-                      必須スキル
-                    </div>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                      {job.required_skills.map((s, i) => (
-                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
-                            <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
-                          </svg>
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
+                {/* 必須スキル — pill tags */}
+                {job.required_skills.length > 0 && (
+                <div style={{ marginBottom: job.preferred_skills.length > 0 ? "var(--space-5)" : 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                    必須スキル
                   </div>
-                  {job.preferred_skills.length > 0 && (
-                  <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
-                      fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em",
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                      歓迎スキル
-                    </div>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                      {job.preferred_skills.map((s, i) => (
-                        <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 3 }}>
-                            <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
-                          </svg>
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {job.required_skills.map((s, i) => (
+                      <span key={i} style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        padding: "6px 14px", borderRadius: 100,
+                        background: "#FFFBEB", border: "1.5px solid #FDE68A",
+                        color: "#92400E", fontSize: 13, fontWeight: 600,
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                        {s}
+                      </span>
+                    ))}
                   </div>
-                  )}
                 </div>
+                )}
+                {/* 歓迎スキル — pill tags (lighter style) */}
+                {job.preferred_skills.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    歓迎スキル
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {job.preferred_skills.map((s, i) => (
+                      <span key={i} style={{
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                        padding: "6px 14px", borderRadius: 100,
+                        background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                        color: "var(--royal)", fontSize: 13, fontWeight: 600,
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                )}
               </section>
-
               )}
 
               {/* 勤務条件 */}
@@ -1067,18 +1064,23 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   メイン業務
                 </SecTitle>
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
                   {job.main_tasks.map((task, i) => (
-                    <li key={i} style={{ display: "flex", gap: "var(--space-2)", fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                    <li key={i} style={{
+                      display: "flex", gap: 14, alignItems: "flex-start",
+                      padding: "12px 16px", borderRadius: 10,
+                      background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    }}>
                       <span style={{
-                        width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 3,
-                        background: "var(--royal-50)", color: "var(--royal)",
+                        width: 24, height: 24, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+                        background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+                        color: "#fff",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 9, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                        fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif",
                       }}>
                         {i + 1}
                       </span>
-                      {task}
+                      <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.75, flex: 1 }}>{task}</span>
                     </li>
                   ))}
                 </ul>
@@ -1135,34 +1137,51 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   選考フロー
                 </SecTitle>
-                <div style={{ display: "flex", gap: 0, overflowX: "auto", paddingBottom: 4 }}>
-                  {job.selection_flow.map((step, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                      <div style={{
-                        display: "flex", flexDirection: "column", alignItems: "center",
-                        padding: "var(--space-3) 14px",
-                        background: i === 0 ? "var(--royal-50)" : i === job.selection_flow.length - 1 ? "var(--success-soft)" : "var(--bg-tint)",
-                        border: `1px solid ${i === 0 ? "var(--royal-100)" : i === job.selection_flow.length - 1 ? "#A7F3D0" : "var(--line)"}`,
-                        borderRadius: 10, minWidth: 88, textAlign: "center" as const,
-                      }}>
-                        <div style={{
-                          fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", marginBottom: 4,
-                          color: i === 0 ? "var(--royal)" : i === job.selection_flow.length - 1 ? "var(--success)" : "var(--ink-mute)",
-                        }}>
-                          {step.step}
+                {/* 縦並びタイムライン */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {job.selection_flow.map((step, i) => {
+                    const isFirst = i === 0;
+                    const isLast = i === job.selection_flow.length - 1;
+                    return (
+                      <div key={i} style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+                        {/* 左：番号ドット + 縦線 */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 36, flexShrink: 0 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                            background: isLast
+                              ? "linear-gradient(135deg, var(--success) 0%, #34D399 100%)"
+                              : isFirst
+                              ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
+                              : "#fff",
+                            border: isLast ? "none" : isFirst ? "none" : "2px solid var(--line)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: (isFirst || isLast) ? "#fff" : "var(--ink-mute)",
+                            fontSize: 13, fontWeight: 800, fontFamily: "Inter, sans-serif",
+                            boxShadow: isFirst || isLast ? "0 4px 12px rgba(0,35,102,0.2)" : "none",
+                          }}>
+                            {isLast ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8}><polyline points="20 6 9 17 4 12"/></svg>
+                            ) : (i + 1)}
+                          </div>
+                          {!isLast && (
+                            <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--line)", margin: "4px 0" }} />
+                          )}
                         </div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{step.name}</div>
-                        <div style={{ fontSize: 10, color: "var(--ink-mute)" }}>{step.meta}</div>
+                        {/* 右：内容 */}
+                        <div style={{ flex: 1, paddingBottom: isLast ? 0 : 20, paddingTop: 6 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", marginBottom: 3 }}>
+                            {step.step}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: step.meta ? 4 : 0 }}>
+                            {step.name}
+                          </div>
+                          {step.meta && (
+                            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>{step.meta}</div>
+                          )}
+                        </div>
                       </div>
-                      {i < job.selection_flow.length - 1 && (
-                        <div style={{ padding: "0 6px" }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}>
-                            <path d="M9 18l6-6-6-6" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {job.selection_note && (
                 <p style={{
