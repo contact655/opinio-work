@@ -20,8 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-const FREE_COUNT = 4;
-
 export default async function SalaryPage() {
   const { jobs } = await getJobs();
   const stats = buildSalaryStats(jobs);
@@ -76,7 +74,7 @@ export default async function SalaryPage() {
       </div>
 
       {/* ── 検索 + データ（Client Component）── */}
-      <SalaryClient stats={stats} maxBar={maxBar} freeCount={FREE_COUNT} />
+      <SalaryClient stats={stats} maxBar={maxBar} />
     </div>
   );
 }

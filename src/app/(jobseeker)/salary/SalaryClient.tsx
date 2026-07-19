@@ -24,10 +24,9 @@ const DUMMY_REPORTS = [
 interface Props {
   stats: SalaryStats[];
   maxBar: number;
-  freeCount: number;
 }
 
-export function SalaryClient({ stats, maxBar, freeCount }: Props) {
+export function SalaryClient({ stats, maxBar }: Props) {
   const [query, setQuery] = useState("");
   const [activeGroup, setActiveGroup] = useState("すべて");
 
@@ -46,8 +45,6 @@ export function SalaryClient({ stats, maxBar, freeCount }: Props) {
     return result;
   }, [stats, activeGroup, query]);
 
-  const freeItems = filtered.slice(0, freeCount);
-  const lockedItems = filtered.slice(freeCount);
 
   return (
     <>
