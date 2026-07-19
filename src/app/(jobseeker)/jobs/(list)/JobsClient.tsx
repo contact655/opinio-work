@@ -1256,21 +1256,19 @@ function JobListItem({
               href={`/companies/${company.slug ?? company.id}/casual-meeting`}
               onClick={(e) => e.stopPropagation()}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 10, fontWeight: 700,
-                color: "#C2410C",
+                width: 38, height: 38, borderRadius: 10,
+                border: "1.5px solid #FDBA74",
                 background: "#FFF7ED",
-                border: "1px solid #FDBA74",
-                padding: "5px 10px",
-                borderRadius: 6,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 2,
                 textDecoration: "none",
-                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C2410C" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
-              面談を申し込む
+              <span style={{ fontSize: 7, fontWeight: 700, color: "#C2410C", lineHeight: 1 }}>面談</span>
             </a>
           )}
         </div>
