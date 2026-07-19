@@ -1579,6 +1579,7 @@ function SidebarFilters({
   companyStage, onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
   availablePrefectures, setParam, hasFilter, q, onReset,
   industries: _industries, industryId: _industryId, roleCounts,
+  toggleParam: toggleParamFn, toggleStage,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
@@ -1591,9 +1592,15 @@ function SidebarFilters({
   industries: { id: string; parent_id: string | null; name: string; slug: string }[];
   industryId: string;
   roleCounts?: Map<string, number>;
+  toggleParam: (key: string, value: string, current: string) => void;
+  toggleStage: (value: string) => void;
 }) {
   // ③ アコーディオン: デフォルトで年収以外は折りたたむ（年収はデフォルト展開）
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["empType", "prefecture"]));
+  const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
+  const workStyleSet = useMemo(() => new Set(workStyle ? workStyle.split(",") : []), [workStyle]);
+  const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
+  const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -1622,15 +1629,14 @@ function SidebarFilters({
 
   return (
     <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden", boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
-      {/* Header */}
-      <div style={{ padding: "9px 12px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" }}>絞り込み</span>
-        {(hasFilter || q) && (
+      {/* Header — リセットボタンのみ（有効フィルターがある場合） */}
+      {(hasFilter || q) && (
+        <div style={{ padding: "7px 12px", borderBottom: "1px solid var(--line-soft)", display: "flex", justifyContent: "flex-end" }}>
           <button type="button" onClick={onReset} style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>
             リセット
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 職種 — アコーディオン（デフォルト展開）*/}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
@@ -1638,10 +1644,10 @@ function SidebarFilters({
         {!collapsed.has("roles") && (() => {
           const { business, tech } = getVisibleRoles(parentRoles);
           const renderRoleBtn = (role: { id: string; name: string }) => {
-            const isActive = category === role.id;
+            const isActive = categorySet.has(role.id);
             const rc = getRoleColor(role.name);
             return (
-              <button key={role.id} type="button" onClick={() => setParam("category", isActive ? "" : role.id)}
+              <button key={role.id} type="button" onClick={() => toggleParamFn("category", role.id, category)}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
                 onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                 onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
@@ -1694,9 +1700,9 @@ function SidebarFilters({
         {!collapsed.has("workStyle") && (
           <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
             {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
-              const isActive = workStyle === opt.value;
+              const isActive = workStyleSet.has(opt.value);
               return (
-                <button key={opt.value} type="button" onClick={() => setParam("work_style", isActive ? "" : opt.value)}
+                <button key={opt.value} type="button" onClick={() => toggleParamFn("work_style", opt.value, workStyle)}
                   style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
                   onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                   onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
@@ -1709,15 +1715,40 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* 雇用形態 */}
+      {/* 企業ステージ（複数選択対応） */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)", padding: "10px 12px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: companyStageSet.size > 0 ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
+          {companyStageSet.size > 0 && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
+          企業ステージ
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {([
+            { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
+            { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
+            { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
+            { key: "foreign", label: "🌏 外資系",      color: "#1D4ED8",         bg: "#EFF6FF" },
+          ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
+            const active = companyStageSet.has(key);
+            return (
+              <button key={key} type="button" onClick={() => toggleStage(key)}
+                style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer", transition: "all 0.15s" }}
+              >
+                {active ? "✓ " : ""}{label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 雇用形態（企業ステージの下・複数選択対応） */}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="雇用形態" sectionKey="empType" hasActive={!!empType} />
+        <SectionHeader label="雇用形態" sectionKey="empType" hasActive={empTypeSet.size > 0} />
         {!collapsed.has("empType") && (
           <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
             {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
-              const isActive = empType === opt.value;
+              const isActive = empTypeSet.has(opt.value);
               return (
-                <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
+                <button key={opt.value} type="button" onClick={() => toggleParamFn("emp_type", opt.value, empType)}
                   style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
                   onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                   onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
@@ -1728,31 +1759,6 @@ function SidebarFilters({
             })}
           </div>
         )}
-      </div>
-
-      {/* 企業ステージ */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)", padding: "10px 12px" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: companyStage ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
-          {companyStage && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
-          企業ステージ
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {([
-            { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
-            { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
-            { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
-            { key: "foreign", label: "🌏 外資系",      color: "#1D4ED8",         bg: "#EFF6FF" },
-          ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
-            const active = companyStage === key;
-            return (
-              <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
-                style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer", transition: "all 0.15s" }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* 地域 */}
@@ -1892,8 +1898,13 @@ export default function JobsClient({
   const industry = searchParams.get("industry") ?? "";
   const industryId = searchParams.get("industry_id") ?? "";
   const prefecture = searchParams.get("prefecture") ?? "";
-  const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター
+  const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター（カンマ区切り複数可）
   const bizModel = searchParams.get("biz_model") ?? ""; // 業態タグフィルター
+
+  // 複数選択用: カンマ区切り文字列 → Set
+  const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
+  const workStyleSet = useMemo(() => new Set(work_style ? work_style.split(",") : []), [work_style]);
+  const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
   const sort = searchParams.get("sort") ?? "updated";
   // Phase 1: 読み取りのみ（?job=UUID で行ハイライト。書き込みは Phase 2）
   const selectedJobId = searchParams.get("job");
@@ -1935,7 +1946,19 @@ export default function JobsClient({
 
 
   // 企業ステージフィルター
-  const [companyStage, setCompanyStage] = useState("");
+  const [companyStage, setCompanyStage] = useState(""); // カンマ区切り複数選択
+  const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
+
+  function toggleParam(key: string, value: string, current: string) {
+    const set = new Set(current ? current.split(",") : []);
+    if (set.has(value)) set.delete(value); else set.add(value);
+    setParam(key, Array.from(set).join(","));
+  }
+  function toggleStage(value: string) {
+    const set = new Set(companyStage ? companyStage.split(",") : []);
+    if (set.has(value)) set.delete(value); else set.add(value);
+    setCompanyStage(Array.from(set).join(","));
+  }
 
   // 技術スタックフィルター（複数選択 AND）
   const [techStack, setTechStack] = useState<string[]>([]);
@@ -2087,20 +2110,20 @@ export default function JobsClient({
       list = list.filter((j) => bizIds.has(j.role_category_id ?? ""));
     }
 
-    // ow_roles 親カテゴリフィルタ — ow_job_roles の全職種 UUID で判定（複数職種対応）
-    if (category) list = list.filter((j) => {
+    // ow_roles 親カテゴリフィルタ — 複数選択対応（カンマ区切り）
+    if (categorySet.size > 0) list = list.filter((j) => {
       const ids = j.roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
-      return ids.includes(category);
+      return ids.some((id) => categorySet.has(id));
     });
 
     // 旧 dept フィルタ (後方互換、URLに ?dept= が残っている場合)
     if (!category && dept) list = list.filter((j) => j.dept === dept);
 
-    if (work_style) {
+    if (workStyleSet.size > 0) {
       list = list.filter(
         (j) =>
-          j.work_style === work_style ||
-          j.tags.some((t) => t.includes(work_style))
+          workStyleSet.has(j.work_style) ||
+          j.tags.some((t) => Array.from(workStyleSet).some((ws) => t.includes(ws)))
       );
     }
 
@@ -2146,9 +2169,9 @@ export default function JobsClient({
       list = list.filter((j) => extractPrefecture(j.location) === prefecture);
     }
 
-    // 雇用形態フィルタ
-    if (empType) {
-      list = list.filter((j) => j.employment_type === empType);
+    // 雇用形態フィルタ（複数選択対応）
+    if (empTypeSet.size > 0) {
+      list = list.filter((j) => empTypeSet.has(j.employment_type));
     }
 
     // 業態タグフィルタ
@@ -2156,24 +2179,26 @@ export default function JobsClient({
       list = list.filter((j) => j.business_model === bizModel);
     }
 
-    // 企業ステージフィルタ
-    if (companyStage) {
+    // 企業ステージフィルタ（複数選択対応）
+    if (companyStageSet.size > 0) {
       list = list.filter((j) => {
         const phase = (companyMap.get(j.company_id)?.phase ?? "").toLowerCase();
-        if (companyStage === "unicorn") return /unicorn|ユニコーン/.test(phase);
-        if (companyStage === "listed")  return /上場|listed|nasdaq|nyse|グロース|プライム/.test(phase);
-        if (companyStage === "startup") return /seed|シード|series|シリーズ/.test(phase);
-        if (companyStage === "foreign") {
-          const co = companyMap.get(j.company_id);
-          const nm = co?.name ?? "";
-          const url = (co?.url ?? "").toLowerCase();
-          // "Japan" in name (e.g. "HubSpot Japan株式会社"), or non-jp URL, or katakana start
-          if (nm.toLowerCase().includes("japan")) return true;
-          if (url && !url.includes(".co.jp") && !url.includes(".jp/") && !url.endsWith(".jp")) return true;
-          if (/^[゠-ヿ]/.test(nm)) return true;
+        const co = companyMap.get(j.company_id);
+        const matchesStage = (s: string) => {
+          if (s === "unicorn") return /unicorn|ユニコーン/.test(phase);
+          if (s === "listed")  return /上場|listed|nasdaq|nyse|グロース|プライム/.test(phase);
+          if (s === "startup") return /seed|シード|series|シリーズ/.test(phase);
+          if (s === "foreign") {
+            const nm = co?.name ?? "";
+            const url = (co?.url ?? "").toLowerCase();
+            if (nm.toLowerCase().includes("japan")) return true;
+            if (url && !url.includes(".co.jp") && !url.includes(".jp/") && !url.endsWith(".jp")) return true;
+            if (/^[゠-ヿ]/.test(nm)) return true;
+            return false;
+          }
           return false;
-        }
-        return true;
+        };
+        return Array.from(companyStageSet).some(matchesStage);
       });
     }
 
@@ -2208,7 +2233,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, empTypeSet, companyStage, companyStageSet, techStack, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件・更新日新しい順）
   const filteredForDisplay = useMemo(() => {
@@ -2677,6 +2702,8 @@ export default function JobsClient({
                 industries={industries}
                 industryId={industryId}
                 roleCounts={roleCounts}
+                toggleParam={toggleParam}
+                toggleStage={toggleStage}
               />
             </aside>
 
