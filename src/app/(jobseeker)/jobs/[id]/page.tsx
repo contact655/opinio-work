@@ -521,9 +521,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   color: "var(--success)", fontSize: 15, fontWeight: 700,
                   fontFamily: "Inter, sans-serif",
                 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                  </svg>
                   {job.salary_min && job.salary_max
                     ? `${job.salary_min}〜${job.salary_max}万円`
                     : job.salary_min ? `${job.salary_min}万円〜`
@@ -713,11 +710,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     {/* 基本給行 */}
                     <div style={{ padding: "16px 20px", borderRadius: isSalesJob(job.dept) && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 28, height: 28, borderRadius: 7, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
-                            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                          </svg>
-                        </span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
                           {isSalesJob(job.dept) ? "基本給" : "想定年収"}
                         </span>
