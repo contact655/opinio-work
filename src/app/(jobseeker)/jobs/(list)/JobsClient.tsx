@@ -1609,10 +1609,10 @@ function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; sa
 }
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel, meetingOnly,
-  companyStage, onCompanyStageChange, techStack, onTechStackChange,
+  parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel: _bizModel, meetingOnly,
+  companyStage, onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
-  industries, industryId, roleCounts,
+  industries: _industries, industryId: _industryId, roleCounts,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
