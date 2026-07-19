@@ -2869,8 +2869,6 @@ export default function JobsClient({
                   const seenMeetingCo = new Set<string>();
                   return paged.map((job) => {
                     const co = companyMap.get(job.company_id);
-                    const isFirstMeeting = !!co?.accepting_casual_meetings && !seenMeetingCo.has(job.company_id);
-                    if (co?.accepting_casual_meetings) seenMeetingCo.add(job.company_id);
                     return (
                       <JobListItem
                         key={job.id}
@@ -2882,7 +2880,7 @@ export default function JobsClient({
                         onSelect={handleSelectJob}
                         reviewSummary={reviewSummaries?.[job.company_id]}
                         matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
-                        showMeetingCta={isFirstMeeting}
+                        showMeetingCta={!!co?.accepting_casual_meetings}
                       />
                     );
                   });
