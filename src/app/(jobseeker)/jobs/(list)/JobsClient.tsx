@@ -3024,11 +3024,12 @@ export default function JobsClient({
             </>
           )}
             </main>
-            {/* 右詳細ペイン */}
+            {/* 右詳細ペイン — 未選択時はリスト先頭を自動表示（LinkedIn方式） */}
             {isDesktop && (
               <div className="jobs-detail-pane">
                 {(() => {
-                  const selJob = selectedJobId ? paged.find(j => j.id === selectedJobId) ?? null : null;
+                  const effectiveId = selectedJobId ?? paged[0]?.id ?? null;
+                  const selJob = effectiveId ? paged.find(j => j.id === effectiveId) ?? null : null;
                   const selCo = selJob ? companyMap.get(selJob.company_id) ?? null : null;
                   return <JobDetailPane job={selJob} company={selCo} topJobs={allJobs} companyMap={companyMap} />;
                 })()}
