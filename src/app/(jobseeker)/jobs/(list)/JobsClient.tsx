@@ -1576,7 +1576,7 @@ function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; sa
 
 function SidebarFilters({
   parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel: _bizModel,
-  companyStage, onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
+  companyStage, onCompanyStageChange: _onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
   availablePrefectures, setParam, hasFilter, q, onReset,
   industries: _industries, industryId: _industryId, roleCounts,
   toggleParam: toggleParamFn, toggleStage,
@@ -2868,7 +2868,6 @@ export default function JobsClient({
               {/* リスト表示（デスクトップ・モバイル共通） */}
               <div className="jobs-list-desktop">
                 {(() => {
-                  const seenMeetingCo = new Set<string>();
                   return paged.map((job) => {
                     const co = companyMap.get(job.company_id);
                     return (
