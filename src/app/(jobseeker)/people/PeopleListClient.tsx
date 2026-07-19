@@ -203,31 +203,34 @@ function CompanyBadge({ card, large }: { card: AmbassadorCard; large?: boolean }
 function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
   const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
-  const themes = card.talkThemes.slice(0, 2);
   const isAvailable = card.talkThemes.length > 0;
 
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       className="ppl-grid-card"
+      style={{ position: "relative" }}
     >
-      {/* アバター + 面談可バッジ */}
-      <div style={{ position: "relative", marginBottom: isAvailable ? 14 : 10, display: "flex", justifyContent: "center" }}>
+      {/* 右上 面談可バッジ */}
+      {isAvailable && (
+        <span style={{
+          position: "absolute", top: 10, right: 10,
+          display: "inline-flex", alignItems: "center", gap: 4,
+          fontSize: 10, fontWeight: 700,
+          padding: "3px 9px", borderRadius: 100,
+          background: "#FFF7ED", color: "#C2410C",
+          border: "1px solid #FED7AA", whiteSpace: "nowrap",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          zIndex: 1,
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+          面談可
+        </span>
+      )}
+
+      {/* アバター */}
+      <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
         <Avatar card={card} size={88} />
-        {isAvailable && (
-          <span style={{
-            position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)",
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 10, fontWeight: 700,
-            padding: "2px 9px", borderRadius: 100,
-            background: "#FFF7ED", color: "#C2410C",
-            border: "1px solid #FED7AA", whiteSpace: "nowrap",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-            面談可
-          </span>
-        )}
       </div>
 
       {/* 名前・役職・会社 */}
@@ -241,48 +244,8 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         <CompanyBadge card={card} large />
       </div>
 
-      {/* 相談テーマ */}
-      {themes.length > 0 && (
-        <div style={{
-          width: "100%", marginBottom: 12,
-          background: "var(--royal-50)", borderRadius: 8,
-          padding: "10px 12px",
-          border: "1px solid var(--royal-100)",
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", marginBottom: 6, letterSpacing: "0.06em" }}>
-            話せること
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {themes.map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                <span style={{ fontSize: 11, color: "var(--royal)", lineHeight: 1.5, fontWeight: 500 }}>{t}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CTAボタン群 */}
-      <div style={{ marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 7 }}>
-        {isAvailable && (
-          <Link
-            href={`/people/${card.adminId}/reserve`}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "block", textAlign: "center",
-              padding: "10px 14px",
-              background: "linear-gradient(135deg, #F59E0B, #F97316)",
-              color: "#fff", borderRadius: 9,
-              fontSize: 13, fontWeight: 700, textDecoration: "none",
-              boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
-            }}
-          >
-            話を聞く →
-          </Link>
-        )}
+      {/* CTAボタン */}
+      <div style={{ marginTop: "auto", width: "100%" }}>
         <Link
           href={`/u/${card.userId}`}
           onClick={(e) => e.stopPropagation()}
