@@ -960,11 +960,7 @@ function computeMatchReason(
   if (!category && dept && (job.dept?.includes(dept) || dept.includes(job.dept ?? ""))) {
     return `「${dept}」職種での絞り込み結果`;
   }
-  // 年収フィルター
-  if (salary) {
-    const min = parseInt(salary, 10);
-    if (!isNaN(min) && min > 0) return `年収${min}万円以上の条件に合致`;
-  }
+  // 年収フィルター — ラベル非表示
   // 勤務地フィルター
   if (prefecture && job.location?.includes(prefecture)) {
     return `${prefecture}勤務の求人`;
@@ -978,7 +974,7 @@ function computeMatchReason(
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
-  selectedJobId, onSelect, reviewSummary, isCompared, onCompare, matchReason,
+  selectedJobId, onSelect, reviewSummary, matchReason,
   showMeetingCta = true,
 }: {
   job: Job;
@@ -988,8 +984,6 @@ function JobListItem({
   selectedJobId?: string | null;
   onSelect?: (id: string) => void;
   reviewSummary?: CompanyReviewSummary;
-  isCompared?: boolean;
-  onCompare?: (id: string) => void;
   matchReason?: string | null;
   showMeetingCta?: boolean;
 }) {
@@ -1089,14 +1083,6 @@ function JobListItem({
         <div style={{ flex: 1, minWidth: 0 }}>
 
           {/* マッチ理由（フィルター文脈 / 先輩在籍 など） */}
-          {matchReason && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{matchReason}</span>
-            </div>
-          )}
 
           {/* 行1: 求人タイトル + 面談受付中バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
@@ -1281,29 +1267,6 @@ function JobListItem({
               {bookmarked ? "済" : "気になる"}
             </span>
           </button>
-          {onCompare && (
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCompare(job.id); }}
-              aria-label={isCompared ? "比較から外す" : "比較に追加"}
-              title={isCompared ? "比較から外す" : "比較に追加（最大3件）"}
-              style={{
-                borderRadius: 8,
-                border: `1.5px solid ${isCompared ? "var(--royal)" : "#e2e8f0"}`,
-                background: isCompared ? "var(--royal-50)" : "#fff",
-                cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 2, padding: "5px 7px",
-                transition: "all 0.2s", flexShrink: 0,
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isCompared ? "var(--royal)" : "#94a3b8"} strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-                <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
-              </svg>
-              <span style={{ fontSize: 10, fontWeight: 700, color: isCompared ? "var(--royal)" : "#94a3b8", lineHeight: 1, whiteSpace: "nowrap" }}>
-                {isCompared ? "✓ 比較中" : "比較"}
-              </span>
-            </button>
-          )}
         </div>
       </Link>
       {/* Quick 面談CTA — 面談受付中企業のみ・リスト内で企業ごとに1回だけ表示 */}
@@ -1552,14 +1515,29 @@ function JobDetailPane({
 
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
+const SALARY_STEPS = [0, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000];
+
 function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; salaryMax: string; setParam: (k: string, v: string) => void }) {
-  const STEPS = [0, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000];
-  const minIdx = salary ? Math.max(0, STEPS.indexOf(parseInt(salary, 10))) : 0;
-  const maxIdx = salaryMax ? Math.max(1, STEPS.indexOf(parseInt(salaryMax, 10))) : STEPS.length - 1;
-  const safeMin = minIdx < 0 ? 0 : minIdx;
-  const safeMax = maxIdx < 0 ? STEPS.length - 1 : Math.max(safeMin + 1, maxIdx);
-  const pctMin = (safeMin / (STEPS.length - 1)) * 100;
-  const pctMax = (safeMax / (STEPS.length - 1)) * 100;
+  const urlMin = salary ? Math.max(0, SALARY_STEPS.indexOf(parseInt(salary, 10))) : 0;
+  const urlMax = salaryMax ? Math.max(1, SALARY_STEPS.indexOf(parseInt(salaryMax, 10))) : SALARY_STEPS.length - 1;
+  const [localMin, setLocalMin] = useState(urlMin < 0 ? 0 : urlMin);
+  const [localMax, setLocalMax] = useState(urlMax < 0 ? SALARY_STEPS.length - 1 : Math.max(1, urlMax));
+
+  // Sync from URL (e.g. reset)
+  useEffect(() => {
+    setLocalMin(urlMin < 0 ? 0 : urlMin);
+    setLocalMax(urlMax < 0 ? SALARY_STEPS.length - 1 : Math.max(1, urlMax));
+  }, [urlMin, urlMax]);
+
+  const pctMin = (localMin / (SALARY_STEPS.length - 1)) * 100;
+  const pctMax = (localMax / (SALARY_STEPS.length - 1)) * 100;
+
+  function commitMin(idx: number) {
+    setParam("salary", idx === 0 ? "" : String(SALARY_STEPS[idx]));
+  }
+  function commitMax(idx: number) {
+    setParam("salary_max", idx === SALARY_STEPS.length - 1 ? "" : String(SALARY_STEPS[idx]));
+  }
 
   return (
     <div>
@@ -1569,38 +1547,38 @@ function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; sa
         .salary-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--royal); box-shadow:0 1px 4px rgba(0,36,102,0.18); cursor:pointer; pointer-events:all; }
       `}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: safeMin > 0 ? "var(--royal)" : "var(--ink-mute)" }}>
-          {safeMin === 0 ? "下限なし" : `${STEPS[safeMin]}万〜`}
+        <span style={{ fontSize: 12, fontWeight: 700, color: localMin > 0 ? "var(--royal)" : "var(--ink-mute)" }}>
+          {localMin === 0 ? "下限なし" : `${SALARY_STEPS[localMin]}万〜`}
         </span>
         <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>〜</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: safeMax < STEPS.length - 1 ? "var(--royal)" : "var(--ink-mute)" }}>
-          {safeMax === STEPS.length - 1 ? "上限なし" : `〜${STEPS[safeMax]}万`}
+        <span style={{ fontSize: 12, fontWeight: 700, color: localMax < SALARY_STEPS.length - 1 ? "var(--royal)" : "var(--ink-mute)" }}>
+          {localMax === SALARY_STEPS.length - 1 ? "上限なし" : `〜${SALARY_STEPS[localMax]}万`}
         </span>
       </div>
       <div style={{ position: "relative", height: 28, marginBottom: 6 }}>
-        {/* Track */}
         <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", width: "100%", height: 4, borderRadius: 2, background: "var(--line)" }} />
-        {/* Active range */}
         <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: `${pctMin}%`, width: `${pctMax - pctMin}%`, height: 4, borderRadius: 2, background: "var(--royal)" }} />
-        {/* Min thumb */}
-        <input type="range" className="salary-slider" min={0} max={STEPS.length - 1} value={safeMin}
+        {/* Min thumb — update local state on drag, commit on release */}
+        <input type="range" className="salary-slider" min={0} max={SALARY_STEPS.length - 1} value={localMin}
           onChange={(e) => {
             const idx = parseInt(e.target.value, 10);
-            if (idx >= safeMax) return;
-            setParam("salary", idx === 0 ? "" : String(STEPS[idx]));
+            if (idx < localMax) setLocalMin(idx);
           }}
+          onMouseUp={() => commitMin(localMin)}
+          onTouchEnd={() => commitMin(localMin)}
         />
         {/* Max thumb */}
-        <input type="range" className="salary-slider" min={0} max={STEPS.length - 1} value={safeMax}
+        <input type="range" className="salary-slider" min={0} max={SALARY_STEPS.length - 1} value={localMax}
           onChange={(e) => {
             const idx = parseInt(e.target.value, 10);
-            if (idx <= safeMin) return;
-            setParam("salary_max", idx === STEPS.length - 1 ? "" : String(STEPS[idx]));
+            if (idx > localMin) setLocalMax(idx);
           }}
+          onMouseUp={() => commitMax(localMax)}
+          onTouchEnd={() => commitMax(localMax)}
         />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--ink-mute)" }}>
-        {STEPS.filter((_, i) => i % 2 === 0).map((v) => (
+        {SALARY_STEPS.filter((_, i) => i % 2 === 0).map((v) => (
           <span key={v}>{v === 0 ? "なし" : v === 2000 ? "2000+" : `${v}`}</span>
         ))}
       </div>
@@ -1990,17 +1968,6 @@ export default function JobsClient({
   // 技術スタックフィルター（複数選択 AND）
   const [techStack, setTechStack] = useState<string[]>([]);
 
-  // 求人比較機能
-  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
-  const toggleCompare = useCallback((id: string) => {
-    setCompareIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); }
-      else if (next.size < 3) { next.add(id); }
-      return next;
-    });
-  }, []);
-
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -2103,7 +2070,7 @@ export default function JobsClient({
     if (value) params.set(key, value);
     else params.delete(key);
     params.delete("page");
-    router.replace(`/jobs?${params.toString()}`);
+    router.replace(`/jobs?${params.toString()}`, { scroll: false });
   }
 
   // 実データに含まれる都道府県のみ (北から南順)
@@ -2777,61 +2744,71 @@ export default function JobsClient({
             {/* ─ Results column ─ */}
             <main style={{ minWidth: 0 }}>
 
-          {/* ── パーソナライズ: あなたにおすすめの求人（コンパクト表示） ── */}
+          {/* ── パーソナライズ: あなたにおすすめの求人 ── */}
           {!hasFilter && !q && recommendations.length > 0 && (
-            <div style={{
-              marginBottom: 16, padding: "10px 14px", borderRadius: 10,
-              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0 }}>
-                ✦ あなたへのおすすめ
-              </span>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                {recommendations.slice(0, 3).map(({ job }) => {
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>あなたへのおすすめ</span>
+                <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 600 }}>
+                  {recommendations.length}件
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+                {recommendations.slice(0, 4).map(({ job }) => {
                   const recCompany = companyMap.get(job.company_id);
                   return (
                     <a
                       key={job.id}
                       href={`/jobs/${job.slug ?? job.id}`}
-                      title={`${job.role} — ${recCompany?.name ?? ""}`}
                       style={{
-                        padding: "5px 11px", borderRadius: 8,
+                        padding: "12px 14px", borderRadius: 12,
                         background: "#fff", color: "var(--ink)",
-                        border: "1px solid var(--royal-100)", textDecoration: "none",
-                        display: "inline-flex", alignItems: "center", gap: 7,
-                        maxWidth: 220, flexShrink: 0,
+                        border: "1.5px solid var(--line)",
+                        textDecoration: "none", display: "flex", alignItems: "flex-start", gap: 10,
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                        transition: "border-color .15s, box-shadow .15s",
                       }}
                     >
-                      {recCompany && (
-                        <CompanyLogo
-                          name={recCompany.name}
-                          logoUrl={recCompany.logo_url}
-                          logoLetter={recCompany.logo_letter}
-                          logoGradient={recCompany.gradient}
-                          size={22}
-                          borderRadius={5}
-                        />
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
+                      <div style={{ flexShrink: 0, marginTop: 1 }}>
+                        {recCompany && (
+                          <CompanyLogo
+                            name={recCompany.name}
+                            logoUrl={recCompany.logo_url}
+                            logoLetter={recCompany.logo_letter}
+                            logoGradient={recCompany.gradient}
+                            size={36}
+                            borderRadius={8}
+                          />
+                        )}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {job.role}
                         </div>
                         {recCompany && (
-                          <div style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
+                          <div style={{ fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {(recCompany as any).brand_name ?? recCompany.name}
+                          </div>
+                        )}
+                        {(job.salary_min ?? 0) > 0 && (
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
+                            {job.salary_min}
+                            {job.salary_max && job.salary_max > job.salary_min! ? `〜${job.salary_max}` : ""}万円
                           </div>
                         )}
                       </div>
                     </a>
                   );
                 })}
-                {recommendations.length > 3 && (
-                  <span style={{ fontSize: 11, color: "var(--royal)", alignSelf: "center" }}>
-                    +{recommendations.length - 3}件
-                  </span>
-                )}
               </div>
+              {recommendations.length > 4 && (
+                <div style={{ marginTop: 8, textAlign: "right" }}>
+                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -2870,8 +2847,6 @@ export default function JobsClient({
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
                     reviewSummary={reviewSummaries?.[job.company_id]}
-                    isCompared={compareIds.has(job.id)}
-                    onCompare={toggleCompare}
                     matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                   />
                 ))}
@@ -2940,8 +2915,6 @@ export default function JobsClient({
                         selectedJobId={selectedJobId}
                         onSelect={handleSelectJob}
                         reviewSummary={reviewSummaries?.[job.company_id]}
-                        isCompared={compareIds.has(job.id)}
-                        onCompare={toggleCompare}
                         matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                         showMeetingCta={isFirstMeeting}
                       />
@@ -3021,53 +2994,6 @@ export default function JobsClient({
         </div>
       </div>{/* bg end */}
 
-      {/* ── 比較バー（2件以上選択時に画面下部固定） ── */}
-      {compareIds.size >= 1 && (
-        <div style={{
-          position: "fixed", bottom: 70, left: 0, right: 0, zIndex: 300,
-          display: "flex", justifyContent: "center", pointerEvents: "none",
-        }}>
-          <div style={{
-            background: "var(--ink)", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
-            padding: "12px 20px", display: "flex", alignItems: "center", gap: 12,
-            pointerEvents: "all", maxWidth: 600, width: "calc(100% - 32px)",
-          }}>
-            <div style={{ display: "flex", gap: 8, flex: 1, flexWrap: "wrap" }}>
-              {Array.from(compareIds).map((id) => {
-                const j = allJobs.find((x) => x.id === id);
-                return j ? (
-                  <div key={id} style={{
-                    background: "rgba(255,255,255,0.12)", borderRadius: 8, padding: "4px 10px",
-                    display: "flex", alignItems: "center", gap: 6,
-                  }}>
-                    <span style={{ fontSize: 12, color: "#fff", fontWeight: 600, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</span>
-                    <button type="button" onClick={() => toggleCompare(id)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
-                  </div>
-                ) : null;
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              {compareIds.size >= 2 && (
-                <a
-                  href={`/jobs/compare?ids=${Array.from(compareIds).join(",")}`}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "8px 16px", borderRadius: 10,
-                    background: "var(--warm)", color: "#fff",
-                    fontSize: 13, fontWeight: 700, textDecoration: "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {compareIds.size}件を比較する →
-                </a>
-              )}
-              <button type="button" onClick={() => setCompareIds(new Set())} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
-                クリア
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style>{`
         /* ── Job card hover ── */
