@@ -2465,7 +2465,7 @@ export default function JobsClient({
               {([
                 { value: "updated", label: "新着順" },
                 { value: "salary",  label: "年収順" },
-                { value: "meeting", label: "面談優先" },
+                { value: "meeting", label: "面談受付中" },
               ] as const).map((opt, i) => {
                 const active = sort === opt.value;
                 return (
@@ -2696,7 +2696,7 @@ export default function JobsClient({
                 </span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
-                {recommendations.slice(0, 4).map(({ job }) => {
+                {recommendations.slice(0, 6).map(({ job }) => {
                   const recCompany = companyMap.get(job.company_id);
                   return (
                     <a
