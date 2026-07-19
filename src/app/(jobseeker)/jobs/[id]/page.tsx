@@ -119,7 +119,7 @@ function SecTitle({
       marginBottom: "var(--space-4)",
       fontFamily: "var(--font-noto-serif)",
       fontWeight: 700,
-      fontSize: "var(--text-lg)",
+      fontSize: 18,
       color: "var(--ink)",
       letterSpacing: "0.01em",
       lineHeight: 1.3,
@@ -242,7 +242,7 @@ function JobEmployeeCard({ emp, companyId: _companyId }: { emp: CompanyEmployee;
           <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.roleTitle}</div>
         )}
         {emp.catchphrase && (
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" as const }}>{emp.catchphrase}</div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>{emp.catchphrase}</div>
         )}
       </div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
@@ -636,7 +636,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               <h1 style={{
                 fontFamily: 'var(--font-noto-serif)',
-                fontSize: "clamp(18px,2vw,24px)", fontWeight: 700,
+                fontSize: "clamp(22px,3vw,32px)", fontWeight: 700,
                 color: "var(--ink)", lineHeight: 1.4, marginBottom: "var(--space-2)",
                 letterSpacing: "0.01em",
               }}>
@@ -704,8 +704,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 ))}
               </div>
 
-              {/* ⑦ Inline share — small icons below tags */}
-              <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
             </div>
           </div>
         </div>
@@ -719,7 +717,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* Body */}
       <div style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
+        <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
           <div className="grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]">
 
             {/* ── Main column ── */}
@@ -774,14 +772,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* Skills */}
               {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--warm)" icon={
+                <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
                 }>
                   必須スキル / 歓迎スキル
                 </SecTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
+                <div className={job.preferred_skills.length > 0 ? "grid grid-cols-1 sm:grid-cols-2" : "grid grid-cols-1"} style={{ gap: 14 }}>
                   <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
                     <div style={{
                       display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
@@ -803,6 +801,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       ))}
                     </ul>
                   </div>
+                  {job.preferred_skills.length > 0 && (
                   <div style={{ padding: "var(--space-4)", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
                     <div style={{
                       display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-3)",
@@ -824,6 +823,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       ))}
                     </ul>
                   </div>
+                  )}
                 </div>
               </section>
 
@@ -832,7 +832,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* 勤務条件 */}
               {(job.salary_min || job.salary_max || job.location || job.work_style || job.employment_type) && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--success)" icon={
+                <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
                   </svg>
@@ -1060,7 +1060,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* Main tasks */}
               {job.main_tasks.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="#0891B2" icon={
+                <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                   </svg>
@@ -1128,7 +1128,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* Selection flow */}
               {job.selection_flow.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--purple)" icon={
+                <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                   </svg>
@@ -1179,7 +1179,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* Related article */}
               {job.related_article_title && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--ink)" icon={
+                <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <path d="M14 2v6h6M16 13H8M16 17H8"/>
@@ -1330,6 +1330,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {company.name} の企業ページで詳細を見る →
                 </Link>
               </section>
+
+              {/* Share — bottom of main content */}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
+              </div>
 
               {/* 現役社員・OB/OG — 職種マッチ */}
               <JobEmployeesSection
