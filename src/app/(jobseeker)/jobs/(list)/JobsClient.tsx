@@ -1250,34 +1250,23 @@ function JobListItem({
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
         </a>
 
-        {/* 面談をする */}
-        {hasMeeting && showMeetingCta ? (
-          <a
-            href={`/companies/${company.slug ?? company.id}/casual-meeting`}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
-              padding: "8px 6px", borderRadius: 7,
-              backgroundColor: "#FFF7ED", color: "#C2410C",
-              border: "1.5px solid #FDBA74",
-              fontSize: 11, fontWeight: 700, textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            面談をする
-          </a>
-        ) : (
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
+        {/* 面談をする（求人がある＝面談受付中） */}
+        <a
+          href={`/companies/${company.slug ?? company.id}/casual-meeting`}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,
-            backgroundColor: "#E2E8F0", textAlign: "center",
-            fontSize: 11, color: "#94A3B8", whiteSpace: "nowrap",
-          }}>
-            面談受付外
-          </div>
-        )}
+            backgroundColor: "#FFF7ED", color: "#C2410C",
+            border: "1.5px solid #FDBA74",
+            fontSize: 11, fontWeight: 700, textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          面談をする
+        </a>
 
         {/* 保存をする */}
         <button
