@@ -2777,7 +2777,7 @@ export default function JobsClient({
           {(() => { /* computed below via variables */ return null; })()}
           <div
             className="jobs-layout"
-            style={isDesktop ? { gridTemplateColumns: `220px minmax(0,1fr)${selectedJobId ? " 360px" : ""}` } : undefined}
+            style={isDesktop ? { gridTemplateColumns: "220px minmax(0,1fr) 360px" } : undefined}
           >
             {/* ─ Desktop sidebar ─ */}
             <aside className="jobs-sidebar">
