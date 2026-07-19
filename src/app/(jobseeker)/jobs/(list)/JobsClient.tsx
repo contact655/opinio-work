@@ -1552,14 +1552,70 @@ function JobDetailPane({
 
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
+function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; salaryMax: string; setParam: (k: string, v: string) => void }) {
+  const STEPS = [0, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000];
+  const minIdx = salary ? Math.max(0, STEPS.indexOf(parseInt(salary, 10))) : 0;
+  const maxIdx = salaryMax ? Math.max(1, STEPS.indexOf(parseInt(salaryMax, 10))) : STEPS.length - 1;
+  const safeMin = minIdx < 0 ? 0 : minIdx;
+  const safeMax = maxIdx < 0 ? STEPS.length - 1 : Math.max(safeMin + 1, maxIdx);
+  const pctMin = (safeMin / (STEPS.length - 1)) * 100;
+  const pctMax = (safeMax / (STEPS.length - 1)) * 100;
+
+  return (
+    <div>
+      <style>{`
+        .salary-slider { position:absolute; width:100%; height:4px; appearance:none; -webkit-appearance:none; background:transparent; pointer-events:none; top:50%; transform:translateY(-50%); }
+        .salary-slider::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--royal); box-shadow:0 1px 4px rgba(0,36,102,0.18); cursor:pointer; pointer-events:all; }
+        .salary-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--royal); box-shadow:0 1px 4px rgba(0,36,102,0.18); cursor:pointer; pointer-events:all; }
+      `}</style>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: safeMin > 0 ? "var(--royal)" : "var(--ink-mute)" }}>
+          {safeMin === 0 ? "下限なし" : `${STEPS[safeMin]}万〜`}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>〜</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: safeMax < STEPS.length - 1 ? "var(--royal)" : "var(--ink-mute)" }}>
+          {safeMax === STEPS.length - 1 ? "上限なし" : `〜${STEPS[safeMax]}万`}
+        </span>
+      </div>
+      <div style={{ position: "relative", height: 28, marginBottom: 6 }}>
+        {/* Track */}
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", width: "100%", height: 4, borderRadius: 2, background: "var(--line)" }} />
+        {/* Active range */}
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: `${pctMin}%`, width: `${pctMax - pctMin}%`, height: 4, borderRadius: 2, background: "var(--royal)" }} />
+        {/* Min thumb */}
+        <input type="range" className="salary-slider" min={0} max={STEPS.length - 1} value={safeMin}
+          onChange={(e) => {
+            const idx = parseInt(e.target.value, 10);
+            if (idx >= safeMax) return;
+            setParam("salary", idx === 0 ? "" : String(STEPS[idx]));
+          }}
+        />
+        {/* Max thumb */}
+        <input type="range" className="salary-slider" min={0} max={STEPS.length - 1} value={safeMax}
+          onChange={(e) => {
+            const idx = parseInt(e.target.value, 10);
+            if (idx <= safeMin) return;
+            setParam("salary_max", idx === STEPS.length - 1 ? "" : String(STEPS[idx]));
+          }}
+        />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--ink-mute)" }}>
+        {STEPS.filter((_, i) => i % 2 === 0).map((v) => (
+          <span key={v}>{v === 0 ? "なし" : v === 2000 ? "2000+" : `${v}`}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
+  parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel, meetingOnly,
   companyStage, onCompanyStageChange, techStack, onTechStackChange,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
   industries, industryId, roleCounts,
 }: {
   parentRoles: { id: string; name: string }[];
-  category: string; workStyle: string; salary: string; empType: string; prefecture: string;
+  category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
   bizModel: string;
   meetingOnly: boolean; companyStage: string; onCompanyStageChange: (v: string) => void;
   techStack: string[]; onTechStackChange: (v: string[]) => void;
@@ -1572,9 +1628,7 @@ function SidebarFilters({
   roleCounts?: Map<string, number>;
 }) {
   // ③ アコーディオン: デフォルトで年収以外は折りたたむ（年収はデフォルト展開）
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "empType", "bizModel", "prefecture", "techStack"]));
-  // 「詳細条件」アコーディオン（デフォルト閉じ）
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["empType", "prefecture"]));
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -1649,6 +1703,13 @@ function SidebarFilters({
           };
           return (
             <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+              {business.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "2px 2px 3px" }}>
+                  <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                  <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>ビジネス職</span>
+                  <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+                </div>
+              )}
               {business.map(renderRoleBtn)}
               {tech.length > 0 && (
                 <>
@@ -1665,23 +1726,12 @@ function SidebarFilters({
         })()}
       </div>
 
-      {/* 年収（下限）— アコーディオン（デフォルト折りたたみ）*/}
+      {/* 年収 — デュアルスライダー */}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="年収（下限）" sectionKey="salary" hasActive={!!salary} />
+        <SectionHeader label="年収" sectionKey="salary" hasActive={!!salary || !!salaryMax} />
         {!collapsed.has("salary") && (
-          <div style={{ padding: "0 12px 8px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {SALARY_PILL_TIERS.map((t) => {
-                const isActive = salary === t.value;
-                return (
-                  <button key={t.value} type="button" onClick={() => setParam("salary", isActive ? "" : t.value)}
-                    style={{ padding: "4px 10px", borderRadius: 100, border: `1.5px solid ${isActive ? "#F59E0B" : "var(--line)"}`, background: isActive ? "#FEF3C7" : "#fff", color: isActive ? "#92400E" : "var(--ink-soft)", fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", transition: "all 0.1s" }}
-                  >
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div style={{ padding: "0 14px 12px" }}>
+            <SalaryRangeSlider salary={salary} salaryMax={salaryMax} setParam={setParam} />
           </div>
         )}
       </div>
@@ -1707,21 +1757,20 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* 業態タグ — アコーディオン（デフォルト折りたたみ）*/}
+      {/* 雇用形態 */}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="業態" sectionKey="bizModel" hasActive={!!bizModel} />
-        {!collapsed.has("bizModel") && (
+        <SectionHeader label="雇用形態" sectionKey="empType" hasActive={!!empType} />
+        {!collapsed.has("empType") && (
           <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {BUSINESS_MODELS.map((m) => {
-              const isActive = bizModel === m.key;
+            {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
+              const isActive = empType === opt.value;
               return (
-                <button key={m.key} type="button" onClick={() => setParam("biz_model", isActive ? "" : m.key)}
-                  style={{ display: "flex", alignItems: "flex-start", flexDirection: "column", gap: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--purple)" : "transparent"}`, background: isActive ? "var(--purple-soft)" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
+                  style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
                   onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                   onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--purple)" : "var(--ink)" }}>{isActive ? "✓ " : ""}{m.label}</span>
-                  {m.desc && <span style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.4 }}>{m.desc}</span>}
+                  {isActive ? "✓ " : ""}{opt.label}
                 </button>
               );
             })}
@@ -1729,158 +1778,55 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* 技術スタック — アコーディオン（Tier1: 職種の下に常時表示）*/}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="技術スタック" sectionKey="techStack" hasActive={techStack.length > 0} />
-        {!collapsed.has("techStack") && (
-          <div style={{ padding: "0 12px 12px" }}>
-            {techStack.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-                {techStack.map((t) => (
-                  <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontSize: 11, fontWeight: 700 }}>
-                    {t}
-                    <button type="button" onClick={() => onTechStackChange(techStack.filter((x) => x !== t))}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--royal)", fontSize: 13, lineHeight: 1, padding: 0, fontFamily: "inherit" }}>×</button>
-                  </span>
-                ))}
-              </div>
-            )}
-            {TECH_STACK_CATEGORIES.map((cat) => (
-              <div key={cat.label} style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 5 }}>{cat.label}</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                  {cat.items.map((tech) => {
-                    const active = techStack.includes(tech);
-                    return (
-                      <button key={tech} type="button"
-                        onClick={() => onTechStackChange(active ? techStack.filter((t) => t !== tech) : [...techStack, tech])}
-                        style={{ padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: active ? 700 : 400, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", transition: "all 0.1s", fontFamily: "inherit" }}
-                      >
-                        {tech}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* 企業ステージ */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)", padding: "10px 12px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: companyStage ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
+          {companyStage && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
+          企業ステージ
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {([
+            { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
+            { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
+            { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
+            { key: "foreign", label: "🌏 外資系",      color: "#1D4ED8",         bg: "#EFF6FF" },
+          ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
+            const active = companyStage === key;
+            return (
+              <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
+                style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer", transition: "all 0.15s" }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 詳細条件 — アコーディオン（業種 / 雇用形態 / 企業ステージ / 地域）*/}
-      <div>
-        <button type="button" onClick={() => setDetailOpen((v) => !v)}
-          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 5, color: (!!industryId || !!empType || !!companyStage || !!prefecture) ? "var(--royal)" : "var(--ink-mute)" }}>
-            {(!!industryId || !!empType || !!companyStage || !!prefecture) && (
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
-            )}
-            詳細条件
-          </span>
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transition: "transform 0.2s", transform: detailOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}>
-            <path d="M1 1l4 4 4-4" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </button>
-
-        <div style={{ display: detailOpen ? "block" : "none" }}>
-          {/* 業種 — デフォルト折りたたみ */}
-          {industries.length > 0 && (() => {
-            const parentIndustries = industries.filter((i) => !i.parent_id);
-            return (
-              <div style={{ borderTop: "1px solid var(--line-soft)" }}>
-                <SectionHeader label="業種" sectionKey="industry" hasActive={!!industryId} />
-                {!collapsed.has("industry") && (
-                  <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-                    {parentIndustries.map((ind) => {
-                      const isActive = industryId === ind.id;
-                      return (
-                        <button key={ind.id} type="button" onClick={() => setParam("industry_id", isActive ? "" : ind.id)}
-                          style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                          onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                          onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                        >
-                          {isActive ? "✓ " : ""}{ind.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* 雇用形態 — デフォルト折りたたみ */}
-          <div style={{ borderTop: "1px solid var(--line-soft)" }}>
-            <SectionHeader label="雇用形態" sectionKey="empType" hasActive={!!empType} />
-            {!collapsed.has("empType") && (
-              <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-                {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
-                  const isActive = empType === opt.value;
+      {/* 地域 */}
+      {availablePrefectures.length > 1 && (
+        <div>
+          <SectionHeader label="地域" sectionKey="prefecture" hasActive={!!prefecture} />
+          {!collapsed.has("prefecture") && (
+            <div style={{ padding: "0 12px 8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
+                {availablePrefectures.map((p) => {
+                  const isActive = prefecture === p;
                   return (
-                    <button key={opt.value} type="button" onClick={() => setParam("emp_type", isActive ? "" : opt.value)}
-                      style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
+                    <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
+                      style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
                       onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
                       onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                     >
-                      {isActive ? "✓ " : ""}{opt.label}
+                      {isActive ? "✓ " : ""}{p}
                     </button>
                   );
                 })}
               </div>
-            )}
-          </div>
-
-          {/* 企業ステージ */}
-          <div style={{ borderTop: "1px solid var(--line-soft)", padding: "10px 12px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: companyStage ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
-              {companyStage && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
-              企業ステージ
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {([
-                { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
-                { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
-                { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
-              ] as const).map(({ key, label, color, bg }) => {
-                const active = companyStage === key;
-                return (
-                  <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
-                    style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer", transition: "all 0.15s" }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 地域 — デフォルト折りたたみ */}
-          {availablePrefectures.length > 1 && (
-            <div style={{ borderTop: "1px solid var(--line-soft)" }}>
-              <SectionHeader label="地域" sectionKey="prefecture" hasActive={!!prefecture} />
-              {!collapsed.has("prefecture") && (
-                <div style={{ padding: "0 12px 8px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
-                    {availablePrefectures.map((p) => {
-                      const isActive = prefecture === p;
-                      return (
-                        <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
-                          style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
-                          onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                          onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                        >
-                          {isActive ? "✓ " : ""}{p}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1946,7 +1892,8 @@ function MobileDetailSection({
               { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
               { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
               { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
-            ] as const).map(({ key, label, color, bg }) => {
+              { key: "foreign", label: "🌏 外資系",      color: "#1D4ED8",         bg: "#EFF6FF" },
+            ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
               const active = companyStage === key;
               return (
                 <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
@@ -1989,6 +1936,7 @@ export default function JobsClient({
   const dept = searchParams.get("dept") ?? "";       // 後方互換 (新規 URL では未使用)
   const work_style = searchParams.get("work_style") ?? "";
   const salary = searchParams.get("salary") ?? "";
+  const salaryMax = searchParams.get("salary_max") ?? "";
   const industry = searchParams.get("industry") ?? "";
   const industryId = searchParams.get("industry_id") ?? "";
   const prefecture = searchParams.get("prefecture") ?? "";
@@ -2220,8 +2168,14 @@ export default function JobsClient({
     if (salary) {
       const min = parseInt(salary, 10);
       if (!isNaN(min)) {
-        // Exclude jobs with null/0 salary_max (option A: exclude when filtering)
         list = list.filter((j) => j.salary_max > 0 && j.salary_max >= min);
+      }
+    }
+
+    if (salaryMax) {
+      const max = parseInt(salaryMax, 10);
+      if (!isNaN(max)) {
+        list = list.filter((j) => (j.salary_min ?? 0) > 0 && (j.salary_min ?? 0) <= max);
       }
     }
 
@@ -2275,6 +2229,16 @@ export default function JobsClient({
         if (companyStage === "unicorn") return /unicorn|ユニコーン/.test(phase);
         if (companyStage === "listed")  return /上場|listed|nasdaq|nyse|グロース|プライム/.test(phase);
         if (companyStage === "startup") return /seed|シード|series|シリーズ/.test(phase);
+        if (companyStage === "foreign") {
+          const co = companyMap.get(j.company_id);
+          const nm = co?.name ?? "";
+          const url = (co?.url ?? "").toLowerCase();
+          // "Japan" in name (e.g. "HubSpot Japan株式会社"), or non-jp URL, or katakana start
+          if (nm.toLowerCase().includes("japan")) return true;
+          if (url && !url.includes(".co.jp") && !url.includes(".jp/") && !url.endsWith(".jp")) return true;
+          if (/^[゠-ヿ]/.test(nm)) return true;
+          return false;
+        }
         return true;
       });
     }
@@ -2310,7 +2274,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, dept, work_style, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件・更新日新しい順）
   const filteredForDisplay = useMemo(() => {
@@ -2342,7 +2306,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, companyStage, techStack.join(",")].join("|");
+  const filterKey = [category, dept, work_style, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, companyStage, techStack.join(",")].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -2788,6 +2752,7 @@ export default function JobsClient({
                 category={category}
                 workStyle={work_style}
                 salary={salary}
+                salaryMax={salaryMax}
                 empType={empType}
                 bizModel={bizModel}
                 prefecture={prefecture}
