@@ -34,6 +34,7 @@ type Props = { ambassadors: AmbassadorCard[] };
 
 // ── フィルタ・ソート定数 ────────────────────────────────────────────
 const ROLE_OPTIONS = [
+  { value: "exec",  label: "経営・役員",          pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|事業部長/i },
   { value: "inside_sales",  label: "インサイドセールス", pattern: /インサイドセールス|inside sales|sdr|bdr|テレセールス/i },
   { value: "field_sales",   label: "フィールドセールス", pattern: /フィールドセールス|field sales|account executive|account manager|ae\b|営業/i },
   { value: "cs",    label: "カスタマーサクセス", pattern: /カスタマーサクセス|customer success|csm/i },
@@ -41,7 +42,6 @@ const ROLE_OPTIONS = [
   { value: "eng",   label: "エンジニア",         pattern: /エンジニア|engineer|開発|dev|tech|ソフトウェア/i },
   { value: "pm",    label: "PM / PdM",           pattern: /プロダクトマネージャー|product manager|\bpm\b|pdm/i },
   { value: "hr",    label: "人事・採用",          pattern: /人事|採用|hr|recruit/i },
-  { value: "exec",  label: "経営・役員",          pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|事業部長/i },
   { value: "other", label: "その他",              pattern: /その他|general|administration|総務|経理|法務|財務/i },
 ];
 
