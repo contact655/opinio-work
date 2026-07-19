@@ -645,20 +645,22 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* ② Salary — always shown; 給与非公開の場合はその旨を明示 */}
               <div style={{ marginBottom: "var(--space-2)" }}>
-                {/* セールス職の場合は基本給 + OTE を並べて表示 */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 {(job.salary_min || job.salary_max) ? (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "5px 14px", borderRadius: 100,
-                  background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                  color: "var(--success)", fontSize: 15, fontWeight: 700,
-                  fontFamily: "Inter, sans-serif",
-                }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)" }}>想定年収</span>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "5px 14px", borderRadius: 100,
+                    background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                    color: "var(--success)", fontSize: 15, fontWeight: 700,
+                    fontFamily: "Inter, sans-serif",
+                  }}>
                   {job.salary_min && job.salary_max
                     ? `${job.salary_min}〜${job.salary_max}万円`
                     : job.salary_min ? `${job.salary_min}万円〜`
                     : `〜${job.salary_max}万円`}
+                  </span>
                 </span>
                 ) : (
                 <span style={{
@@ -845,7 +847,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <div style={{ padding: "16px 20px", borderRadius: isSalesJob(job.dept) && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                          {isSalesJob(job.dept) ? "基本給" : "想定年収"}
+                          想定年収
                         </span>
                       </div>
                       <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
