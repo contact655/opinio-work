@@ -696,6 +696,8 @@ const JOB_LIST_COLS = [
   "ote_min", "ote_max", "sales_segment",
   // 技術スタック (Migration 245)
   "tech_stack",
+  // スキルタグ表示用（一覧カードで使用）
+  "requirements",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [

@@ -881,7 +881,7 @@ function FilterChip({
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
-  selectedJobId, onSelect, reviewSummary,
+  selectedJobId, onSelect, reviewSummary, isCompared, onCompare,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -890,6 +890,8 @@ function JobListItem({
   selectedJobId?: string | null;
   onSelect?: (id: string) => void;
   reviewSummary?: CompanyReviewSummary;
+  isCompared?: boolean;
+  onCompare?: (id: string) => void;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -1057,7 +1059,35 @@ function JobListItem({
           )}
 
 
-          {/* 行3: 年収 · 勤務地 · 勤務形態 */}
+          {/* 行3: スキルタグ（tech_stack 優先、なければ required_skills の短いもの） */}
+          {(() => {
+            const techTags = job.tech_stack ?? [];
+            const reqTags = job.required_skills.filter((s) => s.length <= 30);
+            const skillTags = techTags.length > 0 ? techTags : reqTags;
+            if (skillTags.length === 0) return null;
+            return (
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 5 }}>
+                {skillTags.slice(0, 3).map((skill) => (
+                  <span key={skill} style={{
+                    fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
+                    background: techTags.length > 0 ? "var(--royal-50)" : "var(--bg-tint)",
+                    color: techTags.length > 0 ? "var(--royal)" : "var(--ink-soft)",
+                    border: `1px solid ${techTags.length > 0 ? "var(--royal-100)" : "var(--line)"}`,
+                    whiteSpace: "nowrap", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis",
+                  }}>
+                    {skill}
+                  </span>
+                ))}
+                {skillTags.length > 3 && (
+                  <span style={{ fontSize: 9, color: "var(--ink-mute)", alignSelf: "center" }}>
+                    +{skillTags.length - 3}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* 行4: 年収 · 勤務地 · 勤務形態 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span style={{
               fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
@@ -1112,9 +1142,21 @@ function JobListItem({
             }}>
               {badge.label}
             </span>
+          ) : job.urgency === "hot" ? (
+            <span style={{
+              fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
+              background: "#FFF1F2", color: "#E11D48", border: "1px solid #FECDD3",
+              fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+            }}>
+              🔥 急募
+            </span>
+          ) : job.updated_days_ago <= 30 ? (
+            <span style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+              {job.updated_days_ago === 0 ? "今日更新" : `${job.updated_days_ago}日前`}
+            </span>
           ) : (
             <span style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
-              {job.updated_days_ago === 0 ? "今日" : `${job.updated_days_ago}日前`}
+              掲載中
             </span>
           )}
           <button
@@ -1133,8 +1175,55 @@ function JobListItem({
           >
             <Heart size={13} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
           </button>
+          {onCompare && (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCompare(job.id); }}
+              aria-label={isCompared ? "比較から外す" : "比較に追加"}
+              title={isCompared ? "比較から外す" : "比較に追加（最大3件）"}
+              style={{
+                width: 32, height: 32, borderRadius: "50%",
+                border: `1.5px solid ${isCompared ? "var(--royal)" : "#e2e8f0"}`,
+                background: isCompared ? "var(--royal-50)" : "#fff",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.2s", flexShrink: 0,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isCompared ? "var(--royal)" : "#94a3b8"} strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+                <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+              </svg>
+            </button>
+          )}
         </div>
       </Link>
+      {/* Quick 面談CTA — 面談受付中企業のみ */}
+      {hasMeeting && (
+        <div style={{
+          padding: "0 16px 10px",
+          borderBottom: "1px solid var(--line-soft)",
+        }}>
+          <a
+            href={`/companies/${company.slug ?? company.id}/casual-meeting`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              fontSize: 11, fontWeight: 700,
+              color: "#C2410C",
+              background: "#FFF7ED",
+              border: "1px solid #FDBA74",
+              borderRadius: 6, padding: "4px 10px",
+              textDecoration: "none",
+              transition: "background 0.15s",
+            }}
+            className="job-meeting-cta"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            この企業に話を聞く →
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -1741,6 +1830,19 @@ export default function JobsClient({
 
   // Local-only keyword search
   const [q, setQ] = useState("");
+  const [showSuggest, setShowSuggest] = useState(false);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
+  // サジェスト外クリックで閉じる
+  useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (searchBarRef.current && !searchBarRef.current.contains(e.target as Node)) {
+        setShowSuggest(false);
+      }
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, []);
 
   // ⑧ 企業グルーピング toggle（デフォルトON）
   const [groupByCompany, setGroupByCompany] = useState(false);
@@ -1753,6 +1855,17 @@ export default function JobsClient({
 
   // 技術スタックフィルター（複数選択 AND）
   const [techStack, setTechStack] = useState<string[]>([]);
+
+  // 求人比較機能
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const toggleCompare = useCallback((id: string) => {
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); }
+      else if (next.size < 3) { next.add(id); }
+      return next;
+    });
+  }, []);
 
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -1818,6 +1931,30 @@ export default function JobsClient({
     () => new Map(companies.map((c) => [c.id, c])),
     [companies]
   );
+
+  // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
+  const suggestions = useMemo(() => {
+    const trimmed = q.trim();
+    if (trimmed.length < 1) return [];
+    const lower = trimmed.toLowerCase();
+    const seen = new Set<string>();
+    const results: { label: string; sub: string; q: string }[] = [];
+    for (const j of allJobs) {
+      if (results.length >= 8) break;
+      const roleMatch = j.role.toLowerCase().includes(lower);
+      const co = companyMap.get(j.company_id);
+      const coName = co?.name ?? "";
+      const coMatch = coName.toLowerCase().includes(lower);
+      if (roleMatch) {
+        const key = j.role;
+        if (!seen.has(key)) { seen.add(key); results.push({ label: j.role, sub: coName, q: j.role }); }
+      } else if (coMatch) {
+        const key = `co:${coName}`;
+        if (!seen.has(key)) { seen.add(key); results.push({ label: coName, sub: "企業で絞り込む", q: coName }); }
+      }
+    }
+    return results;
+  }, [q, allJobs, companyMap]);
 
   // 業界名の正規化マップ（フィルター用）
   // SaaS は業態タグ（biz_model）に移行したため業界軸から削除
@@ -2092,45 +2229,83 @@ export default function JobsClient({
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 md:px-12">
 
           {/* ── 行1: 検索バー（企業一覧と同スタイル：大きなピル） ── */}
-          <div role="search" style={{
-            display: "flex", alignItems: "center", gap: 8,
-            background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
-            padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
-          }}
-            onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
-            onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              type="search"
-              aria-label="求人を検索"
-              placeholder="職種・企業名で検索..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{
-                flex: 1, border: "none", outline: "none",
-                fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                padding: "10px 0", minWidth: 0,
-              }}
-            />
-            {q && (
-              <button type="button" onClick={() => setQ("")} aria-label="検索をクリア"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
-              >×</button>
-            )}
-            <div className="jobs-location-separator" style={{ width: 1, height: 18, background: "#e2e8f0", flexShrink: 0 }} />
-            <select
-              aria-label="勤務地"
-              value={prefecture}
-              onChange={(e) => setParam("prefecture", e.target.value)}
-              className="jobs-location-select"
-              style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, color: prefecture ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", padding: "8px 4px", flexShrink: 0, maxWidth: 90, fontFamily: "inherit" }}
+          <div ref={searchBarRef} style={{ position: "relative" }}>
+            <div role="search" style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
+              padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+              onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
+              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
             >
-              <option value="">勤務地</option>
-              {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                type="search"
+                aria-label="求人を検索"
+                placeholder="職種・企業名で検索..."
+                value={q}
+                onChange={(e) => { setQ(e.target.value); setShowSuggest(true); }}
+                onFocus={() => setShowSuggest(true)}
+                onKeyDown={(e) => { if (e.key === "Escape") setShowSuggest(false); }}
+                style={{
+                  flex: 1, border: "none", outline: "none",
+                  fontSize: 13.5, color: "var(--ink)", background: "transparent",
+                  padding: "10px 0", minWidth: 0,
+                }}
+              />
+              {q && (
+                <button type="button" onClick={() => { setQ(""); setShowSuggest(false); }} aria-label="検索をクリア"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
+                >×</button>
+              )}
+              <div className="jobs-location-separator" style={{ width: 1, height: 18, background: "#e2e8f0", flexShrink: 0 }} />
+              <select
+                aria-label="勤務地"
+                value={prefecture}
+                onChange={(e) => setParam("prefecture", e.target.value)}
+                className="jobs-location-select"
+                style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, color: prefecture ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", padding: "8px 4px", flexShrink: 0, maxWidth: 90, fontFamily: "inherit" }}
+              >
+                <option value="">勤務地</option>
+                {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* ── 検索サジェスト dropdown ── */}
+            {showSuggest && suggestions.length > 0 && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+                background: "#fff", border: "1.5px solid var(--line)",
+                borderRadius: 14, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                zIndex: 200, overflow: "hidden",
+              }}>
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setQ(s.q); setShowSuggest(false); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "10px 16px",
+                      border: "none", background: "transparent",
+                      cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                      borderBottom: i < suggestions.length - 1 ? "1px solid var(--line-soft)" : "none",
+                    }}
+                    className="suggest-item"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
+                      {s.sub && <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
@@ -2288,7 +2463,34 @@ export default function JobsClient({
             </div>
           </div>
 
-          {/* アクティブフィルター (optional row 3) */}
+          {/* ── 行3 (モバイルのみ): 職種クイックピル ── */}
+          <div className="jobs-mobile-role-pills" style={{ display: "none", gap: 6, overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch" }}>
+            {parentRoles.slice(0, 10).map((role) => {
+              const active = category === role.id;
+              const rc = getRoleColor(role.name);
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => setParam("category", active ? "" : role.id)}
+                  style={{
+                    flexShrink: 0, height: 30, padding: "0 12px", borderRadius: 999,
+                    fontSize: 11.5, fontWeight: active ? 700 : 500,
+                    border: `1.5px solid ${active ? rc.color : "#e2e8f0"}`,
+                    background: active ? rc.bg : "#fff",
+                    color: active ? rc.color : "var(--ink-soft)",
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {role.name}
+                  {roleCounts.get(role.id) ? <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.7 }}>({roleCounts.get(role.id)})</span> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* アクティブフィルター (optional row 4) */}
           {hasFilter && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 2, paddingBottom: 2, alignItems: "center" }}>
               <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
@@ -2497,6 +2699,8 @@ export default function JobsClient({
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
                     reviewSummary={reviewSummaries?.[job.company_id]}
+                    isCompared={compareIds.has(job.id)}
+                    onCompare={toggleCompare}
                   />
                 ))}
               </div>
@@ -2558,6 +2762,8 @@ export default function JobsClient({
                     selectedJobId={selectedJobId}
                     onSelect={handleSelectJob}
                     reviewSummary={reviewSummaries?.[job.company_id]}
+                    isCompared={compareIds.has(job.id)}
+                    onCompare={toggleCompare}
                   />
                 ))}
               </div>
@@ -2632,6 +2838,54 @@ export default function JobsClient({
           </div>{/* jobs-layout end */}
         </div>
       </div>{/* bg end */}
+
+      {/* ── 比較バー（2件以上選択時に画面下部固定） ── */}
+      {compareIds.size >= 1 && (
+        <div style={{
+          position: "fixed", bottom: 70, left: 0, right: 0, zIndex: 300,
+          display: "flex", justifyContent: "center", pointerEvents: "none",
+        }}>
+          <div style={{
+            background: "var(--ink)", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
+            padding: "12px 20px", display: "flex", alignItems: "center", gap: 12,
+            pointerEvents: "all", maxWidth: 600, width: "calc(100% - 32px)",
+          }}>
+            <div style={{ display: "flex", gap: 8, flex: 1, flexWrap: "wrap" }}>
+              {Array.from(compareIds).map((id) => {
+                const j = allJobs.find((x) => x.id === id);
+                return j ? (
+                  <div key={id} style={{
+                    background: "rgba(255,255,255,0.12)", borderRadius: 8, padding: "4px 10px",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <span style={{ fontSize: 12, color: "#fff", fontWeight: 600, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</span>
+                    <button type="button" onClick={() => toggleCompare(id)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                  </div>
+                ) : null;
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {compareIds.size >= 2 && (
+                <a
+                  href={`/jobs/compare?ids=${Array.from(compareIds).join(",")}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "8px 16px", borderRadius: 10,
+                    background: "var(--warm)", color: "#fff",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {compareIds.size}件を比較する →
+                </a>
+              )}
+              <button type="button" onClick={() => setCompareIds(new Set())} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                クリア
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         /* ── Job card hover ── */
@@ -2731,6 +2985,9 @@ export default function JobsClient({
         @media (max-width: 767px) {
           .job-list-mobile-hide { display: none !important; }
         }
+        @media (max-width: 1023px) {
+          .jobs-mobile-role-pills { display: flex !important; }
+        }
 
         /* モバイルフィルターボタン: 1023px以下で表示 */
         @media (max-width: 1023px) {
@@ -2740,6 +2997,16 @@ export default function JobsClient({
         /* company name hover */
         .company-name-link:hover {
           text-decoration: underline;
+        }
+
+        /* 検索サジェスト hover */
+        .suggest-item:hover {
+          background: var(--royal-50) !important;
+        }
+
+        /* 面談CTA hover */
+        .job-meeting-cta:hover {
+          background: #FED7AA !important;
         }
 
         /* ボトムシートアニメーション */
