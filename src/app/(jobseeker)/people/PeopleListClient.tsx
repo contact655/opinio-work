@@ -56,27 +56,11 @@ const COMPANY_TYPE_OPTIONS = [
 ];
 
 const SORT_OPTIONS = [
-  {
-    value: "newest",
-    label: "新着順",
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-      </svg>
-    ),
-  },
-  {
-    value: "exp",
-    label: "経験年数順",
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-      </svg>
-    ),
-  },
+  { value: "newest", label: "新着順" },
+  { value: "exp",    label: "経験年数順" },
 ];
 
-// ── 汎用 FilterChip（/companies の FilterChip に準拠） ───────────────
+// ── FilterChip ────────────────────────────────────────────────────────
 function FilterChip({
   label, value, options, onSelect, isOpen, onToggle,
 }: {
@@ -119,14 +103,10 @@ function FilterChip({
       {isOpen && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200,
-          background: "#fff",
-          border: "1.5px solid var(--royal)",
-          borderRadius: 12,
-          padding: "8px 0",
+          background: "#fff", border: "1.5px solid var(--royal)",
+          borderRadius: 12, padding: "8px 0",
           boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: 180,
-          maxHeight: 320,
-          overflowY: "auto",
+          minWidth: 180, maxHeight: 320, overflowY: "auto",
         }}>
           {options.map((o) => {
             const sel = value === o.value;
@@ -141,9 +121,7 @@ function FilterChip({
                   background: sel ? "var(--royal-50)" : "none",
                   color: sel ? "var(--royal)" : "var(--ink)",
                   fontSize: 13.5, fontWeight: sel ? 700 : 400,
-                  cursor: "pointer", border: "none",
-                  fontFamily: "inherit",
-                  transition: "background 0.08s",
+                  cursor: "pointer", border: "none", fontFamily: "inherit",
                 }}
                 onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
                 onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "none"; }}
@@ -165,7 +143,7 @@ function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
       // eslint-disable-next-line @next/next/no-img-element
       <img src={card.avatarUrl} alt={card.name} style={{
         width: size, height: size, borderRadius: "50%", objectFit: "cover",
-        border: "2px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", flexShrink: 0,
+        border: "3px solid #fff", boxShadow: "0 2px 12px rgba(0,0,0,0.14)", flexShrink: 0,
       }} />
     );
   }
@@ -175,8 +153,8 @@ function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
       background: card.gradient,
       display: "flex", alignItems: "center", justifyContent: "center",
       fontSize: size * 0.38, fontWeight: 800, color: "#fff",
-      flexShrink: 0, border: "2px solid #fff",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
+      flexShrink: 0, border: "3px solid #fff",
+      boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
     }}>
       {card.initial}
     </div>
@@ -191,46 +169,31 @@ function companyInitial(card: AmbassadorCard): string {
     .charAt(0) || card.companyName.charAt(0) || "社";
 }
 
-function CompanyBadge({ card }: { card: AmbassadorCard }) {
+function CompanyBadge({ card, large }: { card: AmbassadorCard; large?: boolean }) {
   const bg = card.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)";
+  const iconSize = large ? 22 : 18;
+  const fontSize = large ? 13 : 12;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
       {card.companyLogoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={card.companyLogoUrl} alt="" style={{ width: 18, height: 18, borderRadius: 4, objectFit: "contain", background: "#fff", border: "1px solid var(--line)" }} />
+        <img src={card.companyLogoUrl} alt="" style={{ width: iconSize, height: iconSize, borderRadius: 5, objectFit: "contain", background: "#fff", border: "1px solid var(--line)", flexShrink: 0 }} />
       ) : (
         <div style={{
-          width: 18, height: 18, borderRadius: 4, background: bg,
+          width: iconSize, height: iconSize, borderRadius: 5, background: bg,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 9, fontWeight: 800, color: "#fff", flexShrink: 0,
+          fontSize: iconSize * 0.48, fontWeight: 800, color: "#fff", flexShrink: 0,
         }}>
           {companyInitial(card)}
         </div>
       )}
-      <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>
+      <span style={{ fontSize, color: large ? "var(--ink)" : "var(--ink-soft)", fontWeight: large ? 600 : 500, lineHeight: 1.3 }}>
         {card.companyName}
       </span>
     </div>
   );
 }
 
-function TalkBadge({ style: extraStyle }: { style?: React.CSSProperties } = {}) {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 10, fontWeight: 700,
-      padding: "2px 8px", borderRadius: 100,
-      background: "#FFF7ED", color: "#C2410C",
-      border: "1px solid #FED7AA", whiteSpace: "nowrap",
-      ...extraStyle,
-    }}>
-      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316" }} />
-      面談可
-    </span>
-  );
-}
-
-// SkillTags: /companies のトピックタグと同じ royal-50 / royal カラー
 function SkillTags({ tags, max = 3 }: { tags: string[]; max?: number }) {
   const show = tags.slice(0, max);
   const rest = tags.length - max;
@@ -238,66 +201,15 @@ function SkillTags({ tags, max = 3 }: { tags: string[]; max?: number }) {
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
       {show.map((tag) => (
         <span key={tag} style={{
-          fontSize: 10, fontWeight: 600,
-          padding: "2px 8px", borderRadius: 100,
-          background: "var(--royal-50)",
-          color: "var(--royal)",
-          border: "1px solid var(--royal-100)",
-          whiteSpace: "nowrap",
+          fontSize: 11, fontWeight: 600,
+          padding: "3px 9px", borderRadius: 100,
+          background: "var(--royal-50)", color: "var(--royal)",
+          border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
         }}>
           {tag}
         </span>
       ))}
-      {rest > 0 && <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>+{rest}</span>}
-    </div>
-  );
-}
-
-function ExpBadge({ years }: { years: number }) {
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 600,
-      padding: "2px 7px", borderRadius: 100,
-      background: "var(--success-soft)", color: "var(--success)",
-      border: "1px solid #A7F3D0", whiteSpace: "nowrap",
-    }}>
-      {years}年
-    </span>
-  );
-}
-
-// ── CTA ボタン（orange: companies と差別化する people の個性） ──────
-function TalkBtn({ adminId, userId }: { adminId: string; userId: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <Link
-        href={`/people/${adminId}/reserve`}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          padding: "8px 18px",
-          background: "linear-gradient(135deg, #F59E0B, #F97316)",
-          color: "#fff", borderRadius: 8,
-          fontSize: 12, fontWeight: 700,
-          textDecoration: "none", whiteSpace: "nowrap",
-        }}
-      >
-        話を聞く →
-      </Link>
-      <Link
-        href={`/u/${userId}`}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          padding: "6px 14px",
-          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-          color: "var(--royal)", borderRadius: 8,
-          fontSize: 11, fontWeight: 600,
-          textDecoration: "none", whiteSpace: "nowrap",
-        }}
-      >
-        プロフィール
-      </Link>
+      {rest > 0 && <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>+{rest}</span>}
     </div>
   );
 }
@@ -305,42 +217,95 @@ function TalkBtn({ adminId, userId }: { adminId: string; userId: string }) {
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
-  const role = card.roleTitle ?? card.department ?? "採用担当";
+  const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
+  const themes = card.talkThemes.slice(0, 2);
+
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       className="ppl-grid-card"
-      style={{ position: "relative" }}
     >
-      <TalkBadge style={{ position: "absolute", top: 10, right: 10 }} />
-
-      <div style={{ marginBottom: 12 }}>
-        <Avatar card={card} size={68} />
+      {/* アバター + 面談可バッジ */}
+      <div style={{ position: "relative", marginBottom: 14, display: "flex", justifyContent: "center" }}>
+        <Avatar card={card} size={88} />
+        <span style={{
+          position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)",
+          display: "inline-flex", alignItems: "center", gap: 4,
+          fontSize: 10, fontWeight: 700,
+          padding: "2px 9px", borderRadius: 100,
+          background: "#FFF7ED", color: "#C2410C",
+          border: "1px solid #FED7AA", whiteSpace: "nowrap",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+          面談可
+        </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap", justifyContent: "center" }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
+      {/* 名前・役職・会社 */}
+      <div style={{ textAlign: "center", marginBottom: 12, marginTop: 6 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3 }}>
+          {card.name}
+        </div>
+        {card.experienceYears != null && (
+          <span style={{
+            display: "inline-block", fontSize: 10, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 100, marginBottom: 6,
+            background: "var(--success-soft)", color: "var(--success)",
+            border: "1px solid #A7F3D0",
+          }}>
+            IT業界 {card.experienceYears}年
+          </span>
+        )}
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.5, minHeight: 20 }}>
+          {role}
+        </div>
+        <CompanyBadge card={card} large />
       </div>
 
-      <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 6, textAlign: "center", lineHeight: 1.5 }}>
-        {role}
-      </div>
+      {/* 相談テーマ */}
+      {themes.length > 0 && (
+        <div style={{
+          width: "100%", marginBottom: 12,
+          background: "var(--royal-50)", borderRadius: 8,
+          padding: "10px 12px",
+          border: "1px solid var(--royal-100)",
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", marginBottom: 6, letterSpacing: "0.06em" }}>
+            話せること
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {themes.map((t, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span style={{ fontSize: 11, color: "var(--royal)", lineHeight: 1.5, fontWeight: 500 }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <div style={{ marginBottom: 10 }}>
-        <CompanyBadge card={card} />
-      </div>
+      {/* スキルタグ */}
+      {card.skillTags.length > 0 && (
+        <div style={{ width: "100%", marginBottom: 14 }}>
+          <SkillTags tags={card.skillTags} max={3} />
+        </div>
+      )}
 
-
-      <div style={{ marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
+      {/* CTAボタン群 */}
+      <div style={{ marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 7 }}>
         <Link
           href={`/people/${card.adminId}/reserve`}
           onClick={(e) => e.stopPropagation()}
           style={{
             display: "block", textAlign: "center",
-            padding: "9px 14px",
+            padding: "10px 14px",
             background: "linear-gradient(135deg, #F59E0B, #F97316)",
             color: "#fff", borderRadius: 9,
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
+            fontSize: 13, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
           }}
         >
           話を聞く →
@@ -350,11 +315,11 @@ function GridCard({ card }: { card: AmbassadorCard }) {
           onClick={(e) => e.stopPropagation()}
           style={{
             display: "block", textAlign: "center",
-            padding: "7px 14px",
-            background: "var(--royal-50)",
+            padding: "8px 14px",
+            background: "#fff",
             color: "var(--royal)", borderRadius: 9,
-            fontSize: 11, fontWeight: 600, textDecoration: "none",
-            border: "1px solid var(--royal-100)",
+            fontSize: 12, fontWeight: 600, textDecoration: "none",
+            border: "1.5px solid var(--royal-100)",
           }}
         >
           プロフィールを見る
@@ -367,14 +332,15 @@ function GridCard({ card }: { card: AmbassadorCard }) {
 // ── リスト行 ──────────────────────────────────────────────────────────
 function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
   const router = useRouter();
-  const role = card.roleTitle ?? card.department ?? "採用担当";
+  const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
+  const themes = card.talkThemes.slice(0, 2);
+
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       style={{
-        position: "relative",
-        display: "flex", alignItems: "flex-start", gap: 14,
-        padding: "16px 20px",
+        display: "flex", alignItems: "flex-start", gap: 16,
+        padding: "20px 24px",
         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
         background: "#fff", cursor: "pointer", transition: "background 0.1s",
       }}
@@ -382,31 +348,122 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
     >
       <div style={{ flexShrink: 0 }}>
-        <Avatar card={card} size={52} />
+        <Avatar card={card} size={58} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{card.name}</span>
-          <TalkBadge />
-          {card.experienceYears != null && <ExpBadge years={card.experienceYears} />}
+        {/* 名前行 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>{card.name}</span>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 10, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 100,
+            background: "#FFF7ED", color: "#C2410C",
+            border: "1px solid #FED7AA",
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+            面談可
+          </span>
+          {card.experienceYears != null && (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: "2px 8px", borderRadius: 100,
+              background: "var(--success-soft)", color: "var(--success)",
+              border: "1px solid #A7F3D0",
+            }}>
+              IT業界 {card.experienceYears}年
+            </span>
+          )}
         </div>
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 5 }}>{role}</div>
-        <div style={{ marginBottom: card.skillTags.length > 0 ? 7 : 0 }}>
+
+        {/* 役職 */}
+        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6 }}>{role}</div>
+
+        {/* 会社バッジ */}
+        <div style={{ marginBottom: 8 }}>
           <CompanyBadge card={card} />
         </div>
-        {card.skillTags.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <SkillTags tags={card.skillTags} max={4} />
+
+        {/* 相談テーマ */}
+        {themes.length > 0 && (
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 7 }}>
+            {themes.map((t, i) => (
+              <span key={i} style={{
+                fontSize: 11, fontWeight: 500,
+                padding: "3px 10px", borderRadius: 100,
+                background: "var(--royal-50)", color: "var(--royal)",
+                border: "1px solid var(--royal-100)",
+              }}>
+                {t}
+              </span>
+            ))}
           </div>
         )}
+
+        {/* スキルタグ */}
+        {card.skillTags.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <SkillTags tags={card.skillTags} max={5} />
+          </div>
+        )}
+
+        {/* モバイル CTA */}
         <div className="ppl-row-btn-mobile">
-          <TalkBtn adminId={card.adminId} userId={card.userId} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link
+              href={`/people/${card.adminId}/reserve`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "inline-flex", alignItems: "center", padding: "8px 16px",
+                background: "linear-gradient(135deg, #F59E0B, #F97316)",
+                color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none",
+              }}
+            >話を聞く →</Link>
+            <Link
+              href={`/u/${card.userId}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "inline-flex", alignItems: "center", padding: "8px 14px",
+                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                color: "var(--royal)", borderRadius: 8, fontSize: 11, fontWeight: 600, textDecoration: "none",
+              }}
+            >プロフィール</Link>
+          </div>
         </div>
       </div>
 
+      {/* デスクトップ CTA */}
       <div className="ppl-row-btn-desktop" style={{ flexShrink: 0, alignSelf: "center" }}>
-        <TalkBtn adminId={card.adminId} userId={card.userId} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <Link
+            href={`/people/${card.adminId}/reserve`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              padding: "9px 20px",
+              background: "linear-gradient(135deg, #F59E0B, #F97316)",
+              color: "#fff", borderRadius: 8,
+              fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap",
+              boxShadow: "0 2px 8px rgba(249,115,22,0.25)",
+            }}
+          >
+            話を聞く →
+          </Link>
+          <Link
+            href={`/u/${card.userId}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              padding: "7px 14px",
+              background: "#fff", border: "1.5px solid var(--royal-100)",
+              color: "var(--royal)", borderRadius: 8,
+              fontSize: 11, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
+            }}
+          >
+            プロフィール
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -448,7 +505,6 @@ export function PeopleListClient({ ambassadors }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // クリック外でドロップダウンを閉じる
   useEffect(() => {
     function onOutside(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
@@ -475,14 +531,15 @@ export function PeopleListClient({ ambassadors }: Props) {
         a.companyName.toLowerCase().includes(q) ||
         (a.roleTitle ?? "").toLowerCase().includes(q) ||
         (a.currentJobType ?? "").toLowerCase().includes(q) ||
-        a.skillTags.some((t) => t.toLowerCase().includes(q))
+        a.skillTags.some((t) => t.toLowerCase().includes(q)) ||
+        a.talkThemes.some((t) => t.toLowerCase().includes(q))
       );
     });
   }, [ambassadors, role, exp, companyType, keyword]);
 
   const sorted = useMemo(() => {
     if (sort === "exp") return [...filtered].sort((a, b) => (b.experienceYears ?? 0) - (a.experienceYears ?? 0));
-    return filtered; // newest: server order (created_at desc)
+    return filtered;
   }, [filtered, sort]);
 
   const hasFilter = !!(keyword || role || exp || companyType);
@@ -504,7 +561,6 @@ export function PeopleListClient({ ambassadors }: Props) {
   return (
     <>
       <style suppressHydrationWarning>{`
-        /* ── モバイルボタン ── */
         .ppl-row-btn-mobile { display: none; }
         .ppl-row-btn-desktop { display: flex; }
         @media (max-width: 600px) {
@@ -512,89 +568,46 @@ export function PeopleListClient({ ambassadors }: Props) {
           .ppl-row-btn-desktop { display: none !important; }
         }
 
-        /* ── グリッド ── */
-        .ppl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-        @media (max-width: 1100px) { .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        @media (max-width: 768px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
-        @media (max-width: 480px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+        /* グリッド: 3列 → 2列 → 1列 */
+        .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+        @media (max-width: 900px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }
+        @media (max-width: 520px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 
-        /* ── グリッドカード ── */
+        /* グリッドカード */
         .ppl-grid-card {
           background: #fff;
           border: 1px solid var(--line);
-          border-radius: 16px;
-          padding: 24px 18px 18px;
+          border-radius: 18px;
+          padding: 28px 20px 20px;
           display: flex;
           flex-direction: column;
           align-items: center;
           cursor: pointer;
-          transition: box-shadow 0.15s, transform 0.15s;
+          transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
         }
         .ppl-grid-card:hover {
-          box-shadow: 0 6px 24px rgba(0,35,102,0.10);
-          transform: translateY(-2px);
+          box-shadow: 0 8px 32px rgba(0,35,102,0.12);
+          transform: translateY(-3px);
+          border-color: var(--royal-100);
         }
 
-        /* ── FilterChip ピルボタン（/companies の csb-filter-pill 準拠） ── */
+        /* FilterChip */
         .ppl-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 7px 14px;
-          border-radius: 999px;
-          border: 1.5px solid #e2e8f0;
-          background: #fff;
-          color: var(--ink);
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.12s;
-          font-family: inherit;
-          flex-shrink: 0;
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 7px 14px; border-radius: 999px;
+          border: 1.5px solid #e2e8f0; background: #fff;
+          color: var(--ink); font-size: 13px; font-weight: 500;
+          cursor: pointer; white-space: nowrap;
+          transition: all 0.12s; font-family: inherit; flex-shrink: 0;
         }
         .ppl-chip:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
         .ppl-chip.active {
-          border-color: var(--royal);
-          background: var(--royal);
-          color: #fff;
-          font-weight: 700;
+          border-color: var(--royal); background: var(--royal);
+          color: #fff; font-weight: 700;
           box-shadow: 0 2px 10px rgba(0,35,102,0.25);
         }
 
-        /* ── 並び替えボタン（GridSortBar 準拠） ── */
-        .ppl-sort-btn {
-          padding: 6px 14px;
-          border-radius: 100px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          border: 1.5px solid var(--line);
-          background: #fff;
-          color: var(--ink-soft);
-          transition: all 0.15s;
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          white-space: nowrap;
-          font-family: "Noto Sans JP", sans-serif;
-        }
-        .ppl-sort-btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
-        .ppl-sort-btn.active {
-          background: var(--royal);
-          border-color: var(--royal);
-          color: #fff;
-          font-weight: 700;
-          box-shadow: 0 3px 12px rgba(0,35,102,0.35);
-          transform: scale(1.03);
-        }
-        .ppl-sort-scroll {
-          display: flex; gap: 6px; align-items: center;
-          overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        }
-        .ppl-sort-scroll::-webkit-scrollbar { display: none; }
-
-        /* ── モバイル: フィルタ折りたたみ ── */
+        /* モバイル: フィルタ折りたたみ */
         .ppl-filter-chips { display: contents; }
         .ppl-filter-toggle { display: none; }
         @media (max-width: 767px) {
@@ -604,8 +617,7 @@ export function PeopleListClient({ ambassadors }: Props) {
             white-space: nowrap; border: 1.5px solid #e2e8f0;
             border-radius: 999px; padding: 6px 12px;
             background: #fff; font-family: inherit; font-weight: 500;
-            transition: border-color 0.15s, background 0.15s;
-            flex-shrink: 0;
+            transition: border-color 0.15s, background 0.15s; flex-shrink: 0;
           }
           .ppl-filter-toggle.active { border-color: var(--royal); background: var(--royal-50); color: var(--royal); font-weight: 700; }
           .ppl-filter-chips { display: none; flex-wrap: wrap; gap: 6px; padding: 4px 0; width: 100%; }
@@ -613,9 +625,47 @@ export function PeopleListClient({ ambassadors }: Props) {
         }
       `}</style>
 
-      <h1 className="sr-only">先輩を知る — 話せる人を探す</h1>
+      <h1 className="sr-only">ユーザーを探す — 話せる人を探す</h1>
 
-      {/* ── 検索 + フィルタバー（/companies の CompanySearchBar 準拠） ── */}
+      {/* ── ページヘッダー ── */}
+      <div style={{
+        background: "linear-gradient(160deg, #eef3fd 0%, #f4f7fe 40%, #fafbff 80%, #fff 100%)",
+        borderBottom: "1px solid var(--line-soft)",
+        padding: "32px 24px 28px",
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 800, letterSpacing: "0.12em",
+                  color: "var(--royal)", fontFamily: "Inter, sans-serif", textTransform: "uppercase",
+                  padding: "3px 10px", borderRadius: 100,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                }}>
+                  PEOPLE
+                </span>
+              </div>
+              <h1 style={{ margin: 0, fontSize: "clamp(22px,3vw,30px)", fontWeight: 900, color: "var(--ink)", lineHeight: 1.2, fontFamily: "var(--font-noto-sans)" }}>
+                IT/SaaS業界で働く人と話そう
+              </h1>
+              <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                現役社員が直接キャリアや働き方を教えてくれます。選考なし・完全無料。
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 20, flexShrink: 0 }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "var(--royal)", fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
+                  {ambassadors.length}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 3 }}>名が登録</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 検索 + フィルタバー ── */}
       <div
         ref={wrapRef}
         style={{
@@ -626,11 +676,8 @@ export function PeopleListClient({ ambassadors }: Props) {
         }}
       >
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 24px 14px" }}>
-
-          {/* 行1: 検索バー + フィルタチップ群 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-
-            {/* 検索インプット（csb-search-wrap スタイル） */}
+            {/* 検索インプット */}
             <div style={{
               position: "relative", flex: "1 1 220px", minWidth: 0,
               display: "flex", alignItems: "center", gap: 8,
@@ -650,14 +697,14 @@ export function PeopleListClient({ ambassadors }: Props) {
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="名前・会社・役職・スキルで検索"
                 style={{ flex: 1, border: "none", outline: "none", fontSize: 13.5, color: "var(--ink)", background: "transparent", padding: "9px 0", minWidth: 0, fontFamily: "inherit" }}
-                aria-label="話せる人を検索"
+                aria-label="ユーザーを検索"
               />
               {keyword && (
                 <button type="button" onClick={() => { setKeyword(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, padding: "2px" }} aria-label="クリア">✕</button>
               )}
             </div>
 
-            {/* モバイル: フィルタトグルボタン */}
+            {/* モバイル: フィルタトグル */}
             <button
               type="button"
               className={`ppl-filter-toggle${(role || exp || companyType) ? " active" : ""}`}
@@ -669,49 +716,13 @@ export function PeopleListClient({ ambassadors }: Props) {
               絞り込む{filtersExpanded ? " ▴" : " ▾"}
             </button>
 
-            {/* フィルタチップ（デスクトップ常時表示 / モバイル折りたたみ） */}
+            {/* フィルタチップ */}
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
-
-              {/* 職種 */}
-              <FilterChip
-                label="職種▾"
-                value={role}
-                options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }}
-                isOpen={openChip === "role"}
-                onToggle={() => toggleChip("role")}
-              />
-
-              {/* 経験年数 */}
-              <FilterChip
-                label="経験年数▾"
-                value={exp}
-                options={EXP_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                onSelect={(v) => { setExp(v ?? ""); setOpenChip(null); }}
-                isOpen={openChip === "exp"}
-                onToggle={() => toggleChip("exp")}
-              />
-
-              {/* 企業タイプ */}
-              <FilterChip
-                label="企業タイプ▾"
-                value={companyType}
-                options={COMPANY_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                onSelect={(v) => { setCompanyType(v ?? ""); setOpenChip(null); }}
-                isOpen={openChip === "companyType"}
-                onToggle={() => toggleChip("companyType")}
-              />
-
+              <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
+              <FilterChip label="経験年数" value={exp} options={EXP_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setExp(v ?? ""); setOpenChip(null); }} isOpen={openChip === "exp"} onToggle={() => toggleChip("exp")} />
+              <FilterChip label="企業タイプ" value={companyType} options={COMPANY_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setCompanyType(v ?? ""); setOpenChip(null); }} isOpen={openChip === "companyType"} onToggle={() => toggleChip("companyType")} />
               {hasFilter && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  style={{
-                    fontSize: 12.5, color: "var(--ink-mute)",
-                    background: "none", border: "none", cursor: "pointer",
-                    padding: "5px 4px", whiteSpace: "nowrap",
-                    fontFamily: "inherit", transition: "color 0.15s",
-                  }}
+                <button type="button" onClick={clearAll} style={{ fontSize: 12.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink-mute)"; }}
                 >
@@ -720,75 +731,32 @@ export function PeopleListClient({ ambassadors }: Props) {
               )}
             </div>
           </div>
-
-          {/* アクティブフィルター サマリー行（/companies の activeFilters 準拠） */}
-          {hasFilter && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "7px 12px 9px",
-              overflowX: "auto", scrollbarWidth: "none" as React.CSSProperties["scrollbarWidth"],
-              background: "var(--royal-50)",
-              borderRadius: 8, borderLeft: "3px solid var(--royal)",
-              marginTop: 8, marginBottom: 0,
-            }}>
-              <span style={{ fontSize: 11, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>絞り込み中:</span>
-              {keyword && (
-                <button type="button" onClick={() => setKeyword("")} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
-                  「{keyword}」<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
-                </button>
-              )}
-              {role && (
-                <button type="button" onClick={() => setRole("")} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
-                  {ROLE_OPTIONS.find((o) => o.value === role)?.label}<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
-                </button>
-              )}
-              {exp && (
-                <button type="button" onClick={() => setExp("")} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
-                  {EXP_OPTIONS.find((o) => o.value === exp)?.label}<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
-                </button>
-              )}
-              {companyType && (
-                <button type="button" onClick={() => setCompanyType("")} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
-                  {COMPANY_TYPE_OPTIONS.find((o) => o.value === companyType)?.label}<span style={{ fontSize: 10, opacity: 0.7 }}>✕</span>
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* ── 並び替えバー（GridSortBar 準拠） ── */}
+      {/* ── 並び替えバー ── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 24px 0" }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
           background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
-          padding: "10px 16px",
-          boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+          padding: "10px 16px", boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
         }}>
-          {/* 左: 並び替え */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--ink-soft)", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M3 6h18M7 12h10M11 18h2"/>
-              </svg>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>並び替え</span>
-            </div>
-            <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
-            <div className="ppl-sort-scroll">
+          {/* 並び替え */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>並び替え</span>
+            <div style={{ width: 1, height: 18, background: "var(--line)" }} />
+            <div style={{ display: "flex", gap: 6 }}>
               {SORT_OPTIONS.map((o) => {
                 const active = sort === o.value;
                 return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setSort(o.value)}
-                    className={`ppl-sort-btn${active ? " active" : ""}`}
-                  >
-                    {active ? (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                      </svg>
-                    ) : o.icon}
+                  <button key={o.value} type="button" onClick={() => setSort(o.value)} style={{
+                    padding: "5px 13px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500,
+                    cursor: "pointer", border: active ? "none" : "1.5px solid var(--line)",
+                    background: active ? "var(--royal)" : "#fff",
+                    color: active ? "#fff" : "var(--ink-soft)",
+                    transition: "all 0.15s", fontFamily: "inherit",
+                    boxShadow: active ? "0 2px 8px rgba(0,35,102,0.25)" : "none",
+                  }}>
                     {o.label}
                   </button>
                 );
@@ -796,34 +764,29 @@ export function PeopleListClient({ ambassadors }: Props) {
             </div>
           </div>
 
-          {/* 右: ビュートグル + 件数 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          {/* ビュートグル + 件数 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div style={{ display: "flex", gap: 2, background: "var(--line-soft)", borderRadius: 8, padding: 2 }}>
               {([
-                { mode: "grid" as const, title: "グリッド", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>) },
-                { mode: "list" as const, title: "リスト",   icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>) },
-              ]).map(({ mode, title, icon }) => (
-                <button key={mode} type="button" onClick={() => setViewMode(mode)} title={title} style={{
+                { mode: "grid" as const, label: "一覧", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>) },
+                { mode: "list" as const, label: "詳細", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>) },
+              ]).map(({ mode, label, icon }) => (
+                <button key={mode} type="button" onClick={() => setViewMode(mode)} style={{
                   background: viewMode === mode ? "var(--royal)" : "transparent",
                   color: viewMode === mode ? "#fff" : "var(--ink-mute)",
                   border: "none", cursor: "pointer", borderRadius: 6,
                   padding: "5px 10px", display: "flex", alignItems: "center", gap: 5,
-                  fontSize: 12, fontWeight: 600, transition: "all 0.15s",
-                  whiteSpace: "nowrap", fontFamily: "Noto Sans JP, sans-serif",
+                  fontSize: 12, fontWeight: 600, transition: "all 0.15s", whiteSpace: "nowrap",
                 }}>
-                  {icon}
-                  {mode === "grid" ? "一覧" : "詳細"}
+                  {icon}{label}
                 </button>
               ))}
             </div>
-
-            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-
+            <div style={{ width: 1, height: 18, background: "var(--line)" }} />
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>
                 {sorted.length}
-              </strong>
-              <span style={{ marginLeft: 2 }}>名</span>
+              </strong> 名
             </span>
           </div>
         </div>
