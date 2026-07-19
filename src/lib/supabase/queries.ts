@@ -1210,8 +1210,7 @@ export async function getJobEmployees(
   const current = all.current.filter(matchRole);
   const alumni  = all.alumni.filter(matchRole);
 
-  // ロール一致がゼロなら全員フォールバック
-  if (current.length === 0 && alumni.length === 0) return all;
+  // roleCategoryId が設定されている場合は厳密マッチのみ返す（一致なし → 空）
   return { current, alumni };
 }
 
