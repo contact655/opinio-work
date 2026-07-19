@@ -950,7 +950,7 @@ function computeMatchReason(
   filters: { category: string; dept: string; salary: string; prefecture: string; q: string },
   parentRoles: { id: string; name: string }[],
 ): string | null {
-  const { category, dept, salary, prefecture, q } = filters;
+  const { category, dept, salary: _salary, prefecture, q } = filters;
   // 職種カテゴリフィルター
   if (category) {
     const roleName = parentRoles.find((r) => r.id === category)?.name;
@@ -974,7 +974,7 @@ function computeMatchReason(
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
-  selectedJobId, onSelect, reviewSummary, matchReason,
+  selectedJobId, onSelect, reviewSummary, matchReason: _matchReason,
   showMeetingCta = true,
 }: {
   job: Job;
