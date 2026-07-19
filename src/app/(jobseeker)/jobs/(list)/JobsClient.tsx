@@ -1583,20 +1583,19 @@ function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; sa
 }
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel: _bizModel, meetingOnly,
+  parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel: _bizModel,
   companyStage, onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
-  availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
+  availablePrefectures, setParam, hasFilter, q, onReset,
   industries: _industries, industryId: _industryId, roleCounts,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
   bizModel: string;
-  meetingOnly: boolean; companyStage: string; onCompanyStageChange: (v: string) => void;
+  companyStage: string; onCompanyStageChange: (v: string) => void;
   techStack: string[]; onTechStackChange: (v: string[]) => void;
   availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
-  onMeetingOnlyChange: (v: boolean) => void;
-  hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
+  hasFilter: boolean; q: string; onReset: () => void;
   industries: { id: string; parent_id: string | null; name: string; slug: string }[];
   industryId: string;
   roleCounts?: Map<string, number>;
@@ -1634,24 +1633,11 @@ function SidebarFilters({
       {/* Header */}
       <div style={{ padding: "9px 12px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" }}>絞り込み</span>
-        {(hasFilter || q || meetingOnly) && (
+        {(hasFilter || q) && (
           <button type="button" onClick={onReset} style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>
             リセット
           </button>
         )}
-      </div>
-
-      {/* 面談受付中トグル */}
-      <div style={{ padding: "9px 12px", borderBottom: "1px solid var(--line-soft)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onMeetingOnlyChange(!meetingOnly)}>
-          <div style={{ width: 36, height: 20, borderRadius: 10, background: meetingOnly ? "#EA580C" : "#e2e8f0", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-            <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)", flex: 1 }}>面談受付中のみ</span>
-          <span suppressHydrationWarning style={{ fontSize: 10, color: "#C2410C", background: "#FFF7ED", padding: "1px 6px", borderRadius: 100, border: "1px solid #FDBA74", flexShrink: 0, visibility: meetingCount > 0 ? "visible" : "hidden" }}>
-            {meetingCount}件
-          </span>
-        </div>
       </div>
 
       {/* 職種 — アコーディオン（デフォルト展開）*/}
@@ -1955,8 +1941,6 @@ export default function JobsClient({
   // ⑧ 企業グルーピング toggle（デフォルトON）
   const [groupByCompany, setGroupByCompany] = useState(false);
 
-  // 面談受付中のみフィルター
-  const [meetingOnly, setMeetingOnly] = useState(false);
 
   // 企業ステージフィルター
   const [companyStage, setCompanyStage] = useState("");
@@ -2180,11 +2164,6 @@ export default function JobsClient({
       list = list.filter((j) => j.business_model === bizModel);
     }
 
-    // 面談受付中フィルタ
-    if (meetingOnly) {
-      list = list.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings);
-    }
-
     // 企業ステージフィルタ
     if (companyStage) {
       list = list.filter((j) => {
@@ -2237,7 +2216,7 @@ export default function JobsClient({
     }
 
     return list;
-  }, [allJobs, q, category, dept, work_style, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, dept, work_style, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
 
   // ⑧ グルーピング適用（1社あたり最大3件・更新日新しい順）
   const filteredForDisplay = useMemo(() => {
@@ -2294,13 +2273,8 @@ export default function JobsClient({
     return () => observer.disconnect();
   }, [hasMore]);
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || companyStage || techStack.length || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || companyStage || techStack.length || bizOnly);
 
-  // 面談受付中の求人数（全件から）
-  const meetingCount = useMemo(
-    () => allJobs.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings).length,
-    [allJobs, companyMap]
-  );
 
   const roleCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -2431,10 +2405,10 @@ export default function JobsClient({
               style={{
                 display: "none", // CSS media queryで表示制御
                 height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
-                fontWeight: hasFilter || meetingOnly ? 700 : 500,
-                border: `1.5px solid ${hasFilter || meetingOnly ? "var(--royal)" : "#e2e8f0"}`,
-                background: hasFilter || meetingOnly ? "var(--royal-50)" : "#fff",
-                color: hasFilter || meetingOnly ? "var(--royal)" : "var(--ink-soft)",
+                fontWeight: hasFilter ? 700 : 500,
+                border: `1.5px solid ${hasFilter ? "var(--royal)" : "#e2e8f0"}`,
+                background: hasFilter ? "var(--royal-50)" : "#fff",
+                color: hasFilter ? "var(--royal)" : "var(--ink-soft)",
                 cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, alignItems: "center", gap: 6,
               }}
             >
@@ -2442,32 +2416,12 @@ export default function JobsClient({
                 <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
               </svg>
               絞り込み
-              {(hasFilter || meetingOnly) && (
+              {hasFilter && (
                 <span style={{ marginLeft: 5, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "var(--royal)", color: "#fff", fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif" }}>
-                  {[category, work_style, salary, empType, prefecture, meetingOnly ? "m" : ""].filter(Boolean).length}
+                  {[category, work_style, salary, empType, prefecture].filter(Boolean).length}
                 </span>
               )}
             </button>
-            {/* 面談受付中 — デスクトップではサイドバーに同機能あるため非表示 */}
-            <button
-              type="button"
-              onClick={() => setMeetingOnly((v) => !v)}
-              aria-pressed={meetingOnly}
-              className="jobs-filterbar-sidebar-dup"
-              style={{
-                height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
-                fontWeight: meetingOnly ? 700 : 500,
-                border: `1.5px solid ${meetingOnly ? "#ea580c" : "#e2e8f0"}`,
-                background: meetingOnly ? "linear-gradient(135deg, #f97316, #ea580c)" : "#fff",
-                color: meetingOnly ? "#fff" : "var(--ink-soft)",
-                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                boxShadow: meetingOnly ? "0 2px 10px rgba(234,88,12,0.30)" : "none",
-                transition: "all 0.15s",
-              }}
-            >
-              {meetingOnly && <span style={{ marginRight: 4 }}>✓</span>}面談受付中
-            </button>
-
             {/* 職種 select — デスクトップではサイドバーに同機能あるため非表示 */}
             <select value={category} onChange={(e) => setParam("category", e.target.value)} style={filterSelectStyle(!!category)} aria-label="職種で絞り込み" className="jobs-filterbar-sidebar-dup">
               <option value="">職種</option>
@@ -2504,8 +2458,8 @@ export default function JobsClient({
               </select>
             )}
 
-            {(hasFilter || q || meetingOnly) && (
-              <button type="button" onClick={() => { setQ(""); setMeetingOnly(false); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
+            {(hasFilter || q) && (
+              <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
                 className="jobs-filterbar-sidebar-dup"
                 style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
               >✕ リセット</button>
@@ -2719,18 +2673,15 @@ export default function JobsClient({
                 empType={empType}
                 bizModel={bizModel}
                 prefecture={prefecture}
-                meetingOnly={meetingOnly}
                 companyStage={companyStage}
                 onCompanyStageChange={setCompanyStage}
                 techStack={techStack}
                 onTechStackChange={setTechStack}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
-                onMeetingOnlyChange={setMeetingOnly}
                 hasFilter={hasFilter}
                 q={q}
-                onReset={() => { setQ(""); setMeetingOnly(false); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                meetingCount={meetingCount}
+                onReset={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
                 industries={industries}
                 industryId={industryId}
                 roleCounts={roleCounts}
@@ -3144,22 +3095,6 @@ export default function JobsClient({
             </div>
 
             <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* クイックフィルタ */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>クイックフィルタ</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button
-                    onClick={() => setMeetingOnly(v => !v)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${meetingOnly ? "#ea580c" : "var(--line)"}`, background: meetingOnly ? "#FFF7ED" : "#fff", cursor: "pointer", textAlign: "left" }}
-                  >
-                    <div style={{ width: 36, height: 20, borderRadius: 10, background: meetingOnly ? "#EA580C" : "#e2e8f0", position: "relative", flexShrink: 0 }}>
-                      <div style={{ position: "absolute", top: 2, left: meetingOnly ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: meetingOnly ? "#C2410C" : "var(--ink)" }}>面談受付中のみ</span>
-                  </button>
-                </div>
-              </div>
-
               {/* 職種 */}
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>職種</div>
@@ -3254,7 +3189,7 @@ export default function JobsClient({
             {/* フッターボタン */}
             <div style={{ padding: "12px 20px 24px", borderTop: "1px solid var(--line)", display: "flex", gap: 10 }}>
               <button
-                onClick={() => { setMeetingOnly(false); setTechStack([]); setCompanyStage(""); router.replace("/jobs"); setFilterSheetOpen(false); }}
+                onClick={() => { setTechStack([]); setCompanyStage(""); router.replace("/jobs"); setFilterSheetOpen(false); }}
                 style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer" }}
               >
                 リセット
