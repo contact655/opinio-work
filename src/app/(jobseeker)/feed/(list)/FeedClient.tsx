@@ -138,6 +138,49 @@ function Avatar({
   );
 }
 
+// ─── CharCountRing ────────────────────────────────────────────────────────────
+
+function CharCountRing({ remaining, max }: { remaining: number; max: number }) {
+  const used = max - remaining;
+  const pct = Math.min(used / max, 1);
+  const r = 10;
+  const circumference = 2 * Math.PI * r;
+  const dashOffset = circumference * (1 - pct);
+  const isNear = remaining < 100;
+  const isOver = remaining < 0;
+  const strokeColor = isOver ? "var(--error)" : isNear ? "#f59e0b" : "var(--royal)";
+
+  return (
+    <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, flexShrink: 0 }}>
+      <svg width="28" height="28" viewBox="0 0 28 28" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="14" cy="14" r={r} fill="none" stroke="var(--line)" strokeWidth="2.5" />
+        <circle
+          cx="14" cy="14" r={r}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth="2.5"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.15s, stroke 0.15s" }}
+        />
+      </svg>
+      {isNear && (
+        <span style={{
+          position: "absolute",
+          fontFamily: "Inter, sans-serif",
+          fontSize: 8,
+          fontWeight: 700,
+          color: isOver ? "var(--error)" : "#f59e0b",
+          lineHeight: 1,
+        }}>
+          {remaining}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── PostComposer ─────────────────────────────────────────────────────────────
 
 function PostComposer({
@@ -153,6 +196,7 @@ function PostComposer({
   myAvatarUrl: string | null;
   onPostCreated: (post: PostItem) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -346,6 +390,39 @@ function PostComposer({
     }, 600);
   };
 
+  // コンパクト表示（クリックで展開）
+  if (!expanded) {
+    return (
+      <div
+        onClick={() => setExpanded(true)}
+        style={{
+          display: "flex", alignItems: "center", gap: 12,
+          background: "#fff", border: "1.5px solid var(--line)",
+          borderRadius: 14, padding: "12px 16px", cursor: "pointer",
+          marginBottom: 16, boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+          transition: "border-color 0.15s, box-shadow 0.15s",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--accent)";
+          (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(59,95,217,0.08)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--line)";
+          (e.currentTarget as HTMLDivElement).style.boxShadow = "0 1px 4px rgba(15,23,42,0.06)";
+        }}
+      >
+        <Avatar user={{ name: myName, avatar_color: myAvatarColor, avatar_url: myAvatarUrl }} size={38} />
+        <div style={{
+          flex: 1, color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif',
+          fontSize: 14, border: "1px solid var(--line)", borderRadius: 100,
+          padding: "9px 18px", background: "var(--bg-tint)",
+        }}>
+          今日のキャリアの気づきをシェアしよう…
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -525,16 +602,8 @@ function PostComposer({
           >
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* 文字数カウンター */}
-              <span
-                style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontSize: 12,
-                  color: remaining < 50 ? "var(--error)" : "var(--ink-mute)",
-                }}
-              >
-                残り {remaining}
-              </span>
+              {/* 文字数カウンター: 円形プログレスリング */}
+              <CharCountRing remaining={remaining} max={MAX_CHARS} />
               {/* 投稿ボタン */}
               <button
                 onClick={handleSubmit}
@@ -870,12 +939,12 @@ const PANEL_STYLE: React.CSSProperties = {
 
 const PANEL_TITLE_STYLE: React.CSSProperties = {
   fontFamily: '"Noto Sans JP", sans-serif',
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: 700,
-  color: "var(--ink-mute)",
-  letterSpacing: "0.05em",
+  color: "var(--ink-soft)",
   marginBottom: 12,
-  textTransform: "uppercase" as const,
+  paddingBottom: 8,
+  borderBottom: "1px solid var(--line-soft, #f1f5f9)",
 };
 
 const MORE_LINK_STYLE: React.CSSProperties = {
@@ -1270,11 +1339,30 @@ function PostCard({
     }
   };
 
+  const isSystemPost = post.user.is_system;
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/feed`;
+    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div
       style={{
-        padding: "18px",
-        borderBottom: showDivider ? "0.5px solid var(--line)" : "none",
+        padding: "18px 20px",
+        borderBottom: showDivider ? "1px solid var(--line-soft, #f1f5f9)" : "none",
+        background: isSystemPost ? "#f7f9ff" : "#fff",
+        transition: "background 0.12s",
+        cursor: "default",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = isSystemPost ? "#eef2fc" : "#fafbfc";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = isSystemPost ? "#f7f9ff" : "#fff";
       }}
     >
       {/* ヘッダー: アバター + 名前 + 時刻 + 削除 */}
@@ -1311,13 +1399,13 @@ function PostCard({
             {/* 名前行: 名前 + バッジ + ・日付(インライン) */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
               {post.user.is_system ? (
-                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 500, fontSize: 15, color: "var(--royal)" }}>
+                <span style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>
                   {post.user.name}
                 </span>
               ) : (
                 <Link
                   href={`/u/${post.user.id}`}
-                  style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 500, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
+                  style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
                 >
                   {post.user.name}
                 </Link>
@@ -1340,7 +1428,7 @@ function PostCard({
             </div>
             {/* 役職タグライン: roleTitle があれば役職、なければ会社名 */}
             {!post.user.is_system && (post.user.roleTitle || post.user.company) && (
-              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 1 }}>
+              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", marginTop: 1 }}>
                 {post.user.roleTitle ?? post.user.company}
               </div>
             )}
@@ -1495,8 +1583,32 @@ function PostCard({
             textDecoration: "none",
           }}
         >
+          {/* 会社ロゴ / ブリーフケースアイコン */}
+          {post.ref_company ? (
+            <div style={{
+              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+              background: post.ref_company.logo_gradient ?? "linear-gradient(135deg, #001233, #002366)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 700, fontSize: 15, fontFamily: "Inter, sans-serif",
+              overflow: "hidden",
+            }}>
+              {post.ref_company.logo_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={post.ref_company.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : (post.ref_company.logo_letter ?? post.ref_company.name.charAt(0))}
+            </div>
+          ) : (
+            <div style={{
+              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+              background: "var(--success)", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+            </div>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>
+            <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {post.ref_job.title}
             </div>
             {(() => {
@@ -1643,8 +1755,10 @@ function PostCard({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 18,
-          paddingTop: 14,
+          gap: 4,
+          paddingTop: 12,
+          borderTop: "1px solid var(--line-soft, #f1f5f9)",
+          marginTop: 4,
         }}
       >
         {/* いいねボタン — 未ログイン時は /auth へ誘導 */}
@@ -1659,24 +1773,31 @@ function PostCard({
             background: "none",
             border: "none",
             cursor: "pointer",
-            padding: "4px 10px",
+            padding: "6px 12px",
             borderRadius: 8,
             color: post.liked_by_me ? "var(--error)" : "var(--ink-soft)",
-            fontFamily: '"Noto Sans JP", sans-serif',
-            fontSize: 14,
-            fontWeight: post.liked_by_me ? 700 : 400,
+            fontFamily: "Inter, sans-serif",
+            fontSize: 13,
+            fontWeight: post.liked_by_me ? 700 : 500,
             transition: "background 0.15s, color 0.15s",
-            opacity: post.like_count === 0 && !post.liked_by_me ? 0.5 : 1,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
+            (e.currentTarget as HTMLButtonElement).style.background = post.liked_by_me ? "#fff0f0" : "var(--bg-tint)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = "none";
           }}
         >
-          <span style={{ fontSize: 16 }}>{post.liked_by_me ? "❤️" : "🤍"}</span>
-          <span>{post.like_count}</span>
+          {post.liked_by_me ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          )}
+          <span>いいね{post.like_count > 0 ? ` ${post.like_count}` : ""}</span>
         </button>
 
         {/* リアクションしたユーザーのアバター (1件以上のとき) */}
@@ -1721,57 +1842,80 @@ function PostCard({
             background: showComments ? "var(--royal-50)" : "none",
             border: "none",
             cursor: "pointer",
-            padding: "4px 10px",
+            padding: "6px 12px",
             borderRadius: 8,
             color: showComments ? "var(--royal)" : "var(--ink-soft)",
-            fontFamily: '"Noto Sans JP", sans-serif',
-            fontSize: 14,
+            fontFamily: "Inter, sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
             transition: "background 0.15s, color 0.15s",
-            opacity: commentCount === 0 && !showComments ? 0.5 : 1,
           }}
           onMouseEnter={(e) => {
             if (!showComments)
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "var(--bg-tint)";
+              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
           }}
           onMouseLeave={(e) => {
             if (!showComments)
               (e.currentTarget as HTMLButtonElement).style.background = "none";
           }}
         >
-          <span style={{ fontSize: 16 }}>💬</span>
-          <span>{commentCount}</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>コメント{commentCount > 0 ? ` ${commentCount}` : ""}</span>
         </button>
 
-        {/* ブックマークボタン (右端) */}
-        <button
-          title="保存"
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px 6px",
-            borderRadius: 6,
-            color: "var(--ink-mute)",
-            opacity: 0.55,
-            transition: "opacity 0.15s, background 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "0.55";
-            (e.currentTarget as HTMLButtonElement).style.background = "none";
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
-        </button>
+        {/* シェアボタン + ブックマークボタン (右端) */}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 2 }}>
+          <button
+            onClick={handleShare}
+            title="リンクをコピー"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              background: "none", border: "none", cursor: "pointer",
+              padding: "6px 10px", borderRadius: 8,
+              color: copied ? "var(--royal)" : "var(--ink-mute)",
+              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+          >
+            {copied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            )}
+            <span>{copied ? "コピー済み" : "シェア"}</span>
+          </button>
+          <button
+            title="保存"
+            style={{
+              display: "flex", alignItems: "center",
+              background: "none", border: "none", cursor: "pointer",
+              padding: "6px 8px", borderRadius: 6,
+              color: "var(--ink-mute)",
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "none";
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)";
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* コメント欄 */}
@@ -1872,7 +2016,7 @@ export default function FeedClient({
     []
   );
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (tab === "followed") {
       if (loadingMore || !followedHasMore || !followedPosts?.length) return;
       const oldest = followedPosts[followedPosts.length - 1];
@@ -1903,9 +2047,27 @@ export default function FeedClient({
     } finally {
       setLoadingMore(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, loadingMore, hasMore, followedHasMore, followedPosts, posts]);
 
   const showLoadMore = tab === "all" ? (hasMore && posts.length > 0) : (followedHasMore && (followedPosts ?? []).length > 0);
+
+  // 無限スクロール: センチネル要素が画面内に入ったら自動ロード
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && showLoadMore && !loadingMore) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showLoadMore, loadingMore, handleLoadMore]);
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 18, alignItems: "flex-start" }}>
@@ -2053,25 +2215,19 @@ export default function FeedClient({
         </div>
       )}
 
-      {/* もっと見るボタン */}
-      {showLoadMore && (
-        <div style={{ textAlign: "center", marginTop: 8 }}>
-          <button
-            onClick={handleLoadMore}
-            disabled={loadingMore}
-            style={{
-              background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
-              padding: "12px 32px", fontFamily: '"Noto Sans JP", sans-serif',
-              fontSize: 14, fontWeight: 700,
-              color: loadingMore ? "var(--ink-mute)" : "var(--royal)",
-              cursor: loadingMore ? "not-allowed" : "pointer",
-              boxShadow: "0 1px 4px rgba(15,23,42,0.06)", transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => { if (!loadingMore) (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
-          >
-            {loadingMore ? "読み込み中…" : "もっと見る"}
-          </button>
+      {/* 無限スクロール: センチネル + ローディング表示 */}
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {loadingMore && (
+        <div style={{ textAlign: "center", padding: "20px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite", display: "inline-block" }}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          <style suppressHydrationWarning>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+      {!showLoadMore && (activePosts.length > 0) && (
+        <div style={{ textAlign: "center", padding: "16px 0 8px", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12 }}>
+          すべての投稿を読み込みました
         </div>
       )}
       </div>{/* /中央フィードカラム */}
