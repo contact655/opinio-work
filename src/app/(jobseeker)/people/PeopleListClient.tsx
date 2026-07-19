@@ -219,6 +219,7 @@ function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
   const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
   const themes = card.talkThemes.slice(0, 2);
+  const isAvailable = card.talkThemes.length > 0;
 
   return (
     <div
@@ -226,20 +227,22 @@ function GridCard({ card }: { card: AmbassadorCard }) {
       className="ppl-grid-card"
     >
       {/* アバター + 面談可バッジ */}
-      <div style={{ position: "relative", marginBottom: 14, display: "flex", justifyContent: "center" }}>
+      <div style={{ position: "relative", marginBottom: isAvailable ? 14 : 10, display: "flex", justifyContent: "center" }}>
         <Avatar card={card} size={88} />
-        <span style={{
-          position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)",
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 10, fontWeight: 700,
-          padding: "2px 9px", borderRadius: 100,
-          background: "#FFF7ED", color: "#C2410C",
-          border: "1px solid #FED7AA", whiteSpace: "nowrap",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-        }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-          面談可
-        </span>
+        {isAvailable && (
+          <span style={{
+            position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)",
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 10, fontWeight: 700,
+            padding: "2px 9px", borderRadius: 100,
+            background: "#FFF7ED", color: "#C2410C",
+            border: "1px solid #FED7AA", whiteSpace: "nowrap",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+            面談可
+          </span>
+        )}
       </div>
 
       {/* 名前・役職・会社 */}
@@ -287,29 +290,24 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         </div>
       )}
 
-      {/* スキルタグ */}
-      {card.skillTags.length > 0 && (
-        <div style={{ width: "100%", marginBottom: 14 }}>
-          <SkillTags tags={card.skillTags} max={3} />
-        </div>
-      )}
-
       {/* CTAボタン群 */}
       <div style={{ marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", gap: 7 }}>
-        <Link
-          href={`/people/${card.adminId}/reserve`}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: "block", textAlign: "center",
-            padding: "10px 14px",
-            background: "linear-gradient(135deg, #F59E0B, #F97316)",
-            color: "#fff", borderRadius: 9,
-            fontSize: 13, fontWeight: 700, textDecoration: "none",
-            boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
-          }}
-        >
-          話を聞く →
-        </Link>
+        {isAvailable && (
+          <Link
+            href={`/people/${card.adminId}/reserve`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: "block", textAlign: "center",
+              padding: "10px 14px",
+              background: "linear-gradient(135deg, #F59E0B, #F97316)",
+              color: "#fff", borderRadius: 9,
+              fontSize: 13, fontWeight: 700, textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(249,115,22,0.3)",
+            }}
+          >
+            話を聞く →
+          </Link>
+        )}
         <Link
           href={`/u/${card.userId}`}
           onClick={(e) => e.stopPropagation()}
@@ -334,6 +332,7 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
   const router = useRouter();
   const role = card.roleTitle ?? card.department ?? card.currentJobType ?? "採用担当";
   const themes = card.talkThemes.slice(0, 2);
+  const isAvailable = card.talkThemes.length > 0;
 
   return (
     <div
@@ -355,16 +354,18 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
         {/* 名前行 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>{card.name}</span>
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 10, fontWeight: 700,
-            padding: "2px 8px", borderRadius: 100,
-            background: "#FFF7ED", color: "#C2410C",
-            border: "1px solid #FED7AA",
-          }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-            面談可
-          </span>
+          {isAvailable && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 10, fontWeight: 700,
+              padding: "2px 8px", borderRadius: 100,
+              background: "#FFF7ED", color: "#C2410C",
+              border: "1px solid #FED7AA",
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+              面談可
+            </span>
+          )}
           {card.experienceYears != null && (
             <span style={{
               fontSize: 10, fontWeight: 700,
@@ -401,25 +402,20 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
           </div>
         )}
 
-        {/* スキルタグ */}
-        {card.skillTags.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <SkillTags tags={card.skillTags} max={5} />
-          </div>
-        )}
-
         {/* モバイル CTA */}
         <div className="ppl-row-btn-mobile">
           <div style={{ display: "flex", gap: 8 }}>
-            <Link
-              href={`/people/${card.adminId}/reserve`}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                display: "inline-flex", alignItems: "center", padding: "8px 16px",
-                background: "linear-gradient(135deg, #F59E0B, #F97316)",
-                color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none",
-              }}
-            >話を聞く →</Link>
+            {isAvailable && (
+              <Link
+                href={`/people/${card.adminId}/reserve`}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: "inline-flex", alignItems: "center", padding: "8px 16px",
+                  background: "linear-gradient(135deg, #F59E0B, #F97316)",
+                  color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none",
+                }}
+              >話を聞く →</Link>
+            )}
             <Link
               href={`/u/${card.userId}`}
               onClick={(e) => e.stopPropagation()}
@@ -436,20 +432,22 @@ function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
       {/* デスクトップ CTA */}
       <div className="ppl-row-btn-desktop" style={{ flexShrink: 0, alignSelf: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Link
-            href={`/people/${card.adminId}/reserve`}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              padding: "9px 20px",
-              background: "linear-gradient(135deg, #F59E0B, #F97316)",
-              color: "#fff", borderRadius: 8,
-              fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap",
-              boxShadow: "0 2px 8px rgba(249,115,22,0.25)",
-            }}
-          >
-            話を聞く →
-          </Link>
+          {isAvailable && (
+            <Link
+              href={`/people/${card.adminId}/reserve`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                padding: "9px 20px",
+                background: "linear-gradient(135deg, #F59E0B, #F97316)",
+                color: "#fff", borderRadius: 8,
+                fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(249,115,22,0.25)",
+              }}
+            >
+              話を聞く →
+            </Link>
+          )}
           <Link
             href={`/u/${card.userId}`}
             onClick={(e) => e.stopPropagation()}
