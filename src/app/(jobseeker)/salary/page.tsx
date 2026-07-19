@@ -215,9 +215,6 @@ export default async function SalaryPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {stats.slice(0, FREE_COUNT).map((s) => {
             const barPct = Math.round((s.avgMax / MAX_BAR) * 100);
-            // パーセンタイルマーカー（P25 / P75 の目安）
-            const p25Pct = Math.round(((s.avgMin * 0.85) / MAX_BAR) * 100);
-            const p75Pct = Math.round(((s.avgMax * 1.1) / MAX_BAR) * 100);
             return (
               <Link key={s.slug} href={`/salary/${s.slug}`} className="sc-card">
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
