@@ -124,6 +124,46 @@ export default async function BizDashboardPage() {
         logoLetter={ctx.logoLetter}
       />
 
+      {/* ── ロゴ未設定バナー ── */}
+      {companyRaw && !companyRaw.logoUrl && ctx.isPublished && (
+        <div style={{
+          background: "#fff", border: "1.5px dashed #FDBA74",
+          borderRadius: 12, padding: "14px 18px", marginTop: 16,
+          display: "flex", alignItems: "center", gap: 14,
+        }}>
+          {/* プレビュー：ロゴなしグラデーション四角 */}
+          <div style={{
+            width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+            background: ctx.logoGradient ?? "linear-gradient(135deg,#002366,#3B5FD9)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, fontWeight: 800, color: "#fff",
+          }}>
+            {ctx.logoLetter ?? ctx.tenantName[0]}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 3 }}>
+              企業ロゴが未設定です
+            </div>
+            <div style={{ fontSize: 11, color: "#78350F", lineHeight: 1.6 }}>
+              ロゴを設定すると求人カードの信頼感が大幅にアップします。LinkedInやIndeedでは
+              ロゴ有りの企業は応募率が最大2倍になるというデータがあります。
+            </div>
+          </div>
+          <Link
+            href="/biz/company"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 16px", borderRadius: 8, flexShrink: 0,
+              fontSize: 12, fontWeight: 700,
+              background: "#F59E0B", color: "#fff", textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            ロゴを設定する →
+          </Link>
+        </div>
+      )}
+
       {/* ── 開示充実度スコア ── */}
       {disclosureScore && (
         <div style={{

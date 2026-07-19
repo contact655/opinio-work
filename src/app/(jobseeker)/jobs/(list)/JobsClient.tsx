@@ -877,11 +877,42 @@ function FilterChip({
   );
 }
 
+// ─── マッチ理由テキスト（フィルター文脈ベース）────────────────────────────────
+
+function computeMatchReason(
+  job: Job,
+  filters: { category: string; dept: string; salary: string; prefecture: string; q: string },
+  parentRoles: { id: string; name: string }[],
+): string | null {
+  const { category, dept, salary, prefecture, q } = filters;
+  // 職種カテゴリフィルター
+  if (category) {
+    const roleName = parentRoles.find((r) => r.id === category)?.name;
+    if (roleName) return `「${roleName}」職種での絞り込み結果`;
+  }
+  // 旧 dept フィルター
+  if (!category && dept && (job.dept?.includes(dept) || dept.includes(job.dept ?? ""))) {
+    return `「${dept}」職種での絞り込み結果`;
+  }
+  // 年収フィルター
+  if (salary) {
+    const min = parseInt(salary, 10);
+    if (!isNaN(min) && min > 0) return `年収${min}万円以上の条件に合致`;
+  }
+  // 勤務地フィルター
+  if (prefecture && job.location?.includes(prefecture)) {
+    return `${prefecture}勤務の求人`;
+  }
+  // キーワード検索
+  if (q.trim().length >= 1) return `「${q.trim()}」の検索結果`;
+  return null;
+}
+
 // ─── LinkedIn 型縦リスト行 ────────────────────────────────────────────────────
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
-  selectedJobId, onSelect, reviewSummary, isCompared, onCompare,
+  selectedJobId, onSelect, reviewSummary, isCompared, onCompare, matchReason,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -892,6 +923,7 @@ function JobListItem({
   reviewSummary?: CompanyReviewSummary;
   isCompared?: boolean;
   onCompare?: (id: string) => void;
+  matchReason?: string | null;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -960,7 +992,7 @@ function JobListItem({
           background: isSelected ? "var(--royal-50)" : "#fff",
           textDecoration: "none",
           borderBottom: "1px solid var(--line-soft)",
-          borderLeft: isSelected ? "4px solid var(--royal)" : "4px solid transparent",
+          borderLeft: isSelected ? "4px solid var(--royal)" : hasMeeting ? "4px solid #FDBA74" : "4px solid transparent",
           transition: "background 0.15s",
         }}
       >
@@ -980,6 +1012,16 @@ function JobListItem({
 
         {/* ── 中央: テキスト情報 ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/* マッチ理由（フィルター文脈 / 先輩在籍 など） */}
+          {matchReason && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{matchReason}</span>
+            </div>
+          )}
 
           {/* 行1: 求人タイトル + 面談受付中バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
@@ -1182,16 +1224,20 @@ function JobListItem({
               aria-label={isCompared ? "比較から外す" : "比較に追加"}
               title={isCompared ? "比較から外す" : "比較に追加（最大3件）"}
               style={{
-                width: 32, height: 32, borderRadius: "50%",
+                borderRadius: 8,
                 border: `1.5px solid ${isCompared ? "var(--royal)" : "#e2e8f0"}`,
                 background: isCompared ? "var(--royal-50)" : "#fff",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 2, padding: "5px 7px",
                 transition: "all 0.2s", flexShrink: 0,
               }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isCompared ? "var(--royal)" : "#94a3b8"} strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isCompared ? "var(--royal)" : "#94a3b8"} strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
                 <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
               </svg>
+              <span style={{ fontSize: 8, fontWeight: 700, color: isCompared ? "var(--royal)" : "#94a3b8", lineHeight: 1, whiteSpace: "nowrap" }}>
+                {isCompared ? "✓ 比較中" : "比較"}
+              </span>
             </button>
           )}
         </div>
@@ -2701,6 +2747,7 @@ export default function JobsClient({
                     reviewSummary={reviewSummaries?.[job.company_id]}
                     isCompared={compareIds.has(job.id)}
                     onCompare={toggleCompare}
+                    matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                   />
                 ))}
               </div>
@@ -2764,6 +2811,7 @@ export default function JobsClient({
                     reviewSummary={reviewSummaries?.[job.company_id]}
                     isCompared={compareIds.has(job.id)}
                     onCompare={toggleCompare}
+                    matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                   />
                 ))}
               </div>
