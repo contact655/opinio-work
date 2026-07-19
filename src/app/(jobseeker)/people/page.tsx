@@ -67,7 +67,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
 
   // Fetch profiles for all user_ids in bulk
   const userIds = filteredRows.map((r) => r.user_id);
-  const [profilesRes, skillsRes] = await Promise.all([
+  const [profilesRes, skillsRes, careerRes] = await Promise.all([
     adminSupabase
       .from("ow_user_profiles")
       .select("user_id, current_job_type, experience_years, work_style, preferred_locations")
@@ -77,12 +77,22 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       .select("user_id, label, sort_order")
       .in("user_id", userIds)
       .order("sort_order", { ascending: true }),
+    adminSupabase
+      .from("ow_career_profiles")
+      .select("user_id, birth_year")
+      .in("user_id", userIds),
   ]);
 
   const profileMap: Record<string, { current_job_type: string | null; experience_years: number | null; work_style: string | null; preferred_locations: string[] | null }> = {};
   for (const p of profilesRes.data ?? []) {
     const pp = p as { user_id: string; current_job_type: string | null; experience_years: number | null; work_style: string | null; preferred_locations: string[] | null };
     profileMap[pp.user_id] = pp;
+  }
+
+  const birthYearMap: Record<string, number | null> = {};
+  for (const c of careerRes.data ?? []) {
+    const cc = c as { user_id: string; birth_year: number | null };
+    birthYearMap[cc.user_id] = cc.birth_year;
   }
 
   const skillMap: Record<string, string[]> = {};
@@ -119,6 +129,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       companyLogoLetter: r.ow_companies?.logo_letter ?? null,
       currentJobType: profile?.current_job_type ?? null,
       experienceYears: profile?.experience_years ?? null,
+      birthYear: birthYearMap[r.user_id] ?? null,
       workStyle: profile?.work_style ?? null,
       preferredLocations: profile?.preferred_locations ?? null,
       skillTags: skillMap[r.user_id] ?? [],

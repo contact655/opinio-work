@@ -23,6 +23,7 @@ export type AmbassadorCard = {
   companyLogoLetter: string | null;
   currentJobType: string | null;
   experienceYears: number | null;
+  birthYear: number | null;
   workStyle: string | null;
   preferredLocations: string[] | null;
   skillTags: string[];
@@ -48,6 +49,14 @@ const COMPANY_TYPE_OPTIONS = [
   { value: "unicorn",    label: "ユニコーン",     phasePattern: /unicorn|ユニコーン/i },
   { value: "enterprise", label: "大手企業",       phasePattern: /大手/i },
   { value: "foreign",    label: "外資系企業",     phasePattern: /外資/i },
+];
+
+const AGE_OPTIONS = [
+  { value: "20s", label: "20代", min: 20, max: 29 },
+  { value: "30s", label: "30代", min: 30, max: 39 },
+  { value: "40s", label: "40代", min: 40, max: 49 },
+  { value: "50s", label: "50代", min: 50, max: 59 },
+  { value: "60s", label: "60代", min: 60, max: 69 },
 ];
 
 const SORT_OPTIONS = [
@@ -459,6 +468,13 @@ function matchRole(card: AmbassadorCard, v: string): boolean {
   const opt = ROLE_OPTIONS.find((o) => o.value === v);
   return opt ? opt.pattern.test(text) : true;
 }
+function matchAge(card: AmbassadorCard, v: string): boolean {
+  if (!v) return true;
+  if (card.birthYear == null) return false;
+  const age = 2026 - card.birthYear;
+  const opt = AGE_OPTIONS.find((o) => o.value === v);
+  return opt ? age >= opt.min && age <= opt.max : true;
+}
 function matchCompanyType(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
   const phase = card.companyPhase ?? "";
@@ -474,6 +490,7 @@ export function PeopleListClient({ ambassadors }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [role, setRole] = useState("");
   const [companyType, setCompanyType] = useState("");
+  const [age, setAge] = useState("");
   const [sort, setSort] = useState("newest");
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -499,6 +516,7 @@ export function PeopleListClient({ ambassadors }: Props) {
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchRole(a, role)) return false;
+      if (!matchAge(a, age)) return false;
       if (!matchCompanyType(a, companyType)) return false;
       if (!q) return true;
       return (
@@ -510,17 +528,17 @@ export function PeopleListClient({ ambassadors }: Props) {
         a.talkThemes.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [ambassadors, role, exp, companyType, keyword]);
+  }, [ambassadors, role, age, companyType, keyword]);
 
   const sorted = useMemo(() => {
     if (sort === "exp") return [...filtered].sort((a, b) => (b.experienceYears ?? 0) - (a.experienceYears ?? 0));
     return filtered;
   }, [filtered, sort]);
 
-  const hasFilter = !!(keyword || role || companyType);
+  const hasFilter = !!(keyword || role || age || companyType);
 
   function clearAll() {
-    setKeyword(""); setRole(""); setCompanyType("");
+    setKeyword(""); setRole(""); setAge(""); setCompanyType("");
   }
 
   if (ambassadors.length === 0) {
@@ -682,7 +700,7 @@ export function PeopleListClient({ ambassadors }: Props) {
             {/* モバイル: フィルタトグル */}
             <button
               type="button"
-              className={`ppl-filter-toggle${(role || exp || companyType) ? " active" : ""}`}
+              className={`ppl-filter-toggle${(role || age || companyType) ? " active" : ""}`}
               onClick={() => setFiltersExpanded(!filtersExpanded)}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -694,6 +712,7 @@ export function PeopleListClient({ ambassadors }: Props) {
             {/* フィルタチップ */}
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
+              <FilterChip label="年齢" value={age} options={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setAge(v ?? ""); setOpenChip(null); }} isOpen={openChip === "age"} onToggle={() => toggleChip("age")} />
               <FilterChip label="企業タイプ" value={companyType} options={COMPANY_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setCompanyType(v ?? ""); setOpenChip(null); }} isOpen={openChip === "companyType"} onToggle={() => toggleChip("companyType")} />
               {hasFilter && (
                 <button type="button" onClick={clearAll} style={{ fontSize: 12.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
