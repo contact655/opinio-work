@@ -1043,7 +1043,7 @@ function JobListItem({
       className="job-list-card"
       style={{
         borderRadius: 10,
-        border: `1.5px solid ${isSelected ? "var(--royal)" : hasMeeting ? "#FDBA74" : "var(--line)"}`,
+        border: `1.5px solid ${isSelected ? "var(--royal)" : "var(--line)"}`,
         boxShadow: isSelected ? "0 0 0 3px rgba(0,35,102,0.06)" : "0 1px 4px rgba(0,0,0,0.04)",
         overflow: "hidden",
         transition: "border-color 0.15s, box-shadow 0.15s",
@@ -1259,7 +1259,7 @@ function JobListItem({
               cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               gap: 1,
               transform: bookmarkAnim ? "scale(1.15)" : "scale(1)",
-              transition: "all 0.2s", flexShrink: 0,
+              transition: "all 0.2s",
             }}
           >
             <Heart size={14} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
@@ -1267,37 +1267,30 @@ function JobListItem({
               {bookmarked ? "済" : "気になる"}
             </span>
           </button>
+          {hasMeeting && showMeetingCta && (
+            <a
+              href={`/companies/${company.slug ?? company.id}/casual-meeting`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 10, fontWeight: 700,
+                color: "#C2410C",
+                background: "#FFF7ED",
+                border: "1px solid #FDBA74",
+                padding: "5px 10px",
+                borderRadius: 6,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              面談を申し込む
+            </a>
+          )}
         </div>
       </Link>
-      {/* Quick 面談CTA — 面談受付中企業のみ・リスト内で企業ごとに1回だけ表示 */}
-      {hasMeeting && showMeetingCta && (
-        <div style={{
-          padding: "8px 16px 10px 86px",
-          borderTop: "1px solid var(--line-soft)",
-          background: "#FFFDF9",
-        }}>
-          <a
-            href={`/companies/${company.slug ?? company.id}/casual-meeting`}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              fontSize: 10, fontWeight: 700,
-              color: "#C2410C",
-              background: "#FFF7ED",
-              border: "1px solid #FDBA74",
-              padding: "5px 12px",
-              borderRadius: 6,
-              textDecoration: "none",
-            }}
-            className="job-meeting-cta"
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            カジュアル面談を申し込む →
-          </a>
-        </div>
-      )}
     </div>
   );
 }
