@@ -178,7 +178,7 @@ function CompanyBadge({ card, large }: { card: AmbassadorCard; large?: boolean }
   const iconSize = large ? 22 : 18;
   const fontSize = large ? 13 : 12;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
       {card.companyLogoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={card.companyLogoUrl} alt="" style={{ width: iconSize, height: iconSize, borderRadius: 5, objectFit: "contain", background: "#fff", border: "1px solid var(--line)", flexShrink: 0 }} />
@@ -601,43 +601,6 @@ export function PeopleListClient({ ambassadors }: Props) {
 
       <h1 className="sr-only">ユーザーを探す — 話せる人を探す</h1>
 
-      {/* ── ページヘッダー ── */}
-      <div style={{
-        background: "linear-gradient(160deg, #eef3fd 0%, #f4f7fe 40%, #fafbff 80%, #fff 100%)",
-        borderBottom: "1px solid var(--line-soft)",
-        padding: "32px 24px 28px",
-      }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 800, letterSpacing: "0.12em",
-                  color: "var(--royal)", fontFamily: "Inter, sans-serif", textTransform: "uppercase",
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                }}>
-                  PEOPLE
-                </span>
-              </div>
-              <h1 style={{ margin: 0, fontSize: "clamp(22px,3vw,30px)", fontWeight: 900, color: "var(--ink)", lineHeight: 1.2, fontFamily: "var(--font-noto-sans)" }}>
-                IT/SaaS業界で働く人と話そう
-              </h1>
-              <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                現役社員が直接キャリアや働き方を教えてくれます。選考なし・完全無料。
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 20, flexShrink: 0 }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 900, color: "var(--royal)", fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
-                  {ambassadors.length}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 3 }}>名が登録</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ── 検索 + フィルタバー ── */}
       <div
