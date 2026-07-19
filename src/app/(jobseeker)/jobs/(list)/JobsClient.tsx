@@ -974,15 +974,13 @@ function computeMatchReason(
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
-  selectedJobId, onSelect, reviewSummary, matchReason: _matchReason,
+  reviewSummary, matchReason: _matchReason,
   showMeetingCta = true,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
   initialBookmarked?: boolean;
   isApplied?: boolean;
-  selectedJobId?: string | null;
-  onSelect?: (id: string) => void;
   reviewSummary?: CompanyReviewSummary;
   matchReason?: string | null;
   showMeetingCta?: boolean;
@@ -1035,15 +1033,14 @@ function JobListItem({
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
   const badge = freshBadge(job.updated_days_ago);
   const hasMeeting = company.accepting_casual_meetings;
-  const isSelected = selectedJobId === job.id;
 
   return (
     <div
       className="job-list-card"
       style={{
         borderRadius: 10,
-        border: `1.5px solid ${isSelected ? "var(--royal)" : "var(--line)"}`,
-        boxShadow: isSelected ? "0 0 0 3px rgba(0,35,102,0.06)" : "0 1px 4px rgba(0,0,0,0.04)",
+        border: "1.5px solid var(--line)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
         overflow: "hidden",
         transition: "border-color 0.15s, box-shadow 0.15s",
       }}
@@ -1052,14 +1049,13 @@ function JobListItem({
         href={`/jobs/${job.slug ?? job.id}`}
         prefetch
         className="job-list-item-link"
-        onClick={onSelect ? (e) => { if (window.innerWidth >= 1024) { e.preventDefault(); onSelect(job.id); } } : undefined}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 14,
           padding: "16px 16px",
           minHeight: 80,
-          background: isSelected ? "var(--royal-50)" : "#fff",
+          background: "#fff",
           textDecoration: "none",
           transition: "background 0.15s",
         }}
@@ -1906,10 +1902,7 @@ export default function JobsClient({
   const workStyleSet = useMemo(() => new Set(work_style ? work_style.split(",") : []), [work_style]);
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
   const sort = searchParams.get("sort") ?? "updated";
-  // Phase 1: 読み取りのみ（?job=UUID で行ハイライト。書き込みは Phase 2）
-  const selectedJobId = searchParams.get("job");
-
-  // Desktop 2-pane detection
+  // Desktop sidebar detection
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 1024);
@@ -1917,13 +1910,6 @@ export default function JobsClient({
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  const handleSelectJob = useCallback((jobId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (params.get("job") === jobId) params.delete("job");
-    else params.set("job", jobId);
-    router.replace(`/jobs?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
 
   // Local-only keyword search
   const [q, setQ] = useState("");
@@ -2679,7 +2665,7 @@ export default function JobsClient({
           {(() => { /* computed below via variables */ return null; })()}
           <div
             className="jobs-layout"
-            style={isDesktop ? { gridTemplateColumns: `220px minmax(0,1fr)${selectedJobId ? " 360px" : ""}` } : undefined}
+            style={isDesktop ? { gridTemplateColumns: "220px minmax(0,1fr)" } : undefined}
           >
             {/* ─ Desktop sidebar ─ */}
             <aside className="jobs-sidebar">
@@ -2812,8 +2798,6 @@ export default function JobsClient({
                     companyMap={companyMap}
                     initialBookmarked={bookmarkedIds.has(job.id)}
                     isApplied={appliedJobIds.has(job.id)}
-                    selectedJobId={selectedJobId}
-                    onSelect={handleSelectJob}
                     reviewSummary={reviewSummaries?.[job.company_id]}
                     matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                   />
@@ -2877,8 +2861,6 @@ export default function JobsClient({
                         companyMap={companyMap}
                         initialBookmarked={bookmarkedIds.has(job.id)}
                         isApplied={appliedJobIds.has(job.id)}
-                        selectedJobId={selectedJobId}
-                        onSelect={handleSelectJob}
                         reviewSummary={reviewSummaries?.[job.company_id]}
                         matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                         showMeetingCta={!!co?.accepting_casual_meetings}
@@ -2945,16 +2927,6 @@ export default function JobsClient({
             </>
           )}
             </main>
-            {/* 右詳細ペイン — クリック選択時のみ表示 */}
-            {isDesktop && selectedJobId && (
-              <div className="jobs-detail-pane">
-                {(() => {
-                  const selJob = paged.find(j => j.id === selectedJobId) ?? null;
-                  const selCo = selJob ? companyMap.get(selJob.company_id) ?? null : null;
-                  return <JobDetailPane job={selJob} company={selCo} topJobs={allJobs} companyMap={companyMap} />;
-                })()}
-              </div>
-            )}
           </div>{/* jobs-layout end */}
         </div>
       </div>{/* bg end */}
@@ -3014,7 +2986,6 @@ export default function JobsClient({
           gap: 0;
         }
         .jobs-sidebar { display: none; }
-        .jobs-detail-pane { display: none; }
         /* filter bar: always visible */
         .jobs-mobile-filterbar { display: block; position: sticky; top: 64px; }
         /* 縦リスト: 1カラム — 個別カード方式 */
@@ -3042,13 +3013,11 @@ export default function JobsClient({
         @media (min-width: 1024px) {
           .jobs-layout {
             display: grid;
-            /* 列数は isDesktop + selectedJobId に応じて inline style で上書き */
             grid-template-columns: 220px minmax(0, 1fr);
             gap: 24px;
             align-items: start;
           }
           .jobs-sidebar { display: block !important; }
-          .jobs-detail-pane { display: block !important; }
           /* サイドバーと重複するフィルターをトップバーから隠す */
           .jobs-filterbar-sidebar-dup { display: none !important; }
           /* デスクトップでは検索バーの勤務地selectをサイドバーで代替 */
