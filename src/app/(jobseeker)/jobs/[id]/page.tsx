@@ -524,7 +524,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                   </svg>
-                  {isSalesJob(job.dept) ? "基本給" : "想定年収"}&nbsp;{job.salary_min && job.salary_max
+                  {job.salary_min && job.salary_max
                     ? `${job.salary_min}〜${job.salary_max}万円`
                     : job.salary_min ? `${job.salary_min}万円〜`
                     : `〜${job.salary_max}万円`}
