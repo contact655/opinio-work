@@ -756,7 +756,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Overview → 仕事内容 */}
               {job.overview && (
-              <section style={{ background: "#fff", borderRadius: 14, padding: "var(--space-6) var(--space-6) var(--space-5)" }}>
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
