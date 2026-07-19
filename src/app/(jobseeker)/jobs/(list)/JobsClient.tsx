@@ -1091,16 +1091,6 @@ function JobListItem({
             }}>
               {job.role}
             </span>
-            {hasMeeting && (
-              <span style={{
-                flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
-                background: "#FFF7ED", color: "#C2410C", border: "1.5px solid #FDBA74",
-              }}>
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite" }} />
-                面談受付中
-              </span>
-            )}
           </div>
 
           {/* 行2: 会社名のみ */}
