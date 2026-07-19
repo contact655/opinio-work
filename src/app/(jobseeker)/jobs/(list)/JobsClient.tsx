@@ -975,6 +975,7 @@ function computeMatchReason(
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
   selectedJobId, onSelect, reviewSummary, isCompared, onCompare, matchReason,
+  showMeetingCta = true,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -986,6 +987,7 @@ function JobListItem({
   isCompared?: boolean;
   onCompare?: (id: string) => void;
   matchReason?: string | null;
+  showMeetingCta?: boolean;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -1049,7 +1051,7 @@ function JobListItem({
           display: "flex",
           alignItems: "center",
           gap: 14,
-          padding: "14px 16px",
+          padding: "16px 16px",
           minHeight: 80,
           background: isSelected ? "var(--royal-50)" : "#fff",
           textDecoration: "none",
@@ -1286,7 +1288,7 @@ function JobListItem({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isCompared ? "var(--royal)" : "#94a3b8"} strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
                 <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
               </svg>
-              <span style={{ fontSize: 8, fontWeight: 700, color: isCompared ? "var(--royal)" : "#94a3b8", lineHeight: 1, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: isCompared ? "var(--royal)" : "#94a3b8", lineHeight: 1, whiteSpace: "nowrap" }}>
                 {isCompared ? "✓ 比較中" : "比較"}
               </span>
             </button>
@@ -1304,8 +1306,8 @@ function JobListItem({
           </span>
         </div>
       </Link>
-      {/* Quick 面談CTA — 面談受付中企業のみ（カード下部に控えめに表示） */}
-      {hasMeeting && (
+      {/* Quick 面談CTA — 面談受付中企業のみ・リスト内で企業ごとに1回だけ表示 */}
+      {hasMeeting && showMeetingCta && (
         <div style={{
           padding: "0 16px 8px 84px",
           borderBottom: "1px solid var(--line-soft)",
@@ -1354,12 +1356,17 @@ function JobDetailPane({
         overflow: "hidden", boxShadow: "0 2px 12px rgba(15,23,42,0.06)",
       }}>
         {/* ヘッダー */}
-        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--line-soft)" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-            ← カードをクリックで詳細表示
+        <div style={{ padding: "28px 20px 20px", borderBottom: "1px solid var(--line-soft)", textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-            求人カードを選ぶとここに詳細が表示されます
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+            求人を選んで詳細を確認
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+            気になる求人をクリックすると<br />ここに詳細が表示されます
           </div>
         </div>
 
@@ -1374,9 +1381,16 @@ function JobDetailPane({
                 const co = paneCompanyMap?.get(j.company_id);
                 return (
                   <Link key={j.id} href={`/jobs/${j.slug ?? j.id}`} style={{ display: "block", textDecoration: "none" }}>
-                    <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #FDBA74", background: "#FFFBF5", transition: "background 0.15s" }} className="pane-card-hover">
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
-                      <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</div>
+                    <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #FDBA74", background: "#FFFBF5", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 10 }} className="pane-card-hover">
+                      {co && (
+                        <div style={{ flexShrink: 0 }}>
+                          <CompanyLogo name={co.name} logoUrl={co.logo_url} logoLetter={(co as any).logo_letter} logoGradient={(co as any).gradient} size={28} borderRadius={6} />
+                        </div>
+                      )}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
+                        <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</div>
+                      </div>
                     </div>
                   </Link>
                 );
@@ -1396,11 +1410,18 @@ function JobDetailPane({
               const salMax = j.salary_max && j.salary_max > 0 ? `〜${j.salary_max}万円` : "";
               return (
                 <Link key={j.id} href={`/jobs/${j.slug ?? j.id}`} style={{ display: "block", textDecoration: "none" }}>
-                  <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--bg-tint)", transition: "background 0.15s" }} className="pane-card-hover">
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</span>
-                      {salMax && <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>{salMax}</span>}
+                  <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--bg-tint)", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 10 }} className="pane-card-hover">
+                    {co && (
+                      <div style={{ flexShrink: 0 }}>
+                        <CompanyLogo name={co.name} logoUrl={co.logo_url} logoLetter={(co as any).logo_letter} logoGradient={(co as any).gradient} size={28} borderRadius={6} />
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</span>
+                        {salMax && <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>{salMax}</span>}
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -2564,32 +2585,35 @@ export default function JobsClient({
             {/* 縦区切り — デスクトップでは不要（左側が全て非表示になるため） */}
             <div className="jobs-filterbar-sidebar-dup" style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
 
-            {/* 並び替えpills */}
-            {([
-              { value: "updated", label: "新着順" },
-              { value: "salary",  label: "年収順" },
-              { value: "meeting", label: "面談優先" },
-            ] as const).map((opt) => {
-              const active = sort === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setParam("sort", opt.value)}
-                  style={{
-                    height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
-                    fontWeight: active ? 700 : 500,
-                    border: `1.5px solid ${active ? "var(--royal)" : "#e2e8f0"}`,
-                    background: active ? "var(--royal)" : "#fff",
-                    color: active ? "#fff" : "var(--ink-mute)",
-                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", flexShrink: 0,
-                    boxShadow: active ? "0 2px 8px rgba(0,35,102,0.25)" : "none",
-                  }}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
+            {/* 並び替え — セグメントコントロール */}
+            <div style={{ display: "flex", border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#fff" }}>
+              {([
+                { value: "updated", label: "新着順" },
+                { value: "salary",  label: "年収順" },
+                { value: "meeting", label: "面談優先" },
+              ] as const).map((opt, i) => {
+                const active = sort === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setParam("sort", opt.value)}
+                    style={{
+                      height: 35, padding: "0 13px", borderRadius: 0, fontSize: 12.5,
+                      fontWeight: active ? 700 : 500,
+                      background: active ? "var(--royal)" : "transparent",
+                      color: active ? "#fff" : "var(--ink-mute)",
+                      cursor: "pointer", whiteSpace: "nowrap", transition: "background 0.15s, color 0.15s", flexShrink: 0,
+                      boxShadow: i > 0 ? "-1px 0 0 0 #e2e8f0 inset" : "none",
+                      border: "none",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
               {maxPerCompany > 3 && (
                 <>
@@ -2917,21 +2941,30 @@ export default function JobsClient({
             <>
               {/* リスト表示（デスクトップ・モバイル共通） */}
               <div className="jobs-list-desktop">
-                {paged.map((job) => (
-                  <JobListItem
-                    key={job.id}
-                    job={job}
-                    companyMap={companyMap}
-                    initialBookmarked={bookmarkedIds.has(job.id)}
-                    isApplied={appliedJobIds.has(job.id)}
-                    selectedJobId={selectedJobId}
-                    onSelect={handleSelectJob}
-                    reviewSummary={reviewSummaries?.[job.company_id]}
-                    isCompared={compareIds.has(job.id)}
-                    onCompare={toggleCompare}
-                    matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
-                  />
-                ))}
+                {(() => {
+                  const seenMeetingCo = new Set<string>();
+                  return paged.map((job) => {
+                    const co = companyMap.get(job.company_id);
+                    const isFirstMeeting = !!co?.accepting_casual_meetings && !seenMeetingCo.has(job.company_id);
+                    if (co?.accepting_casual_meetings) seenMeetingCo.add(job.company_id);
+                    return (
+                      <JobListItem
+                        key={job.id}
+                        job={job}
+                        companyMap={companyMap}
+                        initialBookmarked={bookmarkedIds.has(job.id)}
+                        isApplied={appliedJobIds.has(job.id)}
+                        selectedJobId={selectedJobId}
+                        onSelect={handleSelectJob}
+                        reviewSummary={reviewSummaries?.[job.company_id]}
+                        isCompared={compareIds.has(job.id)}
+                        onCompare={toggleCompare}
+                        matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
+                        showMeetingCta={isFirstMeeting}
+                      />
+                    );
+                  });
+                })()}
               </div>
               {/* ⑦ プログレスバー + もっと見るボタン */}
               <div style={{ marginTop: 16, marginBottom: 4 }}>
