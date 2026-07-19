@@ -543,9 +543,10 @@ export function PeopleListClient({ ambassadors }: Props) {
         }
 
         /* グリッド: 3列 → 2列 → 1列 */
-        .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-        @media (max-width: 900px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }
-        @media (max-width: 520px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
+        .ppl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+        @media (max-width: 1024px) { .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+        @media (max-width: 700px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+        @media (max-width: 420px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
 
         /* グリッドカード */
         .ppl-grid-card {
