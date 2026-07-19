@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { updateEngagementStatus, updateJobsPublic, updateIsPublished, updateSortOrder, updateApproval } from "./actions";
+import { updateEngagementStatus, updateJobsPublic, updateSortOrder, updateApproval } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -146,15 +146,6 @@ export default function AdminCompaniesPage() {
     setActionLoading(company.id);
     await updateJobsPublic(company.id, newValue);
     setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, jobs_public: newValue } : c));
-    setActionLoading(null);
-  }
-
-  // is_published トグル (既存)
-  async function handleTogglePublish(company: Company) {
-    const newValue = !company.is_published;
-    setActionLoading(company.id);
-    await updateIsPublished(company.id, newValue);
-    setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
     setActionLoading(null);
   }
 

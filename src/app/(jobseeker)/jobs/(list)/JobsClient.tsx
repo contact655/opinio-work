@@ -1031,7 +1031,6 @@ function JobListItem({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
-  const badge = freshBadge(job.updated_days_ago);
   const hasMeeting = company.accepting_casual_meetings;
 
   return (
