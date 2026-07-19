@@ -1102,15 +1102,19 @@ function JobListItem({
           </div>
         </div>
 
-        {/* ── 右端: NEW バッジ + ♡ボタン ── */}
+        {/* ── 右端: NEW バッジ + 掲載日 + ♡ボタン ── */}
         <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-          {badge && (
+          {badge ? (
             <span style={{
               fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
               background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`,
               fontFamily: "Inter, sans-serif",
             }}>
               {badge.label}
+            </span>
+          ) : (
+            <span style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+              {job.updated_days_ago === 0 ? "今日" : `${job.updated_days_ago}日前`}
             </span>
           )}
           <button
@@ -1277,7 +1281,7 @@ function SidebarFilters({
   parentRoles, category, workStyle, salary, empType, prefecture, bizModel, meetingOnly,
   companyStage, onCompanyStageChange, techStack, onTechStackChange,
   availablePrefectures, setParam, onMeetingOnlyChange, hasFilter, q, onReset, meetingCount,
-  industries, industryId,
+  industries, industryId, roleCounts,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; empType: string; prefecture: string;
@@ -1290,9 +1294,10 @@ function SidebarFilters({
   hasFilter: boolean; q: string; onReset: () => void; meetingCount: number;
   industries: { id: string; parent_id: string | null; name: string; slug: string }[];
   industryId: string;
+  roleCounts?: Map<string, number>;
 }) {
-  // ③ アコーディオン: デフォルトで年収・雇用形態・地域は折りたたむ
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "salary", "empType", "bizModel", "prefecture", "techStack"]));
+  // ③ アコーディオン: デフォルトで年収以外は折りたたむ（年収はデフォルト展開）
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "empType", "bizModel", "prefecture", "techStack"]));
   // 「詳細条件」アコーディオン（デフォルト閉じ）
   const [detailOpen, setDetailOpen] = useState(false);
   function toggleSection(key: string) {
@@ -1362,6 +1367,7 @@ function SidebarFilters({
               >
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
                 <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
+                {roleCounts?.get(role.id) ? <span style={{ fontSize: 10, color: isActive ? rc.color : "var(--ink-mute)", opacity: 0.8, flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
                 {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
               </button>
             );
@@ -1962,8 +1968,16 @@ export default function JobsClient({
     // ソート
     if (sort === "salary") {
       list = [...list].sort((a, b) => (b.salary_max ?? 0) - (a.salary_max ?? 0));
+    } else if (sort === "meeting") {
+      // 面談受付中優先、次に更新日
+      list = [...list].sort((a, b) => {
+        const aM = companyMap.get(a.company_id)?.accepting_casual_meetings ? 0 : 1;
+        const bM = companyMap.get(b.company_id)?.accepting_casual_meetings ? 0 : 1;
+        if (aM !== bM) return aM - bM;
+        return a.updated_days_ago - b.updated_days_ago;
+      });
     } else {
-      // デフォルト: 給与記載あり優先、次に更新日降順
+      // デフォルト: 給与記載あり優先、次に更新日
       list = [...list].sort((a, b) => {
         const aHas = hasSalaryData(a.salary_min, a.salary_max) ? 0 : 1;
         const bHas = hasSalaryData(b.salary_min, b.salary_max) ? 0 : 1;
@@ -1975,16 +1989,23 @@ export default function JobsClient({
     return list;
   }, [allJobs, q, category, dept, work_style, salary, bizModel, industry, industryId, prefecture, empType, meetingOnly, companyStage, techStack, sort, companies, companyMap, roleAliases, industries]);
 
-  // ⑧ グルーピング適用（1社あたり最大3件）
+  // ⑧ グルーピング適用（1社あたり最大3件・更新日新しい順）
   const filteredForDisplay = useMemo(() => {
     if (!groupByCompany) return filtered;
-    const countMap = new Map<string, number>();
-    return filtered.filter((j) => {
-      const c = countMap.get(j.company_id) ?? 0;
-      if (c >= 3) return false;
-      countMap.set(j.company_id, c + 1);
-      return true;
-    });
+    // 企業ごとにグループ化し、更新日昇順（古い日数=新しい）でソート後、先頭3件を取る
+    const byCompany = new Map<string, typeof filtered>();
+    for (const j of filtered) {
+      const arr = byCompany.get(j.company_id) ?? [];
+      arr.push(j);
+      byCompany.set(j.company_id, arr);
+    }
+    byCompany.forEach((arr) => arr.sort((a, b) => a.updated_days_ago - b.updated_days_ago));
+    // 企業の出現順（filteredリスト内の初出）を維持して平坦化
+    const seenCompanies: string[] = [];
+    for (const j of filtered) {
+      if (!seenCompanies.includes(j.company_id)) seenCompanies.push(j.company_id);
+    }
+    return seenCompanies.flatMap((cid) => (byCompany.get(cid) ?? []).slice(0, 3));
   }, [filtered, groupByCompany]);
 
   // ⑧ グルーピング時に「まとめられた社数」を計算
@@ -2011,6 +2032,18 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setDisplayCount((c) => c + PER_PAGE); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore]);
+
   const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || meetingOnly || companyStage || techStack.length || bizOnly);
 
   // 面談受付中の求人数（全件から）
@@ -2018,6 +2051,15 @@ export default function JobsClient({
     () => allJobs.filter((j) => companyMap.get(j.company_id)?.accepting_casual_meetings).length,
     [allJobs, companyMap]
   );
+
+  const roleCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const j of allJobs) {
+      const ids = (j as { roleIds?: string[] }).roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
+      for (const id of ids) map.set(id, (map.get(id) ?? 0) + 1);
+    }
+    return map;
+  }, [allJobs]);
 
   // 希望職種マッチ求人（パーソナライズセクション用）
   const jobTypeMatchedJobs = useMemo(() => {
@@ -2078,6 +2120,17 @@ export default function JobsClient({
                 style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
               >×</button>
             )}
+            <div className="jobs-location-separator" style={{ width: 1, height: 18, background: "#e2e8f0", flexShrink: 0 }} />
+            <select
+              aria-label="勤務地"
+              value={prefecture}
+              onChange={(e) => setParam("prefecture", e.target.value)}
+              className="jobs-location-select"
+              style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, color: prefecture ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", padding: "8px 4px", flexShrink: 0, maxWidth: 90, fontFamily: "inherit" }}
+            >
+              <option value="">勤務地</option>
+              {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
 
           {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
@@ -2177,6 +2230,7 @@ export default function JobsClient({
             {([
               { value: "updated", label: "新着順" },
               { value: "salary",  label: "年収順" },
+              { value: "meeting", label: "面談優先" },
             ] as const).map((opt) => {
               const active = sort === opt.value;
               return (
@@ -2360,6 +2414,7 @@ export default function JobsClient({
                 meetingCount={meetingCount}
                 industries={industries}
                 industryId={industryId}
+                roleCounts={roleCounts}
               />
             </aside>
 
@@ -2377,20 +2432,25 @@ export default function JobsClient({
                 ✦ あなたへのおすすめ
               </span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                {recommendations.slice(0, 3).map(({ job }) => (
+                {recommendations.slice(0, 3).map(({ job, reasonText }) => (
                   <a
                     key={job.id}
                     href={`/jobs/${job.slug ?? job.id}`}
                     style={{
-                      fontSize: 11, padding: "3px 10px", borderRadius: 100,
+                      padding: "4px 10px", borderRadius: 8,
                       background: "#fff", color: "var(--royal)",
                       border: "1px solid var(--royal-100)", textDecoration: "none",
-                      fontWeight: 600, whiteSpace: "nowrap",
-                      overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180,
                       display: "inline-block",
                     }}
                   >
-                    {job.role}
+                    <div style={{ fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+                      {job.role}
+                    </div>
+                    {reasonText && (
+                      <div style={{ fontSize: 9, fontWeight: 400, color: "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+                        {reasonText}
+                      </div>
+                    )}
                   </a>
                 ))}
                 {recommendations.length > 3 && (
@@ -2554,6 +2614,7 @@ export default function JobsClient({
                   </svg>
                 </button>
               )}
+              {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
 
             </>
           )}
@@ -2663,6 +2724,8 @@ export default function JobsClient({
           .jobs-detail-pane { display: block !important; }
           /* サイドバーと重複するフィルターをトップバーから隠す */
           .jobs-filterbar-sidebar-dup { display: none !important; }
+          /* デスクトップでは検索バーの勤務地selectをサイドバーで代替 */
+          .jobs-location-select, .jobs-location-separator { display: none !important; }
         }
 
         @media (max-width: 767px) {
