@@ -198,25 +198,6 @@ function CompanyBadge({ card, large }: { card: AmbassadorCard; large?: boolean }
   );
 }
 
-function SkillTags({ tags, max = 3 }: { tags: string[]; max?: number }) {
-  const show = tags.slice(0, max);
-  const rest = tags.length - max;
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-      {show.map((tag) => (
-        <span key={tag} style={{
-          fontSize: 11, fontWeight: 600,
-          padding: "3px 9px", borderRadius: 100,
-          background: "var(--royal-50)", color: "var(--royal)",
-          border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
-        }}>
-          {tag}
-        </span>
-      ))}
-      {rest > 0 && <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>+{rest}</span>}
-    </div>
-  );
-}
 
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card }: { card: AmbassadorCard }) {
