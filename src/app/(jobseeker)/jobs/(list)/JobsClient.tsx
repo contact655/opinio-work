@@ -75,6 +75,7 @@ const PHASE_BADGE_MAP: Record<string, { bg: string; color: string; label: string
   "IPO準備中":     { bg: "#FFEDD5", color: "#9A3412", label: "IPO準備中" },
   "ユニコーン":    { bg: "#F3E8FF", color: "#7C3AED", label: "🦄 ユニコーン" },
   "unicorn":       { bg: "#F3E8FF", color: "#7C3AED", label: "🦄 ユニコーン" },
+  "listed":        { bg: "#ECFDF5", color: "#065F46", label: "上場" },
 };
 function getPhaseBadge(phase: string | null | undefined) {
   if (!phase) return null;
@@ -1195,7 +1196,7 @@ function JobListItem({
           {/* 行4: 年収 · 勤務地 · 勤務形態 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
+              fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
               color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success)" : "var(--ink-mute)",
             }}>
               {formatSalary(job.salary_min, job.salary_max)}
@@ -2822,28 +2823,44 @@ export default function JobsClient({
                 ✦ あなたへのおすすめ
               </span>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                {recommendations.slice(0, 3).map(({ job, reasonText }) => (
-                  <a
-                    key={job.id}
-                    href={`/jobs/${job.slug ?? job.id}`}
-                    title={job.role}
-                    style={{
-                      padding: "4px 10px", borderRadius: 8,
-                      background: "#fff", color: "var(--royal)",
-                      border: "1px solid var(--royal-100)", textDecoration: "none",
-                      display: "inline-block",
-                    }}
-                  >
-                    <div style={{ fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
-                      {job.role}
-                    </div>
-                    {reasonText && (
-                      <div style={{ fontSize: 9, fontWeight: 400, color: "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
-                        {reasonText}
+                {recommendations.slice(0, 3).map(({ job }) => {
+                  const recCompany = companyMap[job.company_id];
+                  return (
+                    <a
+                      key={job.id}
+                      href={`/jobs/${job.slug ?? job.id}`}
+                      title={`${job.role} — ${recCompany?.name ?? ""}`}
+                      style={{
+                        padding: "5px 11px", borderRadius: 8,
+                        background: "#fff", color: "var(--ink)",
+                        border: "1px solid var(--royal-100)", textDecoration: "none",
+                        display: "inline-flex", alignItems: "center", gap: 7,
+                        maxWidth: 220, flexShrink: 0,
+                      }}
+                    >
+                      {recCompany && (
+                        <CompanyLogo
+                          name={recCompany.name}
+                          logoUrl={recCompany.logo_url}
+                          logoLetter={recCompany.logo_letter}
+                          logoGradient={recCompany.gradient}
+                          size={22}
+                          borderRadius={5}
+                        />
+                      )}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
+                          {job.role}
+                        </div>
+                        {recCompany && (
+                          <div style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
+                            {(recCompany as any).brand_name ?? recCompany.name}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </a>
-                ))}
+                    </a>
+                  );
+                })}
                 {recommendations.length > 3 && (
                   <span style={{ fontSize: 11, color: "var(--royal)", alignSelf: "center" }}>
                     +{recommendations.length - 3}件
@@ -3192,6 +3209,15 @@ export default function JobsClient({
         /* モバイルフィルターボタン: 1023px以下で表示 */
         @media (max-width: 1023px) {
           .jobs-mobile-filter-btn { display: inline-flex !important; }
+        }
+
+        /* タイトル1行クランプ */
+        .job-title-clamp {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          display: block;
+          max-width: 100%;
         }
 
         /* company name hover */
