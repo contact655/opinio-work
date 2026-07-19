@@ -1389,7 +1389,7 @@ function JobDetailPane({
                       )}
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
-                        <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</div>
+                        <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{co?.name ?? ""}</div>
                       </div>
                     </div>
                   </Link>
@@ -1413,14 +1413,14 @@ function JobDetailPane({
                   <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--bg-tint)", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 10 }} className="pane-card-hover">
                     {co && (
                       <div style={{ flexShrink: 0 }}>
-                        <CompanyLogo name={co.name} logoUrl={co.logo_url} logoLetter={(co as any).logo_letter} logoGradient={(co as any).gradient} size={28} borderRadius={6} />
+                        <CompanyLogo name={co.name} logoUrl={co.logo_url} logoLetter={(co as any).logo_letter} logoGradient={(co as any).gradient} size={24} borderRadius={5} />
                       </div>
                     )}
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</span>
-                        {salMax && <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>{salMax}</span>}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, overflow: "hidden" }}>
+                        <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{co?.name ?? ""}</span>
+                        {salMax && <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{salMax}</span>}
                       </div>
                     </div>
                   </div>
