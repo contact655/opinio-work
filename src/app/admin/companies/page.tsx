@@ -56,6 +56,7 @@ type Company = {
   created_at: string;
   updated_at: string;
   sort_order: number | null;
+  logo_url: string | null;
   job_count?: number;
   admins?: CompanyAdmin[];
 };
@@ -76,7 +77,7 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }, { data: adminRows }, { data: userRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order")
+        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url")
         .order("sort_order", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false }),
       supabase
@@ -320,7 +321,7 @@ export default function AdminCompaniesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["", "企業名", "業界", "担当者", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "ロゴURL", "業界", "担当者", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -329,12 +330,13 @@ export default function AdminCompaniesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={10} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <tr><td colSpan={11} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>企業が見つかりません
                 </td></tr>
               ) : (
                 filtered.map((c) => {
                   const es = (c.engagement_status ?? "none") as EngagementStatus;
+
                   const esCfg = ENGAGEMENT_CONFIG[es];
                   const isLoading = actionLoading === c.id;
                   const isDragOver = dragOverId === c.id;
@@ -375,6 +377,31 @@ export default function AdminCompaniesPage() {
                             )}
                           </div>
                         </Link>
+                      </td>
+
+                      {/* ロゴURL */}
+                      <td style={{ padding: "10px 8px", minWidth: 180 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {c.logo_url && (
+                            <img src={c.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: "contain", border: "1px solid var(--line)", background: "#fff", flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          )}
+                          <input
+                            type="url"
+                            defaultValue={c.logo_url ?? ""}
+                            placeholder="https://..."
+                            style={{ fontSize: 11, padding: "4px 7px", borderRadius: 6, border: "1px solid var(--line)", width: "100%", minWidth: 120, color: "var(--ink)", outline: "none" }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; }}
+                            onBlur={async (e) => {
+                              e.currentTarget.style.borderColor = "var(--line)";
+                              const val = e.currentTarget.value.trim() || null;
+                              if (val === (c.logo_url ?? null)) return;
+                              const supabase = createClient();
+                              await supabase.from("ow_companies").update({ logo_url: val }).eq("id", c.id);
+                              setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, logo_url: val } : x));
+                            }}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                          />
+                        </div>
                       </td>
 
                       {/* 業界 */}

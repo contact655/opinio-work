@@ -877,6 +877,45 @@ function FilterChip({
   );
 }
 
+// ─── スキルタグ抽出（tech_stack 優先、なければ要件文から技術キーワードを抽出）────────
+
+const TECH_KEYWORD_RE = new RegExp(
+  [
+    "TypeScript", "JavaScript", "Python", "Go(?:lang)?", "Ruby", "Java(?!Script)", "Rust",
+    "Swift", "Kotlin", "PHP", "C\\+\\+", "C#", "Scala", "R言語",
+    "React", "Vue", "Angular", "Next\\.js", "Nuxt", "Rails", "Django", "FastAPI", "Spring",
+    "AWS", "GCP", "Azure", "Docker", "Kubernetes", "Terraform", "Linux",
+    "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis", "BigQuery", "Snowflake",
+    "SaaS", "B2B", "BtoB", "CRM", "ERP", "Salesforce", "HubSpot",
+    "Figma", "Sketch", "機械学習", "自然言語処理", "MLOps", "LLM",
+    "Ruby on Rails", "Node\\.js",
+  ].join("|"),
+  "gi",
+);
+
+function extractSkillChips(required_skills: string[], tech_stack: string[]): string[] {
+  if (tech_stack.length > 0) return tech_stack.slice(0, 3);
+  const chips: string[] = [];
+  const seen = new Set<string>();
+  for (const req of required_skills) {
+    if (chips.length >= 3) break;
+    const trimmed = req.trim();
+    if (trimmed.length <= 14 && trimmed.length >= 2) {
+      const key = trimmed.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); chips.push(trimmed); }
+    } else {
+      // 長い要件文から技術キーワードを抽出
+      const matches = trimmed.match(TECH_KEYWORD_RE) ?? [];
+      for (const m of matches) {
+        if (chips.length >= 3) break;
+        const key = m.toLowerCase();
+        if (!seen.has(key)) { seen.add(key); chips.push(m); }
+      }
+    }
+  }
+  return chips;
+}
+
 // ─── マッチ理由テキスト（フィルター文脈ベース）────────────────────────────────
 
 function computeMatchReason(
@@ -1101,30 +1140,25 @@ function JobListItem({
           )}
 
 
-          {/* 行3: スキルタグ（tech_stack 優先、なければ required_skills の短いもの） */}
+          {/* 行3: スキルタグ（tech_stack 優先、なければ要件文から技術キーワードを抽出） */}
           {(() => {
             const techTags = job.tech_stack ?? [];
-            const reqTags = job.required_skills.filter((s) => s.length <= 30);
-            const skillTags = techTags.length > 0 ? techTags : reqTags;
-            if (skillTags.length === 0) return null;
+            const chips = extractSkillChips(job.required_skills, techTags);
+            const isTech = techTags.length > 0;
+            if (chips.length === 0) return null;
             return (
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 5 }}>
-                {skillTags.slice(0, 3).map((skill) => (
+                {chips.map((skill) => (
                   <span key={skill} style={{
                     fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
-                    background: techTags.length > 0 ? "var(--royal-50)" : "var(--bg-tint)",
-                    color: techTags.length > 0 ? "var(--royal)" : "var(--ink-soft)",
-                    border: `1px solid ${techTags.length > 0 ? "var(--royal-100)" : "var(--line)"}`,
-                    whiteSpace: "nowrap", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis",
+                    background: isTech ? "var(--royal-50)" : "var(--bg-tint)",
+                    color: isTech ? "var(--royal)" : "var(--ink-soft)",
+                    border: `1px solid ${isTech ? "var(--royal-100)" : "var(--line)"}`,
+                    whiteSpace: "nowrap",
                   }}>
                     {skill}
                   </span>
                 ))}
-                {skillTags.length > 3 && (
-                  <span style={{ fontSize: 9, color: "var(--ink-mute)", alignSelf: "center" }}>
-                    +{skillTags.length - 3}
-                  </span>
-                )}
               </div>
             );
           })()}
@@ -1277,22 +1311,78 @@ function JobListItem({
 // ─── Right detail pane (LinkedIn 2-pane) ─────────────────────────────────────
 
 function JobDetailPane({
-  job, company,
+  job, company, topJobs, companyMap: paneCompanyMap,
 }: {
   job: Job | null;
   company: Company | null;
+  topJobs?: Job[];
+  companyMap?: Map<string, Company>;
 }) {
   if (!job || !company) {
+    const meetingJobs = (topJobs ?? []).filter(j => paneCompanyMap?.get(j.company_id)?.accepting_casual_meetings);
+    const highSalaryJobs = [...(topJobs ?? [])].sort((a, b) => (b.salary_max ?? 0) - (a.salary_max ?? 0)).slice(0, 3);
     return (
       <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        gap: 12, height: 200, border: "2px dashed var(--line)", borderRadius: 12,
-        color: "var(--ink-mute)", background: "#fafbfc",
+        background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+        overflow: "hidden", boxShadow: "0 2px 12px rgba(15,23,42,0.06)",
       }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-        </svg>
-        <span style={{ fontSize: 13, fontWeight: 500 }}>求人を選ぶと詳細が表示されます</span>
+        {/* ヘッダー */}
+        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--line-soft)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+            ← カードをクリックで詳細表示
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+            求人カードを選ぶとここに詳細が表示されます
+          </div>
+        </div>
+
+        {/* 面談受付中の求人 */}
+        {meetingJobs.length > 0 && (
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line-soft)" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#C2410C", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+              💬 面談受付中の求人
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {meetingJobs.slice(0, 3).map(j => {
+                const co = paneCompanyMap?.get(j.company_id);
+                return (
+                  <Link key={j.id} href={`/jobs/${j.slug ?? j.id}`} style={{ display: "block", textDecoration: "none" }}>
+                    <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #FDBA74", background: "#FFFBF5", transition: "background 0.15s" }} className="pane-card-hover">
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
+                      <div style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 年収TOP求人 */}
+        <div style={{ padding: "16px 20px" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+            💰 年収上位の求人
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {highSalaryJobs.map(j => {
+              const co = paneCompanyMap?.get(j.company_id);
+              const salMax = j.salary_max ? `〜${Math.round(j.salary_max / 10000)}万円` : "";
+              return (
+                <Link key={j.id} href={`/jobs/${j.slug ?? j.id}`} style={{ display: "block", textDecoration: "none" }}>
+                  <div style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--bg-tint)", transition: "background 0.15s" }} className="pane-card-hover">
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{j.role}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 10, color: "var(--royal)", fontWeight: 600 }}>{co?.name ?? ""}</span>
+                      {salMax && <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>{salMax}</span>}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <style>{`.pane-card-hover:hover { background: var(--royal-50) !important; border-color: var(--royal) !important; }`}</style>
       </div>
     );
   }
@@ -2879,7 +2969,7 @@ export default function JobsClient({
                 {(() => {
                   const selJob = selectedJobId ? paged.find(j => j.id === selectedJobId) ?? null : null;
                   const selCo = selJob ? companyMap.get(selJob.company_id) ?? null : null;
-                  return <JobDetailPane job={selJob} company={selCo} />;
+                  return <JobDetailPane job={selJob} company={selCo} topJobs={allJobs} companyMap={companyMap} />;
                 })()}
               </div>
             )}
