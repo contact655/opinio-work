@@ -46,19 +46,23 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
           left: 0,
           right: 0,
           zIndex: 50,
-          padding: "10px 16px",
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--line)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
           transform: visible ? "translateY(0)" : "translateY(100%)",
           transition: "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
           willChange: "transform",
         }}
         aria-hidden={!visible}
       >
+        <div style={{
+          maxWidth: 480,
+          margin: "0 auto",
+          padding: "10px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}>
         {/* 主CTA: カジュアル面談 — full width */}
         {casualHref ? (
         <Link
@@ -112,6 +116,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </Link>
+        </div>
       </div>
     </>
   );
