@@ -2098,6 +2098,8 @@ export default function JobsClient({
         (j) =>
           j.role.toLowerCase().includes(lq) ||
           (companyMap.get(j.company_id)?.name ?? "").toLowerCase().includes(lq) ||
+          (companyMap.get(j.company_id)?.brand_name ?? "").toLowerCase().includes(lq) ||
+          (companyMap.get(j.company_id)?.slug ?? "").toLowerCase().includes(lq) ||
           j.highlight.toLowerCase().includes(lq) ||
           jobMatchesAlias(j)
       );
