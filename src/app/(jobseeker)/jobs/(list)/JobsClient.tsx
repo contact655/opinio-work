@@ -1163,8 +1163,8 @@ function JobListItem({
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); }}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); } }}
                     style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100, lineHeight: 1,
-                      background: deptStyle.bg, color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
+                      fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                      background: "transparent", color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
                       flexShrink: 0, cursor: "pointer", display: "inline-flex", alignItems: "center",
                       whiteSpace: "nowrap",
                     }}
