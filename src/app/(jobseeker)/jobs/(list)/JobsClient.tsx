@@ -2777,7 +2777,7 @@ export default function JobsClient({
           {(() => { /* computed below via variables */ return null; })()}
           <div
             className="jobs-layout"
-            style={isDesktop ? { gridTemplateColumns: "220px minmax(0,1fr) 360px" } : undefined}
+            style={isDesktop ? { gridTemplateColumns: `220px minmax(0,1fr)${selectedJobId ? " 360px" : ""}` } : undefined}
           >
             {/* ─ Desktop sidebar ─ */}
             <aside className="jobs-sidebar">
@@ -3024,12 +3024,11 @@ export default function JobsClient({
             </>
           )}
             </main>
-            {/* 右詳細ペイン — 未選択時はリスト先頭を自動表示（LinkedIn方式） */}
-            {isDesktop && (
+            {/* 右詳細ペイン — クリック選択時のみ表示 */}
+            {isDesktop && selectedJobId && (
               <div className="jobs-detail-pane">
                 {(() => {
-                  const effectiveId = selectedJobId ?? paged[0]?.id ?? null;
-                  const selJob = effectiveId ? paged.find(j => j.id === effectiveId) ?? null : null;
+                  const selJob = paged.find(j => j.id === selectedJobId) ?? null;
                   const selCo = selJob ? companyMap.get(selJob.company_id) ?? null : null;
                   return <JobDetailPane job={selJob} company={selCo} topJobs={allJobs} companyMap={companyMap} />;
                 })()}
