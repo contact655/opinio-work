@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export type AmbassadorCard = {
   adminId: string;
@@ -138,11 +139,16 @@ function FilterChip({
 function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
   if (card.avatarUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={card.avatarUrl} alt={card.name} style={{
-        width: size, height: size, borderRadius: "50%", objectFit: "cover",
-        border: "3px solid #fff", boxShadow: "0 2px 12px rgba(0,0,0,0.14)", flexShrink: 0,
-      }} />
+      <Image
+        src={card.avatarUrl}
+        alt={card.name}
+        width={size}
+        height={size}
+        style={{
+          width: size, height: size, borderRadius: "50%", objectFit: "cover",
+          border: "3px solid #fff", boxShadow: "0 2px 12px rgba(0,0,0,0.14)", flexShrink: 0,
+        }}
+      />
     );
   }
   return (

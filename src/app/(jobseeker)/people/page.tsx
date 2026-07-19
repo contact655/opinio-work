@@ -1,4 +1,4 @@
-export const revalidate = 300;
+export const revalidate = 3600;
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
