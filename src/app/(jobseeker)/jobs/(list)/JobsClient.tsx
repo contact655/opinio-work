@@ -1031,7 +1031,6 @@ function JobListItem({
 
   if (!company) return null;
 
-  const deptStyle = getDeptStyle(job.dept);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
   const badge = freshBadge(job.updated_days_ago);
@@ -1152,24 +1151,6 @@ function JobListItem({
                     border: `1px solid ${phaseBadge.color}40`, flexShrink: 0,
                   }}>
                     {phaseBadge.label}
-                  </span>
-                )}
-                {/* ② 職種タグ（エンジニア等） */}
-                {job.dept && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    title={`「${job.dept}」で絞り込む`}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/jobs?dept=${encodeURIComponent(job.dept)}`); } }}
-                    style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
-                      background: "transparent", color: deptStyle.color, border: `1px solid ${deptStyle.border}`,
-                      flexShrink: 0, cursor: "pointer", display: "inline-flex", alignItems: "center",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {shortDept(job.dept)}
                   </span>
                 )}
                 {/* ③ スキルチップ */}
