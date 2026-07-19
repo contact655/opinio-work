@@ -42,6 +42,7 @@ const ROLE_OPTIONS = [
   { value: "pm",    label: "PM / PdM",           pattern: /プロダクトマネージャー|product manager|\bpm\b|pdm/i },
   { value: "hr",    label: "人事・採用",          pattern: /人事|採用|hr|recruit/i },
   { value: "exec",  label: "経営・役員",          pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|事業部長/i },
+  { value: "other", label: "その他",              pattern: /その他|general|administration|総務|経理|法務|財務/i },
 ];
 
 const COMPANY_TYPE_OPTIONS = [
