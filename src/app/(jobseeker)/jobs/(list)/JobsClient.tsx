@@ -1043,6 +1043,8 @@ function JobListItem({
         boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
         overflow: "hidden",
         transition: "border-color 0.15s, box-shadow 0.15s",
+        display: "flex",
+        background: "#fff",
       }}
     >
       <Link
@@ -1054,8 +1056,10 @@ function JobListItem({
           alignItems: "center",
           gap: 14,
           padding: "16px 16px",
+          flex: 1,
+          minWidth: 0,
           minHeight: 80,
-          background: "#fff",
+          background: "transparent",
           textDecoration: "none",
           transition: "background 0.15s",
         }}
@@ -1217,71 +1221,87 @@ function JobListItem({
           </div>
         </div>
 
-        {/* ── 右端: NEW バッジ + 掲載日 + ♡ボタン + 詳細リンク ── */}
-        <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, minWidth: 52 }}>
-          {badge ? (
-            <span style={{
-              fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
-              background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`,
-              fontFamily: "Inter, sans-serif",
-            }}>
-              {badge.label}
-            </span>
-          ) : job.urgency === "hot" ? (
-            <span style={{
-              fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
-              background: "#FFF1F2", color: "#E11D48", border: "1px solid #FECDD3",
-              fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
-            }}>
-              🔥 急募
-            </span>
-          ) : job.updated_days_ago <= 30 ? (
-            <span style={{ fontSize: 9, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
-              {job.updated_days_ago === 0 ? "今日更新" : `${job.updated_days_ago}日前`}
-            </span>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleBookmark}
-            aria-label={bookmarked ? "ブックマーク解除" : "気になる"}
-            aria-pressed={bookmarked}
+      </Link>
+
+      {/* ── 右端: アクションパネル ── */}
+      <div style={{
+        flexShrink: 0,
+        width: 104,
+        borderLeft: "1px solid var(--line-soft)",
+        background: "var(--bg-tint)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        justifyContent: "flex-start",
+        gap: 5,
+        padding: "12px 8px",
+      }}>
+        {/* 詳細を見る */}
+        <a
+          href={`/jobs/${job.slug ?? job.id}`}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+            padding: "8px 6px", borderRadius: 7,
+            backgroundColor: "#002366", color: "#fff",
+            fontSize: 11, fontWeight: 700, textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          詳細を見る
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+
+        {/* 面談をする */}
+        {hasMeeting && showMeetingCta ? (
+          <a
+            href={`/companies/${company.slug ?? company.id}/casual-meeting`}
             style={{
-              width: 38, height: 38, borderRadius: 10,
-              border: `1.5px solid ${bookmarked ? "#e24b4a" : "#e2e8f0"}`,
-              background: bookmarked ? "#FEF2F2" : "#fff",
-              cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              gap: 1,
-              transform: bookmarkAnim ? "scale(1.15)" : "scale(1)",
-              transition: "all 0.2s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+              padding: "8px 6px", borderRadius: 7,
+              backgroundColor: "#FFF7ED", color: "#C2410C",
+              border: "1.5px solid #FDBA74",
+              fontSize: 11, fontWeight: 700, textDecoration: "none",
+              whiteSpace: "nowrap",
             }}
           >
-            <Heart size={14} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", transition: "all 0.2s" }} />
-            <span style={{ fontSize: 7, fontWeight: 700, color: bookmarked ? "#e24b4a" : "#94a3b8", lineHeight: 1 }}>
-              {bookmarked ? "済" : "気になる"}
-            </span>
-          </button>
-          {hasMeeting && showMeetingCta && (
-            <a
-              href={`/companies/${company.slug ?? company.id}/casual-meeting`}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: 38, height: 38, borderRadius: 10,
-                border: "1.5px solid #FDBA74",
-                background: "#FFF7ED",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 2,
-                textDecoration: "none",
-                flexShrink: 0,
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C2410C" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span style={{ fontSize: 7, fontWeight: 700, color: "#C2410C", lineHeight: 1 }}>面談</span>
-            </a>
-          )}
-        </div>
-      </Link>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            面談をする
+          </a>
+        ) : (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "8px 6px", borderRadius: 7,
+            backgroundColor: "#E2E8F0", textAlign: "center",
+            fontSize: 11, color: "#94A3B8", whiteSpace: "nowrap",
+          }}>
+            面談受付外
+          </div>
+        )}
+
+        {/* 保存をする */}
+        <button
+          type="button"
+          onClick={handleBookmark}
+          aria-label={bookmarked ? "ブックマーク解除" : "保存する"}
+          aria-pressed={bookmarked}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+            padding: "8px 6px", borderRadius: 7,
+            backgroundColor: bookmarked ? "#FEF2F2" : "#fff",
+            color: bookmarked ? "#e24b4a" : "#475569",
+            border: `1.5px solid ${bookmarked ? "#FECACA" : "#E2E8F0"}`,
+            fontSize: 11, fontWeight: 700, cursor: "pointer",
+            whiteSpace: "nowrap",
+            transform: bookmarkAnim ? "scale(1.05)" : "scale(1)",
+            transition: "all 0.2s",
+          }}
+        >
+          <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", flexShrink: 0 }} />
+          {bookmarked ? "保存済み" : "保存する"}
+        </button>
+      </div>
     </div>
   );
 }
