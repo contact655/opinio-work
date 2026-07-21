@@ -13,7 +13,6 @@ const NAV_LINKS = [
   { href: "/jobs", label: "求人", highlight: false },
   { href: "/people", label: "ユーザー", highlight: false },
   { href: "/feed", label: "フィード", highlight: false },
-  { href: "/salary", label: "給与", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
 ];
 
