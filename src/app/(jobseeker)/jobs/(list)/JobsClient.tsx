@@ -1031,8 +1031,6 @@ function JobListItem({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
-  const _hasMeeting = company.accepting_casual_meetings;
-
   return (
     <div
       className="job-list-card"

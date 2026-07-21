@@ -511,10 +511,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   const salaryMax = job.salary_max ?? 0;
   const showSalaryContext = salaryMin > 0 && salaryMax > 0 && salaryMax - salaryMin >= 200;
   const salaryMidpoint = showSalaryContext ? Math.round((salaryMin + salaryMax) / 2) : 0;
-  const _salaryMidPct = showSalaryContext
-    ? Math.round(((salaryMidpoint - salaryMin) / (salaryMax - salaryMin)) * 100)
-    : 50;
-
   return (
     <>
       <ReadingProgress />

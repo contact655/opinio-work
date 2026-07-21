@@ -182,18 +182,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const memberCount = company.current_member_count ?? (members?.length ?? 0);
   const obogCount = company.obog_count ?? 0;
   const features = Array.isArray(company.company_features) ? company.company_features : [];
-  const _jobTitles = Array.isArray(company.top_job_titles) ? company.top_job_titles : [];
-
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
   const meetingBorder = "1px solid var(--line)";
   const meetingBoxShadow = "0 1px 4px rgba(15,23,42,0.06)";
-
-  // 年収表示（カードでは非表示、将来の参照用に残す）
-  const _salaryLabel = company.avg_salary
-    ? (typeof company.avg_salary === "number"
-        ? `平均 ${Math.round((company.avg_salary as number) / 10000)}万円`
-        : `平均 ${company.avg_salary}`)
-    : null;
 
   // ① リモート表示
   const remoteLabel: Record<string, string> = {

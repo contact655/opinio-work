@@ -648,54 +648,6 @@ function YearSeparator({ year, age }: { year: number; age: number | null }) {
 
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
-// ── 部門 / 職種 / 役職の小テーブル ──────────────────────────────────────────
-function _RoleInfoChips({
-  parentName,
-  roleName,
-  roleTitle,
-  size = "md",
-}: {
-  parentName?: string | null;
-  roleName: string;
-  roleTitle?: string | null;
-  size?: "sm" | "md";
-}) {
-  const cells: { label: string; value: string }[] = [];
-  if (parentName) cells.push({ label: "部門", value: parentName });
-  cells.push({ label: "職種", value: roleName });
-  if (roleTitle) cells.push({ label: "役職", value: roleTitle });
-
-  const labelSz = size === "sm" ? 9 : 10;
-  const valueSz = size === "sm" ? 12 : 13;
-
-  return (
-    <div style={{
-      display: "inline-flex", flexWrap: "wrap",
-      border: "1px solid var(--line-soft)", borderRadius: 7, overflow: "hidden",
-      fontSize: valueSz, marginBottom: size === "sm" ? 5 : 8,
-    }}>
-      {cells.map((cell, i) => (
-        <div key={cell.label} style={{
-          display: "flex", flexDirection: "column",
-          padding: size === "sm" ? "4px 10px" : "5px 12px",
-          borderRight: i < cells.length - 1 ? "1px solid var(--line-soft)" : undefined,
-          background: "#FAFBFC",
-        }}>
-          <span style={{
-            fontSize: labelSz, fontWeight: 700, color: "var(--ink-mute)",
-            letterSpacing: "0.05em", marginBottom: 1, whiteSpace: "nowrap",
-          }}>
-            {cell.label}
-          </span>
-          <span style={{ fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>
-            {cell.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function DescriptionGate() {
   return (
     <div style={{ position: "relative", marginTop: 8, borderRadius: 8, overflow: "hidden" }}>

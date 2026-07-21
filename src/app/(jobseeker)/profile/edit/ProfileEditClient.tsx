@@ -611,56 +611,6 @@ function NotificationSettingsSection() {
   );
 }
 
-// ─── Placeholder Tab Content ──────────────────────────────────────────────────
-
-function _PlaceholderTabContent({ label }: { label: string }) {
-  return (
-    <div style={{ maxWidth: 680 }}>
-      <div
-        style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "48px 32px",
-          display: "flex", flexDirection: "column", alignItems: "center",
-          gap: "var(--space-3)", marginBottom: "var(--space-6)",
-        }}
-      >
-        <div style={{
-          width: 40, height: 40, borderRadius: "50%",
-          background: "var(--bg-tint)", display: "flex",
-          alignItems: "center", justifyContent: "center",
-        }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)" }}>
-          {label}（実装中）
-        </div>
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, textAlign: "center" }}>
-          この機能は現在開発中です。近日公開予定です。
-        </div>
-      </div>
-      {/* 各タブ最下部に「保存」ボタン — プレースホルダーは disabled */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          disabled
-          style={{
-            padding: "10px 24px", fontSize: 13, fontWeight: 600,
-            background: "var(--bg-tint)", color: "var(--ink-mute)",
-            border: "1px solid var(--line)", borderRadius: 8,
-            fontFamily: "inherit", cursor: "not-allowed",
-          }}
-        >
-          保存
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Skill Tags Editor ────────────────────────────────────────────────────────
 
 function SkillTagsEditor({

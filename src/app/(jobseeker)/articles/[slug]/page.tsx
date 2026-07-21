@@ -155,62 +155,6 @@ function QASection({ qa }: { qa: QA[] }) {
   );
 }
 
-function _ThemesSection({ themes }: { themes: ThemeItem[] }) {
-  return (
-    <div style={{
-      marginTop: 48,
-      padding: "var(--space-8)",
-      background: "linear-gradient(135deg, #FEF3C7 0%, #fff 100%)",
-      border: "1px solid #FDE68A",
-      borderRadius: 16,
-    }}>
-      <div style={{ marginBottom: "var(--space-2)", display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
-        <h3 style={{
-          fontFamily: 'var(--font-noto-serif)',
-          fontWeight: 700, fontSize: "var(--text-lg)", color: INK, margin: 0,
-        }}>
-          相談できるテーマ
-        </h3>
-        <span style={{
-          fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
-          color: "#B45309", letterSpacing: "0.2em", textTransform: "uppercase",
-        }}>
-          CONSULTATION THEMES
-        </span>
-      </div>
-      <p style={{ fontSize: "var(--text-sm)", color: INK_SOFT, lineHeight: 1.8, marginBottom: "var(--space-6)" }}>
-        この記事で取り上げたテーマ・領域です。
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
-        {themes.map((theme) => (
-          <div key={theme.title} style={{
-            display: "grid", gridTemplateColumns: "32px 1fr", gap: "var(--space-3)",
-            padding: 14, background: "#fff",
-            border: `1px solid ${LINE}`, borderRadius: 10,
-            alignItems: "flex-start",
-          }}>
-            <div style={{
-              width: 32, height: 32, background: "var(--warm-soft)", color: "#B45309",
-              borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "var(--text-md)", flexShrink: 0,
-            }}>
-              {theme.icon}
-            </div>
-            <div>
-              <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: INK, marginBottom: 4, lineHeight: 1.5 }}>
-                {theme.title}
-              </div>
-              <div style={{ fontSize: 11, color: INK_SOFT, lineHeight: 1.7 }}>
-                {theme.desc}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function CompanyCTA({ article }: { article: Article }) {
   return (
     <div style={{
