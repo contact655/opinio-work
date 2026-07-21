@@ -3376,11 +3376,6 @@ export default async function CompanyDetailPage({
   const authUser = authResult.data.user;
   const isAuthenticated = !!authUser;
 
-  // ow_users lookup (needs auth result, runs after)
-  const owUserResult = isAuthenticated
-    ? await supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
-    : { data: null, error: null };
-
   // フィード投稿 (会社ID + 求人ID OR + 記事ID OR)
   type ActivityPost = {
     id: string;
@@ -3396,49 +3391,40 @@ export default async function CompanyDetailPage({
 
   const companyJobIds = detail.jobs.flatMap((c) => c.items.map((j) => j.id));
 
-  // 記事IDをDBから直接取得（ARTICLE_LIST_COLS に id は含まれていないため）
-  const { data: articleIdRows } = await adminSupabase
-    .from("ow_articles")
-    .select("id")
-    .eq("company_id", companyId);
-  const companyArticleIds = (articleIdRows ?? []).map((r: { id: string }) => r.id);
+  // Phase 3: owUsers lookup + 記事ID取得 を並行実行（互いに依存しない）
+  const [owUserResult, articleIdRowsResult] = await Promise.all([
+    isAuthenticated
+      ? supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
+  ]);
+
+  const companyArticleIds = ((articleIdRowsResult.data ?? []) as { id: string }[]).map((r) => r.id);
+  const owUserId = owUserResult?.data?.id ?? null;
 
   const orParts: string[] = [`ref_company_id.eq.${companyId}`];
   if (companyJobIds.length > 0) orParts.push(`ref_job_id.in.(${companyJobIds.join(",")})`);
   if (companyArticleIds.length > 0) orParts.push(`ref_article_id.in.(${companyArticleIds.join(",")})`);
 
-  const activityPostsRaw = await adminSupabase
-    .from("ow_posts")
-    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
-    .or(orParts.join(","))
-    .order("created_at", { ascending: false })
-    .limit(6);
+  // Phase 4: activityPosts + bookmark/follow を並行実行
+  const [activityPostsRaw, bmarkResult, followResult] = await Promise.all([
+    adminSupabase
+      .from("ow_posts")
+      .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
+      .or(orParts.join(","))
+      .order("created_at", { ascending: false })
+      .limit(6),
+    owUserId
+      ? supabase.from("ow_bookmarks").select("id").eq("user_id", owUserId).eq("target_type", "company").eq("target_id", companyId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    owUserId
+      ? createAdminClient().from("ow_company_follows").select("id").eq("follower_user_id", owUserId).eq("company_id", companyId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
-
-  // bookmark + follow lookup (sequential — both need owUserId)
-  let initialBookmarked = false;
-  let initialFollowed = false;
-  const owUserId = owUserResult?.data?.id ?? null;
-  if (owUserId) {
-    const [bmarkResult, followResult] = await Promise.all([
-      supabase
-        .from("ow_bookmarks")
-        .select("id")
-        .eq("user_id", owUserId)
-        .eq("target_type", "company")
-        .eq("target_id", companyId)
-        .maybeSingle(),
-      createAdminClient()
-        .from("ow_company_follows")
-        .select("id")
-        .eq("follower_user_id", owUserId)
-        .eq("company_id", companyId)
-        .maybeSingle(),
-    ]);
-    initialBookmarked = !!bmarkResult.data;
-    initialFollowed = !!followResult.data;
-  }
+  const initialBookmarked = !!bmarkResult.data;
+  const initialFollowed = !!followResult.data;
 
   return (
     <>
