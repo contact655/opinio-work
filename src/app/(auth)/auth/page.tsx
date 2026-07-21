@@ -382,10 +382,7 @@ function AuthPageInner() {
   // ── Email confirmation sent state ──
   if (done) {
     return (
-      <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
-        <div className="hidden md:block">
-          <BrandSide />
-        </div>
+      <div className="min-h-screen flex items-start justify-center">
         <div style={s.formSide}>
           <div style={s.formWrap}>
             <div style={{ textAlign: "center", padding: "40px 0" }}>
@@ -422,13 +419,8 @@ function AuthPageInner() {
 
   return (
     // ① 2-column grid — Tailwind handles breakpoints (no inline gridTemplateColumns override)
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
-      {/* Left: brand panel (hidden on mobile) */}
-      <div className="hidden md:block">
-        <BrandSide />
-      </div>
-
-      {/* Right: form */}
+    <div className="min-h-screen flex items-start justify-center">
+      {/* form */}
       <div style={s.formSide}>
         {/* Mobile logo */}
         <div className="flex md:hidden" style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--line)" }}>
