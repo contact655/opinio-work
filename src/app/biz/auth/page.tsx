@@ -573,6 +573,8 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
   const [employeeCount, setEmployeeCount] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactTitle, setContactTitle] = useState("");
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedFee, setAgreedFee] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -709,6 +711,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
           industry,
           size: employeeCount,
           genres: [],
+          agreedTermsBusiness: agreedTerms,
+          agreedFeePct15: agreedFee,
+          agreedTermsVersion: "2026-07",
         }),
       });
 
@@ -723,7 +728,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
         return;
       }
 
-      window.location.replace(next || "/biz/dashboard");
+      // 初回開設時は ?welcome=1 を付けてダッシュボードへ
+      const dashboardUrl = next && next !== "/biz/dashboard" ? next : "/biz/dashboard?welcome=1";
+      window.location.replace(dashboardUrl);
     } catch {
       setError("エラーが発生しました。時間をおいて再度お試しください。");
     } finally {
@@ -1003,13 +1010,42 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
         {/* ④ Simplified unified account notice (⑦) */}
         <SimplifiedAccountNotice />
 
-        <button type="submit" disabled={loading} style={{ ...submitBtnStyle, marginTop: 16, opacity: loading ? 0.7 : 1 }}>
-          {/* ⑧ Better CTA copy */}
-          {loading ? "登録中..." : "無料で掲載を始める →"}
-        </button>
+        {/* 成果報酬の開示 + 同意チェックボックス */}
+        <FeeDisclosure />
 
-        {/* ⑥ Implicit consent */}
-        <ImplicitConsent />
+        <ConsentCheckbox
+          id="biz-agree-terms"
+          checked={agreedTerms}
+          onChange={setAgreedTerms}
+          label={
+            <>
+              <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>企業向け利用規約</a>
+              {" "}および{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>プライバシーポリシー</a>
+              に同意します
+            </>
+          }
+        />
+
+        <ConsentCheckbox
+          id="biz-agree-fee"
+          checked={agreedFee}
+          onChange={setAgreedFee}
+          label="成果報酬（成約時に採用者の理論年収の15%）が発生することを理解し、同意します"
+        />
+
+        <button
+          type="submit"
+          disabled={loading || !agreedTerms || !agreedFee}
+          style={{
+            ...submitBtnStyle,
+            marginTop: 16,
+            opacity: loading || !agreedTerms || !agreedFee ? 0.45 : 1,
+            cursor: loading || !agreedTerms || !agreedFee ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "登録中..." : "企業アカウントを開設する →"}
+        </button>
       </form>
 
       <SwitchRow label="すでにアカウントをお持ちの方は" action="ログイン" onClick={() => onSwitchToLogin()} />
@@ -1398,6 +1434,75 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
         </div>
       </div>
     </div>
+  );
+}
+
+// 成果報酬の開示ボックス
+function FeeDisclosure() {
+  return (
+    <div style={{
+      marginTop: 18,
+      borderRadius: 10,
+      border: "1.5px solid #FCD34D",
+      background: "var(--warm-soft)",
+      padding: "14px 16px",
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 8,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        成果報酬について（重要）
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#78350F", lineHeight: 1.9 }}>
+        <li>成約（採用決定）が確認できた時点でのみ課金されます</li>
+        <li>採用者の<strong>理論年収の 15%</strong> を成果報酬としてご請求します</li>
+      </ul>
+      <p style={{ margin: "8px 0 0", fontSize: 11, color: "#92400E", lineHeight: 1.7 }}>
+        <strong>「理論年収」とは</strong>、月給・賞与・各種手当を含む、採用者が年間に受け取る想定総額を指します。掲載費・候補者閲覧費は一切かかりません。
+      </p>
+    </div>
+  );
+}
+
+// 同意チェックボックス
+function ConsentCheckbox({
+  id,
+  checked,
+  onChange,
+  label,
+}: {
+  id: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: React.ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 10,
+        marginTop: 12, cursor: "pointer",
+        padding: "10px 12px",
+        borderRadius: 8,
+        border: `1.5px solid ${checked ? "var(--royal)" : "var(--line)"}`,
+        background: checked ? "var(--royal-50)" : "#fff",
+        transition: "border-color .15s, background .15s",
+      }}
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{ marginTop: 2, accentColor: "var(--royal)", flexShrink: 0, width: 15, height: 15 }}
+      />
+      <span style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.7 }}>
+        {label}
+      </span>
+    </label>
   );
 }
 

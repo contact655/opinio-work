@@ -59,7 +59,12 @@ async function NoTenantPage() {
   );
 }
 
-export default async function BizDashboardPage() {
+export default async function BizDashboardPage({
+  searchParams,
+}: {
+  searchParams: { welcome?: string };
+}) {
+  const isFirstMember = searchParams?.welcome === "1";
   const ctx = await getTenantContext();
 
   if (!ctx) {
@@ -95,6 +100,58 @@ export default async function BizDashboardPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
+      {/* ── 1人目バナー（企業開設直後のみ） ── */}
+      {isFirstMember && (
+        <div style={{
+          background: "linear-gradient(135deg, #001233 0%, #002366 100%)",
+          borderRadius: 14,
+          padding: "22px 24px",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 16,
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: "50%",
+            background: "rgba(255,255,255,0.15)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 5 }}>
+              {ctx.tenantName} の企業アカウントを開設しました
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.8 }}>
+              あなたはこの企業の最初の人事担当者です。まず企業情報を充実させると、候補者への信頼感が高まります。
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" as const }}>
+              <Link href="/biz/company" style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "8px 16px", borderRadius: 8,
+                background: "#fff", color: "#001233",
+                fontSize: 12, fontWeight: 700, textDecoration: "none",
+              }}>
+                企業情報を入力する →
+              </Link>
+              <Link href="/biz/members" style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "8px 16px", borderRadius: 8,
+                background: "rgba(255,255,255,0.12)", color: "#fff",
+                border: "1px solid rgba(255,255,255,0.25)",
+                fontSize: 12, fontWeight: 600, textDecoration: "none",
+              }}>
+                メンバーを招待する
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── 審査中バナー（未承認企業のみ） ── */}
       {!ctx.isApproved && (
         <div style={{

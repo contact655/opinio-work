@@ -44,7 +44,10 @@ export async function POST(req: Request) {
     website?: string;
     logo_url?: string;
     force_create?: boolean;
-    genres?: string[];  // slug 配列（PR-β Phase 3 で追加）
+    genres?: string[];
+    agreedTermsBusiness?: boolean;
+    agreedFeePct15?: boolean;
+    agreedTermsVersion?: string;
   };
   try {
     body = await req.json();
@@ -143,6 +146,12 @@ export async function POST(req: Request) {
         company_id: company.id,
         permission: "admin",
         is_active: true,
+        ...(body.agreedTermsBusiness != null && {
+          agreed_terms_business: body.agreedTermsBusiness,
+          agreed_fee_15pct: body.agreedFeePct15 ?? false,
+          agreed_terms_version: body.agreedTermsVersion ?? null,
+          agreed_at: new Date().toISOString(),
+        }),
       });
 
     if (adminError && adminError.code !== "23505") {
