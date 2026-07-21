@@ -195,25 +195,11 @@ function OnboardingInner() {
             </h2>
             <p style={{
               fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85,
-              marginBottom: 8, textAlign: "center",
+              marginBottom: 24, textAlign: "center",
             }}>
               基本情報を登録しました。<br />
-              次は3つのアクションでキャリアを動かし始めましょう。
+              まず何から始めますか？
             </p>
-            {/* ミニバッジ */}
-            <div style={{
-              display: "flex", justifyContent: "center", gap: 8, marginBottom: 24, flexWrap: "wrap",
-            }}>
-              {["完全無料", "在籍企業は自動ブロック", "30分から"].map((t) => (
-                <span key={t} style={{
-                  fontSize: 10.5, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)",
-                }}>
-                  ✓ {t}
-                </span>
-              ))}
-            </div>
 
             {/* ── 次のステップ 選択カード ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
