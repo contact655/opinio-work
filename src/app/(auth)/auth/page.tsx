@@ -303,21 +303,10 @@ function AuthPageInner() {
           </a>
         </div>
 
-        {/* ⑤ Mobile benefit chips */}
+        {/* ⑤ Mobile benefit chips - removed */}
         <div className="flex md:hidden" style={{ gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
-          {["完全無料", "営業電話なし", "登録はメールのみ"].map((t) => (
-            <span
-              key={t}
-              style={{
-                padding: "4px 10px", borderRadius: 100,
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                fontSize: 11, fontWeight: 600, color: "var(--royal)",
-                display: "flex", alignItems: "center", gap: 4,
-              }}
-            >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+          {[].map((t) => (
+            <span key={t}>
               {t}
             </span>
           ))}
@@ -464,21 +453,6 @@ function AuthPageInner() {
                   <p style={s.hint}>本名でもニックネームでもOK。後から変更できます。</p>
                 </div>
 
-                {/* ⑨ 信頼マイクロコピー（送信ボタン直上） */}
-                <div style={{
-                  display: "flex", justifyContent: "center", gap: 14,
-                  padding: "8px 12px", borderRadius: 8, marginBottom: 2,
-                  background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
-                }}>
-                  {["完全無料", "営業電話なし", "登録はメールのみ"].map((t) => (
-                    <span key={t} style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 3 }}>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      {t}
-                    </span>
-                  ))}
-                </div>
 
                 <button
                   type="submit"
