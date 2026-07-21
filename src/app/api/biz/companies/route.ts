@@ -128,16 +128,33 @@ export async function POST(req: Request) {
   }
 
   // 5. ow_company_admins INSERT（作成者を最初の admin として登録）
-  const { data: owUser, error: owUserError } = await admin
+  let { data: owUser } = await admin
     .from("ow_users")
     .select("id, name")
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  if (owUserError || !owUser) {
+  // auth_id が NULL のまま残っている孤立レコードへのフォールバック（email で照合して auth_id を補完）
+  if (!owUser && user.email) {
+    const { data: owUserByEmail } = await admin
+      .from("ow_users")
+      .select("id, name")
+      .eq("email", user.email)
+      .is("auth_id", null)
+      .maybeSingle();
+    if (owUserByEmail) {
+      owUser = owUserByEmail;
+      // auth_id を自動補完（best-effort）
+      await admin
+        .from("ow_users")
+        .update({ auth_id: user.id, updated_at: new Date().toISOString() })
+        .eq("id", owUserByEmail.id);
+    }
+  }
+
+  if (!owUser) {
     console.error("[POST /api/biz/companies] ow_users not found for current user");
     // ow_users が見つからない場合も company は作成済みなのでエラーにしない
-    // ただし admin 登録はできないためログに記録
   } else {
     const { error: adminError } = await admin
       .from("ow_company_admins")

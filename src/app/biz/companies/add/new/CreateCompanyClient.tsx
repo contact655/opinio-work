@@ -99,6 +99,8 @@ export function CreateCompanyClient({
   // 重複情報と発生元（suggestion=ドロップダウン選択 / error=409エラー）
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
   const [conflictSource, setConflictSource] = useState<"suggestion" | "error" | null>(null);
+  const [joinRequestLoading, setJoinRequestLoading] = useState(false);
+  const [joinRequestSent, setJoinRequestSent] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -160,6 +162,29 @@ export function CreateCompanyClient({
     setSuggestions([]);
     setConflict({ id: s.id, name: s.name, admin_count: s.admin_count });
     setConflictSource("suggestion");
+    setJoinRequestSent(false);
+  }
+
+  // 参加リクエスト送信
+  async function handleJoinRequest() {
+    if (!conflict) return;
+    setJoinRequestLoading(true);
+    try {
+      const res = await fetch("/api/biz/join-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: conflict.id }),
+      });
+      if (res.ok || res.status === 409) {
+        setJoinRequestSent(true);
+      } else {
+        setError("リクエストの送信に失敗しました。時間をおいて再度お試しください。");
+      }
+    } catch {
+      setError("エラーが発生しました。時間をおいて再度お試しください。");
+    } finally {
+      setJoinRequestLoading(false);
+    }
   }
 
   // フォーム送信
@@ -476,51 +501,69 @@ export function CreateCompanyClient({
               この企業は既に OPINIO に登録されています
             </div>
             <div style={{ fontSize: 12, color: "#1e3a6e", lineHeight: 1.7, marginBottom: 14 }}>
-              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）<br />
-              担当者として参加するには、企業アカウントの管理者に招待を依頼してください。
+              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => { setConflict(null); setConflictSource(null); setName(""); }}
-                style={{
-                  padding: "8px 16px",
-                  background: "var(--royal)",
-                  color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                }}
-              >
-                別の会社名で探す
-              </button>
+            {joinRequestSent ? (
+              <div style={{
+                fontSize: 12, color: "var(--success)", fontWeight: 600,
+                padding: "10px 14px", background: "var(--success-soft)",
+                borderRadius: 8, marginBottom: 10,
+              }}>
+                ✓ 参加リクエストを送信しました。担当者からの招待をお待ちください。
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+                <button
+                  type="button"
+                  onClick={handleJoinRequest}
+                  disabled={joinRequestLoading}
+                  style={{
+                    padding: "8px 16px",
+                    background: "var(--royal)",
+                    color: "#fff",
+                    border: "none", borderRadius: 8,
+                    fontSize: 12, fontWeight: 600,
+                    cursor: joinRequestLoading ? "not-allowed" : "pointer",
+                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                  }}
+                >
+                  {joinRequestLoading ? "送信中..." : "参加リクエストを送る"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setConflict(null); setConflictSource(null); setName(""); setJoinRequestSent(false); }}
+                  style={{
+                    padding: "8px 16px",
+                    background: "transparent",
+                    color: "var(--royal)",
+                    border: "1.5px solid var(--royal-100)", borderRadius: 8,
+                    fontSize: 12, fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                  }}
+                >
+                  別の会社名で探す
+                </button>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
                 disabled={loading}
                 style={{
-                  padding: "8px 16px",
+                  padding: "0",
                   background: "transparent",
-                  color: "var(--royal)",
-                  border: "1.5px solid var(--royal-100)", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
+                  color: "var(--ink-mute)",
+                  border: "none",
+                  fontSize: 11,
                   cursor: loading ? "not-allowed" : "pointer",
                   fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                }}
-              >
-                {loading ? "作成中..." : "この名前で新規作成する"}
-              </button>
-              <a
-                href="mailto:info@opinio.jp?subject=同名企業の登録について"
-                style={{
-                  fontSize: 12, color: "var(--royal)",
                   textDecoration: "underline",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
                 }}
               >
-                OPINIO に問い合わせる
-              </a>
+                {loading ? "作成中..." : "この名前で別会社として新規作成する"}
+              </button>
             </div>
           </div>
         )}
@@ -538,51 +581,69 @@ export function CreateCompanyClient({
               同名の企業が既に存在します
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7, marginBottom: 14 }}>
-              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。<br />
-              参加したい場合は、その企業の管理者に招待を依頼してください。
+              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => { setConflict(null); setConflictSource(null); setName(""); }}
-                style={{
-                  padding: "8px 16px",
-                  background: "var(--ink)",
-                  color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                }}
-              >
-                会社名を変更する
-              </button>
+            {joinRequestSent ? (
+              <div style={{
+                fontSize: 12, color: "var(--success)", fontWeight: 600,
+                padding: "10px 14px", background: "var(--success-soft)",
+                borderRadius: 8, marginBottom: 10,
+              }}>
+                ✓ 参加リクエストを送信しました。担当者からの招待をお待ちください。
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+                <button
+                  type="button"
+                  onClick={handleJoinRequest}
+                  disabled={joinRequestLoading}
+                  style={{
+                    padding: "8px 16px",
+                    background: "#92400E",
+                    color: "#fff",
+                    border: "none", borderRadius: 8,
+                    fontSize: 12, fontWeight: 600,
+                    cursor: joinRequestLoading ? "not-allowed" : "pointer",
+                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                  }}
+                >
+                  {joinRequestLoading ? "送信中..." : "参加リクエストを送る"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setConflict(null); setConflictSource(null); setName(""); setJoinRequestSent(false); }}
+                  style={{
+                    padding: "8px 16px",
+                    background: "transparent",
+                    color: "#92400E",
+                    border: "1.5px solid #FCD34D", borderRadius: 8,
+                    fontSize: 12, fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                  }}
+                >
+                  会社名を変更する
+                </button>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
                 disabled={loading}
                 style={{
-                  padding: "8px 16px",
+                  padding: "0",
                   background: "transparent",
-                  color: "#92400E",
-                  border: "1.5px solid #FCD34D", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
+                  color: "var(--ink-mute)",
+                  border: "none",
+                  fontSize: 11,
                   cursor: loading ? "not-allowed" : "pointer",
                   fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                }}
-              >
-                {loading ? "作成中..." : "この名前で新規作成する"}
-              </button>
-              <a
-                href="mailto:info@opinio.jp?subject=同名企業の登録について"
-                style={{
-                  fontSize: 12, color: "#92400E",
                   textDecoration: "underline",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
                 }}
               >
-                OPINIO に問い合わせる
-              </a>
+                {loading ? "作成中..." : "この名前で別会社として新規作成する"}
+              </button>
             </div>
           </div>
         )}
