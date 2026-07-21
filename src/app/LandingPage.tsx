@@ -166,7 +166,6 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
           <div className="flex items-baseline gap-2.5">
             <span className="text-xl font-bold tracking-tight text-[#0A1F44]">OPINIO</span>
-            <span className="hidden sm:inline text-xs text-slate-400 tracking-wide">Truth to Careers</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm text-slate-600">
             <Link href="/companies" className="hover:text-slate-900 transition-colors">企業</Link>
@@ -187,7 +186,7 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
             {/* 左: コピー */}
             <div>
-              <Eyebrow>IT / SaaS 業界特化のキャリアプラットフォーム</Eyebrow>
+              <Eyebrow>SaaS 業界特化のキャリアプラットフォーム</Eyebrow>
               <h1 className="mt-6 font-serif text-5xl md:text-6xl leading-[1.15] tracking-tight text-[#0F172A]">
                 知ってから、動く。
               </h1>
@@ -551,7 +550,7 @@ export default function LandingPage() {
       <section className="relative bg-[#0A1F44] text-white overflow-hidden">
         <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(ellipse at 50% -20%, #1e3a8a, transparent 60%)" }} />
         <div className="relative mx-auto max-w-3xl px-6 py-28 text-center">
-          <h2 className="font-serif text-4xl md:text-5xl tracking-tight">深く知ってから、動く。</h2>
+          <h2 className="font-serif text-4xl md:text-5xl tracking-tight text-white">深く知ってから、動く。</h2>
           <p className="mt-6 text-lg text-blue-100/90 leading-relaxed">
             今のキャリアを、無理に変えなくてもいい。まずは知ることから、はじめよう。
           </p>
