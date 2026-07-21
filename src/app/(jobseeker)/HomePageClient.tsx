@@ -406,7 +406,7 @@ const PHASE_COLORS: Record<string, { bg: string; color: string }> = {
   "プライム": { bg: "var(--line-soft)", color: "var(--ink-soft)" },
 };
 
-function CompanyMiniCard({ c }: { c: PreviewCompany }) {
+function _CompanyMiniCard({ c }: { c: PreviewCompany }) {
   const phaseStyle = c.phase ? (PHASE_COLORS[c.phase] ?? { bg: "var(--line-soft)", color: "var(--ink-mute)" }) : null;
   return (
     <Link href={`/companies/${c.slug ?? c.id}`} style={{ textDecoration: "none" }}>
@@ -515,7 +515,7 @@ function CompanyMiniCard({ c }: { c: PreviewCompany }) {
   );
 }
 
-function CompanyMiniCardSkeleton() {
+function _CompanyMiniCardSkeleton() {
   return (
     <div style={{
       background: "#fff", border: "1px solid var(--line)", borderRadius: 16, padding: "20px 20px 18px",

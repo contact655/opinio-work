@@ -109,7 +109,7 @@ export type MypageActiveKey =
 
 export default function MypageLayout({
   activeKey,
-  onNavigate,
+  onNavigate: _onNavigate,
   onIsMentorChange: _onIsMentorChange,
   conversationsBadge,
   applicationsBadge,

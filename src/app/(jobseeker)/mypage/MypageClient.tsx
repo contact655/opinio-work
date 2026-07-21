@@ -215,9 +215,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 
 // ─── Profile completeness widget (マイルストーン式) ──────────────────────────
 
-type StageItem = { label: string; done: boolean; href: string };
-
-function getProfileStage(
+function _getProfileStage(
   userName: string,
   userAboutMe?: string | null,
   userSkillTags?: { id: string }[],
@@ -237,7 +235,7 @@ function getProfileStage(
   return 3;
 }
 
-const STAGES = [
+const _STAGES = [
   {
     id: 1 as const,
     label: "公開できる",
@@ -264,7 +262,7 @@ const STAGES = [
   },
 ];
 
-function CheckIcon({ done, next }: { done: boolean; next: boolean }) {
+function _CheckIcon({ done, next }: { done: boolean; next: boolean }) {
   if (done) return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
       <circle cx="12" cy="12" r="10" fill="#D1FAE5" stroke="#6EE7B7"/>

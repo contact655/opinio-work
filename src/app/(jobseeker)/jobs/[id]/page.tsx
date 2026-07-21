@@ -506,11 +506,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
     }
   }
 
-  // 年収レンジコンテキスト計算（レンジ幅 ≥200万のとき表示）
-  const salaryMin = job.salary_min ?? 0;
-  const salaryMax = job.salary_max ?? 0;
-  const showSalaryContext = salaryMin > 0 && salaryMax > 0 && salaryMax - salaryMin >= 200;
-  const salaryMidpoint = showSalaryContext ? Math.round((salaryMin + salaryMax) / 2) : 0;
   return (
     <>
       <ReadingProgress />

@@ -7,7 +7,6 @@ import {
   type Article,
   type ArticleSubject,
   type QA,
-  type ThemeItem,
   type Chapter,
 } from "@/app/articles/mockArticleData";
 import {
