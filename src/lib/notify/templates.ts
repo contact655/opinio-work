@@ -402,3 +402,30 @@ export function casualMeetingCompanyAdminTemplate(params: {
     `),
   };
 }
+
+// ── 企業参加リクエスト（既存企業のAdminへ通知） ───────────────────────────────
+export function joinRequestTemplate(params: {
+  to: string;
+  adminName: string;
+  companyName: string;
+  companyId: string;
+  requesterName: string;
+  requesterEmail: string;
+}) {
+  return {
+    to: params.to,
+    subject: `[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」への参加を希望しています`,
+    html: htmlWrap(`
+      <h2>${esc(params.adminName)} さん</h2>
+      <p>
+        <strong>${esc(params.requesterName)}</strong>（${esc(params.requesterEmail)}）さんが
+        「${esc(params.companyName)}」への参加を希望しています。
+      </p>
+      <p>メンバー管理画面からメールアドレスを入力して招待を完了してください。</p>
+      <a href="https://opinio.jp/biz/members" style="${BTN}">メンバーを招待する →</a>
+      <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+        心当たりのない場合は、このメールを無視してください。
+      </p>
+    `),
+  };
+}

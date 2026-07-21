@@ -355,6 +355,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExistingNotice, setShowExistingNotice] = useState(false);
+  const [existingCompany, setExistingCompany] = useState<{ id: string; name: string; adminCount: number } | null>(null);
+  const [joinRequestSent, setJoinRequestSent] = useState(false);
+  const [joinRequestLoading, setJoinRequestLoading] = useState(false);
 
 
   // ② Google OAuth
@@ -486,9 +489,12 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
       if (!res.ok) {
         const result = await res.json();
-        // 同名企業が既存の場合は force_create で強制作成するか選択させる
-        if (result.error === "company_name_exists") {
-          setError(`「${companyName}」という企業が既に登録されています。別の企業名で登録するか、その企業から招待を受けてください。`);
+        if (result.error === "company_name_exists" && result.existing_company) {
+          setExistingCompany({
+            id: result.existing_company.id,
+            name: result.existing_company.name,
+            adminCount: result.existing_company.admin_count ?? 0,
+          });
           return;
         }
         setError(result.error || "企業情報の登録に失敗しました。もう一度お試しください。");
@@ -503,6 +509,91 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleJoinRequest() {
+    if (!existingCompany) return;
+    setJoinRequestLoading(true);
+    try {
+      await fetch("/api/biz/join-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: existingCompany.id }),
+      });
+      setJoinRequestSent(true);
+    } catch {
+      // best-effort
+      setJoinRequestSent(true);
+    } finally {
+      setJoinRequestLoading(false);
+    }
+  }
+
+  // ─── 重複企業が見つかったとき ──────────────────────────────────────────────
+  if (existingCompany) {
+    return (
+      <div>
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={titleStyle}>この企業はすでに登録されています</h2>
+          <p style={subtitleStyle}>
+            「{existingCompany.name}」はすでに OPINIO に登録されています。<br />
+            既存の管理者に参加リクエストを送りましょう。
+          </p>
+        </div>
+
+        <div style={{
+          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+          borderRadius: 12, padding: "20px 24px", marginBottom: 20,
+        }}>
+          <p style={{ fontWeight: 700, fontSize: 16, margin: "0 0 4px", color: "var(--royal)" }}>
+            {existingCompany.name}
+          </p>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
+            管理者 {existingCompany.adminCount} 名が登録済み
+          </p>
+        </div>
+
+        {joinRequestSent ? (
+          <div style={{
+            background: "var(--success-soft)", border: "1px solid #A7F3D0",
+            borderRadius: 10, padding: "16px 20px", textAlign: "center",
+          }}>
+            <p style={{ fontWeight: 700, color: "var(--success)", margin: "0 0 4px" }}>
+              ✓ 参加リクエストを送りました
+            </p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
+              管理者から招待メールが届くまでお待ちください。
+            </p>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleJoinRequest}
+              disabled={joinRequestLoading}
+              style={{ ...submitBtnStyle, opacity: joinRequestLoading ? 0.7 : 1 }}
+            >
+              {joinRequestLoading ? "送信中..." : "参加リクエストを送る"}
+            </button>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", textAlign: "center", marginTop: 10 }}>
+              管理者に「参加したい」というメールが届きます。
+            </p>
+            <button
+              type="button"
+              onClick={() => setExistingCompany(null)}
+              style={{
+                display: "block", width: "100%", marginTop: 8,
+                background: "none", border: "1px solid var(--line)",
+                borderRadius: 8, padding: "10px 0", fontSize: 13,
+                color: "var(--ink-soft)", cursor: "pointer",
+              }}
+            >
+              ← 会社名を修正する
+            </button>
+          </>
+        )}
+      </div>
+    );
   }
 
   // ─── INVITE MODE: single-step form ──────────────────────────────────────
