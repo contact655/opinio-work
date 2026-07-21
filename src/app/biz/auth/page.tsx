@@ -62,6 +62,8 @@ function BizAuthInner() {
   const isInviteContext = searchParams.get("context") === "invite";
 
   const [mode, setMode] = useState<Mode>(modeParam === "login" ? "login" : "signup");
+  const [checkingSession, setCheckingSession] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<{ name: string; email: string } | null>(null);
 
   function handleSetMode(m: Mode) {
     setMode(m);
@@ -108,19 +110,129 @@ function BizAuthInner() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return;
+    let settled = false;
+    const fallback = setTimeout(() => {
+      if (!settled) setCheckingSession(false);
+    }, 800);
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      settled = true;
+      clearTimeout(fallback);
+      if (!session) {
+        setCheckingSession(false);
+        return;
+      }
       const { data: memberships } = await supabase
         .from("ow_company_admins")
         .select("id")
         .limit(1);
       if ((memberships?.length ?? 0) > 0) {
         router.replace(next);
-      } else {
-        router.replace("/biz/companies/add/new");
+        return;
       }
+      // ログイン済み・企業未登録 → 挨拶カードを表示
+      const user = session.user;
+      const displayName =
+        user.user_metadata?.name ??
+        user.user_metadata?.full_name ??
+        user.email?.split("@")[0] ??
+        "あなた";
+      setLoggedInUser({ name: displayName, email: user.email ?? "" });
+      setCheckingSession(false);
     });
+    return () => clearTimeout(fallback);
   }, [next, router]);
+
+  if (checkingSession) {
+    return (
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Noto Sans JP', -apple-system, sans-serif", background: "#fff",
+      }}>
+        <div style={{ textAlign: "center", color: "var(--ink-mute)", fontSize: 14 }}>
+          <div style={{
+            width: 32, height: 32, border: "3px solid var(--line)", borderTopColor: "var(--royal)",
+            borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px",
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          確認中...
+        </div>
+      </div>
+    );
+  }
+
+  if (loggedInUser) {
+    return (
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Noto Sans JP', -apple-system, sans-serif", background: "#fff", padding: "24px",
+      }}>
+        <div style={{ maxWidth: 480, width: "100%", textAlign: "center" }}>
+          {/* ロゴ */}
+          <div style={{ marginBottom: 32 }}>
+            <a href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: 36, height: 36, background: "var(--royal)", borderRadius: 10,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "Inter, sans-serif" }}>O</span>
+              </div>
+              <span style={{ fontSize: 18, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.5px" }}>OPINIO</span>
+            </a>
+          </div>
+
+          {/* 挨拶カード */}
+          <div style={{
+            background: "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)",
+            border: "1.5px solid var(--royal-100)",
+            borderRadius: 16, padding: "36px 32px", marginBottom: 20,
+          }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>👋</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 8px" }}>
+              {loggedInUser.name}さん、こんにちは！
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 4px" }}>
+              {loggedInUser.email}
+            </p>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 28px" }}>
+              このアカウントで企業登録を進めます。
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/biz/companies/add/new")}
+              style={{
+                width: "100%", padding: "14px", background: "var(--royal)", color: "#fff",
+                border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700,
+                cursor: "pointer", letterSpacing: "0.01em",
+                boxShadow: "0 4px 16px rgba(0,35,102,0.25)",
+              }}
+            >
+              企業情報を入力する →
+            </button>
+          </div>
+
+          <p style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+            別のアカウントで登録する場合は{" "}
+            <button
+              type="button"
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                setLoggedInUser(null);
+              }}
+              style={{
+                background: "none", border: "none", color: "var(--royal)", fontSize: 12,
+                cursor: "pointer", textDecoration: "underline", padding: 0,
+              }}
+            >
+              ログアウト
+            </button>
+            {" "}してください。
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
