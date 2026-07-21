@@ -70,45 +70,6 @@ function PwStrength({ password }: { password: string }) {
   );
 }
 
-// ⑩ Social proof strip shown near form
-function SocialProofStrip() {
-  return (
-    <div
-      style={{
-        display: "flex", alignItems: "center", gap: 10,
-        marginTop: 20, padding: "12px 16px",
-        background: "var(--bg-tint)", borderRadius: 10,
-        border: "1px solid var(--line)",
-      }}
-    >
-      <div style={{ display: "flex" }}>
-        {[
-          { init: "柴", bg: "linear-gradient(135deg,#002366,#3B5FD9)" },
-          { init: "生", bg: "linear-gradient(135deg,#059669,#047857)" },
-          { init: "木", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)" },
-        ].map((m, i) => (
-          <div
-            key={i}
-            style={{
-              width: 26, height: 26, borderRadius: "50%",
-              background: m.bg, border: "2px solid #fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 700, color: "#fff",
-              marginLeft: i === 0 ? 0 : -8, flexShrink: 0,
-            }}
-          >
-            {m.init}
-          </div>
-        ))}
-      </div>
-      <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: 0 }}>
-        <strong style={{ color: "var(--ink)" }}>96名+</strong> のIT転職希望者が利用中
-      </p>
-    </div>
-  );
-}
-
-
 // ─── Left brand panel ────────────────────────────────────────────────────────
 
 // ─── Inner auth logic (needs useSearchParams so wrapped in Suspense) ─────────
@@ -166,50 +127,55 @@ function AuthPageInner() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name: name.trim() || email.split("@")[0] },
-        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
-      },
-    });
+    try {
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name: name.trim() || email.split("@")[0] },
+          emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
+        },
+      });
 
-    if (signUpError) {
-      const msg = signUpError.message ?? "";
-      if (msg.includes("already registered") || msg.includes("already exists")) {
-        setError("このメールアドレスはすでに登録済みです。ログインタブをお試しください。");
-      } else if (msg.toLowerCase().includes("password")) {
-        setError("パスワードは8文字以上で入力してください。");
-      } else if (msg) {
-        setError(msg);
-      } else {
-        setError("登録に失敗しました。しばらく待ってから再度お試しください。");
+      if (signUpError) {
+        const msg = typeof signUpError.message === "string" ? signUpError.message : "";
+        if (msg.includes("already registered") || msg.includes("already exists")) {
+          setError("このメールアドレスはすでに登録済みです。ログインタブをお試しください。");
+        } else if (msg.toLowerCase().includes("password")) {
+          setError("パスワードは8文字以上で入力してください。");
+        } else if (msg) {
+          setError(msg);
+        } else {
+          setError("登録に失敗しました。しばらく待ってから再度お試しください。");
+        }
+        setLoading(false);
+        return;
       }
+
+      if (data.user?.identities?.length === 0) {
+        setError("このメールアドレスはすでに登録済みです。ログインタブをお試しください。");
+        setLoading(false);
+        return;
+      }
+
+      if (data.session) {
+        await fetch("/api/roles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "candidate" }),
+        }).catch(() => {});
+        const dest = nextUrl || "/companies";
+        router.push(`/onboarding?next=${encodeURIComponent(dest)}`);
+        return;
+      }
+
+      setDone(true);
       setLoading(false);
-      return;
-    }
-
-    if (data.user?.identities?.length === 0) {
-      setError("このメールアドレスはすでに登録済みです。ログインタブをお試しください。");
+    } catch {
+      setError("登録に失敗しました。しばらく待ってから再度お試しください。");
       setLoading(false);
-      return;
     }
-
-    if (data.session) {
-      await fetch("/api/roles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "candidate" }),
-      }).catch(() => {});
-      const dest = nextUrl || "/companies";
-      router.push(`/onboarding?next=${encodeURIComponent(dest)}`);
-      return;
-    }
-
-    setDone(true);
-    setLoading(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -341,14 +307,6 @@ function AuthPageInner() {
           {/* ── SIGNUP ── */}
           {mode === "signup" && (
             <>
-              <div style={{ marginBottom: 16 }}>
-                {/* ② アクション指向の見出しに変更 */}
-                <h1 style={s.formTitle}>無料で、始める。</h1>
-              </div>
-
-              {/* ④ ソーシャルプルーフをGoogleボタン前に移動 */}
-              <SocialProofStrip />
-
               {/* ② Google button — primary, prominent, with 推奨 badge */}
               <button type="button" style={s.oauthBtn} onClick={handleGoogleAuth}>
                 <GoogleLogo />
@@ -604,8 +562,6 @@ function AuthPageInner() {
                 </button>
               </div>
 
-              {/* ⑩ Social proof */}
-              <SocialProofStrip />
               </>
               )}
             </>
