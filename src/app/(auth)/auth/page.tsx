@@ -357,26 +357,6 @@ function AuthPageInner() {
               <div style={{ marginBottom: 16 }}>
                 {/* ② アクション指向の見出しに変更 */}
                 <h1 style={s.formTitle}>無料で、始める。</h1>
-                <p style={s.formSubtitle}>
-                  登録すると、こんなことができます：
-                </p>
-                <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0", display: "flex", flexDirection: "column", gap: 7 }}>
-                  {[
-                    { icon: "🏢", text: "取材された企業の内側情報を閲覧できる" },
-                    { icon: "✍️", text: "フィードで転職の思いを発信できる" },
-                    { icon: "🔖", text: "気になる企業・求人をブックマーク管理" },
-                  ].map(({ icon, text }) => (
-                    <li key={text} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--ink-soft)" }}>
-                      <span style={{
-                        width: 22, height: 22, borderRadius: "50%",
-                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, flexShrink: 0,
-                      }}>{icon}</span>
-                      <span>{text}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
 
               {/* ④ ソーシャルプルーフをGoogleボタン前に移動 */}
