@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     .eq("permission", "admin");
 
   const adminList = (adminMembers ?? []).flatMap((m) => {
-    const u = m.ow_users as { name: string; email: string } | null;
+    const u = (m.ow_users as unknown) as { name: string; email: string } | null;
     return u?.email ? [{ name: u.name ?? "管理者", email: u.email }] : [];
   });
 
