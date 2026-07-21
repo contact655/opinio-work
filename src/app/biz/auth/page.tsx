@@ -591,31 +591,6 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
 
         {error && <ErrorBox message={error} />}
 
-        {/* ④ ソーシャルプルーフ — 79社+ が活用中 */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, marginBottom: 16,
-          padding: "10px 14px", background: "var(--royal-50)",
-          border: "1px solid var(--royal-100)", borderRadius: 10,
-        }}>
-          <div style={{ display: "flex" }}>
-            {[
-              { init: "山", bg: "linear-gradient(135deg,#002366,#3B5FD9)" },
-              { init: "中", bg: "linear-gradient(135deg,#059669,#047857)" },
-              { init: "佐", bg: "linear-gradient(135deg,#7C3AED,#6D28D9)" },
-            ].map(({ init, bg }, i) => (
-              <div key={i} style={{
-                width: 26, height: 26, borderRadius: "50%", background: bg,
-                border: "2px solid #fff", marginLeft: i > 0 ? -7 : 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 700, color: "#fff",
-                position: "relative", zIndex: 3 - i,
-              }}>{init}</div>
-            ))}
-          </div>
-          <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.4 }}>
-            <strong style={{ color: "var(--royal)" }}>{siteStats ? `${siteStats.companies}社+` : "–"}</strong> の企業が採用に活用中
-          </span>
-        </div>
 
         {/* ② Google OAuth — primary, prominent */}
         <button type="button" onClick={handleGoogleSignup} style={googleBtnStyle}>
