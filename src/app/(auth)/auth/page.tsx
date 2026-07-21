@@ -121,15 +121,6 @@ const AFTER_STEPS = [
   },
   {
     step: "02",
-    icon: "💬",
-    title: "在籍ユーザーにDMを送る",
-    desc: "企業ページの社員プロフィールから直接DM。求人票には書けないリアルを聞こう。",
-    bg: "#FEF3C7",
-    border: "#FDE68A",
-    color: "#92400E",
-  },
-  {
-    step: "03",
     icon: "🎯",
     title: "納得してから動く",
     desc: "「なんとなく応募」をなくす。情報を集めてから、自分のペースで転職判断を。",
@@ -190,7 +181,7 @@ function BrandSide() {
               登録後、<span style={{ color: "var(--royal)", fontWeight: 700 }}>3ステップ</span>で<br />転職情報が深まります。
             </h2>
             <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              在籍ユーザーへの直接DMが、<br />OPINIOの最大の特徴です。
+              取材記事・求人・社員の経歴を、ひとつの場所で確認できます。
             </p>
           </div>
 
@@ -454,7 +445,7 @@ function AuthPageInner() {
 
         {/* ⑤ Mobile benefit chips */}
         <div className="flex md:hidden" style={{ gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
-          {["完全無料", "在籍者にDMできる", "登録はメールのみ"].map((t) => (
+          {["完全無料", "営業電話なし", "登録はメールのみ"].map((t) => (
             <span
               key={t}
               style={{
@@ -511,7 +502,7 @@ function AuthPageInner() {
                 </p>
                 <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0", display: "flex", flexDirection: "column", gap: 7 }}>
                   {[
-                    { icon: "💬", text: "企業の在籍ユーザーにDMで直接聞ける" },
+                    { icon: "🏢", text: "取材された企業の内側情報を閲覧できる" },
                     { icon: "✍️", text: "フィードで転職の思いを発信できる" },
                     { icon: "🔖", text: "気になる企業・求人をブックマーク管理" },
                   ].map(({ icon, text }) => (
