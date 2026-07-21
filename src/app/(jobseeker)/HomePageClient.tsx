@@ -840,17 +840,15 @@ function FinalCta({ companyNum }: { companyNum: string }) {
 
 const FV_KEY = "opinio_ftv_done";
 
-function FirstVisitOnboarding() {
+function FirstVisitOnboarding({ isLoggedIn }: { isLoggedIn: boolean | null }) {
   const router = useRouter();
   const [show, setShow] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) { setShow(false); return; }
-      setShow(!localStorage.getItem(FV_KEY));
-    });
-  }, []);
+    if (isLoggedIn === null) return;
+    if (isLoggedIn) { setShow(false); return; }
+    setShow(!localStorage.getItem(FV_KEY));
+  }, [isLoggedIn]);
 
   const go = (href: string) => {
     localStorage.setItem(FV_KEY, "1");
@@ -1000,16 +998,10 @@ function FirstVisitOnboarding() {
 
 // ─── Mobile non-auth sticky CTA ──────────────────────────────────────────────
 
-function MobileAuthCTA() {
+function MobileAuthCTA({ isLoggedIn }: { isLoggedIn: boolean | null }) {
   const [show, setShow] = useState(false);
-  const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setAuthed(!!data.user);
-    });
-
     const onScroll = () => {
       setShow(window.scrollY > 300);
     };
@@ -1018,7 +1010,7 @@ function MobileAuthCTA() {
   }, []);
 
   // 認証済み or スクロール前 or 判定中は非表示
-  if (authed !== false || !show) return null;
+  if (isLoggedIn !== false || !show) return null;
 
   return (
     <div className="md:hidden" style={{
@@ -1064,12 +1056,17 @@ export default function HomePageClient({
   jobNum?: string;
   newJobsThisWeek?: number;
 }) {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setIsLoggedIn(!!data.user));
+  }, []);
+
   return (
     <>
       <Hero companyNum={companyNum} jobNum={jobNum} newJobsThisWeek={newJobsThisWeek} />
       <FeaturedThreeCards />
       <JobTagSection />
-      <FirstVisitOnboarding />
+      <FirstVisitOnboarding isLoggedIn={isLoggedIn} />
       <PainPoints />
       <LogoWallSection companies={initialCompanies} />
       <HowItWorks />
@@ -1077,7 +1074,7 @@ export default function HomePageClient({
       {/* <SocialProofSection /> */}
       <HomeFaq />
       <FinalCta companyNum={companyNum} />
-      <MobileAuthCTA />
+      <MobileAuthCTA isLoggedIn={isLoggedIn} />
     </>
   );
 }

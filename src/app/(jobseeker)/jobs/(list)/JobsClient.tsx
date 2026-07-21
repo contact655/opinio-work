@@ -1750,44 +1750,25 @@ export default function JobsClient({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Bookmarks: load once on mount
+  // Bookmarks + applied jobs: load in parallel on mount
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    fetch("/api/bookmarks?target_type=job")
-      .then((r) => r.ok ? r.json() : { ids: [] })
-      .then((data: { ids?: string[] }) => {
-        if (data.ids) setBookmarkedIds(new Set(data.ids));
-      })
-      .catch(() => {/* not logged in or network error — silently ignore */});
-  }, []);
-
-  // ⑩ Applied jobs: load once on mount
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    fetch("/api/user/applied-jobs")
-      .then((r) => r.ok ? r.json() : { ids: [] })
-      .then((data: { ids?: string[] }) => {
-        if (data.ids) setAppliedJobIds(new Set(data.ids));
-      })
-      .catch(() => {});
-  }, []);
-
-  // パーソナライズ: ログインユーザーの希望職種を取得
   const [userJobType, setUserJobType] = useState<string | null>(null);
   useEffect(() => {
-    (async () => {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data: owUser } = await supabase
-          .from("ow_users").select("id").eq("auth_id", user.id).single();
-        if (!owUser?.id) return;
-        const { data: profile } = await supabase
-          .from("ow_profiles").select("job_type").eq("user_id", owUser.id).single();
-        if (profile?.job_type) setUserJobType(profile.job_type as string);
-      } catch { /* not logged in or no profile */ }
-    })();
+    const supabase = createClient();
+    Promise.all([
+      fetch("/api/bookmarks?target_type=job").then((r) => r.ok ? r.json() : { ids: [] }).catch(() => ({ ids: [] })),
+      fetch("/api/user/applied-jobs").then((r) => r.ok ? r.json() : { ids: [] }).catch(() => ({ ids: [] })),
+      supabase.auth.getUser(),
+    ]).then(async ([bookmarkData, appliedData, { data: { user } }]) => {
+      if ((bookmarkData as { ids?: string[] }).ids) setBookmarkedIds(new Set((bookmarkData as { ids: string[] }).ids));
+      if ((appliedData as { ids?: string[] }).ids) setAppliedJobIds(new Set((appliedData as { ids: string[] }).ids));
+      if (!user) return;
+      const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).single();
+      if (!owUser?.id) return;
+      const { data: profile } = await supabase.from("ow_profiles").select("job_type").eq("user_id", owUser.id).single();
+      if (profile?.job_type) setUserJobType(profile.job_type as string);
+    }).catch(() => {});
   }, []);
 
   // ⑤ "もっと見る" — init from URL param ?show=N, resets when filters change
