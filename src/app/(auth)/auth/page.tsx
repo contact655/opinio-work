@@ -303,15 +303,6 @@ function AuthPageInner() {
           </a>
         </div>
 
-        {/* ⑤ Mobile benefit chips - removed */}
-        <div className="flex md:hidden" style={{ gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
-          {[].map((t) => (
-            <span key={t}>
-              {t}
-            </span>
-          ))}
-        </div>
-
         <div style={s.formWrap}>
           {/* ⑧ 企業担当者向けリンク */}
           <div style={{ textAlign: "right", marginBottom: 10 }}>
