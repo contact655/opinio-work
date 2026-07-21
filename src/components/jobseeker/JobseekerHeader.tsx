@@ -140,12 +140,6 @@ export function JobseekerHeader() {
     };
   }, [mobileMenuOpen]);
 
-  // Use first character of name (first word, first char), fallback to email
-  // _initial: retained for future use (InitialAvatar accepts name prop directly)
-  const _initial = user?.name
-    ? user.name.trim().charAt(0).toUpperCase()
-    : user?.email?.charAt(0).toUpperCase() ?? "";
-
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();

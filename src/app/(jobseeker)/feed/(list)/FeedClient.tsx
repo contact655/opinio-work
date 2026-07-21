@@ -248,10 +248,9 @@ function PostComposer({
         .from("ow-uploads")
         .getPublicUrl(path);
       setImageUrl(pub.publicUrl);
-    } catch (err) {
+    } catch {
       setError("画像のアップロードに失敗しました");
       setImagePreview(null);
-      console.error(err);
     } finally {
       setUploading(false);
     }
