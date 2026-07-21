@@ -52,7 +52,7 @@ const FEATURED_COMPANIES = [
 function FeaturedThreeCards() {
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   return (
-    <section style={{ background: "#fff", padding: "48px 48px 40px", borderTop: "1px solid var(--line)" }} className="px-5 py-10 md:px-12">
+    <section style={{ background: "#fff", paddingTop: "48px", paddingBottom: "40px", borderTop: "1px solid var(--line)" }} className="px-5 md:px-12">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--ink-mute)", marginBottom: 20, textTransform: "uppercase" as const }}>
           掲載企業の例
@@ -126,7 +126,7 @@ const JOB_TAGS = [
 function JobTagSection() {
   const router = useRouter();
   return (
-    <section style={{ background: "var(--royal-50)", padding: "28px 48px", borderTop: "1px solid var(--royal-100)" }} className="px-5 py-6 md:px-12">
+    <section style={{ background: "var(--royal-50)", paddingTop: "28px", paddingBottom: "28px", borderTop: "1px solid var(--royal-100)" }} className="px-5 md:px-12">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", flexShrink: 0, letterSpacing: "0.04em" }}>職種で探す:</span>
@@ -287,7 +287,7 @@ function Hero({ companyNum, jobNum, newJobsThisWeek }: { companyNum: string; job
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      padding: "80px 48px 64px",
+      paddingTop: "80px", paddingBottom: "64px",
     }} className="px-5 pt-16 pb-12 md:px-12 md:pt-20 md:pb-16">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         <div className="hero-two-col">
@@ -339,7 +339,7 @@ function Hero({ companyNum, jobNum, newJobsThisWeek }: { companyNum: string; job
                     borderLeft: i > 0 ? "1px solid var(--line)" : "none",
                     paddingLeft: i > 0 ? 20 : 0,
                   }}>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(16px,1.8vw,22px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1 }}>{item.num}</div>
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: "clamp(13px,1.8vw,22px)", fontWeight: 800, color: "var(--ink)", lineHeight: 1.1, whiteSpace: "nowrap" as const }}>{item.num}</div>
                     <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3, fontWeight: 500 }}>{item.label}</div>
                   </div>
                 ))}
@@ -653,7 +653,7 @@ function LogoWallSection({ companies }: { companies: PreviewCompany[] }) {
     gradient: c.gradient,
   }));
   return (
-    <section style={{ background: "#fff", padding: "64px 48px", borderTop: "1px solid var(--line)" }} className="px-5 py-12 md:px-12">
+    <section style={{ background: "#fff", paddingTop: "64px", paddingBottom: "64px", borderTop: "1px solid var(--line)" }} className="px-5 md:px-12">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
           <SectionTag>掲載企業</SectionTag>
@@ -725,7 +725,7 @@ function HowItWorks() {
   ];
 
   return (
-    <section style={{ background: "var(--bg-tint)", padding: "72px 48px" }} className="px-5 py-14 md:py-20 md:px-12">
+    <section style={{ background: "var(--bg-tint)", paddingTop: "72px", paddingBottom: "72px" }} className="px-5 py-14 md:py-20 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>使い方</SectionTag>
@@ -806,7 +806,7 @@ function HowItWorks() {
 
 function PainPoints() {
   return (
-    <section style={{ padding: "56px 48px 72px", background: "var(--bg-tint)" }} className="px-5 pt-10 pb-14 md:pt-14 md:pb-20 md:px-12">
+    <section style={{ paddingTop: "56px", paddingBottom: "72px", background: "var(--bg-tint)" }} className="px-5 pt-10 pb-14 md:pt-14 md:pb-20 md:px-12">
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <SectionTag>よくある悩み</SectionTag>
@@ -899,7 +899,7 @@ function FinalCta({ companyNum }: { companyNum: string }) {
   return (
     <section style={{
       background: `linear-gradient(155deg, #002980 0%, #002366 45%, #1a3a8f 100%)`,
-      padding: "96px 48px", textAlign: "center",
+      paddingTop: "96px", paddingBottom: "96px", textAlign: "center",
     }} className="px-5 py-16 md:py-24 md:px-12">
       <h2 style={{
         fontSize: "clamp(28px,3.5vw,44px)", fontWeight: 700, color: "#fff",
@@ -1003,7 +1003,7 @@ function FirstVisitOnboarding() {
     <section style={{
       background: "#fff",
       borderBottom: "1px solid var(--line)",
-      padding: "52px 48px 44px",
+      paddingTop: "52px", paddingBottom: "44px",
     }} className="px-5 md:px-12">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         {/* 見出し */}
@@ -1182,7 +1182,7 @@ function _SocialProofSection() {
     },
   ];
   return (
-    <section style={{ background: "#fff", padding: "72px 48px 80px", borderTop: "1px solid var(--line)" }} className="px-5 md:px-12">
+    <section style={{ background: "#fff", paddingTop: "72px", paddingBottom: "80px", borderTop: "1px solid var(--line)" }} className="px-5 md:px-12">
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{
