@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,7 +24,6 @@ type InviteContext = {
   companyName: string;
 };
 
-const PERSONAL_DOMAINS = ["gmail.com", "yahoo.co.jp", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"];
 
 const INDUSTRY_OPTIONS = [
   "IT / SaaS",
@@ -357,12 +356,6 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   const [error, setError] = useState<string | null>(null);
   const [showExistingNotice, setShowExistingNotice] = useState(false);
 
-  const isPersonalDomain = useCallback((addr: string) => {
-    const domain = addr.split("@")[1]?.toLowerCase();
-    return domain ? PERSONAL_DOMAINS.includes(domain) : false;
-  }, []);
-
-  const showPersonalWarning = email.includes("@") && isPersonalDomain(email);
 
   // ② Google OAuth
   async function handleGoogleSignup() {
@@ -384,10 +377,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       setError("パスワードは8文字以上で入力してください。");
       return;
     }
-    if (showPersonalWarning) {
-      setError("企業ドメインのメールアドレスをご入力ください。");
-      return;
-    }
+
     // Invite mode: skip step 2 (no company info needed)
     if (isInviteMode) {
       handleInviteSubmit();
@@ -617,7 +607,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             padding: "3px 10px", background: "var(--bg-tint)",
             border: "1px solid var(--line)", borderRadius: 100,
           }}>
-            または企業メールで登録
+            またはメールで登録
           </span>
           <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
         </div>
@@ -632,20 +622,12 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
               onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
           </div>
           <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="企業メールアドレス" required htmlFor="biz-s1-email" />
+            <FieldLabel label="メールアドレス" required htmlFor="biz-s1-email" />
             <input id="biz-s1-email" type="email" inputMode="email" required value={email}
               onChange={(e) => { setEmail(e.target.value); setShowExistingNotice(false); }}
-              placeholder="yamada@your-company.co.jp"
+              placeholder="your@email.com"
               style={inputStyle} autoComplete="email"
               onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-            {showPersonalWarning && (
-              <div style={{ ...hintStyle, color: "var(--warm)", marginTop: 5 }}>
-                ⚠ 企業ドメインのメールアドレスをご入力ください。
-              </div>
-            )}
-            {!showPersonalWarning && email.includes("@") && (
-              <div style={hintStyle}>企業ドメインのメールアドレスをご入力ください。</div>
-            )}
           </div>
 
           <div style={{ marginBottom: 4 }}>
@@ -680,6 +662,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         </form>
 
         <SwitchRow label="すでにアカウントをお持ちの方は" action="ログイン" onClick={() => onSwitchToLogin()} />
+        <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", marginTop: 4 }}>
+          求職者アカウントをお持ちの方も、そのままログインできます。
+        </p>
 
         {/* ⑩ Mobile sticky CTA */}
         <MobileStickyBar label="次のステップへ →" formId="biz-s1-form" />
@@ -914,7 +899,8 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
     <div>
       <div style={{ marginBottom: 24 }}>
         <h2 style={titleStyle}>おかえりなさい。</h2>
-        <p style={subtitleStyle}>企業メールアドレスとパスワードでログインしてください。</p>
+        <p style={subtitleStyle}>メールアドレスとパスワードでログインしてください。</p>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 6 }}>求職者アカウントをお持ちの方も同じメール・パスワードでログインできます。</p>
       </div>
 
       {inviteContext && <InviteBanner companyName={inviteContext.companyName || "企業"} subtitle={`ログインすると自動的にチームに参加します。（${inviteContext.email}）`} />}
@@ -946,10 +932,10 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         <div style={{ marginBottom: 14 }}>
-          <FieldLabel label="企業メールアドレス" htmlFor="biz-login-email" />
+          <FieldLabel label="メールアドレス" htmlFor="biz-login-email" />
           <input id="biz-login-email" type="email" inputMode="email" required value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="yamada@your-company.co.jp"
+            placeholder="your@email.com"
             autoComplete="email" style={inputStyle}
             onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
         </div>
@@ -1402,9 +1388,6 @@ const selectStyle: React.CSSProperties = {
   backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center",
 };
 
-const hintStyle: React.CSSProperties = {
-  fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6,
-};
 
 function applyFocusStyle(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
   el.style.borderColor = "var(--royal)";
