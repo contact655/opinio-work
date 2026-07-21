@@ -1016,7 +1016,7 @@ function FeedLeftPanel({
   const tagline = myRoleTitle ?? myCompany ?? null;
 
   return (
-    <div style={{ width: 200, flexShrink: 0 }}>
+    <div style={{ width: 260, flexShrink: 0 }}>
       {/* ミニプロフィールカード */}
       <div style={{
         background: "#fff",
@@ -1170,7 +1170,7 @@ function FeedSidebar({
   };
 
   return (
-    <div style={{ width: 220, flexShrink: 0 }}>
+    <div style={{ width: 280, flexShrink: 0 }}>
       {/* (a) フォロー中の企業 */}
       <div style={PANEL_STYLE}>
         <p style={PANEL_TITLE_STYLE}>フォロー中の企業</p>
@@ -2070,7 +2070,7 @@ export default function FeedClient({
   }, [showLoadMore, loadingMore, handleLoadMore]);
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 18, alignItems: "flex-start" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 20, alignItems: "flex-start" }}>
 
       {/* 左カラム: ミニプロフィール + ナビ (≥1024px) */}
       {isWide && (
