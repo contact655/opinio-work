@@ -122,6 +122,11 @@ function AuthPageInner() {
     searchParams.get("mode") === "login" ? "login" : "signup"
   );
 
+  const urlError = searchParams.get("error");
+  const [error, setError] = useState<string>(
+    urlError ? "認証エラーが発生しました。もう一度お試しください。" : ""
+  );
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -133,7 +138,6 @@ function AuthPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -173,12 +177,15 @@ function AuthPageInner() {
     });
 
     if (signUpError) {
-      if (signUpError.message.includes("already registered") || signUpError.message.includes("already exists")) {
+      const msg = signUpError.message ?? "";
+      if (msg.includes("already registered") || msg.includes("already exists")) {
         setError("このメールアドレスはすでに登録済みです。ログインタブをお試しください。");
-      } else if (signUpError.message.toLowerCase().includes("password")) {
+      } else if (msg.toLowerCase().includes("password")) {
         setError("パスワードは8文字以上で入力してください。");
+      } else if (msg) {
+        setError(msg);
       } else {
-        setError(signUpError.message);
+        setError("登録に失敗しました。しばらく待ってから再度お試しください。");
       }
       setLoading(false);
       return;
@@ -327,7 +334,7 @@ function AuthPageInner() {
 
           {error && (
             <div style={s.errorBox} role="alert">
-              {error}
+              {typeof error === "string" ? error : JSON.stringify(error)}
             </div>
           )}
 
