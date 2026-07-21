@@ -23,7 +23,6 @@ import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
-// import { GenreCarousel } from "@/components/companies/GenreCarousel";
 import EvaluationText from "./EvaluationText";
 import SalaryDataSection from "./SalaryData";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
