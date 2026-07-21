@@ -266,7 +266,7 @@ function AuthPageInner() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) router.replace(nextUrl || "/");
+      if (session?.user) router.replace(nextUrl && nextUrl !== "/" ? nextUrl : "/companies");
     });
   }, [nextUrl, router]);
 
