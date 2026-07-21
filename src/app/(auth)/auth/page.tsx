@@ -396,10 +396,6 @@ function AuthPageInner() {
                     autoComplete="email"
                     enterKeyHint="next"
                   />
-                  <p style={{ margin: "5px 0 0", fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 4 }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    電話番号不要・スカウトなし・いつでも退会可
-                  </p>
                 </div>
 
                 <div style={s.formGroup}>
