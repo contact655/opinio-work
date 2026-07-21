@@ -63,6 +63,13 @@ function BizAuthInner() {
   const isInviteContext = searchParams.get("context") === "invite";
 
   const [mode, setMode] = useState<Mode>(modeParam === "login" ? "login" : "signup");
+
+  function handleSetMode(m: Mode) {
+    setMode(m);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("mode", m);
+    router.replace(`/biz/auth?${params.toString()}`, { scroll: false });
+  }
   const [prefillEmail, setPrefillEmail] = useState("");
   const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
@@ -176,7 +183,7 @@ function BizAuthInner() {
 
       <FormSide
         mode={mode}
-        setMode={setMode}
+        setMode={handleSetMode}
         prefillEmail={prefillEmail}
         pendingCompany={pendingCompany}
         onSwitchToLogin={handleSwitchToLogin}
@@ -963,23 +970,23 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }:
             onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
         </div>
 
-        {/* ③ 企業ジャンルは除去 — 業種＋従業員数のみ */}
+        {/* 業種＋従業員数 — 任意項目 */}
         <div className="biz-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           <div>
-            <FieldLabel label="業種" required htmlFor="biz-s2-industry" />
-            <select id="biz-s2-industry" required value={industry}
+            <FieldLabel label="業種" htmlFor="biz-s2-industry" />
+            <select id="biz-s2-industry" value={industry}
               onChange={(e) => setIndustry(e.target.value)} style={selectStyle}
               onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)}>
-              <option value="">選択してください</option>
+              <option value="">任意</option>
               {INDUSTRY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
-            <FieldLabel label="従業員数" required htmlFor="biz-s2-emp" />
-            <select id="biz-s2-emp" required value={employeeCount}
+            <FieldLabel label="従業員数" htmlFor="biz-s2-emp" />
+            <select id="biz-s2-emp" value={employeeCount}
               onChange={(e) => setEmployeeCount(e.target.value)} style={selectStyle}
               onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)}>
-              <option value="">選択してください</option>
+              <option value="">任意</option>
               {EMPLOYEE_COUNT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>

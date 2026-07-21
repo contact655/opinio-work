@@ -110,7 +110,7 @@ function MidCtaBanner({ href, label, sub, variant = "royal" }: { href: string; l
 export default async function ForCompaniesPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  let bizCtaHref = "/biz/auth";
+  let bizCtaHref = "/biz/auth?mode=signup";
   if (user) {
     const { data: memberships } = await supabase
       .from("ow_company_admins").select("id").limit(1);

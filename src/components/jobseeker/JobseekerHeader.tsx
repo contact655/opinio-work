@@ -365,6 +365,9 @@ export function JobseekerHeader() {
                 </>
               ) : (
                 <>
+                  <Link href="/business" style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textDecoration: "none", padding: "8px 10px", whiteSpace: "nowrap" }}>
+                    企業の方はこちら
+                  </Link>
                   <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none", padding: "8px 14px" }}>
                     ログイン
                   </Link>
