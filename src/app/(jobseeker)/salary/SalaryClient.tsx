@@ -69,11 +69,6 @@ export function SalaryClient({ stats, maxBar }: Props) {
           overflow: hidden;
           margin-top: 10px;
         }
-        .sc-bar-inner {
-          height: 8px;
-          border-radius: 100px;
-          background: linear-gradient(90deg, var(--royal), #3B5FD9);
-        }
         .sc-chip {
           display: inline-flex;
           align-items: center;

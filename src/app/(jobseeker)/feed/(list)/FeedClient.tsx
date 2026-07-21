@@ -1788,15 +1788,9 @@ function PostCard({
             (e.currentTarget as HTMLButtonElement).style.background = "none";
           }}
         >
-          {post.liked_by_me ? (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-          ) : (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-          )}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={post.liked_by_me ? "currentColor" : "none"} stroke="currentColor" strokeWidth={post.liked_by_me ? 1.5 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
           <span>いいね{post.like_count > 0 ? ` ${post.like_count}` : ""}</span>
         </button>
 
@@ -2216,13 +2210,13 @@ export default function FeedClient({
       )}
 
       {/* 無限スクロール: センチネル + ローディング表示 */}
+      <style suppressHydrationWarning>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div ref={sentinelRef} style={{ height: 1 }} />
       {loadingMore && (
         <div style={{ textAlign: "center", padding: "20px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif', fontSize: 13 }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite", display: "inline-block" }}>
             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
           </svg>
-          <style suppressHydrationWarning>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
       {!showLoadMore && (activePosts.length > 0) && (
