@@ -73,12 +73,6 @@ function BizAuthInner() {
   const [prefillEmail, setPrefillEmail] = useState("");
   const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
-  const [siteStats, setSiteStats] = useState<{ companies: number; jobs: number } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/stats").then(r => r.json()).then(d => setSiteStats(d)).catch(() => {});
-  }, []);
-
   useEffect(() => {
     try {
       const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
@@ -188,7 +182,6 @@ function BizAuthInner() {
         next={next}
         router={router}
         inviteContext={inviteContext}
-        siteStats={siteStats}
       />
     </div>
   );
@@ -206,10 +199,9 @@ type FormSideProps = {
   next: string;
   router: ReturnType<typeof useRouter>;
   inviteContext: InviteContext | null;
-  siteStats: { companies: number; jobs: number } | null;
 };
 
-function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router, inviteContext, siteStats }: FormSideProps) {
+function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router, inviteContext }: FormSideProps) {
   return (
     <div
       className="biz-form-side"
@@ -239,7 +231,7 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
         {/* ⑤ Mode tabs — active = solid royal */}
         <ModeTabBar mode={mode} onChange={setMode} />
         {mode === "signup" ? (
-          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} siteStats={siteStats} />
+          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} />
         ) : (
           <LoginForm
             onSwitchToSignup={() => setMode("signup")}
@@ -338,10 +330,9 @@ type SignupFormProps = {
   next: string;
   router: ReturnType<typeof useRouter>;
   inviteContext: InviteContext | null;
-  siteStats: { companies: number; jobs: number } | null;
 };
 
-function SignupForm({ onSwitchToLogin, next, router, inviteContext, siteStats }: SignupFormProps) {
+function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupFormProps) {
   const isInviteMode = inviteContext !== null;
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 
