@@ -1527,70 +1527,66 @@ export default function JobsClient({
                 style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
               >✕ リセット</button>
             )}
+          </div>
 
-            {/* 縦区切り */}
-            <div style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
-
-            {/* 並び替え — 新着順 / 年収順 */}
-            <div style={{ display: "flex", border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#fff" }}>
-              {([
-                { value: "updated", label: "新着順" },
-                { value: "salary",  label: "年収順" },
-              ] as const).map((opt, i) => {
-                const active = sort === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setSort(opt.value)}
-                    style={{
-                      height: 35, padding: "0 13px", borderRadius: 0, fontSize: 12.5,
-                      fontWeight: active ? 700 : 500,
-                      background: active ? "var(--royal)" : "transparent",
-                      color: active ? "#fff" : "var(--ink-mute)",
-                      cursor: "pointer", whiteSpace: "nowrap", transition: "background 0.15s, color 0.15s", flexShrink: 0,
-                      boxShadow: i > 0 ? "-1px 0 0 0 #e2e8f0 inset" : "none",
-                      border: "none",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+          {/* ── 行3: 並び替えバー（企業ページの GridSortBar と同構造） ── */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+            background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
+            padding: "10px 16px", boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+          }}>
+            {/* 左: 並び替えピル */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--ink-soft)", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M7 12h10M11 18h2"/>
+                </svg>
+                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>並び替え</span>
+              </div>
+              <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
+              <div style={{ display: "flex", gap: 6, alignItems: "center", overflowX: "auto", scrollbarWidth: "none" }}>
+                {([
+                  { value: "updated", label: "新着順", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> },
+                  { value: "salary",  label: "年収順",  icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+                ] as const).map((opt) => {
+                  const active = sort === opt.value;
+                  return (
+                    <button key={opt.value} type="button" onClick={() => setSort(opt.value)}
+                      className={`jobs-sort-btn${active ? " active" : ""}`}
+                    >
+                      {active ? <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> : opt.icon}
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+
+            {/* 右: グルーピング + 件数 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {maxPerCompany > 3 && (
                 <>
                   <button
                     type="button"
                     onClick={() => { setGroupByCompany(v => !v); setDisplayCount(PER_PAGE); }}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "5px 11px", borderRadius: 100,
-                      border: `1.5px solid ${groupByCompany ? "var(--royal)" : "var(--line)"}`,
-                      background: groupByCompany ? "var(--royal-50)" : "#fff",
-                      color: groupByCompany ? "var(--royal)" : "var(--ink-mute)",
-                      fontSize: 11, fontWeight: groupByCompany ? 700 : 500,
-                      cursor: "pointer", whiteSpace: "nowrap",
-                      fontFamily: "inherit", transition: "all 0.15s",
-                    }}
+                    className={`jobs-sort-btn${groupByCompany ? " active" : ""}`}
                     title="同一企業の求人を1社あたり3件に絞る"
                   >
                     {groupByCompany ? "✓ " : ""}1社3件まで
                   </button>
                   {groupByCompany && hiddenByGrouping > 0 && (
                     <span style={{ fontSize: 10, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      1社3件まで（{hiddenByGrouping}件非表示）
+                      {hiddenByGrouping}件非表示
                       <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 10, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
                     </span>
                   )}
                 </>
               )}
-              <span aria-live="polite" style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                {filteredForDisplay.length}<span style={{ fontSize: 10, fontWeight: 500, marginLeft: 2 }}>件</span>
-                {(hasFilter || q) && <span style={{ fontSize: 10, color: "var(--success)", marginLeft: 5, fontWeight: 600 }}>絞込中</span>}
+              <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+              <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
+                <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>{filteredForDisplay.length}</strong>
+                <span style={{ marginLeft: 2 }}>件</span>
+                {(hasFilter || q) && <span style={{ fontSize: 10, color: "var(--success)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
               </span>
             </div>
           </div>
@@ -2019,6 +2015,17 @@ export default function JobsClient({
         }
         .jobs-pill-item:hover { background: var(--royal-50); }
         .jobs-pill-item.selected { color: var(--royal); font-weight: 700; background: var(--royal-50); }
+        .jobs-sort-btn {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+          cursor: pointer; border: 1.5px solid var(--line); background: #fff; color: var(--ink-soft);
+          transition: all 0.15s ease; white-space: nowrap; font-family: inherit; flex-shrink: 0;
+        }
+        .jobs-sort-btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+        .jobs-sort-btn.active {
+          background: var(--royal); border-color: var(--royal); color: #fff;
+          font-weight: 700; box-shadow: 0 3px 12px rgba(0,35,102,0.35); transform: scale(1.03);
+        }
         /* 面談受付中トグルピル */
         .jobs-pill-hiring {
           display: inline-flex; align-items: center;
