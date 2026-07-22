@@ -686,64 +686,17 @@ function SidebarFilters({
               </button>
             );
           };
+          const sortedRoles = [
+            ...business.filter(r => r.name !== "その他"),
+            ...tech,
+            ...business.filter(r => r.name === "その他"),
+          ];
           return (
             <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-              {business.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "2px 2px 3px" }}>
-                  <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                  <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>ビジネス職</span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                </div>
-              )}
-              {business.map(renderRoleBtn)}
-              {tech.length > 0 && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "5px 2px 3px" }}>
-                    <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                    <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>技術職</span>
-                    <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                  </div>
-                  {tech.map(renderRoleBtn)}
-                </>
-              )}
+              {sortedRoles.map(renderRoleBtn)}
             </div>
           );
         })()}
-      </div>
-
-      {/* 年収 — デュアルスライダー */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="年収" sectionKey="salary" hasActive={!!salary || !!salaryMax} />
-        {!collapsed.has("salary") && (
-          <div style={{ padding: "0 14px 12px" }}>
-            <SalaryRangeSlider salary={salary} salaryMax={salaryMax} setParam={setParam} />
-          </div>
-        )}
-      </div>
-
-      {/* 企業ステージ（複数選択対応） */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)", padding: "10px 12px" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: companyStageSet.size > 0 ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
-          {companyStageSet.size > 0 && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
-          企業ステージ
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {([
-            { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
-            { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
-            { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
-            { key: "foreign", label: "🌏 外資系",      color: "#1D4ED8",         bg: "#EFF6FF" },
-          ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
-            const active = companyStageSet.has(key);
-            return (
-              <button key={key} type="button" onClick={() => toggleStage(key)}
-                style={{ padding: "4px 12px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer", transition: "all 0.15s" }}
-              >
-                {active ? "✓ " : ""}{label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* 地域 */}
@@ -1386,18 +1339,6 @@ export default function JobsClient({
 
             {/* フィルターピル群（企業ページと同じ位置・同じスタイル） */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" }}>
-
-              {/* 職種 ピル */}
-              <button type="button" className={`jobs-pill${category ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "category") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("category");
-                }}
-              >
-                {category ? (parentRoles.find(r => r.id === category)?.name ?? "職種") : "職種"} <span className="jobs-pill-caret">▾</span>
-              </button>
 
               {/* フェーズ ピル */}
               <button type="button"
