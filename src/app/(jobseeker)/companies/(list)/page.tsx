@@ -177,9 +177,21 @@ export default async function CompaniesPage({ searchParams }: Props) {
           </Suspense>
         </div>
       </div>
+    </div>
 
+    {/* ── 並び替えバー（白ゾーン、フィルター非適用時のみ） ── */}
+    {!hasFilter && needsGrid && (
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+        <div className="max-w-[1440px] mx-auto px-4 py-3">
+          <Suspense fallback={null}>
+            <GridSortBar totalCount={allCompaniesResult.totalCount} />
+          </Suspense>
+        </div>
+      </div>
+    )}
 
-      <div className="max-w-[1440px] mx-auto px-4 pt-0 pb-8">
+    <div style={{ background: "#f0f4f8" }}>
+      <div className="max-w-[1440px] mx-auto px-4 pt-4 pb-8">
         <div>
 
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}
@@ -250,9 +262,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
                     return (
                       <>
-                        <Suspense fallback={null}>
-                          <GridSortBar totalCount={allCompaniesResult.totalCount} />
-                        </Suspense>
                         {/* 上部ページネーション（2ページ目以降のみ表示） */}
                         {safePage > 1 && (
                           <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
