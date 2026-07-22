@@ -46,23 +46,6 @@ function getStageCfg(stage: string | null) {
   return STAGE_CONFIG[key] ?? STAGE_CONFIG[stage] ?? { label: stage, color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" };
 }
 
-// 業種カラー
-const INDUSTRY_COLORS: Record<string, { color: string; bg: string }> = {
-  "HR Tech":       { color: "#1e40af", bg: "#dbeafe" },
-  "FinTech/SaaS":  { color: "#065f46", bg: "#d1fae5" },
-  "CRM":           { color: "var(--royal)", bg: "#eff3fc" },
-  "CRM/SaaS":      { color: "var(--royal)", bg: "#eff3fc" },
-  "AI Tech":       { color: "#6d28d9", bg: "#ede9fe" },
-  "Sales Tech":    { color: "#0f766e", bg: "#ccfbf1" },
-  "Med Tech":      { color: "#9a3412", bg: "#ffedd5" },
-  "ConTech":       { color: "#b45309", bg: "#fef3c7" },
-  "顧客コミュニケーション": { color: "#5b21b6", bg: "#ede9fe" },
-};
-
-function getIndustryStyle(industry: string | null) {
-  if (!industry) return { color: "#4a5260", bg: "#f1f5f9" };
-  return INDUSTRY_COLORS[industry] ?? { color: "#4a5260", bg: "#f1f5f9" };
-}
 
 export type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
@@ -155,7 +138,6 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
     }
   }, [bookmarked, company.id, company.name, router]);
 
-  const industryStyle = getIndustryStyle(company.industry);
   const stageCfg = getStageCfg(company.funding_stage);
   const articleCount = company.article_count ?? 0;
 
@@ -238,14 +220,6 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                     background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
                   }}>
                     {stageCfg.label}
-                  </span>
-                )}
-                {company.industry && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
-                    background: industryStyle.bg, color: industryStyle.color,
-                  }}>
-                    {company.industry?.replace(/\/SaaS$/i, '')}
                   </span>
                 )}
                 {articleCount > 0 && (

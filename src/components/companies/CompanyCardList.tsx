@@ -241,15 +241,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             flex: 1, minWidth: 0,
             display: "flex", flexDirection: "column", gap: 4,
           }}>
-            {/* 行1: バッジ2つ + ブックマーク */}
+            {/* 行1: バッジ + ブックマーク */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {company.industry && (
-                <span style={{
-                  fontSize: 11, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)", whiteSpace: "nowrap", flexShrink: 0,
-                }}>{company.industry.replace(/\/SaaS$/i, "")}</span>
-              )}
               {stageCfg && (
                 <span style={{
                   fontSize: 11, fontWeight: stageCfg.fontWeight ?? 700, padding: "2px 7px", borderRadius: 100,
@@ -447,12 +440,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* バッジ行 */}
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 4 }}>
-            {company.industry && (
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-              }}>{company.industry.replace(/\/SaaS$/i, "")}</span>
-            )}
             {stageCfg && (
               <span style={{
                 fontSize: 11, fontWeight: stageCfg.fontWeight ?? 700, padding: "2px 8px", borderRadius: 100,
