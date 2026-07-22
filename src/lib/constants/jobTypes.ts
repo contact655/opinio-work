@@ -131,28 +131,31 @@ export function getVisibleJobTypes(): string[] {
 // ow_roles.name（parent_id IS NULL）と track の対応マップ。
 // migration 106 で確定した親カテゴリ名を使用。
 export const ROLE_NAME_TRACK: Record<string, "business" | "tech"> = {
-  "経営・CxO":         "business",
-  "営業":              "business",
-  "マーケティング":    "business",
-  "カスタマーサクセス":"business",
-  "事業開発":          "business",
-  "コーポレート":      "business",
-  "その他":            "business",
-  "プロダクト":        "tech",
-  "エンジニア":        "tech",
-  "デザイナー":        "tech",
+  "経営・CxO":                           "business",
+  "インサイドセールス":                   "business",
+  "フィールドセールス":                   "business",
+  "マーケティング":                       "business",
+  "カスタマーサクセス":                   "business",
+  "事業開発":                             "business",
+  "コーポレート":                         "business",
+  "その他":                               "business",
+  "プロダクト":                           "tech",
+  "エンジニア":                           "tech",
+  "デザイナー":                           "tech",
+  "ソリューションエンジニア・プリセールス": "tech",
+  // 「営業」「データ・AI」は意図的に除外（サイドバー非表示）
 };
 
 /**
  * parentRoles（ow_roles 親カテゴリ）を business / tech に分類し返す。
+ * ROLE_NAME_TRACK に存在しない名前はサイドバーから除外される。
  * SHOW_TECH_ROLES=false のとき tech は空配列になる。
- * business が先・tech が後の順序で返す（フェーズ1の「ビジネス主役」表示用）。
  */
 export function getVisibleRoles(roles: { id: string; name: string }[]): {
   business: { id: string; name: string }[];
   tech: { id: string; name: string }[];
 } {
-  const business = roles.filter((r) => (ROLE_NAME_TRACK[r.name] ?? "business") !== "tech");
+  const business = roles.filter((r) => ROLE_NAME_TRACK[r.name] === "business");
   const tech = SHOW_TECH_ROLES
     ? roles.filter((r) => ROLE_NAME_TRACK[r.name] === "tech")
     : [];
