@@ -734,7 +734,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               className={`csb-filter-pill${currentWorkStyle ? " active" : ""}`}
               onClick={() => currentWorkStyle ? updateParam("workStyle", null) : toggleChip("workStyle")}
             >
-              {currentWorkStyle === "full_remote" ? "🏡" : currentWorkStyle === "hybrid" ? "🔀" : "🏢"} {currentWorkStyle ? (
+              {currentWorkStyle ? (
                 currentWorkStyle === "full_remote" ? "フルリモート" :
                 currentWorkStyle === "hybrid" ? "ハイブリッド" : "出社のみ"
               ) : "勤務形態"}
@@ -764,7 +764,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               className={`csb-filter-pill${currentSalaryMin ? " active" : ""}`}
               onClick={() => currentSalaryMin ? updateParam("salaryMin", null) : toggleChip("salaryMin")}
             >
-              💴 {currentSalaryMin ? `${currentSalaryMin}万円以上` : "年収"}
+              {currentSalaryMin ? `${currentSalaryMin}万円以上` : "年収"}
               {currentSalaryMin
                 ? <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>
                 : <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>}
@@ -787,7 +787,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             onClick={() => updateParam("foreign", currentForeign ? null : "1")}
             aria-pressed={currentForeign}
           >
-            🌐 外資系{currentForeign && <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+            外資系{currentForeign && <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>}
           </button>
 
           {/* 面談受付中 */}

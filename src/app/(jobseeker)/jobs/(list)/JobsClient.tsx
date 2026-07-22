@@ -719,7 +719,7 @@ function MobileDetailSection({
               { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
               { key: "unicorn", label: "🦄 ユニコーン",  color: "var(--purple)",   bg: "var(--purple-soft)" },
               { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
-              { key: "foreign", label: "🌏 外資系",      color: "#1D4ED8",         bg: "#EFF6FF" },
+              { key: "foreign", label: "外資系",           color: "#1D4ED8",         bg: "#EFF6FF" },
             ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
               const active = companyStage === key;
               return (
@@ -1346,7 +1346,7 @@ export default function JobsClient({
                 }}
                 style={{ flexShrink: 0 }}
               >
-                🌐 外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 10, marginLeft: 3 }}>✕</span>}
+                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 10, marginLeft: 3 }}>✕</span>}
               </button>
 
               {/* 面談受付中 トグルピル */}
