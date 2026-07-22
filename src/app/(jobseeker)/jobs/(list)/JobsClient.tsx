@@ -1343,164 +1343,94 @@ export default function JobsClient({
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 md:px-12">
 
-          {/* ── 行1: 検索バー（企業一覧と同スタイル：大きなピル） ── */}
-          <div ref={searchBarRef} style={{ position: "relative" }}>
-            <div role="search" style={{
-              display: "flex", alignItems: "center", gap: 8,
-              background: "#fff", border: "2px solid #e6e9ef", borderRadius: 999,
-              padding: "0 16px", transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-              onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
-              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                type="search"
-                aria-label="求人を検索"
-                placeholder="職種・企業名で検索..."
-                value={q}
-                onChange={(e) => { setQ(e.target.value); setShowSuggest(true); }}
-                onFocus={() => setShowSuggest(true)}
-                onKeyDown={(e) => { if (e.key === "Escape") setShowSuggest(false); }}
-                style={{
-                  flex: 1, border: "none", outline: "none",
-                  fontSize: 14.5, color: "var(--ink)", background: "transparent",
-                  padding: "12px 0", minWidth: 0,
-                }}
-              />
-              {q && (
-                <button type="button" onClick={() => { setQ(""); setShowSuggest(false); }} aria-label="検索をクリア"
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
-                >×</button>
-              )}
-              <div className="jobs-location-separator" style={{ width: 1, height: 18, background: "#e2e8f0", flexShrink: 0 }} />
-              <select
-                aria-label="勤務地"
-                value={prefecture}
-                onChange={(e) => setParam("prefecture", e.target.value)}
-                className="jobs-location-select"
-                style={{ border: "none", outline: "none", background: "transparent", fontSize: 13, color: prefecture ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", padding: "8px 4px", flexShrink: 0, maxWidth: 90, fontFamily: "inherit" }}
+          {/* ── 行1: 検索バー + フィルターピル（企業ページと同一行） ── */}
+          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+
+            {/* 検索インプット */}
+            <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
+              <div role="search" style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: "#fff", border: "2px solid #e6e9ef", borderRadius: 999,
+                padding: "0 16px", transition: "border-color 0.15s, box-shadow 0.15s",
+              }}
+                onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
+                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
               >
-                <option value="">勤務地</option>
-                {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                  type="search"
+                  aria-label="求人を検索"
+                  placeholder="職種・企業名で検索..."
+                  value={q}
+                  onChange={(e) => { setQ(e.target.value); setShowSuggest(true); }}
+                  onFocus={() => setShowSuggest(true)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setShowSuggest(false); }}
+                  style={{
+                    flex: 1, border: "none", outline: "none",
+                    fontSize: 14.5, color: "var(--ink)", background: "transparent",
+                    padding: "12px 0", minWidth: 0,
+                  }}
+                />
+                {q && (
+                  <button type="button" onClick={() => { setQ(""); setShowSuggest(false); }} aria-label="検索をクリア"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
+                  >×</button>
+                )}
+              </div>
+
+              {/* ── 検索サジェスト dropdown ── */}
+              {showSuggest && suggestions.length > 0 && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+                  background: "#fff", border: "1.5px solid var(--line)",
+                  borderRadius: 14, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  zIndex: 200, overflow: "hidden",
+                }}>
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); setQ(s.q); setShowSuggest(false); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        width: "100%", padding: "10px 16px",
+                        border: "none", background: "transparent",
+                        cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                        borderBottom: i < suggestions.length - 1 ? "1px solid var(--line-soft)" : "none",
+                      }}
+                      className="suggest-item"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
+                        {s.sub && <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* ── 検索サジェスト dropdown ── */}
-            {showSuggest && suggestions.length > 0 && (
-              <div style={{
-                position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
-                background: "#fff", border: "1.5px solid var(--line)",
-                borderRadius: 14, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                zIndex: 200, overflow: "hidden",
-              }}>
-                {suggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); setQ(s.q); setShowSuggest(false); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      width: "100%", padding: "10px 16px",
-                      border: "none", background: "transparent",
-                      cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                      borderBottom: i < suggestions.length - 1 ? "1px solid var(--line-soft)" : "none",
-                    }}
-                    className="suggest-item"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
-                      {s.sub && <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            {/* フィルターピル群（企業ページと同じ位置・同じスタイル） */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" }}>
 
-          {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
-          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
-            {/* モバイル専用フィルターボタン */}
-            <button
-              type="button"
-              onClick={() => setFilterSheetOpen(true)}
-              className="jobs-mobile-filter-btn"
-              style={{
-                display: "none",
-                height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
-                fontWeight: hasFilter ? 700 : 500,
-                border: `1.5px solid ${hasFilter ? "var(--royal)" : "#e2e8f0"}`,
-                background: hasFilter ? "var(--royal-50)" : "#fff",
-                color: hasFilter ? "var(--royal)" : "var(--ink-soft)",
-                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, alignItems: "center", gap: 6,
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ display: "inline-block", verticalAlign: "middle", marginRight: 5 }}>
-                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
-              </svg>
-              絞り込み
-              {hasFilter && (
-                <span style={{ marginLeft: 5, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "var(--royal)", color: "#fff", fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif" }}>
-                  {[category, work_style, salary, empType, prefecture].filter(Boolean).length}
-                </span>
-              )}
-            </button>
+              {/* 職種 ピル */}
+              <button type="button" className={`jobs-pill${category ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "category") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("category");
+                }}
+              >
+                {category ? (parentRoles.find(r => r.id === category)?.name ?? "職種") : "職種"} <span className="jobs-pill-caret">▾</span>
+              </button>
 
-            {/* 職種 ピル */}
-            <button type="button" className={`jobs-pill${category ? " active" : ""}`} style={{ flexShrink: 0 }}
-              onClick={(e) => {
-                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                if (openFilter === "category") { setOpenFilter(null); return; }
-                setPillAnchor({ top: r.bottom + 6, left: r.left });
-                setOpenFilter("category");
-              }}
-            >
-              {category ? (parentRoles.find(r => r.id === category)?.name ?? "職種") : "職種"} <span className="jobs-pill-caret">▾</span>
-            </button>
-
-            {/* 勤務形態 ピル */}
-            <button type="button" className={`jobs-pill${work_style ? " active" : ""}`} style={{ flexShrink: 0 }}
-              onClick={(e) => {
-                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                if (openFilter === "work_style") { setOpenFilter(null); return; }
-                setPillAnchor({ top: r.bottom + 6, left: r.left });
-                setOpenFilter("work_style");
-              }}
-            >
-              {work_style || "勤務形態"} <span className="jobs-pill-caret">▾</span>
-            </button>
-
-            {/* 年収 ピル */}
-            <button type="button" className={`jobs-pill${salary ? " active" : ""}`} style={{ flexShrink: 0 }}
-              onClick={(e) => {
-                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                if (openFilter === "salary") { setOpenFilter(null); return; }
-                setPillAnchor({ top: r.bottom + 6, left: r.left });
-                setOpenFilter("salary");
-              }}
-            >
-              {salary ? (SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? "年収") : "年収"} <span className="jobs-pill-caret">▾</span>
-            </button>
-
-            {/* 雇用形態 ピル */}
-            <button type="button" className={`jobs-pill${empType ? " active" : ""}`} style={{ flexShrink: 0 }}
-              onClick={(e) => {
-                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                if (openFilter === "empType") { setOpenFilter(null); return; }
-                setPillAnchor({ top: r.bottom + 6, left: r.left });
-                setOpenFilter("empType");
-              }}
-            >
-              {empType || "雇用形態"} <span className="jobs-pill-caret">▾</span>
-            </button>
-
-            {/* 地域 ピル */}
-            {availablePrefectures.length > 1 && (
+              {/* 都道府県 ピル */}
               <button type="button" className={`jobs-pill${prefecture ? " active" : ""}`} style={{ flexShrink: 0 }}
                 onClick={(e) => {
                   const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -1509,27 +1439,65 @@ export default function JobsClient({
                   setOpenFilter("prefecture");
                 }}
               >
-                {prefecture || "地域"} <span className="jobs-pill-caret">▾</span>
+                {prefecture || "都道府県"} <span className="jobs-pill-caret">▾</span>
               </button>
-            )}
 
-            {/* 面談受付中 トグルピル */}
-            <button type="button"
-              className={`jobs-pill-hiring${sort === "meeting" ? " active" : ""}`}
-              onClick={() => setSort(sort === "meeting" ? "updated" : "meeting")}
-            >
-              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: sort === "meeting" ? "#fff" : "var(--warm)", marginRight: 5, verticalAlign: "middle", flexShrink: 0 }} />
-              面談受付中
-            </button>
+              {/* 勤務形態 ピル */}
+              <button type="button" className={`jobs-pill${work_style ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "work_style") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("work_style");
+                }}
+              >
+                {work_style || "勤務形態"} <span className="jobs-pill-caret">▾</span>
+              </button>
 
-            {(hasFilter || q) && (
-              <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
-              >✕ リセット</button>
-            )}
+              {/* 年収 ピル */}
+              <button type="button" className={`jobs-pill${salary ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "salary") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("salary");
+                }}
+              >
+                {salary ? (SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? "年収") : "年収"} <span className="jobs-pill-caret">▾</span>
+              </button>
+
+              {/* 外資系 トグルピル */}
+              <button type="button"
+                className={`jobs-pill${companyStageSet.has("foreign") ? " active" : ""}`}
+                onClick={() => {
+                  const set = new Set(companyStage ? companyStage.split(",") : []);
+                  if (set.has("foreign")) set.delete("foreign"); else set.add("foreign");
+                  setCompanyStage(Array.from(set).join(","));
+                }}
+                style={{ flexShrink: 0 }}
+              >
+                🌐 外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 10, marginLeft: 3 }}>✕</span>}
+              </button>
+
+              {/* 面談受付中 トグルピル */}
+              <button type="button"
+                className={`jobs-pill-hiring${sort === "meeting" ? " active" : ""}`}
+                onClick={() => setSort(sort === "meeting" ? "updated" : "meeting")}
+                style={{ flexShrink: 0 }}
+              >
+                <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: sort === "meeting" ? "#fff" : "var(--warm)", marginRight: 5, verticalAlign: "middle", flexShrink: 0 }} />
+                面談受付中
+              </button>
+
+              {(hasFilter || q) && (
+                <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
+                  style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
+                >✕ リセット</button>
+              )}
+            </div>
           </div>
 
-          {/* ── 行3: 並び替えバー（企業ページの GridSortBar と同構造） ── */}
+          {/* ── 行2: 並び替えバー（企業ページの GridSortBar と同構造） ── */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
             background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
