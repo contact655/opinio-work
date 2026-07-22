@@ -605,7 +605,7 @@ function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; sa
 }
 
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, salaryMax, empType, prefecture, bizModel: _bizModel,
+  parentRoles, category, workStyle: _workStyle, salary, salaryMax, empType: _empType, prefecture, bizModel: _bizModel,
   companyStage, onCompanyStageChange: _onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
   availablePrefectures, setParam, hasFilter, q, onReset,
   industries: _industries, industryId: _industryId, roleCounts,
@@ -626,10 +626,8 @@ function SidebarFilters({
   toggleStage: (value: string) => void;
 }) {
   // ③ アコーディオン: デフォルトで年収以外は折りたたむ（年収はデフォルト展開）
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["empType", "prefecture"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
-  const workStyleSet = useMemo(() => new Set(workStyle ? workStyle.split(",") : []), [workStyle]);
-  const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
   const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
   function toggleSection(key: string) {
     setCollapsed(prev => {
@@ -723,27 +721,6 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* 勤務形態 — アコーディオン（デフォルト展開）*/}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="勤務形態" sectionKey="workStyle" hasActive={!!workStyle} />
-        {!collapsed.has("workStyle") && (
-          <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {[{ value: "フルリモート", label: "🏠 フルリモート" }, { value: "ハイブリッド", label: "🔀 ハイブリッド" }, { value: "出社", label: "🏢 出社" }].map((opt) => {
-              const isActive = workStyleSet.has(opt.value);
-              return (
-                <button key={opt.value} type="button" onClick={() => toggleParamFn("work_style", opt.value, workStyle)}
-                  style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--success)" : "transparent"}`, background: isActive ? "var(--success-soft)" : "transparent", color: isActive ? "var(--success)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  {isActive ? "✓ " : ""}{opt.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* 企業ステージ（複数選択対応） */}
       <div style={{ borderBottom: "1px solid var(--line-soft)", padding: "10px 12px" }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: companyStageSet.size > 0 ? "var(--royal)" : "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 5 }}>
@@ -767,27 +744,6 @@ function SidebarFilters({
             );
           })}
         </div>
-      </div>
-
-      {/* 雇用形態（企業ステージの下・複数選択対応） */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="雇用形態" sectionKey="empType" hasActive={empTypeSet.size > 0} />
-        {!collapsed.has("empType") && (
-          <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {[{ value: "正社員", label: "正社員" }, { value: "業務委託", label: "業務委託" }, { value: "副業", label: "副業・複業" }].map((opt) => {
-              const isActive = empTypeSet.has(opt.value);
-              return (
-                <button key={opt.value} type="button" onClick={() => toggleParamFn("emp_type", opt.value, empType)}
-                  style={{ padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? "var(--royal)" : "transparent"}`, background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s" }}
-                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  {isActive ? "✓ " : ""}{opt.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 地域 */}
@@ -1446,6 +1402,20 @@ export default function JobsClient({
                 }}
               >
                 {category ? (parentRoles.find(r => r.id === category)?.name ?? "職種") : "職種"} <span className="jobs-pill-caret">▾</span>
+              </button>
+
+              {/* フェーズ ピル */}
+              <button type="button"
+                className={`jobs-pill${companyStageSet.has("listed") || companyStageSet.has("unicorn") || companyStageSet.has("startup") ? " active" : ""}`}
+                style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "phase") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("phase");
+                }}
+              >
+                {companyStageSet.has("listed") ? "上場" : companyStageSet.has("unicorn") ? "ユニコーン" : companyStageSet.has("startup") ? "スタートアップ" : "フェーズ"} <span className="jobs-pill-caret">▾</span>
               </button>
 
               {/* 都道府県 ピル */}
@@ -2295,6 +2265,25 @@ export default function JobsClient({
                 <button key={r.id} className={`jobs-pill-item${category === r.id ? " selected" : ""}`}
                   onClick={() => { setParam("category", r.id); setOpenFilter(null); }}
                 >{r.name}</button>
+              ))}
+            </>
+          )}
+          {openFilter === "phase" && (
+            <>
+              <button className={`jobs-pill-item${!companyStageSet.has("listed") && !companyStageSet.has("unicorn") && !companyStageSet.has("startup") ? " selected" : ""}`}
+                onClick={() => { setCompanyStage(""); setOpenFilter(null); }}>すべて</button>
+              {([
+                { key: "listed",  label: "上場" },
+                { key: "unicorn", label: "🦄 ユニコーン" },
+                { key: "startup", label: "スタートアップ" },
+              ] as { key: string; label: string }[]).map(({ key, label }) => (
+                <button key={key} className={`jobs-pill-item${companyStageSet.has(key) ? " selected" : ""}`}
+                  onClick={() => {
+                    const set = new Set(companyStage ? companyStage.split(",") : []);
+                    if (set.has(key)) set.delete(key); else set.add(key);
+                    setCompanyStage(Array.from(set).join(","));
+                    setOpenFilter(null);
+                  }}>{label}</button>
               ))}
             </>
           )}
