@@ -8,11 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 
 function OnboardingInner() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextUrl = (() => {
-    const raw = searchParams.get("next") ?? "/companies";
-    return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/companies";
-  })();
+  const _searchParams = useSearchParams();
 
   const [companyName, setCompanyName] = useState("");
   const [saving, setSaving] = useState(false);

@@ -534,83 +534,13 @@ function JobListItem({
 
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
-const SALARY_STEPS = [0, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000];
-
-function SalaryRangeSlider({ salary, salaryMax, setParam }: { salary: string; salaryMax: string; setParam: (k: string, v: string) => void }) {
-  const urlMin = salary ? Math.max(0, SALARY_STEPS.indexOf(parseInt(salary, 10))) : 0;
-  const urlMax = salaryMax ? Math.max(1, SALARY_STEPS.indexOf(parseInt(salaryMax, 10))) : SALARY_STEPS.length - 1;
-  const [localMin, setLocalMin] = useState(urlMin < 0 ? 0 : urlMin);
-  const [localMax, setLocalMax] = useState(urlMax < 0 ? SALARY_STEPS.length - 1 : Math.max(1, urlMax));
-
-  // Sync from URL (e.g. reset)
-  useEffect(() => {
-    setLocalMin(urlMin < 0 ? 0 : urlMin);
-    setLocalMax(urlMax < 0 ? SALARY_STEPS.length - 1 : Math.max(1, urlMax));
-  }, [urlMin, urlMax]);
-
-  const pctMin = (localMin / (SALARY_STEPS.length - 1)) * 100;
-  const pctMax = (localMax / (SALARY_STEPS.length - 1)) * 100;
-
-  function commitMin(idx: number) {
-    setParam("salary", idx === 0 ? "" : String(SALARY_STEPS[idx]));
-  }
-  function commitMax(idx: number) {
-    setParam("salary_max", idx === SALARY_STEPS.length - 1 ? "" : String(SALARY_STEPS[idx]));
-  }
-
-  return (
-    <div>
-      <style>{`
-        .salary-slider { position:absolute; width:100%; height:4px; appearance:none; -webkit-appearance:none; background:transparent; pointer-events:none; top:50%; transform:translateY(-50%); }
-        .salary-slider::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--royal); box-shadow:0 1px 4px rgba(0,36,102,0.18); cursor:pointer; pointer-events:all; }
-        .salary-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--royal); box-shadow:0 1px 4px rgba(0,36,102,0.18); cursor:pointer; pointer-events:all; }
-      `}</style>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: localMin > 0 ? "var(--royal)" : "var(--ink-mute)" }}>
-          {localMin === 0 ? "下限なし" : `${SALARY_STEPS[localMin]}万〜`}
-        </span>
-        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>〜</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: localMax < SALARY_STEPS.length - 1 ? "var(--royal)" : "var(--ink-mute)" }}>
-          {localMax === SALARY_STEPS.length - 1 ? "上限なし" : `〜${SALARY_STEPS[localMax]}万`}
-        </span>
-      </div>
-      <div style={{ position: "relative", height: 28, marginBottom: 6 }}>
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", width: "100%", height: 4, borderRadius: 2, background: "var(--line)" }} />
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: `${pctMin}%`, width: `${pctMax - pctMin}%`, height: 4, borderRadius: 2, background: "var(--royal)" }} />
-        {/* Min thumb — update local state on drag, commit on release */}
-        <input type="range" className="salary-slider" min={0} max={SALARY_STEPS.length - 1} value={localMin}
-          onChange={(e) => {
-            const idx = parseInt(e.target.value, 10);
-            if (idx < localMax) setLocalMin(idx);
-          }}
-          onMouseUp={() => commitMin(localMin)}
-          onTouchEnd={() => commitMin(localMin)}
-        />
-        {/* Max thumb */}
-        <input type="range" className="salary-slider" min={0} max={SALARY_STEPS.length - 1} value={localMax}
-          onChange={(e) => {
-            const idx = parseInt(e.target.value, 10);
-            if (idx > localMin) setLocalMax(idx);
-          }}
-          onMouseUp={() => commitMax(localMax)}
-          onTouchEnd={() => commitMax(localMax)}
-        />
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--ink-mute)" }}>
-        {SALARY_STEPS.filter((_, i) => i % 2 === 0).map((v) => (
-          <span key={v}>{v === 0 ? "なし" : v === 2000 ? "2000+" : `${v}`}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function SidebarFilters({
-  parentRoles, category, workStyle: _workStyle, salary, salaryMax, empType: _empType, prefecture, bizModel: _bizModel,
+  parentRoles, category, workStyle: _workStyle, salary: _salary, salaryMax: _salaryMax, empType: _empType, prefecture, bizModel: _bizModel,
   companyStage, onCompanyStageChange: _onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
   availablePrefectures, setParam, hasFilter, q, onReset,
   industries: _industries, industryId: _industryId, roleCounts,
-  toggleParam: toggleParamFn, toggleStage,
+  toggleParam: toggleParamFn, toggleStage: _toggleStage,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
@@ -629,7 +559,7 @@ function SidebarFilters({
   // ③ アコーディオン: デフォルトで年収以外は折りたたむ（年収はデフォルト展開）
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
-  const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
+  const _companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]); void _companyStageSet;
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
