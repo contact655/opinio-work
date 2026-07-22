@@ -1420,10 +1420,9 @@ function SidebarFilters({
         </div>
       )}
 
-      {/* 職種 — アコーディオン（デフォルト展開）*/}
+      {/* 職種 — 常時展開（ヘッダーなし）*/}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="職種" sectionKey="roles" hasActive={!!category} />
-        {!collapsed.has("roles") && (() => {
+        {(() => {
           const { business, tech } = getVisibleRoles(parentRoles);
           const renderRoleBtn = (role: { id: string; name: string }) => {
             const isActive = categorySet.has(role.id);
@@ -1687,7 +1686,7 @@ export default function JobsClient({
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
   const workStyleSet = useMemo(() => new Set(work_style ? work_style.split(",") : []), [work_style]);
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
-  const sort = searchParams.get("sort") ?? "updated";
+  const [sort, setSort] = useState(searchParams.get("sort") ?? "updated");
   // Desktop sidebar detection
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
@@ -2252,7 +2251,7 @@ export default function JobsClient({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => setParam("sort", opt.value)}
+                    onClick={() => setSort(opt.value)}
                     style={{
                       height: 35, padding: "0 13px", borderRadius: 0, fontSize: 12.5,
                       fontWeight: active ? 700 : 500,
