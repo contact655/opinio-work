@@ -179,7 +179,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       </div>
 
 
-      <div className="max-w-[1440px] mx-auto px-4 pt-6 pb-8">
+      <div className="max-w-[1440px] mx-auto px-4 pt-0 pb-8">
         <div>
 
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}

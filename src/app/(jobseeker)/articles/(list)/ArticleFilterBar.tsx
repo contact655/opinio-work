@@ -118,12 +118,8 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
         </div>
 
-        {/* ── 行2: 件数 + 並び順 + 表示切替 ── */}
+        {/* ── 行2: 並び順 + 表示切替 + 件数 ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
-          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 12, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 600 }}>
-            <strong style={{ color: "var(--royal)", fontSize: 14, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
-          </span>
-          <div style={{ width: 1, height: 16, background: LINE, marginLeft: 6, marginRight: 6 }} />
           <span style={{ fontSize: 11, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
           {([
             { value: "latest",  label: "新着順" },
@@ -149,46 +145,52 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             );
           })}
 
-          {/* View toggle — 行2 右端（/companies GridSortBar と同位置） */}
-          <div style={{
-            display: "flex", gap: 2, marginLeft: "auto", flexShrink: 0,
-            background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
-            borderRadius: 9, padding: 3,
-          }}>
-            {([
-              { mode: "grid", label: "グリッド", icon: (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-              )},
-              { mode: "list", label: "リスト", icon: (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-              )},
-            ] as const).map(({ mode, label, icon }) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => updateParam("view", mode === "list" ? null : mode)}
-                title={label}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: 7, border: "none",
-                  background: currentView === mode ? "#fff" : "transparent",
-                  color: currentView === mode ? "var(--royal)" : INK_MUTE,
-                  cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 4,
-                  fontSize: 11, fontWeight: 600,
-                  boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                  transition: "all 0.12s",
-                }}
-              >
-                {icon}
-                {label}
-              </button>
-            ))}
+          {/* View toggle + 件数 — 行2 右端 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flexShrink: 0 }}>
+            <div style={{
+              display: "flex", gap: 2,
+              background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
+              borderRadius: 9, padding: 3,
+            }}>
+              {([
+                { mode: "grid", label: "グリッド", icon: (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                  </svg>
+                )},
+                { mode: "list", label: "リスト", icon: (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                  </svg>
+                )},
+              ] as const).map(({ mode, label, icon }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => updateParam("view", mode === "list" ? null : mode)}
+                  title={label}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: 7, border: "none",
+                    background: currentView === mode ? "#fff" : "transparent",
+                    color: currentView === mode ? "var(--royal)" : INK_MUTE,
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 4,
+                    fontSize: 11, fontWeight: 600,
+                    boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    transition: "all 0.12s",
+                  }}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div style={{ width: 1, height: 16, background: LINE }} />
+            <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
+              <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
+            </span>
           </div>
         </div>
 

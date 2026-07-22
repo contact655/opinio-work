@@ -555,7 +555,8 @@ export function PeopleListClient({ ambassadors }: Props) {
       </div>
 
       {/* ── 並び替えバー ── */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 24px 0" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 24px" }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
           background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
@@ -610,6 +611,7 @@ export function PeopleListClient({ ambassadors }: Props) {
             </span>
           </div>
         </div>
+      </div>
       </div>
 
       {/* ── コンテンツ ── */}
