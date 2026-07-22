@@ -348,7 +348,7 @@ export function JobseekerHeader() {
                       <Link
                         href="/biz/auth"
                         onClick={() => setDropdownOpen(false)}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal-50)"; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
                       >
