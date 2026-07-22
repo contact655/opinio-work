@@ -1318,7 +1318,7 @@ export default function JobsClient({
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 md:px-12">
 
           {/* ── 行1: 検索バー + フィルターピル（企業ページと同一行） ── */}
-          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 0 2px" }}>
 
             {/* 検索インプット */}
             <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
@@ -1945,8 +1945,8 @@ export default function JobsClient({
         /* ── フィルターピル ── */
         .jobs-pill {
           display: inline-flex; align-items: center; gap: 4px;
-          height: 34px; padding: 0 13px;
-          border-radius: 999px; font-size: 12.5px; font-weight: 500;
+          padding: 7px 14px;
+          border-radius: 999px; font-size: 13px; font-weight: 500;
           border: 1.5px solid #e2e8f0; background: #fff; color: var(--ink-soft);
           cursor: pointer; white-space: nowrap; font-family: inherit;
           transition: border-color 0.12s, background 0.12s, color 0.12s;
@@ -1987,8 +1987,8 @@ export default function JobsClient({
         /* 面談受付中トグルピル */
         .jobs-pill-hiring {
           display: inline-flex; align-items: center;
-          height: 34px; padding: 0 13px;
-          border-radius: 999px; font-size: 12.5px; font-weight: 500;
+          padding: 7px 14px;
+          border-radius: 999px; font-size: 13px; font-weight: 500;
           border: 1.5px solid #e2e8f0; background: #fff; color: var(--ink-soft);
           cursor: pointer; white-space: nowrap; font-family: inherit;
           transition: border-color 0.12s, background 0.12s, color 0.12s;
