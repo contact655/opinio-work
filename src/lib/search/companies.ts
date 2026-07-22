@@ -112,7 +112,7 @@ export async function searchCompanies(
         }
       }
     }
-    if (params.salaryMin)  q = q.gte("avg_salary", params.salaryMin * 10000);
+    // salaryMin は計算値（求人ごとの中央値平均）でアプリ側フィルタリングするため DB フィルターは不要
     if (params.industry) {
       const groupValues = resolveIndustryFilter(params.industry);
       if (groupValues) {
@@ -164,12 +164,14 @@ export async function searchCompanies(
   // #2: 求人タイトルマップ（最大2件/企業）
   const jobTitlesMap: Record<string, string[]> = {};
 
+  // 求人ごとの平均中央値（万円）を企業単位で集計
+  const calcAvgSalaryMap: Record<string, number> = {};
+
   if (companyIds.length > 0) {
     const [activeJobsResult, articlesResult] = await Promise.all([
-      // #2: title カラムも取得
       supabase
         .from("ow_jobs")
-        .select("company_id, title")
+        .select("company_id, title, salary_min, salary_max")
         .in("company_id", companyIds)
         .in("status", ["published", "active"]),
       supabase
@@ -179,7 +181,10 @@ export async function searchCompanies(
         .eq("is_published", true),
     ]);
 
-    (activeJobsResult.data ?? []).forEach((j: { company_id: string; title?: string }) => {
+    // 企業ごとに求人中央値のリストを集める
+    const salaryMediansMap: Record<string, number[]> = {};
+
+    (activeJobsResult.data ?? []).forEach((j: { company_id: string; title?: string; salary_min?: number | null; salary_max?: number | null }) => {
       hiringSet.add(j.company_id);
       jobCountMap[j.company_id] = (jobCountMap[j.company_id] || 0) + 1;
       // #2: 最大2件のタイトルを記録
@@ -189,7 +194,20 @@ export async function searchCompanies(
           jobTitlesMap[j.company_id].push(j.title);
         }
       }
+      // 中央値 = (min + max) / 2（両方ある場合のみ）
+      const mn = j.salary_min ?? 0;
+      const mx = j.salary_max ?? 0;
+      if (mn > 0 && mx > 0) {
+        if (!salaryMediansMap[j.company_id]) salaryMediansMap[j.company_id] = [];
+        salaryMediansMap[j.company_id].push((mn + mx) / 2);
+      }
     });
+
+    // 中央値リストの平均を計算（万円単位に丸める）
+    for (const [cid, medians] of Object.entries(salaryMediansMap)) {
+      const avg = medians.reduce((s, v) => s + v, 0) / medians.length;
+      calcAvgSalaryMap[cid] = Math.round(avg);
+    }
 
     (articlesResult.data ?? []).forEach((a: { company_id: string | null }) => {
       if (a.company_id) {
@@ -203,9 +221,15 @@ export async function searchCompanies(
     .filter((c) => {
       if (params.hiring && !hiringSet.has(c.id)) return false;
       if (params.salaryMin) {
-        const sal = (c as { avg_salary?: number | string | null }).avg_salary;
-        const salNum = typeof sal === "number" ? sal : typeof sal === "string" ? parseInt(sal.replace(/[^0-9]/g, ""), 10) : 0;
-        if (!salNum || salNum < params.salaryMin * 10000) return false;
+        // 計算値（万円）を優先、なければ手動設定の avg_salary にフォールバック
+        const calcSal = calcAvgSalaryMap[c.id] ?? null;
+        if (calcSal !== null) {
+          if (calcSal < params.salaryMin) return false;
+        } else {
+          const sal = (c as { avg_salary?: number | string | null }).avg_salary;
+          const salNum = typeof sal === "number" ? sal / 10000 : typeof sal === "string" ? parseInt(sal.replace(/[^0-9]/g, ""), 10) / 10000 : 0;
+          if (!salNum || salNum < params.salaryMin) return false;
+        }
       }
       return true;
     })
@@ -213,6 +237,7 @@ export async function searchCompanies(
       ...(c as CompanyForCarousel),
       job_count: jobCountMap[c.id] || 0,
       article_count: articleCountMap[c.id] || 0,
+      calc_avg_salary_man: calcAvgSalaryMap[c.id] ?? null,
       // #2 求人タイトル / #3 カルチャータグ
       top_job_titles: jobTitlesMap[c.id] || [],
       company_features: Array.isArray((c as CompanyForCarousel).company_features)
@@ -234,10 +259,14 @@ export async function searchCompanies(
     filteredCompanies = [...filteredCompanies].sort((a, b) => (b.job_count ?? 0) - (a.job_count ?? 0));
   } else if (params.sort === "salary") {
     const parseSalary = (c: CompanyForCarousel) => {
+      // 計算値（万円）を優先
+      if ((c as { calc_avg_salary_man?: number | null }).calc_avg_salary_man) {
+        return (c as { calc_avg_salary_man: number }).calc_avg_salary_man;
+      }
       const s = (c as { avg_salary?: string | number | null }).avg_salary;
       if (!s) return 0;
       const n = parseInt(String(s).replace(/[^0-9]/g, ""), 10);
-      return isNaN(n) ? 0 : n;
+      return isNaN(n) ? 0 : n / 10000;
     };
     filteredCompanies = [...filteredCompanies].sort((a, b) => parseSalary(b) - parseSalary(a));
   } else if (params.sort === "disclosure") {

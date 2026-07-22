@@ -42,6 +42,7 @@ export type CompanyForCarousel = {
   article_count?: number;       // OPINIO 取材記事数
   // 追加情報（カード充実化）
   avg_salary?: string | null;
+  calc_avg_salary_man?: number | null;  // 求人(salary_min+salary_max)/2 の平均（万円）
   founded_year?: number | null;
   fit_positives?: string[] | null;
   sort_order?: number | null;

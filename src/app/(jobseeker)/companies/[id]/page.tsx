@@ -424,15 +424,14 @@ function Hero({
 
         {/* Stats strip — full-width grid */}
         {(() => {
-          // 年収レンジを求人データから計算
+          // 求人ごとの中央値平均を計算
           const allJobItems = detail.jobs.flatMap(c => c.items);
-          const salaryMins = allJobItems.map(j => j.salaryMin).filter((v): v is number => v != null && v > 0);
-          const salaryMaxs = allJobItems.map(j => j.salaryMax).filter((v): v is number => v != null && v > 0);
-          const globalSalaryMin = salaryMins.length > 0 ? Math.min(...salaryMins) : null;
-          const globalSalaryMax = salaryMaxs.length > 0 ? Math.max(...salaryMaxs) : null;
-          const salaryRangeValue = globalSalaryMin && globalSalaryMax
-            ? `${globalSalaryMin}〜${globalSalaryMax}万円`
-            : globalSalaryMin ? `${globalSalaryMin}万円〜`
+          const jobMedians = allJobItems
+            .filter((j): j is typeof j & { salaryMin: number; salaryMax: number } =>
+              (j.salaryMin ?? 0) > 0 && (j.salaryMax ?? 0) > 0)
+            .map(j => (j.salaryMin + j.salaryMax) / 2);
+          const avgSalaryMan = jobMedians.length > 0
+            ? Math.round(jobMedians.reduce((s, v) => s + v, 0) / jobMedians.length)
             : null;
 
           const stats = (
@@ -444,10 +443,10 @@ function Hero({
                 color: "var(--royal)",
                 href: undefined as string | undefined,
               },
-              ...(salaryRangeValue ? [{
+              ...(avgSalaryMan ? [{
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
-                label: "想定年収",
-                value: salaryRangeValue,
+                label: "求人平均年収",
+                value: `${avgSalaryMan}万円`,
                 color: "var(--success)",
                 href: undefined as string | undefined,
               }] : []),
