@@ -1312,13 +1312,13 @@ export default function JobsClient({
           background: "#fff",
           borderBottom: "1px solid var(--line)",
           boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-          padding: "var(--space-2) 0",
+          padding: "12px 0 14px",
         }}
       >
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 10 }} className="px-5 md:px-12">
 
           {/* ── 行1: 検索バー + フィルターピル（企業ページと同一行） ── */}
-          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 0 2px" }}>
+          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
             {/* 検索インプット */}
             <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
@@ -1344,7 +1344,7 @@ export default function JobsClient({
                   style={{
                     flex: 1, border: "none", outline: "none",
                     fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                    padding: "9px 0", minWidth: 0,
+                    padding: "11px 0", minWidth: 0,
                   }}
                 />
                 {q && (
