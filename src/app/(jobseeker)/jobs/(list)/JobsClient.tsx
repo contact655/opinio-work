@@ -1245,9 +1245,9 @@ export default function JobsClient({
       const score = (j: Job) => {
         let s = 0;
         if (hasSalaryData(j.salary_min, j.salary_max)) s += 3;
-        if (j.catch_copy) s += 2;
-        if (j.description && j.description.length > 100) s += 1;
-        if (j.requirements) s += 1;
+        if (j.highlight) s += 2;
+        if (j.overview && j.overview.length > 100) s += 1;
+        if (j.required_skills && j.required_skills.length > 0) s += 1;
         return s;
       };
       list = [...list].sort((a, b) => score(b) - score(a));
