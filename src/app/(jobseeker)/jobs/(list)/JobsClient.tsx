@@ -1282,7 +1282,7 @@ export default function JobsClient({
                   setOpenFilter("phase");
                 }}
               >
-                {companyStageSet.has("listed") ? "上場" : companyStageSet.has("unicorn") ? "ユニコーン" : companyStageSet.has("startup") ? "スタートアップ" : "フェーズ"} <span className="jobs-pill-caret">▾</span>
+                {companyStageSet.has("listed") ? "上場" : companyStageSet.has("unicorn") ? "ユニコーン" : companyStageSet.has("startup") ? "スタートアップ" : "フェーズ"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 業種 ピル */}
@@ -1294,7 +1294,7 @@ export default function JobsClient({
                   setOpenFilter("industry");
                 }}
               >
-                {INDUSTRY_GROUPS.find((g) => g.key === industry)?.label ?? "業種"} <span className="jobs-pill-caret">▾</span>
+                {INDUSTRY_GROUPS.find((g) => g.key === industry)?.label ?? "業種"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 都道府県 ピル */}
@@ -1306,7 +1306,7 @@ export default function JobsClient({
                   setOpenFilter("prefecture");
                 }}
               >
-                {prefecture || "都道府県"} <span className="jobs-pill-caret">▾</span>
+                {prefecture || "都道府県"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 勤務形態 ピル */}
@@ -1318,7 +1318,7 @@ export default function JobsClient({
                   setOpenFilter("work_style");
                 }}
               >
-                {work_style || "勤務形態"} <span className="jobs-pill-caret">▾</span>
+                {work_style || "勤務形態"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 年収 ピル */}
@@ -1330,7 +1330,7 @@ export default function JobsClient({
                   setOpenFilter("salary");
                 }}
               >
-                {salary ? (SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? "年収") : "年収"} <span className="jobs-pill-caret">▾</span>
+                {salary ? (SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? "年収") : "年収"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 外資系 トグルピル */}
@@ -1850,7 +1850,6 @@ export default function JobsClient({
           border-color: var(--royal); background: var(--royal-50);
           color: var(--royal); font-weight: 700;
         }
-        .jobs-pill-caret { font-size: 9px; opacity: 0.6; }
         .jobs-pill-menu {
           position: absolute; top: calc(100% + 6px); left: 0;
           background: #fff; border: 1.5px solid #e2e8f0; border-radius: 12px;

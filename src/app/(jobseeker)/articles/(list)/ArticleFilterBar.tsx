@@ -97,10 +97,10 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 onClick={() => updateParam("type", value === "all" ? null : value)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "6px 14px", height: 34, borderRadius: 100, fontSize: 12.5, fontWeight: 500,
+                  padding: "7px 14px", borderRadius: 999, fontSize: 13, fontWeight: 500,
                   border: active ? "1.5px solid var(--royal)" : `1.5px solid ${LINE}`,
-                  background: active ? "var(--royal)" : "#fff",
-                  color: active ? "#fff" : INK_SOFT,
+                  background: active ? "var(--royal-50)" : "#fff",
+                  color: active ? "var(--royal)" : INK_SOFT,
                   cursor: "pointer", whiteSpace: "nowrap",
                   transition: "all 0.15s", flexShrink: 0,
                 }}
