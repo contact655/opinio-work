@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getVisibleRoles } from "@/lib/constants/jobTypes";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
+import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -1292,7 +1293,7 @@ export default function JobsClient({
                   style={{
                     flex: 1, border: "none", outline: "none",
                     fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                    padding: "11px 0", minWidth: 0,
+                    padding: "9px 0", minWidth: 0,
                   }}
                 />
                 {q && (
@@ -1352,6 +1353,18 @@ export default function JobsClient({
                 }}
               >
                 {companyStageSet.has("listed") ? "上場" : companyStageSet.has("unicorn") ? "ユニコーン" : companyStageSet.has("startup") ? "スタートアップ" : "フェーズ"} <span className="jobs-pill-caret">▾</span>
+              </button>
+
+              {/* 業種 ピル */}
+              <button type="button" className={`jobs-pill${industry ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "industry") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("industry");
+                }}
+              >
+                {INDUSTRY_GROUPS.find((g) => g.key === industry)?.label ?? "業種"} <span className="jobs-pill-caret">▾</span>
               </button>
 
               {/* 都道府県 ピル */}
@@ -2235,6 +2248,16 @@ export default function JobsClient({
                     setCompanyStage(Array.from(set).join(","));
                     setOpenFilter(null);
                   }}>{label}</button>
+              ))}
+            </>
+          )}
+          {openFilter === "industry" && (
+            <>
+              <button className={`jobs-pill-item${!industry ? " selected" : ""}`} onClick={() => { setParam("industry", ""); setOpenFilter(null); }}>すべて</button>
+              {INDUSTRY_GROUPS.map((g) => (
+                <button key={g.key} className={`jobs-pill-item${industry === g.key ? " selected" : ""}`}
+                  onClick={() => { setParam("industry", industry === g.key ? "" : g.key); setOpenFilter(null); }}
+                >{g.label}</button>
               ))}
             </>
           )}
