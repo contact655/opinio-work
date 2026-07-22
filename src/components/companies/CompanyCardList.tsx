@@ -369,16 +369,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                     募集中 {company.job_count}件
                   </span>
                 )}
-                {(company as { calc_avg_salary_man?: number | null }).calc_avg_salary_man && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
-                    background: "var(--success-soft)", color: "var(--success)",
-                    whiteSpace: "nowrap",
-                  }}>
-                    ¥ 平均{(company as { calc_avg_salary_man: number }).calc_avg_salary_man}万円
-                  </span>
-                )}
               </div>
             )}
 
@@ -491,8 +481,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
-          {/* リモート＋募集中＋平均年収（同行） */}
-          {(remoteText || company.job_count > 0 || (company as { calc_avg_salary_man?: number | null }).calc_avg_salary_man) && (
+          {/* リモート＋募集中 */}
+          {(remoteText || company.job_count > 0) && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
               {remoteText && (
                 <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{remoteText}</span>
@@ -508,15 +498,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                     <path d="M16 3h-8l-2 4h12l-2-4z"/>
                   </svg>
                   募集中 {company.job_count}件
-                </span>
-              )}
-              {(company as { calc_avg_salary_man?: number | null }).calc_avg_salary_man && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                  fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
-                  background: "var(--success-soft)", color: "var(--success)", whiteSpace: "nowrap",
-                }}>
-                  ¥ 平均{(company as { calc_avg_salary_man: number }).calc_avg_salary_man}万円
                 </span>
               )}
             </div>
