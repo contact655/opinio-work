@@ -11,9 +11,8 @@ import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getVisibleRoles } from "@/lib/constants/jobTypes";
-import { BUSINESS_MODELS, getBusinessModelLabel } from "@/lib/constants/businessModels";
+import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
-import { isSalesJob, getSalesSegmentLabel } from "@/lib/constants/salesFields";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -33,13 +32,6 @@ const PER_PAGE = 15;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// freshLabel is now only used as fallback; badge rendering is inline
-function freshBadge(days: number): { label: string; bg: string; color: string; border: string } | null {
-  if (days === 0) return { label: "🔥 今日", bg: "#FEE2E2", color: "#DC2626", border: "#FECACA" };
-  if (days <= 3) return { label: "NEW", bg: "var(--success)", color: "#fff", border: "transparent" };
-  if (days <= 7) return { label: "今週", bg: "var(--royal-50)", color: "var(--royal)", border: "var(--royal-100)" };
-  return null;
-}
 
 function formatSalary(min: number | null, max: number | null): string {
   if (!min && !max) return "給与非公開";
@@ -109,31 +101,6 @@ const JOB_TYPE_TO_ROLE_NAME: Record<string, string> = {
   "事業開発・BizDev":      "事業開発",
 };
 
-// ─── Dept color map ───────────────────────────────────────────────────────────
-
-const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  "エンジニア":         { bg: "#EFF6FF", color: "#1D4ED8", border: "#BFDBFE" },
-  "デザイン":           { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
-  "PdM / PM":           { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
-  "プロダクト":         { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
-  "営業":               { bg: "#ECFDF5", color: "#15803D", border: "#A7F3D0" },
-  "カスタマーサクセス": { bg: "#ECFDF5", color: "#15803D", border: "#A7F3D0" },
-  "マーケティング":     { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
-  "事業開発":           { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
-  "BizDev":             { bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
-  "コーポレート":       { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
-  "経理":               { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
-  "法務":               { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
-  "人事":               { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" },
-  "経営":               { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
-};
-
-function getDeptStyle(dept: string) {
-  for (const [key, style] of Object.entries(DEPT_COLORS)) {
-    if (dept.includes(key)) return style;
-  }
-  return { bg: "#F8FAFC", color: "#64748B", border: "#E2E8F0" };
-}
 
 
 // ─── Role color map for colorStyle chips ─────────────────────────────────────
