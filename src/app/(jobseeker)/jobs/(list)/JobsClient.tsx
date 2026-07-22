@@ -1368,13 +1368,13 @@ export default function JobsClient({
             <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
               <div role="search" style={{
                 display: "flex", alignItems: "center", gap: 8,
-                background: "#fff", border: "2px solid #e6e9ef", borderRadius: 999,
-                padding: "0 16px", transition: "border-color 0.15s, box-shadow 0.15s",
+                background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
+                padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
               }}
                 onFocus={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
                 onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLDivElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; } }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
                 <input
@@ -1387,8 +1387,8 @@ export default function JobsClient({
                   onKeyDown={(e) => { if (e.key === "Escape") setShowSuggest(false); }}
                   style={{
                     flex: 1, border: "none", outline: "none",
-                    fontSize: 14.5, color: "var(--ink)", background: "transparent",
-                    padding: "12px 0", minWidth: 0,
+                    fontSize: 13.5, color: "var(--ink)", background: "transparent",
+                    padding: "9px 0", minWidth: 0,
                   }}
                 />
                 {q && (
