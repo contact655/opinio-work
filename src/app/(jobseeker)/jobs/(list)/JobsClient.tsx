@@ -1700,12 +1700,21 @@ export default function JobsClient({
   const [q, setQ] = useState("");
   const [showSuggest, setShowSuggest] = useState(false);
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const [pillAnchor, setPillAnchor] = useState<{ top: number; left: number } | null>(null);
+  const filterPillsRef = useRef<HTMLDivElement>(null);
 
-  // サジェスト外クリックで閉じる
+  // サジェスト / フィルターピル外クリックで閉じる
   useEffect(() => {
     function onOutside(e: MouseEvent) {
       if (searchBarRef.current && !searchBarRef.current.contains(e.target as Node)) {
         setShowSuggest(false);
+      }
+      const target = e.target as Node;
+      const inFilterBar = filterPillsRef.current?.contains(target);
+      const inDropdown = (target as HTMLElement)?.closest?.(".jobs-pill-menu");
+      if (!inFilterBar && !inDropdown) {
+        setOpenFilter(null);
       }
     }
     document.addEventListener("mousedown", onOutside);
@@ -2167,14 +2176,14 @@ export default function JobsClient({
           </div>
 
           {/* ── 行2: フィルターピル + 区切り + 並び替え pills + 件数 ── */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
-            {/* モバイル専用フィルターボタン（デスクトップはサイドバーがあるため非表示） */}
+          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
+            {/* モバイル専用フィルターボタン */}
             <button
               type="button"
               onClick={() => setFilterSheetOpen(true)}
               className="jobs-mobile-filter-btn"
               style={{
-                display: "none", // CSS media queryで表示制御
+                display: "none",
                 height: 36, padding: "0 14px", borderRadius: 999, fontSize: 12.5,
                 fontWeight: hasFilter ? 700 : 500,
                 border: `1.5px solid ${hasFilter ? "var(--royal)" : "#e2e8f0"}`,
@@ -2193,58 +2202,92 @@ export default function JobsClient({
                 </span>
               )}
             </button>
-            {/* 職種 select — デスクトップではサイドバーに同機能あるため非表示 */}
-            <select value={category} onChange={(e) => setParam("category", e.target.value)} style={filterSelectStyle(!!category)} aria-label="職種で絞り込み" className="jobs-filterbar-sidebar-dup">
-              <option value="">職種</option>
-              {parentRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
 
-            {/* 勤務形態 select */}
-            <select value={work_style} onChange={(e) => setParam("work_style", e.target.value)} style={filterSelectStyle(!!work_style)} aria-label="勤務形態で絞り込み" className="jobs-filterbar-sidebar-dup">
-              <option value="">勤務形態</option>
-              <option value="フルリモート">フルリモート</option>
-              <option value="ハイブリッド">ハイブリッド</option>
-              <option value="出社">出社</option>
-            </select>
+            {/* 職種 ピル */}
+            <button type="button" className={`jobs-pill${category ? " active" : ""}`} style={{ flexShrink: 0 }}
+              onClick={(e) => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                if (openFilter === "category") { setOpenFilter(null); return; }
+                setPillAnchor({ top: r.bottom + 6, left: r.left });
+                setOpenFilter("category");
+              }}
+            >
+              {category ? (parentRoles.find(r => r.id === category)?.name ?? "職種") : "職種"} <span className="jobs-pill-caret">▾</span>
+            </button>
 
-            {/* 年収 select */}
-            <select value={salary} onChange={(e) => setParam("salary", e.target.value)} style={filterSelectStyle(!!salary)} aria-label="年収で絞り込み" className="jobs-filterbar-sidebar-dup">
-              <option value="">年収</option>
-              {SALARY_PILL_TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+            {/* 勤務形態 ピル */}
+            <button type="button" className={`jobs-pill${work_style ? " active" : ""}`} style={{ flexShrink: 0 }}
+              onClick={(e) => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                if (openFilter === "work_style") { setOpenFilter(null); return; }
+                setPillAnchor({ top: r.bottom + 6, left: r.left });
+                setOpenFilter("work_style");
+              }}
+            >
+              {work_style || "勤務形態"} <span className="jobs-pill-caret">▾</span>
+            </button>
 
-            {/* 雇用形態 select */}
-            <select value={empType} onChange={(e) => setParam("emp_type", e.target.value)} style={filterSelectStyle(!!empType)} aria-label="雇用形態で絞り込み" className="jobs-filterbar-sidebar-dup">
-              <option value="">雇用形態</option>
-              <option value="正社員">正社員</option>
-              <option value="業務委託">業務委託</option>
-              <option value="副業">副業・複業</option>
-            </select>
+            {/* 年収 ピル */}
+            <button type="button" className={`jobs-pill${salary ? " active" : ""}`} style={{ flexShrink: 0 }}
+              onClick={(e) => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                if (openFilter === "salary") { setOpenFilter(null); return; }
+                setPillAnchor({ top: r.bottom + 6, left: r.left });
+                setOpenFilter("salary");
+              }}
+            >
+              {salary ? (SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? "年収") : "年収"} <span className="jobs-pill-caret">▾</span>
+            </button>
 
-            {/* 地域 select */}
+            {/* 雇用形態 ピル */}
+            <button type="button" className={`jobs-pill${empType ? " active" : ""}`} style={{ flexShrink: 0 }}
+              onClick={(e) => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                if (openFilter === "empType") { setOpenFilter(null); return; }
+                setPillAnchor({ top: r.bottom + 6, left: r.left });
+                setOpenFilter("empType");
+              }}
+            >
+              {empType || "雇用形態"} <span className="jobs-pill-caret">▾</span>
+            </button>
+
+            {/* 地域 ピル */}
             {availablePrefectures.length > 1 && (
-              <select value={prefecture} onChange={(e) => setParam("prefecture", e.target.value)} style={filterSelectStyle(!!prefecture)} aria-label="地域で絞り込み" className="jobs-filterbar-sidebar-dup">
-                <option value="">地域</option>
-                {availablePrefectures.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <button type="button" className={`jobs-pill${prefecture ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "prefecture") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("prefecture");
+                }}
+              >
+                {prefecture || "地域"} <span className="jobs-pill-caret">▾</span>
+              </button>
             )}
+
+            {/* 面談受付中 トグルピル */}
+            <button type="button"
+              className={`jobs-pill-hiring${sort === "meeting" ? " active" : ""}`}
+              onClick={() => setSort(sort === "meeting" ? "updated" : "meeting")}
+            >
+              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: sort === "meeting" ? "#fff" : "var(--warm)", marginRight: 5, verticalAlign: "middle", flexShrink: 0 }} />
+              面談受付中
+            </button>
 
             {(hasFilter || q) && (
               <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                className="jobs-filterbar-sidebar-dup"
                 style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
               >✕ リセット</button>
             )}
 
-            {/* 縦区切り — デスクトップでは不要（左側が全て非表示になるため） */}
-            <div className="jobs-filterbar-sidebar-dup" style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
+            {/* 縦区切り */}
+            <div style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
 
-            {/* 並び替え — セグメントコントロール */}
+            {/* 並び替え — 新着順 / 年収順 */}
             <div style={{ display: "flex", border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#fff" }}>
               {([
                 { value: "updated", label: "新着順" },
                 { value: "salary",  label: "年収順" },
-                { value: "meeting", label: "面談受付中" },
               ] as const).map((opt, i) => {
                 const active = sort === opt.value;
                 return (
@@ -2697,6 +2740,51 @@ export default function JobsClient({
 
 
       <style>{`
+        /* ── フィルターピル ── */
+        .jobs-pill {
+          display: inline-flex; align-items: center; gap: 4px;
+          height: 34px; padding: 0 13px;
+          border-radius: 999px; font-size: 12.5px; font-weight: 500;
+          border: 1.5px solid #e2e8f0; background: #fff; color: var(--ink-soft);
+          cursor: pointer; white-space: nowrap; font-family: inherit;
+          transition: border-color 0.12s, background 0.12s, color 0.12s;
+        }
+        .jobs-pill:hover { border-color: var(--royal); color: var(--royal); }
+        .jobs-pill.active {
+          border-color: var(--royal); background: var(--royal-50);
+          color: var(--royal); font-weight: 700;
+        }
+        .jobs-pill-caret { font-size: 9px; opacity: 0.6; }
+        .jobs-pill-menu {
+          position: absolute; top: calc(100% + 6px); left: 0;
+          background: #fff; border: 1.5px solid #e2e8f0; border-radius: 12px;
+          box-shadow: 0 8px 28px rgba(0,35,102,0.13);
+          z-index: 120; min-width: 160px; max-height: 300px; overflow-y: auto;
+          padding: 6px;
+        }
+        .jobs-pill-item {
+          display: block; width: 100%; text-align: left;
+          padding: 8px 12px; border-radius: 8px; border: none;
+          background: none; font-size: 13px; color: var(--ink); cursor: pointer;
+          font-family: inherit; white-space: nowrap;
+          transition: background 0.1s;
+        }
+        .jobs-pill-item:hover { background: var(--royal-50); }
+        .jobs-pill-item.selected { color: var(--royal); font-weight: 700; background: var(--royal-50); }
+        /* 面談受付中トグルピル */
+        .jobs-pill-hiring {
+          display: inline-flex; align-items: center;
+          height: 34px; padding: 0 13px;
+          border-radius: 999px; font-size: 12.5px; font-weight: 500;
+          border: 1.5px solid #e2e8f0; background: #fff; color: var(--ink-soft);
+          cursor: pointer; white-space: nowrap; font-family: inherit;
+          transition: border-color 0.12s, background 0.12s, color 0.12s;
+        }
+        .jobs-pill-hiring:hover { border-color: var(--warm); color: var(--warm); }
+        .jobs-pill-hiring.active {
+          border-color: var(--warm); background: var(--warm); color: #fff; font-weight: 700;
+        }
+
         /* ── Job card hover ── */
         .job-card-link:hover {
           box-shadow: 0 12px 36px rgba(0,35,102,0.18), 0 2px 8px rgba(0,35,102,0.08) !important;
@@ -2782,8 +2870,6 @@ export default function JobsClient({
             align-items: start;
           }
           .jobs-sidebar { display: block !important; }
-          /* サイドバーと重複するフィルターをトップバーから隠す */
-          .jobs-filterbar-sidebar-dup { display: none !important; }
           /* デスクトップでは検索バーの勤務地selectをサイドバーで代替 */
           .jobs-location-select, .jobs-location-separator { display: none !important; }
         }
@@ -2953,6 +3039,60 @@ export default function JobsClient({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* フィルターピル ドロップダウン (position: fixed でoverflow clipを回避) */}
+      {openFilter && pillAnchor && (
+        <div className="jobs-pill-menu" style={{ position: "fixed", top: pillAnchor.top, left: pillAnchor.left, zIndex: 1200 }}>
+          {openFilter === "category" && (
+            <>
+              <button className={`jobs-pill-item${!category ? " selected" : ""}`} onClick={() => { setParam("category", ""); setOpenFilter(null); }}>すべて</button>
+              {parentRoles.map((r) => (
+                <button key={r.id} className={`jobs-pill-item${category === r.id ? " selected" : ""}`}
+                  onClick={() => { setParam("category", r.id); setOpenFilter(null); }}
+                >{r.name}</button>
+              ))}
+            </>
+          )}
+          {openFilter === "work_style" && (
+            <>
+              {(["", "フルリモート", "ハイブリッド", "出社"] as const).map((v) => (
+                <button key={v} className={`jobs-pill-item${work_style === v ? " selected" : ""}`}
+                  onClick={() => { setParam("work_style", v); setOpenFilter(null); }}
+                >{v || "すべて"}</button>
+              ))}
+            </>
+          )}
+          {openFilter === "salary" && (
+            <>
+              <button className={`jobs-pill-item${!salary ? " selected" : ""}`} onClick={() => { setParam("salary", ""); setOpenFilter(null); }}>すべて</button>
+              {SALARY_PILL_TIERS.map((t) => (
+                <button key={t.value} className={`jobs-pill-item${salary === t.value ? " selected" : ""}`}
+                  onClick={() => { setParam("salary", t.value); setOpenFilter(null); }}
+                >{t.label}</button>
+              ))}
+            </>
+          )}
+          {openFilter === "empType" && (
+            <>
+              {(["", "正社員", "業務委託", "副業"] as const).map((v) => (
+                <button key={v} className={`jobs-pill-item${empType === v ? " selected" : ""}`}
+                  onClick={() => { setParam("emp_type", v); setOpenFilter(null); }}
+                >{v || "すべて"}</button>
+              ))}
+            </>
+          )}
+          {openFilter === "prefecture" && (
+            <>
+              <button className={`jobs-pill-item${!prefecture ? " selected" : ""}`} onClick={() => { setParam("prefecture", ""); setOpenFilter(null); }}>すべて</button>
+              {availablePrefectures.map((p) => (
+                <button key={p} className={`jobs-pill-item${prefecture === p ? " selected" : ""}`}
+                  onClick={() => { setParam("prefecture", p); setOpenFilter(null); }}
+                >{p}</button>
+              ))}
+            </>
+          )}
         </div>
       )}
     </>
