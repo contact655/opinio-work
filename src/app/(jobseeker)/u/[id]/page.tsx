@@ -688,21 +688,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     プロフィールを編集
                   </Link>
-                ) : isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
-                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 18px", borderRadius: 8,
-                    background: "var(--royal)", color: "#fff",
-                    fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-                    flexShrink: 0,
-                    boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
-                    whiteSpace: "nowrap",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                    </svg>
-                    求人を見る / 応募する
-                  </Link>
                 ) : isCurrentCompanyKnown ? (
                   <Link href={`/companies/${currentCareer!.company_id!}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
@@ -1966,7 +1951,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                   </svg>
-                  求人を見る / 応募する
+                  企業ページを見る
                 </Link>
                 {owUser.can_casual_meeting ? (
                   <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
