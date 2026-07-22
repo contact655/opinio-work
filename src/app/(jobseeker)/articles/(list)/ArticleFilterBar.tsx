@@ -42,13 +42,13 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
   return (
     <div style={{
-      position: "sticky", top: 60, zIndex: 50,
+      position: "sticky", top: 60, zIndex: 30,
       background: "#fff",
       borderBottom: `1px solid ${LINE}`,
       boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-      padding: "var(--space-2) 0",
+      padding: "20px 0 0",
     }} className="px-5 md:px-12">
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, padding: "12px 0 14px" }}>
 
         {/* ── 行1: 検索バー + カテゴリタブ + [right: 表示切替] ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>

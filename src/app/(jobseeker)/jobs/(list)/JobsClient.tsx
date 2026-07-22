@@ -1185,13 +1185,16 @@ export default function JobsClient({
     <>
       <h1 className="sr-only">IT/SaaS 求人を探す</h1>
 
-      <div style={{ paddingTop: "var(--space-5)" }} />
-
-      {/* ── 検索バー + フィルターピル（非sticky、企業ページと同構造） ── */}
+      {/* ── 検索バー + フィルターピル（sticky、企業ページと同構造） ── */}
       <div
         style={{
           background: "#fff",
           borderBottom: "1px solid var(--line)",
+          padding: "20px 0 0",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+          position: "sticky",
+          top: 60,
+          zIndex: 30,
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
@@ -1366,15 +1369,13 @@ export default function JobsClient({
         </div>
       </div>
 
-      {/* ── ソートバー（sticky） ── */}
+      {/* ── ソートバー ── */}
       <div
         ref={filterBarRef}
         className="jobs-mobile-filterbar"
         style={{
-          zIndex: 50,
           background: "#fff",
           borderBottom: "1px solid var(--line)",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 py-3 md:px-12">

@@ -488,13 +488,14 @@ export function PeopleListClient({ ambassadors }: Props) {
       <div
         ref={wrapRef}
         style={{
-          position: "sticky", top: 60, zIndex: 50,
+          position: "sticky", top: 60, zIndex: 30,
           background: "#fff",
           borderBottom: "1px solid var(--line)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+          padding: "20px 0 0",
         }}
       >
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 24px 14px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {/* 検索インプット */}
             <div style={{
