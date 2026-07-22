@@ -1303,22 +1303,17 @@ export default function JobsClient({
 
       <div style={{ paddingTop: "var(--space-5)" }} />
 
-      {/* ── 2-row スティッキーフィルターバー（全幅・常時固定） ── */}
+      {/* ── 検索バー + フィルターピル（非sticky、企業ページと同構造） ── */}
       <div
-        ref={filterBarRef}
-        className="jobs-mobile-filterbar"
         style={{
-          zIndex: 50,
           background: "#fff",
           borderBottom: "1px solid var(--line)",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-          padding: "12px 0 14px",
         }}
       >
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 10 }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
 
-          {/* ── 行1: 検索バー + フィルターピル（企業ページと同一行） ── */}
-          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* 検索バー行（企業ページ .csb-bar と同等） */}
+          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 0 14px" }}>
 
             {/* 検索インプット */}
             <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
@@ -1484,8 +1479,23 @@ export default function JobsClient({
               )}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* ── 行2: 並び替えバー（企業ページの GridSortBar と同構造） ── */}
+      {/* ── ソートバー（sticky） ── */}
+      <div
+        ref={filterBarRef}
+        className="jobs-mobile-filterbar"
+        style={{
+          zIndex: 50,
+          background: "#fff",
+          borderBottom: "1px solid var(--line)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+        }}
+      >
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 py-3 md:px-12">
+
+          {/* 並び替えバー */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
             background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
