@@ -18,6 +18,21 @@ const ROLES = [
   { label: "マーケティング", href: "/jobs/dept/marketing" },
 ];
 
+const STATS = [
+  { num: "80+", label: "掲載企業数", sub: "IT/SaaS業界に特化" },
+  { num: "74",  label: "公開求人数", sub: "随時更新中" },
+  { num: "0",   label: "スカウト・営業電話", sub: "登録しても来ません" },
+];
+
+const COMPARE = [
+  { feature: "取材による企業情報",             opinio: true,  others: false },
+  { feature: "現役社員・OBとの面談",           opinio: true,  others: false },
+  { feature: "求人の更新日が見える",           opinio: true,  others: false },
+  { feature: "スカウト・営業電話なし",         opinio: true,  others: false },
+  { feature: "追われずに自分のペースで検討",   opinio: true,  others: false },
+  { feature: "メール登録のみ・完全無料",       opinio: true,  others: false },
+];
+
 const CONCERNS = [
   {
     icon: "clock",
@@ -181,7 +196,7 @@ export default function LandingPage() {
       </header>
 
       {/* HERO */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden" style={{ background: "linear-gradient(160deg, #f0f4ff 0%, #f8f6ff 35%, #fff8f0 70%, #FAFAF8 100%)" }}>
         <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
           <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
             {/* 左: コピー */}
@@ -326,6 +341,21 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute -top-24 -right-24 w-[520px] h-[520px] rounded-full opacity-[0.06] blur-3xl" style={{ background: "radial-gradient(circle, #2563EB, transparent 70%)" }} />
       </section>
 
+      {/* STATS STRIP */}
+      <section className="bg-[#0A1F44]">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <div className="grid grid-cols-3 divide-x divide-white/10">
+            {STATS.map((s) => (
+              <div key={s.label} className="text-center px-4">
+                <div className="text-4xl md:text-5xl font-bold text-white tracking-tight">{s.num}</div>
+                <div className="mt-1.5 text-sm font-semibold text-blue-200">{s.label}</div>
+                <div className="mt-0.5 text-xs text-blue-300/60">{s.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* 掲載企業の例 + 職種で探す */}
       <section className="border-y border-[#EAEAE4] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-16">
@@ -404,6 +434,49 @@ export default function LandingPage() {
             <Icon name="arrow" className="w-4 h-4" />
           </Link>
           <p className="mt-3 text-sm text-slate-400">メール登録のみ・完全無料</p>
+        </div>
+      </section>
+
+      {/* 比較テーブル */}
+      <section className="mx-auto max-w-4xl px-6 pb-24">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <Eyebrow>他のサービスとの違い</Eyebrow>
+          <h2 className="mt-5 font-serif text-4xl md:text-5xl tracking-tight">
+            なぜ、OPINIOなのか。
+          </h2>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-[#EAEAE4] shadow-sm">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="py-5 px-6 text-left text-sm font-medium text-slate-400 bg-[#FAFAF8] w-[44%]" />
+                <th className="py-5 px-6 text-center bg-[#0A1F44] w-[28%]">
+                  <span className="text-sm font-bold text-white tracking-wide">OPINIO</span>
+                </th>
+                <th className="py-5 px-6 text-center bg-[#FAFAF8] w-[28%]">
+                  <span className="text-sm font-medium text-slate-400">一般の転職サービス</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE.map((row, i) => (
+                <tr key={i} className={`border-t border-[#EAEAE4] ${i % 2 === 0 ? "bg-white" : "bg-[#FAFAF8]/50"}`}>
+                  <td className="py-4 px-6 text-sm text-slate-700 font-medium">{row.feature}</td>
+                  <td className="py-4 px-6 text-center bg-[#0A1F44]/[0.04]">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-700">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    {row.others
+                      ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-700"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                      : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-600"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
