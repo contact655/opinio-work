@@ -262,10 +262,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
                     return (
                       <>
-                        {/* 上部ページネーション（2ページ目以降のみ表示） */}
-                        {safePage > 1 && (
-                          <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
-                        )}
                         {isGridView ? (
                           <>
                             <style>{`
@@ -273,7 +269,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                 display: grid;
                                 grid-template-columns: repeat(3, 1fr);
                                 gap: 16px;
-                                margin-top: ${safePage > 1 ? 24 : 0}px;
+                                margin-top: 0px;
                               }
                               @media (max-width: 1199px) {
                                 .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -294,7 +290,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             </div>
                           </>
                         ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: safePage > 1 ? 24 : 0 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
                             {paged.map(c => (
                               <CompanyCardList
                                 key={c.id}
