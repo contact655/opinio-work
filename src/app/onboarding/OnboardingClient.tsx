@@ -135,14 +135,20 @@ function OnboardingInner() {
         await supabase.from("ow_profiles").insert({ user_id: user.id, onboarding_completed: true });
       }
 
-      // 会社を登録
+      // 会社を登録（ow_experiences.user_id は ow_users.id を使う）
       const companyInput = query.trim();
       if (companyInput) {
         try {
+          const { data: owUser } = await supabase
+            .from("ow_users")
+            .select("id")
+            .eq("auth_id", user.id)
+            .maybeSingle();
+          const owUserId = owUser?.id ?? user.id;
+
           if (selectedCompany) {
-            // DBの企業を選択した場合 → company_id で登録
             await supabase.from("ow_experiences").insert({
-              user_id: user.id,
+              user_id: owUserId,
               company_id: selectedCompany.id,
               company_text: selectedCompany.name,
               is_current: true,
@@ -150,9 +156,8 @@ function OnboardingInner() {
               started_at: null,
             });
           } else {
-            // フリーテキストで登録
             await supabase.from("ow_experiences").insert({
-              user_id: user.id,
+              user_id: owUserId,
               company_text: companyInput,
               is_current: true,
               role_title: "",
