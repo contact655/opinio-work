@@ -202,7 +202,7 @@ function OnboardingInner() {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>企業を見てみる</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>掲載中の企業を見てみる</div>
                   <div style={{ fontSize: 11, opacity: 0.85 }}>IT/SaaS企業の内側情報を確認する</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", opacity: 0.7, flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
