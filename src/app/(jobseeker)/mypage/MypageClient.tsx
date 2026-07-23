@@ -335,26 +335,6 @@ function DashboardView({
         isMentor={false}
       />
 
-      {/* ── 採用担当者・企業の方向け導線 ── */}
-      <a
-        href="/biz/auth"
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 16px", marginBottom: 16,
-          background: "var(--royal-50)",
-          border: "1px solid var(--royal-100)",
-          borderRadius: 10, textDecoration: "none",
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          </svg>
-          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600 }}>採用担当者・企業の方はこちら</span>
-        </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-
       {/* ── あなたの母校 ── */}
       {(() => {
         const schoolEdus = (userEducations ?? []).filter(
@@ -496,137 +476,6 @@ function DashboardView({
           </Link>
         </div>
       </SectionBlock>
-
-      {/* ── Quick Actions ── */}
-      <section style={{
-        background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-      }}>
-        <div style={{
-          display: "flex", alignItems: "baseline", gap: 10,
-          marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid var(--line)",
-        }}>
-          <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
-            次にやること
-          </span>
-          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
-            QUICK ACTIONS
-          </span>
-        </div>
-        <div style={{ display: "grid", gap: 10 }} className="grid-cols-1 sm:grid-cols-3">
-          {[
-            {
-              href: "/companies",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                </svg>
-              ),
-              color: "var(--royal)",
-              bg: "var(--royal-50)",
-              border: "var(--royal-100)",
-              title: "企業を探す",
-              desc: "掲載企業を一覧で見る",
-            },
-            {
-              href: "/profile/edit",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                </svg>
-              ),
-              color: "var(--success)",
-              bg: "var(--success-soft)",
-              border: "#A7F3D0",
-              title: "プロフィールを充実させる",
-              desc: "企業に伝えたい経歴を記録",
-            },
-          ].map(({ href, icon, color, bg, border, title, desc }) => (
-            <Link key={href} href={href} style={{
-              display: "flex", alignItems: "center", gap: 14,
-              padding: "16px 18px",
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              borderRadius: 12, textDecoration: "none",
-              transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-            }}
-              className="request-item-row"
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: bg, border: `1px solid ${border}`,
-                color, display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                {icon}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{title}</div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{desc}</div>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0, marginLeft: "auto" }}>
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ── 給与データを投稿 ── */}
-      {(() => {
-        const companies = Array.from(
-          new Map(
-            (timelineCareers ?? [])
-              .filter((c) => c.company_id && c.company_name)
-              .map((c) => [c.company_id as string, { id: c.company_id as string, name: c.company_name }])
-          ).values()
-        ).slice(0, 5);
-        return (
-          <section style={{
-            background: "#fff", border: "1px solid var(--line)",
-            borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-          }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>給与データを投稿</span>
-                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>CONTRIBUTE</span>
-              </div>
-              <Link href="/mypage/salary" style={{ fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
-                投稿した一覧 →
-              </Link>
-            </div>
-            <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.7 }}>
-              在籍・在籍経験のある企業の給与情報を匿名で投稿できます。投稿は運営が確認後に公開されます。
-            </p>
-            {companies.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {companies.map(({ id, name }) => (
-                  <div key={id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--bg-tint)", borderRadius: 10, border: "1px solid var(--line)" }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{name}</span>
-                    <Link href={`/mypage/salary/new?company_id=${id}&company_name=${encodeURIComponent(name ?? "")}`} style={{
-                      fontSize: 12, fontWeight: 600, color: "var(--success)", textDecoration: "none",
-                      padding: "5px 12px", borderRadius: 7, border: "1.5px solid #A7F3D0",
-                      background: "var(--success-soft)", whiteSpace: "nowrap" as const,
-                    }}>
-                      ¥ 給与を登録
-                    </Link>
-                  </div>
-                ))}
-                <Link href="/mypage/salary/new" style={{ fontSize: 12, color: "var(--ink-soft)", textDecoration: "none", marginTop: 4 }}>
-                  + 他の企業を選んで投稿する
-                </Link>
-              </div>
-            ) : (
-              <Link href="/mypage/salary/new" style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "10px 20px", background: "var(--success)", color: "#fff",
-                borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 13,
-              }}>
-                ¥ 給与データを投稿する
-              </Link>
-            )}
-          </section>
-        );
-      })()}
 
       {/* 面談対応者の設定（登録がある場合のみ表示） */}
       <AmbassadorWidget memberships={ambassadorMemberships} />
@@ -899,14 +748,6 @@ export default function MypageClient({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const pendingCasualCount = casualMeetings.filter(
-    (m) => m.status === "pending" || m.status === "scheduled"
-  ).length;
-
-  const totalBookmarks =
-    companyBookmarks.length +
-    jobBookmarks.length;
-
   // Build recentActivity from real Supabase data (sorted by applied_at desc, top 3)
   const recentActivity: {
     id: string;
@@ -930,23 +771,91 @@ export default function MypageClient({
     .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
     .slice(0, 3);
 
-  const statCards = [
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
-      iconBg: "var(--warm-soft)", iconColor: "#B45309",
-      value: pendingCasualCount, label: "カジュアル面談\n申込中",
-      onClick: () => navigate("casual"),
-    },
-    {
-      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
-      iconBg: "var(--pink-soft, #FCE7F3)", iconColor: "var(--pink)",
-      value: totalBookmarks, label: "ブックマーク\n合計",
-      onClick: () => navigate("bookmarks"),
-    },
-  ];
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      {/* プロフィール公開促進 */}
+      {showSetupBanner && !setupJustDone && (
+        <div style={{
+          background: "linear-gradient(135deg, #EFF3FC 0%, #E8EDFB 100%)",
+          border: "1.5px solid var(--royal-100)", borderRadius: 12,
+          padding: "14px 16px",
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+            プロフィールを公開して、企業に見つけてもらいましょう
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
+            名前・自己紹介・スキルの3つを入力するだけで完了です。
+          </div>
+          <a href="/profile/start" style={{
+            display: "inline-block", padding: "8px 16px",
+            background: "var(--royal)", color: "#fff",
+            borderRadius: 8, fontSize: 12, fontWeight: 700,
+            textDecoration: "none",
+          }}>
+            3ステップで公開する →
+          </a>
+        </div>
+      )}
+
+      {/* スカウト設定未完了 */}
+      {scoutBannerVisible && (
+        <div style={{
+          background: "linear-gradient(135deg, #FEF9C3 0%, #FEF3C7 100%)",
+          border: "1.5px solid #FCD34D", borderRadius: 12,
+          padding: "14px 16px",
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+            📬 スカウト設定が未完了です
+          </div>
+          <div style={{ fontSize: 11, color: "#78350F", lineHeight: 1.6, marginBottom: 10 }}>
+            企業からのスカウトを受け取るか設定してください。
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              disabled={scoutBannerSaving}
+              onClick={async () => {
+                setScoutBannerSaving(true);
+                try {
+                  await fetch("/api/jobseeker/scout-settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ scout_enabled: true }),
+                  });
+                  setScoutBannerVisible(false);
+                } finally { setScoutBannerSaving(false); }
+              }}
+              style={{
+                padding: "7px 14px", background: "#D97706", color: "#fff",
+                border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700,
+                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
+              }}
+            >受け取る</button>
+            <button
+              type="button"
+              disabled={scoutBannerSaving}
+              onClick={async () => {
+                setScoutBannerSaving(true);
+                try {
+                  await fetch("/api/jobseeker/scout-settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ scout_enabled: false }),
+                  });
+                  setScoutBannerVisible(false);
+                } finally { setScoutBannerSaving(false); }
+              }}
+              style={{
+                padding: "7px 14px", background: "none", color: "#92400E",
+                border: "1.5px solid #FCD34D", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
+              }}
+            >受け取らない</button>
+          </div>
+        </div>
+      )}
+
       {/* プロフィール完成度バー */}
       {(() => {
         const completionData: CompletionInput = {
@@ -1074,78 +983,45 @@ export default function MypageClient({
         )}
       </div>
 
-      {/* スカウト受信箱リンク */}
+      {/* 給与データ */}
       <Link
-        href="/mypage/scouts"
+        href="/mypage/salary"
         style={{
           display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 16px", borderRadius: 10,
-          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+          padding: "12px 16px", borderRadius: 10,
+          background: "var(--bg-tint)", border: "1px solid var(--line)",
           textDecoration: "none",
         }}
       >
-        <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.7 12.1 19.79 19.79 0 0 1 1.61 3.56 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/>
-          </svg>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--success-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "var(--success)" }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 2 }}>スカウト受信箱</div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>企業から届いたスカウトを確認する</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 1 }}>給与データ</div>
+          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>匿名で給与情報を投稿・確認</div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </Link>
 
-      {/* マイアクティビティ */}
-      <div>
-        <div style={{ marginBottom: "var(--space-3)" }}>
-          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>マイアクティビティ</span>
-        </div>
-        {statCards.every(c => c.value === 0) ? (
-          <div style={{
-            background: "var(--bg-tint)", border: "1px solid var(--line)",
-            borderRadius: 12, padding: "16px", textAlign: "center",
-          }}>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 8 }}>まだ活動がありません</div>
-            <Link href="/companies" style={{
-              fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
-            }}>企業を探してみる →</Link>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-2)" }}>
-            {statCards.map((card, i) => (
-              <div
-                key={i}
-                onClick={card.onClick}
-                style={{
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                  padding: "14px", cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                className="stat-card-hover"
-              >
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: card.iconBg, color: card.iconColor,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  marginBottom: "var(--space-2)",
-                }}>
-                  {card.icon}
-                </div>
-                <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: "var(--text-lg)", fontWeight: 700,
-                  color: "var(--ink)", marginBottom: 2,
-                }}>
-                  {card.value}
-                </div>
-                <div style={{ fontSize: 10, color: "var(--ink-soft)", fontWeight: 500, lineHeight: 1.5, whiteSpace: "pre-line" }}>
-                  {card.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* 採用担当者・企業の方向け導線 */}
+      <a
+        href="/biz/auth"
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px",
+          background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)",
+          borderRadius: 10, textDecoration: "none",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          </svg>
+          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600 }}>採用担当者・企業の方はこちら</span>
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
     </div>
   );
 
@@ -1248,105 +1124,6 @@ export default function MypageClient({
               企業やメンターに見つけてもらえる状態になりました。
               <a href="/profile/edit" style={{ color: "#065F46", fontWeight: 700, marginLeft: 6 }}>さらに詳しく編集する →</a>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* セットアップ促進バナー（未完了ユーザー向け） */}
-      {showSetupBanner && !setupJustDone && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 14,
-          background: "linear-gradient(135deg, #EFF3FC 0%, #E8EDFB 100%)",
-          border: "1.5px solid var(--royal-100)", borderRadius: 12,
-          padding: "16px 20px", marginBottom: 16,
-          flexWrap: "wrap",
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-              プロフィールを公開して、企業に見つけてもらいましょう
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-              名前・自己紹介・スキルの3つを入力するだけで完了です。
-            </div>
-          </div>
-          <a href="/profile/start" style={{
-            display: "inline-block", padding: "10px 20px",
-            background: "var(--royal)", color: "#fff",
-            borderRadius: 8, fontSize: 13, fontWeight: 700,
-            textDecoration: "none", flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
-          }}>
-            3ステップで公開する →
-          </a>
-        </div>
-      )}
-
-      {/* スカウト設定未完了バナー（案C） */}
-      {scoutBannerVisible && (
-        <div style={{
-          display: "flex", alignItems: "flex-start", gap: 14,
-          background: "linear-gradient(135deg, #FEF9C3 0%, #FEF3C7 100%)",
-          border: "1.5px solid #FCD34D", borderRadius: 12,
-          padding: "16px 20px", marginBottom: 16,
-          flexWrap: "wrap",
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
-              📬 スカウト設定が未完了です
-            </div>
-            <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.6 }}>
-              企業からのスカウトを受け取るか設定してください。あとからいつでも変更できます。
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              disabled={scoutBannerSaving}
-              onClick={async () => {
-                setScoutBannerSaving(true);
-                try {
-                  await fetch("/api/jobseeker/scout-settings", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ scout_enabled: true }),
-                  });
-                  setScoutBannerVisible(false);
-                } finally {
-                  setScoutBannerSaving(false);
-                }
-              }}
-              style={{
-                padding: "9px 16px", background: "#D97706", color: "#fff",
-                border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
-                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
-              }}
-            >
-              受け取る
-            </button>
-            <button
-              type="button"
-              disabled={scoutBannerSaving}
-              onClick={async () => {
-                setScoutBannerSaving(true);
-                try {
-                  await fetch("/api/jobseeker/scout-settings", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ scout_enabled: false }),
-                  });
-                  setScoutBannerVisible(false);
-                } finally {
-                  setScoutBannerSaving(false);
-                }
-              }}
-              style={{
-                padding: "9px 16px", background: "none", color: "#92400E",
-                border: "1.5px solid #FCD34D", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
-              }}
-            >
-              受け取らない
-            </button>
           </div>
         </div>
       )}
