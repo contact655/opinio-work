@@ -341,21 +341,6 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute -top-24 -right-24 w-[520px] h-[520px] rounded-full opacity-[0.06] blur-3xl" style={{ background: "radial-gradient(circle, #2563EB, transparent 70%)" }} />
       </section>
 
-      {/* STATS STRIP */}
-      <section className="bg-[#0A1F44]">
-        <div className="mx-auto max-w-6xl px-6 py-10">
-          <div className="grid grid-cols-3 divide-x divide-white/10">
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center px-4">
-                <div className="text-4xl md:text-5xl font-bold text-white tracking-tight">{s.num}</div>
-                <div className="mt-1.5 text-sm font-semibold text-blue-200">{s.label}</div>
-                <div className="mt-0.5 text-xs text-blue-300/60">{s.sub}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* 掲載企業の例 + 職種で探す */}
       <section className="border-y border-[#EAEAE4] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-16">
