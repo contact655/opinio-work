@@ -344,19 +344,6 @@ export function JobseekerHeader() {
                       >
                         マイページ
                       </Link>
-                      <div style={{ borderTop: "0.5px solid var(--line-soft)", margin: "4px 0" }} />
-                      <Link
-                        href="/biz/auth"
-                        onClick={() => setDropdownOpen(false)}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal-50)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
-                          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                        </svg>
-                        採用担当者として企業登録
-                      </Link>
                       <button
                         type="button"
                         onClick={handleLogout}
@@ -688,13 +675,6 @@ export function JobseekerHeader() {
                 style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
               >
                 マイページ
-              </Link>
-              <Link
-                href="/biz/auth"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ display: "block", padding: "14px 24px", fontSize: 14, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}
-              >
-                採用担当者として企業登録 →
               </Link>
               <button
                 type="button"
