@@ -586,10 +586,10 @@ export function CreateCompanyClient({
         {conflict && (conflictSource === "suggestion" || conflictSource === "error") && (() => {
           const isFirst = !conflict.admin_count || conflict.admin_count === 0;
           const isAmber = conflictSource === "error";
-          const bg = isAmber ? "var(--warm-soft)" : (isFirst ? "var(--success-soft)" : "var(--royal-50)");
-          const border = isAmber ? "1.5px solid #FCD34D" : (isFirst ? "1.5px solid #6EE7B7" : "1.5px solid var(--royal-100)");
-          const headColor = isAmber ? "#92400E" : (isFirst ? "var(--success)" : "var(--royal)");
-          const bodyColor = isAmber ? "#78350F" : (isFirst ? "#065F46" : "#1e3a6e");
+          const bg = isAmber ? "var(--warm-soft)" : "var(--royal-50)";
+          const border = isAmber ? "1.5px solid #FCD34D" : "1.5px solid var(--royal-100)";
+          const headColor = isAmber ? "#92400E" : "var(--royal)";
+          const bodyColor = isAmber ? "#78350F" : "#1e3a6e";
           return (
           <div style={{ background: bg, border, borderRadius: 10, padding: "16px 18px" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: headColor, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
@@ -626,7 +626,7 @@ export function CreateCompanyClient({
                   disabled={joinRequestLoading}
                   style={{
                     padding: "8px 16px",
-                    background: isFirst ? "var(--success)" : (isAmber ? "#92400E" : "var(--royal)"),
+                    background: isAmber ? "#92400E" : "var(--royal)",
                     color: "#fff",
                     border: "none", borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
@@ -642,8 +642,8 @@ export function CreateCompanyClient({
                   style={{
                     padding: "8px 16px",
                     background: "transparent",
-                    color: isAmber ? "#92400E" : (isFirst ? "var(--success)" : "var(--royal)"),
-                    border: `1.5px solid ${isAmber ? "#FCD34D" : (isFirst ? "#6EE7B7" : "var(--royal-100)")}`,
+                    color: isAmber ? "#92400E" : "var(--royal)",
+                    border: `1.5px solid ${isAmber ? "#FCD34D" : "var(--royal-100)"}`,
                     borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
                     cursor: "pointer",
