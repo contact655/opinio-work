@@ -73,7 +73,7 @@ function ArticleCard({ article }: { article: Article }) {
   const icon = TYPE_EYECATCH_ICON[article.type];
 
   return (
-    <Link href={`/articles/${article.slug}`} className="at-card-link">
+    <Link href={`/articles/${article.slug}`} target="_blank" className="at-card-link">
       <div className="at-card">
         {/* アイキャッチ */}
         <div style={{

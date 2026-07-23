@@ -36,7 +36,7 @@ function ArticleCard({ article }: { article: Article }) {
   const mainSubject = article.subject ?? article.subjects?.[0];
 
   return (
-    <Link href={`/articles/${article.slug}`} prefetch={true} style={{ textDecoration: "none" }}>
+    <Link href={`/articles/${article.slug}`} target="_blank" prefetch={true} style={{ textDecoration: "none" }}>
       <article style={{
         display: "flex", flexDirection: "column",
         background: "#fff",
@@ -215,7 +215,7 @@ function ArticleListRow({ article }: { article: Article }) {
   const mainSubject = article.subject ?? article.subjects?.[0];
 
   return (
-    <Link href={`/articles/${article.slug}`} prefetch={true} style={{ textDecoration: "none" }}>
+    <Link href={`/articles/${article.slug}`} target="_blank" prefetch={true} style={{ textDecoration: "none" }}>
       <article style={{
         background: "#fff",
         border: "1px solid var(--line)",
@@ -338,7 +338,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                 const icon = TYPE_EYECATCH_ICON[featured.type];
                 const mainSubject = featured.subject ?? featured.subjects?.[0];
                 return (
-                  <Link href={`/articles/${featured.slug}`} style={{ textDecoration: "none", display: "block", marginBottom: "var(--space-6)" }}>
+                  <Link href={`/articles/${featured.slug}`} target="_blank" style={{ textDecoration: "none", display: "block", marginBottom: "var(--space-6)" }}>
                     <article
                       className="article-card article-featured"
                       style={{
