@@ -996,7 +996,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
 // ── ログインフォーム ─────────────────────────────────────────────────────────
 type LoginFormProps = {
-  onSwitchToSignup: () => void;
+  onSwitchToSignup?: () => void;
   prefillEmail: string;
   pendingCompany: PendingCompany | null;
   next: string;
@@ -1004,7 +1004,7 @@ type LoginFormProps = {
   inviteContext: InviteContext | null;
 };
 
-function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, router, inviteContext }: LoginFormProps) {
+function LoginForm({ prefillEmail, pendingCompany, next, router, inviteContext }: LoginFormProps) {
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 
   const [email, setEmail] = useState(inviteContext?.email || prefillEmail);
