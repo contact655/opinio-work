@@ -77,11 +77,14 @@ const labelStyle: React.CSSProperties = {
 export function CreateCompanyClient({
   userBadge,
   availableGenres = [],
+  prefilledCompanyName = null,
 }: {
   userBadge?: UserBadge | null;
   availableGenres?: Genre[];
+  prefilledCompanyName?: string | null;
 }) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefilledCompanyName ?? "");
+  const [prefilledLocked, setPrefilledLocked] = useState(!!prefilledCompanyName);
   const [industry, setIndustry] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
@@ -262,8 +265,62 @@ export function CreateCompanyClient({
 
   const canSubmit = name.trim() !== "" && !loading && !conflict;
 
+  // サイドバー: アカウントバッジ
+  const sidebar = userBadge ? (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{
+        padding: "14px 16px",
+        background: "var(--bg-tint)",
+        border: "1px solid var(--line)",
+        borderRadius: 10,
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 10 }}>
+          作成アカウント
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: "var(--royal-50)", color: "var(--royal)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            </svg>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>
+              {userBadge.name}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {userBadge.email}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowSwitchModal(true)}
+          style={{
+            width: "100%",
+            padding: "7px 12px",
+            background: "transparent",
+            border: "1.5px solid var(--line)",
+            borderRadius: 7,
+            fontSize: 12, fontWeight: 600,
+            color: "var(--ink-soft)",
+            cursor: "pointer",
+            fontFamily: "'Noto Sans JP', sans-serif",
+            textAlign: "center",
+          }}
+        >
+          別のアカウントを使う
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px" }}>
       {/* 戻るリンク */}
       <a
         href="/biz/companies/add"
@@ -279,55 +336,15 @@ export function CreateCompanyClient({
         追加方法を選ぶ
       </a>
 
-      {/* Phase 3: ログイン中アカウントバッジ */}
-      {userBadge && (
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          padding: "12px 16px",
-          background: "var(--bg-tint)",
-          border: "1px solid var(--line)",
-          borderRadius: 10,
-          marginBottom: 28,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-              background: "var(--royal-50)", color: "var(--royal)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-              </svg>
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>
-                {userBadge.name}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {userBadge.email} のアカウントで企業を作成します
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowSwitchModal(true)}
-            style={{
-              flexShrink: 0,
-              fontSize: 11, color: "var(--ink-mute)",
-              background: "transparent", border: "none",
-              cursor: "pointer", textDecoration: "underline",
-              fontFamily: "'Noto Sans JP', sans-serif",
-              padding: 0,
-            }}
-          >
-            別のアカウントを使う
-          </button>
-        </div>
-      )}
+      {/* 2カラムレイアウト */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: sidebar ? "1fr 260px" : "1fr",
+        gap: 32,
+        alignItems: "start",
+      }}>
+      {/* メインフォーム */}
+      <div>
 
       {/* Phase 3: 別アカウント切替確認モーダル */}
       {showSwitchModal && (
@@ -426,6 +443,46 @@ export function CreateCompanyClient({
             会社名 <span style={{ color: "var(--error)" }}>*</span>
           </label>
           <div style={{ position: "relative" }}>
+            {/* 登録済み企業チップ（×で変更可能） */}
+            {prefilledLocked ? (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: "var(--royal-50)",
+                border: "1.5px solid var(--royal-100)",
+                borderRadius: 8,
+              }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+                  background: "var(--royal)", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 700,
+                }}>
+                  {name.charAt(0)}
+                </div>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--royal)" }}>
+                  {name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setPrefilledLocked(false); setName(""); setConflict(null); setConflictSource(null); }}
+                  title="変更する"
+                  style={{
+                    flexShrink: 0,
+                    padding: "3px 8px",
+                    background: "transparent",
+                    border: "1px solid var(--royal-100)",
+                    borderRadius: 6,
+                    fontSize: 11, color: "var(--royal)",
+                    cursor: "pointer",
+                    fontFamily: "'Noto Sans JP', sans-serif",
+                    fontWeight: 600,
+                  }}
+                >
+                  × 変更する
+                </button>
+              </div>
+            ) : (
             <input
               id="cc-company-name"
               ref={nameInputRef}
@@ -437,6 +494,7 @@ export function CreateCompanyClient({
               style={inputStyle}
               autoComplete="off"
             />
+            )}
             {/* 検索中インジケーター */}
             {searching && (
               <span style={{
@@ -492,7 +550,7 @@ export function CreateCompanyClient({
                         {s.name}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
-                        {s.industry ?? "業界不明"} · 担当者 {s.admin_count}名
+                        {s.industry ?? "業界不明"} · {s.admin_count > 0 ? `担当者 ${s.admin_count}名` : "担当者未登録"}
                       </div>
                     </div>
                   </button>
@@ -502,20 +560,33 @@ export function CreateCompanyClient({
           </div>
         </div>
 
-        {/* ドロップダウンから選択 — 情報カード（ロイヤルブルー） */}
-        {conflict && conflictSource === "suggestion" && (
-          <div style={{
-            background: "var(--royal-50)",
-            border: "1.5px solid var(--royal-100)",
-            borderRadius: 10,
-            padding: "16px 18px",
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              この企業は既に OPINIO に登録されています
+        {/* 既存企業カード — suggestion / error 共通 */}
+        {conflict && (conflictSource === "suggestion" || conflictSource === "error") && (() => {
+          const isFirst = !conflict.admin_count || conflict.admin_count === 0;
+          const isAmber = conflictSource === "error";
+          const bg = isAmber ? "var(--warm-soft)" : (isFirst ? "var(--success-soft)" : "var(--royal-50)");
+          const border = isAmber ? "1.5px solid #FCD34D" : (isFirst ? "1.5px solid #6EE7B7" : "1.5px solid var(--royal-100)");
+          const headColor = isAmber ? "#92400E" : (isFirst ? "var(--success)" : "var(--royal)");
+          const bodyColor = isAmber ? "#78350F" : (isFirst ? "#065F46" : "#1e3a6e");
+          return (
+          <div style={{ background: bg, border, borderRadius: 10, padding: "16px 18px" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: headColor, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              {isFirst ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              )}
+              {isFirst
+                ? "この企業はまだ担当者が登録されていません"
+                : conflictSource === "error" ? "同名の企業が既に存在します" : "この企業は既に OPINIO に登録されています"
+              }
             </div>
-            <div style={{ fontSize: 12, color: "#1e3a6e", lineHeight: 1.7, marginBottom: 14 }}>
-              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。
+            <div style={{ fontSize: 12, color: bodyColor, lineHeight: 1.7, marginBottom: 14 }}>
+              {isFirst ? (
+                <><strong>{conflict.name}</strong> は OPINIO に登録済みですが、まだ担当者がいません。最初の担当者として参加できます。</>
+              ) : (
+                <><strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。既存の担当者に参加リクエストを送ってください。</>
+              )}
             </div>
             {joinRequestSent ? (
               <div style={{
@@ -523,7 +594,7 @@ export function CreateCompanyClient({
                 padding: "10px 14px", background: "var(--success-soft)",
                 borderRadius: 8, marginBottom: 10,
               }}>
-                ✓ 参加リクエストを送信しました。担当者からの招待をお待ちください。
+                ✓ {isFirst ? "参加が完了しました。ダッシュボードに移動します..." : "参加リクエストを送信しました。担当者からの招待をお待ちください。"}
               </div>
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
@@ -533,7 +604,7 @@ export function CreateCompanyClient({
                   disabled={joinRequestLoading}
                   style={{
                     padding: "8px 16px",
-                    background: "var(--royal)",
+                    background: isFirst ? "var(--success)" : (isAmber ? "#92400E" : "var(--royal)"),
                     color: "#fff",
                     border: "none", borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
@@ -541,7 +612,7 @@ export function CreateCompanyClient({
                     fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
                   }}
                 >
-                  {joinRequestLoading ? "送信中..." : "参加リクエストを送る"}
+                  {joinRequestLoading ? "処理中..." : (isFirst ? "最初の担当者として参加する" : "参加リクエストを送る")}
                 </button>
                 <button
                   type="button"
@@ -549,8 +620,9 @@ export function CreateCompanyClient({
                   style={{
                     padding: "8px 16px",
                     background: "transparent",
-                    color: "var(--royal)",
-                    border: "1.5px solid var(--royal-100)", borderRadius: 8,
+                    color: isAmber ? "#92400E" : (isFirst ? "var(--success)" : "var(--royal)"),
+                    border: `1.5px solid ${isAmber ? "#FCD34D" : (isFirst ? "#6EE7B7" : "var(--royal-100)")}`,
+                    borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
                     cursor: "pointer",
                     fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
@@ -566,11 +638,8 @@ export function CreateCompanyClient({
                 onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
                 disabled={loading}
                 style={{
-                  padding: "0",
-                  background: "transparent",
-                  color: "var(--ink-mute)",
-                  border: "none",
-                  fontSize: 11,
+                  padding: "0", background: "transparent", color: "var(--ink-mute)",
+                  border: "none", fontSize: 11,
                   cursor: loading ? "not-allowed" : "pointer",
                   fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
                   textDecoration: "underline",
@@ -580,87 +649,8 @@ export function CreateCompanyClient({
               </button>
             </div>
           </div>
-        )}
-
-        {/* フォーム送信時の重複（409） — 警告カード（アンバー） */}
-        {conflict && conflictSource === "error" && (
-          <div style={{
-            background: "var(--warm-soft)",
-            border: "1.5px solid #FCD34D",
-            borderRadius: 10,
-            padding: "16px 18px",
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              同名の企業が既に存在します
-            </div>
-            <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7, marginBottom: 14 }}>
-              <strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。
-            </div>
-            {joinRequestSent ? (
-              <div style={{
-                fontSize: 12, color: "var(--success)", fontWeight: 600,
-                padding: "10px 14px", background: "var(--success-soft)",
-                borderRadius: 8, marginBottom: 10,
-              }}>
-                ✓ 参加リクエストを送信しました。担当者からの招待をお待ちください。
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-                <button
-                  type="button"
-                  onClick={handleJoinRequest}
-                  disabled={joinRequestLoading}
-                  style={{
-                    padding: "8px 16px",
-                    background: "#92400E",
-                    color: "#fff",
-                    border: "none", borderRadius: 8,
-                    fontSize: 12, fontWeight: 600,
-                    cursor: joinRequestLoading ? "not-allowed" : "pointer",
-                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                  }}
-                >
-                  {joinRequestLoading ? "送信中..." : "参加リクエストを送る"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setConflict(null); setConflictSource(null); setName(""); setJoinRequestSent(false); }}
-                  style={{
-                    padding: "8px 16px",
-                    background: "transparent",
-                    color: "#92400E",
-                    border: "1.5px solid #FCD34D", borderRadius: 8,
-                    fontSize: 12, fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                  }}
-                >
-                  会社名を変更する
-                </button>
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
-                disabled={loading}
-                style={{
-                  padding: "0",
-                  background: "transparent",
-                  color: "var(--ink-mute)",
-                  border: "none",
-                  fontSize: 11,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                  textDecoration: "underline",
-                }}
-              >
-                {loading ? "作成中..." : "この名前で別会社として新規作成する"}
-              </button>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 業界 — conflict中は非表示 */}
         {!conflict && (
@@ -762,6 +752,15 @@ export function CreateCompanyClient({
         </>
         )}
       </form>
+      </div>{/* /メインフォーム */}
+
+      {/* サイドバー */}
+      {sidebar && (
+        <div style={{ position: "sticky", top: 24 }}>
+          {sidebar}
+        </div>
+      )}
+      </div>{/* /2カラムグリッド */}
     </div>
   );
 }

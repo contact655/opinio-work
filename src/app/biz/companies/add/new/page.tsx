@@ -1,6 +1,7 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { CreateCompanyClient } from "./CreateCompanyClient";
 import type { Genre } from "@/components/ui/GenreChipSelector";
 
@@ -33,13 +34,39 @@ export default async function CreateCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
+  // ユーザー登録時に入力した所属企業を取得（ow_experiences.is_current=true）
+  let prefilledCompanyName: string | null = null;
+  if (user) {
+    const admin = createAdminClient();
+    const { data: owUser } = await admin
+      .from("ow_users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (owUser) {
+      const { data: exp } = await admin
+        .from("ow_experiences")
+        .select("company_text, company_id, ow_companies(name)")
+        .eq("user_id", owUser.id)
+        .eq("is_current", true)
+        .maybeSingle();
+      if (exp) {
+        const companyName = (exp.ow_companies as unknown as { name: string } | null)?.name ?? exp.company_text ?? null;
+        prefilledCompanyName = companyName;
+      }
+    }
+  }
+
   // テナントなし（初回登録 or 企業未所属）でもフォームを表示する
-  // Phase 3: ヘッダーバッジで「○○さんのアカウントで企業を作成」を表示
   if (!ctx) {
     const userName = userBadge?.name ?? "ご担当者";
     return (
       <BusinessLayout userName={userName}>
-        <CreateCompanyClient userBadge={userBadge} availableGenres={availableGenres} />
+        <CreateCompanyClient
+          userBadge={userBadge}
+          availableGenres={availableGenres}
+          prefilledCompanyName={prefilledCompanyName}
+        />
       </BusinessLayout>
     );
   }
@@ -53,7 +80,11 @@ export default async function CreateCompanyPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <CreateCompanyClient userBadge={userBadge} availableGenres={availableGenres} />
+      <CreateCompanyClient
+        userBadge={userBadge}
+        availableGenres={availableGenres}
+        prefilledCompanyName={prefilledCompanyName}
+      />
     </BusinessLayout>
   );
 }
