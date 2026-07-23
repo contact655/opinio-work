@@ -5,7 +5,6 @@ import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { MobileBottomNav } from "@/components/jobseeker/MobileBottomNav";
 import { GlobalToast } from "@/components/ui/GlobalToast";
 import { OnboardingGuard } from "@/components/jobseeker/OnboardingGuard";
-import { ScoutPromptModal } from "@/components/jobseeker/ScoutPromptModal";
 
 export const metadata: Metadata = {
   title: {
@@ -42,7 +41,6 @@ export default function JobseekerLayout({ children }: { children: React.ReactNod
       <MobileBottomNav />
       <GlobalToast />
       <OnboardingGuard />
-      <ScoutPromptModal />
     </div>
   );
 }
