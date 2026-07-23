@@ -222,6 +222,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             color: "inherit",
             padding: "14px 16px",
             overflow: "hidden",
+            position: "relative",
           }}
         >
           {/* ── ロゴ正方形（白背景・影付き） ── */}
@@ -236,49 +237,37 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             style={{ border: "1px solid #eef0f3", boxShadow: "0 2px 8px rgba(0,0,0,0.09)" }}
           />
 
-          {/* ── テキスト情報（4行）── */}
+          {/* ♡ブックマークボタン — カード右上に絶対配置 */}
+          <button
+            type="button"
+            onClick={handleBookmark}
+            disabled={bookmarking}
+            aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
+            style={{
+              position: "absolute", top: 10, right: 12,
+              width: 26, height: 26, flexShrink: 0,
+              background: bookmarked ? "#ef4444" : "transparent",
+              border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
+              borderRadius: "50%",
+              cursor: "pointer", padding: 0,
+              color: bookmarked ? "#fff" : "var(--ink-mute)", fontSize: 12,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.15s",
+              boxShadow: bookmarked ? "0 2px 6px rgba(239,68,68,0.30)" : "none",
+              zIndex: 1,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+
+          {/* ── テキスト情報（3行）── */}
           <div style={{
             flex: 1, minWidth: 0,
             display: "flex", flexDirection: "column", gap: 4,
           }}>
-            {/* 行1: バッジ + ブックマーク */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {company.accepting_casual_meetings && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-                  background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", display: "inline-block" }} />
-                  面談
-                </span>
-              )}
-              {/* ② ♡ボタン — 常時ピンク */}
-              <button
-                type="button"
-                onClick={handleBookmark}
-                disabled={bookmarking}
-                aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
-                style={{
-                  marginLeft: "auto", width: 26, height: 26, flexShrink: 0,
-                  background: bookmarked ? "#ef4444" : "transparent",
-                  border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
-                  borderRadius: "50%",
-                  cursor: "pointer", padding: 0,
-                  color: bookmarked ? "#fff" : "var(--ink-mute)", fontSize: 12,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.15s",
-                  boxShadow: bookmarked ? "0 2px 6px rgba(239,68,68,0.30)" : "none",
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* 行2: ブランド名（大・濃）＋ 正式名称（小・薄） */}
+            {/* 行1: ブランド名（大・濃）＋ 正式名称（小・薄） */}
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span className="clv-name" style={{
                 fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
@@ -330,8 +319,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
             </div>
 
-            {/* 行5: リモート ＋ アバター ＋ 募集中 */}
-            {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0) && (
+            {/* 行5: リモート ＋ アバター ＋ 募集中 ＋ 面談 */}
+            {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0 || company.accepting_casual_meetings) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {remoteText && (
                   <span style={{ fontSize: 11, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{remoteText}</span>
@@ -360,6 +349,16 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                       <path d="M16 3h-8l-2 4h12l-2-4z"/>
                     </svg>
                     募集中 {company.job_count}件
+                  </span>
+                )}
+                {company.accepting_casual_meetings && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                    background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
+                    display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", display: "inline-block" }} />
+                    面談受付中
                   </span>
                 )}
               </div>
