@@ -276,27 +276,25 @@ function AuthPageInner() {
           </a>
         </div>
 
-        <div style={s.formWrap}>
-          {/* ⑧ 企業担当者向けリンク */}
-          <div style={{ marginBottom: 16 }}>
-            <a href="/biz/auth" style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "11px 16px",
-              background: "var(--royal-50)",
-              border: "1px solid var(--royal-100)",
-              borderRadius: 10,
-              fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
-            }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                </svg>
-                採用担当者・企業の方はこちら
-              </span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
-          </div>
+        {/* ⑧ 企業担当者向けリンク — 右上固定 */}
+        <a href="/biz/auth" style={{
+          position: "fixed", top: 16, right: 20, zIndex: 50,
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "7px 14px",
+          background: "#fff",
+          border: "1px solid var(--line)",
+          borderRadius: 99,
+          fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, textDecoration: "none",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          whiteSpace: "nowrap",
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          </svg>
+          採用担当者・企業の方はこちら
+        </a>
 
+        <div style={s.formWrap}>
           {/* ⑦ Mode tabs — active tab is solid royal blue */}
           <div style={s.modeTabs}>
             {(["signup", "login"] as const).map((m) => (
