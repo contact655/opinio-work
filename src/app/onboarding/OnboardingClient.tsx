@@ -147,13 +147,13 @@ function OnboardingInner() {
           const owUserId = owUser?.id ?? user.id;
 
           if (selectedCompany) {
+            // company_id と company_text は XOR 制約のため company_id のみ渡す
             await supabase.from("ow_experiences").insert({
               user_id: owUserId,
               company_id: selectedCompany.id,
-              company_text: selectedCompany.name,
               is_current: true,
               role_title: "",
-              started_at: null,
+              started_at: "2020-01-01",
             });
           } else {
             await supabase.from("ow_experiences").insert({
@@ -161,7 +161,7 @@ function OnboardingInner() {
               company_text: companyInput,
               is_current: true,
               role_title: "",
-              started_at: null,
+              started_at: "2020-01-01",
             });
           }
         } catch {/* best-effort */}
