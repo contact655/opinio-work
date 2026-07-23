@@ -36,6 +36,7 @@ export default async function CreateCompanyPage() {
 
   // ユーザー登録時に入力した所属企業を取得（ow_experiences.is_current=true）
   let prefilledCompanyName: string | null = null;
+  let prefilledCompanyId: string | null = null;
   if (user) {
     const admin = createAdminClient();
     const { data: owUser } = await admin
@@ -53,6 +54,7 @@ export default async function CreateCompanyPage() {
       if (exp) {
         const companyName = (exp.ow_companies as unknown as { name: string } | null)?.name ?? exp.company_text ?? null;
         prefilledCompanyName = companyName;
+        prefilledCompanyId = (exp.company_id as string | null) ?? null;
       }
     }
   }
@@ -66,6 +68,7 @@ export default async function CreateCompanyPage() {
           userBadge={userBadge}
           availableGenres={availableGenres}
           prefilledCompanyName={prefilledCompanyName}
+          prefilledCompanyId={prefilledCompanyId}
         />
       </BusinessLayout>
     );
@@ -84,6 +87,7 @@ export default async function CreateCompanyPage() {
         userBadge={userBadge}
         availableGenres={availableGenres}
         prefilledCompanyName={prefilledCompanyName}
+        prefilledCompanyId={prefilledCompanyId}
       />
     </BusinessLayout>
   );

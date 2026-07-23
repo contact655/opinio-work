@@ -78,10 +78,12 @@ export function CreateCompanyClient({
   userBadge,
   availableGenres = [],
   prefilledCompanyName = null,
+  prefilledCompanyId = null,
 }: {
   userBadge?: UserBadge | null;
   availableGenres?: Genre[];
   prefilledCompanyName?: string | null;
+  prefilledCompanyId?: string | null;
 }) {
   const [name, setName] = useState(prefilledCompanyName ?? "");
   const [prefilledLocked, setPrefilledLocked] = useState(!!prefilledCompanyName);
@@ -124,6 +126,26 @@ export function CreateCompanyClient({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // プリフィル企業が DB に存在する場合はマウント時に即座に conflict を設定
+  useEffect(() => {
+    if (!prefilledCompanyId || !prefilledCompanyName) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/companies/search?q=${encodeURIComponent(prefilledCompanyName)}&limit=5`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const match = (data.results ?? []).find((r: SearchResult) => r.id === prefilledCompanyId);
+        if (match) {
+          setConflict({ id: match.id, name: match.name, admin_count: match.admin_count });
+          setConflictSource("suggestion");
+        }
+      } catch { /* ignore */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 会社名変更 → デバウンスサジェスト検索
