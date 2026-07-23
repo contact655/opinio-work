@@ -88,8 +88,7 @@ export const COMPANY_SECTIONS = [
   { id: "about",     label: "About",        showStatus: true },
   { id: "data",      label: "数値データ",   showStatus: true },
   { id: "workstyle", label: "働き方",       showStatus: true },
-  { id: "reality",   label: "リアル開示",   showStatus: true },
-  { id: "photos",    label: "オフィス写真", showStatus: true },
+{ id: "photos",    label: "オフィス写真", showStatus: true },
   { id: "settings",  label: "公開設定",     showStatus: false },
 ] as const;
 

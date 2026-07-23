@@ -250,7 +250,6 @@ export default async function BizDashboardPage({
               </span>
             </div>
             <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--ink-soft)" }}>
-              <span>リアル開示 {disclosureScore.reality}/40</span>
               <span>数値 {disclosureScore.numbers}/20</span>
               <span>プロフィール {disclosureScore.profile}/40</span>
             </div>
