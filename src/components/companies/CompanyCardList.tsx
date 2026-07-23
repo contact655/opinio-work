@@ -174,7 +174,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
     }
   };
 
-  const stageCfg = getStageCfg(company.funding_stage);
+  const _stageCfg = getStageCfg(company.funding_stage);
   const enName = cleanEnName(company.name_en);
   const displayName = enName ?? stripLegalSuffix(company.name);
   const isEnName = !!enName;

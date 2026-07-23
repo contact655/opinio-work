@@ -46,35 +46,6 @@ function hasSalaryData(min: number | null, max: number | null): boolean {
 }
 
 
-// ⑧ 相対時間表示
-// ③ フェーズバッジ
-const PHASE_BADGE_MAP: Record<string, { bg: string; color: string; label: string }> = {
-  "Pre-seed":      { bg: "#F1F5F9", color: "#475569", label: "プレシード" },
-  "Seed":          { bg: "#FEF3C7", color: "#92400E", label: "シード" },
-  "Series A":      { bg: "#D1FAE5", color: "#065F46", label: "シリーズA" },
-  "Series B":      { bg: "#DBEAFE", color: "#1E40AF", label: "シリーズB" },
-  "Series C":      { bg: "#EDE9FE", color: "#5B21B6", label: "シリーズC" },
-  "Series D":      { bg: "#FEE2E2", color: "#991B1B", label: "シリーズD+" },
-  "Series E":      { bg: "#FEE2E2", color: "#991B1B", label: "シリーズD+" },
-  "東証グロース":  { bg: "#D1FAE5", color: "#065F46", label: "グロース上場" },
-  "東証プライム":  { bg: "#ECFDF5", color: "#065F46", label: "プライム上場" },
-  "上場 (NASDAQ)": { bg: "#ECFDF5", color: "#065F46", label: "NASDAQ上場" },
-  "上場 (NYSE)":   { bg: "#ECFDF5", color: "#065F46", label: "NYSE上場" },
-  "上場":          { bg: "#ECFDF5", color: "#065F46", label: "上場" },
-  "シード":        { bg: "#FEF3C7", color: "#92400E", label: "シード" },
-  "シリーズA":     { bg: "#D1FAE5", color: "#065F46", label: "シリーズA" },
-  "シリーズB":     { bg: "#DBEAFE", color: "#1E40AF", label: "シリーズB" },
-  "シリーズC":     { bg: "#EDE9FE", color: "#5B21B6", label: "シリーズC" },
-  "シリーズD以降": { bg: "#FEE2E2", color: "#991B1B", label: "シリーズD+" },
-  "IPO準備中":     { bg: "#FFEDD5", color: "#9A3412", label: "IPO準備中" },
-  "ユニコーン":    { bg: "#F3E8FF", color: "#7C3AED", label: "🦄 ユニコーン" },
-  "unicorn":       { bg: "#F3E8FF", color: "#7C3AED", label: "🦄 ユニコーン" },
-  "listed":        { bg: "#ECFDF5", color: "#065F46", label: "上場" },
-};
-function getPhaseBadge(phase: string | null | undefined) {
-  if (!phase) return null;
-  return PHASE_BADGE_MAP[phase] ?? { bg: "#F1F5F9", color: "#475569", label: phase };
-}
 
 // ow_profiles.job_type → ow_roles.name のマッピング（パーソナライズ用）
 const JOB_TYPE_TO_ROLE_NAME: Record<string, string> = {
@@ -128,70 +99,6 @@ function getRoleColor(name: string): { color: string; bg: string } {
 
 
 
-// ─── スキルタグ抽出・色分け ───────────────────────────────────────────────────────
-
-// ビジネス系キーワード（アンバー）
-// ── スキルタグ 3カテゴリ色分け ──────────────────────────────────────────────────
-// 言語・英語スキル系 → green
-const LANG_KW = ["英語", "ネイティブ", "TOEIC", "TOEFL", "中国語", "韓国語", "ビジネスレベル"];
-// 技術系キーワード → blue
-const TECH_KW = ["TypeScript","JavaScript","Python","Golang","Ruby","Java","Rust","Swift","Kotlin","PHP","Scala","React","Vue","Angular","Next","Rails","Django","FastAPI","Spring","AWS","GCP","Azure","Docker","Kubernetes","Terraform","Linux","SQL","MySQL","PostgreSQL","MongoDB","Redis","BigQuery","Snowflake","Figma","Sketch","機械学習","自然言語処理","MLOps","LLM","Node"];
-// ビジネス系 → amber
-const BIZ_KW = ["SaaS","B2B","BtoB","CRM","ERP","Salesforce","HubSpot","B2C","DX","SFA","営業経験","法人","エンタープライズ"];
-
-function skillChipStyle(skill: string, isTechStack: boolean): React.CSSProperties {
-  // 言語系: green
-  if (LANG_KW.some(k => skill.includes(k))) {
-    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#F0FDF4", color: "#15803D", border: "1px solid #BBF7D0", whiteSpace: "nowrap" as const };
-  }
-  // 技術系: blue
-  if (isTechStack || TECH_KW.some(k => skill.toLowerCase().includes(k.toLowerCase()))) {
-    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", whiteSpace: "nowrap" as const };
-  }
-  // ビジネス系: amber
-  if (BIZ_KW.some(k => skill.includes(k))) {
-    return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "#FFFBEB", color: "#B45309", border: "1px solid #FDE68A", whiteSpace: "nowrap" as const };
-  }
-  // その他: gray
-  return { fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", whiteSpace: "nowrap" as const };
-}
-
-const TECH_KEYWORD_RE = new RegExp(
-  [
-    "TypeScript", "JavaScript", "Python", "Go(?:lang)?", "Ruby", "Java(?!Script)", "Rust",
-    "Swift", "Kotlin", "PHP", "C\\+\\+", "C#", "Scala", "R言語",
-    "React", "Vue", "Angular", "Next\\.js", "Nuxt", "Rails", "Django", "FastAPI", "Spring",
-    "AWS", "GCP", "Azure", "Docker", "Kubernetes", "Terraform", "Linux",
-    "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis", "BigQuery", "Snowflake",
-    "SaaS", "B2B", "BtoB", "CRM", "ERP", "Salesforce", "HubSpot",
-    "Figma", "Sketch", "機械学習", "自然言語処理", "MLOps", "LLM",
-    "Ruby on Rails", "Node\\.js",
-  ].join("|"),
-  "gi",
-);
-
-function extractSkillChips(required_skills: string[], tech_stack: string[]): string[] {
-  if (tech_stack.length > 0) return tech_stack.slice(0, 3);
-  const chips: string[] = [];
-  const seen = new Set<string>();
-  for (const req of required_skills) {
-    if (chips.length >= 3) break;
-    const trimmed = req.trim();
-    if (trimmed.length <= 14 && trimmed.length >= 2) {
-      const key = trimmed.toLowerCase();
-      if (!seen.has(key)) { seen.add(key); chips.push(trimmed); }
-    } else {
-      // 長い要件文から技術キーワードを抽出
-      const matches = trimmed.match(TECH_KEYWORD_RE) ?? [];
-      for (const m of matches) {
-        if (chips.length >= 3) break;
-        const key = m.toLowerCase();
-        if (!seen.has(key)) { seen.add(key); chips.push(m); }
-      }
-    }
-  }
-  return chips;
-}
 
 // ─── マッチ理由テキスト（フィルター文脈ベース）────────────────────────────────
 
@@ -279,8 +186,6 @@ function JobListItem({
 
   if (!company) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const phaseBadge = getPhaseBadge((company as any).funding_stage ?? (company as any).phase);
   return (
     <div
       className="job-list-card"
@@ -371,11 +276,6 @@ function JobListItem({
             </div>
           )}
 
-          {/* 行3: ①フェーズ ②職種 ③スキルチップ */}
-          {(() => {
-            const techTags = job.tech_stack ?? [];
-            return null;
-          })()}
 
           {/* 行4: 勤務地 · 勤務形態 · 年収 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>

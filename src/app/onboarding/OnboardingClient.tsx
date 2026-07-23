@@ -96,7 +96,7 @@ function OnboardingInner() {
   };
 
   // フリーテキストで登録（DBに見つからない場合）
-  const useAsNew = () => {
+  const confirmFreeText = () => {
     setShowDropdown(false);
   };
 
@@ -384,7 +384,7 @@ function OnboardingInner() {
                     {results.length > 0 && <div style={{ height: 1, background: "var(--line)", margin: "0 12px" }} />}
                     <button
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); useAsNew(); setShowDropdown(false); }}
+                      onMouseDown={(e) => { e.preventDefault(); confirmFreeText(); }}
                       style={{
                         width: "100%", textAlign: "left", background: "none", border: "none",
                         padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
