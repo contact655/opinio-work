@@ -319,13 +319,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {/* 行4: メタ（所在地 + 従業員数） */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
+                <span style={{ fontSize: 11, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
                   <span style={{ whiteSpace: "nowrap" }}>{company.location.replace(/[（(].*/, "").trim().replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
                   {company.branch_locations && company.branch_locations.length > 0 && (
-                    <span style={{ color: "var(--ink-mute)", opacity: 0.75, whiteSpace: "nowrap" }}>
+                    <span style={{ color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
                       ＋{company.branch_locations.slice(0, 2).join("・")}
                       {company.branch_locations.length > 2 && <span style={{ fontSize: 10 }}> 他</span>}
                     </span>
@@ -333,7 +333,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 </span>
               )}
               {company.employee_count && (
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
+                <span style={{ fontSize: 11, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
               )}
             </div>
 
@@ -341,7 +341,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {remoteText && (
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{remoteText}</span>
+                  <span style={{ fontSize: 11, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{remoteText}</span>
                 )}
                 {/* アバターアイコン列（現役・OBOG） */}
                 {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
