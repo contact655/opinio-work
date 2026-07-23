@@ -86,25 +86,18 @@ DELETE FROM ow_roles WHERE id IN (
 );
 
 -- ── 親カテゴリ display_order を IT/SaaS 向け順序に整理 ──
--- エンジニア: 1
-UPDATE ow_roles SET display_order = 1  WHERE id = 'c8140123-e29a-43b3-9dbf-1a3d21a68966';
--- データ・AI: 2
-UPDATE ow_roles SET display_order = 2  WHERE id = '9c7b9128-b2a7-4c40-8a08-5a3bf1ad9c2e';
--- プロダクト: 3
-UPDATE ow_roles SET display_order = 3  WHERE id = '168cd1ab-d096-46cc-ad7e-5baf7f10a0b1';
--- デザイナー: 4
-UPDATE ow_roles SET display_order = 4  WHERE id = '9f8deb80-3c93-450b-ad30-dfab90430ea4';
--- 営業: 5
-UPDATE ow_roles SET display_order = 5  WHERE id = '6938712f-0b29-4682-ac6e-ad112734a3f1';
--- マーケティング: 6
-UPDATE ow_roles SET display_order = 6  WHERE id = '38429140-f784-44c0-8eec-407495044272';
--- カスタマーサクセス: 7
-UPDATE ow_roles SET display_order = 7  WHERE id = 'ad47e554-e328-4aec-abd1-dab9953ddf9d';
--- ソリューションエンジニア・プリセールス: 8
-UPDATE ow_roles SET display_order = 8  WHERE id = 'a1b2c3d4-0000-0000-0000-000000000001';
--- 事業開発: 9
-UPDATE ow_roles SET display_order = 9  WHERE id = 'b49b9bc8-488b-47a5-80b0-9eba4869e910';
--- 経営・CxO: 10
-UPDATE ow_roles SET display_order = 10 WHERE id = '166bebdf-0c26-40df-9713-5f3b958cc96f';
--- コーポレート: 11
-UPDATE ow_roles SET display_order = 11 WHERE id = '23e79605-332b-485d-98c2-d162a491a409';
+UPDATE ow_roles SET display_order = 1  WHERE id = '166bebdf-0c26-40df-9713-5f3b958cc96f'; -- 経営・CxO
+UPDATE ow_roles SET display_order = 2  WHERE id = 'b49b9bc8-488b-47a5-80b0-9eba4869e910'; -- 事業開発
+UPDATE ow_roles SET display_order = 3  WHERE id = '6938712f-0b29-4682-ac6e-ad112734a3f1'; -- 営業
+UPDATE ow_roles SET display_order = 4  WHERE id = 'ad47e554-e328-4aec-abd1-dab9953ddf9d'; -- カスタマーサクセス
+UPDATE ow_roles SET display_order = 5  WHERE id = '38429140-f784-44c0-8eec-407495044272'; -- マーケティング
+UPDATE ow_roles SET display_order = 6  WHERE id = '168cd1ab-d096-46cc-ad7e-5baf7f10a0b1'; -- プロダクト
+UPDATE ow_roles SET display_order = 7  WHERE id = '9c7b9128-b2a7-4c40-8a08-5a3bf1ad9c2e'; -- データ・AI
+UPDATE ow_roles SET display_order = 8  WHERE id = 'c8140123-e29a-43b3-9dbf-1a3d21a68966'; -- エンジニア
+UPDATE ow_roles SET display_order = 9  WHERE id = '23e79605-332b-485d-98c2-d162a491a409'; -- コーポレート
+UPDATE ow_roles SET display_order = 10 WHERE id = 'a1b2c3d4-0000-0000-0000-000000000001'; -- ソリューションエンジニア・プリセールス
+
+-- デザイナーをプロダクト配下に移動
+UPDATE ow_roles
+SET parent_id = '168cd1ab-d096-46cc-ad7e-5baf7f10a0b1', display_order = 7
+WHERE id = '9f8deb80-3c93-450b-ad30-dfab90430ea4';
