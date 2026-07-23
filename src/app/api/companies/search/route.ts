@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
 
   const { data: companies, error } = await supabase
     .from("ow_companies")
-    .select("id, name, logo_url, industry, employee_count")
+    .select("id, name, brand_name, logo_url, industry, employee_count")
     .eq("is_published", true)
-    .ilike("name", `%${safeQ}%`)
+    .or(`name.ilike.%${safeQ}%,brand_name.ilike.%${safeQ}%`)
     .order("name")
     .limit(limit);
 
