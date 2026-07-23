@@ -224,15 +224,25 @@ function OnboardingInner() {
             </div>
 
             {/* 採用担当者・企業の方向け導線 */}
-            <div style={{ marginTop: 16, textAlign: "center" }}>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>採用担当者・企業の方は </span>
-              <a
-                href="/biz/auth"
-                style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
-              >
-                こちら →
-              </a>
-            </div>
+            <a
+              href="/biz/auth"
+              style={{
+                marginTop: 12,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "13px 16px",
+                background: "var(--royal-50)",
+                border: "1px solid var(--royal-100)",
+                borderRadius: 10, textDecoration: "none",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
+                <span style={{ fontSize: 14, color: "var(--royal)", fontWeight: 700 }}>採用担当者・企業の方はこちら</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
           </div>
         </div>
       </div>
