@@ -374,30 +374,7 @@ function JobListItem({
           {/* 行3: ①フェーズ ②職種 ③スキルチップ */}
           {(() => {
             const techTags = job.tech_stack ?? [];
-            const chips = extractSkillChips(job.required_skills, techTags);
-            const isTechStack = techTags.length > 0;
-            const hasRow = phaseBadge || job.dept || chips.length > 0;
-            if (!hasRow) return null;
-            return (
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 5, alignItems: "center" }}>
-                {/* ① フェーズバッジ（ユニコーン等） */}
-                {phaseBadge && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
-                    background: phaseBadge.bg, color: phaseBadge.color,
-                    border: `1px solid ${phaseBadge.color}40`, flexShrink: 0,
-                  }}>
-                    {phaseBadge.label}
-                  </span>
-                )}
-                {/* ③ スキルチップ */}
-                {chips.map((skill) => (
-                  <span key={skill} style={skillChipStyle(skill, isTechStack)}>
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            );
+            return null;
           })()}
 
           {/* 行4: 勤務地 · 勤務形態 · 年収 */}
