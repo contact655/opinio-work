@@ -30,11 +30,24 @@ function OnboardingInner() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auth guard + focus
+  // Auth guard + 完了済みチェック
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) router.push("/auth/login?next=" + encodeURIComponent("/onboarding"));
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) {
+        router.push("/auth/login?next=" + encodeURIComponent("/onboarding"));
+        return;
+      }
+      // すでにオンボーディング完了済みなら /companies へ
+      const { data: profile } = await supabase
+        .from("ow_profiles")
+        .select("onboarding_completed")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profile?.onboarding_completed) {
+        router.replace("/companies");
+        return;
+      }
     });
     setTimeout(() => inputRef.current?.focus(), 100);
   }, [router]);
