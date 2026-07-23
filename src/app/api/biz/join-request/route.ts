@@ -8,8 +8,8 @@ import { joinRequestTemplate } from "@/lib/notify/templates";
  * POST /api/biz/join-request
  *
  * 既存企業への参加リクエスト。
- * 認証済みユーザーが同名企業の重複登録を試みた際に呼ばれる。
- * 対象企業のアクティブAdmin全員にメール通知する。
+ * - 管理者ゼロ（OPINIO側で先行登録済み）の場合 → 即時承認して admin に追加、auto_approved: true を返す
+ * - 管理者あり → 既存 admin 全員にメール通知
  */
 export async function POST(req: Request) {
   const supabase = createClient();
@@ -80,12 +80,34 @@ export async function POST(req: Request) {
     return u?.email ? [{ name: u.name ?? "管理者", email: u.email }] : [];
   });
 
+  // ── 管理者ゼロ = OPINIO側先行登録済み企業 → 即時承認 ──────────────────────
   if (adminList.length === 0) {
-    // Admin が見つからない場合はOPINIO運営へ転送
-    adminList.push({ name: "OPINIO運営", email: process.env.ADMIN_EMAIL ?? "contact@opinio.co.jp" });
+    const { error: insertError } = await admin
+      .from("ow_company_admins")
+      .insert({
+        company_id: companyId,
+        user_id: requester.id,
+        permission: "admin",
+        is_active: true,
+      });
+
+    if (insertError) {
+      console.error("[join-request] auto-approve failed", insertError);
+      return NextResponse.json({ error: "自動承認に失敗しました。時間をおいて再度お試しください。" }, { status: 500 });
+    }
+
+    // ow_user_roles にも tenant_id を登録（biz dashboard のテナント解決に必要）
+    await admin.from("ow_user_roles").upsert({
+      user_id: requester.id,
+      role: "company_admin",
+      tenant_id: companyId,
+    }, { onConflict: "user_id,role,tenant_id" });
+
+    console.info(`[join-request] auto-approved user=${requester.id} for company=${companyId}`);
+    return NextResponse.json({ success: true, auto_approved: true });
   }
 
-  // 各Adminへメール送信（best-effort）
+  // ── 管理者あり → 既存 admin にメール通知 ──────────────────────────────────
   const results = await Promise.allSettled(
     adminList.map((a) =>
       sendEmail(

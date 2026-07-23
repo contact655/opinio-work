@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 
@@ -102,6 +103,7 @@ export function CreateCompanyClient({
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
   const [joinRequestSent, setJoinRequestSent] = useState(false);
 
+  const router = useRouter();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -175,7 +177,19 @@ export function CreateCompanyClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ company_id: conflict.id }),
       });
-      if (res.ok || res.status === 409) {
+      if (res.status === 409) {
+        // すでにメンバー → ダッシュボードへ
+        router.push("/biz/dashboard");
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        if (data.auto_approved) {
+          // 管理者ゼロ → 即時承認 → ダッシュボードへ
+          router.push("/biz/dashboard");
+          return;
+        }
+        // 管理者あり → 既存担当者へ通知済み
         setJoinRequestSent(true);
       } else {
         setError("リクエストの送信に失敗しました。時間をおいて再度お試しください。");
