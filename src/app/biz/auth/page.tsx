@@ -61,7 +61,8 @@ function BizAuthInner() {
   const modeParam = searchParams.get("mode");
   const isInviteContext = searchParams.get("context") === "invite";
 
-  const [mode, setMode] = useState<Mode>(modeParam === "login" ? "login" : "signup");
+  // 招待コンテキストのみ signup を初期表示。通常はログインのみ
+  const [mode, setMode] = useState<Mode>(isInviteContext ? "signup" : "login");
   const [checkingSession, setCheckingSession] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; email: string } | null>(null);
 
@@ -339,9 +340,9 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
             求職者の方はこちら →
           </a>
         </div>
-        {/* ⑤ Mode tabs — active = solid royal */}
-        <ModeTabBar mode={mode} onChange={setMode} />
-        {mode === "signup" ? (
+        {/* 招待コンテキストのみタブを表示。通常はログインのみ */}
+        {inviteContext && <ModeTabBar mode={mode} onChange={setMode} />}
+        {inviteContext && mode === "signup" ? (
           <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} />
         ) : (
           <LoginForm
@@ -1167,7 +1168,15 @@ function LoginForm({ onSwitchToSignup, prefillEmail, pendingCompany, next, route
         </button>
       </form>
 
-      <SwitchRow label="アカウントをお持ちでない方は" action="新規登録（無料）" onClick={onSwitchToSignup} />
+      <div style={{ textAlign: "center", fontSize: 13, color: "var(--ink-mute)", marginTop: 20 }}>
+        アカウントをお持ちでない方は{" "}
+        <a
+          href="/auth?next=/biz/companies/add/new"
+          style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
+        >
+          無料会員登録はこちら →
+        </a>
+      </div>
     </div>
   );
 }
