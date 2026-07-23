@@ -208,6 +208,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         `}</style>
         <Link
           href={`/companies/${company.slug ?? company.id}`}
+          target="_blank"
           className="clv-card"
           style={{
             display: "flex",
@@ -394,6 +395,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
       `}</style>
       <Link
         href={`/companies/${company.slug ?? company.id}`}
+        target="_blank"
         className="company-list-card"
         style={{
           display: "flex",

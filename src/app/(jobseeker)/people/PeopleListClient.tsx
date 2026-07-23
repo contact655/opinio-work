@@ -242,6 +242,7 @@ function GridCard({ card }: { card: AmbassadorCard }) {
       <div style={{ marginTop: "auto", width: "100%" }}>
         <Link
           href={`/u/${card.userId}`}
+          target="_blank"
           onClick={(e) => e.stopPropagation()}
           style={{
             display: "block", textAlign: "center",

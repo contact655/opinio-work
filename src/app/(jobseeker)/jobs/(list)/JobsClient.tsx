@@ -201,6 +201,7 @@ function JobListItem({
     >
       <Link
         href={`/jobs/${job.slug ?? job.id}`}
+        target="_blank"
         prefetch
         className="job-list-item-link"
         style={{
@@ -353,6 +354,7 @@ function JobListItem({
         {/* 詳細を見る */}
         <a
           href={`/jobs/${job.slug ?? job.id}`}
+          target="_blank"
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,

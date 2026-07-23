@@ -145,6 +145,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
   return (
     <Link
       href={`/companies/${company.slug ?? company.id}`}
+      target="_blank"
       className="genre-card"
     >
 
