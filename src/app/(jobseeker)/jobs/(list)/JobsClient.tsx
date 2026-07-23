@@ -36,9 +36,10 @@ const PER_PAGE = 15;
 
 function formatSalary(min: number | null, max: number | null): string {
   if (!min && !max) return "給与非公開";
-  if (min && max) return `${min}〜${max}万円`;
-  if (max) return `〜${max}万円`;
-  return `${min}万円〜`;
+  const fmt = (v: number) => v.toLocaleString("ja-JP");
+  if (min && max) return `年収${fmt(min)}万円〜${fmt(max)}万円`;
+  if (max) return `年収〜${fmt(max)}万円`;
+  return `年収${fmt(min!)}万円〜`;
 }
 function hasSalaryData(min: number | null, max: number | null): boolean {
   return !!(min || max);
