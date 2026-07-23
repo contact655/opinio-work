@@ -243,13 +243,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           }}>
             {/* 行1: バッジ + ブックマーク */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {stageCfg && (
-                <span style={{
-                  fontSize: 11, fontWeight: stageCfg.fontWeight ?? 700, padding: "2px 7px", borderRadius: 100,
-                  background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}>{stageCfg.label}</span>
-              )}
               {company.accepting_casual_meetings && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
@@ -430,12 +423,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* バッジ行 */}
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 4 }}>
-            {stageCfg && (
-              <span style={{
-                fontSize: 11, fontWeight: stageCfg.fontWeight ?? 700, padding: "2px 8px", borderRadius: 100,
-                background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
-              }}>{stageCfg.label}</span>
-            )}
           </div>
 
           {/* 会社名 */}
