@@ -222,6 +222,17 @@ function OnboardingInner() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
             </div>
+
+            {/* 採用担当者・企業の方向け導線 */}
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>採用担当者・企業の方は </span>
+              <a
+                href="/biz/auth"
+                style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
+              >
+                こちら →
+              </a>
+            </div>
           </div>
         </div>
       </div>

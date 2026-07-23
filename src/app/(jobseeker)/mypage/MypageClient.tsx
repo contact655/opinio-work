@@ -335,6 +335,26 @@ function DashboardView({
         isMentor={false}
       />
 
+      {/* ── 採用担当者・企業の方向け導線 ── */}
+      <a
+        href="/biz/auth"
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", marginBottom: 16,
+          background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)",
+          borderRadius: 10, textDecoration: "none",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          </svg>
+          <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600 }}>採用担当者・企業の方はこちら</span>
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+
       {/* ── あなたの母校 ── */}
       {(() => {
         const schoolEdus = (userEducations ?? []).filter(
