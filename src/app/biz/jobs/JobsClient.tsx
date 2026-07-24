@@ -18,6 +18,8 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [empTypeFilter, setEmpTypeFilter] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -73,9 +75,25 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
 
   const counts = useMemo(() => countByStatus(jobs), [jobs]);
 
+  // 職種カテゴリの選択肢を求人データから動的生成
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    jobs.forEach((j) => { if (j.jobCategory) set.add(j.jobCategory); });
+    return Array.from(set).sort();
+  }, [jobs]);
+
+  // 雇用形態の選択肢を求人データから動的生成
+  const empTypeOptions = useMemo(() => {
+    const set = new Set<string>();
+    jobs.forEach((j) => { if (j.employmentType) set.add(j.employmentType); });
+    return Array.from(set).sort();
+  }, [jobs]);
+
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
       if (activeStatus !== "all" && j.status !== activeStatus) return false;
+      if (categoryFilter && j.jobCategory !== categoryFilter) return false;
+      if (empTypeFilter && j.employmentType !== empTypeFilter) return false;
       const q = searchQuery.toLowerCase().trim();
       if (!q) return true;
       return (
@@ -84,9 +102,9 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
         (j.department ?? "").toLowerCase().includes(q)
       );
     });
-  }, [jobs, activeStatus, searchQuery]);
+  }, [jobs, activeStatus, searchQuery, categoryFilter, empTypeFilter]);
 
-  const hasFilters = activeStatus !== "all" || !!searchQuery.trim();
+  const hasFilters = activeStatus !== "all" || !!searchQuery.trim() || !!categoryFilter || !!empTypeFilter;
 
   return (
     <div>
@@ -155,6 +173,46 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
         </div>
 
         <div style={{ flex: 1 }} />
+
+        {/* 職種カテゴリ */}
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          style={{
+            height: 34, padding: "0 28px 0 10px", border: `1px solid ${categoryFilter ? "var(--royal)" : "var(--line)"}`,
+            borderRadius: 8, fontFamily: "inherit", fontSize: 12,
+            color: categoryFilter ? "var(--royal)" : "var(--ink-soft)",
+            fontWeight: categoryFilter ? 700 : 400,
+            background: categoryFilter ? "var(--royal-50)" : "#fff",
+            outline: "none", cursor: "pointer",
+            appearance: "none" as const,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center",
+          }}
+        >
+          <option value="">職種（すべて）</option>
+          {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        {/* 雇用形態 */}
+        <select
+          value={empTypeFilter}
+          onChange={(e) => setEmpTypeFilter(e.target.value)}
+          style={{
+            height: 34, padding: "0 28px 0 10px", border: `1px solid ${empTypeFilter ? "var(--royal)" : "var(--line)"}`,
+            borderRadius: 8, fontFamily: "inherit", fontSize: 12,
+            color: empTypeFilter ? "var(--royal)" : "var(--ink-soft)",
+            fontWeight: empTypeFilter ? 700 : 400,
+            background: empTypeFilter ? "var(--royal-50)" : "#fff",
+            outline: "none", cursor: "pointer",
+            appearance: "none" as const,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center",
+          }}
+        >
+          <option value="">雇用形態（すべて）</option>
+          {empTypeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
 
         {/* 検索ボックス */}
         <div style={{ position: "relative" }}>
