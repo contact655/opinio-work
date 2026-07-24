@@ -3,14 +3,29 @@
 作成: 2026-07-24 セッション28（部門・職種マスタ実装後）  
 実測日: 2026-07-24
 
+> ⚠️ **件数に関する注記（2026-07-24 調査済み）**
+>
+> CLAUDE.md はセッション26時点で「公開求人 74件」と記録しているが、
+> 2026-07-24 時点の DB 実測値は **20件（published 18 / draft 2）**。
+>
+> **原因（確定）:** CLAUDE.md が「手動適用済み ✅」と記録している
+> Migration 166（Salesforce Japan 106件）、168（Archi Village 18件）、
+> 169（medimo 25件）、231（106件削除）、257（expires_at NULL化）が
+> DB の schema_migrations に存在しない。
+> これらの migrations は当該 Supabase プロジェクトに適用されていなかった。
+>
+> RLS・soft delete（deleted_at なし）・expires_at（全件 NULL）はいずれも原因ではない。
+> **件数の正値は 20件（service role, フィルタなし）。**
+
 ---
 
-## 実測値サマリー（2026-07-24 時点）
+## 実測値サマリー（2026-07-24 時点、service role 実行）
 
 ```sql
--- 分母
 SELECT count(*) FROM ow_jobs WHERE status = 'published';  -- 18件
 SELECT count(*) FROM ow_jobs;                             -- 20件（下書き2件含む）
+-- expires_at: 全件 NULL（除外ゼロ）
+-- deleted_at カラム: 存在しない
 ```
 
 ---
@@ -159,16 +174,16 @@ SELECT count(*) FROM ow_company_job_roles WHERE deleted_at IS NULL;
 .limit(20)
 ```
 
-**2026-07-24 時点の実態**
+**2026-07-24 時点の実態（実測）**
 
-- 公開求人: 18件
+- 公開求人: 18件（service role 実測）
 - 上限: 20件
-- 現在の影響: なし（全公開求人が limit 内に収まっている）
+- 現在の影響: なし（18 < 20 のため全公開求人が対象）
 
 **将来リスク**
 
 公開求人が21件を超えた時点で、新しい20件以外の求人が weekly-match メールから除外される。  
-どの求人をメールに含めるかは現在「作成日が新しい順」で暗黙的に決まっている。
+どの求人をメールに含めるかは「作成日が新しい順」で暗黙的に決まっている。
 
 **対応方針（未着手）**
 
