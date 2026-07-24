@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   const { data: companies, error } = await supabase
     .from("ow_companies")
-    .select("id, name, brand_name, logo_url, industry, employee_count")
+    .select("id, name, brand_name, logo_url, industry, employee_count, url")
     .eq("is_published", true)
     .or(`name.ilike.%${safeQ}%,brand_name.ilike.%${safeQ}%`)
     .order("name")
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
     logo_url: c.logo_url ?? null,
     industry: c.industry ?? null,
     employee_count: c.employee_count ?? null,
+    url: (c as { url?: string | null }).url ?? null,
   }));
 
   return NextResponse.json({ results });

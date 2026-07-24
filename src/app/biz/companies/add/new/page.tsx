@@ -3,7 +3,6 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CreateCompanyClient } from "./CreateCompanyClient";
-import type { Genre } from "@/components/ui/GenreChipSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +15,7 @@ export default async function CreateCompanyPage() {
 
   // ログインユーザー情報（テナントの有無に関わらず取得）
   const supabase = createClient();
-  const [{ data: { user } }, genresResult] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("ow_genres")
-      .select("slug, name, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true }),
-  ]);
+  const { data: { user } } = await supabase.auth.getUser();
 
   const userBadge = user
     ? {
@@ -32,7 +24,6 @@ export default async function CreateCompanyPage() {
       }
     : null;
 
-  const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
   // biz auth 登録時の規約同意フラグ（user_metadata から）
   const agreedTermsBusiness = (user?.user_metadata?.agreed_terms_business as boolean | undefined) ?? false;
@@ -94,8 +85,7 @@ export default async function CreateCompanyPage() {
       <BusinessLayout userName={userName}>
         <CreateCompanyClient
           userBadge={userBadge}
-          availableGenres={availableGenres}
-          prefilledCompanyName={prefilledCompanyName}
+            prefilledCompanyName={prefilledCompanyName}
           prefilledCompanyId={prefilledCompanyId}
           prefilledIndustry={prefilledIndustry}
           agreedTermsBusiness={agreedTermsBusiness}
@@ -117,7 +107,6 @@ export default async function CreateCompanyPage() {
     >
       <CreateCompanyClient
         userBadge={userBadge}
-        availableGenres={availableGenres}
         prefilledCompanyName={prefilledCompanyName}
         prefilledCompanyId={prefilledCompanyId}
         prefilledIndustry={prefilledIndustry}

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -18,6 +17,7 @@ type SearchResult = {
   logo_url: string | null;
   industry: string | null;
   admin_count: number;
+  url?: string | null;
 };
 
 type ConflictInfo = {
@@ -76,7 +76,7 @@ const labelStyle: React.CSSProperties = {
 
 export function CreateCompanyClient({
   userBadge,
-  availableGenres = [],
+
   prefilledCompanyName = null,
   prefilledCompanyId = null,
   prefilledIndustry = null,
@@ -85,7 +85,7 @@ export function CreateCompanyClient({
   agreedTermsVersion = null,
 }: {
   userBadge?: UserBadge | null;
-  availableGenres?: Genre[];
+
   prefilledCompanyName?: string | null;
   prefilledCompanyId?: string | null;
   prefilledIndustry?: string | null;
@@ -112,7 +112,6 @@ export function CreateCompanyClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [industry, setIndustry] = useState(prefilledIndustry ?? "");
-  const [genres, setGenres] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +149,27 @@ export function CreateCompanyClient({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // プリフィル企業名からマスタ検索 → 業界・URLを自動入力
+  useEffect(() => {
+    const companyName = prefilledCompanyName || name;
+    if (!companyName || companyName.length < 2) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/companies/search?q=${encodeURIComponent(companyName)}&limit=5`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const exact = (data.results ?? []).find(
+          (r: SearchResult) => r.name === companyName || r.name.includes(companyName) || companyName.includes(r.name)
+        );
+        if (exact) {
+          if (exact.industry && !industry) setIndustry(exact.industry);
+          if (exact.url && !website) setWebsite(exact.url);
+        }
+      } catch { /* ignore */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // プリフィル企業が DB に存在する場合はマウント時に即座に conflict を設定
@@ -206,9 +226,11 @@ export function CreateCompanyClient({
     }, 350);
   }, []);
 
-  // サジェストを選択（入力欄にセット）
+  // サジェストを選択（入力欄にセット + 業界・URLを自動入力）
   function handleSelectSuggestion(s: SearchResult) {
     setName(s.name);
+    if (s.industry) setIndustry(s.industry);
+    if (s.url) setWebsite(s.url);
     setShowSuggestions(false);
     setSuggestions([]);
     setConflict({ id: s.id, name: s.name, admin_count: s.admin_count });
@@ -270,7 +292,7 @@ export function CreateCompanyClient({
           industry: industry || null,
           website: website.trim() || null,
           force_create: forceCreate,
-          genres,
+
           agreed_terms_business: agreedTermsBusiness || undefined,
           agreed_fee_pct15: agreedFeePct15 || undefined,
           agreed_terms_version: agreedTermsVersion || undefined,
@@ -686,27 +708,6 @@ export function CreateCompanyClient({
             ))}
           </select>
         </div>
-        )}
-
-        {/* 企業ジャンル — conflict中は非表示 */}
-        {!conflict && availableGenres.length > 0 && (
-          <div>
-            <label style={labelStyle}>
-              企業ジャンル
-              <span style={{ fontWeight: 400, color: "var(--ink-mute)", marginLeft: 6, fontSize: 11 }}>
-                任意・複数選択可
-              </span>
-            </label>
-            <GenreChipSelector
-              genres={availableGenres}
-              selected={genres}
-              onChange={setGenres}
-              disabled={loading}
-            />
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.6 }}>
-              該当するジャンルを選択してください。検索や一覧表示で活用されます。
-            </div>
-          </div>
         )}
 
         {/* 企業サイト URL — conflict中は非表示 */}
