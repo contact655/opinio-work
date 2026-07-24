@@ -431,31 +431,6 @@ export default function CandidatesClient({
         </div>
       </div>
 
-      {/* ── 転職意欲 ──────────────────────────────────────────────────── */}
-      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>転職意欲</SidebarLabel>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 10 }}>
-          <input
-            type="checkbox"
-            checked={openToWorkOnly}
-            onChange={(e) => setOpenToWorkOnly(e.target.checked)}
-            style={{ width: 14, height: 14, accentColor: "var(--success)", cursor: "pointer" }}
-          />
-          <span style={{ fontSize: 12, color: openToWorkOnly ? "var(--success)" : "var(--ink-soft)", fontWeight: openToWorkOnly ? 700 : 400 }}>
-            転職検討中のみ
-          </span>
-        </label>
-        <SidebarLabel>転職時期</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          {TRANSFER_TIMING_OPTIONS.map(({ value, label }) => (
-            <Pill key={value} active={selectedTransferTimings.includes(value)} color="warm"
-              onClick={() => setSelectedTransferTimings(toggleMulti(selectedTransferTimings, value))}>
-              {label}
-            </Pill>
-          ))}
-        </div>
-      </div>
-
       {/* ── 経歴・職種 ────────────────────────────────────────────────── */}
       <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
         <SidebarLabel>現在の職種タイトル</SidebarLabel>
