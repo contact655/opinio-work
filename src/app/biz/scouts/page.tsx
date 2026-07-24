@@ -67,30 +67,48 @@ export default async function BizScoutsPage() {
       currentTenantId={ctx.tenantId}
     >
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
-        {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px" }}>スカウト管理</h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>送信済みスカウトの返答状況を確認できます。</p>
-        </div>
-
-        {/* Stats strip */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
-          {[
-            { label: "送信合計", value: `${counts.total}件`, color: "var(--ink)" },
-            { label: "返答待ち", value: `${counts.pending}件`, color: "var(--royal)" },
-            { label: "興味あり", value: `${counts.interested}件`, color: "var(--success)" },
-            ...(counts.replyRate !== null ? [{ label: "返信率", value: `${counts.replyRate}%`, color: "#7C3AED" }] : []),
-          ].map((stat) => (
-            <div key={stat.label} style={{
-              background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-              padding: "16px 24px", minWidth: 120,
-            }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: stat.color, fontFamily: "Inter, sans-serif" }}>
-                {stat.value}
+        {/* 上部バー: ステータスタブ + ボタン */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+          {/* ステータスタブ */}
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {[
+              { label: "すべて", count: counts.total, active: true },
+              { label: "返答待ち", count: counts.pending, active: false },
+              { label: "興味あり", count: counts.interested, active: false, success: true },
+              ...(counts.replyRate !== null ? [{ label: `返信率 ${counts.replyRate}%`, count: null, active: false, purple: true }] : []),
+            ].map((tab) => (
+              <div key={tab.label} style={{
+                padding: "7px 13px",
+                background: tab.active ? "var(--royal)" : "#fff",
+                border: `1px solid ${tab.active ? "var(--royal)" : (tab as any).success ? "#6EE7B7" : (tab as any).purple ? "#C4B5FD" : "var(--line)"}`,
+                borderRadius: 100, fontSize: 12, fontWeight: 600,
+                color: tab.active ? "#fff" : (tab as any).success ? "var(--success)" : (tab as any).purple ? "#7C3AED" : "var(--ink-soft)",
+                display: "flex", alignItems: "center", gap: 5,
+              }}>
+                {tab.label}
+                {tab.count !== null && (
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
+                    {tab.count}
+                  </span>
+                )}
               </div>
-              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>{stat.label}</div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          {/* 候補者を探すボタン */}
+          <Link href="/biz/candidates" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "8px 16px", background: "var(--royal)", color: "#fff",
+            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
+            flexShrink: 0, whiteSpace: "nowrap",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
+            </svg>
+            候補者を探す
+          </Link>
         </div>
 
         {/* Table */}
