@@ -34,6 +34,12 @@ export default async function CreateCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
+  // biz auth 登録時の規約同意フラグ（user_metadata から）
+  const agreedTermsBusiness = (user?.user_metadata?.agreed_terms_business as boolean | undefined) ?? false;
+  const agreedFeePct15 = (user?.user_metadata?.agreed_fee_pct15 as boolean | undefined) ?? false;
+  const agreedTermsVersion = (user?.user_metadata?.agreed_terms_version as string | undefined) ?? null;
+  const prefilledIndustry = (user?.user_metadata?.pending_industry as string | undefined) ?? null;
+
   // ユーザー登録時に入力した所属企業を取得
   // 優先順位: user_metadata.pending_company > ow_experiences.is_current=true
   let prefilledCompanyName: string | null = null;
@@ -91,6 +97,10 @@ export default async function CreateCompanyPage() {
           availableGenres={availableGenres}
           prefilledCompanyName={prefilledCompanyName}
           prefilledCompanyId={prefilledCompanyId}
+          prefilledIndustry={prefilledIndustry}
+          agreedTermsBusiness={agreedTermsBusiness}
+          agreedFeePct15={agreedFeePct15}
+          agreedTermsVersion={agreedTermsVersion}
         />
       </BusinessLayout>
     );
@@ -110,6 +120,10 @@ export default async function CreateCompanyPage() {
         availableGenres={availableGenres}
         prefilledCompanyName={prefilledCompanyName}
         prefilledCompanyId={prefilledCompanyId}
+        prefilledIndustry={prefilledIndustry}
+        agreedTermsBusiness={agreedTermsBusiness}
+        agreedFeePct15={agreedFeePct15}
+        agreedTermsVersion={agreedTermsVersion}
       />
     </BusinessLayout>
   );

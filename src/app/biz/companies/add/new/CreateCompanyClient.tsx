@@ -79,11 +79,19 @@ export function CreateCompanyClient({
   availableGenres = [],
   prefilledCompanyName = null,
   prefilledCompanyId = null,
+  prefilledIndustry = null,
+  agreedTermsBusiness = false,
+  agreedFeePct15 = false,
+  agreedTermsVersion = null,
 }: {
   userBadge?: UserBadge | null;
   availableGenres?: Genre[];
   prefilledCompanyName?: string | null;
   prefilledCompanyId?: string | null;
+  prefilledIndustry?: string | null;
+  agreedTermsBusiness?: boolean;
+  agreedFeePct15?: boolean;
+  agreedTermsVersion?: string | null;
 }) {
   const [name, setName] = useState(prefilledCompanyName ?? "");
   const [prefilledLocked, setPrefilledLocked] = useState(!!prefilledCompanyName);
@@ -103,7 +111,7 @@ export function CreateCompanyClient({
     } catch { /* ignore */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [industry, setIndustry] = useState("");
+  const [industry, setIndustry] = useState(prefilledIndustry ?? "");
   const [genres, setGenres] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
@@ -263,6 +271,9 @@ export function CreateCompanyClient({
           website: website.trim() || null,
           force_create: forceCreate,
           genres,
+          agreed_terms_business: agreedTermsBusiness || undefined,
+          agreed_fee_pct15: agreedFeePct15 || undefined,
+          agreed_terms_version: agreedTermsVersion || undefined,
         }),
       });
       const data = await res.json();

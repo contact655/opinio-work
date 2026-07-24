@@ -566,7 +566,14 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name: contactName, pending_company: companyName } },
+        options: { data: {
+          name: contactName,
+          pending_company: companyName,
+          pending_industry: industry || null,
+          agreed_terms_business: agreedTerms,
+          agreed_fee_pct15: agreedFee,
+          agreed_terms_version: "2026-07",
+        } },
       });
 
       if (authError) {
@@ -586,37 +593,8 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         return;
       }
 
-      const res = await fetch("/api/biz/companies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: companyName,
-          industry,
-          size: employeeCount,
-          genres: [],
-          agreedTermsBusiness: agreedTerms,
-          agreedFeePct15: agreedFee,
-          agreedTermsVersion: "2026-07",
-        }),
-      });
-
-      if (!res.ok) {
-        const result = await res.json();
-        if (result.error === "company_name_exists" && result.existing_company) {
-          setExistingCompany({
-            id: result.existing_company.id,
-            name: result.existing_company.name,
-            adminCount: result.existing_company.admin_count ?? 0,
-          });
-          return;
-        }
-        setError(result.error || "企業情報の登録に失敗しました。もう一度お試しください。");
-        return;
-      }
-
-      // 初回開設時は ?welcome=1 を付けてダッシュボードへ
-      const dashboardUrl = next && next !== "/biz/dashboard" ? next : "/biz/dashboard?welcome=1";
-      window.location.replace(dashboardUrl);
+      // signUp 完了後は /biz/companies/add/new へ遷移（会社名は user_metadata.pending_company からプリフィル）
+      window.location.replace("/biz/companies/add/new");
     } catch {
       setError("エラーが発生しました。時間をおいて再度お試しください。");
     } finally {
