@@ -34,27 +34,34 @@ export default async function CreateCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
-  // ユーザー登録時に入力した所属企業を取得（ow_experiences.is_current=true）
+  // ユーザー登録時に入力した所属企業を取得
+  // 優先順位: user_metadata.pending_company > ow_experiences.is_current=true
   let prefilledCompanyName: string | null = null;
   let prefilledCompanyId: string | null = null;
   if (user) {
-    const admin = createAdminClient();
-    const { data: owUser } = await admin
-      .from("ow_users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-    if (owUser) {
-      const { data: exp } = await admin
-        .from("ow_experiences")
-        .select("company_text, company_id, ow_companies(name)")
-        .eq("user_id", owUser.id)
-        .eq("is_current", true)
+    // 1. biz auth 登録時に保存した会社名
+    const metaCompany = (user.user_metadata?.pending_company as string | undefined) ?? null;
+    if (metaCompany) {
+      prefilledCompanyName = metaCompany;
+    } else {
+      // 2. 求職者プロフィールの現職企業
+      const admin = createAdminClient();
+      const { data: owUser } = await admin
+        .from("ow_users")
+        .select("id")
+        .eq("auth_id", user.id)
         .maybeSingle();
-      if (exp) {
-        const companyName = (exp.ow_companies as unknown as { name: string } | null)?.name ?? exp.company_text ?? null;
-        prefilledCompanyName = companyName;
-        prefilledCompanyId = (exp.company_id as string | null) ?? null;
+      if (owUser) {
+        const { data: exp } = await admin
+          .from("ow_experiences")
+          .select("company_text, company_id, ow_companies(name)")
+          .eq("user_id", owUser.id)
+          .eq("is_current", true)
+          .maybeSingle();
+        if (exp) {
+          prefilledCompanyName = (exp.ow_companies as unknown as { name: string } | null)?.name ?? exp.company_text ?? null;
+          prefilledCompanyId = (exp.company_id as string | null) ?? null;
+        }
       }
     }
   }

@@ -566,7 +566,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name: contactName } },
+        options: { data: { name: contactName, pending_company: companyName } },
       });
 
       if (authError) {
