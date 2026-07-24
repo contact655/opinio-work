@@ -44,7 +44,7 @@ export function CompanyEditSubNav({
   isPublishing,
   isAdmin,
   termsAgreed,
-  onShowTermsSection,
+  onShowTermsSection: _onShowTermsSection,
   saveState,
   saveStatusText,
   onRetrySave,
