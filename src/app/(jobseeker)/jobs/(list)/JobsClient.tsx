@@ -414,17 +414,17 @@ function JobListItem({
 
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
-
 function SidebarFilters({
-  parentRoles, category, workStyle: _workStyle, salary: _salary, salaryMax: _salaryMax, empType: _empType, prefecture, bizModel: _bizModel,
+  parentRoles, category, workStyle, salary, salaryMax: _salaryMax, empType, prefecture, bizModel: _bizModel,
   companyStage, onCompanyStageChange: _onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
   availablePrefectures, setParam, hasFilter, q, onReset,
   industries: _industries, industryId: _industryId, roleCounts,
-  toggleParam: toggleParamFn, toggleStage: _toggleStage,
+  toggleParam: toggleParamFn, toggleStage,
+  industry,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
-  bizModel: string;
+  bizModel: string; industry: string;
   companyStage: string; onCompanyStageChange: (v: string) => void;
   techStack: string[]; onTechStackChange: (v: string[]) => void;
   availablePrefectures: string[];
@@ -436,10 +436,12 @@ function SidebarFilters({
   toggleParam: (key: string, value: string, current: string) => void;
   toggleStage: (value: string) => void;
 }) {
-  // ③ アコーディオン: デフォルトで年収以外は折りたたむ（年収はデフォルト展開）
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "prefecture", "salary", "kodawari", "emptype", "stage"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
-  const _companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]); void _companyStageSet;
+  const workStyleSet = useMemo(() => new Set(workStyle ? workStyle.split(",") : []), [workStyle]);
+  const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
+  const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
+
   function toggleSection(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -448,92 +450,209 @@ function SidebarFilters({
     });
   }
 
-  // ③ アコーディオンセクションヘッダー共通
   function SectionHeader({ label, sectionKey, hasActive }: { label: string; sectionKey: string; hasActive?: boolean }) {
     const isOpen = !collapsed.has(sectionKey);
     return (
       <button type="button" onClick={() => toggleSection(sectionKey)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: hasActive ? "var(--royal-50)" : "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
       >
-        <span style={{ fontSize: 11, fontWeight: 700, color: hasActive ? "var(--royal)" : "var(--ink-mute)", letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 5 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: hasActive ? "var(--royal)" : "var(--ink)", letterSpacing: "0.01em", display: "flex", alignItems: "center", gap: 6 }}>
           {hasActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
           {label}
         </span>
         <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transition: "transform 0.2s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}>
-          <path d="M1 1l4 4 4-4" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M1 1l4 4 4-4" stroke={hasActive ? "var(--royal)" : "var(--ink-mute)"} strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       </button>
     );
   }
 
-  return (
-    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden", boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
-      {/* Header — リセットボタンのみ（有効フィルターがある場合） */}
-      {(hasFilter || q) && (
-        <div style={{ padding: "7px 12px", borderBottom: "1px solid var(--line-soft)", display: "flex", justifyContent: "flex-end" }}>
-          <button type="button" onClick={onReset} style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>
-            リセット
-          </button>
-        </div>
-      )}
+  function CheckItem({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
+    return (
+      <label
+        onClick={(e) => { e.preventDefault(); onClick(); }}
+        style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 14px", cursor: "pointer", userSelect: "none" }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLLabelElement).style.background = "#f8fafc"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLLabelElement).style.background = "transparent"; }}
+      >
+        <span style={{
+          width: 17, height: 17, borderRadius: 4, border: `2px solid ${active ? "var(--royal)" : "#CBD5E1"}`,
+          background: active ? "var(--royal)" : "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.1s",
+        }}>
+          {active && (
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+              <path d="M1 4l2.5 3L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </span>
+        <span style={{ fontSize: 13, color: active ? "var(--ink)" : "var(--ink-soft)", fontWeight: active ? 600 : 400, flex: 1 }}>
+          {label}
+        </span>
+        {count !== undefined && (
+          <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>({count})</span>
+        )}
+      </label>
+    );
+  }
 
-      {/* 職種 — 常時展開（ヘッダーなし）*/}
+  const { business, tech } = getVisibleRoles(parentRoles);
+  const sortedRoles = [
+    ...business.filter(r => r.name !== "その他"),
+    ...tech,
+    ...business.filter(r => r.name === "その他"),
+  ];
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden", boxShadow: "0 1px 4px rgba(15,23,42,0.05)", display: "flex", flexDirection: "column" }}>
+
+      {/* ── 1. 職種 ── */}
       <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        {(() => {
-          const { business, tech } = getVisibleRoles(parentRoles);
-          const renderRoleBtn = (role: { id: string; name: string }) => {
-            const isActive = categorySet.has(role.id);
-            const rc = getRoleColor(role.name);
-            return (
-              <button key={role.id} type="button" onClick={() => toggleParamFn("category", role.id, category)}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.5 }} />
-                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                {roleCounts?.get(role.id) ? <span style={{ fontSize: 10, color: isActive ? rc.color : "var(--ink-mute)", opacity: 0.8, flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
-                {isActive && <svg style={{ flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-              </button>
-            );
-          };
-          const sortedRoles = [
-            ...business.filter(r => r.name !== "その他"),
-            ...tech,
-            ...business.filter(r => r.name === "その他"),
-          ];
-          return (
-            <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-              {sortedRoles.map(renderRoleBtn)}
-            </div>
-          );
-        })()}
+        <SectionHeader label="職種" sectionKey="category" hasActive={categorySet.size > 0} />
+        {!collapsed.has("category") && (
+          <div style={{ padding: "2px 4px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+            {sortedRoles.map((role) => {
+              const isActive = categorySet.has(role.id);
+              const rc = getRoleColor(role.name);
+              return (
+                <button key={role.id} type="button" onClick={() => toggleParamFn("category", role.id, category)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
+                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.4 }} />
+                  <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
+                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 10, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
+                  {isActive && <svg style={{ flexShrink: 0 }} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* 地域 */}
+      {/* ── 2. 業種 ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="業種" sectionKey="industry" hasActive={!!industry} />
+        {!collapsed.has("industry") && (
+          <div style={{ paddingBottom: 8 }}>
+            {INDUSTRY_GROUPS.map((g) => (
+              <CheckItem key={g.key} label={g.label} active={industry === g.key}
+                onClick={() => setParam("industry", industry === g.key ? "" : g.key)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── 3. 勤務地 ── */}
       {availablePrefectures.length > 1 && (
-        <div>
-          <SectionHeader label="地域" sectionKey="prefecture" hasActive={!!prefecture} />
+        <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+          <SectionHeader label="勤務地" sectionKey="prefecture" hasActive={!!prefecture} />
           {!collapsed.has("prefecture") && (
-            <div style={{ padding: "0 12px 8px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 150, overflowY: "auto" }}>
-                {availablePrefectures.map((p) => {
-                  const isActive = prefecture === p;
-                  return (
-                    <button key={p} type="button" onClick={() => setParam("prefecture", isActive ? "" : p)}
-                      style={{ padding: "6px 10px", borderRadius: 6, border: "none", background: isActive ? "var(--royal-50)" : "transparent", color: isActive ? "var(--royal)" : "var(--ink)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.1s" }}
-                      onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                      onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                    >
-                      {isActive ? "✓ " : ""}{p}
-                    </button>
-                  );
-                })}
-              </div>
+            <div style={{ paddingBottom: 8, maxHeight: 180, overflowY: "auto" }}>
+              {availablePrefectures.map((p) => (
+                <CheckItem key={p} label={p} active={prefecture === p}
+                  onClick={() => setParam("prefecture", prefecture === p ? "" : p)} />
+              ))}
             </div>
           )}
         </div>
       )}
+
+      {/* ── 4. 年収 ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="年収" sectionKey="salary" hasActive={!!salary} />
+        {!collapsed.has("salary") && (
+          <div style={{ padding: "4px 14px 12px" }}>
+            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>下限年収</div>
+            <select value={salary} onChange={(e) => setParam("salary", e.target.value)}
+              style={{ width: "100%", height: 36, padding: "0 10px", border: `1.5px solid ${salary ? "var(--royal)" : "var(--line)"}`, borderRadius: 8, fontSize: 13, background: "#fff", color: salary ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", outline: "none" }}
+            >
+              <option value="">指定なし</option>
+              {SALARY_PILL_TIERS.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* ── 5. こだわり条件 ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="こだわり条件" sectionKey="kodawari"
+          hasActive={workStyleSet.size > 0 || companyStageSet.has("foreign")} />
+        {!collapsed.has("kodawari") && (
+          <div style={{ paddingBottom: 10 }}>
+            <div style={{ padding: "6px 14px 4px", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>働き方</div>
+            {[
+              { value: "フルリモート", label: "フルリモート" },
+              { value: "リモート可", label: "リモート可" },
+              { value: "ハイブリッド", label: "ハイブリッド" },
+            ].map(({ value, label }) => (
+              <CheckItem key={value} label={label} active={workStyleSet.has(value)}
+                onClick={() => toggleParamFn("work_style", value, workStyle)} />
+            ))}
+            <div style={{ padding: "8px 14px 4px", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>企業特性</div>
+            <CheckItem label="外資系" active={companyStageSet.has("foreign")}
+              onClick={() => toggleStage("foreign")} />
+          </div>
+        )}
+      </div>
+
+      {/* ── 6. 雇用形態 ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="雇用形態" sectionKey="emptype" hasActive={empTypeSet.size > 0} />
+        {!collapsed.has("emptype") && (
+          <div style={{ paddingBottom: 8 }}>
+            {["正社員", "業務委託", "副業"].map((v) => (
+              <CheckItem key={v} label={v} active={empTypeSet.has(v)}
+                onClick={() => toggleParamFn("emp_type", v, empType)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── 7. 企業ステージ ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="企業ステージ" sectionKey="stage"
+          hasActive={companyStageSet.has("listed") || companyStageSet.has("unicorn") || companyStageSet.has("startup")} />
+        {!collapsed.has("stage") && (
+          <div style={{ paddingBottom: 8 }}>
+            {[
+              { key: "listed",  label: "上場企業" },
+              { key: "unicorn", label: "🦄 ユニコーン" },
+              { key: "startup", label: "スタートアップ" },
+            ].map(({ key, label }) => (
+              <CheckItem key={key} label={label} active={companyStageSet.has(key)}
+                onClick={() => toggleStage(key)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── フッター: 検索する ── */}
+      <div style={{ padding: "12px 14px", background: "#fff" }}>
+        <button
+          type="button"
+          onClick={() => document.getElementById("jobs-results-top")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          style={{
+            width: "100%", padding: "11px 0", borderRadius: 8,
+            background: "var(--royal)", color: "#fff",
+            border: "none", fontSize: 14, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
+            letterSpacing: "0.02em",
+          }}
+        >
+          検索する
+        </button>
+        {(hasFilter || q) && (
+          <button type="button" onClick={onReset}
+            style={{ display: "block", width: "100%", marginTop: 8, padding: "5px 0", fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit", textAlign: "center" }}
+          >
+            検索条件をリセットする
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -1449,7 +1568,7 @@ export default function JobsClient({
         >
           <div
             className="jobs-layout"
-            style={isDesktop ? { gridTemplateColumns: "220px minmax(0,1fr)" } : undefined}
+            style={isDesktop ? { gridTemplateColumns: "260px minmax(0,1fr)" } : undefined}
           >
             {/* ─ Desktop sidebar ─ */}
             <aside className="jobs-sidebar">
@@ -1473,6 +1592,7 @@ export default function JobsClient({
                 onReset={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
                 industries={industries}
                 industryId={industryId}
+                industry={industry}
                 roleCounts={roleCounts}
                 toggleParam={toggleParam}
                 toggleStage={toggleStage}
@@ -1480,7 +1600,7 @@ export default function JobsClient({
             </aside>
 
             {/* ─ Results column ─ */}
-            <main style={{ minWidth: 0 }}>
+            <main id="jobs-results-top" style={{ minWidth: 0 }}>
 
           {/* ── パーソナライズ: あなたにおすすめの求人 ── */}
           {!hasFilter && !q && recommendations.length > 0 && (
