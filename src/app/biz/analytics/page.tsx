@@ -399,7 +399,7 @@ export default async function AnalyticsPage() {
             {[
               { label: "面談申込", sub: "カジュアル面談", count: meetings.total, color: "var(--accent)", bg: "#EEF2FF" },
               { label: "面談完了", sub: "カジュアル面談", count: meetings.completed, color: "var(--purple)", bg: "var(--purple-soft)" },
-              { label: "1次選考", sub: "応募・書類審査", count: selection.applied, color: "var(--royal)", bg: "var(--royal-50)" },
+              { label: "応募", sub: "書類選考", count: selection.applied, color: "var(--royal)", bg: "var(--royal-50)" },
               { label: "面接", sub: "選考・面接中", count: selection.interview1, color: "#0EA5E9", bg: "#E0F2FE" },
               { label: "内定・オファー", sub: "採用確定", count: selection.offered + selection.hired, color: "var(--success)", bg: "var(--success-soft)" },
             ].map((step, i, arr) => (
