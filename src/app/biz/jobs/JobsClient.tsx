@@ -107,56 +107,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
         </div>
       )}
 
-      {/* ページヘッダー */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 24,
-      }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontWeight: 500,
-            fontSize: 26,
-            color: "var(--ink)",
-            letterSpacing: "0.02em",
-            marginBottom: 6,
-          }}>
-            求人管理
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-            求人の作成・編集・公開状態を管理します。新規求人は「公開申請」後にOPINIO運営の審査（2-3営業日）を経て公開されます。
-          </p>
-        </div>
-        {isAdmin && (
-        <Link
-          href="/biz/jobs/new"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "10px 18px",
-            background: "var(--royal)",
-            color: "#fff",
-            border: "1px solid var(--royal)",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: 600,
-            textDecoration: "none",
-            flexShrink: 0,
-            marginLeft: 24,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          新規求人を作成
-        </Link>
-        )}
-      </div>
-
       {/* ステータスサマリー */}
       <JobStatusSummary
         counts={counts}
@@ -264,6 +214,33 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
             </button>
           )}
         </div>
+
+        {/* 新規求人作成ボタン */}
+        {isAdmin && (
+          <Link
+            href="/biz/jobs/new"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 16px",
+              background: "var(--royal)",
+              color: "#fff",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: "none",
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            新規求人を作成
+          </Link>
+        )}
       </div>
 
       {/* 求人リスト */}
