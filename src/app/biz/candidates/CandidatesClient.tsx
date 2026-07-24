@@ -92,8 +92,6 @@ function extractPrefecture(location: string | null): string | null {
   return PREFS.find((p) => location.startsWith(p)) ?? null;
 }
 
-const DECADE_OPTIONS = ["20代", "30代", "40代", "50代以上"];
-
 const PHASE_OPTIONS = ["シリーズA", "シリーズB", "シリーズC", "上場"];
 
 const TRANSFER_TIMING_OPTIONS = [
@@ -189,9 +187,9 @@ export default function CandidatesClient({
   const [includeNoSalary, setIncludeNoSalary] = useState(true);
 
   // ── 属性 ────────────────────────────────────────────────────────────
-  const [selectedDecades, setSelectedDecades] = useState<string[]>([]);
+  const [ageMin, setAgeMin] = useState(0);
+  const [ageMax, setAgeMax] = useState(0);
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
-  const [selectedSkillTags, setSelectedSkillTags] = useState<string[]>([]);
 
   // ── その他 ──────────────────────────────────────────────────────────
   const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
@@ -256,17 +254,6 @@ export default function CandidatesClient({
       .map(([p]) => p);
   }, [candidates]);
 
-  const uniqueSkillTags = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const c of candidates) {
-      for (const s of c.skills) counts.set(s, (counts.get(s) ?? 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 30)
-      .map(([s]) => s);
-  }, [candidates]);
-
   // ── フィルター適用 ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = candidates;
@@ -327,11 +314,15 @@ export default function CandidatesClient({
       list = list.filter((c) => c.transferTiming && selectedTransferTimings.includes(c.transferTiming));
     }
 
-    // 年代（OR）
-    if (selectedDecades.length > 0) {
+    // 年齢レンジ
+    if (ageMin > 0 || ageMax > 0) {
+      const now = new Date().getFullYear();
       list = list.filter((c) => {
-        const d = toDecade(c.birthYear);
-        return d ? selectedDecades.includes(d) : false;
+        if (!c.birthYear) return false;
+        const age = now - c.birthYear;
+        if (ageMin > 0 && age < ageMin) return false;
+        if (ageMax > 0 && age > ageMax) return false;
+        return true;
       });
     }
 
@@ -339,13 +330,6 @@ export default function CandidatesClient({
     if (selectedPrefectures.length > 0) {
       list = list.filter((c) =>
         selectedPrefectures.some((p) => (c.location ?? "").startsWith(p))
-      );
-    }
-
-    // スキルタグ（OR）
-    if (selectedSkillTags.length > 0) {
-      list = list.filter((c) =>
-        selectedSkillTags.some((t) => c.skills.includes(t))
       );
     }
 
@@ -362,7 +346,7 @@ export default function CandidatesClient({
   }, [
     candidates, q, roleQuery, companyQuery, workStyle, jobCategoryKey, selectedJobType,
     phase, selectedTransferTimings, hideAlreadyScouted, openToWorkOnly,
-    selectedDecades, selectedPrefectures, selectedSkillTags,
+    ageMin, ageMax, selectedPrefectures,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
 
@@ -378,9 +362,9 @@ export default function CandidatesClient({
     selectedTransferTimings.length ? "x" : "",
     selectedEmploymentTypes.length ? "x" : "",
     hideAlreadyScouted ? "x" : "",
-    selectedDecades.length ? "x" : "",
+    ageMin > 0 ? "x" : "",
+    ageMax > 0 ? "x" : "",
     selectedPrefectures.length ? "x" : "",
-    selectedSkillTags.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
 
@@ -396,9 +380,9 @@ export default function CandidatesClient({
     setSelectedTransferTimings([]);
     setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
-    setSelectedDecades([]);
+    setAgeMin(0);
+    setAgeMax(0);
     setSelectedPrefectures([]);
-    setSelectedSkillTags([]);
     setSalaryMin(0);
     setIncludeNoSalary(true);
   }
@@ -623,24 +607,33 @@ export default function CandidatesClient({
 
       {/* ── 属性 ──────────────────────────────────────────────────────── */}
       <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>年代</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: selectedDecades.length ? 4 : 0 }}>
-          {DECADE_OPTIONS.map((d) => (
-            <Pill key={d} active={selectedDecades.includes(d)} color="purple"
-              onClick={() => setSelectedDecades(toggleMulti(selectedDecades, d))}>
-              {d}
-            </Pill>
-          ))}
+        <SidebarLabel>年齢</SidebarLabel>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <select
+            value={ageMin}
+            onChange={(e) => setAgeMin(Number(e.target.value))}
+            style={{ flex: 1, height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
+          >
+            <option value={0}>下限なし</option>
+            {[20,22,25,28,30,32,35,38,40,45,50].map((v) => (
+              <option key={v} value={v}>{v}歳</option>
+            ))}
+          </select>
+          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
+          <select
+            value={ageMax}
+            onChange={(e) => setAgeMax(Number(e.target.value))}
+            style={{ flex: 1, height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
+          >
+            <option value={0}>上限なし</option>
+            {[25,28,30,32,35,38,40,45,50,55,60].map((v) => (
+              <option key={v} value={v}>{v}歳</option>
+            ))}
+          </select>
         </div>
-        {selectedDecades.length > 0 && (
-          <button type="button" onClick={() => setSelectedDecades([])}
-            style={{ marginTop: 4, marginBottom: 8, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
-            クリア
-          </button>
-        )}
 
         {uniquePrefectures.length > 0 && (
-          <>
+          <div style={{ marginTop: 12 }}>
             <SidebarLabel>居住地</SidebarLabel>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
               {uniquePrefectures.map((p) => (
@@ -656,30 +649,9 @@ export default function CandidatesClient({
                 クリア
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
-
-      {/* ── スキルタグ ────────────────────────────────────────────────── */}
-      {uniqueSkillTags.length > 0 && (
-        <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-          <SidebarLabel>スキルタグ</SidebarLabel>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-            {uniqueSkillTags.map((s) => (
-              <Pill key={s} active={selectedSkillTags.includes(s)} color="royal"
-                onClick={() => setSelectedSkillTags(toggleMulti(selectedSkillTags, s))}>
-                {s}
-              </Pill>
-            ))}
-          </div>
-          {selectedSkillTags.length > 0 && (
-            <button type="button" onClick={() => setSelectedSkillTags([])}
-              style={{ marginTop: 4, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
-              クリア
-            </button>
-          )}
-        </div>
-      )}
 
       {/* ── その他 ────────────────────────────────────────────────────── */}
       {alreadyScoutedCount > 0 && (
@@ -712,7 +684,7 @@ export default function CandidatesClient({
   );
 
   return (
-    <div style={{ padding: "16px 32px", maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ padding: "16px 32px", maxWidth: 1400, margin: "0 auto" }}>
 
       {/* ── ヘッダー ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
@@ -765,7 +737,7 @@ export default function CandidatesClient({
 
         {/* ── サイドバー（デスクトップのみ） ───────────────────────────── */}
         <aside className="candidates-sidebar" style={{
-          width: 240, flexShrink: 0,
+          width: 280, flexShrink: 0,
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 12, padding: "18px 16px",
           position: "sticky", top: 80,
@@ -783,24 +755,12 @@ export default function CandidatesClient({
               {" "}件 / 全{candidates.length}件
             </span>
             {/* アクティブフィルターチップ */}
-            {(selectedDecades.length > 0 || selectedPrefectures.length > 0 || selectedSkillTags.length > 0) && (
+            {selectedPrefectures.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                {selectedDecades.map((d) => (
-                  <span key={d} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 999, background: "var(--purple-soft)", border: "1px solid var(--purple)", color: "var(--purple)", fontSize: 11, fontWeight: 700 }}>
-                    {d}
-                    <button type="button" onClick={() => setSelectedDecades(selectedDecades.filter((v) => v !== d))} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
-                  </span>
-                ))}
                 {selectedPrefectures.map((p) => (
                   <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 999, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)", fontSize: 11, fontWeight: 700 }}>
                     {p}
                     <button type="button" onClick={() => setSelectedPrefectures(selectedPrefectures.filter((v) => v !== p))} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
-                  </span>
-                ))}
-                {selectedSkillTags.map((s) => (
-                  <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 999, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--accent)", fontSize: 11, fontWeight: 700 }}>
-                    {s}
-                    <button type="button" onClick={() => setSelectedSkillTags(selectedSkillTags.filter((v) => v !== s))} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
                   </span>
                 ))}
               </div>
@@ -829,7 +789,7 @@ export default function CandidatesClient({
               )}
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
               {filtered.map((c) => {
                 const decade = toDecade(c.birthYear);
                 const startedLabel = formatStarted(c.startedAt);
