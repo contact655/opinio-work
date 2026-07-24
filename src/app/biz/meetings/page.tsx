@@ -5,7 +5,6 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchMeetingsForCompany } from "@/lib/business/meetings";
 import { fetchApplicationsForCompany } from "@/lib/business/applications";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
