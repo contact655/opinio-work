@@ -61,11 +61,11 @@ export default async function OrganizationPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 0" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: 0, fontFamily: "'Noto Serif JP', serif" }}>
-          組織マスタ
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "36px 32px 0" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px", fontFamily: "'Noto Serif JP', serif" }}>
+          組織体制
         </h1>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "6px 0 20px" }}>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 24px" }}>
           求人・社員登録で使用する部門と職種の定義を管理します。
         </p>
         <OrganizationTabs activeTab={activeTab} />

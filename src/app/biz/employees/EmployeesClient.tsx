@@ -273,58 +273,21 @@ export function EmployeesClient({ current, alumni, hidden, companyName }: Props)
   const list = tab === "current" ? current : tab === "alumni" ? alumni : hidden;
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "36px 32px 80px" }}>
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "36px 32px 80px" }}>
 
       {/* ページヘッダー */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--royal-50)",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="var(--royal)" strokeWidth="2.2" strokeLinecap="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          </div>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 20,
-            fontWeight: 700, color: "var(--ink)" }}>
-            社員管理
-          </h1>
-        </div>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+          社員管理
+        </h1>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          OPINIOに登録された{companyName}の現役社員・OB/OGの一覧です。<br />
-          ユーザーが企業マスタからこの企業を選択すると自動的に反映されます。
+          OPINIOに登録された{companyName}の現役社員・OB/OGの一覧です。ユーザーが企業マスタからこの企業を選択すると自動的に反映されます。
         </p>
         {hidden.length > 0 && (
           <div style={{ marginTop: 10, padding: "8px 12px", background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "#92400E" }}>
             企業ページから非表示中のメンバー: {hidden.length}名 — 「非表示中」タブから解除できます
           </div>
         )}
-      </div>
-
-      {/* 集計バッジ */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-        {[
-          { label: "現役社員", count: current.length, color: "var(--success)", bg: "var(--success-soft)", border: "#A7F3D0" },
-          { label: "OB・OG", count: alumni.length, color: "var(--ink-soft)", bg: "var(--bg-tint)", border: "var(--line)" },
-        ].map(({ label, count, color, bg, border }) => (
-          <div key={label} style={{
-            padding: "10px 18px", background: bg, border: `1px solid ${border}`,
-            borderRadius: 10, display: "flex", alignItems: "center", gap: 10,
-          }}>
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 22, fontWeight: 800, color }}>
-              {count}
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
-              {label}
-            </span>
-          </div>
-        ))}
-        <div style={{ flex: 1 }} />
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", alignSelf: "flex-end", paddingBottom: 4 }}>
-          合計 {current.length + alumni.length + hidden.length} 名が登録中
-        </div>
       </div>
 
       {/* タブ */}
