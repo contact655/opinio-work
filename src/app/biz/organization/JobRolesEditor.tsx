@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 
 export type CompanyJobRole = {
   id: string;
@@ -43,7 +43,7 @@ function StandardRoleBadge({ roleId, roles }: { roleId: string | null; roles: St
   );
 }
 
-function StandardRoleSelect({
+function StandardRoleCombobox({
   value,
   onChange,
   roles,
@@ -54,39 +54,178 @@ function StandardRoleSelect({
   roles: StandardRole[];
   placeholder?: string;
 }) {
-  const parents = roles.filter((r) => !r.parent_id);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const parentMap = new Map(roles.filter((r) => !r.parent_id).map((r) => [r.id, r.name]));
+
+  const getSelectedLabel = () => {
+    if (!value) return "";
+    const role = roles.find((r) => r.id === value);
+    if (!role) return "";
+    if (!role.parent_id) return role.name;
+    return `${parentMap.get(role.parent_id) ?? ""} › ${role.name}`;
+  };
+
+  const filtered = roles.filter((r) => {
+    if (!query) return true;
+    if (!r.parent_id) {
+      return r.name.includes(query);
+    }
+    const parent = parentMap.get(r.parent_id) ?? "";
+    return parent.includes(query) || r.name.includes(query);
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  function handleSelect(id: string) {
+    onChange(id);
+    setOpen(false);
+    setQuery("");
+  }
+
+  function handleClear(e: React.MouseEvent) {
+    e.stopPropagation();
+    onChange("");
+    setQuery("");
+  }
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        fontSize: 12,
-        fontFamily: "inherit",
-        border: "1px solid var(--line)",
-        borderRadius: 5,
-        padding: "4px 8px",
-        background: "#fff",
-        color: "var(--ink)",
-        outline: "none",
-        cursor: "pointer",
-        minWidth: 180,
-      }}
-    >
-      <option value="">{placeholder ?? "標準職種（任意）"}</option>
-      {parents.map((parent) => {
-        const children = roles.filter((r) => r.parent_id === parent.id);
-        if (children.length === 0) {
-          return <option key={parent.id} value={parent.id}>{parent.name}</option>;
-        }
-        return (
-          <optgroup key={parent.id} label={parent.name}>
-            {children.map((child) => (
-              <option key={child.id} value={child.id}>{child.name}</option>
-            ))}
-          </optgroup>
-        );
-      })}
-    </select>
+    <div ref={containerRef} style={{ position: "relative", minWidth: 200 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`,
+          borderRadius: 5,
+          background: "#fff",
+          cursor: "text",
+          padding: "3px 6px 3px 8px",
+          gap: 4,
+        }}
+        onClick={() => { if (!open) { setOpen(true); setQuery(""); } }}
+      >
+        <input
+          value={open ? query : getSelectedLabel()}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => { if (!open) setOpen(true); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") { setOpen(false); setQuery(""); }
+            if (e.key === "Enter" && filtered.length === 1) { handleSelect(filtered[0].id); }
+          }}
+          placeholder={open ? "検索…" : (placeholder ?? "標準職種（任意）")}
+          style={{
+            flex: 1,
+            fontSize: 12,
+            fontFamily: "inherit",
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            color: (value && !open) ? "var(--ink)" : "var(--ink-soft)",
+            minWidth: 0,
+          }}
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            style={{ fontSize: 11, color: "var(--ink-mute)", border: "none", background: "none", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 }}
+          >
+            ✕
+          </button>
+        )}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, color: "var(--ink-mute)", pointerEvents: "none" }}>
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </div>
+
+      {open && (
+        <ul
+          ref={listRef}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            maxHeight: 260,
+            overflowY: "auto",
+            background: "#fff",
+            border: "1px solid var(--line)",
+            borderRadius: 8,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+            zIndex: 100,
+            margin: 0,
+            padding: "4px 0",
+            listStyle: "none",
+          }}
+        >
+          {/* 未設定に戻す */}
+          <li
+            onClick={() => handleSelect("")}
+            style={{
+              padding: "6px 12px",
+              fontSize: 12,
+              color: "var(--ink-mute)",
+              cursor: "pointer",
+              borderBottom: "1px solid var(--line-soft)",
+              marginBottom: 2,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          >
+            紐づけなし
+          </li>
+
+          {filtered.length === 0 ? (
+            <li style={{ padding: "8px 12px", fontSize: 12, color: "var(--ink-mute)" }}>
+              該当なし
+            </li>
+          ) : (
+            <>
+              {filtered.length > 20 && (
+                <li style={{ padding: "4px 12px", fontSize: 11, color: "var(--ink-mute)" }}>
+                  {filtered.length} 件 — 絞り込むと候補が減ります
+                </li>
+              )}
+              {filtered.map((r) => {
+                const isParent = !r.parent_id;
+                const parentName = r.parent_id ? (parentMap.get(r.parent_id) ?? "") : "";
+                return (
+                  <li
+                    key={r.id}
+                    onClick={() => handleSelect(r.id)}
+                    style={{
+                      padding: isParent ? "6px 12px" : "5px 12px 5px 22px",
+                      fontSize: 12,
+                      fontWeight: isParent ? 700 : 400,
+                      color: isParent ? "var(--ink)" : "var(--ink-soft)",
+                      cursor: "pointer",
+                      background: r.id === value ? "var(--royal-50)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => { if (r.id !== value) (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
+                    onMouseLeave={(e) => { if (r.id !== value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                  >
+                    {isParent ? r.name : (query ? <>{parentName} › <strong>{r.name}</strong></> : r.name)}
+                  </li>
+                );
+              })}
+            </>
+          )}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -251,7 +390,7 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
                 {/* 標準職種（編集 or バッジ） */}
                 {editingId === role.id ? (
                   <div style={{ width: 200 }}>
-                    <StandardRoleSelect
+                    <StandardRoleCombobox
                       value={editStdRoleId}
                       onChange={setEditStdRoleId}
                       roles={standardRoles}
@@ -354,7 +493,7 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
                 color: "var(--ink)",
               }}
             />
-            <StandardRoleSelect
+            <StandardRoleCombobox
               value={newStdRoleId}
               onChange={setNewStdRoleId}
               roles={standardRoles}
