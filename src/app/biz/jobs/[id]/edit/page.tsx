@@ -25,7 +25,7 @@ export default async function JobEditPage({ params }: { params: { id: string } }
     fetchJobById(supabase, params.id),
     fetchTeamMembers(supabase, ctx.tenantId),
     adminClient.from("ow_roles").select("id, parent_id, name, level").eq("is_active", true).order("display_order", { ascending: true }),
-    supabase.from("ow_company_departments").select("id, parent_id, name, display_order").eq("company_id", ctx.tenantId).order("display_order").order("name"),
+    supabase.from("ow_company_departments").select("id, parent_id, name, display_order").eq("company_id", ctx.tenantId).is("deleted_at", null).order("display_order").order("name"),
   ]);
 
   if (!jobData) {
