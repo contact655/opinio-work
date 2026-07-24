@@ -212,10 +212,6 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
     }
   }
 
-  // ─── Layout ───────────────────────────────────────────────────────────────
-  const totalApplications = applications.length;
-  const pendingApplications = counts["pending"] ?? 0;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0, height: "100%" }}>
       <style>{`
@@ -223,74 +219,6 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
         .app-tab-pill:hover { background: var(--line-soft) !important; }
         .app-tab-pill[aria-selected="true"]:hover { background: var(--royal) !important; }
       `}</style>
-
-      {/* Page-level header */}
-      <div style={{
-        marginBottom: 24, paddingBottom: 20,
-        borderBottom: "1px solid var(--line-soft)",
-        display: "flex", alignItems: "flex-end", justifyContent: "space-between",
-        gap: 16, flexWrap: "wrap",
-      }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
-            <h1 style={{
-              fontFamily: "var(--font-noto-serif)",
-              fontSize: 22, fontWeight: 700, color: "var(--royal)", margin: 0,
-            }}>
-              応募管理
-            </h1>
-            <span style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 11, fontWeight: 700, letterSpacing: "0.15em",
-              textTransform: "uppercase", color: "var(--ink-mute)", opacity: 0.6,
-            }}>
-              Applications
-            </span>
-          </div>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
-            求人への応募者を管理しましょう
-          </p>
-        </div>
-
-        {/* Total count badge */}
-        {totalApplications > 0 && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10,
-            padding: "8px 16px", borderRadius: 10,
-            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-          }}>
-            <div style={{ textAlign: "right" }}>
-              <div style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 22, fontWeight: 800, color: "var(--royal)",
-                lineHeight: 1,
-              }}>
-                {totalApplications}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                総応募数
-              </div>
-            </div>
-            {pendingApplications > 0 && (
-              <>
-                <div style={{ width: 1, height: 32, background: "var(--royal-100)" }} />
-                <div style={{ textAlign: "right" }}>
-                  <div style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 22, fontWeight: 800, color: "#D97706",
-                    lineHeight: 1,
-                  }}>
-                    {pendingApplications}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#D97706", marginTop: 2 }}>
-                    未確認
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* Status tabs — pill style */}
       <div
