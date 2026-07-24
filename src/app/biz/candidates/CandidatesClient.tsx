@@ -94,13 +94,6 @@ function extractPrefecture(location: string | null): string | null {
 
 const PHASE_OPTIONS = ["シリーズA", "シリーズB", "シリーズC", "上場"];
 
-const TRANSFER_TIMING_OPTIONS = [
-  { value: "即時",        label: "即時" },
-  { value: "1〜3ヶ月以内", label: "1〜3ヶ月" },
-  { value: "半年以内",    label: "半年以内" },
-  { value: "1年以内",     label: "1年以内" },
-  { value: "情報収集中",  label: "情報収集中" },
-];
 
 // サイドバー内セクションラベル
 function SidebarLabel({ children }: { children: React.ReactNode }) {
@@ -168,10 +161,6 @@ export default function CandidatesClient({
   const [q, setQ] = useState("");
   const [roleQuery, setRoleQuery] = useState("");
   const [companyQuery, setCompanyQuery] = useState("");
-
-  // ── 転職意欲 ────────────────────────────────────────────────────────
-  const [openToWorkOnly, setOpenToWorkOnly] = useState(false);
-  const [selectedTransferTimings, setSelectedTransferTimings] = useState<string[]>([]);
 
   // ── 経歴・雇用形態 ──────────────────────────────────────────────────
   const [jobCategoryKey, setJobCategoryKey] = useState<string | null>(null);
@@ -259,7 +248,6 @@ export default function CandidatesClient({
     let list = candidates;
 
     if (hideAlreadyScouted) list = list.filter((c) => !c.alreadyScouted);
-    if (openToWorkOnly) list = list.filter((c) => c.isOpenToWork);
 
     // フリーワード（スペース区切りAND）
     if (q.trim()) {
@@ -309,11 +297,6 @@ export default function CandidatesClient({
 
     if (phase) list = list.filter((c) => c.desiredPhase?.includes(phase));
 
-    // 転職時期（OR）
-    if (selectedTransferTimings.length > 0) {
-      list = list.filter((c) => c.transferTiming && selectedTransferTimings.includes(c.transferTiming));
-    }
-
     // 年齢レンジ
     if (ageMin > 0 || ageMax > 0) {
       const now = new Date().getFullYear();
@@ -345,7 +328,7 @@ export default function CandidatesClient({
     return list;
   }, [
     candidates, q, roleQuery, companyQuery, workStyle, jobCategoryKey, selectedJobType,
-    phase, selectedTransferTimings, hideAlreadyScouted, openToWorkOnly,
+    phase, hideAlreadyScouted,
     ageMin, ageMax, selectedPrefectures,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
@@ -355,11 +338,9 @@ export default function CandidatesClient({
     q.trim() ? "x" : "",
     roleQuery.trim() ? "x" : "",
     companyQuery.trim() ? "x" : "",
-    openToWorkOnly ? "x" : "",
     workStyle,
     jobTypeFilterActive ? "x" : "",
     phase,
-    selectedTransferTimings.length ? "x" : "",
     selectedEmploymentTypes.length ? "x" : "",
     hideAlreadyScouted ? "x" : "",
     ageMin > 0 ? "x" : "",
@@ -372,12 +353,10 @@ export default function CandidatesClient({
     setQ("");
     setRoleQuery("");
     setCompanyQuery("");
-    setOpenToWorkOnly(false);
     setWorkStyle("");
     setJobCategoryKey(null);
     setSelectedJobType(null);
     setPhase("");
-    setSelectedTransferTimings([]);
     setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
     setAgeMin(0);
