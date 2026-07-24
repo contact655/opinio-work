@@ -99,14 +99,17 @@ export async function POST(req: NextRequest) {
   // auth.users.id を取得（invited_by 用）
   const { data: { user: authUser } } = await supabase.auth.getUser();
 
+  // user_id 直接指定（管理者がOPINIO登録済みユーザーをトグルした場合）は即時公開
+  const isDirectAdd = !!body.user_id;
+
   // INSERT
   const { data: member, error } = await adminSupabase
     .from("ow_company_members")
     .insert({
       company_id: ctx.tenantId,
       user_id,
-      display_consent: false,
-      is_public: false,
+      display_consent: isDirectAdd,
+      is_public: isDirectAdd,
       role_title: role_title.trim(),
       invited_at: new Date().toISOString(),
       invited_by: authUser?.id ?? null,
@@ -119,23 +122,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  // メールアドレスを確定
-  let email: string | null = owUser?.email ?? null;
-  if (!email && owUser?.auth_id) {
-    const { data: authData } = await adminSupabase.auth.admin.getUserById(owUser.auth_id);
-    email = authData?.user?.email ?? null;
-  }
-
-  if (email) {
-    await notify(
-      ambassadorInviteTemplate({
-        to: email,
-        userName: owUser?.name ?? "ユーザー",
-        companyName: ctx.tenantName ?? "",
-        roleTitle: role_title.trim(),
-        token: member.invite_token,
-      })
-    );
+  // email 招待の場合のみメール送信
+  if (!isDirectAdd) {
+    let email: string | null = owUser?.email ?? null;
+    if (!email && owUser?.auth_id) {
+      const { data: authData } = await adminSupabase.auth.admin.getUserById(owUser.auth_id);
+      email = authData?.user?.email ?? null;
+    }
+    if (email) {
+      await notify(
+        ambassadorInviteTemplate({
+          to: email,
+          userName: owUser?.name ?? "ユーザー",
+          companyName: ctx.tenantName ?? "",
+          roleTitle: role_title.trim(),
+          token: member.invite_token,
+        })
+      );
+    }
   }
 
   return NextResponse.json({ id: member.id, invite_token: member.invite_token });
