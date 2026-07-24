@@ -1,117 +1,191 @@
 # ow_jobs → ow_roles 4経路 統合方針メモ
 
-作成: 2026-07-24 セッション28（部門・職種マスタ実装後）
+作成: 2026-07-24 セッション28（部門・職種マスタ実装後）  
+実測日: 2026-07-24
 
 ---
 
-## 背景
+## 実測値サマリー（2026-07-24 時点）
 
-`ow_jobs` から職種カテゴリを参照する経路が現在4本存在する。  
-今回の部門・職種マスタ実装（Migration 270）で5本目を追加しそうになったが、  
-設計判断により既存経路（4本目）を再利用する形に落ち着いた。  
-この経緯と統合方針を記録しておく。
+```sql
+-- 分母
+SELECT count(*) FROM ow_jobs WHERE status = 'published';  -- 18件
+SELECT count(*) FROM ow_jobs;                             -- 20件（下書き2件含む）
+```
 
 ---
 
-## 4本の経路一覧
+## 4本の経路
 
 ### 経路 1: `ow_jobs.job_category` (TEXT フリーテキスト)
+
+**件数（2026-07-24 実測）**
+
+```sql
+SELECT
+  count(*) FILTER (WHERE job_category IS NOT NULL AND job_category != '') AS set,
+  count(*) FILTER (WHERE job_category IS NULL OR job_category = '')      AS unset
+FROM ow_jobs WHERE status = 'published';
+-- set: 18, unset: 0
+```
+
+公開18件中 18件設定済み（100%）。
+
+**概要**
 
 | 項目 | 内容 |
 |------|------|
 | カラム型 | `TEXT`（フリーテキスト、正規化なし） |
-| DB 件数 | 74件中 `NULL` 以外が大半（実測未確認） |
 | 追加経緯 | 最初期の設計。ow_roles が整備される前の仮実装 |
-| 参照箇所 | `src/app/api/cron/weekly-match/route.ts` の `getDefaultReason()` |
-| 具体的な使い方 | `job_category.includes("営業")` のような文字列マッチで送信メールの「マッチ理由」文を切り替える |
+| 参照箇所 | `src/app/api/cron/weekly-match/route.ts` の `getDefaultReason()` のみ |
+| 使われ方 | `job_category.includes("営業")` のような文字列マッチで送信メールの「マッチ理由」文を切り替える |
 | 問題点 | フリーテキストなのでスペルゆれがあり、`getDefaultReason()` の分岐が拾えないケースがある |
+| 将来方針 | 新規入力 UI からは除外済み（自然消滅方向）。weekly-match が依存しているため削除不可 |
 
-### 経路 2: `ow_jobs.role_category_id` (FK → `ow_roles`)
+---
+
+### 経路 2: `ow_jobs.role_category_id` (UUID FK → `ow_roles`)
+
+**件数（2026-07-24 実測）**
+
+```sql
+SELECT
+  count(*) FILTER (WHERE role_category_id IS NOT NULL) AS set,
+  count(*) FILTER (WHERE role_category_id IS NULL)     AS unset
+FROM ow_jobs WHERE status = 'published';
+-- set: 18, unset: 0
+```
+
+公開18件中 18件設定済み（100%）。
+
+**概要**
 
 | 項目 | 内容 |
 |------|------|
 | カラム型 | `UUID FK REFERENCES ow_roles(id)` |
-| DB 件数 | 設定済み件数は要確認（`ow_roles` 29件に対応） |
-| 追加経緯 | Phase 5 Stage 1 前後。正規化された職種参照の本命として追加 |
-| 参照箇所 | `src/lib/supabase/queries.ts`（`getJobEmployees`, `getJobAlumniMap`, `getParentCatInfo` 等）<br>`src/app/(jobseeker)/jobs/(list)/JobsClient.tsx`（求人一覧の職種フィルタ）<br>`src/app/(jobseeker)/jobs/[id]/page.tsx`（求人詳細のロールマッチ社員表示）<br>`src/lib/supabase/types.ts`（FK 型定義） |
-| 具体的な使い方 | 求人一覧の職種フィルタ・求人詳細の「この職種を経験した社員」表示・アルムナイマッチング |
-| 備考 | ow_experiences.role_category_id とも対応。**現在最も広く使われる主経路** |
+| 追加経緯 | Phase 5 Stage 1 前後。正規化された職種参照として追加 |
+| 参照箇所 | `src/lib/supabase/queries.ts`（`getJobEmployees`, `getJobAlumniMap`, `getParentCatInfo` 等）<br>`src/app/(jobseeker)/jobs/(list)/JobsClient.tsx`（求人一覧の職種フィルタ）<br>`src/app/(jobseeker)/jobs/[id]/page.tsx`（求人詳細の社員ロールマッチ表示）<br>`src/lib/supabase/types.ts`（FK 型定義） |
+| 使われ方 | 求人一覧の職種フィルタ・求人詳細の「この職種を経験した社員」表示・アルムナイマッチング |
+| 判定根拠 | 参照箇所数が最多（上記4ファイル以外にも queries.ts 内で複数回使用）。かつ公開全件に設定済み。経路 1 は weekly-match 限定・経路 3 は biz/jobs/edit 限定・経路 4 は未使用。複数ページの UI ロジックを担っているのはこの経路のみ |
+| 将来方針 | 維持・強化。新規求人登録時に必ず設定するよう JobEditForm でガイドする |
+
+---
 
 ### 経路 3: `ow_job_roles` 結合テーブル (join table)
 
+**件数（2026-07-24 実測）**
+
+```sql
+SELECT
+  count(*)              AS total,
+  count(DISTINCT job_id) AS distinct_jobs,
+  count(*) FILTER (WHERE is_primary = true)                AS is_primary_true,
+  count(*) FILTER (WHERE is_primary = false OR is_primary IS NULL) AS is_primary_false
+FROM ow_job_roles;
+-- total: 13, distinct_jobs: 13, is_primary_true: 13, is_primary_false: 0
+```
+
+**概要**
+
 | 項目 | 内容 |
 |------|------|
-| テーブル構造 | `job_id UUID FK → ow_jobs`, `role_id UUID FK → ow_roles`, `is_primary BOOL`, その他 |
-| DB 件数 | 13件（13 distinct job_id、0件が count > 1 ← 2026-07-24 実測） |
-| 追加経緯 | 1つの求人が複数職種にまたがるケース（例: 兼任・ハイブリッドロール）を表現するために追加 |
+| テーブル構造 | `job_id UUID FK → ow_jobs`, `role_id UUID FK → ow_roles`, `is_primary BOOL`, 他 |
+| 追加経緯 | 1つの求人が複数職種にまたがるケースを表現するために追加 |
 | 参照箇所 | `src/lib/business/jobs.ts`（`fetchJobById` で取得）<br>`src/app/biz/jobs/[id]/edit/page.tsx`（`initialJobRoles` として JobEditForm に渡す）|
-| `is_primary` の意味 | 複数行ある場合に「主担当職種」を1件だけ指定するフラグ |
-| **重要**: 現在の実態 | **全13件が `is_primary = true`、かつ job_id が全て distinct（1:1 状態）**。<br>スキーマは 1:N を想定した設計だが、現在はたまたま全件が単一ロールでの登録になっている。<br>今回の `company_job_role_id` 単数 FK 採用は「現在の 1:1 実態」に基づく判断であり、<br>スキーマ設計が変わったわけではない（将来 1:N になる可能性は残る）。 |
+| 将来方針 | 現状維持。将来 1:N が必要になった場合に活用 |
 
-### 経路 4: `ow_jobs.company_job_role_id` (FK → `ow_company_job_roles`)
+**`is_primary` について**
+
+スキーマは 1:N を前提とした設計であり、`is_primary` は複数行ある場合に「主担当職種」を1件だけ指定するために存在する。
+
+現在は全13件が `is_primary = true` かつ `distinct_jobs = 13`（行数 = distinct job_id 数）。1:1 状態になっているのは「1つの求人につき1職種を登録した」結果であり、スキーマの制約ではない。
+
+今回の `company_job_role_id` を単数 FK として追加したのは「現在が 1:1 実態である」という観察に基づく判断であって、ow_job_roles の設計意図（1:N）が変わったわけではない。
+
+---
+
+### 経路 4: `ow_jobs.company_job_role_id` (UUID FK → `ow_company_job_roles`)
+
+**件数（2026-07-24 実測）**
+
+```sql
+SELECT count(*) FROM ow_jobs WHERE status = 'published' AND company_job_role_id IS NOT NULL;
+-- 0件
+
+SELECT count(*) FROM ow_company_job_roles WHERE deleted_at IS NULL;
+-- 0件（Migration 270 で新設、まだ企業側の登録なし）
+```
+
+**概要**
 
 | 項目 | 内容 |
 |------|------|
 | カラム型 | `UUID FK REFERENCES ow_company_job_roles(id)` |
-| DB 件数 | Migration 270 で追加。現在 0 件（ow_company_job_roles 自体が 0 件）|
-| 追加経緯 | 2026-07-24 セッション28。企業が「自社の呼び方」で職種を管理するための紐づけ |
-| 参照箇所 | 現時点では `/biz/organization` の JobRolesEditor から設定できるようになった段階 |
-| 具体的な使い方 | 企業が「ISR」「AE」「CSM」のような自社用語で職種を管理し、標準職種（ow_roles）にも任意でマッピングできる |
-| `ow_company_job_roles.standard_role_id` | `REFERENCES ow_roles(id)`（任意）。マッピングしておくとマッチング精度が上がる設計 |
-
----
-
-## weekly-match での実態（2026-07-24 実測）
-
-`src/app/api/cron/weekly-match/route.ts` を読んだ結果：
-
-```typescript
-const { data: publishedJobs } = await supabase
-  .from("ow_jobs")
-  .select("id, title, job_category, ...")
-  .eq("status", "published")
-  .order("created_at", { ascending: false })
-  .limit(20);  // ← 最新20件のみ
-```
-
-- **`role_category_id` は weekly-match では一切使われていない**
-- 職種参照は `job_category`（TEXT）のみ（`getDefaultReason()` 内の文字列マッチ）
-- `.limit(20)` により公開求人 74件中 54件がメール対象外になっている
-- これは `role_category_id` の設定有無とは無関係
-
-> **別 issue として記録**: `.limit(20)` の上限を引き上げるか廃止するかは、  
-> 週次メールの設計見直し時に検討する（現状は意図的な制限か設定忘れか不明）。
+| 追加経緯 | 2026-07-24 セッション28（Migration 270）。企業が「自社の呼び方」で職種を管理するため |
+| 参照箇所 | `/biz/organization` の JobRolesEditor から登録可能になった段階。求人フォームへの組み込みは未実装 |
+| 使われ方 | 企業が「ISR」「AE」「CSM」等の自社用語で職種を管理し、標準職種（ow_roles）に任意でマッピングできる |
+| `standard_role_id` | `ow_company_job_roles.standard_role_id REFERENCES ow_roles(id)`（任意）。設定するとマッチング精度が上がる設計 |
+| 将来方針 | 求人編集フォームに「自社の職種名を選ぶ」フィールドを追加するフェーズで活用する |
 
 ---
 
 ## 統合方針
 
-### 最終的な「勝者」は **経路 2 (`role_category_id`)** と **経路 4 (`company_job_role_id`)**
-
 | 経路 | 将来方針 |
 |------|---------|
-| 1: `job_category` (TEXT) | **残す（消さない）**。既存データが入っており、weekly-match が依存している。<br>新規求人入力では UI から除外済み（セッション27以前）。自然消滅方向。 |
-| 2: `role_category_id` | **主経路として維持・強化**。求人一覧フィルタ・社員マッチング・アルムナイ表示の中心。<br>新規求人登録時に必ず設定するよう JobEditForm でガイドする。 |
-| 3: `ow_job_roles` join table | **現状維持**。将来 1:N が必要になった場合に活用。<br>現在は 1:1 状態が続いている。`biz/jobs/[id]/edit` で読み込み済み。 |
-| 4: `company_job_role_id` | **今後の企業側 UI で活用**。`/biz/organization` で職種マスタを設定したあと、<br>求人編集フォームで「自社の職種名」を選択できるようにする（次フェーズ）。 |
+| 1: `job_category` (TEXT) | 残す（消さない）。weekly-match が依存しているため。新規入力からは除外済み。自然消滅方向 |
+| 2: `role_category_id` | 維持・強化（根拠: 参照箇所数最多、全公開求人に設定済み、UI ロジックの中心） |
+| 3: `ow_job_roles` | 現状維持。1:N が必要になった場合に活用 |
+| 4: `company_job_role_id` | 次フェーズで求人編集フォームに組み込む |
 
-### **5本目は足さない**
+### 5本目は足さない
 
 経路の増加はクエリの複雑化・型定義の肥大化・メンテナンスコストの増大を招く。  
-今後、求人と職種の新しい関連を表現したい場合は以下の方針を取る：
+今後、求人と職種の新しい関連を表現したい場合：
 
-1. **既存 4 経路のどれかで表現できないか検討する（まず考える）**
-2. 既存テーブルにカラムを追加するだけで済むなら新テーブルは作らない
-3. 新経路が必要な場合は **どの経路を deprecated にするかを同時に決めてから** 追加する
+1. 既存4経路のどれかで表現できないか検討する
+2. 既存テーブルへのカラム追加だけで済むなら新テーブルは作らない
+3. 新経路が必要なら **廃止する経路を同時に決めてから** 追加する
+
+---
+
+## 別 issue: weekly-match の `.limit(20)` について
+
+`src/app/api/cron/weekly-match/route.ts` は公開求人を最新20件に絞って取得している。
+
+```typescript
+.eq("status", "published")
+.order("created_at", { ascending: false })
+.limit(20)
+```
+
+**2026-07-24 時点の実態**
+
+- 公開求人: 18件
+- 上限: 20件
+- 現在の影響: なし（全公開求人が limit 内に収まっている）
+
+**将来リスク**
+
+公開求人が21件を超えた時点で、新しい20件以外の求人が weekly-match メールから除外される。  
+どの求人をメールに含めるかは現在「作成日が新しい順」で暗黙的に決まっている。
+
+**対応方針（未着手）**
+
+- 上限を引き上げる（例: 100件）か廃止して全件対象にする
+- またはユーザーの `role_category_id` とマッチする求人を優先的に選ぶロジックを実装する
+- `ow_match_scores` テーブルが0件のため、現状はマッチスコアが存在しても機能しない
+
+この問題は経路の設計とは独立した改善課題として扱う。
 
 ---
 
 ## 付録: `ow_experiences.role_category_id` との対称性
 
-`ow_experiences`（ユーザーの職歴）にも同名の `role_category_id (FK → ow_roles)` がある。  
-これは `ow_jobs.role_category_id` と対称的な設計で、  
-「ある求人のロール」と「ある人の職歴ロール」を同じ ow_roles で突き合わせることで  
-アルムナイマッチングが成立する（`getJobAlumniMap` の中核ロジック）。
+`ow_experiences`（ユーザー職歴）にも `role_category_id (FK → ow_roles)` がある。  
+`ow_jobs.role_category_id` と同じテーブルを参照することで、  
+「ある求人のロール」と「ある人の職歴ロール」を突き合わせてアルムナイマッチングが成立する  
+（`getJobAlumniMap` の中核ロジック）。
 
 `ow_experiences.role_category_id` は求職者がプロフィール編集時に設定する。  
-経路 1〜4 はすべて `ow_jobs` 側の話であり、`ow_experiences` 側の経路はこれとは別（1本のみ）。
+経路 1〜4 はすべて `ow_jobs` 側の話であり、`ow_experiences` 側は別（1本のみ）。
