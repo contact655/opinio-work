@@ -87,6 +87,22 @@ export function CreateCompanyClient({
 }) {
   const [name, setName] = useState(prefilledCompanyName ?? "");
   const [prefilledLocked, setPrefilledLocked] = useState(!!prefilledCompanyName);
+
+  // sessionStorage の pending company をフォールバックとして読み込む
+  useEffect(() => {
+    if (prefilledCompanyName) return;
+    try {
+      const raw = sessionStorage.getItem("opinio_biz_pending_company");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { name?: string };
+        if (parsed.name) {
+          setName(parsed.name);
+          setPrefilledLocked(true);
+        }
+      }
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [industry, setIndustry] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
