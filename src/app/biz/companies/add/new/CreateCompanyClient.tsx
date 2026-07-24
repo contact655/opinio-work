@@ -358,7 +358,7 @@ export function CreateCompanyClient({
   ) : null;
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto" }}>
+    <div style={{ maxWidth: 860 }}>
 
       {/* 2カラムレイアウト */}
       <div style={{
@@ -435,29 +435,13 @@ export function CreateCompanyClient({
         </div>
       )}
 
-      {/* アイコン */}
-      <div style={{
-        width: 48, height: 48, borderRadius: 12,
-        background: "var(--royal-50)", color: "var(--royal)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        marginBottom: 20,
-      }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      </div>
-
       <h1 style={{
         fontFamily: "var(--font-noto-serif)",
         fontSize: 22, fontWeight: 700,
-        color: "var(--ink)", marginBottom: 8,
+        color: "var(--ink)", marginBottom: 24, marginTop: 0,
       }}>
         所属企業を登録する
       </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.7 }}>
-        詳細な企業情報は登録後に編集できます。
-      </p>
 
       <form onSubmit={(e) => handleSubmit(e, false)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* 会社名（サジェスト付き） */}
