@@ -49,12 +49,12 @@ type Props = {
   meetingStats?: MeetingStat[];
 };
 
-const PERM_LABELS: Record<MemberRecord["permission"], string> = {
+const _PERM_LABELS: Record<MemberRecord["permission"], string> = {
   admin: "管理者",
   member: "人事",
 };
 
-const PERM_STYLES: Record<MemberRecord["permission"], { bg: string; color: string }> = {
+const _PERM_STYLES: Record<MemberRecord["permission"], { bg: string; color: string }> = {
   admin: { bg: "var(--royal-50)", color: "var(--royal)" },
   member: { bg: "var(--line-soft)", color: "var(--ink-mute)" },
 };
