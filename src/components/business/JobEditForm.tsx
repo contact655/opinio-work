@@ -246,6 +246,8 @@ function Hint({ children }: { children: React.ReactNode }) {
 export type RoleItem = { id: string; parent_id: string | null; name: string; level: number };
 type SelectedRole = { roleId: string; isPrimary: boolean };
 
+export type DeptItem = { id: string; parent_id: string | null; name: string };
+
 type Props = {
   mode: FormMode;
   initialJob?: BizJob | null;
@@ -254,6 +256,8 @@ type Props = {
   companyId?: string;
   teamMembers?: TeamMember[];
   roles?: RoleItem[];
+  departments?: DeptItem[];
+  initialDepartmentId?: string | null;
 };
 
 export function JobEditForm({
@@ -264,6 +268,8 @@ export function JobEditForm({
   companyId,
   teamMembers,
   roles = [],
+  departments = [],
+  initialDepartmentId = null,
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
@@ -271,6 +277,7 @@ export function JobEditForm({
     if (initialAssigneeIds?.length) return { ...base, assigneeIds: initialAssigneeIds };
     return base;
   });
+  const [departmentId, setDepartmentId] = useState<string>(initialDepartmentId ?? "");
   const [activeSection, setActiveSection] = useState("basic");
   const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -324,7 +331,7 @@ export function JobEditForm({
       const res = await fetch("/api/biz/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, companyId, jobRoles: selectedRoles }),
+        body: JSON.stringify({ ...form, departmentId: departmentId || null, companyId, jobRoles: selectedRoles }),
       });
       if (!res.ok) throw new Error("create failed");
       const { id } = (await res.json()) as { id: string };
@@ -334,7 +341,7 @@ export function JobEditForm({
       const res = await fetch(`/api/biz/jobs/${currentJobId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, jobRoles: selectedRoles }),
+        body: JSON.stringify({ ...form, departmentId: departmentId || null, jobRoles: selectedRoles }),
       });
       if (!res.ok) throw new Error("save failed");
     }
@@ -370,7 +377,7 @@ export function JobEditForm({
       const res = await fetch("/api/biz/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, companyId }),
+        body: JSON.stringify({ ...form, departmentId: departmentId || null, companyId }),
       });
       if (!res.ok) throw new Error("create failed");
       const { id } = await res.json() as { id: string };
@@ -391,7 +398,7 @@ export function JobEditForm({
       const saveRes = await fetch(`/api/biz/jobs/${jobId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, departmentId: departmentId || null }),
       });
       if (!saveRes.ok) throw new Error("save failed");
       const submitRes = await fetch(`/api/biz/jobs/${jobId}`, {
@@ -493,7 +500,47 @@ export function JobEditForm({
                 </FormGroup>
                 <FormGroup style={{ margin: 0 }}>
                   <FormLabel optional htmlFor="jef-department">所属部門</FormLabel>
-                  <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
+                  {departments.length > 0 ? (
+                    <div>
+                      <select
+                        id="jef-department"
+                        value={departmentId}
+                        onChange={(e) => setDepartmentId(e.target.value)}
+                        style={{
+                          width: "100%", padding: "10px 32px 10px 12px",
+                          border: "1.5px solid var(--line)", borderRadius: 8,
+                          fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
+                          background: "#fff", cursor: "pointer", appearance: "none", outline: "none",
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 10px center",
+                        }}
+                        onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; e.target.style.boxShadow = "0 0 0 3px var(--royal-50)"; }}
+                        onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
+                      >
+                        <option value="">部門を選択（任意）</option>
+                        {departments.filter((d) => !d.parent_id).map((parent) => (
+                          <optgroup key={parent.id} label={parent.name}>
+                            <option value={parent.id}>{parent.name}（全体）</option>
+                            {departments.filter((d) => d.parent_id === parent.id).map((child) => (
+                              <option key={child.id} value={child.id}>　└ {child.name}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                        {departments.filter((d) => !d.parent_id && !departments.some((c) => c.parent_id === d.id)).length === 0 && null}
+                      </select>
+                      <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5 }}>
+                        部門マスタは <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> から管理できます
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
+                      <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5 }}>
+                        <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> で部門マスタを登録すると、ここでセレクトできるようになります
+                      </p>
+                    </div>
+                  )}
                 </FormGroup>
               </div>
               {/* 職種マスタ連携 */}

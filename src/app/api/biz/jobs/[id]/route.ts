@@ -80,6 +80,7 @@ export async function PUT(
       sales_hunter_farmer: str(body.salesHunterFarmer, 20) || null,
       incentive_note: str(body.incentiveNote, 1000) || null,
       tech_stack: Array.isArray(body.techStack) ? (body.techStack as string[]).filter((s) => typeof s === "string").slice(0, 40) : [],
+      department_id: (typeof body.departmentId === "string" && UUID_RE.test(body.departmentId)) ? body.departmentId : null,
       updated_at: now,
     })
     .eq("id", jobId)

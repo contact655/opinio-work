@@ -1,26 +1,27 @@
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
-import {
-  getCompanyEmployeeCategories,
-  getAllRolesForCategoryEditor,
-} from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { CategoriesEditor } from "./CategoriesEditor";
+import { DepartmentsEditor } from "./DepartmentsEditor";
+import type { Department } from "./DepartmentsEditor";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "組織体制 | OPINIO Business" },
+  title: { absolute: "部門マスタ | OPINIO Business" },
 };
 
-export default async function CategoriesPage() {
+export default async function OrganizationPage() {
   const ctx = await getTenantContext();
   if (!ctx) redirect("/biz/dashboard");
 
-  const [categories, allRoles] = await Promise.all([
-    getCompanyEmployeeCategories(ctx.tenantId),
-    getAllRolesForCategoryEditor(),
-  ]);
+  const supabase = createClient();
+  const { data: departments } = await supabase
+    .from("ow_company_departments")
+    .select("id, parent_id, name, display_order")
+    .eq("company_id", ctx.tenantId)
+    .order("display_order", { ascending: true })
+    .order("name", { ascending: true });
 
   return (
     <BusinessLayout
@@ -31,10 +32,8 @@ export default async function CategoriesPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <CategoriesEditor
-        initialCategories={categories}
-        allRoles={allRoles}
-        companyId={ctx.tenantId}
+      <DepartmentsEditor
+        initialDepartments={(departments ?? []) as Department[]}
       />
     </BusinessLayout>
   );
