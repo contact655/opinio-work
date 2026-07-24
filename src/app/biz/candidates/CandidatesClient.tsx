@@ -745,9 +745,9 @@ export default function CandidatesClient({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map((c) => {
-                const decade = toDecade(c.birthYear);
-                const startedLabel = formatStarted(c.startedAt);
-                const empLabel = c.employmentType ? (EMPLOYMENT_TYPE_LABELS[c.employmentType] ?? c.employmentType) : null;
+                const age = c.birthYear ? (2026 - c.birthYear) : null;
+                const _startedLabel = formatStarted(c.startedAt);
+                const _empLabel = c.employmentType ? (EMPLOYMENT_TYPE_LABELS[c.employmentType] ?? c.employmentType) : null;
                 const grad = getGradient(c.id);
                 return (
                   <div key={c.id}
@@ -776,11 +776,11 @@ export default function CandidatesClient({
 
                       {/* メイン情報 */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* 名前 + バッジ */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 3 }}>
+                        {/* 名前 + 年齢 + バッジ */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                           <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{c.name}</span>
-                          {decade && (
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--purple-soft)", color: "var(--purple)", border: "1px solid #DDD6FE" }}>{decade}</span>
+                          {age && (
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>{age}歳</span>
                           )}
                           {c.isOpenToWork && (
                             <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #6EE7B7" }}>転職検討中</span>
@@ -793,52 +793,27 @@ export default function CandidatesClient({
                           )}
                         </div>
 
-                        {/* 職種 @ 会社 */}
+                        {/* 職種 · 会社名 */}
                         {(c.currentRole || c.currentCompany || c.jobType) && (
                           <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.4 }}>
                             {c.currentRole && <span style={{ fontWeight: 600, color: "var(--ink)" }}>{c.currentRole}</span>}
                             {c.currentRole && c.currentCompany && <span style={{ color: "var(--ink-mute)" }}> · </span>}
                             {c.currentCompany && <span>{c.currentCompany}</span>}
-                            {startedLabel && <span style={{ color: "var(--ink-mute)", fontSize: 12 }}> {startedLabel}</span>}
                             {!c.currentRole && !c.currentCompany && c.jobType && (
                               <span style={{ color: "var(--ink-mute)" }}>{JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}</span>
                             )}
                           </div>
                         )}
 
-                        {/* タグ行 */}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
-                          {c.location && (
+                        {/* タグ行: 居住地のみ */}
+                        {c.location && (
+                          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
                               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                               {extractPrefecture(c.location) ?? c.location}
                             </span>
-                          )}
-                          {c.workStyle && (
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--accent)", fontWeight: 600 }}>
-                              {WORK_STYLE_LABELS[c.workStyle] ?? c.workStyle}
-                            </span>
-                          )}
-                          {empLabel && (
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--line-soft)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>{empLabel}</span>
-                          )}
-                          {c.transferTiming && (
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--warm-soft)", border: "1px solid #FDE68A", color: "#92400E", fontWeight: 600 }}>
-                              ⏱ {c.transferTiming}
-                            </span>
-                          )}
-                          {c.desiredSalaryMin && (
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--success-soft)", border: "1px solid #A7F3D0", color: "var(--success)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
-                              ¥{c.desiredSalaryMin}万〜
-                            </span>
-                          )}
-                          {c.skills.slice(0, 3).map((s) => (
-                            <span key={s} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "#F3F4F6", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>{s}</span>
-                          ))}
-                          {c.skills.length > 3 && (
-                            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>+{c.skills.length - 3}</span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* 右: アクション */}
