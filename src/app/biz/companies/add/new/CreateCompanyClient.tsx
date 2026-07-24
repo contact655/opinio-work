@@ -358,20 +358,20 @@ export function CreateCompanyClient({
   ) : null;
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px" }}>
+    <div style={{ maxWidth: 860, margin: "0 auto" }}>
       {/* 戻るリンク */}
       <a
-        href="/biz/companies/add"
+        href="/biz/dashboard"
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           fontSize: 13, color: "var(--ink-mute)", textDecoration: "none",
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        追加方法を選ぶ
+        ダッシュボードに戻る
       </a>
 
       {/* 2カラムレイアウト */}
