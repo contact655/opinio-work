@@ -52,6 +52,7 @@ export default async function CreateCompanyPage() {
         .eq("auth_id", user.id)
         .maybeSingle();
       if (owUser) {
+        // 2a. 求職者プロフィールの現職企業
         const { data: exp } = await admin
           .from("ow_experiences")
           .select("company_text, company_id, ow_companies(name)")
@@ -61,6 +62,20 @@ export default async function CreateCompanyPage() {
         if (exp) {
           prefilledCompanyName = (exp.ow_companies as unknown as { name: string } | null)?.name ?? exp.company_text ?? null;
           prefilledCompanyId = (exp.company_id as string | null) ?? null;
+        }
+
+        // 2b. 既存の company_admin 所属企業
+        if (!prefilledCompanyName) {
+          const { data: adminRow } = await admin
+            .from("ow_company_admins")
+            .select("ow_companies(id, name)")
+            .eq("user_id", owUser.id)
+            .maybeSingle();
+          const co = (adminRow?.ow_companies as unknown as { id: string; name: string } | null);
+          if (co) {
+            prefilledCompanyName = co.name;
+            prefilledCompanyId = co.id;
+          }
         }
       }
     }

@@ -358,7 +358,7 @@ export function CreateCompanyClient({
   ) : null;
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: 860, paddingLeft: 24 }}>
 
       {/* 2カラムレイアウト */}
       <div style={{
