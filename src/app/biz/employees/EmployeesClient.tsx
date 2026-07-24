@@ -273,7 +273,7 @@ export function EmployeesClient({ current, alumni, hidden, companyName }: Props)
   const list = tab === "current" ? current : tab === "alumni" ? alumni : hidden;
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "36px 32px 80px" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 32px 80px" }}>
 
       {/* ページヘッダー */}
       <div style={{ marginBottom: 24 }}>

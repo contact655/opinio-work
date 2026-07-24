@@ -317,6 +317,7 @@ export function BusinessLayout({
           alignSelf: "start",
           height: "calc(100vh - 57px)",
           overflowY: "auto",
+          outline: "none",
         }}>
           <div style={{
             fontFamily: "'Inter', sans-serif",

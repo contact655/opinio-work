@@ -1605,13 +1605,14 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
               承認済み
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               {ambassadors.filter((a) => a.display_consent).map((a) => (
                 <div key={a.id} style={{
                   background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 12, padding: "14px 16px",
+                  borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {/* 上段: アバター + 名前 */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{
                       width: 38, height: 38, borderRadius: "50%", background: a.gradient,
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -1619,33 +1620,25 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     }}>
                       {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
-                      <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "役職未設定"}</div>
-                      {(() => {
-                        const stat = meetingStats.find((s) => s.user_id === a.user_id);
-                        if (!stat) return null;
-                        return (
-                          <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>
-                              面談 担当{stat.total}件
-                            </span>
-                            {stat.completed > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)" }}>
-                                完了{stat.completed}件
-                              </span>
-                            )}
-                            {stat.this_month_completed > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--warm-soft)", color: "#92400E" }}>
-                                今月{stat.this_month_completed}件
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                      <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "役職未設定"}</div>
                     </div>
-                    {/* is_public トグル */}
-                    {isAdmin && (
+                  </div>
+                  {/* 面談統計 */}
+                  {(() => {
+                    const stat = meetingStats.find((s) => s.user_id === a.user_id);
+                    if (!stat) return null;
+                    return (
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>担当{stat.total}件</span>
+                        {stat.completed > 0 && <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)" }}>完了{stat.completed}件</span>}
+                      </div>
+                    );
+                  })()}
+                  {/* 下段: トグル + 解除 */}
+                  {isAdmin && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ fontSize: 11, color: a.is_public ? "var(--success)" : "var(--ink-mute)", fontWeight: 600 }}>{a.is_public ? "公開中" : "非公開"}</span>
                         <button
@@ -1666,21 +1659,18 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                           }} />
                         </button>
                       </div>
-                    )}
-                    {isAdmin && (
                       <button
                         onClick={() => handleRevokeAmbassador(a.id)}
                         disabled={revokingMemberId === a.id}
                         style={{
                           background: "none", border: "1px solid var(--line)", borderRadius: 6,
-                          padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer",
+                          padding: "3px 8px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer",
                         }}
                       >
                         {revokingMemberId === a.id ? "..." : "解除"}
                       </button>
-                    )}
-                  </div>
-
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1693,35 +1683,41 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
               招待中（承認待ち）
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               {ambassadors.filter((a) => !a.display_consent).map((a) => (
                 <div key={a.id} style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 16px", opacity: 0.85,
+                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px", opacity: 0.85,
+                  display: "flex", flexDirection: "column", gap: 10,
                 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", background: a.gradient,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: "hidden",
-                  }}>
-                    {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                  {/* 上段: アバター + 名前 */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: "50%", background: a.gradient,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0, overflow: "hidden",
+                    }}>
+                      {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "—"}</div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{a.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{a.role_title ?? "—"}</div>
+                  {/* 下段: 招待中バッジ + 取消 */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>
+                      招待中
+                    </span>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleRevokeAmbassador(a.id)}
+                        disabled={revokingMemberId === a.id}
+                        style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer" }}
+                      >
+                        {revokingMemberId === a.id ? "..." : "取消"}
+                      </button>
+                    )}
                   </div>
-                  <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, flexShrink: 0 }}>
-                    招待中
-                  </span>
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleRevokeAmbassador(a.id)}
-                      disabled={revokingMemberId === a.id}
-                      style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer" }}
-                    >
-                      {revokingMemberId === a.id ? "..." : "取消"}
-                    </button>
-                  )}
                 </div>
               ))}
             </div>

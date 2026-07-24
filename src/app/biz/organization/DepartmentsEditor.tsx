@@ -479,7 +479,7 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 32px 80px" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 32px 80px" }}>
       {/* テンプレートボタン（右上） */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
         <button

@@ -316,7 +316,7 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 32px 80px" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 32px 80px" }}>
 
       {/* エラー */}
       {error && (
