@@ -458,6 +458,17 @@ export default async function UserProfilePage({ params }: { params: { id: string
         @media (min-width: 640px) { .u-role-title { -webkit-line-clamp: unset; display: block; } }
       `}</style>
 
+      {/* Breadcrumb */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)", background: "var(--bg-tint)" }}>
+        <div style={{ maxWidth: 1060, margin: "0 auto", padding: "8px 20px", fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+          <Link href="/" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
+          <span>/</span>
+          <Link href="/people" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>ユーザー</Link>
+          <span>/</span>
+          <span style={{ color: "var(--ink-soft)" }}>{owUser.name}</span>
+        </div>
+      </div>
+
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 20px 80px" }}>
 
         {/* Cover + Avatar header — full width above grid */}

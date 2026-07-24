@@ -33,7 +33,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
-            <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>求人を探す</Link>
+            <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>求人</Link>
             <span>/</span>
             <Link href={`/jobs/${job.id}`} style={{ color: "var(--ink-mute)" }}>{job.role}</Link>
             <span>/</span>

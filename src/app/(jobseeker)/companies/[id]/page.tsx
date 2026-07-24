@@ -101,7 +101,7 @@ function Breadcrumb({ company }: { company: Company }) {
         </Link>
         <span style={{ margin: "0 6px" }}>/</span>
         <Link href="/companies" style={{ color: "var(--ink-mute)" }}>
-          企業を知る
+          企業
         </Link>
         <span style={{ margin: "0 6px" }}>/</span>
         <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{company.name}</span>

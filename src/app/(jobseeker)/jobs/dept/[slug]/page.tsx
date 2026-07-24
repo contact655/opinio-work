@@ -133,7 +133,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Link href="/jobs" style={{ fontSize: 12, color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }}>
-            求人を探す
+            求人
           </Link>
           <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>›</span>
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>{cat.label}</span>

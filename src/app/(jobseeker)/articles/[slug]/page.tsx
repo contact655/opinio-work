@@ -431,7 +431,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           <div style={{ fontSize: 12, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: INK_MUTE }}>OPINIO</Link>
             <span>/</span>
-            <Link href="/articles" style={{ color: INK_MUTE }}>取材記事</Link>
+            <Link href="/articles" style={{ color: INK_MUTE }}>記事</Link>
             <span>/</span>
             <span aria-current="page" style={{ color: INK_SOFT }}>{badge.label}</span>
           </div>
