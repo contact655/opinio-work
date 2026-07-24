@@ -91,7 +91,7 @@ function SectionCard({
   desc,
   children,
 }: {
-  title: string;
+  title?: string;
   desc?: string;
   children: React.ReactNode;
 }) {
@@ -103,9 +103,11 @@ function SectionCard({
       padding: "26px 30px",
       marginBottom: 18,
     }}>
-      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: desc ? 6 : 18 }}>
-        {title}
-      </div>
+      {title && (
+        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: desc ? 6 : 18 }}>
+          {title}
+        </div>
+      )}
       {desc && (
         <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 18, lineHeight: 1.7 }}>
           {desc}
@@ -534,19 +536,6 @@ export function CompanyEditClient({
     hasDraft: hasDraftChanges && s.showStatus,
   }));
 
-  const saveStatusStyle: React.CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: 6,
-    fontSize: 12, padding: "5px 12px", borderRadius: 100,
-    transition: "all 0.3s", flexShrink: 0,
-    fontWeight: saveState === "saved" ? 600 : 400,
-    ...(saveState === "saving"
-      ? { color: "var(--ink-mute)", background: "var(--bg-tint)" }
-      : saveState === "saved"
-        ? { color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7" }
-        : saveState === "error"
-          ? { color: "var(--error)", background: "var(--error-soft)" }
-          : { color: "var(--ink-mute)", background: "transparent" }),
-  };
   const saveStatusText =
     saveState === "saving" ? "保存中..."
     : saveState === "saved"  ? "保存しました"
@@ -639,7 +628,7 @@ export function CompanyEditClient({
       case "basic":
         return (
           <>
-            <SectionCard title="企業の基本情報">
+            <SectionCard>
               <FormGroup>
                 <FormLabel required htmlFor="ce-name">企業名</FormLabel>
                 <FormInput id="ce-name" value={form.name} onChange={(v) => update("name", v)} />
@@ -1188,133 +1177,6 @@ export function CompanyEditClient({
         height: "calc(100vh - 57px)",
       }}>
 
-        {/* サブトップバー */}
-        <div style={{
-          height: 52,
-          borderBottom: "1px solid var(--line)",
-          background: "rgba(255,255,255,0.96)",
-          backdropFilter: "blur(12px)",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 24px",
-          gap: 16,
-          flexShrink: 0,
-          zIndex: 10,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-              企業情報を編集
-            </span>
-            {saveState === "error" ? (
-              <span style={saveStatusStyle}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {saveStatusText}
-                <button
-                  type="button"
-                  onClick={handleRetrySave}
-                  style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: "var(--error)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}
-                >
-                  再試行
-                </button>
-              </span>
-            ) : (
-              <span style={saveStatusStyle}>
-                {saveState === "saving" ? (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                ) : saveState === "saved" ? (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                ) : null}
-                {saveStatusText}
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button
-              type="button"
-              onClick={() => window.open(`/companies/${companyId}`, "_blank", "noopener,noreferrer")}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px",
-                fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                borderRadius: 8, cursor: "pointer",
-                border: "1px solid var(--line)", background: "#fff", color: "var(--ink)",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal-100)";
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--royal-50)";
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)";
-                (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)";
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              プレビュー
-            </button>
-            {isAdmin && !termsAgreed && (
-              <button
-                type="button"
-                onClick={() => setActiveSection("basic")}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                  borderRadius: 8, cursor: "pointer",
-                  background: "var(--warm-soft)", color: "#92400E",
-                  border: "1px solid #FDE68A",
-                }}
-              >
-                ⚠ 規約に同意してから公開できます
-              </button>
-            )}
-            {isAdmin && termsAgreed && (
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={isPublishing || !hasDraftChanges}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px",
-                fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                borderRadius: 8,
-                cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer",
-                background: hasDraftChanges ? "var(--success)" : "var(--line)",
-                color: hasDraftChanges ? "#fff" : "var(--ink-mute)",
-                border: `1px solid ${hasDraftChanges ? "var(--success)" : "var(--line)"}`,
-                transition: "all 0.2s",
-                opacity: isPublishing ? 0.7 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!isPublishing && hasDraftChanges) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "#047857";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#047857";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (hasDraftChanges) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "var(--success)";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--success)";
-                }
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-              {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
-            </button>
-            )}
-
-          </div>
-        </div>
-
         {/* 2カラム本体 */}
         <div style={{
           display: "grid",
@@ -1331,6 +1193,15 @@ export function CompanyEditClient({
             lastPublishedAt={form.lastPublishedAt}
             lastPublishedAgo={form.lastPublishedAgo}
             onViewPublicPage={() => router.push(`/companies/${companyId}`)}
+            onPreview={() => window.open(`/companies/${companyId}`, "_blank", "noopener,noreferrer")}
+            onPublish={handlePublish}
+            isPublishing={isPublishing}
+            isAdmin={isAdmin}
+            termsAgreed={termsAgreed}
+            onShowTermsSection={() => setActiveSection("basic")}
+            saveState={saveState}
+            saveStatusText={saveStatusText}
+            onRetrySave={handleRetrySave}
           />
 
           <main style={{

@@ -18,6 +18,16 @@ type Props = {
   lastPublishedAt?: string;
   lastPublishedAgo?: string;
   onViewPublicPage?: () => void;
+  // アクションボタン（旧サブトップバーから移動）
+  onPreview?: () => void;
+  onPublish?: () => void;
+  isPublishing?: boolean;
+  isAdmin?: boolean;
+  termsAgreed?: boolean;
+  onShowTermsSection?: () => void;
+  saveState?: "idle" | "saving" | "saved" | "error";
+  saveStatusText?: string;
+  onRetrySave?: () => void;
 };
 
 export function CompanyEditSubNav({
@@ -29,6 +39,15 @@ export function CompanyEditSubNav({
   lastPublishedAt,
   lastPublishedAgo,
   onViewPublicPage,
+  onPreview,
+  onPublish,
+  isPublishing,
+  isAdmin,
+  termsAgreed,
+  onShowTermsSection,
+  saveState,
+  saveStatusText,
+  onRetrySave,
 }: Props) {
   return (
     <aside style={{
@@ -38,23 +57,59 @@ export function CompanyEditSubNav({
       flexDirection: "column",
       overflow: "hidden",
     }}>
-      {/* ヘッド */}
+      {/* アクションボタン */}
       <div style={{
-        padding: "20px 20px 16px",
+        padding: "12px 16px",
         borderBottom: "1px solid var(--line)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
       }}>
-        <div style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: 16,
-          fontWeight: 600,
-          color: "var(--ink)",
-          marginBottom: 4,
-        }}>
-          企業情報
-        </div>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-          編集すると自動的に下書き保存されます。「変更を公開する」で求職者側に反映されます。
-        </div>
+        {/* 保存状態 */}
+        {saveState && saveState !== "idle" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: saveState === "error" ? "var(--error)" : "var(--ink-mute)", fontWeight: 500 }}>
+            {saveState === "saving" && (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            )}
+            {saveState === "saved" && (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            )}
+            {saveStatusText}
+            {saveState === "error" && onRetrySave && (
+              <button type="button" onClick={onRetrySave} style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: "var(--error)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>再試行</button>
+            )}
+          </div>
+        )}
+        {/* 変更を公開 / 規約同意 */}
+        {isAdmin && !termsAgreed && (
+          <button type="button" onClick={onShowTermsSection} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 600, borderRadius: 7, cursor: "pointer", background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A" }}>
+            ⚠ 規約に同意してから公開できます
+          </button>
+        )}
+        {isAdmin && termsAgreed && (
+          <button
+            type="button"
+            onClick={onPublish}
+            disabled={isPublishing || !hasDraftChanges}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, borderRadius: 7, cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer", background: hasDraftChanges ? "var(--success)" : "var(--line)", color: hasDraftChanges ? "#fff" : "var(--ink-mute)", border: "none", transition: "background 0.2s", opacity: isPublishing ? 0.7 : 1 }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
+          </button>
+        )}
+        {/* プレビュー */}
+        <button
+          type="button"
+          onClick={onPreview}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 600, borderRadius: 7, cursor: "pointer", border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", transition: "all 0.15s" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal-100)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-soft)"; }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          プレビュー
+        </button>
       </div>
 
       {/* 公開ステータス */}
