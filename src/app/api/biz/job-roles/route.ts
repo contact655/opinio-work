@@ -8,41 +8,41 @@ export async function GET() {
 
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("ow_company_departments")
-    .select("id, parent_id, name, display_order")
+    .from("ow_company_job_roles")
+    .select("id, name, standard_role_id, display_order")
     .eq("company_id", ctx.tenantId)
     .is("deleted_at", null)
     .order("display_order", { ascending: true })
     .order("name", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ departments: data ?? [] });
+  return NextResponse.json({ jobRoles: data ?? [] });
 }
 
 export async function POST(req: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, parent_id, display_order } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: "部門名を入力してください" }, { status: 400 });
+  const { name, standard_role_id, display_order } = await req.json();
+  if (!name?.trim()) return NextResponse.json({ error: "職種名を入力してください" }, { status: 400 });
 
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("ow_company_departments")
+    .from("ow_company_job_roles")
     .insert({
       company_id: ctx.tenantId,
       name: name.trim(),
-      parent_id: parent_id ?? null,
+      standard_role_id: standard_role_id ?? null,
       display_order: display_order ?? 0,
     })
-    .select("id, parent_id, name, display_order")
+    .select("id, name, standard_role_id, display_order")
     .single();
 
   if (error) {
     if (error.code === "23505") {
-      return NextResponse.json({ error: "同じ部門名がすでに存在します" }, { status: 409 });
+      return NextResponse.json({ error: "同じ職種名がすでに存在します" }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ department: data });
+  return NextResponse.json({ jobRole: data });
 }

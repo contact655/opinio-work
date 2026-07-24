@@ -1,27 +1,56 @@
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { DepartmentsEditor } from "./DepartmentsEditor";
+import { JobRolesEditor } from "./JobRolesEditor";
+import { OrganizationTabs } from "./OrganizationTabs";
 import type { Department } from "./DepartmentsEditor";
+import type { CompanyJobRole, StandardRole } from "./JobRolesEditor";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "部門マスタ | OPINIO Business" },
+  title: { absolute: "組織マスタ | OPINIO Business" },
 };
 
-export default async function OrganizationPage() {
+export default async function OrganizationPage({
+  searchParams,
+}: {
+  searchParams?: { tab?: string };
+}) {
   const ctx = await getTenantContext();
   if (!ctx) redirect("/biz/dashboard");
 
+  const activeTab = searchParams?.tab === "roles" ? "roles" : "departments";
+
   const supabase = createClient();
-  const { data: departments } = await supabase
-    .from("ow_company_departments")
-    .select("id, parent_id, name, display_order")
-    .eq("company_id", ctx.tenantId)
-    .order("display_order", { ascending: true })
-    .order("name", { ascending: true });
+  const adminSupabase = createAdminClient();
+
+  const [deptResult, jobRolesResult, stdRolesResult] = await Promise.all([
+    supabase
+      .from("ow_company_departments")
+      .select("id, parent_id, name, display_order")
+      .eq("company_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("display_order", { ascending: true })
+      .order("name", { ascending: true }),
+
+    supabase
+      .from("ow_company_job_roles")
+      .select("id, name, standard_role_id, display_order")
+      .eq("company_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("display_order", { ascending: true })
+      .order("name", { ascending: true }),
+
+    adminSupabase
+      .from("ow_roles")
+      .select("id, name, parent_id")
+      .order("display_order", { ascending: true })
+      .order("name", { ascending: true }),
+  ]);
 
   return (
     <BusinessLayout
@@ -32,9 +61,26 @@ export default async function OrganizationPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <DepartmentsEditor
-        initialDepartments={(departments ?? []) as Department[]}
-      />
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 0" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: 0, fontFamily: "'Noto Serif JP', serif" }}>
+          組織マスタ
+        </h1>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "6px 0 20px" }}>
+          求人・社員登録で使用する部門と職種の定義を管理します。
+        </p>
+        <OrganizationTabs activeTab={activeTab} />
+      </div>
+
+      {activeTab === "departments" ? (
+        <DepartmentsEditor
+          initialDepartments={(deptResult.data ?? []) as Department[]}
+        />
+      ) : (
+        <JobRolesEditor
+          initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
+          standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
+        />
+      )}
     </BusinessLayout>
   );
 }
