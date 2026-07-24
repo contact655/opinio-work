@@ -1044,6 +1044,8 @@ function PendingInvitesSection({
 // ── MembersClient ───────────────────────────────────────────────────
 export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [] }: Props) {
   const router = useRouter();
+  const [activeSection, setActiveSection] = useState<"admin" | "hr" | "field">("admin");
+
   // edit profile dialog state
   const [editProfileTarget, setEditProfileTarget] = useState<ProfileEditTarget | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -1403,240 +1405,138 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             採用担当メンバーを管理・招待します。現在 {activeMembers.length} 名がアクティブです。
           </p>
         </div>
-        {false && (
-        <button
-          type="button"
-          style={{
-            display: "none",
-          }}
-        >
-          {/* Mail icon */}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
-          招待する
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              if (activeSection === "field") {
+                setEmailInviteOpen((v) => !v);
+              } else {
+                setAddDialogPermission(activeSection === "admin" ? "admin" : "member");
+                setAddError(null);
+                setShowAddDialog(true);
+              }
+            }}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "9px 18px", background: "var(--royal)", color: "#fff",
+              border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              cursor: "pointer", flexShrink: 0, marginLeft: 24,
+              boxShadow: "0 2px 6px rgba(0,35,102,0.2)",
+            }}
+          >
+            + メールで招待
+          </button>
         )}
       </div>
 
-      {/* ── 管理者 セクション ─────────────────────────────────────────── */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 3px" }}>
-              管理者
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, marginLeft: 8, padding: "1px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>
-                {adminMembers.length}
-              </span>
-            </h2>
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.5 }}>
-              求人・企業情報の管理、メンバー招待・権限変更ができます。
-            </p>
-          </div>
-          {isAdmin && (
+      {/* ── タブ バー ─────────────────────────────────────────── */}
+      <div role="tablist" aria-label="チームセクション" style={{
+        display: "flex", gap: 0, marginBottom: 20,
+        borderBottom: "1px solid var(--line)",
+      }}>
+        {([
+          { key: "admin" as const, label: "管理者", count: adminMembers.length },
+          { key: "hr" as const, label: "人事", count: hrMembers.length },
+          { key: "field" as const, label: "現場", count: ambassadors.filter((a) => a.display_consent).length },
+        ]).map((tab) => {
+          const isSelected = activeSection === tab.key;
+          return (
             <button
+              key={tab.key}
               type="button"
-              onClick={() => { setAddDialogPermission("admin"); setAddError(null); setShowAddDialog(true); }}
+              role="tab"
+              aria-selected={isSelected}
+              onClick={() => setActiveSection(tab.key)}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", background: "var(--royal)", color: "#fff",
-                border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                cursor: "pointer", flexShrink: 0,
+                padding: "10px 18px",
+                background: "none", border: "none",
+                borderBottom: isSelected ? "2px solid var(--royal)" : "2px solid transparent",
+                fontFamily: "inherit", fontSize: 14,
+                fontWeight: isSelected ? 700 : 400,
+                color: isSelected ? "var(--royal)" : "var(--ink-mute)",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+                marginBottom: -1, transition: "all 0.15s",
               }}
             >
-              + メールで招待
-            </button>
-          )}
-        </div>
-        {adminMembers.length === 0 ? (
-          <div style={{ padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10 }}>
-            管理者がいません
-          </div>
-        ) : (
-          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
-            {adminMembers.map((member, index) => {
-              const isSelf = member.user_id === currentUserId;
-              const ps = PERM_STYLES[member.permission];
-              const isLast = index === adminMembers.length - 1;
-              return (
-                <div key={member.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: isLast ? "none" : "1px solid var(--line-soft)", background: isSelf ? "var(--royal-50)" : "#fff" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                    {member.initial}
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{member.name}</span>
-                      {isSelf && (<span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>)}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
-                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="メールアドレスをコピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>
-                        {copiedEmail === member.email ? (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>) : (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>)}
-                      </button>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {member.role_title && (<span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{member.role_title}</span>)}
-                      {member.department && (<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.department}</span>)}
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
-                      {PERM_LABELS[member.permission]}
-                    </span>
-                    {isAdmin && (<DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── 人事 セクション ─────────────────────────────────────────── */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 3px" }}>
-              人事
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, marginLeft: 8, padding: "1px 7px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)" }}>
-                {hrMembers.length}
+              {tab.label}
+              <span style={{
+                fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700,
+                padding: "1px 6px", borderRadius: 100,
+                background: isSelected ? "var(--royal-50)" : "var(--line-soft)",
+                color: isSelected ? "var(--royal)" : "var(--ink-mute)",
+              }}>
+                {tab.count}
               </span>
-            </h2>
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.5 }}>
-              採用管理画面にアクセスできます。求人・面談の閲覧・管理が可能です。
-            </p>
-          </div>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => { setAddDialogPermission("member"); setAddError(null); setShowAddDialog(true); }}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", background: "#fff", color: "var(--royal)",
-                border: "1px solid var(--royal)", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                cursor: "pointer", flexShrink: 0,
-              }}
-            >
-              + メールで招待
             </button>
-          )}
-        </div>
-        {hrMembers.length === 0 ? (
-          <div style={{ padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10 }}>
-            人事メンバーがいません
-          </div>
-        ) : (
-          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
-            {hrMembers.map((member, index) => {
-              const isSelf = member.user_id === currentUserId;
-              const ps = PERM_STYLES[member.permission];
-              const isLast = index === hrMembers.length - 1;
-              return (
-                <div key={member.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: isLast ? "none" : "1px solid var(--line-soft)", background: isSelf ? "var(--royal-50)" : "#fff" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                    {member.initial}
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{member.name}</span>
-                      {isSelf && (<span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>)}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
-                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="メールアドレスをコピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>
-                        {copiedEmail === member.email ? (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>) : (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>)}
-                      </button>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {member.role_title && (<span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{member.role_title}</span>)}
-                      {member.department && (<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.department}</span>)}
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
-                      {PERM_LABELS[member.permission]}
-                    </span>
-                    {isAdmin && (<DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* 招待中セクション */}
-      <PendingInvitesSection
-        invites={pendingInvites}
-        onCancelled={(id) => {
-          setPendingInvites((prev) => prev.filter((i) => i.id !== id));
-          router.refresh();
-        }}
-        onToast={setToastMessage}
-      />
-
-      {/* 役職・部署編集ダイアログ */}
-      {editProfileTarget && (
-        <EditProfileDialog
-          target={editProfileTarget}
-          isSubmitting={isSavingProfile}
-          errorMessage={profileError}
-          onSubmit={handleSaveProfile}
-          onCancel={() => { if (!isSavingProfile) setEditProfileTarget(null); }}
-        />
-      )}
-
-      {/* メンバー追加ダイアログ */}
-      {showAddDialog && (
-        <AddMemberDialog
-          isSubmitting={isAdding}
-          errorMessage={addError}
-          defaultPermission={addDialogPermission}
-          onSubmit={handleAddMember}
-          onCancel={() => { if (!isAdding) setShowAddDialog(false); }}
-        />
-      )}
-
-      {/* 確認ダイアログ */}
-      {dialogMember && actionType && (
-        <ConfirmDialog
-          member={dialogMember}
-          actionType={actionType}
-          actionValue={actionValue}
-          isSubmitting={isSubmitting}
-          errorMessage={errorMessage}
-          onConfirm={handleConfirm}
-          onCancel={closeDialog}
-        />
-      )}
-
-      {/* ── 現場 セクション ── */}
-      <div style={{ marginTop: 48 }}>
-        <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 3px" }}>
-              現場
-            </h2>
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.5 }}>
-              候補者と直接話してもらう社員です。面談OKフラグで公開管理。管理画面アクセス権なし。
-            </p>
-          </div>
-          {isAdmin && (
-            <button
-              onClick={() => setEmailInviteOpen((v) => !v)}
-              style={{
-                background: "var(--royal)", color: "#fff", border: "none",
-                borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13,
-                cursor: "pointer", flexShrink: 0,
+      {/* ── 管理者 / 人事 タブ ── */}
+      {(activeSection === "admin" || activeSection === "hr") && (() => {
+        const members = activeSection === "admin" ? adminMembers : hrMembers;
+        const emptyText = activeSection === "admin" ? "管理者がいません" : "人事メンバーがいません";
+        return (
+          <>
+            {members.length === 0 ? (
+              <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10, marginBottom: 24 }}>
+                {emptyText}
+              </div>
+            ) : (
+              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
+                {members.map((member, index) => {
+                  const isSelf = member.user_id === currentUserId;
+                  const ps = PERM_STYLES[member.permission];
+                  const isLast = index === members.length - 1;
+                  return (
+                    <div key={member.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: isLast ? "none" : "1px solid var(--line-soft)", background: isSelf ? "var(--royal-50)" : "#fff" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                        {member.initial}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{member.name}</span>
+                          {isSelf && (<span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>)}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
+                          <button type="button" onClick={() => handleCopyEmail(member.email)} title="メールアドレスをコピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>
+                            {copiedEmail === member.email ? (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>) : (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>)}
+                          </button>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {member.role_title && (<span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{member.role_title}</span>)}
+                          {member.department && (<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.department}</span>)}
+                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
+                          {PERM_LABELS[member.permission]}
+                        </span>
+                        {isAdmin && (<DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <PendingInvitesSection
+              invites={pendingInvites}
+              onCancelled={(id) => {
+                setPendingInvites((prev) => prev.filter((i) => i.id !== id));
+                router.refresh();
               }}
-            >
-              + メールで招待
-            </button>
-          )}
-        </div>
+              onToast={setToastMessage}
+            />
+          </>
+        );
+      })()}
+
+      {/* ── 現場 タブ ── */}
+      {activeSection === "field" && (
+        <>
 
         {/* メールアドレス招待フォーム */}
         {isAdmin && emailInviteOpen && (
@@ -1972,7 +1872,43 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             「メールで招待」ボタンからOPINIO登録済みの社員を招待できます。
           </div>
         )}
-      </div>
+        </>
+      )}
+
+      {/* 役職・部署編集ダイアログ */}
+      {editProfileTarget && (
+        <EditProfileDialog
+          target={editProfileTarget}
+          isSubmitting={isSavingProfile}
+          errorMessage={profileError}
+          onSubmit={handleSaveProfile}
+          onCancel={() => { if (!isSavingProfile) setEditProfileTarget(null); }}
+        />
+      )}
+
+      {/* メンバー追加ダイアログ */}
+      {showAddDialog && (
+        <AddMemberDialog
+          isSubmitting={isAdding}
+          errorMessage={addError}
+          defaultPermission={addDialogPermission}
+          onSubmit={handleAddMember}
+          onCancel={() => { if (!isAdding) setShowAddDialog(false); }}
+        />
+      )}
+
+      {/* 確認ダイアログ */}
+      {dialogMember && actionType && (
+        <ConfirmDialog
+          member={dialogMember}
+          actionType={actionType}
+          actionValue={actionValue}
+          isSubmitting={isSubmitting}
+          errorMessage={errorMessage}
+          onConfirm={handleConfirm}
+          onCancel={closeDialog}
+        />
+      )}
 
       {/* Toast */}
       {toastMessage && (
