@@ -92,55 +92,6 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
 
   return (
     <div>
-      {/* ── Page header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-        <div>
-          <h1 style={{
-            fontFamily: "'Noto Serif JP', serif",
-            fontWeight: 700,
-            fontSize: 22,
-            color: "var(--ink)",
-            margin: 0,
-          }}>
-            対話管理
-          </h1>
-          <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>
-            候補者から届いた問い合わせと進行中の対話を管理します。
-          </p>
-        </div>
-      </div>
-
-      {/* ── Stats strip ── */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "対話件数", value: conversations.length, color: "var(--royal)" },
-          { label: "進行中", value: activeCount, color: "var(--accent)" },
-          { label: "カジュアル面談", value: stageCounts["casual_meeting"] ?? 0, color: "var(--warm)" },
-          { label: "クローズ", value: stageCounts["closed"] ?? 0, color: "var(--ink-mute)" },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{
-            flex: 1,
-            padding: "14px 18px",
-            background: "#fff",
-            border: "1px solid var(--line)",
-            borderRadius: 10,
-          }}>
-            <div style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 24,
-              fontWeight: 700,
-              color,
-              lineHeight: 1,
-            }}>
-              {value}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, fontWeight: 500 }}>
-              {label}
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Stage filter tabs ── */}
       <div
         role="tablist"
