@@ -340,21 +340,16 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 )}
                 {company.job_count > 0 && (
                   <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
-                    background: "linear-gradient(135deg, #FFF7ED, #FEF3C7)",
-                    color: "#C2410C", border: "1.5px solid #FDBA74",
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 11, fontWeight: 800, padding: "3px 9px", borderRadius: 100,
+                    background: "var(--royal)", color: "#fff",
                     whiteSpace: "nowrap",
                   }}>
-                    <span style={{
-                      width: 5, height: 5, borderRadius: "50%", background: "#EA580C",
-                      animation: "pulseDot 1.8s ease-in-out infinite", flexShrink: 0,
-                    }} />
-                    面談受付中
-                    <span style={{
-                      background: "#EA580C", color: "#fff",
-                      fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 100,
-                    }}>{company.job_count}件</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/>
+                      <path d="M16 3h-8l-2 4h12l-2-4z"/>
+                    </svg>
+                    募集中 {company.job_count}件
                   </span>
                 )}
               </div>
