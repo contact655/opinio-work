@@ -1267,21 +1267,6 @@ export function CompanyEditClient({
             padding: "32px 40px 60px",
             maxWidth: 900,
           }}>
-            {isAdmin && !termsAgreed && (
-              <button
-                type="button"
-                onClick={() => setActiveSection("basic")}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  marginBottom: 20, padding: "8px 14px", borderRadius: 8,
-                  background: "var(--warm-soft)", color: "#92400E",
-                  border: "1px solid #FDE68A", fontSize: 12, fontWeight: 600,
-                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-                }}
-              >
-                ⚠ 規約に同意してから公開できます
-              </button>
-            )}
             {errorMessage && (
               <div role="alert" aria-live="polite" style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1300,6 +1285,35 @@ export function CompanyEditClient({
           </main>
         </div>
       </div>
+      {/* 規約同意バナー — 右上固定 */}
+      {isAdmin && !termsAgreed && (
+        <button
+          type="button"
+          onClick={() => setActiveSection("basic")}
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 24,
+            zIndex: 50,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "7px 14px",
+            borderRadius: 8,
+            background: "#FFFBEB",
+            color: "#92400E",
+            border: "none",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            whiteSpace: "nowrap",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+          }}
+        >
+          ⚠ 規約に同意してから公開できます
+        </button>
+      )}
     </BusinessLayout>
   );
 }
