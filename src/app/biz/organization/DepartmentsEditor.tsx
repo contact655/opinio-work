@@ -104,7 +104,7 @@ function DeptNode({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const indentLeft = depth * 20;
-  const canNest = depth < 2;
+  const canNest = depth < 1;
 
   async function handleAddChild() {
     if (!childName.trim()) return;

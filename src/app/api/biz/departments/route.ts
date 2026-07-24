@@ -27,6 +27,20 @@ export async function POST(req: Request) {
   if (!name?.trim()) return NextResponse.json({ error: "部門名を入力してください" }, { status: 400 });
 
   const supabase = createClient();
+
+  // 3階層目を拒否: parent_id の親が存在する場合は400
+  if (parent_id) {
+    const { data: parentRow } = await supabase
+      .from("ow_company_departments")
+      .select("parent_id")
+      .eq("id", parent_id)
+      .is("deleted_at", null)
+      .single();
+    if (parentRow?.parent_id) {
+      return NextResponse.json({ error: "部門は2階層まで（親 > 子）しか作成できません" }, { status: 400 });
+    }
+  }
+
   const { data, error } = await supabase
     .from("ow_company_departments")
     .insert({
