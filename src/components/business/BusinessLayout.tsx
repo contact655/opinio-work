@@ -61,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/biz/meetings",
-    label: "採用パイプライン",
+    label: "選考管理",
     icon: <Calendar size={16} strokeWidth={2.2} />,
   },
   {
