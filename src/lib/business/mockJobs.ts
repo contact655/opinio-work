@@ -7,6 +7,9 @@ export type BizJob = {
   jobCategory: string;
   employmentType: string;
   department?: string;
+  departmentId?: string;
+  departmentName?: string;
+  jobRoleNames?: string[];
   salaryMin?: number;
   salaryMax?: number;
   salaryNote?: string;

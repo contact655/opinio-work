@@ -124,13 +124,19 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
 
   const deptOptions = useMemo(() => {
     const set = new Set<string>();
-    jobs.forEach((j) => { if (j.department) set.add(j.department); });
+    jobs.forEach((j) => {
+      if (j.departmentName) set.add(j.departmentName);
+      else if (j.department) set.add(j.department);
+    });
     return Array.from(set).sort();
   }, [jobs]);
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
-    jobs.forEach((j) => { if (j.jobCategory) set.add(j.jobCategory); });
+    jobs.forEach((j) => {
+      (j.jobRoleNames ?? []).forEach((n) => set.add(n));
+      if (j.jobCategory) set.add(j.jobCategory);
+    });
     return Array.from(set).sort();
   }, [jobs]);
 
@@ -144,8 +150,16 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
     const sal = SALARY_OPTIONS[salaryRange];
     return jobs.filter((j) => {
       if (activeStatus !== "all" && j.status !== activeStatus) return false;
-      if (deptFilter && (j.department ?? "") !== deptFilter) return false;
-      if (categoryFilter && j.jobCategory !== categoryFilter) return false;
+      if (deptFilter) {
+        const dept = j.departmentName ?? j.department ?? "";
+        if (dept !== deptFilter) return false;
+      }
+      if (categoryFilter) {
+        const roles = j.jobRoleNames ?? [];
+        const matchesRole = roles.includes(categoryFilter);
+        const matchesCategory = j.jobCategory === categoryFilter;
+        if (!matchesRole && !matchesCategory) return false;
+      }
       if (empTypeFilter && j.employmentType !== empTypeFilter) return false;
       if (sal.min > 0 && (j.salaryMax ?? 0) < sal.min * 10000) return false;
       if (sal.max > 0 && (j.salaryMin ?? 0) > sal.max * 10000) return false;
@@ -154,7 +168,8 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
       return (
         j.title.toLowerCase().includes(q) ||
         j.jobCategory.toLowerCase().includes(q) ||
-        (j.department ?? "").toLowerCase().includes(q)
+        (j.departmentName ?? j.department ?? "").toLowerCase().includes(q) ||
+        (j.jobRoleNames ?? []).some((n) => n.toLowerCase().includes(q))
       );
     });
   }, [jobs, activeStatus, searchQuery, deptFilter, categoryFilter, empTypeFilter, salaryRange]);

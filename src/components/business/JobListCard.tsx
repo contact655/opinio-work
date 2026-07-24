@@ -263,9 +263,17 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
           }}>
             {job.title}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            <span style={{ color: "var(--royal)", fontWeight: 600 }}>{job.jobCategory}</span>
-            {job.department && <span> · {job.department}</span>}
+          <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+            {job.jobRoleNames && job.jobRoleNames.length > 0 ? (
+              job.jobRoleNames.map((name) => (
+                <span key={name} style={{ color: "var(--royal)", fontWeight: 600, background: "var(--royal-50)", padding: "1px 7px", borderRadius: 4, fontSize: 11 }}>{name}</span>
+              ))
+            ) : (
+              job.jobCategory && <span style={{ color: "var(--royal)", fontWeight: 600 }}>{job.jobCategory}</span>
+            )}
+            {(job.departmentName ?? job.department) && (
+              <span style={{ color: "var(--ink-mute)" }}>· {job.departmentName ?? job.department}</span>
+            )}
           </div>
         </div>
 
