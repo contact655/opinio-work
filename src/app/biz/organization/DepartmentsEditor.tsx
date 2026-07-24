@@ -391,16 +391,21 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
 
   const tree = buildTree(departments);
 
-  async function handleAdd(parentId: string | null, name: string) {
+  async function handleAdd(parentId: string | null, name: string, displayOrder?: number) {
     setError(null);
-    const maxOrder = departments
-      .filter((d) => d.parent_id === parentId)
-      .reduce((m, d) => Math.max(m, d.display_order), -1);
+    // displayOrder が未指定のとき（単体追加）は state から計算する。
+    // テンプレート適用時は呼び出し元で事前計算した値を渡す
+    // （useTransition のバッチ遅延で state が更新されないため）。
+    const order = displayOrder !== undefined
+      ? displayOrder
+      : departments
+          .filter((d) => d.parent_id === parentId)
+          .reduce((m, d) => Math.max(m, d.display_order), -1) + 1;
 
     const res = await fetch("/api/biz/departments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, parent_id: parentId, display_order: maxOrder + 1 }),
+      body: JSON.stringify({ name, parent_id: parentId, display_order: order }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -455,11 +460,18 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
   async function applyTemplate(items: TemplateEntry[]) {
     setShowTemplateModal(false);
     setTemplateProgress("テンプレートを追加中...");
-    for (const item of items) {
-      const parent = await handleAdd(null, item.name);
-      if (parent && item.children) {
-        for (const childName of item.children) {
-          await handleAdd(parent.id, childName);
+    // ループ前に現在の最大 display_order を確定させる
+    // （ループ中は useTransition バッチで state が更新されないため、
+    //   都度 state から計算すると全件 0 になる）
+    const rootBase = departments
+      .filter((d) => d.parent_id === null)
+      .reduce((m, d) => Math.max(m, d.display_order), -1) + 1;
+
+    for (let i = 0; i < items.length; i++) {
+      const parent = await handleAdd(null, items[i].name, rootBase + i);
+      if (parent && items[i].children) {
+        for (let j = 0; j < items[i].children!.length; j++) {
+          await handleAdd(parent.id, items[i].children![j], j);
         }
       }
     }
