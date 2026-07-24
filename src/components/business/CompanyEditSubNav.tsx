@@ -82,12 +82,7 @@ export function CompanyEditSubNav({
             )}
           </div>
         )}
-        {/* 変更を公開 / 規約同意 */}
-        {isAdmin && !termsAgreed && (
-          <button type="button" onClick={onShowTermsSection} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 600, borderRadius: 7, cursor: "pointer", background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A" }}>
-            ⚠ 規約に同意してから公開できます
-          </button>
-        )}
+        {/* 変更を公開 */}
         {isAdmin && termsAgreed && (
           <button
             type="button"

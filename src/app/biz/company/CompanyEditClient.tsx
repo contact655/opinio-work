@@ -1209,6 +1209,21 @@ export function CompanyEditClient({
             padding: "32px 40px 60px",
             maxWidth: 900,
           }}>
+            {isAdmin && !termsAgreed && (
+              <button
+                type="button"
+                onClick={() => setActiveSection("basic")}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  marginBottom: 20, padding: "8px 14px", borderRadius: 8,
+                  background: "var(--warm-soft)", color: "#92400E",
+                  border: "1px solid #FDE68A", fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                }}
+              >
+                ⚠ 規約に同意してから公開できます
+              </button>
+            )}
             {errorMessage && (
               <div role="alert" aria-live="polite" style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
