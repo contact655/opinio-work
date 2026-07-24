@@ -1653,7 +1653,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                           disabled={togglingPublicId === a.id}
                           title={a.is_public ? "非公開にする" : "公開する"}
                           style={{
-                            width: 32, height: 18, borderRadius: 9, border: "none",
+                            width: 28, height: 16, borderRadius: 8, border: "none",
                             background: a.is_public ? "var(--success)" : "var(--line)",
                             cursor: "pointer", position: "relative", transition: "background 0.2s",
                             flexShrink: 0, padding: 0,
@@ -1661,7 +1661,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                         >
                           <span style={{
                             position: "absolute", top: 2, left: a.is_public ? 14 : 2,
-                            width: 14, height: 14, borderRadius: "50%", background: "#fff",
+                            width: 12, height: 12, borderRadius: "50%", background: "#fff",
                             transition: "left 0.2s", display: "block",
                           }} />
                         </button>
