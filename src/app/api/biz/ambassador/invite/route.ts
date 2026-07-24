@@ -81,6 +81,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "user_id または email が必要です" }, { status: 400 });
   }
 
+  // user_id 直接指定（管理者がOPINIO登録済みユーザーをトグルした場合）は即時公開
+  const isDirectAdd = !!body.user_id;
+
   // 既に登録済みかチェック
   const { data: existing } = await adminSupabase
     .from("ow_company_members")
@@ -90,6 +93,14 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (existing) {
+    // user_id 直接指定で display_consent=false のまま残っている場合は即時公開に更新
+    if (isDirectAdd && !existing.display_consent) {
+      await adminSupabase
+        .from("ow_company_members")
+        .update({ display_consent: true, is_public: true })
+        .eq("id", existing.id);
+      return NextResponse.json({ id: existing.id, updated: true });
+    }
     return NextResponse.json(
       { error: "この社員はすでに面談対応者に登録されています", id: existing.id },
       { status: 409 }
@@ -98,9 +109,6 @@ export async function POST(req: NextRequest) {
 
   // auth.users.id を取得（invited_by 用）
   const { data: { user: authUser } } = await supabase.auth.getUser();
-
-  // user_id 直接指定（管理者がOPINIO登録済みユーザーをトグルした場合）は即時公開
-  const isDirectAdd = !!body.user_id;
 
   // INSERT
   const { data: member, error } = await adminSupabase
