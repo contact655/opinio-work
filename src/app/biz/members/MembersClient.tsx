@@ -1071,13 +1071,6 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
 
   // 面談対応者セクション state
   const [ambassadors, setAmbassadors] = useState(initialAmbassadors);
-  const [inviteRoleTitles, setInviteRoleTitles] = useState<Record<string, string>>(() => {
-    const m: Record<string, string> = {};
-    for (const c of ambassadorCandidates) {
-      m[c.user_id] = c.role_title ?? "";
-    }
-    return m;
-  });
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
 
@@ -1120,14 +1113,12 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   }
 
   async function handleInviteAmbassador(userId: string) {
-    const roleTitle = inviteRoleTitles[userId]?.trim();
-    if (!roleTitle) return;
     setInvitingUserId(userId);
     try {
       const res = await fetch("/api/biz/ambassador/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, role_title: roleTitle }),
+        body: JSON.stringify({ user_id: userId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1778,27 +1769,34 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     {c.role_title && <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{c.role_title}</div>}
                   </div>
                   {isAdmin && (
-                    <>
-                      <input
-                        type="text"
-                        placeholder="役職を入力（例：エンジニア）"
-                        value={inviteRoleTitles[c.user_id] ?? ""}
-                        onChange={(e) => setInviteRoleTitles((prev) => ({ ...prev, [c.user_id]: e.target.value }))}
-                        style={{ fontSize: 12, border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px", color: "var(--ink)", width: 180, outline: "none", flexShrink: 0 }}
-                      />
-                      <button
-                        onClick={() => handleInviteAmbassador(c.user_id)}
-                        disabled={invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()}
-                        style={{
-                          background: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--line)" : "var(--royal)",
-                          color: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--ink-mute)" : "#fff",
-                          border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700,
-                          cursor: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                        }}
-                      >
-                        {invitingUserId === c.user_id ? "送信中..." : "現場に招待"}
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => handleInviteAmbassador(c.user_id)}
+                      disabled={invitingUserId === c.user_id}
+                      title="ONにすると現場タブに移動します"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
+                        background: "none", border: "none", cursor: invitingUserId === c.user_id ? "default" : "pointer",
+                        padding: "4px 0",
+                      }}
+                    >
+                      {/* トグルスイッチ（OFF状態） */}
+                      <div style={{
+                        width: 36, height: 20, borderRadius: 10, position: "relative", flexShrink: 0,
+                        background: invitingUserId === c.user_id ? "var(--royal-100)" : "var(--line)",
+                        transition: "background 0.2s",
+                      }}>
+                        <div style={{
+                          position: "absolute", top: 3, left: 3,
+                          width: 14, height: 14, borderRadius: "50%", background: "#fff",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                          transition: "left 0.2s",
+                        }} />
+                      </div>
+                      <span style={{ fontSize: 12, color: invitingUserId === c.user_id ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                        {invitingUserId === c.user_id ? "追加中..." : "面談対応可"}
+                      </span>
+                    </button>
                   )}
                 </div>
               ))}

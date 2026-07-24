@@ -24,10 +24,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { role_title } = body;
-  if (!role_title || typeof role_title !== "string" || role_title.trim().length === 0) {
-    return NextResponse.json({ error: "role_title required" }, { status: 400 });
-  }
+  const role_title = (body.role_title ?? "").trim() || "現場担当";
 
   const supabase = createClient();
   const adminSupabase = createAdminClient();
