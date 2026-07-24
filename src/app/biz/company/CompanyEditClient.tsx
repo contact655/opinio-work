@@ -958,7 +958,7 @@ export function CompanyEditClient({
         return (
           <>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.9 }}>
-              求職者側の「数値で見る企業」セクションに表示されます。入力後「回答として登録する」ボタンを押すと、求職者側に更新日時が表示されます。
+              求職者側の「数値で見る企業」セクションに表示されます。入力後「数値を保存・公開する」ボタンを押すと、求職者側に更新日時が表示されます。
             </p>
             {/* 回答状態バー */}
             <div style={{
@@ -993,7 +993,7 @@ export function CompanyEditClient({
                   opacity: isRegisteringNumbers ? 0.6 : 1,
                 }}
               >
-                {isRegisteringNumbers ? "登録中..." : "回答として登録する"}
+                {isRegisteringNumbers ? "登録中..." : "数値を保存・公開する"}
               </button>
             </div>
             <SectionCard title="基本情報">
@@ -1054,7 +1054,7 @@ export function CompanyEditClient({
                   opacity: isRegisteringNumbers ? 0.6 : 1,
                 }}
               >
-                {isRegisteringNumbers ? "登録中..." : "✓ この数値を回答として登録する"}
+                {isRegisteringNumbers ? "登録中..." : "✓ 数値を保存・公開する"}
               </button>
             </div>
           </>
