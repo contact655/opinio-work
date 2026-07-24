@@ -172,6 +172,9 @@ export function CreateCompanyClient({
         if (exact) {
           if (exact.industry && !industry) setIndustry(exact.industry);
           if (exact.url && !website) setWebsite(exact.url);
+          // マスタに存在する企業 → conflict カードで「1人目 or 2人目」を明示
+          setConflict({ id: exact.id, name: exact.name, admin_count: exact.admin_count });
+          setConflictSource("suggestion");
         }
       } catch { /* ignore */ }
     })();
