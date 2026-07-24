@@ -75,6 +75,7 @@ function BizAuthInner() {
   const [prefillEmail, setPrefillEmail] = useState("");
   const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
+  const [loggedInCompanyName, setLoggedInCompanyName] = useState("");
   useEffect(() => {
     try {
       const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
@@ -161,8 +162,6 @@ function BizAuthInner() {
       </div>
     );
   }
-
-  const [loggedInCompanyName, setLoggedInCompanyName] = useState("");
 
   if (loggedInUser) {
     return (
