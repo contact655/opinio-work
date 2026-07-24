@@ -265,33 +265,29 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
             </div>
           )}
 
-          {/* 下段: 面談受付中バッジ + 求人数 */}
-          {(company.accepting_casual_meetings || (company.job_count != null && company.job_count > 0)) && (
+          {/* 下段: 面談受付中バッジ（募集中あり = 求人数 > 0） */}
+          {company.job_count != null && company.job_count > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-              {company.accepting_casual_meetings && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                background: 'linear-gradient(135deg, #FFF7ED, #FEF3C7)',
+                color: '#C2410C', border: '1.5px solid #FDBA74',
+                boxShadow: '0 1px 3px rgba(234,88,12,0.15)',
+              }}>
                 <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
-                  background: 'linear-gradient(135deg, #FFF7ED, #FEF3C7)',
-                  color: '#C2410C', border: '1.5px solid #FDBA74',
-                  boxShadow: '0 1px 3px rgba(234,88,12,0.15)',
-                }}>
-                  <span style={{
-                    width: 5, height: 5, borderRadius: '50%', background: '#EA580C',
-                    animation: 'pulseDot 1.8s ease-in-out infinite', flexShrink: 0,
-                  }} />
-                  面談受付中
-                </span>
-              )}
-              {company.job_count != null && company.job_count > 0 && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
-                  background: 'var(--royal-50)', color: 'var(--royal)',
-                  border: '1px solid var(--royal-100)',
-                }}>
-                  求人 {company.job_count}件
-                </span>
-              )}
+                  width: 5, height: 5, borderRadius: '50%', background: '#EA580C',
+                  animation: 'pulseDot 1.8s ease-in-out infinite', flexShrink: 0,
+                }} />
+                面談受付中
+              </span>
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                background: 'var(--royal-50)', color: 'var(--royal)',
+                border: '1px solid var(--royal-100)',
+              }}>
+                求人 {company.job_count}件
+              </span>
             </div>
           )}
 

@@ -320,8 +320,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               )}
             </div>
 
-            {/* 行5: リモート ＋ アバター ＋ 募集中 ＋ 面談 */}
-            {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0 || company.accepting_casual_meetings) && (
+            {/* 行5: リモート ＋ アバター ＋ 募集中 */}
+            {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {remoteText && (
                   <span style={{ fontSize: 11, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{remoteText}</span>
@@ -350,16 +350,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                       <path d="M16 3h-8l-2 4h12l-2-4z"/>
                     </svg>
                     募集中 {company.job_count}件
-                  </span>
-                )}
-                {company.accepting_casual_meetings && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-                    background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
-                    display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
-                  }}>
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EA580C", animation: "pulseDot 1.8s ease-in-out infinite", display: "inline-block" }} />
-                    面談受付中
                   </span>
                 )}
               </div>
