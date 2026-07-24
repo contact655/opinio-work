@@ -202,11 +202,16 @@ function BizAuthInner() {
             </p>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const name = companyFromUrl || loggedInCompanyName;
                 if (name.trim()) {
                   try {
                     sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify({ name: name.trim() }));
+                  } catch { /* ignore */ }
+                  // user_metadata にも保存（サーバー側で確実に読めるように）
+                  try {
+                    const supabase = createClient();
+                    await supabase.auth.updateUser({ data: { pending_company: name.trim() } });
                   } catch { /* ignore */ }
                 }
                 router.push("/biz/companies/add/new");
