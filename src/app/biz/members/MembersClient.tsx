@@ -1044,7 +1044,7 @@ function PendingInvitesSection({
 // ── MembersClient ───────────────────────────────────────────────────
 export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [] }: Props) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<"admin" | "hr" | "field">("admin");
+  const [activeSection, setActiveSection] = useState<"staff" | "field" | "employees">("staff");
 
   // edit profile dialog state
   const [editProfileTarget, setEditProfileTarget] = useState<ProfileEditTarget | null>(null);
@@ -1087,10 +1087,6 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [emailInviteRole, setEmailInviteRole] = useState("");
   const [emailInviting, setEmailInviting] = useState(false);
 
-  // talk_themes 編集 state
-  const [editingThemesMemberId, setEditingThemesMemberId] = useState<string | null>(null);
-  const [themesInput, setThemesInput] = useState("");
-  const [savingThemes, setSavingThemes] = useState(false);
 
   // is_public トグル pending state
   const [togglingPublicId, setTogglingPublicId] = useState<string | null>(null);
@@ -1196,32 +1192,6 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
     }
   }
 
-  async function handleSaveThemes(memberId: string) {
-    setSavingThemes(true);
-    const themes = themesInput.split(/[,、\n]/).map((t) => t.trim()).filter(Boolean);
-    try {
-      const res = await fetch("/api/biz/ambassador/update", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_id: memberId, talk_themes: themes }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setToastMessage(data.error ?? "エラーが発生しました");
-      } else {
-        setAmbassadors((prev) =>
-          prev.map((a) => a.id === memberId ? { ...a, talk_themes: themes } : a)
-        );
-        setEditingThemesMemberId(null);
-        setToastMessage("保存しました");
-      }
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setSavingThemes(false);
-    }
-  }
-
   async function handleTogglePublic(memberId: string, current: boolean) {
     setTogglingPublicId(memberId);
     try {
@@ -1248,8 +1218,6 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
   const activeMembers = useMemo(() => initialMembers.filter((m) => m.is_active), [initialMembers]);
-  const adminMembers = useMemo(() => activeMembers.filter((m) => m.permission === "admin"), [activeMembers]);
-  const hrMembers = useMemo(() => activeMembers.filter((m) => m.permission === "member"), [activeMembers]);
 
   async function handleCopyEmail(email: string) {
     try {
@@ -1409,10 +1377,10 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           <button
             type="button"
             onClick={() => {
-              if (activeSection === "field") {
+              if (activeSection === "field" || activeSection === "employees") {
                 setEmailInviteOpen((v) => !v);
               } else {
-                setAddDialogPermission(activeSection === "admin" ? "admin" : "member");
+                setAddDialogPermission("member");
                 setAddError(null);
                 setShowAddDialog(true);
               }
@@ -1436,9 +1404,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         borderBottom: "1px solid var(--line)",
       }}>
         {([
-          { key: "admin" as const, label: "管理者", count: adminMembers.length },
-          { key: "hr" as const, label: "人事", count: hrMembers.length },
+          { key: "staff" as const, label: "採用担当", count: activeMembers.length },
           { key: "field" as const, label: "現場", count: ambassadors.filter((a) => a.display_consent).length },
+          { key: "employees" as const, label: "社員", count: ambassadorCandidates.length },
         ]).map((tab) => {
           const isSelected = activeSection === tab.key;
           return (
@@ -1473,66 +1441,75 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         })}
       </div>
 
-      {/* ── 管理者 / 人事 タブ ── */}
-      {(activeSection === "admin" || activeSection === "hr") && (() => {
-        const members = activeSection === "admin" ? adminMembers : hrMembers;
-        const emptyText = activeSection === "admin" ? "管理者がいません" : "人事メンバーがいません";
-        return (
-          <>
-            {members.length === 0 ? (
-              <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10, marginBottom: 24 }}>
-                {emptyText}
-              </div>
-            ) : (
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
-                {members.map((member, index) => {
-                  const isSelf = member.user_id === currentUserId;
-                  const ps = PERM_STYLES[member.permission];
-                  const isLast = index === members.length - 1;
-                  return (
-                    <div key={member.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: isLast ? "none" : "1px solid var(--line-soft)", background: isSelf ? "var(--royal-50)" : "#fff" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+      {/* ── 採用担当 タブ ── */}
+      {activeSection === "staff" && (
+        <>
+          {activeMembers.length === 0 ? (
+            <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10, marginBottom: 24 }}>
+              採用担当メンバーがいません
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+              {activeMembers.map((member) => {
+                const isSelf = member.user_id === currentUserId;
+                const isAdminMember = member.permission === "admin";
+                return (
+                  <div key={member.id} style={{
+                    background: isSelf ? "var(--royal-50)" : "#fff",
+                    border: `1px solid ${isSelf ? "var(--royal-100)" : "var(--line)"}`,
+                    borderRadius: 12,
+                    padding: "16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}>
+                    {/* アバター + 名前 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
                         {member.initial}
                       </div>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{member.name}</span>
-                          {isSelf && (<span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>)}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{member.name}</span>
+                          {isSelf && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>}
+                          {isAdminMember && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>管理者</span>}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
-                          <button type="button" onClick={() => handleCopyEmail(member.email)} title="メールアドレスをコピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>
-                            {copiedEmail === member.email ? (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>) : (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>)}
-                          </button>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {member.role_title && (<span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{member.role_title}</span>)}
-                          {member.department && (<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.department}</span>)}
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
-                          {PERM_LABELS[member.permission]}
-                        </span>
-                        {isAdmin && (<DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />)}
+                        {(member.role_title || member.department) && (
+                          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 1 }}>
+                            {[member.role_title, member.department].filter(Boolean).join(" · ")}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-            <PendingInvitesSection
-              invites={pendingInvites}
-              onCancelled={(id) => {
-                setPendingInvites((prev) => prev.filter((i) => i.id !== id));
-                router.refresh();
-              }}
-              onToast={setToastMessage}
-            />
-          </>
-        );
-      })()}
+                    {/* メール */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{member.email}</span>
+                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="コピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 3px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                        {copiedEmail === member.email
+                          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                          : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
+                      </button>
+                    </div>
+                    {/* フッター */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                      <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
+                      {isAdmin && <DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <PendingInvitesSection
+            invites={pendingInvites}
+            onCancelled={(id) => {
+              setPendingInvites((prev) => prev.filter((i) => i.id !== id));
+              router.refresh();
+            }}
+            onToast={setToastMessage}
+          />
+        </>
+      )}
 
       {/* ── 現場 タブ ── */}
       {activeSection === "field" && (
@@ -1678,22 +1655,22 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     </div>
                     {/* is_public トグル */}
                     {isAdmin && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{a.is_public ? "公開中" : "非公開"}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ fontSize: 11, color: a.is_public ? "var(--success)" : "var(--ink-mute)", fontWeight: 600 }}>{a.is_public ? "公開中" : "非公開"}</span>
                         <button
                           onClick={() => handleTogglePublic(a.id, a.is_public)}
                           disabled={togglingPublicId === a.id}
                           title={a.is_public ? "非公開にする" : "公開する"}
                           style={{
-                            width: 38, height: 22, borderRadius: 11, border: "none",
+                            width: 32, height: 18, borderRadius: 9, border: "none",
                             background: a.is_public ? "var(--success)" : "var(--line)",
                             cursor: "pointer", position: "relative", transition: "background 0.2s",
-                            flexShrink: 0,
+                            flexShrink: 0, padding: 0,
                           }}
                         >
                           <span style={{
-                            position: "absolute", top: 3, left: a.is_public ? 18 : 3,
-                            width: 16, height: 16, borderRadius: "50%", background: "#fff",
+                            position: "absolute", top: 2, left: a.is_public ? 14 : 2,
+                            width: 14, height: 14, borderRadius: "50%", background: "#fff",
                             transition: "left 0.2s", display: "block",
                           }} />
                         </button>
@@ -1713,62 +1690,6 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     )}
                   </div>
 
-                  {/* talk_themes 表示・編集 */}
-                  {isAdmin && (
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line-soft)" }}>
-                      {editingThemesMemberId === a.id ? (
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>
-                            話せるテーマ（カンマ区切り）
-                          </label>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <input
-                              type="text"
-                              value={themesInput}
-                              onChange={(e) => setThemesInput(e.target.value)}
-                              placeholder="例：採用、組織設計、エンジニアのキャリア"
-                              style={{ flex: 1, padding: "6px 10px", border: "1.5px solid var(--royal-100)", borderRadius: 6, fontSize: 12, outline: "none" }}
-                            />
-                            <button
-                              onClick={() => handleSaveThemes(a.id)}
-                              disabled={savingThemes}
-                              style={{
-                                background: "var(--royal)", color: "#fff", border: "none",
-                                borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                              }}
-                            >
-                              {savingThemes ? "..." : "保存"}
-                            </button>
-                            <button
-                              onClick={() => setEditingThemesMemberId(null)}
-                              style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer" }}
-                            >
-                              取消
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>話せるテーマ:</span>
-                          {a.talk_themes.length > 0 ? (
-                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                              {a.talk_themes.map((t) => (
-                                <span key={t} style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic" }}>未設定</span>
-                          )}
-                          <button
-                            onClick={() => { setEditingThemesMemberId(a.id); setThemesInput(a.talk_themes.join("、")); }}
-                            style={{ marginLeft: "auto", background: "none", border: "1px solid var(--line)", borderRadius: 5, padding: "2px 8px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer", flexShrink: 0 }}
-                          >
-                            編集
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -1816,17 +1737,34 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
-        {/* 指名できる社員（候補） */}
-        {ambassadorCandidates.length > 0 && isAdmin && (
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              OPINIOに登録している自社の社員
+        {ambassadors.length === 0 && !emailInviteOpen && (
+          <div style={{
+            background: "var(--bg-tint)", border: "1px dashed var(--line)",
+            borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
+          }}>
+            まだ面談対応者がいません。<br />
+            「メールで招待」ボタンからOPINIO登録済みの社員を招待できます。
+          </div>
+        )}
+        </>
+      )}
+
+      {/* ── 社員 タブ ── */}
+      {activeSection === "employees" && (
+        <>
+          {ambassadorCandidates.length === 0 ? (
+            <div style={{
+              background: "var(--bg-tint)", border: "1px dashed var(--line)",
+              borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
+            }}>
+              OPINIOに登録している自社の社員がいません。
             </div>
+          ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {ambassadorCandidates.map((c) => (
                 <div key={c.user_id} style={{
                   display: "flex", alignItems: "center", gap: 12,
-                  background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10, padding: "12px 16px",
+                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 16px",
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: "50%", background: c.gradient,
@@ -1837,41 +1775,35 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{c.name}</div>
-                    <input
-                      type="text"
-                      placeholder="役職を入力（例：エンジニア）"
-                      value={inviteRoleTitles[c.user_id] ?? ""}
-                      onChange={(e) => setInviteRoleTitles((prev) => ({ ...prev, [c.user_id]: e.target.value }))}
-                      style={{ fontSize: 12, border: "1px solid var(--line)", borderRadius: 6, padding: "3px 8px", color: "var(--ink)", marginTop: 4, width: "100%", maxWidth: 200, outline: "none" }}
-                    />
+                    {c.role_title && <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{c.role_title}</div>}
                   </div>
-                  <button
-                    onClick={() => handleInviteAmbassador(c.user_id)}
-                    disabled={invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()}
-                    style={{
-                      background: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--line)" : "var(--royal)",
-                      color: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--ink-mute)" : "#fff",
-                      border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700,
-                      cursor: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap",
-                    }}
-                  >
-                    {invitingUserId === c.user_id ? "送信中..." : "招待する"}
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="役職を入力（例：エンジニア）"
+                        value={inviteRoleTitles[c.user_id] ?? ""}
+                        onChange={(e) => setInviteRoleTitles((prev) => ({ ...prev, [c.user_id]: e.target.value }))}
+                        style={{ fontSize: 12, border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px", color: "var(--ink)", width: 180, outline: "none", flexShrink: 0 }}
+                      />
+                      <button
+                        onClick={() => handleInviteAmbassador(c.user_id)}
+                        disabled={invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim()}
+                        style={{
+                          background: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--line)" : "var(--royal)",
+                          color: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "var(--ink-mute)" : "#fff",
+                          border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700,
+                          cursor: invitingUserId === c.user_id || !inviteRoleTitles[c.user_id]?.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                        }}
+                      >
+                        {invitingUserId === c.user_id ? "送信中..." : "現場に招待"}
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {ambassadors.length === 0 && ambassadorCandidates.length === 0 && !emailInviteOpen && (
-          <div style={{
-            background: "var(--bg-tint)", border: "1px dashed var(--line)",
-            borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
-          }}>
-            まだ面談対応者がいません。<br />
-            「メールで招待」ボタンからOPINIO登録済みの社員を招待できます。
-          </div>
-        )}
+          )}
         </>
       )}
 
