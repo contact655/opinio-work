@@ -21,21 +21,18 @@ function formatRelativeTime(dateStr: string | null): string {
 }
 
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  inquiry:        { label: "問い合わせ",    color: "var(--ink-soft)", bg: "var(--line-soft)" },
-  casual_meeting: { label: "カジュアル面談", color: "var(--accent)",   bg: "var(--royal-50)" },
-  interview:      { label: "面接",           color: "var(--purple)",   bg: "var(--purple-soft)" },
-  offer:          { label: "オファー",       color: "var(--success)",  bg: "var(--success-soft)" },
-  closed:         { label: "クローズ",       color: "var(--ink-mute)", bg: "var(--bg-tint)" },
-  active:         { label: "進行中",         color: "var(--accent)",   bg: "var(--royal-50)" },
+  active:   { label: "進行中",   color: "var(--accent)",   bg: "var(--royal-50)" },
+  mediated: { label: "調整中",   color: "var(--purple)",   bg: "var(--purple-soft)" },
+  direct:   { label: "直接対話", color: "var(--success)",  bg: "var(--success-soft)" },
+  archived: { label: "クローズ", color: "var(--ink-mute)", bg: "var(--bg-tint)" },
 };
 
 const STAGE_FILTER_TABS: { key: string; label: string }[] = [
-  { key: "all",            label: "すべて" },
-  { key: "inquiry",        label: "問い合わせ" },
-  { key: "casual_meeting", label: "カジュアル面談" },
-  { key: "interview",      label: "面接" },
-  { key: "offer",          label: "オファー" },
-  { key: "closed",         label: "クローズ" },
+  { key: "all",      label: "すべて" },
+  { key: "active",   label: "進行中" },
+  { key: "mediated", label: "調整中" },
+  { key: "direct",   label: "直接対話" },
+  { key: "archived", label: "クローズ" },
 ];
 
 function StageTag({ stage }: { stage: string | null }) {
