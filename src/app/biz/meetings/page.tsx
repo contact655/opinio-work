@@ -1,22 +1,51 @@
-import { MeetingsClient } from "./MeetingsClient";
+import { PipelineClient } from "./PipelineClient";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchMeetingsForCompany } from "@/lib/business/meetings";
+import { fetchApplicationsForCompany } from "@/lib/business/applications";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "カジュアル面談 | OPINIO Business" },
+  title: { absolute: "採用パイプライン | OPINIO Business" },
 };
 
-export default async function BizMeetingsPage() {
+export default async function BizMeetingsPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
   const supabase = createClient();
-  const meetings = await fetchMeetingsForCompany(supabase, ctx.tenantId);
+  const [meetings, applications] = await Promise.all([
+    fetchMeetingsForCompany(supabase, ctx.tenantId),
+    fetchApplicationsForCompany(supabase, ctx.tenantId),
+  ]);
+
+  // conversationId を applications に付与
+  const userIds = Array.from(new Set(applications.map((a) => a.userId).filter(Boolean)));
+  const convMap = new Map<string, string>();
+  if (userIds.length > 0) {
+    const { data: convs } = await supabase
+      .from("ow_conversations")
+      .select("id, candidate_user_id")
+      .eq("company_id", ctx.tenantId)
+      .in("candidate_user_id", userIds);
+    for (const c of convs ?? []) {
+      if (c.candidate_user_id) convMap.set(c.candidate_user_id as string, c.id as string);
+    }
+  }
+  const appsWithConv = applications.map((a) => ({
+    ...a,
+    conversationId: convMap.get(a.userId) ?? undefined,
+  }));
+
+  const initialTab = searchParams.tab === "applications" ? "applications" : "meetings";
 
   return (
     <BusinessLayout
@@ -28,8 +57,9 @@ export default async function BizMeetingsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <MeetingsClient
+      <PipelineClient
         meetings={meetings}
+        applications={appsWithConv}
         tenantName={ctx.tenantName}
         currentUser={{
           owUserId: ctx.currentOwnId,
@@ -37,6 +67,7 @@ export default async function BizMeetingsPage() {
           initial: ctx.userName.charAt(0),
           gradient: ctx.currentOwnerGradient,
         }}
+        initialTab={initialTab}
       />
     </BusinessLayout>
   );
