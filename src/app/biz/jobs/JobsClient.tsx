@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JOB_STATUS_TABS, countByStatus } from "@/lib/business/mockJobs";
-import { JobStatusSummary } from "@/components/business/JobStatusSummary";
 import { JobListCard } from "@/components/business/JobListCard";
 import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 
