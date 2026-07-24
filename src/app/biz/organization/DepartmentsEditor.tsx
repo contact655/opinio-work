@@ -53,7 +53,7 @@ const DEPT_TEMPLATES: { key: string; label: string; items: TemplateEntry[] }[] =
   },
   {
     key: "general",
-    label: "スタートアップ（汎用）",
+    label: "一般（汎用）",
     items: [
       { name: "プロダクト", children: ["エンジニアリング", "デザイン"] },
       { name: "ビジネス", children: ["営業", "マーケティング"] },
