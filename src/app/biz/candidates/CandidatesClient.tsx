@@ -721,7 +721,7 @@ export default function CandidatesClient({
             )}
           </div>
 
-          {/* 候補者グリッド */}
+          {/* 候補者リスト */}
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "72px 0", background: "#fff", borderRadius: 16, border: "1px solid var(--line)" }}>
               <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -743,114 +743,128 @@ export default function CandidatesClient({
               )}
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map((c) => {
                 const decade = toDecade(c.birthYear);
                 const startedLabel = formatStarted(c.startedAt);
                 const empLabel = c.employmentType ? (EMPLOYMENT_TYPE_LABELS[c.employmentType] ?? c.employmentType) : null;
+                const grad = getGradient(c.id);
                 return (
-                  <a key={c.id} href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
-                    style={{ textDecoration: "none", display: "block" }}>
-                    <div
-                      style={{
-                        background: "#fff",
-                        border: c.alreadyScouted ? "1px solid #E2E8F0" : "1px solid var(--line)",
-                        borderRadius: 14, padding: "16px 18px",
-                        transition: "box-shadow 0.15s, transform 0.15s",
-                        cursor: "pointer",
-                        height: 180, display: "flex", flexDirection: "column", justifyContent: "space-between",
-                        opacity: c.alreadyScouted ? 0.75 : 1,
-                        position: "relative", overflow: "hidden",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(0,35,102,0.10)";
-                        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-                        (e.currentTarget as HTMLDivElement).style.transform = "none";
-                      }}
-                    >
-                      {c.alreadyScouted && (
-                        <div style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>
-                          送信済み
-                        </div>
-                      )}
+                  <div key={c.id}
+                    style={{
+                      background: "#fff",
+                      border: c.alreadyScouted ? "1px solid var(--line-soft)" : "1px solid var(--line)",
+                      borderRadius: 14,
+                      overflow: "hidden",
+                      opacity: c.alreadyScouted ? 0.82 : 1,
+                      display: "flex",
+                      transition: "box-shadow 0.15s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,35,102,0.09)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+                  >
+                    {/* 左アクセントバー */}
+                    <div style={{ width: 4, flexShrink: 0, background: grad }} />
 
-                      {/* Avatar + name */}
-                      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, background: getGradient(c.id), color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700 }}>
-                          {c.name.charAt(0) || "?"}
+                    {/* カード本体 */}
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", minWidth: 0 }}>
+
+                      {/* アバター */}
+                      <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: grad, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700 }}>
+                        {c.name.charAt(0) || "?"}
+                      </div>
+
+                      {/* メイン情報 */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* 名前 + バッジ */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 3 }}>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{c.name}</span>
+                          {decade && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--purple-soft)", color: "var(--purple)", border: "1px solid #DDD6FE" }}>{decade}</span>
+                          )}
+                          {c.isOpenToWork && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #6EE7B7" }}>転職検討中</span>
+                          )}
+                          {c.isMentor && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--purple-soft)", color: "var(--purple)", border: "1px solid #DDD6FE" }}>メンター</span>
+                          )}
+                          {c.alreadyScouted && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>送信済み</span>
+                          )}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: 2 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{c.name}</span>
-                            {decade && (
-                              <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 5px", borderRadius: 100, background: "var(--purple-soft)", border: "1px solid #DDD6FE", color: "var(--purple)" }}>
-                                {decade}
-                              </span>
-                            )}
-                            {c.isOpenToWork && (
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 100, background: "var(--success-soft)", border: "1px solid #6EE7B7", color: "var(--success)" }}>転職検討中</span>
-                            )}
-                            {c.isMentor && (
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 100, background: "var(--purple-soft)", border: "1px solid #DDD6FE", color: "var(--purple)" }}>メンター</span>
+
+                        {/* 職種 @ 会社 */}
+                        {(c.currentRole || c.currentCompany || c.jobType) && (
+                          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.4 }}>
+                            {c.currentRole && <span style={{ fontWeight: 600, color: "var(--ink)" }}>{c.currentRole}</span>}
+                            {c.currentRole && c.currentCompany && <span style={{ color: "var(--ink-mute)" }}> · </span>}
+                            {c.currentCompany && <span>{c.currentCompany}</span>}
+                            {startedLabel && <span style={{ color: "var(--ink-mute)", fontSize: 12 }}> {startedLabel}</span>}
+                            {!c.currentRole && !c.currentCompany && c.jobType && (
+                              <span style={{ color: "var(--ink-mute)" }}>{JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}</span>
                             )}
                           </div>
-                          {(c.currentRole || c.currentCompany) ? (
-                            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                              {c.currentRole && <span style={{ fontWeight: 600 }}>{c.currentRole}</span>}
-                              {c.currentRole && c.currentCompany && <span style={{ color: "var(--ink-mute)" }}> @ </span>}
-                              {c.currentCompany && <span>{c.currentCompany}</span>}
-                              {(empLabel || startedLabel) && (
-                                <span style={{ color: "var(--ink-mute)", fontSize: 11 }}> · {[empLabel, startedLabel].filter(Boolean).join("  ")}</span>
-                              )}
-                            </div>
-                          ) : c.jobType ? (
-                            <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}</div>
-                          ) : null}
+                        )}
+
+                        {/* タグ行 */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+                          {c.location && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                              {extractPrefecture(c.location) ?? c.location}
+                            </span>
+                          )}
+                          {c.workStyle && (
+                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--accent)", fontWeight: 600 }}>
+                              {WORK_STYLE_LABELS[c.workStyle] ?? c.workStyle}
+                            </span>
+                          )}
+                          {empLabel && (
+                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--line-soft)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>{empLabel}</span>
+                          )}
+                          {c.transferTiming && (
+                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--warm-soft)", border: "1px solid #FDE68A", color: "#92400E", fontWeight: 600 }}>
+                              ⏱ {c.transferTiming}
+                            </span>
+                          )}
+                          {c.desiredSalaryMin && (
+                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--success-soft)", border: "1px solid #A7F3D0", color: "var(--success)", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
+                              ¥{c.desiredSalaryMin}万〜
+                            </span>
+                          )}
+                          {c.skills.slice(0, 3).map((s) => (
+                            <span key={s} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "#F3F4F6", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>{s}</span>
+                          ))}
+                          {c.skills.length > 3 && (
+                            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>+{c.skills.length - 3}</span>
+                          )}
                         </div>
                       </div>
 
-                      {/* 属性タグ */}
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-                        {c.location && (
-                          <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", verticalAlign: "middle", marginRight: 2 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            {c.location}
-                          </span>
-                        )}
-                        {c.workStyle && (
-                          <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--accent)", fontWeight: 600 }}>
-                            {WORK_STYLE_LABELS[c.workStyle] ?? c.workStyle}
-                          </span>
-                        )}
-                        {c.transferTiming && (
-                          <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 100, background: "var(--warm-soft)", border: "1px solid #FDE68A", color: "#92400E", fontWeight: 600 }}>
-                            ⏱ {c.transferTiming}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* スカウトボタン */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+                      {/* 右: アクション */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                         <button type="button"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openScout(c); }}
+                          onClick={(e) => { e.stopPropagation(); openScout(c); }}
                           disabled={(scoutQuota?.remaining ?? 1) === 0}
                           style={{
-                            fontSize: 12, padding: "6px 14px", borderRadius: 6, fontWeight: 600,
-                            fontFamily: "inherit", whiteSpace: "nowrap" as const,
+                            fontSize: 12, padding: "7px 16px", borderRadius: 7, fontWeight: 700,
+                            fontFamily: "inherit", whiteSpace: "nowrap" as const, cursor: (scoutQuota?.remaining ?? 1) === 0 ? "default" : "pointer",
                             background: (scoutQuota?.remaining ?? 1) === 0 ? "var(--bg-tint)" : c.alreadyScouted ? "#fff" : "var(--royal)",
                             color: (scoutQuota?.remaining ?? 1) === 0 ? "var(--ink-mute)" : c.alreadyScouted ? "var(--royal)" : "#fff",
-                            border: c.alreadyScouted ? "1px solid var(--royal)" : "none",
-                            cursor: (scoutQuota?.remaining ?? 1) === 0 ? "default" : "pointer",
+                            border: c.alreadyScouted ? "1.5px solid var(--royal)" : "none",
+                            boxShadow: !c.alreadyScouted && (scoutQuota?.remaining ?? 1) > 0 ? "0 2px 6px rgba(0,35,102,0.18)" : "none",
                           }}>
                           {c.alreadyScouted ? "再スカウト" : "スカウトを送る"}
                         </button>
-                        <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>詳細 →</span>
+                        <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}
+                          onClick={(e) => e.stopPropagation()}>
+                          プロフィール
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>
                       </div>
                     </div>
-                  </a>
+                  </div>
                 );
               })}
             </div>
