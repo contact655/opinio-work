@@ -62,14 +62,6 @@ function getGradient(id: string) {
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
-function toDecade(birthYear: number | null): string | null {
-  if (!birthYear) return null;
-  const age = new Date().getFullYear() - birthYear;
-  if (age < 20) return "10代";
-  if (age >= 50) return "50代以上";
-  const decade = Math.floor(age / 10) * 10;
-  return `${decade}代`;
-}
 
 function formatStarted(startedAt: string | null): string | null {
   if (!startedAt) return null;
