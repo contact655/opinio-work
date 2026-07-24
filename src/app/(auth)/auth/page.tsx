@@ -591,6 +591,18 @@ function AuthPageInner() {
           </div>
         </div>
 
+        {/* Trust strip */}
+        <div style={{ maxWidth: 420, margin: "0 auto", width: "100%", padding: "20px 0 8px" }}>
+          <div style={{
+            display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap",
+            fontSize: 11, color: "var(--ink-mute)", fontWeight: 600,
+          }}>
+            {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
+              <span key={t}>{t}</span>
+            ))}
+          </div>
+        </div>
+
         {/* ⑨ Minimal footer — copyright + legal links only */}
         <div style={{ textAlign: "center", padding: "24px 0 20px", fontSize: 11, color: "var(--ink-mute)" }}>
           <a href="/terms" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>利用規約</a>
@@ -605,7 +617,7 @@ function AuthPageInner() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const s = {
   formSide: {
-    padding: "32px 28px 0",
+    padding: "72px 28px 0",
     display: "flex",
     flexDirection: "column",
     background: "#fff",
