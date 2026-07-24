@@ -243,7 +243,7 @@ function OnboardingInner() {
 
             {/* 採用担当者・企業の方向け導線 */}
             <a
-              href="/biz/auth"
+              href={query.trim() ? `/biz/auth?company=${encodeURIComponent(query.trim())}` : "/biz/auth"}
               style={{
                 marginTop: 12,
                 display: "flex", alignItems: "center", justifyContent: "space-between",

@@ -60,6 +60,7 @@ function BizAuthInner() {
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/biz/dashboard";
   const modeParam = searchParams.get("mode");
   const isInviteContext = searchParams.get("context") === "invite";
+  const companyFromUrl = searchParams.get("company") ?? "";
 
   // 招待コンテキストのみ signup を初期表示。通常はログインのみ
   const [mode, setMode] = useState<Mode>(isInviteContext ? "signup" : "login");
@@ -75,7 +76,7 @@ function BizAuthInner() {
   const [prefillEmail, setPrefillEmail] = useState("");
   const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
-  const [loggedInCompanyName, setLoggedInCompanyName] = useState("");
+  const [loggedInCompanyName] = useState("");
   useEffect(() => {
     try {
       const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
@@ -196,32 +197,16 @@ function BizAuthInner() {
             <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 4px" }}>
               {loggedInUser.email}
             </p>
-            <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 20px" }}>
+            <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 24px" }}>
               このアカウントで企業登録を進めます。
             </p>
-            <div style={{ textAlign: "left", marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6, letterSpacing: "0.04em" }}>
-                会社名 <span style={{ color: "var(--error)" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={loggedInCompanyName}
-                onChange={e => setLoggedInCompanyName(e.target.value)}
-                placeholder="株式会社〇〇"
-                style={{
-                  display: "block", width: "100%", padding: "11px 14px",
-                  fontSize: 14, border: "1.5px solid var(--line)", borderRadius: 8,
-                  outline: "none", color: "var(--ink)", background: "#fff",
-                  boxSizing: "border-box", fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
-                }}
-              />
-            </div>
             <button
               type="button"
               onClick={() => {
-                if (loggedInCompanyName.trim()) {
+                const name = companyFromUrl || loggedInCompanyName;
+                if (name.trim()) {
                   try {
-                    sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify({ name: loggedInCompanyName.trim() }));
+                    sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify({ name: name.trim() }));
                   } catch { /* ignore */ }
                 }
                 router.push("/biz/companies/add/new");
