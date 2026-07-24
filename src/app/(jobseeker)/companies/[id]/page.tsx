@@ -3,6 +3,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import type React from "react";
 import { permanentRedirect } from "next/navigation";
 import {
   getCompanyBySlugOrId,
@@ -1416,9 +1417,72 @@ function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) 
 
 // ─── Employee Sections ────────────────────────────────────────────────────────
 
+// 生年から現在の年齢を計算
+function calcAge(birthYear: number | null): number | null {
+  if (!birthYear) return null;
+  return new Date().getFullYear() - birthYear;
+}
+
+// 現役社員・OB/OG 共通の統一カードレイアウト
+function EmployeeCardInner({
+  employee,
+  age,
+  badge,
+  subInfo,
+}: {
+  employee: CompanyEmployee;
+  age: number | null;
+  badge?: React.ReactNode;
+  subInfo?: React.ReactNode;
+}) {
+  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+      {/* アバター */}
+      <div style={{
+        width: 48, height: 48, borderRadius: "50%",
+        background: avatarColor.bg, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
+        color: avatarColor.text, overflow: "hidden",
+        border: "2px solid var(--line)",
+      }}>
+        {employee.avatarUrl ? (
+          <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name}
+            fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
+            fallbackColor={avatarColor.text} fontSize={18} />
+        ) : (employee.avatarInitial ?? employee.name.charAt(0))}
+      </div>
+
+      {/* テキスト */}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        {/* 1行目: 名前 + 年齢 + バッジ */}
+        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+            {employee.name}
+          </span>
+          {age !== null && (
+            <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+              {age}歳
+            </span>
+          )}
+          {badge}
+        </div>
+        {/* 2行目: 部門 > 職種 */}
+        {(employee.roleParentName || employee.roleTitle) && (
+          <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {[employee.roleParentName, employee.roleTitle].filter(Boolean).join(" › ")}
+          </p>
+        )}
+        {/* 追加情報（在籍期間など） */}
+        {subInfo}
+      </div>
+    </div>
+  );
+}
+
 function EmployeeCard({
   employee,
-  showEndedAt,
   ambassadorInfo,
   companyId,
 }: {
@@ -1427,114 +1491,29 @@ function EmployeeCard({
   ambassadorInfo?: { memberId: string; themes: string[] } | null;
   companyId?: string;
 }) {
-  // γ-3 修正②: 職種カテゴリ（親カテゴリ優先）でアバター色を統一
-  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
   const isAmbassador = !!ambassadorInfo;
+  const age = calcAge(employee.birthYear);
 
-  const avatar = (
-    <div
-      style={{
-        width: 60,
-        height: 60,
-        borderRadius: "50%",
-        background: avatarColor.bg,
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "var(--font-noto-serif)",
-        fontWeight: 700,
-        fontSize: 22,
-        color: avatarColor.text,
-        overflow: "hidden",
-        border: "2px solid var(--line)",
-        position: "relative",
-      }}
-    >
-      {employee.avatarUrl ? (
-        <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name} fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)} fallbackColor={avatarColor.text} fontSize={22} />
-      ) : (
-        employee.avatarInitial
-      )}
-    </div>
-  );
+  const badge = isAmbassador ? (
+    <span style={{
+      fontSize: 10, fontWeight: 700,
+      padding: "2px 7px", borderRadius: 100,
+      background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
+      color: "#92400E", border: "1px solid #FCD34D",
+      whiteSpace: "nowrap", flexShrink: 0,
+    }}>💬 面談OK</span>
+  ) : undefined;
 
-  const nameAndRole = (
-    <div style={{ minWidth: 0, flex: 1 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-          {employee.name}
-        </span>
-        {isAmbassador && (
-          <span style={{
-            fontSize: 10, fontWeight: 700,
-            padding: "2px 7px", borderRadius: 100,
-            background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
-            color: "#92400E", border: "1px solid #FCD34D",
-            whiteSpace: "nowrap", flexShrink: 0,
-          }}>
-            💬 面談OK
-          </span>
-        )}
-      </div>
-      {employee.roleTitle && (
-        <p
-          style={{
-            margin: 0,
-            fontSize: "var(--text-sm)",
-            color: "var(--ink-soft)",
-            marginTop: 3,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {employee.roleTitle}
-        </p>
-      )}
-      {employee.catchphrase && (
-        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4,
-          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>
-          {employee.catchphrase}
-        </p>
-      )}
-      {showEndedAt && employee.endedAt && (
-        <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginTop: 2 }}>
-          退職: {employee.endedAt}
-        </p>
-      )}
-      {/* 面談テーマ */}
-      {isAmbassador && ambassadorInfo.themes.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-          {ambassadorInfo.themes.map((t) => (
-            <span key={t} style={{ fontSize: 10, background: "var(--warm-soft)", color: "#92400E", padding: "2px 7px", borderRadius: 4, fontWeight: 600 }}>{t}</span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // アンバサダー: div + 内部リンク + 面談ボタン
   if (isAmbassador && companyId) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          padding: "var(--space-3) 14px",
-          background: "#FFFBEB",
-          border: "1px solid #FCD34D",
-          borderRadius: 12,
-        }}
-      >
-        <a
-          href={`/u/${employee.userId}`}
-          className="employee-card-link"
-          style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", textDecoration: "none" }}
-        >
-          {avatar}
-          {nameAndRole}
+      <div style={{
+        display: "flex", flexDirection: "column", gap: 10,
+        padding: "12px 14px",
+        background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12,
+      }}>
+        <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
+          style={{ display: "flex", textDecoration: "none" }}>
+          <EmployeeCardInner employee={employee} age={age} badge={badge} />
         </a>
         <Link
           href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
@@ -1553,22 +1532,15 @@ function EmployeeCard({
   }
 
   return (
-    <a
-      href={`/u/${employee.userId}`}
-      className="employee-card-link"
+    <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-3)",
-        padding: "var(--space-3) 14px",
-        background: "var(--bg-tint)",
-        border: "1px solid var(--line)",
-        borderRadius: 12,
+        display: "flex", alignItems: "center",
+        padding: "12px 14px",
+        background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 12,
         textDecoration: "none",
       }}
     >
-      {avatar}
-      {nameAndRole}
+      <EmployeeCardInner employee={employee} age={age} badge={badge} />
     </a>
   );
 }
@@ -1887,7 +1859,7 @@ function CurrentEmployeesSection({
 // ─── AlumniCard ──────────────────────────────────────────────────────────────
 
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
-  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
+  const age = calcAge(employee.birthYear);
 
   function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
     if (!startedAt || !endedAt) return null;
@@ -1903,79 +1875,37 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   }
 
   const tenure = calcTenure(employee.startedAt, employee.endedAt);
-  const period = employee.startedAt
-    ? `${employee.startedAt.slice(0, 7).replace("-", ".")} 〜 ${employee.endedAt ? employee.endedAt.slice(0, 7).replace("-", ".") : "現在"}`
-    : null;
+
+  const badge = (
+    <>
+      {tenure && (
+        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
+          {tenure}
+        </span>
+      )}
+      <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", background: "var(--bg-tint)", padding: "1px 6px", borderRadius: 100, border: "1px solid var(--line)", flexShrink: 0 }}>
+        💬 DM可
+      </span>
+    </>
+  );
+
+  const subInfo = employee.currentCompanyName ? (
+    <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      現在: {employee.currentCompanyName}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
+    </p>
+  ) : undefined;
 
   return (
-    <a
-      href={`/u/${employee.userId}`}
-      className="employee-card-link"
+    <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
+        display: "flex", alignItems: "center", gap: 0,
         padding: "12px 14px",
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 12,
+        background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
         textDecoration: "none",
-        transition: "border-color 0.15s, box-shadow 0.15s",
       }}
     >
-      {/* アバター */}
-      <div style={{
-        width: 48, height: 48, borderRadius: "50%",
-        background: avatarColor.bg, flexShrink: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
-        color: avatarColor.text, overflow: "hidden",
-        border: "2px solid var(--line)", position: "relative",
-      }}>
-        {employee.avatarUrl ? (
-          <EmployeeAvatarImg
-            src={employee.avatarUrl} alt={employee.name}
-            fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
-            fallbackColor={avatarColor.text} fontSize={18}
-          />
-        ) : (employee.avatarInitial ?? employee.name.charAt(0))}
-      </div>
-
-      {/* テキスト列 */}
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-            {employee.name}
-          </span>
-          {tenure && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
-              {tenure}
-            </span>
-          )}
-          <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", background: "var(--bg-tint)", padding: "1px 6px", borderRadius: 100, border: "1px solid var(--line)", flexShrink: 0 }}>
-            💬 DM可
-          </span>
-        </div>
-        {/* 役職 + 在籍期間（1行） */}
-        <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {[employee.roleTitle, period].filter(Boolean).join(" · ")}
-        </p>
-        {/* 現在のキャリア（インライン） */}
-        {employee.currentCompanyName && (
-          <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            現在: {employee.currentCompanyName}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
-          </p>
-        )}
-        {/* catchphrase（コンパクト引用） */}
-        {employee.catchphrase && (
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--royal)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            &ldquo;{employee.catchphrase}&rdquo;
-          </p>
-        )}
-      </div>
-
-      {/* シェブロン */}
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
+      <EmployeeCardInner employee={employee} age={age} badge={badge} subInfo={subInfo} />
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginLeft: 6 }}>
         <polyline points="9 18 15 12 9 6"/>
       </svg>
     </a>
@@ -2025,7 +1955,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
       <div style={{ padding: "var(--space-6)" }}>
       {alumni.length > 0 ? (
         <>
-          <div className="alumni-grid">
+          <div className="employee-grid">
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
@@ -2410,20 +2340,13 @@ function RecruitersSection({
         </SecTitle>
       </div>
       <div style={{ padding: "var(--space-6)" }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "var(--space-3)",
-        }}
-        className="[grid-template-columns:repeat(2,1fr)] sm:[grid-template-columns:repeat(3,1fr)]"
-      >
+      <div className="employee-grid">
         {recruiters.map((r, i) => (
           <div
             key={r.id}
             style={{
               display: "flex",
-              gap: "var(--space-3)",
+              gap: 12,
               padding: "var(--space-4)",
               border: "1px solid var(--line)",
               borderRadius: 12,
@@ -2431,11 +2354,12 @@ function RecruitersSection({
               alignItems: "center",
             }}
           >
+            {/* アバター 48px circular */}
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 12,
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
                 flexShrink: 0,
                 background: r.avatar_color ?? AV_GRADIENTS[i % AV_GRADIENTS.length],
                 color: "#fff",
@@ -2444,47 +2368,21 @@ function RecruitersSection({
                 justifyContent: "center",
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 700,
-                fontSize: "var(--text-lg)",
+                fontSize: 16,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
               }}
             >
               {r.avatar_initial}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: "var(--text-base)",
-                  fontWeight: 700,
-                  color: "var(--ink)",
-                  marginBottom: 3,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+            <div style={{ minWidth: 0, flex: 1 }}>
+              {/* 1行目: 名前 */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {r.name}
               </div>
-              {r.role_title && (
-                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {r.role_title}
-                </div>
-              )}
-              {r.department && (
-                <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {r.department}
-                </div>
-              )}
-              {r.catchphrase && (
-                <p style={{
-                  margin: "5px 0 0",
-                  fontSize: "var(--text-xs)",
-                  color: "var(--ink-soft)",
-                  lineHeight: 1.5,
-                  borderLeft: "2px solid var(--warm)",
-                  paddingLeft: 7,
-                  fontStyle: "italic",
-                }}>
-                  &ldquo;{r.catchphrase}&rdquo;
+              {/* 2行目: 部門 › 職種 */}
+              {(r.department || r.role_title) && (
+                <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {[r.department, r.role_title].filter(Boolean).join(" › ")}
                 </p>
               )}
             </div>
