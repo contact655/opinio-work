@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 import Toast from "@/components/ui/Toast";
 
-type Tab = "active" | "inactive";
 type ActionType = "permission" | "deactivate" | "reactivate";
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
@@ -52,7 +51,7 @@ type Props = {
 
 const PERM_LABELS: Record<MemberRecord["permission"], string> = {
   admin: "管理者",
-  member: "メンバー",
+  member: "人事",
 };
 
 const PERM_STYLES: Record<MemberRecord["permission"], { bg: string; color: string }> = {
@@ -89,7 +88,7 @@ function DropdownMenu({
   }, []);
 
   const newPerm = member.permission === "admin" ? "member" : "admin";
-  const newPermLabel = member.permission === "admin" ? "メンバー" : "管理者";
+  const newPermLabel = member.permission === "admin" ? "人事" : "管理者";
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -549,16 +548,18 @@ function EditProfileDialog({
 function AddMemberDialog({
   isSubmitting,
   errorMessage,
+  defaultPermission,
   onSubmit,
   onCancel,
 }: {
   isSubmitting: boolean;
   errorMessage: string | null;
+  defaultPermission?: "admin" | "member";
   onSubmit: (email: string, permission: "admin" | "member") => void;
   onCancel: () => void;
 }) {
   const [email, setEmail] = useState("");
-  const [permission, setPermission] = useState<"admin" | "member">("member");
+  const [permission, setPermission] = useState<"admin" | "member">(defaultPermission ?? "member");
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -654,10 +655,10 @@ function AddMemberDialog({
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {(["member", "admin"] as const).map((p) => {
               const isSelected = permission === p;
-              const label = p === "admin" ? "管理者" : "メンバー";
+              const label = p === "admin" ? "管理者" : "人事";
               const desc = p === "admin"
                 ? "メンバーの追加・削除や権限変更ができます"
-                : "チームメンバーとして表示されます";
+                : "チームメンバーとして採用管理画面にアクセスできます";
               return (
                 <label
                   key={p}
@@ -799,7 +800,7 @@ function PendingInvitesSection({
     }
   }
 
-  const PERM_LABELS: Record<"admin" | "member", string> = { admin: "管理者", member: "メンバー" };
+  const PERM_LABELS: Record<"admin" | "member", string> = { admin: "管理者", member: "人事" };
 
   return (
     <div style={{ marginTop: 28 }}>
@@ -1043,8 +1044,6 @@ function PendingInvitesSection({
 // ── MembersClient ───────────────────────────────────────────────────
 export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [] }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("active");
-
   // edit profile dialog state
   const [editProfileTarget, setEditProfileTarget] = useState<ProfileEditTarget | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -1052,6 +1051,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
 
   // add member dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addDialogPermission, setAddDialogPermission] = useState<"admin" | "member">("member");
   const [addError, setAddError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -1243,24 +1243,11 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
     }
   }
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
   const activeMembers = useMemo(() => initialMembers.filter((m) => m.is_active), [initialMembers]);
-  const inactiveMembers = useMemo(() => initialMembers.filter((m) => !m.is_active), [initialMembers]);
-  const adminCount = useMemo(() => activeMembers.filter((m) => m.permission === "admin").length, [activeMembers]);
-
-  const displayMembers = useMemo(() => {
-    const base = activeTab === "active" ? activeMembers : inactiveMembers;
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return base;
-    return base.filter((m) =>
-      m.name.toLowerCase().includes(q) ||
-      m.email.toLowerCase().includes(q) ||
-      (m.role_title ?? "").toLowerCase().includes(q) ||
-      (m.department ?? "").toLowerCase().includes(q)
-    );
-  }, [activeTab, activeMembers, inactiveMembers, searchQuery]);
+  const adminMembers = useMemo(() => activeMembers.filter((m) => m.permission === "admin"), [activeMembers]);
+  const hrMembers = useMemo(() => activeMembers.filter((m) => m.permission === "member"), [activeMembers]);
 
   async function handleCopyEmail(email: string) {
     try {
@@ -1416,25 +1403,11 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             採用担当メンバーを管理・招待します。現在 {activeMembers.length} 名がアクティブです。
           </p>
         </div>
-        {isAdmin && (
+        {false && (
         <button
           type="button"
-          onClick={() => { setAddError(null); setShowAddDialog(true); }}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            padding: "9px 18px",
-            background: "var(--royal)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            flexShrink: 0,
-            marginLeft: 24,
-            boxShadow: "0 2px 6px rgba(0,35,102,0.2)",
+            display: "none",
           }}
         >
           {/* Mail icon */}
@@ -1447,317 +1420,163 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         )}
       </div>
 
-      {/* ── Inline stats summary bar ─────────────────────────────────────────── */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 0,
-        padding: "10px 16px",
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 10,
-        marginBottom: 20,
-        flexWrap: "wrap",
-        rowGap: 8,
-      }}>
-        {[
-          { label: "管理者", value: adminCount, bg: "var(--royal-50)", color: "var(--royal)" },
-          { label: "メンバー", value: activeMembers.length - adminCount, bg: "var(--line-soft)", color: "var(--ink-soft)" },
-          { label: "招待待ち", value: pendingInvites.length, bg: "var(--warm-soft)", color: "var(--warm)" },
-          { label: "無効化済み", value: inactiveMembers.length, bg: "var(--line-soft)", color: "var(--ink-mute)" },
-        ].map(({ label, value, bg, color }, i) => (
-          <div key={label} style={{ display: "flex", alignItems: "center" }}>
-            {i > 0 && (
-              <span style={{ margin: "0 12px", color: "var(--line)", fontSize: 16, fontWeight: 300 }}>·</span>
-            )}
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              fontSize: 12, color: "var(--ink-soft)", fontWeight: 500,
-            }}>
-              <span style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 14, fontWeight: 700,
-                padding: "1px 7px", borderRadius: 100,
-                background: bg, color,
-              }}>
-                {value}
+      {/* ── 管理者 セクション ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 40 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 3px" }}>
+              管理者
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, marginLeft: 8, padding: "1px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>
+                {adminMembers.length}
               </span>
-              {label}
-            </span>
+            </h2>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.5 }}>
+              求人・企業情報の管理、メンバー招待・権限変更ができます。
+            </p>
           </div>
-        ))}
-      </div>
-
-      {/* ── Search bar ─────────────────────────────────────────── */}
-      <div style={{ position: "relative", marginBottom: 16 }}>
-        <span style={{
-          position: "absolute",
-          left: 12,
-          top: "50%",
-          transform: "translateY(-50%)",
-          color: "var(--ink-mute)",
-          pointerEvents: "none",
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.3-4.3"/>
-          </svg>
-        </span>
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="名前・メール・役職で検索..."
-          style={{
-            width: "100%",
-            padding: "10px 36px 10px 38px",
-            border: "1px solid var(--line)",
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
-            background: "#fff",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-          onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
-          onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            style={{
-              position: "absolute",
-              right: 10,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--ink-mute)",
-              padding: 4,
-              lineHeight: 1,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => { setAddDialogPermission("admin"); setAddError(null); setShowAddDialog(true); }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", background: "var(--royal)", color: "#fff",
+                border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              + メールで招待
+            </button>
+          )}
+        </div>
+        {adminMembers.length === 0 ? (
+          <div style={{ padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10 }}>
+            管理者がいません
+          </div>
+        ) : (
+          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
+            {adminMembers.map((member, index) => {
+              const isSelf = member.user_id === currentUserId;
+              const ps = PERM_STYLES[member.permission];
+              const isLast = index === adminMembers.length - 1;
+              return (
+                <div key={member.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: isLast ? "none" : "1px solid var(--line-soft)", background: isSelf ? "var(--royal-50)" : "#fff" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                    {member.initial}
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{member.name}</span>
+                      {isSelf && (<span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>)}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
+                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="メールアドレスをコピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>
+                        {copiedEmail === member.email ? (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>) : (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>)}
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {member.role_title && (<span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{member.role_title}</span>)}
+                      {member.department && (<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.department}</span>)}
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
+                      {PERM_LABELS[member.permission]}
+                    </span>
+                    {isAdmin && (<DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* タブ */}
-      <div
-        role="tablist"
-        aria-label="メンバーステータス"
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 16,
-          borderBottom: "1px solid var(--line)",
-        }}
-      >
-        {(["active", "inactive"] as const).map((tab) => {
-          const count = tab === "active" ? activeMembers.length : inactiveMembers.length;
-          const label = tab === "active" ? "アクティブ" : "無効化済み";
-          const isSelected = activeTab === tab;
-          return (
+      {/* ── 人事 セクション ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 40 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 3px" }}>
+              人事
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, marginLeft: 8, padding: "1px 7px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)" }}>
+                {hrMembers.length}
+              </span>
+            </h2>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.5 }}>
+              採用管理画面にアクセスできます。求人・面談の閲覧・管理が可能です。
+            </p>
+          </div>
+          {isAdmin && (
             <button
-              key={tab}
               type="button"
-              role="tab"
-              aria-selected={isSelected}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => { setAddDialogPermission("member"); setAddError(null); setShowAddDialog(true); }}
               style={{
-                padding: "10px 16px",
-                background: "none",
-                border: "none",
-                borderBottom: isSelected ? "2px solid var(--royal)" : "2px solid transparent",
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: isSelected ? 600 : 400,
-                color: isSelected ? "var(--royal)" : "var(--ink-mute)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: -1,
-                transition: "all 0.15s",
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", background: "#fff", color: "var(--royal)",
+                border: "1px solid var(--royal)", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                cursor: "pointer", flexShrink: 0,
               }}
             >
-              {label}
-              <span style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "1px 6px",
-                borderRadius: 100,
-                background: isSelected ? "var(--royal-50)" : "var(--line-soft)",
-                color: isSelected ? "var(--royal)" : "var(--ink-mute)",
-              }}>
-                {count}
-              </span>
+              + メールで招待
             </button>
-          );
-        })}
-      </div>
-
-      {/* メンバー一覧 */}
-      {displayMembers.length === 0 ? (
-        <div style={{
-          padding: "48px 24px",
-          textAlign: "center",
-          color: "var(--ink-mute)",
-          fontSize: 13,
-          background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 12,
-        }}>
-          {searchQuery.trim()
-            ? `「${searchQuery}」に一致するメンバーが見つかりません`
-            : activeTab === "active" ? "アクティブなメンバーがいません" : "無効化済みのメンバーはいません"}
+          )}
         </div>
-      ) : (
-        <div style={{
-          background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 12,
-          overflow: "hidden",
-        }}>
-          {displayMembers.map((member, index) => {
-            const isSelf = member.user_id === currentUserId;
-            const ps = PERM_STYLES[member.permission];
-            const isLast = index === displayMembers.length - 1;
-            return (
-              <div
-                key={member.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "44px 1fr auto",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "16px 20px",
-                  borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-                  background: isSelf ? "var(--royal-50)" : "#fff",
-                }}
-              >
-                {/* アバター */}
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: member.gradient,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#fff",
-                  flexShrink: 0,
-                }}>
-                  {member.initial}
-                </div>
-
-                {/* 名前・email・役職 */}
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
-                      {member.name}
-                    </span>
-                    {isSelf && (
-                      <span style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: "1px 7px",
-                        borderRadius: 100,
-                        background: "var(--royal)",
-                        color: "#fff",
-                      }}>
-                        あなた
-                      </span>
-                    )}
+        {hrMembers.length === 0 ? (
+          <div style={{ padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10 }}>
+            人事メンバーがいません
+          </div>
+        ) : (
+          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
+            {hrMembers.map((member, index) => {
+              const isSelf = member.user_id === currentUserId;
+              const ps = PERM_STYLES[member.permission];
+              const isLast = index === hrMembers.length - 1;
+              return (
+                <div key={member.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: isLast ? "none" : "1px solid var(--line-soft)", background: isSelf ? "var(--royal-50)" : "#fff" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                    {member.initial}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyEmail(member.email)}
-                      title="メールアドレスをコピー"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "2px 4px",
-                        borderRadius: 4,
-                        color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)",
-                        lineHeight: 1,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        transition: "color 0.15s",
-                      }}
-                    >
-                      {copiedEmail === member.email ? (
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                      ) : (
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      )}
-                    </button>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{member.name}</span>
+                      {isSelf && (<span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>)}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{member.email}</span>
+                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="メールアドレスをコピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", lineHeight: 1, display: "inline-flex", alignItems: "center" }}>
+                        {copiedEmail === member.email ? (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>) : (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>)}
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {member.role_title && (<span style={{ fontSize: 11, color: "var(--ink-soft)" }}>{member.role_title}</span>)}
+                      {member.department && (<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.department}</span>)}
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
+                    </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {member.role_title && (
-                      <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>
-                        {member.role_title}
-                      </span>
-                    )}
-                    {member.department && (
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                        {member.department}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                      {formatDate(member.created_at)} 追加
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: ps.bg, color: ps.color, whiteSpace: "nowrap" }}>
+                      {PERM_LABELS[member.permission]}
                     </span>
+                    {isAdmin && (<DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />)}
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-                {/* 権限バッジ + 操作メニュー */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "3px 10px",
-                    borderRadius: 100,
-                    background: ps.bg,
-                    color: ps.color,
-                    whiteSpace: "nowrap",
-                  }}>
-                    {PERM_LABELS[member.permission]}
-                  </span>
-                  {isAdmin && (
-                  <DropdownMenu
-                    member={member}
-                    isSelf={isSelf}
-                    onAction={openDialog}
-                    onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }}
-                  />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 招待中セクション（アクティブタブのみ） */}
-      {activeTab === "active" && (
-        <PendingInvitesSection
-          invites={pendingInvites}
-          onCancelled={(id) => {
-            setPendingInvites((prev) => prev.filter((i) => i.id !== id));
-            router.refresh();
-          }}
-          onToast={setToastMessage}
-        />
-      )}
+      {/* 招待中セクション */}
+      <PendingInvitesSection
+        invites={pendingInvites}
+        onCancelled={(id) => {
+          setPendingInvites((prev) => prev.filter((i) => i.id !== id));
+          router.refresh();
+        }}
+        onToast={setToastMessage}
+      />
 
       {/* 役職・部署編集ダイアログ */}
       {editProfileTarget && (
@@ -1775,6 +1594,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         <AddMemberDialog
           isSubmitting={isAdding}
           errorMessage={addError}
+          defaultPermission={addDialogPermission}
           onSubmit={handleAddMember}
           onCancel={() => { if (!isAdding) setShowAddDialog(false); }}
         />
@@ -1793,15 +1613,15 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         />
       )}
 
-      {/* ── 面談対応者セクション ── */}
+      {/* ── 現場 セクション ── */}
       <div style={{ marginTop: 48 }}>
         <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--ink)", margin: "0 0 4px" }}>
-              面談対応者
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 3px" }}>
+              現場
             </h2>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
-              候補者と直接話してもらう社員です。承認制・管理画面アクセス権なし。
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.5 }}>
+              候補者と直接話してもらう社員です。面談OKフラグで公開管理。管理画面アクセス権なし。
             </p>
           </div>
           {isAdmin && (
