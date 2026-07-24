@@ -75,10 +75,6 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
     return counts;
   }, [conversations]);
 
-  const activeCount = useMemo(
-    () => conversations.filter((c) => c.stage !== "closed").length,
-    [conversations]
-  );
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
