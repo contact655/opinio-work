@@ -15,6 +15,7 @@ import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { isSalesJob, getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
 import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
+import { fmtMan } from "@/lib/utils/salary";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -32,8 +33,8 @@ export async function generateMetadata({
   const canonicalId = jobSlug ?? params.id;
 
   const salaryText = job.salary_min && job.salary_max
-    ? `年収${job.salary_min}〜${job.salary_max}万円`
-    : job.salary_min ? `年収${job.salary_min}万円〜` : "";
+    ? `年収${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
+    : job.salary_min ? `年収${fmtMan(job.salary_min)}万円〜` : "";
 
   const description = [
     job.highlight ?? `${company.name}の${job.role}求人`,
@@ -169,7 +170,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
             </div>
             {(rj.salaryMin || rj.salaryMax) && (
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", flexShrink: 0 }}>
-                {rj.salaryMin && rj.salaryMax ? `${rj.salaryMin}〜${rj.salaryMax}万円` : rj.salaryMin ? `${rj.salaryMin}万円〜` : `〜${rj.salaryMax}万円`}
+                {rj.salaryMin && rj.salaryMax ? `${fmtMan(rj.salaryMin)}〜${fmtMan(rj.salaryMax)}万円` : rj.salaryMin ? `${fmtMan(rj.salaryMin)}万円〜` : `〜${fmtMan(rj.salaryMax)}万円`}
               </div>
             )}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}><path d="M9 18l6-6-6-6" /></svg>
@@ -649,9 +650,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontFamily: "Inter, sans-serif",
                   }}>
                   {job.salary_min && job.salary_max
-                    ? `${job.salary_min}〜${job.salary_max}万円`
-                    : job.salary_min ? `${job.salary_min}万円〜`
-                    : `〜${job.salary_max}万円`}
+                    ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
+                    : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
+                    : `〜${fmtMan(job.salary_max)}万円`}
                   </span>
                 </span>
                 ) : (
@@ -841,9 +842,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </div>
                       <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
                         {job.salary_min && job.salary_max
-                          ? `${job.salary_min}〜${job.salary_max}万円`
-                          : job.salary_min ? `${job.salary_min}万円〜`
-                          : `〜${job.salary_max}万円`}
+                          ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
+                          : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
+                          : `〜${fmtMan(job.salary_max)}万円`}
                       </span>
                     </div>
                     {/* OTE行（営業職かつ入力あり） */}
@@ -859,9 +860,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </div>
                       <span style={{ fontSize: 22, fontWeight: 700, color: "#1D4ED8", fontFamily: "Inter, sans-serif" }}>
                         {job.ote_min && job.ote_max
-                          ? `${job.ote_min}〜${job.ote_max}万円`
-                          : job.ote_min ? `${job.ote_min}万円〜`
-                          : `〜${job.ote_max}万円`}
+                          ? `${fmtMan(job.ote_min)}〜${fmtMan(job.ote_max)}万円`
+                          : job.ote_min ? `${fmtMan(job.ote_min)}万円〜`
+                          : `〜${fmtMan(job.ote_max)}万円`}
                       </span>
                     </div>
                     )}
@@ -1520,7 +1521,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           </div>
                           <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
                             {(rj.salary_min || rj.salary_max)
-                              ? `${rj.salary_min && rj.salary_max ? `${rj.salary_min}〜${rj.salary_max}万円` : rj.salary_min ? `${rj.salary_min}万円〜` : `〜${rj.salary_max}万円`} · `
+                              ? `${rj.salary_min && rj.salary_max ? `${fmtMan(rj.salary_min)}〜${fmtMan(rj.salary_max)}万円` : rj.salary_min ? `${fmtMan(rj.salary_min)}万円〜` : `〜${fmtMan(rj.salary_max)}万円`} · `
                               : ""}{rj.work_style}
                           </div>
                         </div>
@@ -1622,9 +1623,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontFamily: "Inter, sans-serif", textAlign: "right" as const,
                   }}>
                     {job.salary_min && job.salary_max
-                      ? `${job.salary_min}〜${job.salary_max}万円`
-                      : job.salary_min ? `${job.salary_min}万円〜`
-                      : `〜${job.salary_max}万円`}
+                      ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
+                      : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
+                      : `〜${fmtMan(job.salary_max)}万円`}
                   </span>
                 </div>
                 )}

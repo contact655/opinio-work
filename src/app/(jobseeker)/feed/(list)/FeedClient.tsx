@@ -959,10 +959,11 @@ const MORE_LINK_STYLE: React.CSSProperties = {
 function formatSalary(min: number | null, max: number | null): string {
   const hasMn = min != null && min > 0;
   const hasMx = max != null && max > 0;
+  const fmt = (v: number) => v.toLocaleString("ja-JP");
   if (!hasMn && !hasMx) return "応相談";
-  if (hasMn && hasMx) return `${min}〜${max}万円`;
-  if (hasMn) return `${min}万円〜`;
-  return `〜${max}万円`;
+  if (hasMn && hasMx) return `${fmt(min!)}〜${fmt(max!)}万円`;
+  if (hasMn) return `${fmt(min!)}万円〜`;
+  return `〜${fmt(max!)}万円`;
 }
 
 // ─── 左カラム: ミニプロフィール + ナビ ────────────────────────────────────────

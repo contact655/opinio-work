@@ -87,9 +87,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatSalary(min: number, max: number): string {
-  if (min && max) return `${min}〜${max}万円`;
-  if (min) return `${min}万円〜`;
-  if (max) return `〜${max}万円`;
+  const fmt = (v: number) => v.toLocaleString("ja-JP");
+  if (min && max) return `${fmt(min)}〜${fmt(max)}万円`;
+  if (min) return `${fmt(min)}万円〜`;
+  if (max) return `〜${fmt(max)}万円`;
   return "応相談";
 }
 

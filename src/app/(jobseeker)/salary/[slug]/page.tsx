@@ -124,9 +124,9 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
               {/* ミニ統計 */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
                 {[
-                  { label: "最低", val: `${myStat.minSalary}万円` },
-                  { label: "平均レンジ", val: `${myStat.avgMin}〜${myStat.avgMax}万円`, highlight: true },
-                  { label: "最高", val: `${myStat.maxSalary}万円` },
+                  { label: "最低", val: `${myStat.minSalary.toLocaleString("ja-JP")}万円` },
+                  { label: "平均レンジ", val: `${myStat.avgMin.toLocaleString("ja-JP")}〜${myStat.avgMax.toLocaleString("ja-JP")}万円`, highlight: true },
+                  { label: "最高", val: `${myStat.maxSalary.toLocaleString("ja-JP")}万円` },
                 ].map(({ label, val, highlight }) => (
                   <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: highlight ? "var(--royal-50)" : "var(--bg-tint)", borderRadius: 10, border: `1px solid ${highlight ? "var(--royal-100)" : "var(--line)"}` }}>
                     <div style={{ fontSize: 10, color: highlight ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, marginBottom: 4 }}>{label}</div>
@@ -180,8 +180,8 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                           {(job.salaryMin > 0 || job.salaryMax > 0) && (
                             <span style={{ fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>
                               {job.salaryMin > 0 && job.salaryMax > 0
-                                ? `${job.salaryMin}〜${job.salaryMax}万円`
-                                : job.salaryMin > 0 ? `${job.salaryMin}万円〜` : `〜${job.salaryMax}万円`}
+                                ? `${job.salaryMin.toLocaleString("ja-JP")}〜${job.salaryMax.toLocaleString("ja-JP")}万円`
+                                : job.salaryMin > 0 ? `${job.salaryMin.toLocaleString("ja-JP")}万円〜` : `〜${job.salaryMax.toLocaleString("ja-JP")}万円`}
                             </span>
                           )}
                           {job.workStyle && (

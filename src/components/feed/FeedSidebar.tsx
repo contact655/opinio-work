@@ -32,7 +32,7 @@ export type SidebarPerson = {
 
 function formatSalary(min: number | null, max: number | null): string | null {
   if (!min && !max) return null;
-  const fmt = (v: number) => `${Math.round(v / 10000)}万円`;
+  const fmt = (v: number) => `${Math.round(v / 10000).toLocaleString("ja-JP")}万円`;
   if (min && max) return `${fmt(min)}〜${fmt(max)}`;
   if (min) return `${fmt(min)}〜`;
   if (max) return `〜${fmt(max)}`;

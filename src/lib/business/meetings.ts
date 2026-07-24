@@ -146,7 +146,7 @@ export function transformMeeting(
     jobTitle: row.job?.title ?? null,
     jobSalary:
       row.job?.salary_min != null && row.job?.salary_max != null
-        ? `¥${row.job.salary_min}-${row.job.salary_max}万`
+        ? `¥${row.job.salary_min.toLocaleString("ja-JP")}-${row.job.salary_max.toLocaleString("ja-JP")}万`
         : null,
     intent: INTENT_LABELS[row.intent ?? ""] ?? row.intent ?? "—",
     intentDetail: "",

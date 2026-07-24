@@ -143,9 +143,10 @@ function escapeHtml(str: string): string {
 }
 
 function formatSalary(min: number | null, max: number | null): string {
-  if (min && max) return `${min}〜${max}万円`;
-  if (min) return `${min}万円〜`;
-  if (max) return `〜${max}万円`;
+  const fmt = (v: number) => v.toLocaleString("ja-JP");
+  if (min && max) return `${fmt(min)}〜${fmt(max)}万円`;
+  if (min) return `${fmt(min)}万円〜`;
+  if (max) return `〜${fmt(max)}万円`;
   return "応相談";
 }
 
