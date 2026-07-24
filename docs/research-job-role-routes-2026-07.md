@@ -3,19 +3,19 @@
 作成: 2026-07-24 セッション28（部門・職種マスタ実装後）  
 実測日: 2026-07-24
 
-> ⚠️ **件数に関する注記（2026-07-24 調査済み）**
+> **件数の変遷（2026-07-24 調査確定）**
 >
-> CLAUDE.md はセッション26時点で「公開求人 74件」と記録しているが、
-> 2026-07-24 時点の DB 実測値は **20件（published 18 / draft 2）**。
+> | 時点 | 件数 | 主な変化 |
+> |------|------|---------|
+> | 2026-06-12 | 〜180件 | Migration 166: Salesforce Japan 106件追加後の推定値 |
+> | 2026-07-15 | 74件 | Migration 231: Salesforce Japan テスト 106件削除後 |
+> | 2026-07-24 | **20件** | Migration 238（medimo 25件削除）・239（Archi Village 18件・freee・LayerX 削除）等による |
 >
-> **原因（確定）:** CLAUDE.md が「手動適用済み ✅」と記録している
-> Migration 166（Salesforce Japan 106件）、168（Archi Village 18件）、
-> 169（medimo 25件）、231（106件削除）、257（expires_at NULL化）が
-> DB の schema_migrations に存在しない。
-> これらの migrations は当該 Supabase プロジェクトに適用されていなかった。
+> **RLS による行制限ではない**（service role 実測でも 20件）。
+> soft delete（`deleted_at` カラムなし）でもない。`expires_at` は全件 NULL で除外ゼロ。
 >
-> RLS・soft delete（deleted_at なし）・expires_at（全件 NULL）はいずれも原因ではない。
-> **件数の正値は 20件（service role, フィルタなし）。**
+> 「企業はあるが求人が無い」でもない。企業ごと削除された（Migration 238/239 が会社レコードも DELETE している）。
+> Archi Village・medimo は追加後に削除されたため、`add_company_slug` の UPDATE が 0 行に空振りした。
 
 ---
 
