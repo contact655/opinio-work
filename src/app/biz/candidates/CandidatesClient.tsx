@@ -166,23 +166,35 @@ export default function CandidatesClient({
   scoutQuota?: ScoutQuota;
   jobOptions?: JobOption[];
 }) {
-  // ── 既存フィルター ──────────────────────────────────────────────────
+  // ── フリーワード ────────────────────────────────────────────────────
   const [q, setQ] = useState("");
-  const [workStyle, setWorkStyle] = useState("");
+  const [roleQuery, setRoleQuery] = useState("");
+  const [companyQuery, setCompanyQuery] = useState("");
+
+  // ── 転職意欲 ────────────────────────────────────────────────────────
+  const [openToWorkOnly, setOpenToWorkOnly] = useState(false);
+  const [selectedTransferTimings, setSelectedTransferTimings] = useState<string[]>([]);
+
+  // ── 経歴・雇用形態 ──────────────────────────────────────────────────
   const [jobCategoryKey, setJobCategoryKey] = useState<string | null>(null);
   const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
-  const [phase, setPhase] = useState("");
-  const [transferTiming, setTransferTiming] = useState("");
-  const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
+  const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
 
-  // ── 新規フィルター ──────────────────────────────────────────────────
-  const [selectedDecades, setSelectedDecades] = useState<string[]>([]);
-  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
-  const [selectedSkillTags, setSelectedSkillTags] = useState<string[]>([]);
+  // ── 希望条件 ────────────────────────────────────────────────────────
+  const [workStyle, setWorkStyle] = useState("");
+  const [phase, setPhase] = useState("");
   // 0 = 指定なし（万円単位）
   const [salaryMin, setSalaryMin] = useState(0);
   // デフォルトON: 年収未設定の候補者も通す
   const [includeNoSalary, setIncludeNoSalary] = useState(true);
+
+  // ── 属性 ────────────────────────────────────────────────────────────
+  const [selectedDecades, setSelectedDecades] = useState<string[]>([]);
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
+  const [selectedSkillTags, setSelectedSkillTags] = useState<string[]>([]);
+
+  // ── その他 ──────────────────────────────────────────────────────────
+  const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
 
   // ── モバイル サイドバー開閉 ─────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -260,16 +272,37 @@ export default function CandidatesClient({
     let list = candidates;
 
     if (hideAlreadyScouted) list = list.filter((c) => !c.alreadyScouted);
+    if (openToWorkOnly) list = list.filter((c) => c.isOpenToWork);
 
+    // フリーワード（スペース区切りAND）
     if (q.trim()) {
-      const lower = q.toLowerCase();
+      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
       list = list.filter((c) =>
-        c.name.toLowerCase().includes(lower) ||
-        (c.currentRole ?? "").toLowerCase().includes(lower) ||
-        (c.currentCompany ?? "").toLowerCase().includes(lower) ||
-        (c.location ?? "").includes(lower) ||
-        c.skills.some((s) => s.toLowerCase().includes(lower))
+        terms.every((t) =>
+          c.name.toLowerCase().includes(t) ||
+          (c.currentRole ?? "").toLowerCase().includes(t) ||
+          (c.currentCompany ?? "").toLowerCase().includes(t) ||
+          (c.location ?? "").includes(t) ||
+          c.skills.some((s) => s.toLowerCase().includes(t))
+        )
       );
+    }
+
+    // 職種タイトル
+    if (roleQuery.trim()) {
+      const r = roleQuery.toLowerCase();
+      list = list.filter((c) => (c.currentRole ?? "").toLowerCase().includes(r));
+    }
+
+    // 会社名
+    if (companyQuery.trim()) {
+      const co = companyQuery.toLowerCase();
+      list = list.filter((c) => (c.currentCompany ?? "").toLowerCase().includes(co));
+    }
+
+    // 雇用形態（OR）
+    if (selectedEmploymentTypes.length > 0) {
+      list = list.filter((c) => c.employmentType && selectedEmploymentTypes.includes(c.employmentType));
     }
 
     if (workStyle) list = list.filter((c) => c.workStyle === workStyle);
@@ -288,7 +321,11 @@ export default function CandidatesClient({
     }
 
     if (phase) list = list.filter((c) => c.desiredPhase?.includes(phase));
-    if (transferTiming) list = list.filter((c) => c.transferTiming === transferTiming);
+
+    // 転職時期（OR）
+    if (selectedTransferTimings.length > 0) {
+      list = list.filter((c) => c.transferTiming && selectedTransferTimings.includes(c.transferTiming));
+    }
 
     // 年代（OR）
     if (selectedDecades.length > 0) {
@@ -312,31 +349,34 @@ export default function CandidatesClient({
       );
     }
 
-    // 希望年収フィルター
-    // desired_salary_max を判定軸とする: 候補者の希望レンジ上限が選択下限以上なら「出せる候補」
-    // desired_salary_min だけ設定されているケースは稀なので max 優先、max が null なら min で補完
+    // 希望年収
     if (salaryMin > 0) {
       list = list.filter((c) => {
         const salaryVal = c.desiredSalaryMax ?? c.desiredSalaryMin;
-        if (salaryVal === null) return includeNoSalary; // 未設定は includeNoSalary に従う
+        if (salaryVal === null) return includeNoSalary;
         return salaryVal >= salaryMin;
       });
     }
 
     return list;
   }, [
-    candidates, q, workStyle, jobCategoryKey, selectedJobType,
-    phase, transferTiming, hideAlreadyScouted,
+    candidates, q, roleQuery, companyQuery, workStyle, jobCategoryKey, selectedJobType,
+    phase, selectedTransferTimings, hideAlreadyScouted, openToWorkOnly,
     selectedDecades, selectedPrefectures, selectedSkillTags,
-    salaryMin, includeNoSalary,
+    selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
 
   const jobTypeFilterActive = jobCategoryKey !== null;
   const activeFilterCount = [
+    q.trim() ? "x" : "",
+    roleQuery.trim() ? "x" : "",
+    companyQuery.trim() ? "x" : "",
+    openToWorkOnly ? "x" : "",
     workStyle,
     jobTypeFilterActive ? "x" : "",
     phase,
-    transferTiming,
+    selectedTransferTimings.length ? "x" : "",
+    selectedEmploymentTypes.length ? "x" : "",
     hideAlreadyScouted ? "x" : "",
     selectedDecades.length ? "x" : "",
     selectedPrefectures.length ? "x" : "",
@@ -346,11 +386,15 @@ export default function CandidatesClient({
 
   function clearAllFilters() {
     setQ("");
+    setRoleQuery("");
+    setCompanyQuery("");
+    setOpenToWorkOnly(false);
     setWorkStyle("");
     setJobCategoryKey(null);
     setSelectedJobType(null);
     setPhase("");
-    setTransferTiming("");
+    setSelectedTransferTimings([]);
+    setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
     setSelectedDecades([]);
     setSelectedPrefectures([]);
@@ -369,19 +413,23 @@ export default function CandidatesClient({
 
   // ── サイドバーの中身（デスクトップ・モバイル共用） ────────────────────
   const sidebarContent = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
 
-      {/* フリーワード */}
-      <div>
-        <SidebarLabel>キーワード</SidebarLabel>
+      {/* ── フリーワード ─────────────────────────────────────────────── */}
+      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
+        <SidebarLabel>フリーワード</SidebarLabel>
         <div style={{ position: "relative" }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
           <input
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社・スキル・地域"
+            placeholder="名前・職種・会社・スキル"
             style={{
-              width: "100%", height: 34, padding: q ? "0 28px 0 10px" : "0 10px",
+              width: "100%", height: 34, padding: "0 28px 0 28px",
               border: "1px solid var(--line)", borderRadius: 8,
               fontSize: 12, outline: "none", fontFamily: "inherit",
               color: "var(--ink)", boxSizing: "border-box" as const,
@@ -394,12 +442,80 @@ export default function CandidatesClient({
             </button>
           )}
         </div>
+        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.5 }}>
+          スペース区切りでAND検索
+        </div>
       </div>
 
-      {/* 職種 */}
-      <div>
-        <SidebarLabel>職種カテゴリ</SidebarLabel>
+      {/* ── 転職意欲 ──────────────────────────────────────────────────── */}
+      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
+        <SidebarLabel>転職意欲</SidebarLabel>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 10 }}>
+          <input
+            type="checkbox"
+            checked={openToWorkOnly}
+            onChange={(e) => setOpenToWorkOnly(e.target.checked)}
+            style={{ width: 14, height: 14, accentColor: "var(--success)", cursor: "pointer" }}
+          />
+          <span style={{ fontSize: 12, color: openToWorkOnly ? "var(--success)" : "var(--ink-soft)", fontWeight: openToWorkOnly ? 700 : 400 }}>
+            転職検討中のみ
+          </span>
+        </label>
+        <SidebarLabel>転職時期</SidebarLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {TRANSFER_TIMING_OPTIONS.map(({ value, label }) => (
+            <Pill key={value} active={selectedTransferTimings.includes(value)} color="warm"
+              onClick={() => setSelectedTransferTimings(toggleMulti(selectedTransferTimings, value))}>
+              {label}
+            </Pill>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 経歴・職種 ────────────────────────────────────────────────── */}
+      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
+        <SidebarLabel>現在の職種タイトル</SidebarLabel>
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <input
+            type="text"
+            value={roleQuery}
+            onChange={(e) => setRoleQuery(e.target.value)}
+            placeholder="例：営業マネージャー、エンジニア"
+            style={{
+              width: "100%", height: 34, padding: roleQuery ? "0 28px 0 10px" : "0 10px",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 12, outline: "none", fontFamily: "inherit",
+              color: "var(--ink)", boxSizing: "border-box" as const,
+            }}
+          />
+          {roleQuery && (
+            <button type="button" onClick={() => setRoleQuery("")}
+              style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, padding: 2 }}>×</button>
+          )}
+        </div>
+
+        <SidebarLabel>現在の会社名</SidebarLabel>
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <input
+            type="text"
+            value={companyQuery}
+            onChange={(e) => setCompanyQuery(e.target.value)}
+            placeholder="例：株式会社○○、Salesforce"
+            style={{
+              width: "100%", height: 34, padding: companyQuery ? "0 28px 0 10px" : "0 10px",
+              border: "1px solid var(--line)", borderRadius: 8,
+              fontSize: 12, outline: "none", fontFamily: "inherit",
+              color: "var(--ink)", boxSizing: "border-box" as const,
+            }}
+          />
+          {companyQuery && (
+            <button type="button" onClick={() => setCompanyQuery("")}
+              style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, padding: 2 }}>×</button>
+          )}
+        </div>
+
+        <SidebarLabel>職種カテゴリ</SidebarLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
           {getVisibleCategories().map((cat) => (
             <button key={cat.key} type="button"
               aria-pressed={jobCategoryKey === cat.key}
@@ -417,7 +533,7 @@ export default function CandidatesClient({
           ))}
         </div>
         {selectedCat && (
-          <div style={{ marginTop: 8, padding: "8px 10px", background: "var(--royal-50)", borderRadius: 8, border: "1px solid var(--royal-100)" }}>
+          <div style={{ padding: "8px 10px", background: "var(--royal-50)", borderRadius: 8, border: "1px solid var(--royal-100)", marginBottom: 8 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)", marginBottom: 6 }}>
               {selectedCat.emoji} {selectedCat.label} の職種
             </div>
@@ -444,86 +560,36 @@ export default function CandidatesClient({
             </button>
           </div>
         )}
+
+        <SidebarLabel>雇用形態</SidebarLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([v, l]) => (
+            <Pill key={v} active={selectedEmploymentTypes.includes(v)} color="royal"
+              onClick={() => setSelectedEmploymentTypes(toggleMulti(selectedEmploymentTypes, v))}>
+              {l}
+            </Pill>
+          ))}
+        </div>
       </div>
 
-      {/* 勤務スタイル */}
-      <div>
+      {/* ── 希望条件 ──────────────────────────────────────────────────── */}
+      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
         <SidebarLabel>勤務スタイル</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
           <Pill active={workStyle === ""} onClick={() => setWorkStyle("")}>全て</Pill>
           {Object.entries(WORK_STYLE_LABELS).map(([v, l]) => (
             <Pill key={v} active={workStyle === v} onClick={() => setWorkStyle(workStyle === v ? "" : v)}>{l}</Pill>
           ))}
         </div>
-      </div>
 
-      {/* 企業フェーズ */}
-      <div>
         <SidebarLabel>希望企業フェーズ</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
           <Pill active={phase === ""} onClick={() => setPhase("")}>全て</Pill>
           {PHASE_OPTIONS.map((v) => (
             <Pill key={v} active={phase === v} onClick={() => setPhase(phase === v ? "" : v)}>{v}</Pill>
           ))}
         </div>
-      </div>
 
-      {/* 転職時期 */}
-      <div>
-        <SidebarLabel>転職時期</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          <Pill active={transferTiming === ""} color="warm" onClick={() => setTransferTiming("")}>全て</Pill>
-          {TRANSFER_TIMING_OPTIONS.map(({ value, label }) => (
-            <Pill key={value} active={transferTiming === value} color="warm"
-              onClick={() => setTransferTiming(transferTiming === value ? "" : value)}>
-              {label}
-            </Pill>
-          ))}
-        </div>
-      </div>
-
-      {/* 年代 — 複数選択 OR */}
-      <div>
-        <SidebarLabel>年代</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          {DECADE_OPTIONS.map((d) => (
-            <Pill key={d} active={selectedDecades.includes(d)} color="purple"
-              onClick={() => setSelectedDecades(toggleMulti(selectedDecades, d))}>
-              {d}
-            </Pill>
-          ))}
-        </div>
-        {selectedDecades.length > 0 && (
-          <button type="button" onClick={() => setSelectedDecades([])}
-            style={{ marginTop: 5, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
-            クリア
-          </button>
-        )}
-      </div>
-
-      {/* 居住地 — 複数選択 OR */}
-      {uniquePrefectures.length > 0 && (
-        <div>
-          <SidebarLabel>居住地</SidebarLabel>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-            {uniquePrefectures.map((p) => (
-              <Pill key={p} active={selectedPrefectures.includes(p)}
-                onClick={() => setSelectedPrefectures(toggleMulti(selectedPrefectures, p))}>
-                {p}
-              </Pill>
-            ))}
-          </div>
-          {selectedPrefectures.length > 0 && (
-            <button type="button" onClick={() => setSelectedPrefectures([])}
-              style={{ marginTop: 5, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
-              クリア
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* 希望年収 */}
-      <div>
         <SidebarLabel>希望年収（下限）</SidebarLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {([
@@ -540,7 +606,6 @@ export default function CandidatesClient({
             </Pill>
           ))}
         </div>
-        {/* 年収下限指定中のみ「未設定含む」チェックを表示 */}
         {salaryMin > 0 && (
           <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, cursor: "pointer" }}>
             <input
@@ -556,9 +621,48 @@ export default function CandidatesClient({
         )}
       </div>
 
-      {/* スキルタグ — 複数選択 OR */}
+      {/* ── 属性 ──────────────────────────────────────────────────────── */}
+      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
+        <SidebarLabel>年代</SidebarLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: selectedDecades.length ? 4 : 0 }}>
+          {DECADE_OPTIONS.map((d) => (
+            <Pill key={d} active={selectedDecades.includes(d)} color="purple"
+              onClick={() => setSelectedDecades(toggleMulti(selectedDecades, d))}>
+              {d}
+            </Pill>
+          ))}
+        </div>
+        {selectedDecades.length > 0 && (
+          <button type="button" onClick={() => setSelectedDecades([])}
+            style={{ marginTop: 4, marginBottom: 8, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
+            クリア
+          </button>
+        )}
+
+        {uniquePrefectures.length > 0 && (
+          <>
+            <SidebarLabel>居住地</SidebarLabel>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {uniquePrefectures.map((p) => (
+                <Pill key={p} active={selectedPrefectures.includes(p)}
+                  onClick={() => setSelectedPrefectures(toggleMulti(selectedPrefectures, p))}>
+                  {p}
+                </Pill>
+              ))}
+            </div>
+            {selectedPrefectures.length > 0 && (
+              <button type="button" onClick={() => setSelectedPrefectures([])}
+                style={{ marginTop: 4, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
+                クリア
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── スキルタグ ────────────────────────────────────────────────── */}
       {uniqueSkillTags.length > 0 && (
-        <div>
+        <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
           <SidebarLabel>スキルタグ</SidebarLabel>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
             {uniqueSkillTags.map((s) => (
@@ -570,19 +674,16 @@ export default function CandidatesClient({
           </div>
           {selectedSkillTags.length > 0 && (
             <button type="button" onClick={() => setSelectedSkillTags([])}
-              style={{ marginTop: 5, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
+              style={{ marginTop: 4, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
               クリア
             </button>
           )}
         </div>
       )}
 
-      {/* 区切り */}
-      <div style={{ borderTop: "1px solid var(--line)" }} />
-
-      {/* スカウト済み除外 */}
+      {/* ── その他 ────────────────────────────────────────────────────── */}
       {alreadyScoutedCount > 0 && (
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 12 }}>
           <input
             type="checkbox"
             checked={hideAlreadyScouted}
@@ -611,22 +712,17 @@ export default function CandidatesClient({
   );
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ padding: "16px 32px", maxWidth: 1100, margin: "0 auto" }}>
 
       {/* ── ヘッダー ─────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 5px" }}>候補者を探す</h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
-            スカウトを受け取る設定をした求職者が表示されます。
-          </p>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>候補者を探す</h1>
         {showQuota && (
           <div style={{
             background: scoutQuota.remaining === 0 ? "var(--error-soft)" : "var(--bg-tint)",
             border: `1px solid ${scoutQuota.remaining === 0 ? "#FECACA" : "var(--line)"}`,
-            borderRadius: 8, padding: "8px 14px", flexShrink: 0,
-            display: "flex", alignItems: "center", gap: 8,
+            borderRadius: 8, padding: "6px 12px", flexShrink: 0,
+            display: "flex", alignItems: "center", gap: 6,
           }}>
             <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>残り</span>
             <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Inter, sans-serif", color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--ink)" }}>
@@ -669,7 +765,7 @@ export default function CandidatesClient({
 
         {/* ── サイドバー（デスクトップのみ） ───────────────────────────── */}
         <aside className="candidates-sidebar" style={{
-          width: 220, flexShrink: 0,
+          width: 240, flexShrink: 0,
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 12, padding: "18px 16px",
           position: "sticky", top: 80,
@@ -747,9 +843,10 @@ export default function CandidatesClient({
                         border: c.alreadyScouted ? "1px solid #E2E8F0" : "1px solid var(--line)",
                         borderRadius: 14, padding: "16px 18px",
                         transition: "box-shadow 0.15s, transform 0.15s",
-                        cursor: "pointer", height: "100%",
+                        cursor: "pointer",
+                        height: 180, display: "flex", flexDirection: "column", justifyContent: "space-between",
                         opacity: c.alreadyScouted ? 0.75 : 1,
-                        position: "relative",
+                        position: "relative", overflow: "hidden",
                       }}
                       onMouseEnter={(e) => {
                         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(0,35,102,0.10)";
@@ -801,28 +898,6 @@ export default function CandidatesClient({
                         </div>
                       </div>
 
-                      {/* スキルタグ */}
-                      {c.skills.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-                          {c.skills.slice(0, 6).map((skill) => (
-                            <span key={skill} style={{
-                              fontSize: 10, padding: "2px 6px", borderRadius: 100,
-                              background: selectedSkillTags.includes(skill) ? "var(--royal)" : "var(--royal-50)",
-                              border: `1px solid ${selectedSkillTags.includes(skill) ? "var(--royal)" : "var(--royal-100)"}`,
-                              color: selectedSkillTags.includes(skill) ? "#fff" : "var(--accent)",
-                              fontWeight: 600,
-                            }}>
-                              {skill}
-                            </span>
-                          ))}
-                          {c.skills.length > 6 && (
-                            <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-mute)" }}>
-                              +{c.skills.length - 6}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
                       {/* 属性タグ */}
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
                         {c.location && (
@@ -867,9 +942,6 @@ export default function CandidatesClient({
             </div>
           )}
 
-          <div style={{ marginTop: 28, padding: "12px 16px", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 10, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-            表示されるのは「スカウトを受け取る」設定をした求職者のみです。在籍企業・手動ブロック企業のスカウトは自動でブロックされます。
-          </div>
         </main>
       </div>
 
