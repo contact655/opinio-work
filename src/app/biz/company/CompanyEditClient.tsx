@@ -168,6 +168,62 @@ function FormInput({
   );
 }
 
+function EmailTagInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const tags = value ? value.split(",").map((e) => e.trim()).filter(Boolean) : [];
+  const [inputVal, setInputVal] = useState("");
+
+  function commit(raw: string) {
+    const email = raw.trim();
+    if (!email) return;
+    const next = [...tags, email].join(", ");
+    onChange(next);
+    setInputVal("");
+  }
+
+  function remove(idx: number) {
+    const next = tags.filter((_, i) => i !== idx).join(", ");
+    onChange(next);
+  }
+
+  return (
+    <div style={{
+      display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
+      padding: "8px 10px", border: "1.5px solid var(--line)", borderRadius: 8,
+      background: "#fff", cursor: "text", minHeight: 42,
+    }}
+      onClick={(e) => (e.currentTarget.querySelector("input") as HTMLInputElement)?.focus()}
+    >
+      {tags.map((tag, i) => (
+        <span key={i} style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          background: "var(--royal-50)", color: "var(--royal)",
+          border: "1px solid var(--royal-100)", borderRadius: 6,
+          fontSize: 12, fontWeight: 500, padding: "2px 8px",
+        }}>
+          {tag}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); remove(i); }}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, color: "var(--royal)", fontSize: 13, fontWeight: 700 }}
+          >×</button>
+        </span>
+      ))}
+      <input
+        type="email"
+        value={inputVal}
+        onChange={(e) => setInputVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commit(inputVal); }
+          if (e.key === "Backspace" && !inputVal && tags.length > 0) remove(tags.length - 1);
+        }}
+        onBlur={() => { if (inputVal) commit(inputVal); }}
+        placeholder={tags.length === 0 ? "recruiting@example.co.jp" : "追加..."}
+        style={{ border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", color: "var(--ink)", flex: "1 1 160px", minWidth: 120, background: "transparent" }}
+      />
+    </div>
+  );
+}
+
 function FormSelect({
   value,
   onChange,
@@ -176,9 +232,12 @@ function FormSelect({
 }: {
   value: string;
   onChange: (v: string) => void;
-  options: string[];
+  options: string[] | { value: string; label: string }[];
   id?: string;
 }) {
+  const normalized = (options as (string | { value: string; label: string })[]).map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
   return (
     <select
       id={id}
@@ -210,8 +269,8 @@ function FormSelect({
         (e.target as HTMLSelectElement).style.boxShadow = "none";
       }}
     >
-      {options.map((o) => (
-        <option key={o} value={o}>{o}</option>
+      {normalized.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </select>
   );
@@ -1122,7 +1181,7 @@ export function CompanyEditClient({
                 <FormSelect
                   value={form.isPublished ? "public" : "private"}
                   onChange={(v) => update("isPublished", v === "public")}
-                  options={["public", "private"]}
+                  options={[{ value: "public", label: "公開中" }, { value: "private", label: "非公開" }]}
                 />
                 <FormHint>
                   {form.isPublished
@@ -1135,7 +1194,7 @@ export function CompanyEditClient({
                 <FormSelect
                   value={form.acceptingCasualMeetings ? "accepting" : "paused"}
                   onChange={(v) => update("acceptingCasualMeetings", v === "accepting")}
-                  options={["accepting", "paused"]}
+                  options={[{ value: "accepting", label: "受付中" }, { value: "paused", label: "一時停止" }]}
                 />
                 <FormHint>「一時停止」中は、求職者側のページから「カジュアル面談を申し込む」ボタンが非表示になります。</FormHint>
               </FormGroup>
@@ -1143,12 +1202,11 @@ export function CompanyEditClient({
             <SectionCard title="通知設定">
               <FormGroup>
                 <FormLabel>新規カジュアル面談の通知先</FormLabel>
-                <FormInput
+                <EmailTagInput
                   value={form.notificationEmails}
                   onChange={(v) => update("notificationEmails", v)}
-                  placeholder="recruiting@example.co.jp"
                 />
-                <FormHint>複数のメールアドレスを設定する場合はカンマ区切り</FormHint>
+                <FormHint>Enterまたはカンマで複数のメールアドレスを追加できます</FormHint>
               </FormGroup>
             </SectionCard>
           </>
