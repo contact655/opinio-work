@@ -31,6 +31,12 @@ export default async function CreateCompanyPage() {
   const agreedTermsVersion = (user?.user_metadata?.agreed_terms_version as string | undefined) ?? null;
   const prefilledIndustry = (user?.user_metadata?.pending_industry as string | undefined) ?? null;
 
+  // メールドメインで企業マスタを照合（LinkedIn的なドメインマッチング）
+  const emailDomain = user?.email ? user.email.split("@")[1]?.toLowerCase() ?? null : null;
+  // フリーメールドメインはマッチング対象外
+  const FREE_DOMAINS = ["gmail.com", "yahoo.co.jp", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "me.com", "live.com", "googlemail.com"];
+  const matchableDomain = emailDomain && !FREE_DOMAINS.includes(emailDomain) ? emailDomain : null;
+
   // ユーザー登録時に入力した所属企業を取得
   // 優先順位: user_metadata.pending_company > ow_experiences.is_current=true
   let prefilledCompanyName: string | null = null;
@@ -85,9 +91,10 @@ export default async function CreateCompanyPage() {
       <BusinessLayout userName={userName}>
         <CreateCompanyClient
           userBadge={userBadge}
-            prefilledCompanyName={prefilledCompanyName}
+          prefilledCompanyName={prefilledCompanyName}
           prefilledCompanyId={prefilledCompanyId}
           prefilledIndustry={prefilledIndustry}
+          emailDomain={matchableDomain}
           agreedTermsBusiness={agreedTermsBusiness}
           agreedFeePct15={agreedFeePct15}
           agreedTermsVersion={agreedTermsVersion}
@@ -110,6 +117,7 @@ export default async function CreateCompanyPage() {
         prefilledCompanyName={prefilledCompanyName}
         prefilledCompanyId={prefilledCompanyId}
         prefilledIndustry={prefilledIndustry}
+        emailDomain={matchableDomain}
         agreedTermsBusiness={agreedTermsBusiness}
         agreedFeePct15={agreedFeePct15}
         agreedTermsVersion={agreedTermsVersion}

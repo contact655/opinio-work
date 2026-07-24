@@ -80,6 +80,7 @@ export function CreateCompanyClient({
   prefilledCompanyName = null,
   prefilledCompanyId = null,
   prefilledIndustry = null,
+  emailDomain = null,
   agreedTermsBusiness = false,
   agreedFeePct15 = false,
   agreedTermsVersion = null,
@@ -89,6 +90,7 @@ export function CreateCompanyClient({
   prefilledCompanyName?: string | null;
   prefilledCompanyId?: string | null;
   prefilledIndustry?: string | null;
+  emailDomain?: string | null;
   agreedTermsBusiness?: boolean;
   agreedFeePct15?: boolean;
   agreedTermsVersion?: string | null;
@@ -131,6 +133,10 @@ export function CreateCompanyClient({
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
   const [joinRequestSent, setJoinRequestSent] = useState(false);
 
+  // メールドメインマッチング（LinkedIn的）
+  const [domainMatch, setDomainMatch] = useState<SearchResult | null>(null);
+  const [domainMatchDismissed, setDomainMatchDismissed] = useState(false);
+
   const router = useRouter();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -167,6 +173,21 @@ export function CreateCompanyClient({
           if (exact.industry && !industry) setIndustry(exact.industry);
           if (exact.url && !website) setWebsite(exact.url);
         }
+      } catch { /* ignore */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // メールドメインから企業を自動検索（プリフィルがない場合のみ）
+  useEffect(() => {
+    if (!emailDomain || prefilledCompanyName) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/companies/search?domain=${encodeURIComponent(emailDomain)}&limit=3`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const first = (data.results ?? [])[0] as SearchResult | undefined;
+        if (first) setDomainMatch(first);
       } catch { /* ignore */ }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -475,6 +496,59 @@ export function CreateCompanyClient({
       }}>
         所属企業を登録する
       </h1>
+
+      {/* メールドメインマッチングバナー */}
+      {domainMatch && !domainMatchDismissed && !prefilledLocked && !conflict && (
+        <div style={{
+          marginBottom: 20,
+          padding: "14px 18px",
+          background: "linear-gradient(135deg, #EFF3FC 0%, #e8f0ff 100%)",
+          border: "1.5px solid var(--royal-100)",
+          borderRadius: 10,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            メールアドレスから企業が見つかりました
+          </div>
+          <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6, marginBottom: 12 }}>
+            <span style={{ color: "var(--ink-soft)" }}>@{emailDomain}</span> のドメインから、
+            <strong style={{ color: "var(--royal)" }}> {domainMatch.name}</strong> が見つかりました。この企業で登録しますか？
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => {
+                handleSelectSuggestion(domainMatch);
+                setDomainMatchDismissed(true);
+              }}
+              style={{
+                padding: "7px 14px",
+                background: "var(--royal)", color: "#fff",
+                border: "none", borderRadius: 7,
+                fontSize: 12, fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+              }}
+            >
+              はい、{domainMatch.name} で登録する
+            </button>
+            <button
+              type="button"
+              onClick={() => setDomainMatchDismissed(true)}
+              style={{
+                padding: "7px 14px",
+                background: "transparent", color: "var(--ink-soft)",
+                border: "1.5px solid var(--line)", borderRadius: 7,
+                fontSize: 12, fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+              }}
+            >
+              別の会社名で登録する
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={(e) => handleSubmit(e, false)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* 会社名（サジェスト付き） */}

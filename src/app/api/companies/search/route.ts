@@ -17,26 +17,35 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const q = (searchParams.get("q") ?? "").trim();
+  const domain = (searchParams.get("domain") ?? "").trim().toLowerCase();
   const limitRaw = parseInt(searchParams.get("limit") ?? "10", 10);
   const limit = Math.min(Math.max(1, isNaN(limitRaw) ? 10 : limitRaw), 50);
 
-  if (q.length === 0) {
+  if (q.length === 0 && domain.length === 0) {
     return NextResponse.json({ results: [] });
   }
 
   const supabase = createClient();
 
   // is_published = true のみ返す（RLS + 明示フィルター）
-  // ILIKE wildcard エスケープ（% と _ はPostgreSQLのパターン文字）
-  const safeQ = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-
-  const { data: companies, error } = await supabase
+  let query = supabase
     .from("ow_companies")
     .select("id, name, brand_name, logo_url, industry, employee_count, url")
     .eq("is_published", true)
-    .or(`name.ilike.%${safeQ}%,brand_name.ilike.%${safeQ}%`)
     .order("name")
     .limit(limit);
+
+  if (domain.length > 0) {
+    // メールドメインで企業URLを検索（例: salesforce.com → %salesforce.com%）
+    const safeDomain = domain.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    query = query.ilike("url", `%${safeDomain}%`);
+  } else {
+    // ILIKE wildcard エスケープ（% と _ はPostgreSQLのパターン文字）
+    const safeQ = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    query = query.or(`name.ilike.%${safeQ}%,brand_name.ilike.%${safeQ}%`);
+  }
+
+  const { data: companies, error } = await query;
 
   if (error) {
     console.error("[GET /api/companies/search] query failed");
