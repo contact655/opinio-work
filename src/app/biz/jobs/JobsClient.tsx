@@ -107,13 +107,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
         </div>
       )}
 
-      {/* ステータスサマリー */}
-      <JobStatusSummary
-        counts={counts}
-        activeStatus={activeStatus}
-        onStatusClick={setActiveStatus}
-      />
-
       {/* フィルタバー */}
       <div style={{
         display: "flex",
