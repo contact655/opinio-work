@@ -205,16 +205,22 @@ export default function LandingPage() {
           <div className="flex items-baseline gap-2.5">
             <span className="text-xl font-bold tracking-tight text-[#0A1F44]">OPINIO</span>
           </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-slate-600">
-            <Link href="/companies" className="hover:text-slate-900 transition-colors">企業</Link>
-            <Link href="/jobs" className="hover:text-slate-900 transition-colors">求人</Link>
-            <Link href="/people" className="hover:text-slate-900 transition-colors">ユーザー</Link>
-            <Link href="/feed" className="hover:text-slate-900 transition-colors">フィード</Link>
-            <Link href="/articles" className="hover:text-slate-900 transition-colors">記事</Link>
+          <nav className="hidden md:flex items-center gap-8 text-sm" style={{ color: "var(--ink-soft)" }}>
+            <Link href="/companies" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">企業</Link>
+            <Link href="/jobs" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">求人</Link>
+            <Link href="/people" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">ユーザー</Link>
+            <Link href="/feed" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">フィード</Link>
+            <Link href="/articles" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">記事</Link>
           </nav>
-          <Link href="/auth" className="text-sm font-medium px-4 py-2 rounded-lg bg-[#0A1F44] text-white hover:bg-[#0d2856] transition-colors">
-            無料で始める
-          </Link>
+          <div className="hidden md:flex items-center gap-1">
+            <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none", padding: "8px 14px" }}>
+              ログイン
+            </Link>
+            <span style={{ color: "var(--line)", fontSize: 16, userSelect: "none" }}>|</span>
+            <Link href="/auth?mode=signup" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", padding: "8px 14px" }}>
+              新規登録
+            </Link>
+          </div>
         </div>
       </header>
 
