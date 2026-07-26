@@ -68,6 +68,8 @@ export type CompanyLogoInfo = {
   industry?: string | null;
   phase?: string | null;
   employee_count?: number | null;
+  /** false のとき企業ページへのリンクを生成しない（会社名はテキストで表示） */
+  isPublished?: boolean;
 };
 
 // ─── Masked company label ─────────────────────────────────────────────────────
@@ -154,9 +156,9 @@ export function buildTimelineCareerEntriesFromRaw(
     const companyInfo = r.company_id ? companyInfoById.get(r.company_id) : undefined;
 
     // 会社名解決: master（company_id）> custom（company_text）> anon（company_anonymized）
-    // company_id があっても companyInfoById に存在しない場合は「未解決」= null として扱う
     let company_name: string;
-    const resolvedCompanyId = (r.company_id && companyInfo) ? r.company_id : null;
+    // リンクは is_published=true の企業のみ（false は会社名をテキスト表示）
+    const resolvedCompanyId = (r.company_id && companyInfo && companyInfo.isPublished !== false) ? r.company_id : null;
     if (r.company_id && companyInfo) {
       company_name = companyInfo.name;
     } else if (r.company_text) {

@@ -122,6 +122,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   }
 
   const supabase = createClient();
+  const adminSupabase = createAdminClient();
 
   // Phase 2: RLS チェック付きで全フィールド取得（visibility フィルタ適用）
   const [
@@ -283,9 +284,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   const companyInfoById = new Map<string, CompanyLogoInfo>();
   if (allCompanyIds.length > 0) {
-    const { data: expCompanies } = await supabase
+    // adminSupabase を使い is_published=false の企業名も取得（プロフィール表示用）
+    const { data: expCompanies } = await adminSupabase
       .from("ow_companies")
-      .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count")
+      .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
       .in("id", allCompanyIds);
     for (const c of expCompanies ?? []) {
       companyInfoById.set(c.id as string, {
@@ -296,6 +298,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         industry: (c.industry as string | null) ?? null,
         phase: (c.phase as string | null) ?? null,
         employee_count: (c.employee_count as number | null) ?? null,
+        isPublished: (c.is_published as boolean) ?? false,
       });
     }
   }

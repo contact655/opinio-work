@@ -143,7 +143,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                   aria-label="全選択"
                 />
               </th>
-              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "話せる", "最終ログイン", "登録日"].map((h) => (
+              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "話せる", "最終ログイン", "登録日", "経歴"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -263,6 +263,20 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     {/* 登録日 */}
                     <td style={{ padding: "11px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
                       {new Date(u.created_at).toLocaleDateString("ja-JP")}
+                    </td>
+                    {/* 経歴編集 */}
+                    <td style={{ padding: "11px 14px" }}>
+                      <a
+                        href={`/admin/users/${u.id}`}
+                        style={{
+                          fontSize: 11, fontWeight: 600, padding: "3px 10px",
+                          borderRadius: 6, border: "1px solid var(--royal-100)",
+                          background: "var(--royal-50)", color: "var(--royal)",
+                          textDecoration: "none", whiteSpace: "nowrap",
+                        }}
+                      >
+                        経歴編集
+                      </a>
                     </td>
                   </tr>
                 );
