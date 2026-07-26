@@ -456,12 +456,12 @@ export default function AdminCompaniesPage() {
                                   position: "relative", width: 36, height: 20, borderRadius: 10, border: "none",
                                   background: c.is_approved ? "var(--royal)" : "#CBD5E1",
                                   cursor: "pointer", transition: "background 0.15s", flexShrink: 0,
-                                  opacity: isLoading ? 0.5 : 1,
+                                  opacity: isLoading ? 0.5 : 1, padding: 0,
                                 }}
                               >
                                 <span style={{
-                                  position: "absolute", top: 3, left: c.is_approved ? 18 : 3,
-                                  width: 14, height: 14, borderRadius: "50%", background: "#fff",
+                                  position: "absolute", top: 2, left: c.is_approved ? 16 : 2,
+                                  width: 16, height: 16, borderRadius: "50%", background: "#fff",
                                   transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
                                 }} />
                               </button>
