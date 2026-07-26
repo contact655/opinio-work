@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { updateEngagementStatus, updateJobsPublic, updateSortOrder, updateApproval } from "./actions";
+import { updateEngagementStatus, updateJobsPublic, updateSortOrder, updateApproval, updateIsPublished } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -146,6 +146,15 @@ export default function AdminCompaniesPage() {
     setActionLoading(company.id);
     await updateJobsPublic(company.id, newValue);
     setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, jobs_public: newValue } : c));
+    setActionLoading(null);
+  }
+
+  // 企業一覧掲載トグル（is_published 単独）
+  async function handleIsPublishedToggle(company: Company) {
+    const newValue = !company.is_published;
+    setActionLoading(company.id);
+    await updateIsPublished(company.id, newValue);
+    setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
     setActionLoading(null);
   }
 
@@ -436,33 +445,61 @@ export default function AdminCompaniesPage() {
 
                       {/* 承認 / 掲載 */}
                       <td style={{ padding: "10px 14px" }}>
-                        {c.is_approved ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                              background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
-                              ✓ 承認済み・掲載中
-                            </span>
-                            <button type="button" onClick={() => handleApproval(c, false)} disabled={isLoading}
-                              style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100, cursor: "pointer",
-                                background: "#FEE2E2", color: "var(--error)", border: "1px solid #FECACA",
-                                opacity: isLoading ? 0.5 : 1 }}>
-                              承認を取り消す
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {/* 承認ステータス */}
+                          {c.is_approved ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                                background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
+                                ✓ 承認済み
+                              </span>
+                              <button type="button" onClick={() => handleApproval(c, false)} disabled={isLoading}
+                                style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100, cursor: "pointer",
+                                  background: "#FEE2E2", color: "var(--error)", border: "1px solid #FECACA",
+                                  opacity: isLoading ? 0.5 : 1 }}>
+                                承認を取り消す
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                                background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D", whiteSpace: "nowrap" }}>
+                                ⏳ 承認待ち
+                              </span>
+                              <button type="button" onClick={() => handleApproval(c, true)} disabled={isLoading}
+                                style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, cursor: "pointer",
+                                  background: "var(--royal)", color: "#fff", border: "none",
+                                  opacity: isLoading ? 0.5 : 1 }}>
+                                承認して掲載
+                              </button>
+                            </div>
+                          )}
+                          {/* 企業一覧掲載トグル（is_published） */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 2, borderTop: "1px solid var(--line)" }}>
+                            <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>企業一覧</span>
+                            <button
+                              type="button"
+                              onClick={() => handleIsPublishedToggle(c)}
+                              disabled={isLoading}
+                              title={c.is_published ? "企業一覧から非表示にする" : "企業一覧に表示する"}
+                              style={{
+                                position: "relative", width: 36, height: 20, borderRadius: 10, border: "none",
+                                background: c.is_published ? "var(--success)" : "#CBD5E1",
+                                cursor: "pointer", transition: "background 0.15s", flexShrink: 0,
+                                opacity: isLoading ? 0.5 : 1,
+                              }}
+                            >
+                              <span style={{
+                                position: "absolute", top: 3, left: c.is_published ? 18 : 3,
+                                width: 14, height: 14, borderRadius: "50%", background: "#fff",
+                                transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                              }} />
                             </button>
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                              background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D", whiteSpace: "nowrap" }}>
-                              ⏳ 承認待ち
+                            <span style={{ fontSize: 10, fontWeight: 700, color: c.is_published ? "var(--success)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
+                              {c.is_published ? "表示中" : "非表示"}
                             </span>
-                            <button type="button" onClick={() => handleApproval(c, true)} disabled={isLoading}
-                              style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100, cursor: "pointer",
-                                background: "var(--royal)", color: "#fff", border: "none",
-                                opacity: isLoading ? 0.5 : 1 }}>
-                              承認して掲載
-                            </button>
                           </div>
-                        )}
+                        </div>
                       </td>
 
                       {/* 企業ステータス（engagement_status） */}
