@@ -333,7 +333,7 @@ export default function AdminCompaniesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["", "企業名", "ロゴURL", "業界", "担当者", "承認/掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "ロゴURL", "業界", "担当者", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -443,55 +443,29 @@ export default function AdminCompaniesPage() {
                         )}
                       </td>
 
-                      {/* 承認 / 掲載 */}
+                      {/* 掲載トグル */}
                       <td style={{ padding: "10px 14px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {/* 承認トグル */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <button
-                                type="button"
-                                onClick={() => handleApproval(c, !c.is_approved)}
-                                disabled={isLoading}
-                                style={{
-                                  position: "relative", width: 36, height: 20, borderRadius: 10, border: "none",
-                                  background: c.is_approved ? "var(--royal)" : "#CBD5E1",
-                                  cursor: "pointer", transition: "background 0.15s", flexShrink: 0,
-                                  opacity: isLoading ? 0.5 : 1, padding: 0,
-                                }}
-                              >
-                                <span style={{
-                                  position: "absolute", top: 2, left: c.is_approved ? 16 : 2,
-                                  width: 16, height: 16, borderRadius: "50%", background: "#fff",
-                                  transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
-                                }} />
-                              </button>
-                              <span style={{ fontSize: 11, fontWeight: 600, color: c.is_approved ? "var(--royal)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
-                                承認{c.is_approved ? "済み" : "待ち"}
-                              </span>
-                          </div>
-                          {/* 企業一覧掲載トグル */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <button
-                              type="button"
-                              onClick={() => handleIsPublishedToggle(c)}
-                              disabled={isLoading}
-                              style={{
-                                position: "relative", width: 36, height: 20, borderRadius: 10, border: "none",
-                                background: c.is_published ? "var(--success)" : "#CBD5E1",
-                                cursor: "pointer", transition: "background 0.15s", flexShrink: 0,
-                                opacity: isLoading ? 0.5 : 1,
-                              }}
-                            >
-                              <span style={{
-                                position: "absolute", top: 3, left: c.is_published ? 18 : 3,
-                                width: 14, height: 14, borderRadius: "50%", background: "#fff",
-                                transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
-                              }} />
-                            </button>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: c.is_published ? "var(--success)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
-                              {c.is_published ? "掲載中" : "非掲載"}
-                            </span>
-                          </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() => handleIsPublishedToggle(c)}
+                            disabled={isLoading}
+                            style={{
+                              position: "relative", width: 36, height: 20, borderRadius: 10, border: "none",
+                              background: c.is_published ? "var(--success)" : "#CBD5E1",
+                              cursor: "pointer", transition: "background 0.15s", flexShrink: 0,
+                              opacity: isLoading ? 0.5 : 1, padding: 0,
+                            }}
+                          >
+                            <span style={{
+                              position: "absolute", top: 2, left: c.is_published ? 16 : 2,
+                              width: 16, height: 16, borderRadius: "50%", background: "#fff",
+                              transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                            }} />
+                          </button>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: c.is_published ? "var(--success)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
+                            {c.is_published ? "掲載中" : "非掲載"}
+                          </span>
                         </div>
                       </td>
 
