@@ -1242,11 +1242,12 @@ export const getCompanyRecruitersCached = unstable_cache(
   { revalidate: 300 }
 );
 
-export const getCompanyEmployeesCached = unstable_cache(
-  getCompanyEmployees,
-  ["company-employees"],
-  { revalidate: 120 }
-);
+export const getCompanyEmployeesCached = (companyId: string) =>
+  unstable_cache(
+    () => getCompanyEmployees(companyId),
+    ["company-employees", companyId],
+    { revalidate: 120 }
+  )();
 
 // ─── Company employee categories (ow_company_employee_categories) ─────────────
 
