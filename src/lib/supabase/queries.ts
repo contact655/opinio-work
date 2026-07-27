@@ -1086,7 +1086,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email, birth_year)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", true);
   if (hiddenIds.length > 0) {
@@ -1103,7 +1103,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email, birth_year)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -1135,7 +1135,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
         ? `linear-gradient(135deg, ${hex}99, ${hex})`
         : "linear-gradient(135deg, var(--royal), #3B5FD9)",
       avatarUrl: (u?.avatar_url as string | null) ?? null,
-      birthYear: (u?.birth_year as number | null) ?? null,
+      birthYear: u?.birth_date ? parseInt((u.birth_date as string).slice(0, 4)) : null,
       roleTitle: (row.role_title as string | null) ?? null,
       startedAt: startedAt ? (startedAt as string).slice(0, 7) : null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
