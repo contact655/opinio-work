@@ -10,7 +10,7 @@ export default async function ScoutQuotasPage() {
   // ow_scout_quotas + 企業名
   const { data: quotaRows } = await admin
     .from("ow_scout_quotas")
-    .select("id, company_id, monthly_limit, bonus_credits, used_this_month, period_start, ow_companies(id, name)")
+    .select("company_id, monthly_limit, bonus_credits, used_this_month, period_start, ow_companies(id, name)")
     .order("company_id");
 
   // ow_companies で枠未設定の企業も含める
@@ -27,7 +27,7 @@ export default async function ScoutQuotasPage() {
     return {
       companyId: c.id as string,
       companyName: c.name as string,
-      quotaId: (q?.id as string) ?? null,
+      quotaId: null,
       monthlyLimit: (q?.monthly_limit as number) ?? 30,
       bonusCredits: (q?.bonus_credits as number) ?? 0,
       usedThisMonth: (q?.used_this_month as number) ?? 0,

@@ -28,7 +28,7 @@ export default function ScoutQuotasClient({ quotas: initial }: { quotas: Quota[]
       const res = await grantBonusCredits(companyId, amount);
       if (res.error) { alert(res.error); return; }
       setQuotas(prev => prev.map(q => q.companyId === companyId
-        ? { ...q, bonusCredits: q.bonusCredits + amount, quotaId: res.quotaId ?? q.quotaId }
+        ? { ...q, bonusCredits: q.bonusCredits + amount }
         : q));
       flash(`+${amount} 通を付与しました`);
     });
