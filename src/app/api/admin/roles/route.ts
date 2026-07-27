@@ -6,9 +6,9 @@ async function checkAdmin() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const admin = createAdminClient();
-  const { data } = await admin.from("ow_users").select("is_admin").eq("auth_id", user.id).maybeSingle();
-  if (!data?.is_admin) return null;
+  // auth_is_admin RPC — ow_user_roles.role='admin' で判定
+  const { data: isAdmin } = await supabase.rpc("auth_is_admin");
+  if (!isAdmin) return null;
   return user;
 }
 

@@ -10,14 +10,11 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // admin チェック
+  // admin チェック（auth_is_admin RPC — ow_user_roles.role='admin' で判定）
+  const { data: isAdmin } = await supabase.rpc("auth_is_admin");
+  if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const admin = createAdminClient();
-  const { data: owUser } = await admin
-    .from("ow_users")
-    .select("is_admin")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  if (!owUser?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const { company_id } = body as { company_id: string | null };
