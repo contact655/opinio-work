@@ -13,6 +13,48 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## Migration 運用ルール（2026-07-27 確立）
+
+### 基本原則
+- SQL Editor での手動適用を禁止する。必ず migration ファイルを作成し
+  `supabase db push` で適用する
+- 新規 migration は `supabase migration new <name>` で採番する
+  （タイムスタンプ命名。連番は使わない）
+- `supabase/migrations/` 直下には baseline と新規 migration のみを置く
+- `supabase/migrations/archive/` は 2026-07-27 以前の履歴。
+  CLI の対象外であり、再適用しない
+
+### baseline について
+- `20260727000000_baseline.sql` が現在のスキーマの起点
+- 2026-07-27 時点の本番スキーマを pg_dump で取得し、
+  Supabase Branch での round-trip diff により検証済み
+- 旧 migration ファイル 299本は連番の重複が15組あり、
+  適用順序を復元できなかったため archive に退避した
+
+### 型の同期
+- migration 適用のたびに `npm run gen:types` を実行してコミットする
+- 型定義が実態とズレると、存在しないカラムを参照するバグが
+  エラーを出さずに埋もれる（2026-07-27 の birth_year / auth_user_id /
+  ow_mentors の事例）
+
+### 残タスク
+- 型エラー約100件を解消し、`createClient<Database>` の generic を
+  再有効化する。これが再発防止の本体
+
+### ダンプ手順（Docker なし環境）
+- Docker を使わず pg_dump を直接実行して本番 DB からスキーマを取得する
+- Supabase CLI の db dump はローカル Docker が必要なため使用不可
+- 代わりに `PGPASSWORD=<pass> pg_dump <connection_string>` を使用
+  フラグ: `--schema-only --quote-all-identifier --role "postgres"`
+  除外スキーマ: `_analytics _realtime auth cron extensions graphql graphql_public
+    pgbouncer pgsodium pgsodium_masks pgtle realtime storage supabase_functions
+    supabase_migrations tiger tiger_data topology vault`
+- 接続先: `aws-0-ap-northeast-1.pooler.supabase.com:5432`（session mode）
+- パスワード取得: `supabase branches get <ref> --output json` の `.db_pass` フィールド、
+  または Supabase ダッシュボードの Project Settings > Database
+
+---
+
 ## 📏 件数・統計値の記載ルール
 
 **テーブルの件数・統計値を書くときは必ず取得日を併記すること。**

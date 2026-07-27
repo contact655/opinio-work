@@ -7623,6 +7623,7 @@ export type Database = {
           is_mentor: boolean
           is_open_to_work: boolean
           is_system: boolean
+          is_test: boolean
           location: string | null
           mentor_registered_at: string | null
           mentor_themes: string[] | null
@@ -7654,6 +7655,7 @@ export type Database = {
           is_mentor?: boolean
           is_open_to_work?: boolean
           is_system?: boolean
+          is_test?: boolean
           location?: string | null
           mentor_registered_at?: string | null
           mentor_themes?: string[] | null
@@ -7685,6 +7687,7 @@ export type Database = {
           is_mentor?: boolean
           is_open_to_work?: boolean
           is_system?: boolean
+          is_test?: boolean
           location?: string | null
           mentor_registered_at?: string | null
           mentor_themes?: string[] | null
