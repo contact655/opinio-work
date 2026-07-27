@@ -24,7 +24,6 @@ import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
-import EvaluationText from "./EvaluationText";
 import SalaryDataSection from "./SalaryData";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
@@ -987,8 +986,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
 
   const hasBenefits = !!(detail.benefits && detail.benefits.length > 0);
-  const hasEvaluation = !!detail.evaluationSystem;
-  if (!hasBenefits && !hasEvaluation) return null;
+  if (!hasBenefits) return null;
 
   return (
     <section
@@ -1014,7 +1012,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             </svg>
           }
         >
-          福利厚生・評価制度
+          福利厚生
         </SecTitle>
       </div>
       <div style={{ padding: "var(--space-6)" }}>
@@ -1121,95 +1119,11 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         );
       })()}
 
-      {/* ── 評価制度 ── */}
-      <div>
-        <SubSectionHeading>評価制度</SubSectionHeading>
-        {detail.evaluationSystem ? (
-          <EvaluationText text={detail.evaluationSystem} />
-        ) : (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 14px", borderRadius: 8,
-            background: "var(--bg-tint)", border: "1px solid var(--line)",
-            fontSize: "var(--text-xs)", color: "var(--ink-soft)",
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-            </svg>
-            カジュアル面談でご確認ください
-          </div>
-        )}
-      </div>
       </div>
     </section>
   );
 }
 
-// ─── Fit Section（向いている人・向かない人）────────────────────────────────────
-
-function FitSection({ detail }: { detail: CompanyDetail }) {
-  const hasPos = detail.fit_positives && detail.fit_positives.length > 0;
-  const hasNeg = detail.fit_negatives && detail.fit_negatives.length > 0 && detail.show_fit_negatives;
-  if (!hasPos && !hasNeg) return null;
-
-  return (
-    <section
-      id="fit"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07)",
-      }}
-    >
-      <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "50%", background: "var(--royal-50)" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </span>
-        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)" }}>こんな人に向いています</span>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--royal)", fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
-          OPINIO編集部
-        </span>
-      </div>
-      <div style={{ padding: "20px 28px", display: "grid", gridTemplateColumns: hasPos && hasNeg ? "1fr 1fr" : "1fr", gap: 16 }}>
-        {hasPos && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              こんな人に向いている
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {detail.fit_positives!.map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "var(--success-soft)", borderRadius: 10, border: "1px solid #A7F3D0" }}>
-                  <span style={{ color: "var(--success)", flexShrink: 0, marginTop: 2, fontSize: 14 }}>✓</span>
-                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {hasNeg && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--error)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              こんな人には向かない
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {detail.fit_negatives!.map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "var(--error-soft)", borderRadius: 10, border: "1px solid #FECACA" }}>
-                  <span style={{ color: "var(--error)", flexShrink: 0, marginTop: 2, fontSize: 14 }}>✗</span>
-                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
 
 // ─── Reality Disclosure Section ──────────────────────────────────────────────
 
@@ -3391,8 +3305,7 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
           ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
-          ...((detail.benefits?.length || detail.evaluationSystem) ? [{ id: "benefits", label: "働く環境" }] : []),
-          ...((detail.fit_positives?.length || (detail.fit_negatives?.length && detail.show_fit_negatives)) ? [{ id: "fit", label: "向いている人" }] : []),
+          ...(detail.benefits?.length ? [{ id: "benefits", label: "働く環境" }] : []),
           ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
@@ -3417,11 +3330,9 @@ export default async function CompanyDetailPage({
             {/* 3. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
 
-            {/* 4. 福利厚生・評価制度 */}
+            {/* 4. 福利厚生 */}
             <BenefitsSection detail={detail} />
 
-            {/* 4b. 向いている人 */}
-            <FitSection detail={detail} />
 
             {/* 4c. リアル開示 */}
             <RealityDisclosureSection detail={detail} />
