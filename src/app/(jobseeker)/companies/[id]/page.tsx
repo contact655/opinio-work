@@ -800,6 +800,160 @@ function productStyle(name: string): { bg: string; border: string; color: string
   return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
+// ─── ② ビジネスモデル ─────────────────────────────────────────────────────────
+
+const BIZ_MODEL_LABELS: Record<string, string> = {
+  subscription: "サブスクリプション（SaaS）",
+  transaction:  "トランザクション",
+  usage:        "従量課金",
+  one_time:     "一時購入",
+  hybrid:       "複合型",
+};
+
+function BizModelSection({ detail }: { detail: CompanyDetail }) {
+  const hasTypes = detail.biz_model_types && detail.biz_model_types.length > 0;
+  const hasNote  = !!detail.biz_model_note;
+  if (!hasTypes && !hasNote) return null;
+
+  return (
+    <section
+      id="biz-model"
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: "var(--space-6)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+          BUSINESS MODEL
+        </div>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+          ビジネスモデル
+        </h2>
+      </div>
+      {hasTypes && (
+        <div style={{ marginBottom: hasNote ? 16 : 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+            収益モデル
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {detail.biz_model_types!.map((t) => (
+              <span key={t} style={{
+                display: "inline-block",
+                padding: "5px 12px",
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700,
+                background: "var(--royal-50)",
+                color: "var(--royal)",
+                border: "1px solid var(--royal-100)",
+              }}>
+                {BIZ_MODEL_LABELS[t] ?? t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {hasNote && (
+        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
+          {detail.biz_model_note}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// ─── ③ 顧客・マーケット ──────────────────────────────────────────────────────
+
+const CUSTOMER_SIZE_LABELS: Record<string, string> = {
+  enterprise: "エンタープライズ（大手・上場企業）",
+  mid_market: "ミッドマーケット（中規模企業）",
+  smb:        "SMB・中小企業",
+};
+
+function MarketSection({ detail }: { detail: CompanyDetail }) {
+  const hasSize = detail.market_customer_size && detail.market_customer_size.length > 0;
+  const hasDM   = !!detail.market_decision_maker;
+  const hasNote = !!detail.market_note;
+  // customer_cases は ProductsClientsSection が担当。再編時にここへ移動する。
+
+  if (!hasSize && !hasDM && !hasNote) return null;
+
+  return (
+    <section
+      id="market"
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: "var(--space-6)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+          MARKET
+        </div>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+          顧客・マーケット
+        </h2>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {hasSize && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+              顧客規模
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {detail.market_customer_size!.map((s) => (
+                <span key={s} style={{
+                  display: "inline-block",
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: "var(--success-soft)",
+                  color: "var(--success)",
+                  border: "1px solid #A7F3D0",
+                }}>
+                  {CUSTOMER_SIZE_LABELS[s] ?? s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasDM && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+              意思決定者
+            </div>
+            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
+              {detail.market_decision_maker}
+            </p>
+          </div>
+        )}
+
+        {hasNote && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+              マーケット概要
+            </div>
+            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
+              {detail.market_note}
+            </p>
+          </div>
+        )}
+
+      </div>
+    </section>
+  );
+}
+
 function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; company: Company }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
   const hasCases = detail.customer_cases && detail.customer_cases.length > 0;
@@ -3304,11 +3458,13 @@ export default async function CompanyDetailPage({
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
+          ...((detail.biz_model_types?.length || detail.biz_model_note) ? [{ id: "biz-model", label: "ビジネスモデル" }] : []),
           ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
           ...(detail.benefits?.length ? [{ id: "benefits", label: "働く環境" }] : []),
           ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
+          ...((detail.market_customer_size?.length || detail.market_decision_maker || detail.market_note) ? [{ id: "market", label: "顧客・マーケット" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 ? [{ id: "current-employees", label: ambassadorMap.size > 0 ? `社員・OB/OG（面談OK ${ambassadorMap.size}名）` : `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
@@ -3326,6 +3482,9 @@ export default async function CompanyDetailPage({
               detail={detail}
               photos={photos}
             />
+
+            {/* ② ビジネスモデル */}
+            <BizModelSection detail={detail} />
 
             {/* 3. 募集中の求人 */}
             <JobsSection company={company} detail={detail} />
@@ -3392,6 +3551,9 @@ export default async function CompanyDetailPage({
 
             {/* 5. 製品・顧客 */}
             <ProductsClientsSection detail={detail} company={company} />
+
+            {/* ③ 顧客・マーケット */}
+            <MarketSection detail={detail} />
 
             {/* 6. 社員の声（キャッチフレーズ） */}
             <EmployeeVoicesSection employees={visibleCurrentEmps} />

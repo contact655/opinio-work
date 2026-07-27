@@ -131,6 +131,13 @@ export type CompanyDetail = {
     turnoverReasons?: string[] | null;
     onboardingGaps?: string | null;
   } | null;
+  // ② ビジネスモデル
+  biz_model_types?: string[] | null;
+  biz_model_note?: string | null;
+  // ③ 顧客・マーケット
+  market_customer_size?: string[] | null;
+  market_decision_maker?: string | null;
+  market_note?: string | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
   // Org teams

@@ -340,6 +340,17 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     reality_disclosure: row.reality_disclosure
       ? (row.reality_disclosure as CompanyDetail["reality_disclosure"])
       : null,
+    // ② ビジネスモデル
+    biz_model_types: Array.isArray(row.biz_model_types) && (row.biz_model_types as string[]).length > 0
+      ? (row.biz_model_types as string[])
+      : null,
+    biz_model_note: (row.biz_model_note as string | null) ?? null,
+    // ③ 顧客・マーケット
+    market_customer_size: Array.isArray(row.market_customer_size) && (row.market_customer_size as string[]).length > 0
+      ? (row.market_customer_size as string[])
+      : null,
+    market_decision_maker: (row.market_decision_maker as string | null) ?? null,
+    market_note: (row.market_note as string | null) ?? null,
   };
 }
 
@@ -549,6 +560,9 @@ const COMPANY_DETAIL_COLS = [
   "customer_cases",
   // Reality disclosure — Migration 202
   "reality_disclosure",
+  // ② ビジネスモデル / ③ 顧客・マーケット — migration 20260727172428
+  "biz_model_types", "biz_model_note",
+  "market_customer_size", "market_decision_maker", "market_note",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {
