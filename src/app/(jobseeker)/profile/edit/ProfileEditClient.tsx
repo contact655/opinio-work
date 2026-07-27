@@ -22,7 +22,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SkillTag = { id: string; label: string; category?: string | null; sort_order: number };
+type SkillTag = { id: string; label: string; sort_order: number };
 
 type EducationSchoolMaster = {
   id: string;
@@ -621,7 +621,6 @@ function SkillTagsEditor({
   setSkillTags: React.Dispatch<React.SetStateAction<SkillTag[]>>;
 }) {
   const [pendingLabel, setPendingLabel] = useState("");
-  const [newTagCategory, setNewTagCategory] = useState("");
   const [inputError, setInputError]     = useState<string | null>(null);
   const [skillToastMsg,     setSkillToastMsg]     = useState<string | null>(null);
   const [skillToastVariant, setSkillToastVariant] = useState<"default" | "error">("default");
@@ -655,17 +654,15 @@ function SkillTagsEditor({
 
     // 楽観更新: 仮 ID で先にチップを追加
     const tempId  = `pending-${Date.now()}`;
-    const category = newTagCategory || undefined;
-    const tempTag: SkillTag = { id: tempId, label, category, sort_order: 9999 };
+    const tempTag: SkillTag = { id: tempId, label, sort_order: 9999 };
     setSkillTags((prev) => [...prev, tempTag]);
     setPendingLabel("");
-    setNewTagCategory("");
 
     try {
       const res = await fetch("/api/jobseeker/skill-tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label, category: category ?? null }),
+        body: JSON.stringify({ label }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -682,7 +679,6 @@ function SkillTagsEditor({
     } catch (e) {
       // ロールバック: 仮チップを除去 + inline エラー
       setSkillTags((prev) => prev.filter((t) => t.id !== tempId));
-      setNewTagCategory(category ?? "");
       setInputError((e as Error).message ?? "保存に失敗しました。");
     }
   };
@@ -762,11 +758,6 @@ function SkillTagsEditor({
               }}
             >
               {tag.label}
-              {tag.category && (
-                <span style={{ fontSize: 9, color: "var(--ink-mute)", marginLeft: 4 }}>
-                  {tag.category}
-                </span>
-              )}
               {/* 仮IDのチップ（保存中）には✕を出さない */}
               {!tag.id.startsWith("pending-") && (
                 <button
@@ -825,26 +816,6 @@ function SkillTagsEditor({
                 </span>
               )}
             </div>
-            <select
-              value={newTagCategory}
-              onChange={(e) => setNewTagCategory(e.target.value)}
-              aria-label="スキルカテゴリ"
-              style={{
-                padding: "7px 10px", borderRadius: 7,
-                border: "1px solid var(--line)", fontSize: 12,
-                fontFamily: "inherit", color: "var(--ink)",
-                background: "#fff", flexShrink: 0,
-              }}
-            >
-              <option value="">カテゴリなし</option>
-              <option value="技術・開発">技術・開発</option>
-              <option value="プロダクト・UX">プロダクト・UX</option>
-              <option value="ビジネス・営業">ビジネス・営業</option>
-              <option value="マーケティング">マーケティング</option>
-              <option value="データ・分析">データ・分析</option>
-              <option value="マネジメント">マネジメント</option>
-              <option value="その他">その他</option>
-            </select>
           </div>
 
           {/* inline エラー */}
