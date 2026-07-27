@@ -422,93 +422,6 @@ function Hero({
 
         </div>
 
-        {/* Stats strip — full-width grid */}
-        {(() => {
-          // 求人ごとの中央値平均を計算
-          const allJobItems = detail.jobs.flatMap(c => c.items);
-          const jobMedians = allJobItems
-            .filter((j): j is typeof j & { salaryMin: number; salaryMax: number } =>
-              (j.salaryMin ?? 0) > 0 && (j.salaryMax ?? 0) > 0)
-            .map(j => (j.salaryMin + j.salaryMax) / 2);
-          const avgSalaryMan = jobMedians.length > 0
-            ? Math.round(jobMedians.reduce((s, v) => s + v, 0) / jobMedians.length)
-            : null;
-
-          const stats = (
-            [
-              {
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>,
-                label: "社員数",
-                value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名以上"; })() : null,
-                color: "var(--royal)",
-                href: undefined as string | undefined,
-              },
-              ...(avgSalaryMan ? [{
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
-                label: "求人平均年収",
-                value: `${avgSalaryMan}万円`,
-                color: "var(--success)",
-                href: undefined as string | undefined,
-              }] : []),
-              ...(company.job_count > 0 ? [{
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>,
-                label: "募集中の求人",
-                value: `${company.job_count}件`,
-                color: "#D97706",
-                href: "#jobs" as string | undefined,
-              }] : []),
-              ...(detail.numbers.fundingTotal ? [{
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-                label: "累計調達",
-                value: detail.numbers.fundingTotal,
-                color: "#7C3AED",
-                href: undefined as string | undefined,
-              }] : []),
-            ] as { icon: React.ReactNode; label: string; value: string | null; color: string; href?: string }[]
-          ).filter(s => s.value);
-          if (stats.length === 0) return null;
-          return (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
-                paddingTop: "var(--space-4)",
-                marginTop: "var(--space-4)",
-                borderTop: "1px solid var(--line-soft)",
-              }}
-            >
-              {stats.map(({ icon, label, value, color, href }, i) => {
-                const inner = (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ color, flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</span>
-                    </div>
-                    <span style={{ fontSize: 20, color: href ? color : "var(--ink)", fontWeight: 800, fontFamily: "var(--font-noto-sans)", letterSpacing: "-0.02em" }}>
-                      {value}{href && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: 2, verticalAlign: "middle" }}><polyline points="9 18 15 12 9 6"/></svg>}
-                    </span>
-                  </>
-                );
-                const cellStyle: React.CSSProperties = {
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  padding: "10px 0",
-                  borderRight: i < stats.length - 1 ? "1px solid var(--line-soft)" : "none",
-                  ...(href ? { cursor: "pointer", textDecoration: "none" } : {}),
-                };
-                return href ? (
-                  <a key={label} href={href} style={cellStyle}>{inner}</a>
-                ) : (
-                  <div key={label} style={cellStyle}>{inner}</div>
-                );
-              }
-              )}
-            </div>
-          );
-        })()}
 
         {/* Recruiter strip */}
         {recruiters.length > 0 && (
@@ -3459,15 +3372,15 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about",            label: "企業概要" },
           ...((detail.biz_model_types?.length || detail.biz_model_note) ? [{ id: "biz-model", label: "ビジネスモデル" }] : []),
-          ...(company.job_count > 0 ? [{ id: "jobs", label: `求人 ${company.job_count}件` }] : []),
+          ...(company.job_count > 0 ? [{ id: "jobs", label: "求人" }] : []),
           ...(detail.benefits?.length ? [{ id: "benefits", label: "働く環境" }] : []),
           ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
           ...((detail.market_customer_size?.length || detail.market_decision_maker || detail.market_note) ? [{ id: "market", label: "顧客・マーケット" }] : []),
-          ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 ? [{ id: "current-employees", label: ambassadorMap.size > 0 ? `社員・OB/OG（面談OK ${ambassadorMap.size}名）` : `社員・OB/OG` }] : []),
-          ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
-          ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
+          ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
+          ...(companyPosts.length > 0 ? [{ id: "posts", label: "投稿" }] : []),
+          ...(companyArticles.length > 0 ? [{ id: "articles", label: "記事" }] : []),
           ...(activityPosts.length > 0 ? [{ id: "activity", label: "最近の動き" }] : []),
           ...(hasSalarySection ? [{ id: "salary", label: "給与データ" }] : []),
         ]} />
