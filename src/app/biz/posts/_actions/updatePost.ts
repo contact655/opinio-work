@@ -41,11 +41,18 @@ export async function updatePost(
     .eq("id", id)
     .maybeSingle();
   if (!existing) return { success: false, error: "権限がありません" };
+  const { data: owUser } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+  if (!owUser) return { success: false, error: "権限がありません" };
+
   const { data: membership } = await supabase
     .from("ow_company_admins")
     .select("id")
     .eq("company_id", existing.company_id)
-    .eq("auth_user_id", user.id)
+    .eq("user_id", owUser.id)
     .maybeSingle();
   if (!membership) return { success: false, error: "権限がありません" };
 

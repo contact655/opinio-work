@@ -202,12 +202,18 @@ export default async function FeedPage() {
           .eq("user_id", myOwUserId)
           .limit(3)
       : Promise.resolve({ data: [] }),
-    // (c) 面談OKな人 (max 3)
+    // (c) 面談OKな人 (max 3) — ow_company_members から取得
     adminSupabase
-      .from("ow_mentors")
-      .select("id, name, avatar_color, photo_url, current_role, current_company")
-      .eq("is_available", true)
-      .limit(3),
+      .from("ow_company_members")
+      .select(`
+        id,
+        role_title,
+        ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test),
+        ow_companies!company_id(id, name, brand_name)
+      `)
+      .eq("display_consent", true)
+      .eq("is_public", true)
+      .limit(6),
   ]);
 
   const sidebarFollows: SidebarFollow[] = (followResult.data ?? [])
@@ -236,7 +242,46 @@ export default async function FeedPage() {
     });
   }
 
-  const sidebarMentors: SidebarMentor[] = (mentorResult.data ?? []) as SidebarMentor[];
+  // ow_company_members から SidebarMentor 型に変換
+  // 非ログイン: public のみ / ログイン済: public + login_only（private は常に除外、is_test も除外）
+  // 表示順: DB のデフォルト順（INSERT 順）。.limit(6) 取得後 .slice(0,3) で最大3名に絞る。
+  type MemberRow = {
+    id: string;
+    role_title: string | null;
+    ow_users: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_test: boolean | null } | null;
+    ow_companies: { id: string; name: string; brand_name: string | null } | null;
+  };
+  const eligibleMembers = (mentorResult.data ?? [] as MemberRow[])
+    .map((r) => r as unknown as MemberRow)
+    .filter((r) => {
+      const u = r.ow_users;
+      if (!u) return false;
+      if (u.is_test === true) return false;
+      if (u.visibility === "private") return false;
+      return true;
+    });
+
+  // ログイン状態に依存しないカウント（is_test=false かつ visibility!='private'）
+  const hiddenMembersCount = user ? 0 : eligibleMembers.length;
+
+  const sidebarMentors: SidebarMentor[] = eligibleMembers
+    .filter((r) => {
+      if (r.ow_users?.visibility === "login_only" && !user) return false;
+      return true;
+    })
+    .slice(0, 3)
+    .map((r) => {
+      const u = r.ow_users!;
+      const co = r.ow_companies;
+      return {
+        id: u.id,
+        name: u.name,
+        avatar_color: u.avatar_color,
+        photo_url: u.avatar_url,
+        current_role: r.role_title,
+        current_company: co?.brand_name ?? co?.name ?? null,
+      };
+    });
 
   return (
     <FeedClient
@@ -251,6 +296,7 @@ export default async function FeedPage() {
       sidebarFollows={sidebarFollows}
       sidebarSavedJobs={sidebarSavedJobs}
       sidebarMentors={sidebarMentors}
+      hiddenMembersCount={hiddenMembersCount}
     />
   );
 }

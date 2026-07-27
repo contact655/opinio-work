@@ -45,12 +45,19 @@ export async function createPost(
   if (!data.url.startsWith("https://")) return { success: false, error: "URL は https:// で始めてください" };
   if (data.thumbnail_url && !data.thumbnail_url.startsWith("https://")) return { success: false, error: "サムネ URL は https:// で始めてください" };
 
-  // 所属確認: 呼び出し元のユーザーが data.company_id に所属しているか検証
+  // 所属確認: auth.users.id → ow_users.id → ow_company_admins の順に解決
+  const { data: owUser } = await supabase
+    .from("ow_users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+  if (!owUser) return { success: false, error: "権限がありません" };
+
   const { data: membership } = await supabase
     .from("ow_company_admins")
     .select("id")
     .eq("company_id", data.company_id)
-    .eq("auth_user_id", user.id)
+    .eq("user_id", owUser.id)
     .maybeSingle();
   if (!membership) {
     return { success: false, error: "権限がありません" };

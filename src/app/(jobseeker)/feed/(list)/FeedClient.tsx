@@ -68,6 +68,7 @@ type Props = {
   sidebarFollows: SidebarFollow[];
   sidebarSavedJobs: SidebarJob[];
   sidebarMentors: SidebarMentor[];
+  hiddenMembersCount: number;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1156,10 +1157,12 @@ function FeedSidebar({
   follows,
   savedJobs,
   mentors,
+  hiddenMembersCount,
 }: {
   follows: SidebarFollow[];
   savedJobs: SidebarJob[];
   mentors: SidebarMentor[];
+  hiddenMembersCount: number;
 }) {
   const EMPTY_STYLE: React.CSSProperties = {
     fontFamily: '"Noto Sans JP", sans-serif',
@@ -1244,7 +1247,19 @@ function FeedSidebar({
       <div style={PANEL_STYLE}>
         <p style={PANEL_TITLE_STYLE}>面談OKな人</p>
         {mentors.length === 0 ? (
-          <p style={EMPTY_STYLE}>まだ登録がありません</p>
+          hiddenMembersCount > 0 ? (
+            <div style={{ textAlign: "center", padding: "12px 0 8px" }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🔐</div>
+              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6 }}>
+                ログインすると{hiddenMembersCount}名のプロフィールが見られます
+              </div>
+              <a href="/auth" style={{ display: "inline-block", padding: "7px 18px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+                ログイン / 会員登録 →
+              </a>
+            </div>
+          ) : (
+            <p style={EMPTY_STYLE}>まだ登録がありません</p>
+          )
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {mentors.map((m) => (
@@ -1943,6 +1958,7 @@ export default function FeedClient({
   sidebarFollows,
   sidebarSavedJobs,
   sidebarMentors,
+  hiddenMembersCount,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
   // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
@@ -2233,6 +2249,7 @@ export default function FeedClient({
             follows={sidebarFollows}
             savedJobs={sidebarSavedJobs}
             mentors={sidebarMentors}
+            hiddenMembersCount={hiddenMembersCount}
           />
         </div>
       )}
