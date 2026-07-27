@@ -114,7 +114,7 @@ async function getAmbassadorsByRole(pattern: RegExp, isLoggedIn: boolean): Promi
       ow_companies!company_id(id, name, brand_name, slug, logo_url, logo_gradient, logo_letter, phase)
     `)
     .eq("display_consent", true)
-    .eq("is_ambassador", true)
+    .eq("is_public", true)
     .limit(100);
 
   if (error || !data) return [];
