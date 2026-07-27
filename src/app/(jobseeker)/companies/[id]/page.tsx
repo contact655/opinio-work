@@ -1445,7 +1445,7 @@ function EmployeeCardInner({
         display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
         color: avatarColor.text, overflow: "hidden",
-        border: "2px solid var(--line)",
+        border: "2px solid var(--line)", position: "relative",
       }}>
         {employee.avatarUrl ? (
           <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name}
