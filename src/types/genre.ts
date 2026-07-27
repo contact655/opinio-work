@@ -37,8 +37,14 @@ export type CompanyForCarousel = {
   logo_url: string | null;
   updated_at: string;
   job_count: number;            // ow_jobs.status='published' のCOUNT（実数）
-  current_member_count: number; // Opinio 登録現役社員数
-  obog_count: number;           // Opinio 登録OBOG社員数
+  /** @deprecated 非正規化静的カラム。参照箇所は live_current_count / live_obog_count に移行済み */
+  current_member_count: number;
+  /** @deprecated 非正規化静的カラム。参照箇所は live_current_count / live_obog_count に移行済み */
+  obog_count: number;
+  /** ライブ集計: is_test=false かつ visibility!='private' の現役社員数 */
+  live_current_count?: number;
+  /** ライブ集計: is_test=false かつ visibility!='private' の OB/OG 数（現役兼任者は除く） */
+  live_obog_count?: number;
   article_count?: number;       // OPINIO 取材記事数
   // 追加情報（カード充実化）
   avg_salary?: string | null;

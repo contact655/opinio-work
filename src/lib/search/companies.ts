@@ -167,8 +167,15 @@ export async function searchCompanies(
   // 求人ごとの平均中央値（万円）を企業単位で集計
   const calcAvgSalaryMap: Record<string, number> = {};
 
+  // ライブ社員数集計（案X）— is_test=false かつ visibility!='private'
+  // current/obog の定義:
+  //   現役 = is_current=true
+  //   OB   = is_current=false かつ 同社で is_current=true を持たない
+  const liveCurrentCountMap: Record<string, number> = {};
+  const liveObogCountMap: Record<string, number> = {};
+
   if (companyIds.length > 0) {
-    const [activeJobsResult, articlesResult] = await Promise.all([
+    const [activeJobsResult, articlesResult, expResult] = await Promise.all([
       supabase
         .from("ow_jobs")
         .select("company_id, title, salary_min, salary_max")
@@ -179,7 +186,37 @@ export async function searchCompanies(
         .select("company_id")
         .in("company_id", companyIds)
         .eq("is_published", true),
+      supabase
+        .from("ow_experiences")
+        .select("company_id, user_id, is_current, ow_users!inner(id, is_test, visibility)")
+        .in("company_id", companyIds),
     ]);
+
+    // 集計: 企業ごとに現役 user_id セット / OB候補 user_id セットを構築
+    const currentSets  = new Map<string, Set<string>>();
+    const alumniSets   = new Map<string, Set<string>>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const e of (expResult.data ?? []) as any[]) {
+      const u = e.ow_users as { id: string; is_test: boolean | null; visibility: string | null } | null;
+      if (!u || u.is_test === true || u.visibility === "private") continue;
+      const cid = e.company_id as string;
+      const uid = e.user_id as string;
+      if (e.is_current) {
+        if (!currentSets.has(cid)) currentSets.set(cid, new Set());
+        currentSets.get(cid)!.add(uid);
+      } else {
+        if (!alumniSets.has(cid)) alumniSets.set(cid, new Set());
+        alumniSets.get(cid)!.add(uid);
+      }
+    }
+    companyIds.forEach((cid) => {
+      const curr = currentSets.get(cid) ?? new Set<string>();
+      const alum = alumniSets.get(cid) ?? new Set<string>();
+      liveCurrentCountMap[cid] = curr.size;
+      let obogCount = 0;
+      alum.forEach((uid) => { if (!curr.has(uid)) obogCount++; });
+      liveObogCountMap[cid] = obogCount;
+    });
 
     // 企業ごとに求人中央値のリストを集める
     const salaryMediansMap: Record<string, number[]> = {};
@@ -243,6 +280,9 @@ export async function searchCompanies(
       company_features: Array.isArray((c as CompanyForCarousel).company_features)
         ? (c as CompanyForCarousel).company_features
         : [],
+      // 案X: ライブ集計値（静的カラムを廃止し、これを正値とする）
+      live_current_count: liveCurrentCountMap[c.id] ?? 0,
+      live_obog_count: liveObogCountMap[c.id] ?? 0,
     }));
 
   // client-side: 外資系フィルター（is_foreign カラムを使用）
@@ -277,8 +317,8 @@ export async function searchCompanies(
       if ((c.article_count ?? 0) > 0) score += 3;
       if ((c.job_count ?? 0) > 0) score += 1;
       if (Array.isArray(c.company_features) && c.company_features.length > 0) score += 1;
-      if ((c.current_member_count ?? 0) > 0) score += 2;
-      if ((c.obog_count ?? 0) > 0) score += 1;
+      if ((c.live_current_count ?? c.current_member_count ?? 0) > 0) score += 2;
+      if ((c.live_obog_count ?? c.obog_count ?? 0) > 0) score += 1;
       return score;
     };
     filteredCompanies = [...filteredCompanies].sort((a, b) => disclosureScore(b) - disclosureScore(a));

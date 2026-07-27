@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 // ─── 役割定義（PeopleListClient の ROLE_OPTIONS と同期） ─────────────────────
 
@@ -73,9 +74,6 @@ const ROLE_MAP: Record<string, {
   },
 };
 
-export async function generateStaticParams() {
-  return Object.keys(ROLE_MAP).map((slug) => ({ slug }));
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const role = ROLE_MAP[params.slug];
@@ -101,18 +99,18 @@ type AmbassadorRow = {
   company_id: string;
   role_title: string | null;
   talk_themes: string[] | null;
-  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
+  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; is_test: boolean | null; visibility: string | null } | null;
   ow_companies: { id: string; name: string | null; brand_name: string | null; slug: string | null; logo_url: string | null; logo_gradient: string | null; logo_letter: string | null; phase: string | null } | null;
 };
 
-async function getAmbassadorsByRole(pattern: RegExp): Promise<AmbassadorRow[]> {
+async function getAmbassadorsByRole(pattern: RegExp, isLoggedIn: boolean): Promise<AmbassadorRow[]> {
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
     .from("ow_company_members")
     .select(`
       id, user_id, company_id, role_title, talk_themes,
-      ow_users!user_id(id, name, avatar_color, avatar_url),
+      ow_users!user_id(id, name, avatar_color, avatar_url, is_test, visibility),
       ow_companies!company_id(id, name, brand_name, slug, logo_url, logo_gradient, logo_letter, phase)
     `)
     .eq("display_consent", true)
@@ -122,6 +120,10 @@ async function getAmbassadorsByRole(pattern: RegExp): Promise<AmbassadorRow[]> {
   if (error || !data) return [];
 
   return (data as unknown as AmbassadorRow[]).filter((row) => {
+    if (row.ow_users?.is_test) return false;
+    const vis = (row.ow_users as { visibility?: string | null } | null)?.visibility;
+    if (vis === "private") return false;
+    if (vis === "login_only" && !isLoggedIn) return false;
     const roleTitle = row.role_title ?? "";
     return pattern.test(roleTitle);
   });
@@ -133,7 +135,9 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
   const role = ROLE_MAP[params.slug];
   if (!role) notFound();
 
-  const ambassadors = await getAmbassadorsByRole(role.pattern);
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const ambassadors = await getAmbassadorsByRole(role.pattern, !!user);
 
   const otherRoles = Object.entries(ROLE_MAP).filter(([slug]) => slug !== params.slug);
 

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "./types";
+// Database 型は第2弾で有効化予定。現時点は generic なし
+// import type { Database } from "./types";
 
 /**
  * サーバーサイド専用の管理クライアント（RLSをバイパス）
@@ -13,7 +14,7 @@ export function createAdminClient() {
     throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
   }
 
-  return createClient<Database>(url, key, {
+  return createClient(url, key, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

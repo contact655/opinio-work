@@ -179,8 +179,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const displayName = enName ?? stripLegalSuffix(company.name);
   const isEnName = !!enName;
   const showSubtitle = displayName !== company.name;
-  const memberCount = company.current_member_count ?? (members?.length ?? 0);
-  const obogCount = company.obog_count ?? 0;
+  // ライブ集計値を優先、なければ静的カラム（deprecated）にフォールバック
+  const memberCount = company.live_current_count ?? company.current_member_count ?? (members?.length ?? 0);
+  const obogCount   = company.live_obog_count   ?? company.obog_count           ?? 0;
   const features = Array.isArray(company.company_features) ? company.company_features : [];
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
   const meetingBorder = "1px solid var(--line)";

@@ -446,9 +446,11 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
       .from("ow_company_office_photos")
       .select("company_id, image_url, display_order")
       .order("display_order", { ascending: true }),
+    // is_test=true ユーザーを除外するため ow_users を JOIN
     supabase
       .from("ow_experiences")
-      .select("company_id, user_id"),
+      .select("company_id, user_id, ow_users!user_id(id, is_test)")
+      .eq("ow_users.is_test", false),
   ]);
 
   const jobCountMap = new Map<string, number>();
@@ -466,9 +468,12 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     }
   }
 
-  // ow_experiences のユニークユーザー数（登録メンバー数）
+  // ow_experiences のユニークユーザー数（登録メンバー数）— is_test=true ユーザーを除外済み
   const memberCountMap = new Map<string, Set<string>>();
   for (const e of expRows ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const owUser = (e as any).ow_users;
+    if (!owUser || owUser.is_test) continue;
     const cid = e.company_id as string;
     const uid = e.user_id as string;
     if (!memberCountMap.has(cid)) memberCountMap.set(cid, new Set());
@@ -1016,18 +1021,23 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
     (userRows ?? []).map((u: Record<string, any>) => [u.id as string, u])
   );
 
+  // 案A: userMap に存在しないエントリー（is_test=true のユーザー等）を除外
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return adminRows.map((row: Record<string, any>): CompanyRecruiter => {
-    const user = userMap.get(row.user_id as string);
-    const name = (user?.name as string) ?? "担当者";
+  return adminRows.filter((row: Record<string, any>) =>
+    userMap.has(row.user_id as string)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ).map((row: Record<string, any>): CompanyRecruiter => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = userMap.get(row.user_id as string) as Record<string, any>;
+    const name = (user.name as string) ?? "担当者";
     return {
       id: row.id as string,
       name,
       avatar_initial: name.charAt(0),
-      avatar_color: (user?.avatar_color as string) ?? null,
+      avatar_color: (user.avatar_color as string) ?? null,
       department: (row.department as string) ?? null,
       role_title: (row.role_title as string) ?? null,
-      catchphrase: (user?.catchphrase as string) ?? null,
+      catchphrase: (user.catchphrase as string) ?? null,
     };
   });
 }
@@ -1056,6 +1066,8 @@ export type CompanyEmployee = {
   currentCompanyName: string | null;
   // === Session 9: 一言コメント ===
   catchphrase: string | null;
+  // ページ側でログイン状態によるフィルタに使用
+  visibility: "public" | "login_only";
 };
 
 export async function getCompanyEmployees(companyId: string): Promise<{
@@ -1086,7 +1098,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, birth_date)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", true);
   if (hiddenIds.length > 0) {
@@ -1103,7 +1115,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, birth_date)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -1147,6 +1159,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       currentRoleTitle: null,   // 退職後キャリア: 後で補完
       currentCompanyName: null, // 退職後キャリア: 後で補完
       catchphrase: (u?.catchphrase as string | null) ?? null,
+      visibility: ((u?.visibility as string | null) === "login_only" ? "login_only" : "public") as "public" | "login_only",
     };
   }
 
@@ -1160,9 +1173,12 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
-  // テストユーザーを除外（is_test=true は非表示）
+  // 表示除外条件: is_test=true または visibility='private'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isSeedRow = (r: any) => (r.ow_users as any)?.is_test === true;
+  const isSeedRow = (r: any) => {
+    const u = r.ow_users as { is_test?: boolean | null; visibility?: string | null } | null;
+    return u?.is_test === true || u?.visibility === "private";
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEmps = dedupeByUser((currentRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r)));
   // 現役社員と同一ユーザーはOB/OGから除外（同じ企業に過去在籍歴があっても現役優先）

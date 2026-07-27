@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Users } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import SchoolGraduatesClient, { type Graduate, type SchoolPost } from "./SchoolGraduatesClient";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ function resolveExpCompanyName(exp: Record<string, any>): string | null {
   return (exp.company_text as string | null) ?? null;
 }
 
-async function getGraduates(schoolId: string): Promise<Graduate[]> {
+async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Graduate[]> {
   const supabase = createAdminClient();
 
   // ── STEP 1: この学校の education 一覧 ─────────────────────────────────────
@@ -78,6 +79,7 @@ async function getGraduates(schoolId: string): Promise<Graduate[]> {
     const u = r.ow_users as Record<string, any> | null;
     if (!u) return false;
     if (u.visibility === "private") return false;
+    if (u.visibility === "login_only" && !isLoggedIn) return false;
     if ((u.is_test as boolean | null) === true) return false;
     return true;
   });
@@ -236,9 +238,11 @@ export default async function SchoolPage(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const [school, graduates] = await Promise.all([
     getSchool(id),
-    getGraduates(id),
+    getGraduates(id, !!user),
   ]);
 
   if (!school) notFound();

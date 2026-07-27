@@ -1,6 +1,8 @@
-export const revalidate = 3600;
+// revalidate を無効化: auth によって表示が変わるため静的キャッシュ不可
+export const dynamic = "force-dynamic";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { PeopleListClient, type AmbassadorCard } from "./PeopleListClient";
 
@@ -17,7 +19,7 @@ type DbAmbassador = {
   role_title: string | null;
   talk_themes: string[] | null;
   created_at: string | null;
-  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; visibility: string | null; email: string | null } | null;
+  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; visibility: string | null; email: string | null; is_test: boolean | null } | null;
   ow_companies: {
     id: string;
     name: string | null;
@@ -31,7 +33,7 @@ type DbAmbassador = {
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
-async function getAmbassadors(): Promise<AmbassadorCard[]> {
+async function getAmbassadors(isLoggedIn: boolean): Promise<AmbassadorCard[]> {
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
@@ -56,11 +58,15 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
   }
 
   const rows = (data ?? []) as unknown as DbAmbassador[];
-  const filteredRows = rows.filter((r) =>
-    r.ow_users?.visibility !== "private" &&
-    r.ow_users?.name &&
-    !r.ow_users?.is_test
-  );
+  const filteredRows = rows.filter((r) => {
+    const vis = r.ow_users?.visibility;
+    // private は常に非表示、login_only は isLoggedIn で制御
+    if (vis === "private") return false;
+    if (vis === "login_only" && !isLoggedIn) return false;
+    if (!r.ow_users?.name) return false;
+    if (r.ow_users?.is_test) return false;
+    return true;
+  });
 
   if (filteredRows.length === 0) return [];
 
@@ -105,7 +111,9 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
 }
 
 export default async function PeoplePage() {
-  const ambassadors = await getAmbassadors();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const ambassadors = await getAmbassadors(!!user);
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>

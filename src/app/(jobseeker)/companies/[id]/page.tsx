@@ -1576,11 +1576,15 @@ const EMPLOYEE_GRID_CSS = `
 
 function CurrentEmployeesSection({
   employees,
+  hiddenCount = 0,
+  totalCount,
   categories,
   ambassadorMap,
   companyId,
 }: {
   employees: CompanyEmployee[];
+  hiddenCount?: number;
+  totalCount?: number;
   categories: CompanyEmployeeCategoryItem[];
   ambassadorMap: Map<string, { memberId: string; themes: string[] }>;
   companyId: string;
@@ -1666,7 +1670,7 @@ function CurrentEmployeesSection({
               marginLeft: "var(--space-2)",
             }}
           >
-            ({employees.length}名)
+            ({totalCount ?? employees.length}名)
           </span>
         </SecTitle>
 
@@ -1716,13 +1720,27 @@ function CurrentEmployeesSection({
           padding: "40px 24px",
           color: "var(--ink-mute)",
         }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📸</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
-            社員プロフィールを準備中です
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.7 }}>
-            現役社員・OB/OGがプロフィールを登録すると<br />ここに表示されます
-          </div>
+          {hiddenCount > 0 ? (
+            <>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
+                ログインすると{hiddenCount}名のプロフィールが見られます
+              </div>
+              <a href="/auth" style={{ display: "inline-block", marginTop: 12, padding: "8px 22px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                ログイン / 会員登録 →
+              </a>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📸</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
+                現在登録されている社員情報はありません
+              </div>
+              <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+                現役社員・OB/OGがプロフィールを登録すると<br />ここに表示されます
+              </div>
+            </>
+          )}
         </div>
       ) : categories.length === 0 ? (
         // カテゴリ設定なし → レスポンシブ列
@@ -1912,7 +1930,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   );
 }
 
-function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
+function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
   return (
     <section
       id="alumni"
@@ -1948,7 +1966,7 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
               marginLeft: "var(--space-2)",
             }}
           >
-            ({alumni.length}名)
+            ({totalCount ?? alumni.length}名)
           </span>
         </SecTitle>
       </div>
@@ -1966,18 +1984,32 @@ function AlumniSection({ alumni }: { alumni: CompanyEmployee[] }) {
           textAlign: "center", padding: "24px 20px",
           display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)",
         }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: "50%",
-            background: "var(--royal-50)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
-            </svg>
-          </div>
-          <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
-            OB・OG情報は順次更新されます
-          </div>
+          {hiddenCount > 0 ? (
+            <>
+              <div style={{ fontSize: 32, marginBottom: 4 }}>🔐</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>
+                ログインすると{hiddenCount}名のプロフィールが見られます
+              </div>
+              <a href="/auth" style={{ display: "inline-block", marginTop: 8, padding: "7px 20px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                ログイン / 会員登録 →
+              </a>
+            </>
+          ) : (
+            <>
+              <div style={{
+                width: 48, height: 48, borderRadius: "50%",
+                background: "var(--royal-50)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
+                </svg>
+              </div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                OB・OG情報は順次更新されます
+              </div>
+            </>
+          )}
         </div>
       )}
       </div>
@@ -3273,6 +3305,14 @@ export default async function CompanyDetailPage({
   const authUser = authResult.data.user;
   const isAuthenticated = !!authUser;
 
+  // visibility フィルタ: 非ログインは public のみ、ログイン済みは public + login_only
+  const filterByVisibility = (emps: CompanyEmployee[]) =>
+    isAuthenticated ? emps : emps.filter((e) => e.visibility === "public");
+  const visibleCurrentEmps = filterByVisibility(employees.current);
+  const hiddenCurrentCount = employees.current.length - visibleCurrentEmps.length;
+  const visibleAlumniEmps = filterByVisibility(employees.alumni);
+  const hiddenAlumniCount = employees.alumni.length - visibleAlumniEmps.length;
+
   // フィード投稿 (会社ID + 求人ID OR + 記事ID OR)
   type ActivityPost = {
     id: string;
@@ -3356,7 +3396,7 @@ export default async function CompanyDetailPage({
           ...((detail.reality_disclosure?.notFor || detail.reality_disclosure?.turnoverReasons?.length || detail.reality_disclosure?.onboardingGaps) ? [{ id: "reality", label: "リアル開示" }] : []),
           ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
           ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
-          ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: ambassadorMap.size > 0 ? `社員・OB/OG（面談OK ${ambassadorMap.size}名）` : `社員・OB/OG` }] : []),
+          ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 ? [{ id: "current-employees", label: ambassadorMap.size > 0 ? `社員・OB/OG（面談OK ${ambassadorMap.size}名）` : `社員・OB/OG` }] : []),
           ...(companyPosts.length > 0 ? [{ id: "posts", label: `投稿 ${companyPosts.length}件` }] : []),
           ...(companyArticles.length > 0 ? [{ id: "articles", label: `記事 ${companyArticles.length}件` }] : []),
           ...(activityPosts.length > 0 ? [{ id: "activity", label: "最近の動き" }] : []),
@@ -3443,16 +3483,20 @@ export default async function CompanyDetailPage({
             <ProductsClientsSection detail={detail} company={company} />
 
             {/* 6. 社員の声（キャッチフレーズ） */}
-            <EmployeeVoicesSection employees={employees.current} />
+            <EmployeeVoicesSection employees={visibleCurrentEmps} />
 
             {/* 7. 現役社員・OBOGプロフィール（面談OKバッジはカード内に統合） */}
             <CurrentEmployeesSection
-              employees={employees.current}
+              employees={visibleCurrentEmps}
+              hiddenCount={hiddenCurrentCount}
+              totalCount={employees.current.length}
               categories={employeeCategories}
               ambassadorMap={ambassadorMap}
               companyId={company.id}
             />
-            {employees.alumni.length > 0 && <AlumniSection alumni={employees.alumni} />}
+            {(visibleAlumniEmps.length > 0 || hiddenAlumniCount > 0) && (
+              <AlumniSection alumni={visibleAlumniEmps} hiddenCount={hiddenAlumniCount} totalCount={employees.alumni.length} />
+            )}
 
             {/* 8. 記事（OPINIO取材記事） */}
             {/* 企業投稿 */}
@@ -3605,7 +3649,7 @@ export default async function CompanyDetailPage({
 
           </main>
 
-          <Sidebar company={company} detail={detail} currentEmployees={employees.current} allEmployees={[...employees.current, ...employees.alumni]} ambassadors={ambassadors} />
+          <Sidebar company={company} detail={detail} currentEmployees={visibleCurrentEmps} allEmployees={[...visibleCurrentEmps, ...visibleAlumniEmps]} ambassadors={ambassadors} />
         </div>
       </div>
 
