@@ -57,7 +57,7 @@ async function getGraduates(schoolId: string): Promise<Graduate[]> {
         avatar_color,
         avatar_url,
         visibility,
-        email,
+        is_test,
         catchphrase
       )
     `)
@@ -78,7 +78,7 @@ async function getGraduates(schoolId: string): Promise<Graduate[]> {
     const u = r.ow_users as Record<string, any> | null;
     if (!u) return false;
     if (u.visibility === "private") return false;
-    if ((u.email as string | null)?.endsWith("@seed.internal")) return false;
+    if ((u.is_test as boolean | null) === true) return false;
     return true;
   });
 

@@ -811,7 +811,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 
   const { data: expRows } = await supabase
     .from("ow_experiences")
-    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility, email)")
+    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test)")
     .in("role_category_id", roleIds);
 
   if (!expRows || expRows.length === 0) return [];
@@ -825,7 +825,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
   for (const exp of expData) {
     const user = exp.ow_users as Record<string, any> | null;
     if (!user || user.visibility !== "public") continue;
-    if ((user.email as string | null)?.endsWith("@seed.internal")) continue;
+    if ((user.is_test as boolean | null) === true) continue;
     const uid = user.id as string;
     if (seen.has(uid)) continue;
     seen.add(uid);
@@ -952,7 +952,7 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
       .from("ow_users")
       .select("id, name")
       .in("id", taggedUserIds)
-      .not("email", "ilike", "%@seed.internal");
+      .eq("is_test", false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (users ?? []).forEach((u: any) => userMap.set(u.id as string, { id: u.id as string, name: (u.name as string) ?? "" }));
   }
@@ -1009,7 +1009,7 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
     .from("ow_users")
     .select("id, name, avatar_color, catchphrase")
     .in("id", userIds)
-    .not("email", "ilike", "%@seed.internal");
+    .eq("is_test", false);
 
   const userMap = new Map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1086,7 +1086,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email, birth_date)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", true);
   if (hiddenIds.length > 0) {
@@ -1103,7 +1103,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, email, birth_date)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .not("ended_at", "is", null)
@@ -1160,9 +1160,9 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
-  // seed ユーザーを除外（@seed.internal ドメインは非表示）
+  // テストユーザーを除外（is_test=true は非表示）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isSeedRow = (r: any) => (r.ow_users as any)?.email?.endsWith("@seed.internal");
+  const isSeedRow = (r: any) => (r.ow_users as any)?.is_test === true;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEmps = dedupeByUser((currentRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r)));
   // 現役社員と同一ユーザーはOB/OGから除外（同じ企業に過去在籍歴があっても現役優先）
@@ -1595,7 +1595,7 @@ export async function getJobAlumniMap(
     .in("id", userIds)
     .eq("visibility", "public")
     .not("name", "is", null)
-    .not("email", "ilike", "%@seed.internal");
+    .eq("is_test", false);
 
   if (!users?.length) return {};
 

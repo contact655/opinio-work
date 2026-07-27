@@ -157,7 +157,7 @@ export default async function MypagePage({
       const adminForSchools = createAdminClient();
       const { data: peerRows } = await adminForSchools
         .from("ow_user_educations")
-        .select("school_id, ow_users!inner(visibility, email)")
+        .select("school_id, ow_users!inner(visibility, is_test)")
         .in("school_id", schoolIds)
         .neq("user_id", owUser.id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -166,7 +166,7 @@ export default async function MypagePage({
         const u = row.ow_users as Record<string, any> | null;
         if (!u) continue;
         if (u.visibility === "private") continue;
-        if ((u.email as string | null)?.endsWith("@seed.internal")) continue;
+        if ((u.is_test as boolean | null) === true) continue;
         const sid = row.school_id as string;
         schoolPeerCounts[sid] = (schoolPeerCounts[sid] ?? 0) + 1;
       }

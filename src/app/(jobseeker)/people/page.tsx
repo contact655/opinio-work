@@ -43,7 +43,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
       role_title,
       talk_themes,
       created_at,
-      ow_users!user_id(id, name, avatar_color, avatar_url, visibility, email),
+      ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test),
       ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)
     `)
     .eq("display_consent", true)
@@ -59,7 +59,7 @@ async function getAmbassadors(): Promise<AmbassadorCard[]> {
   const filteredRows = rows.filter((r) =>
     r.ow_users?.visibility !== "private" &&
     r.ow_users?.name &&
-    !r.ow_users?.email?.endsWith("@seed.internal")
+    !r.ow_users?.is_test
   );
 
   if (filteredRows.length === 0) return [];
