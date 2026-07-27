@@ -2640,6 +2640,10 @@ export type Database = {
           avg_tenure: string | null
           avg_tenure_years: string | null
           benefits: string[] | null
+          biz_model_deal_size: string | null
+          biz_model_new_pct: number | null
+          biz_model_note: string | null
+          biz_model_types: string[] | null
           bonus_times: number | null
           branch_locations: string[] | null
           brand_color: string | null
@@ -2686,6 +2690,7 @@ export type Database = {
           has_learning_support: boolean | null
           has_meal_allowance: boolean | null
           has_stock_option: boolean | null
+          headcount_3y_ago: number | null
           header_image_url: string | null
           headquarters_address: string | null
           id: string
@@ -2705,6 +2710,11 @@ export type Database = {
           main_customers: string[] | null
           main_products: string[] | null
           management_style: string | null
+          market_customer_size: string[] | null
+          market_deal_days: number | null
+          market_decision_maker: string | null
+          market_industry_focus: string[] | null
+          market_note: string | null
           maternity_leave_female: number | null
           maternity_leave_male: number | null
           mid_career_ratio: number | null
@@ -2774,6 +2784,10 @@ export type Database = {
           avg_tenure?: string | null
           avg_tenure_years?: string | null
           benefits?: string[] | null
+          biz_model_deal_size?: string | null
+          biz_model_new_pct?: number | null
+          biz_model_note?: string | null
+          biz_model_types?: string[] | null
           bonus_times?: number | null
           branch_locations?: string[] | null
           brand_color?: string | null
@@ -2820,6 +2834,7 @@ export type Database = {
           has_learning_support?: boolean | null
           has_meal_allowance?: boolean | null
           has_stock_option?: boolean | null
+          headcount_3y_ago?: number | null
           header_image_url?: string | null
           headquarters_address?: string | null
           id?: string
@@ -2839,6 +2854,11 @@ export type Database = {
           main_customers?: string[] | null
           main_products?: string[] | null
           management_style?: string | null
+          market_customer_size?: string[] | null
+          market_deal_days?: number | null
+          market_decision_maker?: string | null
+          market_industry_focus?: string[] | null
+          market_note?: string | null
           maternity_leave_female?: number | null
           maternity_leave_male?: number | null
           mid_career_ratio?: number | null
@@ -2908,6 +2928,10 @@ export type Database = {
           avg_tenure?: string | null
           avg_tenure_years?: string | null
           benefits?: string[] | null
+          biz_model_deal_size?: string | null
+          biz_model_new_pct?: number | null
+          biz_model_note?: string | null
+          biz_model_types?: string[] | null
           bonus_times?: number | null
           branch_locations?: string[] | null
           brand_color?: string | null
@@ -2954,6 +2978,7 @@ export type Database = {
           has_learning_support?: boolean | null
           has_meal_allowance?: boolean | null
           has_stock_option?: boolean | null
+          headcount_3y_ago?: number | null
           header_image_url?: string | null
           headquarters_address?: string | null
           id?: string
@@ -2973,6 +2998,11 @@ export type Database = {
           main_customers?: string[] | null
           main_products?: string[] | null
           management_style?: string | null
+          market_customer_size?: string[] | null
+          market_deal_days?: number | null
+          market_decision_maker?: string | null
+          market_industry_focus?: string[] | null
+          market_note?: string | null
           maternity_leave_female?: number | null
           maternity_leave_male?: number | null
           mid_career_ratio?: number | null
@@ -3853,6 +3883,61 @@ export type Database = {
           },
         ]
       }
+      ow_company_milestones: {
+        Row: {
+          body: string | null
+          company_id: string
+          created_at: string
+          display_order: number
+          event_type: string
+          id: string
+          occurred_at: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          company_id: string
+          created_at?: string
+          display_order?: number
+          event_type: string
+          id?: string
+          occurred_at: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          display_order?: number
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_office_photos: {
         Row: {
           caption: string | null
@@ -3911,6 +3996,65 @@ export type Database = {
             columns: ["tagged_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_org_composition: {
+        Row: {
+          company_id: string
+          created_at: string
+          display_order: number
+          headcount: number | null
+          headcount_ratio: number | null
+          id: string
+          role_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          display_order?: number
+          headcount?: number | null
+          headcount_ratio?: number | null
+          id?: string
+          role_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          display_order?: number
+          headcount?: number | null
+          headcount_ratio?: number | null
+          id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_org_composition_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_org_composition_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_org_composition_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_org_composition_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ow_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -4112,6 +4256,61 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      ow_company_segments: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name: string
+          target: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          target?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          target?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_segments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_segments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_segments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ow_contact_logs: {
         Row: {
