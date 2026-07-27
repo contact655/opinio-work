@@ -17,6 +17,7 @@ import { resolveIndustryFilter } from "./industryGroups";
 
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel } from "@/types/genre";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
@@ -186,7 +187,8 @@ export async function searchCompanies(
         .select("company_id")
         .in("company_id", companyIds)
         .eq("is_published", true),
-      supabase
+      // login_only ユーザーも集計に含めるため adminSupabase を使用（RLS バイパス）
+      createAdminClient()
         .from("ow_experiences")
         .select("company_id, user_id, is_current, ow_users!inner(id, is_test, visibility)")
         .in("company_id", companyIds),
