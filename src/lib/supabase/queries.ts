@@ -1730,6 +1730,45 @@ export const getRoleAliases = unstable_cache(
   { revalidate: 3600 }
 );
 
+// ─── Company Tools ────────────────────────────────────────────────────────────
+
+export type CompanyTool = {
+  id: string;
+  tool_id: string;
+  note: string | null;
+  sort_order: number;
+  name: string;
+  category: string;
+  master_sort_order: number;
+};
+
+export async function getCompanyTools(companyId: string): Promise<CompanyTool[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("ow_company_tools")
+    .select("id, tool_id, note, sort_order, ow_tool_masters!tool_id(name, category, sort_order)")
+    .eq("company_id", companyId)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.error("[getCompanyTools]", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const master = (row as unknown as { ow_tool_masters: { name: string; category: string; sort_order: number } | null }).ow_tool_masters;
+    return {
+      id: row.id,
+      tool_id: row.tool_id,
+      note: row.note,
+      sort_order: row.sort_order,
+      name: master?.name ?? "",
+      category: master?.category ?? "",
+      master_sort_order: master?.sort_order ?? 0,
+    };
+  });
+}
+
 // ─── Industries (for search filter) ──────────────────────────────────────────
 export type IndustryForFilter = { id: string; parent_id: string | null; name: string; slug: string };
 

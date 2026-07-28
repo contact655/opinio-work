@@ -11,7 +11,10 @@ import {
   getCompanyRecruitersCached,
   getArticlesByCompany,
   getCompanyEmployeesCached,
+  getCompanyTools,
 } from "@/lib/supabase/queries";
+import type { CompanyTool } from "@/lib/supabase/queries";
+import { TOOL_CATEGORY_LABELS, TOOL_CATEGORY_ORDER, getToolCategoryLabel } from "@/lib/utils/toolCfg";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SALARY_STATS_MIN } from "@/lib/constants/salary";
 import { getStageCfg } from "@/lib/utils/stageCfg";
@@ -1259,6 +1262,81 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         );
       })()}
 
+      </div>
+    </section>
+  );
+}
+
+// ─── Tools Section ───────────────────────────────────────────────────────────
+
+function ToolsSection({ tools }: { tools: CompanyTool[] }) {
+  if (tools.length === 0) return null;
+
+  // カテゴリ別にグループ化
+  const grouped = new Map<string, CompanyTool[]>();
+  for (const tool of tools) {
+    const list = grouped.get(tool.category) ?? [];
+    list.push(tool);
+    grouped.set(tool.category, list);
+  }
+
+  // 各カテゴリ内をマスタ sort_order → 企業 sort_order の順でソート
+  Array.from(grouped.values()).forEach((list) => {
+    list.sort((a: CompanyTool, b: CompanyTool) => a.master_sort_order - b.master_sort_order || a.sort_order - b.sort_order);
+  });
+
+  // カテゴリ表示順
+  const orderedCategories = TOOL_CATEGORY_ORDER.filter((cat) => grouped.has(cat));
+
+  return (
+    <section
+      id="tools"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        padding: "28px 28px 24px",
+        marginBottom: "var(--space-6)",
+      }}
+    >
+      <SubSectionHeading>ツール・技術スタック</SubSectionHeading>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {orderedCategories.map((cat) => {
+          const label = getToolCategoryLabel(cat);
+          if (!label) return null;
+          const items = grouped.get(cat)!;
+          return (
+            <div key={cat}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
+                {label}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+                {items.map((tool) => (
+                  <div
+                    key={tool.id}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      background: "var(--line-soft)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 100,
+                      padding: "4px 12px",
+                      fontSize: 12, fontWeight: 600,
+                      color: "var(--ink)",
+                      whiteSpace: "nowrap" as const,
+                    }}
+                  >
+                    {tool.name}
+                    {tool.note && (
+                      <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>
+                        {tool.note}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -3236,7 +3314,7 @@ export default async function CompanyDetailPage({
   // Phase 2: 残りのデータを companyId（UUID）で並列取得
   const companyId = resolvedId;
 
-  const [photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult, ambassadorsResult] = await Promise.all([
+  const [photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult, ambassadorsResult, companyTools] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     getArticlesByCompany(companyId),
@@ -3260,6 +3338,7 @@ export default async function CompanyDetailPage({
       .eq("display_consent", true)
       .eq("is_public", true)
       .then((r) => r.data ?? []),
+    getCompanyTools(companyId),
   ]);
 
   const hasSalarySection = (salaryCountResult.count ?? 0) >= SALARY_STATS_MIN;
@@ -3385,7 +3464,7 @@ export default async function CompanyDetailPage({
           ...(detail.capitalType ? [{ id: "capital", label: "資本関係" }] : []),
           ...((detail.headquartersAddress || detail.branchLocations?.length) ? [{ id: "locations", label: "拠点" }] : []),
           ...(company.job_count > 0 || hasSalarySection ? [{ id: "jobs", label: "求人" }] : []),
-          ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) ? [{ id: "benefits", label: "働く環境" }] : []),
+          ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 || visibleCurrentEmps.some(e => e.catchphrase) ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
           ...(companyPosts.length > 0 || companyArticles.length > 0 || activityPosts.length > 0 ? [{ id: "articles", label: "記事・更新情報" }] : []),
         ]} />
@@ -3446,6 +3525,8 @@ export default async function CompanyDetailPage({
             )}
 
             <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
+
+            <ToolsSection tools={companyTools} />
 
             {/* 5. 社員・OB/OG（voices → current-employees → alumni） */}
             <EmployeeVoicesSection employees={visibleCurrentEmps} />

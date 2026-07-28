@@ -76,6 +76,29 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 
 ---
 
+## ⑥ ツール・技術スタック — 取材項目として確定（2026-07-28 記録）
+
+`ow_company_tools` / `ow_tool_masters` は実装・スキーマ適用済み。
+ただし**社内利用ツールは公開情報からは取得不可**と判明。
+
+理由: Salesforce Japan で試みたところ、公開情報で確認できるものは
+すべて「自社製品の社内利用（Salesforce / Pardot / Slack）」か
+一次情報URLを示せない推測情報のみだった。
+
+- 自社製品は `/companies/[id]` の「製品・サービス」に既出であり、
+  「Salesforce社がSalesforceを使っています」は情報量ゼロ
+- AWS / Google Workspace 等も一次情報URLを特定できず除外
+
+**⑥ は取材でしか埋まらない項目。**
+企業取材時に必ず「社内で実際に使っているツール・技術スタックを教えてください」
+と確認し、その回答を migration で投入する運用とする。
+
+初期データ投入（動作確認用）は株式会社Third Box で実施。
+- Third Box company_id: `81cae8d8-38bf-4497-8fa1-1fbb2741239d`
+- ツール一覧は柴さんから提供を受けてから migration を作成する
+
+---
+
 ## ow_companies.phase カラムの定義（2026-07-28 確立）
 
 phase は「企業グループとしてのステージ」を表す。
