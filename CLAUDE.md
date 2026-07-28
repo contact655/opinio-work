@@ -87,6 +87,25 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 
 ---
 
+## biz/company フォームから削除した項目（2026-07-28 確定）
+
+以下の入力フォームは `/biz/company` から削除した。**DBカラムは残す**（他の参照を壊さない）。
+
+| 削除した入力欄 | DBカラム | 削除理由 |
+|---|---|---|
+| ミッション | `ow_companies.mission` | 公開ページに表示先がない |
+| こんな人に向いている / 注意点 | `fit_positives` / `fit_negatives` | 公開ページに表示先がない |
+| 評価制度 | `evaluation_system` | 公開ページに表示先がない |
+| 月間平均残業時間 | `avg_overtime_hours` | 2026-07-28 メンテ負担削減。87社中0件のため復活させない。取材項目としてデータが集まってから再検討する |
+| 有給取得率 | `paid_leave_rate` | 同上 |
+| 働き方の補足説明 | `workstyle_description` | 公開ページに表示先がない |
+
+NumbersSection（`avg_overtime_hours` / `paid_leave_rate` の表示先）は復活させない。
+理由: 上記カラムが87社中0件であり、表示先を作っても空欄しか表示できない。
+取材でデータが集まってから再実装を検討する。
+
+---
+
 ## ⑥ ツール・技術スタック — 取材項目として確定（2026-07-28 記録）
 
 `ow_company_tools` / `ow_tool_masters` は実装・スキーマ適用済み。

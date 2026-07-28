@@ -13,7 +13,8 @@ type Props = {
   sections: CompanySubNavSection[];
   activeSection: string;
   onSectionClick: (id: string) => void;
-  completionPercent: number;
+  bizScore: number;
+  interviewScore: number;
   hasDraftChanges: boolean;
   lastPublishedAt?: string;
   lastPublishedAgo?: string;
@@ -34,7 +35,8 @@ export function CompanyEditSubNav({
   sections,
   activeSection,
   onSectionClick,
-  completionPercent,
+  bizScore,
+  interviewScore,
   hasDraftChanges,
   lastPublishedAt,
   lastPublishedAgo,
@@ -251,7 +253,7 @@ export function CompanyEditSubNav({
         </div>
       )}
 
-      {/* 進捗バー */}
+      {/* 開示充実度スコア */}
       <div style={{
         margin: "0 16px 16px",
         padding: 14,
@@ -259,34 +261,28 @@ export function CompanyEditSubNav({
         border: "1px solid var(--line)",
         borderRadius: 10,
       }}>
-        <div style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: "var(--ink)",
-          marginBottom: 8,
-          display: "flex",
-          justifyContent: "space-between",
-        }}>
-          <span>入力進捗</span>
-          <span style={{ color: "var(--royal)" }}>{completionPercent}%</span>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+          開示充実度
         </div>
-        <div style={{
-          height: 5,
-          background: "var(--bg-tint)",
-          borderRadius: 100,
-          overflow: "hidden",
-          marginBottom: 8,
-        }}>
-          <div style={{
-            height: "100%",
-            width: `${completionPercent}%`,
-            background: "linear-gradient(to right, var(--royal), var(--accent))",
-            borderRadius: 100,
-            transition: "width 0.3s ease",
-          }} />
-        </div>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-          全項目を入力すると、公開がスムーズに進みます。
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--ink-soft)", marginBottom: 4 }}>
+              <span>あなたが入力できる項目</span>
+              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)" }}>{bizScore} / 45</span>
+            </div>
+            <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.round(bizScore / 45 * 100)}%`, background: "linear-gradient(to right, var(--royal), var(--accent))", borderRadius: 100, transition: "width 0.3s ease" }} />
+            </div>
+          </div>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--ink-soft)", marginBottom: 4 }}>
+              <span>取材・投稿で埋まる項目</span>
+              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / 55</span>
+            </div>
+            <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.round(interviewScore / 55 * 100)}%`, background: "var(--ink-mute)", borderRadius: 100, transition: "width 0.3s ease" }} />
+            </div>
+          </div>
         </div>
       </div>
     </aside>

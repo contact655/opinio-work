@@ -11,6 +11,7 @@ import { fetchTeamMembersForDashboard } from "@/lib/business/team";
 import { fetchCompanyForTenant } from "@/lib/business/company";
 import { calcDisclosureScore, scoreLabel, scoreColor } from "@/lib/utils/disclosureScore";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -72,23 +73,48 @@ export default async function BizDashboardPage({
   }
 
   const supabase = createClient();
-  const [jobStatusCounts, teamMembers, companyRaw] = await Promise.all([
+  const adminSupabase = createAdminClient();
+  const [jobStatusCounts, teamMembers, companyRaw, scoreData] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
+    // スコア計算に必要な取材側フィールド（複数テーブル集計）
+    (async () => {
+      const tid = ctx.tenantId;
+      const [companyFields, photoCnt, storyCnt, toolCnt, salaryCnt] = await Promise.all([
+        adminSupabase.from("ow_companies").select(
+          "culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams"
+        ).eq("id", tid).maybeSingle(),
+        adminSupabase.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", tid),
+        adminSupabase.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_published", true),
+        adminSupabase.from("ow_company_tools").select("id", { count: "exact", head: true }).eq("company_id", tid),
+        adminSupabase.from("ow_salary_reports").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_approved", true),
+      ]);
+      return {
+        fields: companyFields.data,
+        photoCount: photoCnt.count ?? 0,
+        storyCount: storyCnt.count ?? 0,
+        toolCount: toolCnt.count ?? 0,
+        salaryCount: salaryCnt.count ?? 0,
+      };
+    })(),
   ]);
 
   const disclosureScore = companyRaw ? calcDisclosureScore({
-    realityNotFor: companyRaw.realityDisclosure.notFor,
-    realityTurnoverReasons: companyRaw.realityDisclosure.turnoverReasons,
-    realityOnboardingGaps: companyRaw.realityDisclosure.onboardingGaps,
-    avgOvertimeHours: companyRaw.avgOvertimeHours,
-    paidLeaveRate: companyRaw.paidLeaveRate,
     tagline: companyRaw.tagline,
-    aboutMarkdown: companyRaw.descriptionMarkdown,
-    whyJoin: companyRaw.whyJoin,
-    fitPositives: companyRaw.fitPositives,
-    fitNegatives: companyRaw.fitNegatives,
+    description: companyRaw.descriptionMarkdown,
+    photoCount: scoreData.photoCount,
+    benefitsCount: companyRaw.benefitsTags.length,
+    hasPublishedJob: (jobStatusCounts.active ?? 0) > 0,
+    hasPublishedStory: scoreData.storyCount > 0,
+    cultureDescription: scoreData.fields?.culture_description ?? null,
+    bizModelTypes: scoreData.fields?.biz_model_types as string[] | null ?? null,
+    marketCustomerSize: scoreData.fields?.market_customer_size as string[] | null ?? null,
+    capitalType: scoreData.fields?.capital_type ?? null,
+    branchLocations: scoreData.fields?.branch_locations as string[] | null ?? null,
+    orgTeams: Array.isArray(scoreData.fields?.org_teams) ? scoreData.fields.org_teams : null,
+    toolCount: scoreData.toolCount,
+    salaryReportCount: scoreData.salaryCount,
   }) : null;
 
   return (
@@ -249,9 +275,9 @@ export default async function BizDashboardPage({
                 {scoreLabel(disclosureScore.total)}
               </span>
             </div>
-            <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--ink-soft)" }}>
-              <span>数値 {disclosureScore.numbers}/20</span>
-              <span>プロフィール {disclosureScore.profile}/40</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "var(--ink-soft)" }}>
+              <span>あなたが入力できる項目　{disclosureScore.biz} / 45</span>
+              <span>取材・投稿で埋まる項目　{disclosureScore.interview} / 55</span>
             </div>
           </div>
           <Link href="/biz/company" style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>

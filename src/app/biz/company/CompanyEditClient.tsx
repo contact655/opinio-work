@@ -20,6 +20,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { buildLogoStoragePath, type OfficePhoto } from "@/lib/business/photos";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
+import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -47,6 +48,10 @@ type Props = {
   industries?: { id: string; parent_id: string | null; name: string; slug: string; display_order: number }[];
   /** ow_saas_categories 全件 */
   saasCategories?: { id: string; name: string; slug: string; display_order: number }[];
+  /** スコア計算用（サーバー側で取得した静的カウント） */
+  initialPublishedJobCount?: number;
+  initialPublishedStoryCount?: number;
+  initialInterviewScore?: number;
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -369,6 +374,9 @@ export function CompanyEditClient({
   userId = "",
   industries = [],
   saasCategories = [],
+  initialPublishedJobCount = 0,
+  initialPublishedStoryCount = 0,
+  initialInterviewScore = 0,
 }: Props) {
   const router = useRouter();
 
@@ -577,18 +585,15 @@ export function CompanyEditClient({
     }
   }
 
-  // ── 完成度計算 ─────────────────────────────────────────────────────────────
-  const completionPercent = useMemo(() => {
-    const checks = [
-      !!form.name,
-      !!form.mission,
-      !!form.descriptionMarkdown,
-      !!form.location,
-      form.benefitsTags.length > 0,
-      form.fitPositives.length > 0,
-    ];
-    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [form]);
+  // ── 開示スコア計算 ─────────────────────────────────────────────────────────
+  const disclosureScore = useMemo(() => calcDisclosureScore({
+    tagline: form.tagline,
+    description: form.descriptionMarkdown,
+    photoCount: photos.length,
+    benefitsCount: form.benefitsTags.length,
+    hasPublishedJob: initialPublishedJobCount > 0,
+    hasPublishedStory: initialPublishedStoryCount > 0,
+  }), [form.tagline, form.descriptionMarkdown, photos.length, form.benefitsTags.length, initialPublishedJobCount, initialPublishedStoryCount]);
 
   const subNavSections: CompanySubNavSection[] = COMPANY_SECTIONS.map((s) => ({
     ...s,
@@ -691,11 +696,6 @@ export function CompanyEditClient({
               <FormGroup>
                 <FormLabel required htmlFor="ce-name">企業名</FormLabel>
                 <FormInput id="ce-name" value={form.name} onChange={(v) => update("name", v)} />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel required htmlFor="ce-mission">ミッション</FormLabel>
-                <FormTextarea id="ce-mission" serif value={form.mission} onChange={(v) => update("mission", v)} rows={2} placeholder="企業のミッションやビジョン" maxLength={80} />
-                <FormHint>企業詳細ページのヒーローエリアに大きく表示される、企業の核となるメッセージです。短く、印象的に。</FormHint>
               </FormGroup>
               <FormGroup>
                 <FormLabel htmlFor="ce-tagline">タグライン</FormLabel>
@@ -949,67 +949,6 @@ export function CompanyEditClient({
               <FormHint>1件目が「OPINIO のコメント」として強調表示されます。もっとも伝えたい特徴を1番目に書いてください。</FormHint>
             </SectionCard>
 
-            <SectionCard
-              title="こんな人に向いている / 注意点"
-              desc="求職者が自分との相性を確認するための情報です。正直に記載することで、ミスマッチを防ぎます。"
-            >
-              <FormGroup>
-                <FormLabel>こんな人に向いている（fit_positives）</FormLabel>
-                <RequirementsTagInput
-                  tags={form.fitPositives}
-                  onTagsChange={(tags) => update("fitPositives", tags)}
-                  placeholder="例: 自律して動ける人、提案が好きな人... Enter で追加"
-                  color="success"
-                />
-                <FormHint>公開ページで緑色のチェックリストとして表示されます。タグを追加して Enter で確定。</FormHint>
-              </FormGroup>
-              {/* show_fit_negatives toggle */}
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 18px",
-                background: "var(--bg-tint)",
-                border: "1px solid var(--line)",
-                borderRadius: 10,
-                marginBottom: 12,
-              }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
-                    「慎重に検討ください」欄を公開する
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-                    オフにすると入力内容は保存されますが、求職者には表示されません。編集部の判断で非推奨とする場合もあります。
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.showFitNegatives}
-                  onClick={() => { hasInteracted.current = true; setForm(f => ({ ...f, showFitNegatives: !f.showFitNegatives })); }}
-                  style={{
-                    width: 44, height: 24, borderRadius: 12, flexShrink: 0, marginLeft: 16,
-                    background: form.showFitNegatives ? "var(--royal)" : "var(--line)",
-                    border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s",
-                  }}
-                >
-                  <span style={{
-                    position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
-                    background: "#fff", transition: "left 0.2s",
-                    left: form.showFitNegatives ? 23 : 3,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                  }} />
-                </button>
-              </div>
-              <FormGroup>
-                <FormLabel>慎重に検討ください（向いていない人）</FormLabel>
-                <RequirementsTagInput
-                  tags={form.fitNegatives}
-                  onTagsChange={(tags) => update("fitNegatives", tags)}
-                  placeholder="例: 指示待ちが多い人、変化が苦手な人... Enter で追加"
-                  color="warm"
-                />
-                <FormHint>公開ページでオレンジの注意リストとして表示されます。正直な記載がミスマッチ防止につながります。</FormHint>
-              </FormGroup>
-            </SectionCard>
           </>
         );
 
@@ -1086,11 +1025,7 @@ export function CompanyEditClient({
                 </FormGroup>
               </div>
             </SectionCard>
-            <SectionCard title="評価制度・福利厚生">
-              <FormGroup>
-                <FormLabel>評価制度</FormLabel>
-                <FormTextarea value={form.evaluationSystem} onChange={(v) => update("evaluationSystem", v)} rows={3} placeholder="評価制度の説明..." maxLength={400} ariaLabel="評価制度" />
-              </FormGroup>
+            <SectionCard title="福利厚生">
               <FormGroup>
                 <FormLabel>福利厚生</FormLabel>
                 <RequirementsTagInput
@@ -1142,20 +1077,7 @@ export function CompanyEditClient({
                   <FormLabel>勤務時間制度</FormLabel>
                   <FormSelect value={form.workScheduleType} onChange={(v) => update("workScheduleType", v)} options={WORK_SCHEDULE_OPTIONS} />
                 </FormGroup>
-                <FormGroup>
-                  <FormLabel>月間平均残業時間</FormLabel>
-                  <FormInput value={form.avgOvertimeHours} onChange={(v) => update("avgOvertimeHours", v)} placeholder="例: 20時間" />
-                </FormGroup>
-                <FormGroup>
-                  <FormLabel>有給取得率</FormLabel>
-                  <FormInput value={form.paidLeaveRate} onChange={(v) => update("paidLeaveRate", v)} placeholder="例: 78%" />
-                </FormGroup>
               </div>
-              <FormGroup>
-                <FormLabel optional>働き方の補足説明</FormLabel>
-                <FormTextarea value={form.workstyleNote} onChange={(v) => update("workstyleNote", v)} rows={3} placeholder="数値だけでは伝わらない、働き方の文化や考え方を補足してください" maxLength={400} ariaLabel="働き方の補足" />
-                <FormHint>数値だけでは伝わらない、働き方の文化や考え方を補足してください</FormHint>
-              </FormGroup>
             </SectionCard>
           </>
         );
@@ -1246,7 +1168,8 @@ export function CompanyEditClient({
             sections={subNavSections}
             activeSection={activeSection}
             onSectionClick={(id) => setActiveSection(id as CompanySectionId)}
-            completionPercent={completionPercent}
+            bizScore={disclosureScore.biz}
+            interviewScore={initialInterviewScore}
             hasDraftChanges={hasDraftChanges}
             lastPublishedAt={form.lastPublishedAt}
             lastPublishedAgo={form.lastPublishedAgo}
