@@ -156,6 +156,11 @@ NumbersSection（`avg_overtime_hours` / `paid_leave_rate` の表示先）は復�
 - Third Box company_id: `81cae8d8-38bf-4497-8fa1-1fbb2741239d`
 - ツール一覧は柴さんから提供を受けてから migration を作成する
 
+Salesforce Japan への暫定投入（2026-07-28 migration `20260728105851`）:
+- Slack / Google カレンダー / Gmail / AWS → 公式発表・PR資料に基づく（一次情報あり）
+- Salesforce / Tableau → 自社製品の社内利用（確実）
+- ChatGPT / Claude / Gemini → 出典未確認の暫定値。**取材時に必ず確認・修正すること**
+
 ---
 
 ## ow_companies.phase カラムの定義（2026-07-28 確立）
