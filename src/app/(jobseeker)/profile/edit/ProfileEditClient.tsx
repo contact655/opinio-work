@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import type { Json } from "@/lib/supabase/types";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -141,7 +142,7 @@ type OwUser = {
   about_me: string | null;
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
-  social_links: Record<string, string> | null;
+  social_links: Json | null;
 } | null;
 
 // ─── Basic info state ─────────────────────────────────────────────────────────

@@ -13,9 +13,9 @@ type Article = {
   company_name_text: string | null;
   eyecatch_gradient: string | null;
   read_min: number | null;
-  is_published: boolean;
+  is_published: boolean | null;
   published_at: string | null;
-  created_at: string;
+  created_at: string | null;
   user_id: string | null;
   company_id: string | null;
 };
@@ -32,8 +32,8 @@ type OWCompany = {
 };
 
 type CompanyUserLink = {
-  company_id: string;
-  user_id: string;
+  company_id: string | null;
+  user_id: string | null;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -394,7 +394,7 @@ export default function AdminArticlesPage() {
                   <td className="px-4 py-3">
                     <button
                       type="button"
-                      onClick={() => togglePublished(article.id, article.is_published)}
+                      onClick={() => togglePublished(article.id, article.is_published ?? false)}
                       disabled={toggling === article.id}
                       className={`px-3 py-1 text-xs rounded border transition-colors disabled:opacity-50 whitespace-nowrap ${
                         article.is_published

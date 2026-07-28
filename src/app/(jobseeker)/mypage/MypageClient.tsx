@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import type { Json } from "@/lib/supabase/types";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
@@ -29,7 +30,7 @@ type OwUser = {
   about_me: string | null;
   birth_date: string | null;
   location: string | null;
-  social_links: Record<string, string> | null;
+  social_links: Json | null;
   future_aspirations: string | null;
 } | null;
 
@@ -869,7 +870,7 @@ export default function MypageClient({
           skillCount:            skillTags?.length ?? 0,
           hasPreferences:        hasCareerPreferences,
           certOrAchievementCount: certifications?.length ?? 0,
-          socialOrContentCount:  Object.values(owUser?.social_links ?? {}).filter(Boolean).length,
+          socialOrContentCount:  Object.values((owUser?.social_links as Record<string, unknown>) ?? {}).filter(Boolean).length,
         };
         return <ProfileCompletionBar data={completionData} mode="mypage" />;
       })()}
@@ -1139,7 +1140,7 @@ export default function MypageClient({
           userAboutMe={owUser?.about_me}
           userBirthDate={owUser?.birth_date}
 
-          userSocialLinks={owUser?.social_links}
+          userSocialLinks={owUser?.social_links as Record<string, string> | null}
           userSkillTags={skillTags}
           userEducations={educations}
           userCertifications={certifications}

@@ -137,35 +137,8 @@ function OnboardingInner() {
 
       // 会社を登録（ow_experiences.user_id は ow_users.id を使う）
       const companyInput = query.trim();
-      if (companyInput) {
-        try {
-          const { data: owUser } = await supabase
-            .from("ow_users")
-            .select("id")
-            .eq("auth_id", user.id)
-            .maybeSingle();
-          const owUserId = owUser?.id ?? user.id;
-
-          if (selectedCompany) {
-            // company_id と company_text は XOR 制約のため company_id のみ渡す
-            await supabase.from("ow_experiences").insert({
-              user_id: owUserId,
-              company_id: selectedCompany.id,
-              is_current: true,
-              role_title: "",
-              started_at: "2020-01-01",
-            });
-          } else {
-            await supabase.from("ow_experiences").insert({
-              user_id: owUserId,
-              company_text: companyInput,
-              is_current: true,
-              role_title: "",
-              started_at: "2020-01-01",
-            });
-          }
-        } catch {/* best-effort */}
-      }
+      // ow_experiences への INSERT はプロフィール編集画面で行う
+      // (role_category_id が必須フィールドのためオンボーディング時は解決できない)
 
       // candidate ロールを付与
       await fetch("/api/roles", {
