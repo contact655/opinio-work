@@ -175,7 +175,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     supabase.from("ow_roles").select("id, name, parent_id"),
     supabase
       .from("ow_user_skill_tags")
-      .select("id, label, category, sort_order")
+      .select("id, label, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
     supabase
@@ -605,15 +605,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         "データ・分析":  { color: "#0891B2", bg: "#ECFEFF" },
                         "マネジメント":  { color: "#DC2626", bg: "#FEE2E2" },
                       };
-                      const cat = (tag.category as string | null) ?? null;
-                      const cs = cat ? (HEADER_SKILL_COLORS[cat] ?? null) : null;
                       return (
                         <span key={tag.id as string} style={{
                           display: "inline-flex", alignItems: "center", gap: 4,
                           padding: "4px 11px", borderRadius: 100,
-                          background: cs ? cs.bg : "#fff",
-                          border: `1.5px solid ${cs ? cs.color + "44" : "var(--line)"}`,
-                          fontSize: 12, color: cs ? cs.color : "var(--ink-soft)", fontWeight: 600,
+                          background: "#fff",
+                          border: "1.5px solid var(--line)",
+                          fontSize: 12, color: "var(--ink-soft)", fontWeight: 600,
                           transition: "box-shadow 0.15s",
                         }}>
                           {tag.label as string}
@@ -1214,10 +1212,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   const grouped = new Map<string, typeof skillTags>();
                   const uncategorized: typeof skillTags = [];
                   for (const tag of skillTags) {
-                    const cat = (tag.category as string | null) ?? null;
-                    if (!cat) { uncategorized.push(tag); continue; }
-                    if (!grouped.has(cat)) grouped.set(cat, []);
-                    grouped.get(cat)!.push(tag);
+                    uncategorized.push(tag);
                   }
                   if (uncategorized.length > 0) grouped.set("その他", [...(grouped.get("その他") ?? []), ...uncategorized]);
                   const hasGroups = grouped.size > 1 || (grouped.size === 1 && !grouped.has("その他"));
