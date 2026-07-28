@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CompanyDetailClient } from './CompanyDetailClient';
+import { getAllToolMasters, getCompanyToolsForAdmin } from './toolActions';
 
 // admin layout.tsx で認可チェック済み（isAdmin + redirect）のため再チェック不要
 
@@ -46,12 +47,20 @@ export default async function AdminCompanyDetailPage({ params }: Props) {
     .not('user_id', 'is', null)
     .order('created_at');
 
+  // ツール・技術スタックタブ用
+  const [allToolMasters, companyTools] = await Promise.all([
+    getAllToolMasters(),
+    getCompanyToolsForAdmin(params.id),
+  ]);
+
   return (
     <CompanyDetailClient
       company={company}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
       admins={admins ?? []}
+      allToolMasters={allToolMasters}
+      companyTools={companyTools}
     />
   );
 }

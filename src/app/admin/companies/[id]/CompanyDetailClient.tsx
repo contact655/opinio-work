@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 import { buildLogoStoragePath } from '@/lib/business/photos';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import CompanyToolsTab from './CompanyToolsTab';
+import type { ToolMaster, CompanyToolRow } from './toolActions';
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -48,6 +50,8 @@ type Props = {
   allGenres: Genre[];
   companyGenres: CompanyGenre[];
   admins: CompanyAdmin[];
+  allToolMasters: ToolMaster[];
+  companyTools: CompanyToolRow[];
 };
 
 type FormData = {
@@ -82,7 +86,7 @@ type FormData = {
   opinio_comment: string;
 };
 
-type TabKey = 'basic' | 'recruiter' | 'admins' | 'opinio' | 'logo' | 'genres' | 'publish';
+type TabKey = 'basic' | 'recruiter' | 'admins' | 'opinio' | 'logo' | 'genres' | 'publish' | 'tools';
 
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
 
@@ -94,7 +98,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, allGenres, companyGenres, admins: initialAdmins }: Props) {
+export function CompanyDetailClient({ company, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -334,6 +338,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
     { key: 'logo', label: 'ロゴ' },
     { key: 'genres', label: 'ジャンル' },
     { key: 'publish', label: '公開設定' },
+    { key: 'tools', label: 'ツール' },
   ];
 
   // ── 入力スタイル ──────────────────────────────────────────────────────
@@ -903,6 +908,15 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
             </div>
           </div>
         </section>
+      )}
+
+      {/* ── ツールタブ ───────────────────────────────────────────────────── */}
+      {activeTab === 'tools' && (
+        <CompanyToolsTab
+          companyId={company.id}
+          initialTools={companyTools}
+          allMasters={allToolMasters}
+        />
       )}
 
       {/* ── 保存ボタン（sticky） ──────────────────────────────────────────── */}

@@ -14,7 +14,7 @@ import {
   getCompanyTools,
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
-import { TOOL_CATEGORY_LABELS, TOOL_CATEGORY_ORDER, getToolCategoryLabel } from "@/lib/utils/toolCfg";
+import { TOOL_CATEGORY_ORDER, getToolCategoryLabel } from "@/lib/utils/toolCfg";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SALARY_STATS_MIN } from "@/lib/constants/salary";
 import { getStageCfg } from "@/lib/utils/stageCfg";
