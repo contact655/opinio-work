@@ -4,8 +4,12 @@ import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
-function str(v: unknown, max: number): string | null {
-  return typeof v === "string" ? v.slice(0, max) || null : null;
+function str(v: unknown, max: number): string | undefined {
+  return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
+}
+
+function strArr(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
 }
 
 function parseSalary(body: Record<string, unknown>): { salaryMin: number | null; salaryMax: number | null } | { error: string } {
@@ -20,7 +24,7 @@ function parseSalary(body: Record<string, unknown>): { salaryMin: number | null;
 function buildJobRecord(body: Record<string, unknown>, companyId: string, salaryMin: number | null, salaryMax: number | null) {
   return {
     company_id: companyId,
-    title: str(body.title, 200),
+    title: str(body.title, 200) ?? "",
     employment_type: str(body.employmentType, 50),
     job_category: str(body.jobCategory, 100),
     department: str(body.department, 100),
@@ -32,20 +36,20 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     probation_period: str(body.probationPeriod, 100),
     description_markdown: str(body.descriptionMarkdown, 50000),
     message_to_candidates: str(body.messageToCandidates, 2000),
-    required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills : [],
-    preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills : [],
+    required_skills: strArr(body.requiredSkills),
+    preferred_skills: strArr(body.preferredSkills),
     culture_fit: str(body.cultureFit, 2000),
-    selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps : [],
+    selection_steps: strArr(body.selectionSteps),
     selection_duration: str(body.selectionDuration, 100),
     start_date_preference: str(body.startDatePreference, 100),
-    business_model: str(body.businessModel, 50) || null,
+    business_model: str(body.businessModel, 50) ?? null,
     // セールス職専用項目 (Migration 212)
     ote_min: body.oteMin ? parseInt(String(body.oteMin)) || null : null,
     ote_max: body.oteMax ? parseInt(String(body.oteMax)) || null : null,
-    sales_segment: Array.isArray(body.salesSegment) ? (body.salesSegment as string[]).filter((s) => typeof s === "string").slice(0, 3) : null,
-    sales_hunter_farmer: str(body.salesHunterFarmer, 20) || null,
-    incentive_note: str(body.incentiveNote, 1000) || null,
-    tech_stack: Array.isArray(body.techStack) ? (body.techStack as string[]).filter((s) => typeof s === "string").slice(0, 40) : [],
+    sales_segment: strArr(body.salesSegment).slice(0, 3),
+    sales_hunter_farmer: str(body.salesHunterFarmer, 20) ?? null,
+    incentive_note: str(body.incentiveNote, 1000) ?? null,
+    tech_stack: strArr(body.techStack).slice(0, 40),
     status: "draft",
     updated_at: new Date().toISOString(),
   };
@@ -167,7 +171,7 @@ export async function POST(req: Request) {
       .select("user_id")
       .eq("company_id", ctx.companyId)
       .in("user_id", assigneeIds);
-    const validIds = new Set((validMembers ?? []).map((m: { user_id: string }) => m.user_id));
+    const validIds = new Set((validMembers ?? []).filter((m): m is { user_id: string } => m.user_id != null).map((m) => m.user_id));
     const safeAssignees = assigneeIds.filter((uid) => validIds.has(uid));
     if (safeAssignees.length > 0) {
       await supabase.from("ow_job_assignees").insert(

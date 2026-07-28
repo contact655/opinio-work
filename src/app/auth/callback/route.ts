@@ -35,7 +35,7 @@ export async function GET(request: Request) {
           "ユーザー";
         await supabase.from("ow_users").insert({
           auth_id: session.user.id,
-          email: session.user.email,
+          email: session.user.email ?? "",
           name: rawName.slice(0, 100),
           visibility: "public",
         });

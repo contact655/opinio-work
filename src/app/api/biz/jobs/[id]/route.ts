@@ -8,8 +8,8 @@ import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
-function str(v: unknown, max: number): string | null {
-  return typeof v === "string" ? v.slice(0, max) || null : null;
+function str(v: unknown, max: number): string | undefined {
+  return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
 }
 
 const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
@@ -103,7 +103,7 @@ export async function PUT(
       .select("user_id")
       .eq("company_id", ctx0.companyId)
       .in("user_id", assigneeIds);
-    const validIds = new Set((validMembers ?? []).map((m: { user_id: string }) => m.user_id));
+    const validIds = new Set((validMembers ?? []).filter((m): m is { user_id: string } => m.user_id != null).map((m) => m.user_id));
     const safeAssigneeIds = assigneeIds.filter((uid: string) => validIds.has(uid));
     if (safeAssigneeIds.length > 0) {
       await supabase
@@ -188,7 +188,7 @@ export async function PATCH(
   }
 
   const now = new Date().toISOString();
-  const patch: Record<string, string | null> = { status: newStatus, updated_at: now };
+  const patch: { status: string; updated_at: string; submitted_at?: string | null } = { status: newStatus, updated_at: now };
 
   // When submitting for review, record submission time if column exists
   if (newStatus === "pending_review") {
