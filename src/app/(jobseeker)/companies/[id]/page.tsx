@@ -841,7 +841,7 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
-function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; company: Company }) {
+function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
 
   if (!hasProducts) return null;
@@ -932,21 +932,6 @@ function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; co
           </div>
         )}
 
-        {/* ⑥ 求人 CTA */}
-        {company.job_count > 0 && (
-          <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-4)", marginTop: "var(--space-2)" }}>
-            <Link href={`/companies/${company.id}/jobs`} style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-              background: "#FEF3C7", color: "#92400E",
-              border: "1px solid #FDE68A",
-              textDecoration: "none",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
-              この企業の求人を見る（{company.job_count}件）→
-            </Link>
-          </div>
-        )}
 
       </div>
     </section>
@@ -3225,7 +3210,7 @@ export default async function CompanyDetailPage({
             {/* 2. 事業（biz-model → market → products-clients） */}
             <BizModelSection detail={detail} />
             <MarketSection detail={detail} />
-            <ProductsClientsSection detail={detail} company={company} />
+            <ProductsClientsSection detail={detail} />
 
             {/* 3. 求人 → 給与データ */}
             <JobsSection company={company} detail={detail} />
