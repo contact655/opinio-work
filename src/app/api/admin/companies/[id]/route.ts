@@ -70,7 +70,7 @@ export async function PUT(
 
   const ENUM_FIELDS: Record<string, Set<string>> = {
     status: new Set(["active", "inactive", "pending", "suspended"]),
-    remote_work_status: new Set(["remote", "hybrid", "on_site", "flexible"]),
+    remote_work_status: new Set(["full_remote", "hybrid", "on_site", "other"]),
   };
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };

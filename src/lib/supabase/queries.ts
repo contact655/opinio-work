@@ -335,6 +335,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     branchLocations: Array.isArray(row.branch_locations) && (row.branch_locations as string[]).length > 0
       ? (row.branch_locations as string[])
       : null,
+    remoteWorkStatus: (row.remote_work_status as string | null) ?? null,
   };
 }
 
@@ -1067,6 +1068,7 @@ export type CompanyEmployee = {
   // === OB/OG: 退職後の現在のキャリア ===
   currentRoleTitle: string | null;
   currentCompanyName: string | null;
+  currentCompanyBrandName: string | null;
   // === Session 9: 一言コメント ===
   catchphrase: string | null;
   // ページ側でログイン状態によるフィルタに使用
@@ -1159,8 +1161,9 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       roleParentId: (role?.parent_id as string | null) ?? null,
       roleParentName: (parent?.name as string | null) ?? null,
       canCasualMeeting: (u?.can_casual_meeting as boolean) ?? false,
-      currentRoleTitle: null,   // 退職後キャリア: 後で補完
-      currentCompanyName: null, // 退職後キャリア: 後で補完
+      currentRoleTitle: null,        // 退職後キャリア: 後で補完
+      currentCompanyName: null,      // 退職後キャリア: 後で補完
+      currentCompanyBrandName: null, // 退職後キャリア: 後で補完
       catchphrase: (u?.catchphrase as string | null) ?? null,
       visibility: ((u?.visibility as string | null) === "login_only" ? "login_only" : "public") as "public" | "login_only",
     };
@@ -1195,13 +1198,13 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     const alumniUserIds = alumniEmps.map((e) => e.userId);
     const { data: currentExpRows } = await supabase
       .from("ow_experiences")
-      .select("user_id, role_title, company_text, ow_companies(name)")
+      .select("user_id, role_title, company_text, ow_companies(name, brand_name)")
       .in("user_id", alumniUserIds)
       .eq("is_current", true);
 
     if (currentExpRows) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nextMap = new Map<string, { roleTitle: string | null; companyName: string | null }>();
+      const nextMap = new Map<string, { roleTitle: string | null; companyName: string | null; companyBrandName: string | null }>();
       for (const row of currentExpRows) {
         const uid = row.user_id as string;
         if (!nextMap.has(uid)) {
@@ -1210,6 +1213,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
           nextMap.set(uid, {
             roleTitle: (row.role_title as string | null) ?? null,
             companyName: (co?.name as string | null) ?? (row.company_text as string | null) ?? null,
+            companyBrandName: (co?.brand_name as string | null) ?? null,
           });
         }
       }
@@ -1218,6 +1222,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
         if (next) {
           emp.currentRoleTitle = next.roleTitle;
           emp.currentCompanyName = next.companyName;
+          emp.currentCompanyBrandName = next.companyBrandName;
         }
       }
     }

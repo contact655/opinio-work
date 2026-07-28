@@ -146,6 +146,7 @@ export type CompanyDetail = {
   // ⑧ 拠点・勤務地
   headquartersAddress?: string | null;
   branchLocations?: string[] | null;
+  remoteWorkStatus?: string | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
   // Org teams

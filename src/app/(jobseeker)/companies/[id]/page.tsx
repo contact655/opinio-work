@@ -1021,7 +1021,12 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
       }}
     >
       <SubSectionHeading>ツール</SubSectionHeading>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <style>{`
+        .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        @media (max-width: 1023px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 767px) { .tools-grid { grid-template-columns: 1fr; } }
+      `}</style>
+      <div className="tools-grid">
         {orderedCategories.map((cat) => {
           const label = getToolCategoryLabel(cat);
           if (!label) return null;
@@ -1237,10 +1242,10 @@ function EmployeeCardInner({
           )}
           {badge}
         </div>
-        {/* 2行目: 部門 > 職種 */}
-        {(employee.roleParentName || employee.roleTitle) && (
+        {/* 2行目: 職種のみ（部署階層は表示しない） */}
+        {employee.roleTitle && (
           <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {[employee.roleParentName, employee.roleTitle].filter(Boolean).join(" › ")}
+            {employee.roleTitle}
           </p>
         )}
         {/* 追加情報（在籍期間など） */}
@@ -1682,9 +1687,10 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
     </>
   );
 
-  const subInfo = employee.currentCompanyName ? (
+  const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
+  const subInfo = currentDisplayName ? (
     <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-      現在: {employee.currentCompanyName}{employee.currentRoleTitle ? ` · ${employee.currentRoleTitle}` : ""}
+      現在: {currentDisplayName}{employee.currentRoleTitle ? ` / ${employee.currentRoleTitle}` : ""}
     </p>
   ) : undefined;
 
@@ -2961,9 +2967,10 @@ function Sidebar({
               ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
               ...(detail.parentCompanyName ? [{ key: "本社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), subText: detail.capitalNotes ?? undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
               { key: "従業員数", value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名"; })() : "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-              ...(detail.globalEmployeeCount ? [{ key: "G従業員数", value: detail.globalEmployeeCount, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
+              ...(detail.globalEmployeeCount ? [{ key: "従業員数（世界）", value: detail.globalEmployeeCount, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
               { key: "所在地", value: detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
               ...(detail.branchLocations?.length ? [{ key: "拠点", value: detail.branchLocations.join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> }] : []),
+              ...(detail.remoteWorkStatus ? [{ key: "リモート状況", value: ({ full_remote: "フルリモート", hybrid: "ハイブリッド", on_site: "フル出社", other: "その他" } as Record<string, string>)[detail.remoteWorkStatus] ?? detail.remoteWorkStatus, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> }] : []),
               ...(detail.nearestStation ? [{ key: "最寄り駅", value: detail.nearestStation, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M9 4v16"/><path d="M15 4v16"/></svg> }] : []),
               { key: "設立", value: detail.established, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
               { key: "代表者", value: detail.ceo, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
