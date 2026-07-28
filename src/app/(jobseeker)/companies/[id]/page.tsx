@@ -14,6 +14,7 @@ import {
 } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SALARY_STATS_MIN } from "@/lib/constants/salary";
+import { getStageCfg } from "@/lib/utils/stageCfg";
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -267,26 +268,19 @@ function Hero({
                       {g.name}
                     </span>
                   ))}
-                  {company.phase && (() => {
-                    const phaseStyle: Record<string, { bg: string; color: string; border: string }> = {
-                      "上場": { bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" },
-                      "IPO準備": { bg: "#FFF7ED", color: "#C2410C", border: "#FDBA74" },
-                      "シリーズC": { bg: "#F3E8FF", color: "#6D28D9", border: "#DDD6FE" },
-                      "シリーズB": { bg: "#EFF6FF", color: "#1D4ED8", border: "#BFDBFE" },
-                      "シリーズA": { bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0" },
-                      "シード": { bg: "#F1F5F9", color: "#475569", border: "#CBD5E1" },
-                    };
-                    const s = phaseStyle[company.phase] ?? { bg: "#F1F5F9", color: "#475569", border: "#CBD5E1" };
+                  {(() => {
+                    const sc = getStageCfg(company.phase);
+                    if (!sc) return null;
                     return (
                       <span style={{
                         display: "inline-flex", alignItems: "center",
                         padding: "var(--space-1) var(--space-2)", borderRadius: 999,
-                        fontSize: "var(--text-xs)", fontWeight: 700,
-                        background: s.bg, color: s.color,
-                        border: `1px solid ${s.border}`,
+                        fontSize: "var(--text-xs)", fontWeight: sc.fontWeight ?? 700,
+                        background: sc.bg, color: sc.color,
+                        border: `1px solid ${sc.border}`,
                         letterSpacing: "0.02em",
                       }}>
-                        {company.phase}
+                        {sc.label}
                       </span>
                     );
                   })()}
@@ -3148,8 +3142,9 @@ export default async function CompanyDetailPage({
       .from("ow_posts")
       .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
       .or(orParts.join(","))
+      .neq("post_type", "company_joined")
       .order("created_at", { ascending: false })
-      .limit(6),
+      .limit(50),
     owUserId
       ? supabase.from("ow_bookmarks").select("id").eq("user_id", owUserId).eq("target_type", "company").eq("target_id", companyId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -3161,6 +3156,26 @@ export default async function CompanyDetailPage({
   const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
   const initialBookmarked = !!bmarkResult.data;
   const initialFollowed = !!followResult.data;
+
+  // Group posts by (YYYY-MM-DD, post_type) for 更新情報 display
+  type ActivityGroup = { date: string; dateLabel: string; post_type: string; posts: ActivityPost[] };
+  const allActivityGroups: ActivityGroup[] = (() => {
+    const map = new Map<string, ActivityPost[]>();
+    for (const post of activityPosts) {
+      const dateKey = post.created_at.slice(0, 10);
+      const key = `${dateKey}__${post.post_type}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(post);
+    }
+    const groups: ActivityGroup[] = Array.from(map.entries()).map(([key, posts]) => {
+      const dateKey = key.split("__")[0];
+      const dateLabel = new Date(dateKey + "T00:00:00").toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+      return { date: dateKey, dateLabel, post_type: posts[0].post_type, posts };
+    });
+    return groups.sort((a, b) => b.date.localeCompare(a.date));
+  })();
+  const activityGroups = allActivityGroups.slice(0, 5);
+  const hasMoreActivity = allActivityGroups.length > 5;
 
   return (
     <>
@@ -3265,34 +3280,57 @@ export default async function CompanyDetailPage({
             <CompanyPostsSection posts={companyPosts} />
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
-            {/* ── この企業の最近の動き ── */}
-            {activityPosts.length > 0 && (
+            {/* ── 更新情報 ── */}
+            {activityGroups.length > 0 && (
               <div id="activity" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
                     ACTIVITY
                   </div>
                   <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-                    この企業の最近の動き
+                    更新情報
                   </h2>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  {activityPosts.slice(0, 5).map((post, idx) => {
-                    const isLast = idx === Math.min(4, activityPosts.length - 1);
-                    const date = new Date(post.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-                    const icon = post.post_type === "company_joined" ? "🏢"
-                      : post.post_type === "job_posted" ? "💼"
-                      : post.post_type === "article_published" ? "📝"
+                  {activityGroups.map((group, idx) => {
+                    const isLast = idx === activityGroups.length - 1;
+                    const { dateLabel, post_type, posts } = group;
+                    const isAggregated = posts.length > 1;
+                    const icon = post_type === "job_posted" ? "💼"
+                      : post_type === "article_published" ? "📝"
                       : "💬";
-                    const href = post.post_type === "job_posted" && post.ref_job_id
-                      ? `/jobs/${post.ref_job_id}`
-                      : post.post_type === "article_published" && post.ow_articles?.slug
-                      ? `/articles/${post.ow_articles.slug}`
-                      : post.post_type === "company_joined"
-                      ? `/companies/${companySlug ?? companyId}`
-                      : null;
+
+                    let text: string;
+                    let href: string | null;
+                    if (isAggregated) {
+                      if (post_type === "job_posted") {
+                        text = `求人を ${posts.length} 件追加しました`;
+                        href = "#jobs";
+                      } else if (post_type === "article_published") {
+                        text = `記事を ${posts.length} 件公開しました`;
+                        href = "#articles";
+                      } else {
+                        text = `投稿を ${posts.length} 件しました`;
+                        href = null;
+                      }
+                    } else {
+                      const post = posts[0];
+                      if (post_type === "job_posted") {
+                        const title = post.ow_jobs?.title;
+                        text = title ? `求人「${title}」の募集を開始しました` : post.content;
+                        href = post.ref_job_id ? `/jobs/${post.ref_job_id}` : "#jobs";
+                      } else if (post_type === "article_published") {
+                        const title = post.ow_articles?.title;
+                        text = title ? `記事「${title}」を公開しました` : post.content;
+                        href = post.ow_articles?.slug ? `/articles/${post.ow_articles.slug}` : "#articles";
+                      } else {
+                        text = post.content;
+                        href = null;
+                      }
+                    }
+
                     return (
-                      <div key={post.id} style={{
+                      <div key={`${group.date}__${post_type}`} style={{
                         display: "flex", gap: 14, paddingBottom: isLast ? 0 : 16,
                         marginBottom: isLast ? 0 : 16,
                         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
@@ -3306,21 +3344,21 @@ export default async function CompanyDetailPage({
                           {icon}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{date}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{dateLabel}</div>
                           {href ? (
                             <Link href={href} style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, textDecoration: "none", lineHeight: 1.5, display: "block" }}
                               className="hover:underline">
-                              {post.content}
+                              {text}
                             </Link>
                           ) : (
-                            <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.5 }}>{post.content}</div>
+                            <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.5 }}>{text}</div>
                           )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                {activityPosts.length > 5 && (
+                {hasMoreActivity && (
                   <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-soft)", textAlign: "center" }}>
                     <Link href="/feed" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
                       フィードをすべて見る →
