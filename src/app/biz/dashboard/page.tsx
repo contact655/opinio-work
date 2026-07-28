@@ -83,7 +83,7 @@ export default async function BizDashboardPage({
       const tid = ctx.tenantId;
       const [companyFields, photoCnt, storyCnt, toolCnt, salaryCnt] = await Promise.all([
         adminSupabase.from("ow_companies").select(
-          "culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams"
+          "description, culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams"
         ).eq("id", tid).maybeSingle(),
         adminSupabase.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", tid),
         adminSupabase.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_published", true),
@@ -102,7 +102,7 @@ export default async function BizDashboardPage({
 
   const disclosureScore = companyRaw ? calcDisclosureScore({
     tagline: companyRaw.tagline,
-    description: companyRaw.descriptionMarkdown,
+    description: scoreData.fields?.description ?? null,
     photoCount: scoreData.photoCount,
     benefitsCount: companyRaw.benefitsTags.length,
     hasPublishedJob: (jobStatusCounts.active ?? 0) > 0,

@@ -62,7 +62,7 @@ export default async function BizCompanyPage() {
     adminClient.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("status", "published"),
     adminClient.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("is_published", true),
     // 取材項目スコア用フィールドを一括取得
-    adminClient.from("ow_companies").select("culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams").eq("id", ctx.tenantId).maybeSingle(),
+    adminClient.from("ow_companies").select("description, culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams").eq("id", ctx.tenantId).maybeSingle(),
   ]);
 
   if (!companyRaw) redirect("/biz/dashboard");
@@ -121,6 +121,7 @@ export default async function BizCompanyPage() {
       initialPublishedJobCount={jobCntResult.count ?? 0}
       initialPublishedStoryCount={storyCntResult.count ?? 0}
       initialInterviewScore={interviewScore}
+      initialDescription={iFields?.description ?? null}
     />
   );
 }

@@ -52,6 +52,7 @@ type Props = {
   initialPublishedJobCount?: number;
   initialPublishedStoryCount?: number;
   initialInterviewScore?: number;
+  initialDescription?: string | null;
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -377,6 +378,7 @@ export function CompanyEditClient({
   initialPublishedJobCount = 0,
   initialPublishedStoryCount = 0,
   initialInterviewScore = 0,
+  initialDescription = null,
 }: Props) {
   const router = useRouter();
 
@@ -588,12 +590,12 @@ export function CompanyEditClient({
   // ── 開示スコア計算 ─────────────────────────────────────────────────────────
   const disclosureScore = useMemo(() => calcDisclosureScore({
     tagline: form.tagline,
-    description: form.descriptionMarkdown,
+    description: initialDescription,
     photoCount: photos.length,
     benefitsCount: form.benefitsTags.length,
     hasPublishedJob: initialPublishedJobCount > 0,
     hasPublishedStory: initialPublishedStoryCount > 0,
-  }), [form.tagline, form.descriptionMarkdown, photos.length, form.benefitsTags.length, initialPublishedJobCount, initialPublishedStoryCount]);
+  }), [form.tagline, initialDescription, photos.length, form.benefitsTags.length, initialPublishedJobCount, initialPublishedStoryCount]);
 
   const subNavSections: CompanySubNavSection[] = COMPANY_SECTIONS.map((s) => ({
     ...s,
