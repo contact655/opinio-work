@@ -14,7 +14,8 @@ import {
   getCompanyTools,
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
-import { TOOL_CATEGORY_ORDER, getToolCategoryLabel } from "@/lib/utils/toolCfg";
+import { InfoCard } from "./InfoCard";
+import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SALARY_STATS_MIN } from "@/lib/constants/salary";
 import { getStageCfg } from "@/lib/utils/stageCfg";
@@ -837,15 +838,6 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
 
 // ─── Benefits Section ─────────────────────────────────────────────────────────
 
-function SubSectionHeading({ children, note }: { children: React.ReactNode; note?: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>{children}</h3>
-      {note && <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{note}</span>}
-      <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-    </div>
-  );
-}
 
 function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
@@ -942,27 +934,14 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
             {detail.benefits.map((b) => {
               const def = getBenefitIconDef(b);
               return (
-                <div
+                <InfoCard
                   key={b}
-                  style={{
-                    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8,
-                    padding: "14px 14px",
-                    background: def.bg, border: `1px solid ${def.border}`,
-                    borderRadius: 12,
-                  }}
-                >
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 8,
-                    background: "#fff", border: `1px solid ${def.border}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: def.color, flexShrink: 0,
-                  }}>
-                    <span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>
-                  </div>
-                  <span style={{ fontSize: 12, color: def.color, fontWeight: 700, lineHeight: 1.4 }}>
-                    {b}
-                  </span>
-                </div>
+                  icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
+                  label={b}
+                  color={def.color}
+                  bg={def.bg}
+                  border={def.border}
+                />
               );
             })}
           </div>
@@ -993,76 +972,34 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
 function ToolsSection({ tools }: { tools: CompanyTool[] }) {
   if (tools.length === 0) return null;
 
-  // カテゴリ別にグループ化
-  const grouped = new Map<string, CompanyTool[]>();
-  for (const tool of tools) {
-    const list = grouped.get(tool.category) ?? [];
-    list.push(tool);
-    grouped.set(tool.category, list);
-  }
-
-  // 各カテゴリ内をマスタ sort_order → 企業 sort_order の順でソート
-  Array.from(grouped.values()).forEach((list) => {
-    list.sort((a: CompanyTool, b: CompanyTool) => a.master_sort_order - b.master_sort_order || a.sort_order - b.sort_order);
-  });
-
-  // カテゴリ表示順
-  const orderedCategories = TOOL_CATEGORY_ORDER.filter((cat) => grouped.has(cat));
-
   return (
     <section
       id="tools"
       style={{
         background: "#fff",
         border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "28px 28px 24px",
+        borderRadius: 18,
+        overflow: "hidden",
         marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
-      <SubSectionHeading>ツール</SubSectionHeading>
-      <style>{`
-        .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        @media (max-width: 1023px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 767px) { .tools-grid { grid-template-columns: 1fr; } }
-      `}</style>
-      <div className="tools-grid">
-        {orderedCategories.map((cat) => {
-          const label = getToolCategoryLabel(cat);
-          if (!label) return null;
-          const items = grouped.get(cat)!;
-          return (
-            <div key={cat}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
-                {label}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-                {items.map((tool) => (
-                  <div
-                    key={tool.id}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      background: "var(--line-soft)",
-                      border: "1px solid var(--line)",
-                      borderRadius: 100,
-                      padding: "4px 12px",
-                      fontSize: 12, fontWeight: 600,
-                      color: "var(--ink)",
-                      whiteSpace: "nowrap" as const,
-                    }}
-                  >
-                    {tool.name}
-                    {tool.note && (
-                      <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>
-                        {tool.note}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div style={{
+        padding: "var(--space-6) 32px var(--space-4)",
+        borderBottom: "1px solid var(--line-soft)",
+      }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          }
+        >
+          ツール
+        </SecTitle>
+      </div>
+      <div style={{ padding: "var(--space-6)" }}>
+        <ToolsSectionClient tools={tools} />
       </div>
     </section>
   );
