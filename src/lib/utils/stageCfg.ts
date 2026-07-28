@@ -36,6 +36,7 @@ export const STAGE_CONFIG: Record<string, StageCfgEntry> = {
   "外資系":           { label: "🌐 外資系",        color: "#3730A3", bg: "#E0E7FF", border: "#C7D2FE" },
   "foreign":          { label: "🌐 外資系",        color: "#3730A3", bg: "#E0E7FF", border: "#C7D2FE" },
   "非上場":           { label: "非上場",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "non_listed":       { label: "非上場",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
 };
 
 /**
