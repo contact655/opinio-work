@@ -58,7 +58,7 @@ export async function PATCH(
     }
 
     // UPDATE + 0-rows detection (Commit W/X lesson: RLS silent block)
-    const updatePayload: Record<string, string | null> = { status: body.value, updated_at: now };
+    const updatePayload: { status: string; updated_at: string; completed_at?: string } = { status: body.value, updated_at: now };
     if (body.value === "completed") updatePayload.completed_at = now;
     const { data: updated, error } = await supabase
       .from("ow_casual_meetings")

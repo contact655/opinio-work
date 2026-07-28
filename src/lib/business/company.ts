@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizCompany } from "./mockCompany";
+import type { Json } from "@/lib/supabase/types";
 
 export type DbCompany = {
   id: string;
@@ -144,7 +145,7 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
   };
 }
 
-export function transformFormToDb(form: BizCompany): Record<string, unknown> {
+export function transformFormToDb(form: BizCompany): { [key: string]: Json | undefined } {
   const avgAge = parseInt(form.avgAge.replace(/[^\d]/g, ""), 10);
   const paidLeave = parseInt(form.paidLeaveRate.replace(/[^\d]/g, ""), 10);
   return {

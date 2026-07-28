@@ -29,7 +29,11 @@ export async function PATCH(
     try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
     const body = await request.json();
-    const updates: Record<string, unknown> = {};
+    const updates: {
+      caption?: string | null;
+      display_order?: number;
+      tagged_user_id?: string | null;
+    } = {};
     if (typeof body.caption === "string") updates.caption = body.caption.slice(0, 500);
     if (typeof body.display_order === "number") {
       const ord = body.display_order;
@@ -38,7 +42,7 @@ export async function PATCH(
       }
     }
     if ('tagged_user_id' in body) {
-      updates.tagged_user_id = body.tagged_user_id ?? null; // allow null to clear
+      updates.tagged_user_id = typeof body.tagged_user_id === "string" ? body.tagged_user_id : null;
     }
 
     if (Object.keys(updates).length === 0) {

@@ -121,31 +121,45 @@ export async function PATCH(req: Request) {
     : [];
 
   // draft_data があれば本番カラムに展開。なければ is_published のみ更新
-  // ※ spread 後に is_published / published_at / updated_at / draft_data を上書きする順序に注意
-  // ※ genres は ow_companies カラムに存在しない（関係テーブル管理）ため、spread 前に除去
-  const draft = (draftData ?? {}) as Record<string, unknown>;
-  const ALLOWED_COMPANY_COLS = [
-    "tagline", "description", "mission", "culture", "benefits",
-    "avg_salary", "avg_age", "female_ratio", "fit_positives", "fit_negatives", "why_join",
-    "remote_work_status", "flex_time", "side_job_ok", "accepting_casual_meetings",
-    "location", "url", "founded_year", "employee_count", "industry", "industry_id", "saas_category_id", "phase",
-    "logo_url", "logo_gradient", "logo_letter",
-  ];
-  const allowedPayload: Record<string, unknown> = {};
-  for (const key of ALLOWED_COMPANY_COLS) {
-    if (key in draft) allowedPayload[key] = draft[key];
-  }
-  const updatePayload: Record<string, unknown> = {
-    ...allowedPayload,
-    is_published: body.isPublished,
-    published_at: body.isPublished ? now : undefined,
-    updated_at: now,
-    draft_data: null,
-  };
+  // ※ genres は ow_companies カラムに存在しない（関係テーブル管理）ため除外
+  const d = (draftData ?? {}) as Record<string, unknown>;
+  const s = (v: unknown): string | null => typeof v === "string" ? v : null;
+  const n = (v: unknown): number | null => typeof v === "number" ? v : null;
+  const sa = (v: unknown): string[] | null => Array.isArray(v) ? v as string[] : null;
 
   const { error } = await supabase
     .from("ow_companies")
-    .update(updatePayload)
+    .update({
+      tagline:                  s(d.tagline),
+      description:              s(d.description),
+      mission:                  s(d.mission),
+      benefits:                 sa(d.benefits),
+      avg_salary:               s(d.avg_salary),
+      avg_age:                  n(d.avg_age),
+      female_ratio:             s(d.female_ratio),
+      fit_positives:            sa(d.fit_positives),
+      fit_negatives:            sa(d.fit_negatives),
+      why_join:                 s(d.why_join),
+      remote_work_status:       s(d.remote_work_status),
+      flex_time:                typeof d.flex_time === "boolean" ? d.flex_time : undefined,
+      side_job_ok:              typeof d.side_job_ok === "boolean" ? d.side_job_ok : undefined,
+      accepting_casual_meetings: typeof d.accepting_casual_meetings === "boolean" ? d.accepting_casual_meetings : undefined,
+      location:                 s(d.location),
+      url:                      s(d.url),
+      founded_year:             n(d.founded_year),
+      employee_count:           s(d.employee_count),
+      industry:                 s(d.industry),
+      industry_id:              s(d.industry_id),
+      saas_category_id:         s(d.saas_category_id),
+      phase:                    s(d.phase),
+      logo_url:                 s(d.logo_url),
+      logo_gradient:            s(d.logo_gradient),
+      logo_letter:              s(d.logo_letter),
+      is_published:             body.isPublished ?? false,
+      published_at:             body.isPublished ? now : null,
+      updated_at:               now,
+      draft_data:               null,
+    })
     .eq("id", companyId);
 
   if (error) {

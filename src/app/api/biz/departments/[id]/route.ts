@@ -7,9 +7,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const patch: Record<string, unknown> = {};
-  if (body.name !== undefined) patch.name = body.name.trim();
-  if (body.display_order !== undefined) patch.display_order = body.display_order;
+  const patch: { name?: string; display_order?: number } = {};
+  if (body.name !== undefined) patch.name = String(body.name).trim();
+  if (body.display_order !== undefined) patch.display_order = Number(body.display_order);
 
   const supabase = createClient();
   const { error } = await supabase

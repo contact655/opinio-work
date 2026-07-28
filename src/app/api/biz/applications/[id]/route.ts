@@ -74,7 +74,12 @@ export async function PATCH(
   }
 
   // ── UPDATE + 0-rows detection (Commit W lesson: RLS silent block) ─────────
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: {
+    status: string;
+    updated_at: string;
+    hired_confirmed_at?: string | null;
+    hired_salary?: number | null;
+  } = {
     status: newStatus,
     updated_at: new Date().toISOString(),
   };
