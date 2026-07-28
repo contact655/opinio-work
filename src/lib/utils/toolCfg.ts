@@ -17,10 +17,10 @@
 //   TOOL_CATEGORY_LABELS にも追加しないと型エラーになる。
 //   両方を同時に更新すること。
 
-// CHECK制約と同じ9値。追加時はここに足してから TOOL_CATEGORY_LABELS にも足す。
+// CHECK制約と同じ10値。追加時はここに足してから TOOL_CATEGORY_LABELS にも足す。
 const CHECK_CONSTRAINT_VALUES = [
   "calendar", "email", "crm", "sales", "marketing",
-  "communication", "data", "dev", "other",
+  "communication", "data", "dev", "ai", "other",
 ] as const;
 
 type CategorySlug = typeof CHECK_CONSTRAINT_VALUES[number];
@@ -35,10 +35,11 @@ export const TOOL_CATEGORY_LABELS: Record<CategorySlug, string> = {
   communication: "コミュニケーション",
   data:          "データ分析",
   dev:           "開発",
+  ai:            "AI",
   other:         "その他",
 };
 
-// 表示順（CHECK制約9値と対応）
+// 表示順（CHECK制約10値と対応）
 export const TOOL_CATEGORY_ORDER: string[] = [...CHECK_CONSTRAINT_VALUES];
 
 // マッピングに無い値は非表示（スラッグが露出しないよう undefined を返す）
