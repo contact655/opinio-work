@@ -557,9 +557,9 @@ function AboutSection({
         {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
 
-        {/* ① 会社概要 — 全幅 */}
+        {/* ① 会社概要 */}
         {detail.about && (
-          <div style={{ marginBottom: "var(--space-6)" }}>
+          <div style={{ marginBottom: detail.culture_description ? "var(--space-4)" : "var(--space-6)" }}>
             {detail.about.split("\n").filter(line => line.trim()).map((line, i) => (
               <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
                 {line.trim()}
@@ -568,94 +568,11 @@ function AboutSection({
           </div>
         )}
 
-        {/* ② WHY JOIN */}
-        {detail.why_join && (
-          <div style={{ paddingTop: 4 }}>
-            {/* サブセクション見出し */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
-                この会社の魅力
-              </h3>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-            {/* 本文: 「。」区切りでポイント表示 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {detail.why_join.split(/。(?!\s*$)/).filter(s => s.trim()).map((sentence, i) => (
-                <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <span style={{
-                    flexShrink: 0, width: 22, height: 22, borderRadius: "50%",
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    border: "1.5px solid var(--royal-100)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 800, fontFamily: "Inter",
-                    marginTop: 2,
-                  }}>{i + 1}</span>
-                  <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
-                    {sentence.trim().replace(/。$/, "")}。
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ③ CULTURE */}
+        {/* ② 組織文化の説明文（見出しなし、本文直後に統合） */}
         {detail.culture_description && (
-          <div style={{ marginTop: 28 }}>
-            {/* サブセクション見出し */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
-                組織文化・働く環境
-              </h3>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, flexShrink: 0 }}>
-                CULTURE
-              </span>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-            {/* キーワードを先に */}
-            {detail.culture_keywords && detail.culture_keywords.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-                {detail.culture_keywords.map((kw, i) => (
-                  <span key={i} style={{
-                    fontSize: 13, padding: "6px 14px", borderRadius: 100,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    border: "1px solid var(--royal-100)", fontWeight: 700,
-                    fontFamily: "var(--font-noto-sans)",
-                  }}>
-                    {kw}
-                  </span>
-                ))}
-              </div>
-            )}
-            {/* 説明テキスト */}
-            <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
-              {detail.culture_description}
-            </p>
-          </div>
-        )}
-
-        {/* ④ 会社の特徴・強み */}
-        {detail.company_features && detail.company_features.length > 0 && (
-          <div style={{ marginTop: 28 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>
-                会社の特徴・強み
-              </h3>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-              {detail.company_features.map((f, i) => (
-                <span key={i} style={{
-                  padding: "6px 14px", borderRadius: 8,
-                  background: "var(--bg-tint)", border: "1px solid var(--line)",
-                  fontSize: 13, fontWeight: 600, color: "var(--ink-soft)",
-                  fontFamily: "var(--font-noto-sans)",
-                }}>
-                  {f}
-                </span>
-              ))}
-            </div>
-          </div>
+          <p style={{ margin: 0, marginBottom: "var(--space-6)", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
+            {detail.culture_description}
+          </p>
         )}
 
       </div>
@@ -3286,18 +3203,12 @@ export default async function CompanyDetailPage({
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
-          { id: "about",            label: "企業概要" },
-          ...((detail.biz_model_types?.length || detail.biz_model_note) ? [{ id: "biz-model", label: "ビジネスモデル" }] : []),
-          ...(company.job_count > 0 ? [{ id: "jobs", label: "求人" }] : []),
-          ...(detail.benefits?.length ? [{ id: "benefits", label: "働く環境" }] : []),
-          ...(detail.orgTeams && detail.orgTeams.length > 0 ? [{ id: "org-teams", label: "組織" }] : []),
-          ...((detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "products-clients", label: "製品・顧客" }] : []),
-          ...((detail.market_customer_size?.length || detail.market_decision_maker || detail.market_note) ? [{ id: "market", label: "顧客・マーケット" }] : []),
-          ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
-          ...(companyPosts.length > 0 ? [{ id: "posts", label: "投稿" }] : []),
-          ...(companyArticles.length > 0 ? [{ id: "articles", label: "記事" }] : []),
-          ...(activityPosts.length > 0 ? [{ id: "activity", label: "最近の動き" }] : []),
-          ...(hasSalarySection ? [{ id: "salary", label: "給与データ" }] : []),
+          { id: "about", label: "企業概要" },
+          ...((detail.biz_model_types?.length || detail.biz_model_note || detail.market_customer_size?.length || detail.market_decision_maker || detail.market_note || detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "biz-model", label: "事業" }] : []),
+          ...(company.job_count > 0 || hasSalarySection ? [{ id: "jobs", label: "求人" }] : []),
+          ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) ? [{ id: "benefits", label: "働く環境" }] : []),
+          ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 || visibleCurrentEmps.some(e => e.catchphrase) ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
+          ...(companyPosts.length > 0 || companyArticles.length > 0 || activityPosts.length > 0 ? [{ id: "articles", label: "記事・更新情報" }] : []),
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -3311,16 +3222,17 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* ② ビジネスモデル */}
+            {/* 2. 事業（biz-model → market → products-clients） */}
             <BizModelSection detail={detail} />
+            <MarketSection detail={detail} />
+            <ProductsClientsSection detail={detail} company={company} />
 
-            {/* 3. 募集中の求人 */}
+            {/* 3. 求人 → 給与データ */}
             <JobsSection company={company} detail={detail} />
+            {hasSalarySection && <SalaryDataSection companyId={company.id} />}
 
-            {/* 4. 福利厚生 */}
+            {/* 4. 働く環境（benefits → org-teams） */}
             <BenefitsSection detail={detail} />
-
-
 
             {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (
@@ -3348,43 +3260,10 @@ export default async function CompanyDetailPage({
               </div>
             )}
 
-            {/* 4. 組織体制 */}
             <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
 
-            {/* ⑧ Mid-page CTA after OrgTeams */}
-            {company.job_count > 0 && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-                padding: "14px 20px", borderRadius: 12, marginBottom: "var(--space-6)",
-                background: "var(--royal-50)",
-                border: "1px solid var(--royal-100)",
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", lineHeight: 1.5 }}>
-                    組織体制を理解したら、求人で具体的なポジションを確認しましょう
-                  </div>
-                </div>
-                <a href="#jobs" style={{
-                  display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
-                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  background: "var(--royal)", color: "#fff",
-                  textDecoration: "none", whiteSpace: "nowrap",
-                }}>
-                  求人を見る（{company.job_count}件）
-                </a>
-              </div>
-            )}
-
-            {/* 5. 製品・顧客 */}
-            <ProductsClientsSection detail={detail} company={company} />
-
-            {/* ③ 顧客・マーケット */}
-            <MarketSection detail={detail} />
-
-            {/* 6. 社員の声（キャッチフレーズ） */}
+            {/* 5. 社員・OB/OG（voices → current-employees → alumni） */}
             <EmployeeVoicesSection employees={visibleCurrentEmps} />
-
-            {/* 7. 現役社員・OBOGプロフィール（面談OKバッジはカード内に統合） */}
             <CurrentEmployeesSection
               employees={visibleCurrentEmps}
               hiddenCount={hiddenCurrentCount}
@@ -3397,10 +3276,8 @@ export default async function CompanyDetailPage({
               <AlumniSection alumni={visibleAlumniEmps} hiddenCount={hiddenAlumniCount} totalCount={employees.alumni.length} />
             )}
 
-            {/* 8. 記事（OPINIO取材記事） */}
-            {/* 企業投稿 */}
+            {/* 6. 記事・更新情報（posts → articles → activity） */}
             <CompanyPostsSection posts={companyPosts} />
-
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
             {/* ── この企業の最近の動き ── */}
@@ -3467,9 +3344,6 @@ export default async function CompanyDetailPage({
                 )}
               </div>
             )}
-
-            {/* ── 給与データ（3件以上のときのみ） ── */}
-            {hasSalarySection && <SalaryDataSection companyId={company.id} />}
 
             {/* ── ページ末尾CTA ── */}
             {company.accepting_casual_meetings && (
