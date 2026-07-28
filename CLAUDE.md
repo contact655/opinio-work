@@ -13,6 +13,35 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## 開示充実度スコア 取材データの実態（2026-07-28 確認）
+
+87社中、取材由来データの充足状況（スコア計算に影響する項目）：
+
+| 項目 | 区分 | 件数/社数 |
+|---|---|---|
+| tagline | 企業入力 | 80/87 |
+| description（企業説明） | 企業入力 | 77/87 |
+| 福利厚生 | 企業入力 | 2/87 |
+| 求人あり | 企業入力 | 8社 |
+| 企業ストーリー | 企業入力 | 2社 |
+| オフィス写真 | 企業入力 | 1社 |
+| capital_type | 取材・機械投入 | 59/87（公開情報から機械投入） |
+| branch_locations | 取材・機械投入 | 28/87（公開情報から機械投入） |
+| culture_description | 取材 | 7/87 |
+| biz_model_types | 取材 | 1/87 |
+| market_customer_size | 取材 | 1/87 |
+| org_teams | 取材 | 1/87 |
+| ow_company_tools | 取材 | 1社 |
+| ow_salary_reports（3件以上） | 投稿 | 1社 |
+
+**実態: 取材由来のデータは実質 Salesforce Japan 1社分のみ。**
+capital_type / branch_locations は公開情報からの機械投入であり、取材データではない。
+
+スコア最高点は75点（Salesforce Japan）。
+取材が進めば第2区分（55pt）が伸び、分布が上方にシフトする。
+
+---
+
 ## ⚠️ dev / production 環境差異（2026-07-28 確立）
 
 `is_published` は development ではフィルタされない。
