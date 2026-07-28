@@ -2650,6 +2650,8 @@ export type Database = {
           brand_name: string | null
           business_model: string | null
           business_stage: string | null
+          capital_notes: string | null
+          capital_type: string | null
           careers_url: string | null
           casual_interview_url: string | null
           ceo_name: string | null
@@ -2682,6 +2684,7 @@ export type Database = {
           funding_stage: string | null
           funding_total: string | null
           gender_ratio: string | null
+          global_employee_count: string | null
           has_book_allowance: boolean | null
           has_health_support: boolean | null
           has_housing_allowance: boolean | null
@@ -2702,6 +2705,7 @@ export type Database = {
           is_published: boolean
           jobs_public: boolean
           linkedin_url: string | null
+          listed_exchange: string | null
           listing_status: Database["public"]["Enums"]["listing_status_enum"]
           location: string | null
           logo_gradient: string | null
@@ -2732,6 +2736,8 @@ export type Database = {
           opinio_comment: string | null
           org_teams: Json | null
           paid_leave_rate: number | null
+          parent_company_country: string | null
+          parent_company_name: string | null
           phase: string | null
           plan: string | null
           prev_career_note: string | null
@@ -2794,6 +2800,8 @@ export type Database = {
           brand_name?: string | null
           business_model?: string | null
           business_stage?: string | null
+          capital_notes?: string | null
+          capital_type?: string | null
           careers_url?: string | null
           casual_interview_url?: string | null
           ceo_name?: string | null
@@ -2826,6 +2834,7 @@ export type Database = {
           funding_stage?: string | null
           funding_total?: string | null
           gender_ratio?: string | null
+          global_employee_count?: string | null
           has_book_allowance?: boolean | null
           has_health_support?: boolean | null
           has_housing_allowance?: boolean | null
@@ -2846,6 +2855,7 @@ export type Database = {
           is_published?: boolean
           jobs_public?: boolean
           linkedin_url?: string | null
+          listed_exchange?: string | null
           listing_status?: Database["public"]["Enums"]["listing_status_enum"]
           location?: string | null
           logo_gradient?: string | null
@@ -2876,6 +2886,8 @@ export type Database = {
           opinio_comment?: string | null
           org_teams?: Json | null
           paid_leave_rate?: number | null
+          parent_company_country?: string | null
+          parent_company_name?: string | null
           phase?: string | null
           plan?: string | null
           prev_career_note?: string | null
@@ -2938,6 +2950,8 @@ export type Database = {
           brand_name?: string | null
           business_model?: string | null
           business_stage?: string | null
+          capital_notes?: string | null
+          capital_type?: string | null
           careers_url?: string | null
           casual_interview_url?: string | null
           ceo_name?: string | null
@@ -2970,6 +2984,7 @@ export type Database = {
           funding_stage?: string | null
           funding_total?: string | null
           gender_ratio?: string | null
+          global_employee_count?: string | null
           has_book_allowance?: boolean | null
           has_health_support?: boolean | null
           has_housing_allowance?: boolean | null
@@ -2990,6 +3005,7 @@ export type Database = {
           is_published?: boolean
           jobs_public?: boolean
           linkedin_url?: string | null
+          listed_exchange?: string | null
           listing_status?: Database["public"]["Enums"]["listing_status_enum"]
           location?: string | null
           logo_gradient?: string | null
@@ -3020,6 +3036,8 @@ export type Database = {
           opinio_comment?: string | null
           org_teams?: Json | null
           paid_leave_rate?: number | null
+          parent_company_country?: string | null
+          parent_company_name?: string | null
           phase?: string | null
           plan?: string | null
           prev_career_note?: string | null
