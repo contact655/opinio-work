@@ -151,7 +151,6 @@ type BasicInfo = {
   name: string;
   location: string;
   aboutMe: string;
-  strengthsFinder: string[];
 };
 
 type SettingsState = {
@@ -3090,7 +3089,6 @@ export default function ProfileEditClient({
     name:             owUser?.name      ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
-    strengthsFinder:  [],
   });
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
@@ -3101,7 +3099,6 @@ export default function ProfileEditClient({
     name:             owUser?.name      ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
-    strengthsFinder:  [],
   });
   const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
@@ -3438,178 +3435,6 @@ export default function ProfileEditClient({
                 rows={5}
                 ariaLabel="自己紹介"
               />
-            </FormSection>
-
-            {/* ── Section 3: StrengthsFinder ───────────────────────────────────── */}
-            <FormSection
-              title="StrengthsFinder TOP5"
-              desc="CliftonStrengths（ストレングスファインダー）の診断結果を登録すると、公開プロフィールのサイドバーに表示されます。"
-            >
-              {(() => {
-                const ALL_THEMES: { name: string; domain: string }[] = [
-                  // 実行力
-                  { name: "達成欲",   domain: "実行力" },
-                  { name: "アレンジ", domain: "実行力" },
-                  { name: "信念",     domain: "実行力" },
-                  { name: "公平性",   domain: "実行力" },
-                  { name: "慎重さ",   domain: "実行力" },
-                  { name: "規律性",   domain: "実行力" },
-                  { name: "集中力",   domain: "実行力" },
-                  { name: "責任感",   domain: "実行力" },
-                  { name: "回復志向", domain: "実行力" },
-                  // 影響力
-                  { name: "活発性",           domain: "影響力" },
-                  { name: "指揮",             domain: "影響力" },
-                  { name: "コミュニケーション", domain: "影響力" },
-                  { name: "競争性",           domain: "影響力" },
-                  { name: "最上志向",         domain: "影響力" },
-                  { name: "自己確信",         domain: "影響力" },
-                  { name: "自我",             domain: "影響力" },
-                  { name: "社交性",           domain: "影響力" },
-                  // 人間関係構築
-                  { name: "適応性",   domain: "関係構築" },
-                  { name: "つながり", domain: "関係構築" },
-                  { name: "成長促進", domain: "関係構築" },
-                  { name: "共感",     domain: "関係構築" },
-                  { name: "調和性",   domain: "関係構築" },
-                  { name: "包含",     domain: "関係構築" },
-                  { name: "個別化",   domain: "関係構築" },
-                  { name: "ポジティブ", domain: "関係構築" },
-                  { name: "親密性",   domain: "関係構築" },
-                  // 戦略的思考
-                  { name: "分析思考", domain: "戦略思考" },
-                  { name: "文脈",     domain: "戦略思考" },
-                  { name: "未来志向", domain: "戦略思考" },
-                  { name: "着想",     domain: "戦略思考" },
-                  { name: "収集心",   domain: "戦略思考" },
-                  { name: "内省",     domain: "戦略思考" },
-                  { name: "学習欲",   domain: "戦略思考" },
-                  { name: "戦略性",   domain: "戦略思考" },
-                ];
-
-                const DOMAIN_COLORS: Record<string, string> = {
-                  "実行力": "#7C3AED",
-                  "影響力": "#D97706",
-                  "関係構築": "var(--success)",
-                  "戦略思考": "var(--royal)",
-                };
-
-                const current = basicInfo.strengthsFinder;
-
-                const setStrength = (idx: number, val: string) => {
-                  setBasicInfo((prev) => {
-                    const next = [...prev.strengthsFinder];
-                    if (val === "") {
-                      next.splice(idx, 1);
-                    } else {
-                      next[idx] = val;
-                    }
-                    return { ...prev, strengthsFinder: next };
-                  });
-                };
-
-                const removeStrength = (idx: number) => {
-                  setBasicInfo((prev) => {
-                    const next = [...prev.strengthsFinder];
-                    next.splice(idx, 1);
-                    return { ...prev, strengthsFinder: next };
-                  });
-                };
-
-                const slots = Array.from({ length: Math.min(5, current.length + 1) });
-                if (slots.length < 5 && current.length < 5) slots.push(undefined);
-
-                return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                    {Array.from({ length: 5 }).map((_, idx) => {
-                      const val = current[idx] ?? "";
-                      const domain = ALL_THEMES.find(t => t.name === val)?.domain;
-                      const color = domain ? DOMAIN_COLORS[domain] : undefined;
-                      return (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                          {/* 順位バッジ */}
-                          <div style={{
-                            width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-                            background: val ? (color ?? "var(--royal)") : "var(--line)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 11, fontWeight: 700, color: val ? "#fff" : "var(--ink-mute)",
-                            fontFamily: "Inter, sans-serif", transition: "background 0.2s",
-                          }}>
-                            {idx + 1}
-                          </div>
-                          {/* ドロップダウン */}
-                          <select
-                            value={val}
-                            onChange={(e) => setStrength(idx, e.target.value)}
-                            style={{
-                              flex: 1,
-                              padding: "7px 10px", borderRadius: 7,
-                              border: `1.5px solid ${val ? (color ?? "var(--royal)") : "var(--line)"}`,
-                              fontSize: "var(--text-sm)", fontFamily: "inherit",
-                              color: val ? (color ?? "var(--ink)") : "var(--ink-mute)",
-                              fontWeight: val ? 600 : 400,
-                              background: "#fff",
-                              cursor: "pointer",
-                              outline: "none",
-                              transition: "border-color 0.15s",
-                            }}
-                          >
-                            <option value="">{idx === 0 ? "1位を選択…" : `${idx + 1}位を選択（任意）`}</option>
-                            <optgroup label="── 実行力 ──">
-                              {ALL_THEMES.filter(t => t.domain === "実行力").map(t => (
-                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="── 影響力 ──">
-                              {ALL_THEMES.filter(t => t.domain === "影響力").map(t => (
-                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="── 関係構築 ──">
-                              {ALL_THEMES.filter(t => t.domain === "関係構築").map(t => (
-                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="── 戦略的思考 ──">
-                              {ALL_THEMES.filter(t => t.domain === "戦略思考").map(t => (
-                                <option key={t.name} value={t.name} disabled={current.includes(t.name) && current[idx] !== t.name}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          </select>
-                          {/* 削除ボタン */}
-                          {val && (
-                            <button
-                              type="button"
-                              onClick={() => removeStrength(idx)}
-                              style={{
-                                width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-                                background: "var(--line)", border: "none",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                cursor: "pointer", fontSize: 13, color: "var(--ink-mute)",
-                                fontFamily: "inherit",
-                              }}
-                              title="削除"
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                    <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "4px 0 0", lineHeight: 1.6 }}>
-                      未受診の場合は空欄のままで OK。順位どおりに入力してください。
-                    </p>
-                  </div>
-                );
-              })()}
             </FormSection>
 
             {/* ── 保存・キャンセルボタン ────────────────────────────────────────── */}

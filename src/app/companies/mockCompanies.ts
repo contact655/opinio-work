@@ -1,6 +1,3 @@
-export type WorkStyle =
-  | "フルリモート" | "副業OK" | "フレックス" | "週4日勤務" | "時短勤務" | "裁量労働" | "ハイブリッド";
-
 export type CompanyGenre = {
   id: string;
   name: string;
@@ -16,7 +13,6 @@ export type Company = {
   industry: string;
   phase: string;
   employee_count: number;
-  work_styles: WorkStyle[];
   job_count: number;
   current_mentors: number;
   alumni_mentors: number;
@@ -53,7 +49,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "FinTech",
     phase: "Series C",
     employee_count: 450,
-    work_styles: ["フルリモート", "副業OK", "フレックス"],
+
     job_count: 12,
     current_mentors: 3,
     alumni_mentors: 5,
@@ -70,7 +66,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "HR Tech",
     phase: "Series E",
     employee_count: 980,
-    work_styles: ["フルリモート", "副業OK", "時短勤務"],
+
     job_count: 24,
     current_mentors: 5,
     alumni_mentors: 8,
@@ -87,7 +83,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "SaaS / 外資",
     phase: "上場 (NYSE)",
     employee_count: 120,
-    work_styles: ["フルリモート", "副業OK", "フレックス"],
+
     job_count: 8,
     current_mentors: 2,
     alumni_mentors: 4,
@@ -104,7 +100,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "SaaS / 外資",
     phase: "上場 (NYSE)",
     employee_count: 3000,
-    work_styles: ["ハイブリッド", "副業OK", "フレックス"],
+
     job_count: 31,
     current_mentors: 8,
     alumni_mentors: 14,
@@ -121,7 +117,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "HealthTech",
     phase: "Series D",
     employee_count: 380,
-    work_styles: ["フルリモート", "副業OK", "週4日勤務"],
+
     job_count: 16,
     current_mentors: 4,
     alumni_mentors: 0,
@@ -138,7 +134,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "FinTech",
     phase: "東証グロース",
     employee_count: 1200,
-    work_styles: ["フルリモート", "副業OK", "時短勤務"],
+
     job_count: 19,
     current_mentors: 6,
     alumni_mentors: 9,
@@ -155,7 +151,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "SaaS",
     phase: "東証プライム",
     employee_count: 1600,
-    work_styles: ["ハイブリッド", "フレックス", "副業OK"],
+
     job_count: 27,
     current_mentors: 3,
     alumni_mentors: 7,
@@ -172,7 +168,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "FinTech",
     phase: "東証プライム",
     employee_count: 2100,
-    work_styles: ["ハイブリッド", "副業OK", "フレックス"],
+
     job_count: 34,
     current_mentors: 7,
     alumni_mentors: 11,
@@ -189,7 +185,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "AI / LLM",
     phase: "東証グロース",
     employee_count: 320,
-    work_styles: ["ハイブリッド", "裁量労働"],
+
     job_count: 0,
     current_mentors: 2,
     alumni_mentors: 3,
@@ -206,7 +202,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "SaaS / 外資",
     phase: "上場 (NASDAQ)",
     employee_count: 200,
-    work_styles: ["フルリモート", "副業OK", "フレックス"],
+
     job_count: 9,
     current_mentors: 3,
     alumni_mentors: 6,
@@ -223,7 +219,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "SaaS",
     phase: "東証グロース",
     employee_count: 520,
-    work_styles: ["フルリモート", "フレックス", "副業OK"],
+
     job_count: 14,
     current_mentors: 2,
     alumni_mentors: 4,
@@ -240,7 +236,7 @@ export const MOCK_COMPANIES: Company[] = [
     industry: "SaaS / 外資",
     phase: "Series C",
     employee_count: 85,
-    work_styles: ["フルリモート", "副業OK", "フレックス"],
+
     job_count: 5,
     current_mentors: 1,
     alumni_mentors: 2,

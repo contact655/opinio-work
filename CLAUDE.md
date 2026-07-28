@@ -13,6 +13,69 @@ IT/SaaS 業界に特化したキャリアプラットフォーム。
 
 ---
 
+## データ表示の原則
+
+「値が無い」ことを、「ある値」に置き換えない。
+
+- 値がある → 値を出す
+- 値が無い → 項目ごと非表示にする、または「—」で不明と示す
+- ×        → 値が無いのにデフォルト値や推測値を表示する
+
+2026-07-27〜28 に見つかった事例:
+- queries.ts が存在しないカラム(birth_year)を参照し、
+  エラーを if (error) return [] で握りつぶして「社員0名」と表示していた
+- migration が remote_work_status='hybrid' を64社に一括投入し、
+  未確認の値を「ハイブリッド」として公開表示していた
+- deriveWorkStyles() が NULL のとき ["ハイブリッド"] を
+  フォールバックとして生成していた（dead code として削除済み）
+
+flex_time / side_job_ok について（2026-07-28 記録）:
+- migration 156 で全64社に flex_time=true / side_job_ok=false が設定されているが、
+  現在これらのフィールドは画面に表示されていないため公開影響なし
+- 将来 flex_time / side_job_ok を表示する際は必ず三値対応にすること
+  （NULL → 項目ごと非表示、true / false → それぞれ表示）
+
+空欄を避けようとする実装が、結果として誤情報を作る。
+空欄はそのまま空欄にすること。
+
+---
+
+## エラーと失敗を握りつぶさない原則（2026-07-28 確立）
+
+### 発見された「サイレント失敗」の事例（6件）
+
+1. **birth_year カラム参照エラー**（queries.ts → getCompanyEmployees）
+   - 存在しないカラムを SELECT し、`if (error) return []` でエラーを握りつぶして「社員0名」を返していた
+
+2. **remote_work_status migration 一括投入**（migration 156）
+   - 64社に未確認値を一括設定し、誤情報として公開表示されていた
+
+3. **deriveWorkStyles() の NULL フォールバック**（queries.ts）
+   - NULL のとき `["ハイブリッド"]` を生成するフォールバックが存在し、事実と異なる値を表示していた（削除済み）
+
+4. **OnboardingClient の ow_experiences INSERT**（onboarding/OnboardingClient.tsx）
+   - `role_category_id` NOT NULL 制約により毎回 DB エラーが発生していたが、`catch {/* best-effort */}` で握りつぶされていた
+   - 会社名は入力させていたが、INSERT が常に失敗するため **どこにも保存されていなかった**
+
+5. **StrengthsFinder UI**（profile/edit/ProfileEditClient.tsx）
+   - 34テーマの選択 UI があり、最大5件選択できたが、`handleSaveBasic` で API に送信していなかった
+   - DB カラム `ow_users.strengths_finder` 自体が存在しない
+   - **入力させて捨てていた**（UI 削除済み）
+
+6. **オンボーディングの会社名入力**（onboarding/OnboardingClient.tsx）
+   - 事例4の ow_experiences INSERT が唯一の保存先だったため、INSERT 失敗後は **会社名がどこにも保存されない**
+   - ユーザーには「会社名を入力してください」と促していたが、入力値が消えていた
+
+### 実装原則
+
+- `catch {}` で握りつぶさず、最低限 `console.error` でログを出す
+- `data ?? []` や `data ?? null` だけを見てエラーを無視しない（`error` を必ずチェックする）
+- 「入力させたのに保存しない」UI を作らない
+- 保存経路（API 呼び出し・DB INSERT）が無い入力 UI は実装しない
+- UI を先に作る場合は、保存先が未実装であることをコメントに明記する
+
+---
+
 ## Migration 運用ルール（2026-07-27 確立）
 
 ### 基本原則

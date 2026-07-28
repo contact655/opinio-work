@@ -87,8 +87,6 @@ export type CompanyDetail = {
   url: string;
   company_features: string[];
   freshness: FreshnessItem[];
-  work_location: { label: string; note: string }[];
-  work_style: { label: string; note: string }[];
   jobs: JobCat[];
   current: MemberRow[];
   alumni: MemberRow[];
@@ -173,15 +171,6 @@ const LAYERX: CompanyDetail = {
     { date: "4/12", type: "sns", label: "バクラク企業ブログ更新「AI×バックオフィスの次」" },
     { date: "4/05", type: "survey", label: "働き方・組織情報 アンケート回答" },
     { date: "3/28", type: "article", label: "特集記事「シリーズCで描く未来」掲載" },
-  ],
-  work_location: [
-    { label: "フルリモート可", note: "全職種対応、リモートファースト" },
-    { label: "ハイブリッド勤務", note: "月1–2回の全社出社日あり（銀座オフィス）" },
-  ],
-  work_style: [
-    { label: "フレックス制度", note: "コアタイムなし、完全自由" },
-    { label: "副業可", note: "競合・守秘義務に抵触しない範囲で申請制" },
-    { label: "裁量労働制", note: "エンジニア・PdM等が対象" },
   ],
   jobs: [
     {
@@ -302,15 +291,6 @@ const SMARTHR: CompanyDetail = {
     { date: "4/10", type: "survey", label: "働き方・組織情報 アンケート回答" },
     { date: "3/30", type: "sns", label: "エンジニアブログ更新「SmartHR v2アーキテクチャ」" },
     { date: "3/15", type: "article", label: "特集記事「Series EからIPOへの道程」" },
-  ],
-  work_location: [
-    { label: "フルリモート可", note: "全国どこでも勤務可能、月1回の出社推奨" },
-    { label: "ハイブリッド勤務", note: "六本木・大阪・福岡の3拠点から選択可" },
-  ],
-  work_style: [
-    { label: "フレックス制度", note: "コアタイムなし" },
-    { label: "副業可", note: "原則OK（申請制）" },
-    { label: "時短勤務", note: "育児・介護等で対応" },
   ],
   jobs: [
     {
@@ -433,20 +413,11 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
       company_features: [
       `${c.industry}領域でのキャリア構築に最適な環境`,
       `${c.phase}フェーズの急成長を最前線で体験できる`,
-      c.work_styles.slice(0, 2).join("・") + "など柔軟な働き方が可能",
     ],
     freshness: [
       { date: "4/15", type: "interview", label: "編集部取材・HR責任者インタビュー" },
       { date: "4/08", type: "survey", label: "企業アンケート回答（働き方・組織情報）" },
       { date: "3/25", type: "article", label: "特集記事掲載" },
-    ],
-    work_location: [
-      { label: c.work_styles.includes("フルリモート") ? "フルリモート可" : "オフィス出社（拠点勤務）", note: "求人ページで詳細確認" },
-      { label: "ハイブリッド勤務", note: "部署・職種によって異なります" },
-    ],
-    work_style: [
-      { label: c.work_styles.includes("フレックス") ? "フレックス制度" : "固定時間制", note: "" },
-      { label: c.work_styles.includes("副業OK") ? "副業可（申請制）" : "副業不可", note: "" },
     ],
     jobs: c.job_count > 0 ? [
       {

@@ -11,7 +11,7 @@ import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
-import type { Company, CompanyGenre, WorkStyle } from "@/app/companies/mockCompanies";
+import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
   CompanyDetail,
@@ -43,23 +43,6 @@ function daysSince(iso: string | null | undefined): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
-function deriveWorkStyles(row: {
-  remote_work_status?: string | null;
-  flex_time?: boolean | null;
-  side_job_ok?: boolean | null;
-}): WorkStyle[] {
-  const styles: WorkStyle[] = [];
-  const remote = (row.remote_work_status ?? "").toLowerCase();
-  if (remote.includes("フルリモート") || remote.includes("full_remote") || remote.includes("リモート可")) {
-    styles.push("フルリモート");
-  } else if (remote.includes("ハイブリッド") || remote.includes("hybrid")) {
-    styles.push("ハイブリッド");
-  }
-  if (row.flex_time) styles.push("フレックス");
-  if (row.side_job_ok) styles.push("副業OK");
-  return styles.length > 0 ? styles : ["ハイブリッド"];
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre[] = []): Company {
   return {
@@ -71,7 +54,6 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     industry: (row.industry as string) ?? "",
     phase: (row.phase as string) ?? "",
     employee_count: (row.employee_count as number) ?? 0,
-    work_styles: deriveWorkStyles(row),
     job_count: jobCount,
     current_mentors: 0,
     alumni_mentors: 0,
@@ -273,16 +255,6 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     url: (row.url as string) ?? "",
     company_features: Array.isArray(row.company_features) ? row.company_features as string[] : [],
     freshness: [],
-    work_location: [
-      {
-        label: (() => { const raw = row.remote_work_status as string | null; return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : "オフィス勤務"; })(),
-        note: "求人ページで詳細確認",
-      },
-    ],
-    work_style: [
-      { label: row.flex_time ? "フレックス制度" : "固定時間制", note: "" },
-      { label: row.side_job_ok ? "副業可（申請制）" : "副業不可", note: "" },
-    ],
     jobs: jobCats,
     current: [],
     alumni: [],
