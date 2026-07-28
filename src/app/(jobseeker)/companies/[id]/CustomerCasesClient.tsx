@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
+import { ExpandButton, CollapseButton } from "./ExpandButton";
 
 const INITIAL_CASES = 3;
 
@@ -125,67 +126,20 @@ export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases
 
       {/* 展開ボタン */}
       {!showAll && hiddenCount > 0 && (
-        <div style={{ position: "relative", marginTop: -32 }}>
-          {/* グラデーションフェード */}
-          <div style={{
-            height: 40,
-            background: "linear-gradient(to bottom, transparent, #fff)",
-            pointerEvents: "none",
-          }} />
-          <button
-            onClick={() => setShowAll(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              width: "100%",
-              padding: "13px 0",
-              background: "var(--royal-50)",
-              border: "1.5px solid var(--royal-100)",
-              borderRadius: 12,
-              fontSize: "var(--text-sm)",
-              fontWeight: 700,
-              color: "var(--royal)",
-              cursor: "pointer",
-              fontFamily: "var(--font-noto-sans)",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-            すべての導入事例を見る（残り {hiddenCount} 社）
-          </button>
-        </div>
+        <ExpandButton
+          onClick={() => setShowAll(true)}
+          label={`すべての導入事例を見る（残り ${hiddenCount} 社）`}
+          fade
+          wrapperStyle={{ position: "relative", marginTop: -32 }}
+        />
       )}
 
       {/* 折りたたむボタン */}
       {showAll && cases.length > INITIAL_CASES && (
-        <button
+        <CollapseButton
           onClick={() => setShowAll(false)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            width: "100%",
-            marginTop: "var(--space-3)",
-            padding: "10px 0",
-            background: "transparent",
-            border: "1px solid var(--line)",
-            borderRadius: 10,
-            fontSize: "var(--text-sm)",
-            fontWeight: 500,
-            color: "var(--ink-soft)",
-            cursor: "pointer",
-            fontFamily: "var(--font-noto-sans)",
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-          折りたたむ
-        </button>
+          wrapperStyle={{ marginTop: "var(--space-3)" }}
+        />
       )}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   type CategorySlug,
 } from "@/lib/utils/toolCfg";
 import { InfoCard } from "./InfoCard";
+import { ExpandButton } from "./ExpandButton";
 
 const GROUP_MAX = 6;
 
@@ -160,29 +161,11 @@ export default function ToolsSectionClient({ tools }: Props) {
 
             {/* グループ展開ボタン */}
             {!isExpanded && hiddenCount > 0 && (
-              <div style={{ padding: "0 16px 14px" }}>
-                <button
-                  onClick={() => toggleGroup(groupSlug)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    background: "none",
-                    border: "1px solid var(--line)",
-                    borderRadius: 8,
-                    padding: "7px 12px",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "var(--ink-soft)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                  +{hiddenCount}件を見る
-                </button>
-              </div>
+              <ExpandButton
+                onClick={() => toggleGroup(groupSlug)}
+                label={`+${hiddenCount}件を見る`}
+                wrapperStyle={{ padding: "0 16px 14px" }}
+              />
             )}
           </div>
         );

@@ -3446,8 +3446,6 @@ export default async function CompanyDetailPage({
           50% { opacity: 0.4; transform: scale(0.7); }
         }
 
-        /* ── Org expand button hover ── */
-        .org-expand-btn:hover { background: #001a52 !important; opacity: 0.92; }
 
         /* ── Nav no-scrollbar ── */
         nav::-webkit-scrollbar { display: none; }
