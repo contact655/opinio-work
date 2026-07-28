@@ -55,7 +55,15 @@ export async function PUT(
   const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && DATE_RE.test(body.graduated_at) ? body.graduated_at : null);
 
   // school_id: body に明示的に含まれる場合のみ更新(undefined = 変更なし、null = クリア、UUID string = セット)
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: {
+    school: string;
+    faculty: string | null;
+    degree: string | null;
+    enrolled_at: string | null;
+    graduated_at: string | null;
+    is_current: boolean;
+    school_id?: string | null;
+  } = {
     school,
     faculty: faculty || null,
     degree,

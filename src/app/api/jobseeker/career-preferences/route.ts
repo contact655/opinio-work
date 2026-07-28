@@ -20,38 +20,35 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const allowed = [
-    "job_type",
-    "experience_years",
-    "desired_work_style",
-    "desired_salary_min",
-    "desired_salary_max",
-    "transfer_timing",
-    "desired_phase",
-    "worry",
-  ];
-
-  const NUMERIC_FIELDS = new Set(["experience_years", "desired_salary_min", "desired_salary_max"]);
-  const STRING_FIELDS  = new Set(["job_type", "desired_work_style", "transfer_timing", "worry"]);
-  const ARRAY_FIELDS   = new Set(["desired_phase"]);
-
-  const patch: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (!(key in body)) continue;
-    const val = body[key];
-    if (NUMERIC_FIELDS.has(key)) {
-      if (val === null || val === undefined) { patch[key] = null; continue; }
-      const n = typeof val === "number" ? val : Number(val);
-      if (!Number.isFinite(n) || n < 0 || n > 99999999) continue; // 範囲外は無視
-      patch[key] = Math.floor(n);
-    } else if (STRING_FIELDS.has(key)) {
-      patch[key] = typeof val === "string" ? val.slice(0, 200) : null;
-    } else if (ARRAY_FIELDS.has(key)) {
-      patch[key] = Array.isArray(val) ? (val as unknown[]).filter((v) => typeof v === "string").slice(0, 20) : null;
-    } else {
-      patch[key] = val;
-    }
+  function parseNum(v: unknown): number | null {
+    if (v === null || v === undefined) return null;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) && n >= 0 && n <= 99999999 ? Math.floor(n) : null;
   }
+
+  const patch: {
+    job_type?: string | null;
+    experience_years?: string | null;
+    desired_work_style?: string | null;
+    desired_salary_min?: number | null;
+    desired_salary_max?: number | null;
+    transfer_timing?: string | null;
+    desired_phase?: string[] | null;
+    worry?: string | null;
+    updated_at?: string | null;
+  } = {};
+
+  if ("job_type" in body) patch.job_type = typeof body.job_type === "string" ? body.job_type.slice(0, 200) : null;
+  if ("experience_years" in body) {
+    const n = parseNum(body.experience_years);
+    patch.experience_years = n !== null ? String(n) : null;
+  }
+  if ("desired_work_style" in body) patch.desired_work_style = typeof body.desired_work_style === "string" ? body.desired_work_style.slice(0, 200) : null;
+  if ("desired_salary_min" in body) patch.desired_salary_min = parseNum(body.desired_salary_min);
+  if ("desired_salary_max" in body) patch.desired_salary_max = parseNum(body.desired_salary_max);
+  if ("transfer_timing" in body) patch.transfer_timing = typeof body.transfer_timing === "string" ? body.transfer_timing.slice(0, 200) : null;
+  if ("desired_phase" in body) patch.desired_phase = Array.isArray(body.desired_phase) ? (body.desired_phase as unknown[]).filter((v): v is string => typeof v === "string").slice(0, 20) : null;
+  if ("worry" in body) patch.worry = typeof body.worry === "string" ? body.worry.slice(0, 200) : null;
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });

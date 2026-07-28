@@ -97,7 +97,19 @@ export async function PUT(
   const ogTitle    = typeof body.og_title     === "string" ? body.og_title     : null;
 
   // RLS (ow_experience_stories_update_own + WITH CHECK) が ownership を保証
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: {
+    type: string;
+    title: string | null;
+    description: string | null;
+    image_url: string | null;
+    video_url: string | null;
+    link_url: string | null;
+    og_image_url: string | null;
+    og_title: string | null;
+    period_start: string | null;
+    period_end: string | null;
+    section_id?: string | null;
+  } = {
     type,
     title:        title || null,
     description:  description || null,

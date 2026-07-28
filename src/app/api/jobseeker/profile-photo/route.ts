@@ -48,11 +48,9 @@ export async function PUT(req: Request) {
     .maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const column = body.type === "cover" ? "cover_photo_url" : "avatar_url";
-
   const { error } = await supabase
     .from("ow_users")
-    .update({ [column]: body.url })
+    .update(body.type === "cover" ? { cover_photo_url: body.url } : { avatar_url: body.url })
     .eq("id", owUser.id);
 
   if (error) {
@@ -92,11 +90,9 @@ export async function DELETE(req: Request) {
     .maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const column = body.type === "cover" ? "cover_photo_url" : "avatar_url";
-
   const { error } = await supabase
     .from("ow_users")
-    .update({ [column]: null })
+    .update(body.type === "cover" ? { cover_photo_url: null } : { avatar_url: null })
     .eq("id", owUser.id);
 
   if (error) {
