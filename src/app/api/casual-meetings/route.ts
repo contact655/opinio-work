@@ -106,10 +106,10 @@ export async function POST(req: NextRequest) {
       contact_email,
       job_id: (job_id && typeof job_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job_id)) ? job_id : null,
       share_profile: share_profile !== false,
-      intent: intent || null,
-      interest_reason: interest_reason || null,
-      questions: questions || null,
-      preferred_format: preferred_format || null,
+      intent: typeof intent === "string" ? intent : null,
+      interest_reason: typeof interest_reason === "string" ? interest_reason : null,
+      questions: typeof questions === "string" ? questions : null,
+      preferred_format: typeof preferred_format === "string" ? preferred_format : null,
       status: "pending",
     })
     .select("id, status")

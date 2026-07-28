@@ -49,10 +49,10 @@ export async function POST(req: Request) {
     .insert({
       target_user_id,
       recommender_user_id: owViewer.id,
-      recommender_name,
-      recommender_title: recommender_title || null,
-      recommender_company: recommender_company || null,
-      relationship: relationship || null,
+      recommender_name: typeof recommender_name === "string" ? recommender_name : "",
+      recommender_title: typeof recommender_title === "string" ? recommender_title : null,
+      recommender_company: typeof recommender_company === "string" ? recommender_company : null,
+      relationship: typeof relationship === "string" ? relationship : null,
       content,
     })
     .select("id")
