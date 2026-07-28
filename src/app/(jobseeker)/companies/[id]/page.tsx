@@ -666,16 +666,6 @@ function productStyle(name: string): { bg: string; border: string; color: string
   return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
-// ─── ② ビジネスモデル ─────────────────────────────────────────────────────────
-
-const BIZ_MODEL_LABELS: Record<string, string> = {
-  subscription: "サブスクリプション（SaaS）",
-  transaction:  "トランザクション",
-  usage:        "従量課金",
-  one_time:     "一時購入",
-  hybrid:       "複合型",
-};
-
 const CUSTOMER_SIZE_LABELS: Record<string, string> = {
   enterprise: "エンタープライズ（大手・上場企業）",
   mid_market: "ミッドマーケット（中規模企業）",
@@ -1030,7 +1020,7 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
         marginBottom: "var(--space-6)",
       }}
     >
-      <SubSectionHeading>ツール・技術スタック</SubSectionHeading>
+      <SubSectionHeading>ツール</SubSectionHeading>
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {orderedCategories.map((cat) => {
           const label = getToolCategoryLabel(cat);
