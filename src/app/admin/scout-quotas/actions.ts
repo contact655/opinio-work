@@ -3,6 +3,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
+// ow_scout_quotas は company_id を PK とする 1社1行設計。
+// period_start は月次リセット時に DB トリガーが更新する。アプリ側では触らない。
+
 export async function grantBonusCredits(companyId: string, amount: number): Promise<{ error?: string }> {
   const admin = createAdminClient();
 
