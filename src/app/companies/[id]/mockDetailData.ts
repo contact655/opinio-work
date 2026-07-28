@@ -80,10 +80,10 @@ export type CompanyDetail = {
   id: string;
   mission: string;
   about: string;
-  established: string;
-  ceo: string;
+  established: string | null;
+  ceo: string | null;
   capital: string;
-  hq: string;
+  hq: string | null;
   url: string;
   company_features: string[];
   freshness: FreshnessItem[];

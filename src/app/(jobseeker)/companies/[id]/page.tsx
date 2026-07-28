@@ -637,10 +637,24 @@ const BIZ_MODEL_LABELS: Record<string, string> = {
   hybrid:       "複合型",
 };
 
-function BizModelSection({ detail }: { detail: CompanyDetail }) {
-  const hasTypes = detail.biz_model_types && detail.biz_model_types.length > 0;
-  const hasNote  = !!detail.biz_model_note;
-  if (!hasTypes && !hasNote) return null;
+const CUSTOMER_SIZE_LABELS: Record<string, string> = {
+  enterprise: "エンタープライズ（大手・上場企業）",
+  mid_market: "ミッドマーケット（中規模企業）",
+  smb:        "SMB・中小企業",
+};
+
+function BizAndMarketSection({ detail }: { detail: CompanyDetail }) {
+  const hasTypes     = detail.biz_model_types && detail.biz_model_types.length > 0;
+  const hasNote      = !!detail.biz_model_note;
+  const hasSize      = detail.market_customer_size && detail.market_customer_size.length > 0;
+  const hasDM        = !!detail.market_decision_maker;
+  const hasMarketNote = !!detail.market_note;
+  const hasCases     = detail.customer_cases && detail.customer_cases.length > 0;
+  const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
+
+  if (!hasTypes && !hasNote && !hasSize && !hasDM && !hasMarketNote && !hasCases && !hasCustomers) return null;
+
+  const hasMeta = hasTypes || hasNote || hasSize || hasDM || hasMarketNote;
 
   return (
     <section
@@ -655,82 +669,50 @@ function BizModelSection({ detail }: { detail: CompanyDetail }) {
     >
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-          BUSINESS MODEL
+          BUSINESS & MARKET
         </div>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-          ビジネスモデル
-        </h2>
-      </div>
-      {hasTypes && (
-        <div style={{ marginBottom: hasNote ? 16 : 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
-            収益モデル
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {detail.biz_model_types!.map((t) => (
-              <span key={t} style={{
-                display: "inline-block",
-                padding: "5px 12px",
-                borderRadius: 20,
-                fontSize: 12,
-                fontWeight: 700,
-                background: "var(--royal-50)",
-                color: "var(--royal)",
-                border: "1px solid var(--royal-100)",
-              }}>
-                {BIZ_MODEL_LABELS[t] ?? t}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-      {hasNote && (
-        <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
-          {detail.biz_model_note}
-        </p>
-      )}
-    </section>
-  );
-}
-
-// ─── ③ 顧客・マーケット ──────────────────────────────────────────────────────
-
-const CUSTOMER_SIZE_LABELS: Record<string, string> = {
-  enterprise: "エンタープライズ（大手・上場企業）",
-  mid_market: "ミッドマーケット（中規模企業）",
-  smb:        "SMB・中小企業",
-};
-
-function MarketSection({ detail }: { detail: CompanyDetail }) {
-  const hasSize      = detail.market_customer_size && detail.market_customer_size.length > 0;
-  const hasDM        = !!detail.market_decision_maker;
-  const hasNote      = !!detail.market_note;
-  const hasCases     = detail.customer_cases && detail.customer_cases.length > 0;
-  const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
-
-  if (!hasSize && !hasDM && !hasNote && !hasCases && !hasCustomers) return null;
-
-  return (
-    <section
-      id="market"
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        padding: "28px 32px",
-        marginBottom: "var(--space-6)",
-        border: "1px solid var(--line)",
-      }}
-    >
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-          MARKET
-        </div>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-          顧客・マーケット
+          事業・顧客
         </h2>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* 収益モデル */}
+        {hasTypes && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+              収益モデル
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {detail.biz_model_types!.map((t) => (
+                <span key={t} style={{
+                  display: "inline-block",
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: "var(--royal-50)",
+                  color: "var(--royal)",
+                  border: "1px solid var(--royal-100)",
+                }}>
+                  {BIZ_MODEL_LABELS[t] ?? t}
+                </span>
+              ))}
+            </div>
+            {hasNote && (
+              <p style={{ margin: "10px 0 0", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
+                {detail.biz_model_note}
+              </p>
+            )}
+          </div>
+        )}
+        {!hasTypes && hasNote && (
+          <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
+            {detail.biz_model_note}
+          </p>
+        )}
+
+        {/* 顧客規模 */}
         {hasSize && (
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
@@ -755,9 +737,10 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
 
+        {/* 意思決定者 */}
         {hasDM && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
               意思決定者
             </div>
             <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
@@ -766,9 +749,10 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
 
-        {hasNote && (
+        {/* マーケット概要 */}
+        {hasMarketNote && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
               マーケット概要
             </div>
             <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.75 }}>
@@ -777,10 +761,10 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
 
-        {/* ── 導入事例 ── */}
+        {/* ── 導入事例（主役） ── */}
         {hasCases && (
           <div>
-            {(hasSize || hasDM || hasNote) && <div style={{ height: 1, background: "var(--line)", marginBottom: 4 }} />}
+            {hasMeta && <div style={{ height: 1, background: "var(--line)", margin: "4px 0 16px" }} />}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
               <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
@@ -790,10 +774,10 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
 
-        {/* ── 顧客タグ（customer_cases がない場合のフォールバック） ── */}
+        {/* ── 主な顧客タグ（customer_cases がない場合のフォールバック） ── */}
         {!hasCases && hasCustomers && (
           <div>
-            {(hasSize || hasDM || hasNote) && <div style={{ height: 1, background: "var(--line)", marginBottom: 4 }} />}
+            {hasMeta && <div style={{ height: 1, background: "var(--line)", margin: "4px 0 12px" }} />}
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -832,7 +816,6 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
             </div>
           </div>
         )}
-
       </div>
     </section>
   );
@@ -847,173 +830,6 @@ const CAPITAL_TYPE_LABELS: Record<string, string> = {
   other:                "その他",
 };
 
-function CapitalSection({ detail }: { detail: CompanyDetail }) {
-  if (!detail.capitalType) return null;
-
-  const typeLabel = CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType;
-  const isListed     = detail.capitalType === "listed" || !!detail.listedExchange;
-  const isForeign    = detail.capitalType === "foreign_subsidiary";
-  const isGroup      = detail.capitalType === "japanese_group";
-  const showParent   = (isForeign || isGroup) && detail.parentCompanyName;
-
-  return (
-    <section
-      id="capital"
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        padding: "28px 32px",
-        marginBottom: "var(--space-6)",
-        border: "1px solid var(--line)",
-      }}
-    >
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-          CAPITAL STRUCTURE
-        </div>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-          資本関係・グループ
-        </h2>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* 会社区分 */}
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-          <span style={{
-            display: "inline-block",
-            padding: "5px 14px",
-            borderRadius: 20,
-            fontSize: 13,
-            fontWeight: 700,
-            background: isForeign ? "#EEF2FF" : isGroup ? "#FEF3C7" : "#F1F5F9",
-            color: isForeign ? "#4338CA" : isGroup ? "#92400E" : "#475569",
-            border: `1px solid ${isForeign ? "#C7D2FE" : isGroup ? "#FDE68A" : "#CBD5E1"}`,
-          }}>
-            {typeLabel}
-          </span>
-          {isListed && detail.listedExchange && (
-            <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0" }}>
-              {detail.listedExchange}上場
-            </span>
-          )}
-        </div>
-
-        {/* 親会社 */}
-        {showParent && (
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
-              {isForeign ? "本社（グローバル）" : "親会社"}
-            </div>
-            <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600 }}>
-              {detail.parentCompanyName}
-              {detail.parentCompanyCountry && (
-                <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6 }}>（{detail.parentCompanyCountry}）</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* グローバル従業員数 */}
-        {detail.globalEmployeeCount && (
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
-              グローバル従業員数
-            </div>
-            <div style={{ fontSize: 14, color: "var(--ink)" }}>
-              {detail.globalEmployeeCount}
-            </div>
-          </div>
-        )}
-
-        {/* 補足メモ */}
-        {detail.capitalNotes && (
-          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
-            {detail.capitalNotes}
-          </p>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── ⑧ 拠点・勤務地 ──────────────────────────────────────────────────────────
-
-function BranchLocationsSection({ detail }: { detail: CompanyDetail }) {
-  const hasHq      = !!detail.headquartersAddress;
-  const hasBranch  = detail.branchLocations && detail.branchLocations.length > 0;
-  const hasStation = !!detail.nearestStation;
-
-  if (!hasHq && !hasBranch && !hasStation) return null;
-
-  return (
-    <section
-      id="locations"
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        padding: "28px 32px",
-        marginBottom: "var(--space-6)",
-        border: "1px solid var(--line)",
-      }}
-    >
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-          OFFICES & LOCATIONS
-        </div>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-          拠点・勤務地
-        </h2>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* 本社住所 */}
-        {hasHq && (
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
-              本社
-            </div>
-            <div style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
-              {detail.headquartersAddress}
-              {hasStation && (
-                <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 3 }}>
-                  最寄り駅: {detail.nearestStation}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 拠点ピル */}
-        {hasBranch && (
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
-              拠点
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {detail.branchLocations!.map((loc) => (
-                <span key={loc} style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "5px 12px",
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: "var(--royal-50)",
-                  color: "var(--royal)",
-                  border: "1px solid var(--royal-100)",
-                }}>
-                  <span style={{ fontSize: 10 }}>📍</span>
-                  {loc}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
 
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
@@ -1605,16 +1421,22 @@ const EMPLOYEE_GRID_CSS = `
   }
   .employee-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
+  }
+  @media (max-width: 1023px) {
+    .employee-grid { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 767px) {
     .employee-grid { grid-template-columns: 1fr; }
   }
   .alumni-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
+  }
+  @media (max-width: 1023px) {
+    .alumni-grid { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 767px) {
     .alumni-grid { grid-template-columns: 1fr; }
@@ -3231,16 +3053,20 @@ function Sidebar({
           {(
             [
               { key: "業界", value: company.industry, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+              ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
+              ...(detail.parentCompanyName ? [{ key: "本社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), subText: detail.capitalNotes ?? undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
               { key: "従業員数", value: company.employee_count ? (() => { const s = String(company.employee_count); return s.includes("名") ? s : s + "名"; })() : "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+              ...(detail.globalEmployeeCount ? [{ key: "G従業員数", value: detail.globalEmployeeCount, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
               { key: "所在地", value: detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
-              { key: "最寄り駅", value: detail.nearestStation ?? "—", isUnset: !detail.nearestStation, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M9 4v16"/><path d="M15 4v16"/></svg> },
+              ...(detail.branchLocations?.length ? [{ key: "拠点", value: detail.branchLocations.join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> }] : []),
+              ...(detail.nearestStation ? [{ key: "最寄り駅", value: detail.nearestStation, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M9 4v16"/><path d="M15 4v16"/></svg> }] : []),
               { key: "設立", value: detail.established, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
               { key: "代表者", value: detail.ceo, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
               ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
-            ] as { key: string; value: string; icon: React.ReactNode; isLink?: boolean; isUnset?: boolean }[]
+            ] as { key: string; value: string; icon: React.ReactNode; isLink?: boolean; subText?: string }[]
           )
-            .filter((item) => !item.isUnset && item.value && item.value !== "—")
-            .map(({ key, value, icon, isLink, isUnset }) => (
+            .filter((item) => item.value)
+            .map(({ key, value, icon, isLink, subText }) => (
               <div
                 key={key}
                 style={{
@@ -3271,10 +3097,11 @@ function Sidebar({
                   >
                     {value} →
                   </a>
-                ) : isUnset ? (
-                  <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>{value}</span>
                 ) : (
-                  <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{value}</span>
+                  <div>
+                    <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{value}</span>
+                    {subText && <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6 }}>{subText}</p>}
+                  </div>
                 )}
               </div>
             ))}
@@ -3461,8 +3288,6 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about", label: "企業概要" },
           ...((detail.biz_model_types?.length || detail.biz_model_note || detail.market_customer_size?.length || detail.market_decision_maker || detail.market_note || detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "biz-model", label: "事業" }] : []),
-          ...(detail.capitalType ? [{ id: "capital", label: "資本関係" }] : []),
-          ...((detail.headquartersAddress || detail.branchLocations?.length) ? [{ id: "locations", label: "拠点" }] : []),
           ...(company.job_count > 0 || hasSalarySection ? [{ id: "jobs", label: "求人" }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 || visibleCurrentEmps.some(e => e.catchphrase) ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
@@ -3480,16 +3305,10 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 2. 事業（biz-model → market → products-clients） */}
-            <BizModelSection detail={detail} />
-            <MarketSection detail={detail} />
+            {/* 2. 事業（biz-model → products-clients） */}
+            <BizAndMarketSection detail={detail} />
             <ProductsClientsSection detail={detail} />
 
-            {/* 3a. 資本関係・グループ */}
-            <CapitalSection detail={detail} />
-
-            {/* 3b. 拠点・勤務地 */}
-            <BranchLocationsSection detail={detail} />
 
             {/* 3. 求人 → 給与データ */}
             <JobsSection company={company} detail={detail} />

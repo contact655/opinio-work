@@ -248,10 +248,10 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     mission: (row.mission as string) ?? (row.tagline as string) ?? "",
     about: (row.description as string) ?? (row.why_join as string)
       ?? `${row.name ?? ""}は、${row.tagline ?? ""}`,
-    established: row.founded_year ? `${row.founded_year}年` : "—",
-    ceo: (row.ceo_name as string) ?? "—",
+    established: row.founded_year ? `${row.founded_year}年` : null,
+    ceo: (row.ceo_name as string) ?? null,
     capital: "非公開",
-    hq: (row.location as string) ?? "東京都",
+    hq: (row.location as string) ?? null,
     url: (row.url as string) ?? "",
     company_features: Array.isArray(row.company_features) ? row.company_features as string[] : [],
     freshness: [],
