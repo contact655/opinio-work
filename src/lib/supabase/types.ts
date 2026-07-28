@@ -3901,61 +3901,6 @@ export type Database = {
           },
         ]
       }
-      ow_company_milestones: {
-        Row: {
-          body: string | null
-          company_id: string
-          created_at: string
-          display_order: number
-          event_type: string
-          id: string
-          occurred_at: string
-          title: string
-        }
-        Insert: {
-          body?: string | null
-          company_id: string
-          created_at?: string
-          display_order?: number
-          event_type: string
-          id?: string
-          occurred_at: string
-          title: string
-        }
-        Update: {
-          body?: string | null
-          company_id?: string
-          created_at?: string
-          display_order?: number
-          event_type?: string
-          id?: string
-          occurred_at?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_company_milestones_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_milestones_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_milestones_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_company_office_photos: {
         Row: {
           caption: string | null
@@ -4014,65 +3959,6 @@ export type Database = {
             columns: ["tagged_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ow_company_org_composition: {
-        Row: {
-          company_id: string
-          created_at: string
-          display_order: number
-          headcount: number | null
-          headcount_ratio: number | null
-          id: string
-          role_id: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          display_order?: number
-          headcount?: number | null
-          headcount_ratio?: number | null
-          id?: string
-          role_id: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          display_order?: number
-          headcount?: number | null
-          headcount_ratio?: number | null
-          id?: string
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_company_org_composition_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_org_composition_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_org_composition_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_company_org_composition_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "ow_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -4326,6 +4212,62 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_tools: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          note: string | null
+          sort_order: number
+          tool_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          sort_order?: number
+          tool_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          sort_order?: number
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_tools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_tools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_tools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_tools_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "ow_tool_masters"
             referencedColumns: ["id"]
           },
         ]
@@ -7321,6 +7263,42 @@ export type Database = {
           status?: string | null
           unread_count?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ow_tool_masters: {
+        Row: {
+          aliases: string[]
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          aliases?: string[]
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          aliases?: string[]
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
         }
         Relationships: []
       }
