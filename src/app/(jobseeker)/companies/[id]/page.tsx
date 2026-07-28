@@ -835,6 +835,183 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
+// ─── ⑦ 資本関係・グループ ────────────────────────────────────────────────────
+
+const CAPITAL_TYPE_LABELS: Record<string, string> = {
+  foreign_subsidiary:   "外資系日本法人",
+  japanese_independent: "日系独立",
+  japanese_group:       "日系グループ会社",
+  other:                "その他",
+};
+
+function CapitalSection({ detail }: { detail: CompanyDetail }) {
+  if (!detail.capitalType) return null;
+
+  const typeLabel = CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType;
+  const isListed     = detail.capitalType === "listed" || !!detail.listedExchange;
+  const isForeign    = detail.capitalType === "foreign_subsidiary";
+  const isGroup      = detail.capitalType === "japanese_group";
+  const showParent   = (isForeign || isGroup) && detail.parentCompanyName;
+
+  return (
+    <section
+      id="capital"
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: "var(--space-6)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+          CAPITAL STRUCTURE
+        </div>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+          資本関係・グループ
+        </h2>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* 会社区分 */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{
+            display: "inline-block",
+            padding: "5px 14px",
+            borderRadius: 20,
+            fontSize: 13,
+            fontWeight: 700,
+            background: isForeign ? "#EEF2FF" : isGroup ? "#FEF3C7" : "#F1F5F9",
+            color: isForeign ? "#4338CA" : isGroup ? "#92400E" : "#475569",
+            border: `1px solid ${isForeign ? "#C7D2FE" : isGroup ? "#FDE68A" : "#CBD5E1"}`,
+          }}>
+            {typeLabel}
+          </span>
+          {isListed && detail.listedExchange && (
+            <span style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0" }}>
+              {detail.listedExchange}上場
+            </span>
+          )}
+        </div>
+
+        {/* 親会社 */}
+        {showParent && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+              {isForeign ? "本社（グローバル）" : "親会社"}
+            </div>
+            <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600 }}>
+              {detail.parentCompanyName}
+              {detail.parentCompanyCountry && (
+                <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6 }}>（{detail.parentCompanyCountry}）</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* グローバル従業員数 */}
+        {detail.globalEmployeeCount && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+              グローバル従業員数
+            </div>
+            <div style={{ fontSize: 14, color: "var(--ink)" }}>
+              {detail.globalEmployeeCount}
+            </div>
+          </div>
+        )}
+
+        {/* 補足メモ */}
+        {detail.capitalNotes && (
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
+            {detail.capitalNotes}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── ⑧ 拠点・勤務地 ──────────────────────────────────────────────────────────
+
+function BranchLocationsSection({ detail }: { detail: CompanyDetail }) {
+  const hasHq      = !!detail.headquartersAddress;
+  const hasBranch  = detail.branchLocations && detail.branchLocations.length > 0;
+  const hasStation = !!detail.nearestStation;
+
+  if (!hasHq && !hasBranch && !hasStation) return null;
+
+  return (
+    <section
+      id="locations"
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: "28px 32px",
+        marginBottom: "var(--space-6)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+          OFFICES & LOCATIONS
+        </div>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+          拠点・勤務地
+        </h2>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* 本社住所 */}
+        {hasHq && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+              本社
+            </div>
+            <div style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
+              {detail.headquartersAddress}
+              {hasStation && (
+                <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 3 }}>
+                  最寄り駅: {detail.nearestStation}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 拠点ピル */}
+        {hasBranch && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
+              拠点
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {detail.branchLocations!.map((loc) => (
+                <span key={loc} style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: "var(--royal-50)",
+                  color: "var(--royal)",
+                  border: "1px solid var(--royal-100)",
+                }}>
+                  <span style={{ fontSize: 10 }}>📍</span>
+                  {loc}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
 
@@ -3205,6 +3382,8 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about", label: "企業概要" },
           ...((detail.biz_model_types?.length || detail.biz_model_note || detail.market_customer_size?.length || detail.market_decision_maker || detail.market_note || detail.main_products?.length || detail.main_customers?.length || detail.customer_cases?.length) ? [{ id: "biz-model", label: "事業" }] : []),
+          ...(detail.capitalType ? [{ id: "capital", label: "資本関係" }] : []),
+          ...((detail.headquartersAddress || detail.branchLocations?.length) ? [{ id: "locations", label: "拠点" }] : []),
           ...(company.job_count > 0 || hasSalarySection ? [{ id: "jobs", label: "求人" }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) ? [{ id: "benefits", label: "働く環境" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 || visibleCurrentEmps.some(e => e.catchphrase) ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
@@ -3226,6 +3405,12 @@ export default async function CompanyDetailPage({
             <BizModelSection detail={detail} />
             <MarketSection detail={detail} />
             <ProductsClientsSection detail={detail} />
+
+            {/* 3a. 資本関係・グループ */}
+            <CapitalSection detail={detail} />
+
+            {/* 3b. 拠点・勤務地 */}
+            <BranchLocationsSection detail={detail} />
 
             {/* 3. 求人 → 給与データ */}
             <JobsSection company={company} detail={detail} />

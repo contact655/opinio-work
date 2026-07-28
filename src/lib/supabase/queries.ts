@@ -323,6 +323,18 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
       : null,
     market_decision_maker: (row.market_decision_maker as string | null) ?? null,
     market_note: (row.market_note as string | null) ?? null,
+    // ⑦ 資本関係・グループ
+    capitalType: (row.capital_type as string | null) ?? null,
+    parentCompanyName: (row.parent_company_name as string | null) ?? null,
+    parentCompanyCountry: (row.parent_company_country as string | null) ?? null,
+    listedExchange: (row.listed_exchange as string | null) ?? null,
+    capitalNotes: (row.capital_notes as string | null) ?? null,
+    globalEmployeeCount: (row.global_employee_count as string | null) ?? null,
+    // ⑧ 拠点・勤務地
+    headquartersAddress: (row.headquarters_address as string | null) ?? null,
+    branchLocations: Array.isArray(row.branch_locations) && (row.branch_locations as string[]).length > 0
+      ? (row.branch_locations as string[])
+      : null,
   };
 }
 
@@ -535,6 +547,11 @@ const COMPANY_DETAIL_COLS = [
   // ② ビジネスモデル / ③ 顧客・マーケット — migration 20260727172428
   "biz_model_types", "biz_model_note",
   "market_customer_size", "market_decision_maker", "market_note",
+  // ⑦ 資本関係・グループ — migration 20260728053104
+  "capital_type", "parent_company_name", "parent_company_country",
+  "listed_exchange", "capital_notes", "global_employee_count",
+  // ⑧ 拠点・勤務地
+  "headquarters_address", "branch_locations",
 ].join(", ");
 
 export async function getCompanies(): Promise<Company[]> {

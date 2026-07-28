@@ -136,6 +136,16 @@ export type CompanyDetail = {
   market_customer_size?: string[] | null;
   market_decision_maker?: string | null;
   market_note?: string | null;
+  // ⑦ 資本関係・グループ
+  capitalType?: string | null;
+  parentCompanyName?: string | null;
+  parentCompanyCountry?: string | null;
+  listedExchange?: string | null;
+  capitalNotes?: string | null;
+  globalEmployeeCount?: string | null;
+  // ⑧ 拠点・勤務地
+  headquartersAddress?: string | null;
+  branchLocations?: string[] | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
   // Org teams
