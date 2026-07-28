@@ -136,9 +136,9 @@ function OnboardingInner() {
       }
 
       // 会社を登録（ow_experiences.user_id は ow_users.id を使う）
-      const companyInput = query.trim();
-      // ow_experiences への INSERT はプロフィール編集画面で行う
-      // (role_category_id が必須フィールドのためオンボーディング時は解決できない)
+      // 会社名入力欄 (query) は ow_experiences への保存を行わない
+      // role_category_id が必須フィールドのためオンボーディング時は解決できないため。
+      // プロフィール編集画面で登録する（将来タスク: オンボーディングへの職種選択追加）。
 
       // candidate ロールを付与
       await fetch("/api/roles", {

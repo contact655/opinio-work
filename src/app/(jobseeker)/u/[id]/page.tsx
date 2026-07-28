@@ -597,14 +597,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 {skillTags.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                     {skillTags.slice(0, 6).map((tag) => {
-                      const HEADER_SKILL_COLORS: Record<string, { color: string; bg: string }> = {
-                        "技術・開発":    { color: "#2563EB", bg: "#EFF6FF" },
-                        "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF" },
-                        "ビジネス・営業": { color: "var(--success)", bg: "#ECFDF5" },
-                        "マーケティング": { color: "#D97706", bg: "#FEF3C7" },
-                        "データ・分析":  { color: "#0891B2", bg: "#ECFEFF" },
-                        "マネジメント":  { color: "#DC2626", bg: "#FEE2E2" },
-                      };
                       return (
                         <span key={tag.id as string} style={{
                           display: "inline-flex", alignItems: "center", gap: 4,
