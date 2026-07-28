@@ -705,12 +705,13 @@ const CUSTOMER_SIZE_LABELS: Record<string, string> = {
 };
 
 function MarketSection({ detail }: { detail: CompanyDetail }) {
-  const hasSize = detail.market_customer_size && detail.market_customer_size.length > 0;
-  const hasDM   = !!detail.market_decision_maker;
-  const hasNote = !!detail.market_note;
-  // customer_cases は ProductsClientsSection が担当。再編時にここへ移動する。
+  const hasSize      = detail.market_customer_size && detail.market_customer_size.length > 0;
+  const hasDM        = !!detail.market_decision_maker;
+  const hasNote      = !!detail.market_note;
+  const hasCases     = detail.customer_cases && detail.customer_cases.length > 0;
+  const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
 
-  if (!hasSize && !hasDM && !hasNote) return null;
+  if (!hasSize && !hasDM && !hasNote && !hasCases && !hasCustomers) return null;
 
   return (
     <section
@@ -779,6 +780,62 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
 
+        {/* ── 導入事例 ── */}
+        {hasCases && (
+          <div>
+            {(hasSize || hasDM || hasNote) && <div style={{ height: 1, background: "var(--line)", marginBottom: 4 }} />}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
+            <CustomerCasesClient cases={detail.customer_cases!} defaultCollapsed={detail.customer_cases!.length > 3} />
+          </div>
+        )}
+
+        {/* ── 顧客タグ（customer_cases がない場合のフォールバック） ── */}
+        {!hasCases && hasCustomers && (
+          <div>
+            {(hasSize || hasDM || hasNote) && <div style={{ height: 1, background: "var(--line)", marginBottom: 4 }} />}
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+                主な顧客
+              </span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                {detail.main_customers!.length} 社
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+              {detail.main_customers!.map((c, i) => (
+                <span
+                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    padding: "6px 14px",
+                    borderRadius: 100,
+                    background: "var(--royal-50)",
+                    border: "1px solid var(--royal-100)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--royal)",
+                    fontFamily: "var(--font-noto-sans)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>🏢</span>
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </section>
   );
@@ -786,11 +843,10 @@ function MarketSection({ detail }: { detail: CompanyDetail }) {
 
 function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; company: Company }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
-  const hasCases = detail.customer_cases && detail.customer_cases.length > 0;
-  const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
 
-  if (!hasProducts && !hasCases && !hasCustomers) return null;
+  if (!hasProducts) return null;
 
+  // id は "products-clients" のまま（CompanyCardList.tsx 等の外部参照があるため変更不可）
   return (
     <section
       id="products-clients"
@@ -813,7 +869,7 @@ function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; co
             </svg>
           }
         >
-          製品・顧客
+          製品・サービス
         </SecTitle>
       </div>
 
@@ -872,62 +928,6 @@ function ProductsClientsSection({ detail, company }: { detail: CompanyDetail; co
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* ── リッチ導入事例カード ── */}
-        {hasCases && (
-          <div>
-            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: "var(--space-6)", marginTop: -4 }} />}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-            <CustomerCasesClient cases={detail.customer_cases!} defaultCollapsed={detail.customer_cases!.length > 3} />
-          </div>
-        )}
-
-        {/* ── 顧客タグ（customer_cases がない場合のフォールバック） ── */}
-        {!hasCases && hasCustomers && (
-          <div>
-            {hasProducts && <div style={{ height: 1, background: "var(--line)", marginBottom: "var(--space-6)", marginTop: -8 }} />}
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
-                主な顧客
-              </span>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                {detail.main_customers!.length} 社
-              </span>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-              {detail.main_customers!.map((c, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    padding: "6px 14px",
-                    borderRadius: 100,
-                    background: "var(--royal-50)",
-                    border: "1px solid var(--royal-100)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--royal)",
-                    fontFamily: "var(--font-noto-sans)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  <span style={{ fontSize: 10, opacity: 0.7 }}>🏢</span>
-                  {c}
-                </span>
-              ))}
             </div>
           </div>
         )}
