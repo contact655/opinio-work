@@ -9,27 +9,40 @@ import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 
 export function ShareButton({ companyName, companyId }: { companyName: string; companyId: string }) {
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
   const [origin, setOrigin] = useState("https://opinio.jp");
-  // set origin on client to avoid hydration mismatch
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const shareUrl = `${origin}/companies/${companyId}`;
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${companyName} — OPINIOで企業情報をチェック`)}&url=${encodeURIComponent(`https://opinio.jp/companies/${companyId}`)}`;
 
   useEffect(() => { setOrigin(window.location.origin); }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [open]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
+      setOpen(false);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* ignore */ }
   };
 
   return (
-    <div style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
+    <div ref={dropdownRef} style={{ position: "relative", display: "inline-block" }}>
       <button
         type="button"
-        onClick={handleCopy}
+        onClick={() => setOpen((v) => !v)}
         style={{
           display: "inline-flex", alignItems: "center", gap: 4,
           padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 600,
@@ -39,26 +52,52 @@ export function ShareButton({ companyName, companyId }: { companyName: string; c
           cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
         }}
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
         </svg>
-        {copied ? "コピー済み ✓" : "URLをコピー"}
+        {copied ? "コピー済み ✓" : "共有"}
       </button>
-      <a
-        href={twitterUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 700,
-          background: "#000", color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
-        }}
-      >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-        </svg>
-        X でシェア
-      </a>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", right: 0,
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+          overflow: "hidden", zIndex: 50, minWidth: 144,
+        }}>
+          <button
+            type="button"
+            onClick={handleCopy}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              width: "100%", padding: "10px 14px", fontSize: 12, fontWeight: 600,
+              background: "transparent", border: "none", color: "var(--ink)",
+              cursor: "pointer", textAlign: "left",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            URLをコピー
+          </button>
+          <div style={{ height: 1, background: "var(--line)", margin: "0 10px" }} />
+          <a
+            href={twitterUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 14px", fontSize: 12, fontWeight: 600,
+              color: "var(--ink)", textDecoration: "none",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            X でシェア
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -260,10 +299,8 @@ export function FollowButton({
       aria-pressed={followed}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill={followed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        {followed
-          ? <><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></>
-          : <><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></>
-        }
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
       {followed ? "フォロー中" : "フォロー"}
     </button>

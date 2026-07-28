@@ -253,9 +253,9 @@ function Hero({
               >
                 {company.tagline}
               </p>
-              {/* ジャンルチップ + フェーズバッジ */}
-              {(company.genres.length > 0 || company.phase) && (
-                <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
+              {/* Row 1: ジャンルチップ + フェーズバッジ + 採用中 + 更新日 */}
+              {(company.genres.length > 0 || company.phase || company.job_count > 0 || isFresh) && (
+                <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--space-2)" }}>
                   {company.genres.map((g) => (
                     <span
                       key={g.id}
@@ -288,80 +288,45 @@ function Hero({
                       </span>
                     );
                   })()}
+                  {company.job_count > 0 && (
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+                      padding: "var(--space-1) var(--space-2)", borderRadius: 999,
+                      fontSize: "var(--text-xs)", fontWeight: 600,
+                      background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", boxShadow: "0 0 6px rgba(5,150,105,0.6)", flexShrink: 0 }} />
+                      採用中 {company.job_count}件
+                    </span>
+                  )}
+                  {isFresh && (
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+                      padding: "var(--space-1) var(--space-2)", borderRadius: 999,
+                      fontSize: "var(--text-xs)", fontWeight: 500,
+                      background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)",
+                    }}>
+                      {freshLabel}
+                    </span>
+                  )}
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                {/* バッジ3: 採用中 */}
-                {company.job_count > 0 && (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "var(--space-1)",
-                      padding: "var(--space-1) var(--space-3)",
-                      background: "var(--success-soft)",
-                      color: "var(--success)",
-                      border: "1px solid #A7F3D0",
-                      borderRadius: 100,
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "var(--success)",
-                        boxShadow: "0 0 6px rgba(5,150,105,0.6)",
-                      }}
-                    />
-                    採用中 {company.job_count}件
-                  </span>
-                )}
-                {/* バッジ4: 更新日 */}
-                {isFresh && (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "var(--space-1)",
-                      padding: "var(--space-1) var(--space-3)",
-                      background: "var(--bg-tint)",
-                      color: "var(--ink-soft)",
-                      border: "1px solid var(--line)",
-                      borderRadius: 100,
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "var(--ink-soft)",
-                      }}
-                    />
-                    {freshLabel}
-                  </span>
-                )}
-                {/* CTA: 話を聞く（accepting_casual_meetings が true のとき） */}
+              {/* Row 2: アクションボタン（話を聞く dominant + 気になる + フォロー ghost） */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 {company.accepting_casual_meetings && (
                   <Link href={`/companies/${company.id}/casual-meeting`}
                     style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700,
+                      display: "inline-flex", alignItems: "center", gap: 7,
+                      padding: "10px 22px", borderRadius: 100, fontSize: 14, fontWeight: 800,
                       background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
                       textDecoration: "none",
-                      boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+                      boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
                     }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
                     話を聞く（無料）
                   </Link>
                 )}
-                {/* ⑨ 気になる bookmark ghost button */}
                 <BookmarkButton
                   companyName={company.name}
                   companyId={company.id}
@@ -369,7 +334,6 @@ function Hero({
                   isAuthenticated={isAuthenticated}
                   variant="pill"
                 />
-                {/* フォローボタン */}
                 <FollowButton
                   companyId={company.id}
                   initialFollowed={initialFollowed}
