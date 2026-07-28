@@ -83,7 +83,7 @@ export default async function BizDashboardPage({
       const tid = ctx.tenantId;
       const [companyFields, photoCnt, storyCnt, toolCnt, salaryCnt] = await Promise.all([
         adminSupabase.from("ow_companies").select(
-          "description, culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams"
+          "description, culture_description, customer_cases, market_customer_size, capital_type, branch_locations, org_teams"
         ).eq("id", tid).maybeSingle(),
         adminSupabase.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", tid),
         adminSupabase.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_published", true),
@@ -108,7 +108,7 @@ export default async function BizDashboardPage({
     hasPublishedJob: (jobStatusCounts.active ?? 0) > 0,
     hasPublishedStory: scoreData.storyCount > 0,
     cultureDescription: scoreData.fields?.culture_description ?? null,
-    bizModelTypes: scoreData.fields?.biz_model_types as string[] | null ?? null,
+    customerCases: Array.isArray(scoreData.fields?.customer_cases) ? scoreData.fields.customer_cases : null,
     marketCustomerSize: scoreData.fields?.market_customer_size as string[] | null ?? null,
     capitalType: scoreData.fields?.capital_type ?? null,
     branchLocations: scoreData.fields?.branch_locations as string[] | null ?? null,

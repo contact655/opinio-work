@@ -62,7 +62,7 @@ export default async function BizCompanyPage() {
     adminClient.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("status", "published"),
     adminClient.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("is_published", true),
     // 取材項目スコア用フィールドを一括取得
-    adminClient.from("ow_companies").select("description, culture_description, biz_model_types, market_customer_size, capital_type, branch_locations, org_teams").eq("id", ctx.tenantId).maybeSingle(),
+    adminClient.from("ow_companies").select("description, culture_description, customer_cases, market_customer_size, capital_type, branch_locations, org_teams").eq("id", ctx.tenantId).maybeSingle(),
   ]);
 
   if (!companyRaw) redirect("/biz/dashboard");
@@ -75,7 +75,7 @@ export default async function BizCompanyPage() {
   ]);
   const interviewScore = calcDisclosureScore({
     cultureDescription: iFields?.culture_description ?? null,
-    bizModelTypes: iFields?.biz_model_types as string[] | null ?? null,
+    customerCases: Array.isArray(iFields?.customer_cases) ? iFields.customer_cases : null,
     marketCustomerSize: iFields?.market_customer_size as string[] | null ?? null,
     capitalType: iFields?.capital_type ?? null,
     branchLocations: iFields?.branch_locations as string[] | null ?? null,
