@@ -407,21 +407,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
-          {/* カルチャータグ */}
-          {features.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-              {features.slice(0, 4).map((f, i) => (
-                <span key={i} style={{
-                  fontSize: 11, padding: "2px 8px", borderRadius: 100,
-                  background: "#f1f5f9", color: "var(--ink-soft)", border: "1px solid var(--line)",
-                  whiteSpace: "nowrap",
-                }}>
-                  #{f}
-                </span>
-              ))}
-            </div>
-          )}
-
           {/* リモート＋募集中 */}
           {(remoteText || company.job_count > 0) && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
