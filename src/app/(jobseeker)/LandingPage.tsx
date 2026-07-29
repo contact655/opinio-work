@@ -6,6 +6,8 @@ export type LPMember = {
   avatarColor: string | null;
   roleTitle: string | null;
   companyName: string | null;
+  careerFlow: string[] | null;
+  quote: string | null;
 };
 
 // ─── SVG Icon ───────────────────────────────────────────────────────────────
@@ -25,7 +27,6 @@ function Icon({ name, size = 20, color }: { name: string; size?: number; color?:
     eval: <path d="M5 18.4V13m4.6 5.4V8.4M14.2 18.4v-7M18.8 18.4V5.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>,
     team: (<><circle cx="9" cy="9.2" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M3.6 18.8c0-3 2.4-5 5.4-5s5.4 2 5.4 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M15.4 7.2a3 3 0 010 5.8M16.6 14.4c2.3.5 3.8 2.3 3.8 4.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></>),
     hard: (<><path d="M12 4.2l8.4 15H3.6z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M12 10v3.6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="12" cy="16.2" r=".9" fill="currentColor"/></>),
-    quote: <path d="M9.4 6.5C6.4 7.6 4.6 10 4.6 13.2c0 2.6 1.6 4.3 3.8 4.3 2 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.4-1.5 1.6-2.7 3.2-3.4zM20.6 6.5c-3 1.1-4.8 3.5-4.8 6.7 0 2.6 1.6 4.3 3.8 4.3 2 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.4-1.5 1.6-2.7 3.2-3.4z" fill="currentColor"/>,
   };
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} style={{ display: "block", color: color ?? "currentColor", flexShrink: 0 }}>
@@ -83,20 +84,24 @@ const COMPARE = [
 
 const FAQ = [
   {
+    q: "登録すると、何ができるようになりますか？",
+    a: "現役社員に直接カジュアル面談を申し込めるようになります。企業情報・求人・取材記事はログイン不要で読めます。登録にはメールアドレスのみ必要で、30秒で完了します。スカウトや営業連絡は一切来ません。",
+    open: true,
+  },
+  {
+    q: "面談したことは、今の会社に知られませんか？",
+    a: "知られません。企業への申し込みはOPINIO経由であり、面談相手の現役社員は守秘義務があります。あなたの会社に情報が伝わることはありません。",
+    open: false,
+  },
+  {
     q: "転職せずに、現職に残ってもいいですか？",
     a: "もちろんです。OPINIOは「まず知る」ための場所です。調べた結果、今の会社に残るという判断も、私たちは等しく尊重します。残るよう急かす連絡も、転職を勧める連絡も一切ありません。",
-  },
-  {
-    q: "他の転職サービスと、何が違いますか？",
-    a: "スカウトも営業連絡もありません。編集部が実際に取材・審査した企業だけを掲載し、求人票には載らない組織の実態まで公開します。追われずに、自分のペースで比較できることが最大の違いです。",
-  },
-  {
-    q: "現役社員との面談は、どう申し込みますか？",
-    a: "気になる企業ページ内の「カジュアル面談を申し込む」ボタンから申請できます。メールアドレス登録（30秒）のみ必要です。面談は選考と切り離されており、進む義務はありません。",
+    open: false,
   },
   {
     q: "本当に無料で使えますか？",
     a: "はい。メールアドレスの登録だけで、掲載企業の情報にすべて無料でアクセスできます。求職者側の費用は一切かかりません。",
+    open: false,
   },
 ];
 
@@ -106,10 +111,48 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
 
   return (
     <div style={{ background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
+      <style>{`
+        .lp-hero { padding: 78px 0 92px; border-bottom: 1px solid ${C.line}; position: relative; overflow: hidden; }
+        .lp-hero-grid { display: grid; grid-template-columns: 1.03fr 0.97fr; gap: 60px; align-items: center; }
+        .lp-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .lp-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .lp-asks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .lp-section { padding: 92px 0; }
+        .lp-wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+        .lp-thread-box { padding: 44px 40px 34px; }
+        .lp-member-flow { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+        .lp-member-flow em { font-style: normal; font-size: 11.5px; color: ${C.muted}; background: ${C.paper2}; border-radius: 999px; padding: 2px 8px; }
+        .lp-member-flow .lp-dot { width: 4px; height: 4px; border-radius: 50%; background: #CBD5E0; flex-shrink: 0; display: inline-block; }
+        .lp-member-quote { margin-top: 8px; display: flex; gap: 7px; align-items: flex-start; }
+        .lp-member-quote .lp-ql { color: ${C.blue}; font-size: 17px; line-height: 1.1; flex-shrink: 0; font-family: serif; }
+        .lp-member-quote span { font-size: 12px; color: #374357; line-height: 1.6; }
+        .lp-cta-bullets { display: inline-flex; flex-direction: column; gap: 11px; text-align: left; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13); border-radius: 13px; padding: 24px 30px; margin: 24px 0 32px; }
+        .lp-cta-btns { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        @media (max-width: 900px) {
+          .lp-hero { padding: 52px 0 64px; }
+          .lp-hero-grid { grid-template-columns: 1fr; gap: 40px; }
+          .lp-grid2 { grid-template-columns: 1fr; }
+          .lp-grid3 { grid-template-columns: 1fr; }
+          .lp-asks-grid { grid-template-columns: 1fr 1fr; }
+          .lp-section { padding: 64px 0; }
+          .lp-thread-box { padding: 30px 22px 24px; }
+          .lp-wrap { padding: 0 18px; }
+          table.lp-cmp th, table.lp-cmp td { padding: 14px 13px; font-size: 13.5px; }
+        }
+        @media (max-width: 580px) {
+          .lp-asks-grid { grid-template-columns: 1fr; }
+          .lp-grid3.lp-steps { grid-template-columns: 1fr; }
+          .lp-cta-bullets { padding: 20px 22px; }
+        }
+        details summary::-webkit-details-marker { display: none; }
+        details summary::marker { display: none; }
+        details[open] summary .lp-faq-arrow { transform: rotate(90deg); }
+        .lp-faq-arrow { transition: transform 0.2s; }
+      `}</style>
 
       {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
-      <div style={{ padding: "78px 0 92px", borderBottom: `1px solid ${C.line}`, position: "relative", overflow: "hidden" }}>
-        {/* ドット背景 + キャリアの軌跡ライン */}
+      <div className="lp-hero">
+        {/* ドット背景 */}
         <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5, pointerEvents: "none" }} viewBox="0 0 1440 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <defs>
             <pattern id="lp-dots" width="26" height="26" patternUnits="userSpaceOnUse">
@@ -128,7 +171,7 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
           <circle cx="960" cy="176" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
         </svg>
 
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px", display: "grid", gridTemplateColumns: "1.03fr 0.97fr", gap: 60, alignItems: "center", position: "relative" }}>
+        <div className="lp-wrap lp-hero-grid" style={{ position: "relative" }}>
           {/* 左: コピー */}
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 22, textTransform: "uppercase" }}>IT・SaaS業界のキャリアプラットフォーム</div>
@@ -168,18 +211,38 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
             </div>
 
             {members.map((m) => (
-              <div key={m.id} style={{ padding: "18px 22px", borderBottom: `1px solid #F1F1EC`, display: "flex", gap: 15, alignItems: "flex-start" }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 11, background: m.avatarColor ?? `linear-gradient(135deg,${C.navy},${C.blue})`, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: '"Poppins", sans-serif' }}>
-                    {m.name.charAt(0).toUpperCase()}
+              <div key={m.id} style={{ padding: "16px 22px", borderBottom: `1px solid #F1F1EC` }}>
+                <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 11, background: m.avatarColor ?? `linear-gradient(135deg,${C.navy},${C.blue})`, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: '"Poppins", sans-serif' }}>
+                      {m.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ position: "absolute", right: -4, bottom: -4, width: 18, height: 18, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,.18)" }}>
+                      <Icon name="check" size={11} color={C.green} />
+                    </div>
                   </div>
-                  <div style={{ position: "absolute", right: -4, bottom: -4, width: 18, height: 18, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,.18)" }}>
-                    <Icon name="check" size={11} color={C.green} />
-                  </div>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.55, color: C.navy }}>
-                    {m.roleTitle ?? "メンバー"}{m.companyName ? ` ／ ${m.companyName}` : ""}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.5, color: C.navy }}>
+                      {m.roleTitle ?? "メンバー"}{m.companyName ? ` ／ ${m.companyName}` : ""}
+                    </div>
+                    {/* Career flow */}
+                    {m.careerFlow && m.careerFlow.length > 0 && (
+                      <div className="lp-member-flow">
+                        {m.careerFlow.map((co, i) => (
+                          <span key={i} style={{ display: "contents" }}>
+                            {i > 0 && <span className="lp-dot" />}
+                            <em>{co}</em>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Quote / theme */}
+                    {m.quote && (
+                      <div className="lp-member-quote">
+                        <span className="lp-ql">&#8220;</span>
+                        <span>{m.quote}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -196,8 +259,8 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </div>
 
       {/* ══ S2: 現役社員に聞ける + CAREER THREAD ════════════════════════════ */}
-      <section style={{ background: C.paper2, padding: "92px 0" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+      <section className="lp-section" style={{ background: C.paper2 }}>
+        <div className="lp-wrap">
           <div style={{ textAlign: "center", marginBottom: 54 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>OPINIOにしかないもの</div>
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>
@@ -207,35 +270,37 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
           </div>
 
           {/* CAREER THREAD box */}
-          <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 18, padding: "44px 40px 34px", marginBottom: 24, overflow: "hidden" }}>
+          <div className="lp-thread-box" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 18, marginBottom: 24, overflow: "hidden" }}>
             <div style={{ fontSize: 12, letterSpacing: "0.12em", fontWeight: 700, color: C.muted, marginBottom: 6 }}>CAREER THREAD</div>
             <div style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, color: C.navy, marginBottom: 26 }}>この人が、なぜここにいるのか。</div>
-            <svg viewBox="0 0 1000 210" style={{ width: "100%", height: "auto" }} role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
-              <path d="M60 150 C 200 150, 220 96, 360 96 S 560 62, 700 62 S 880 62, 940 62" fill="none" stroke="#C9B896" strokeWidth="2" />
-              <circle cx="60"  cy="150" r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
-              <text x="60"  y="180" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>みずほ証券</text>
-              <text x="60"  y="200" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2016</text>
-              <circle cx="360" cy="96"  r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
-              <text x="360" y="126" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>Salesforce</text>
-              <text x="360" y="146" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2021</text>
-              <circle cx="700" cy="62"  r="10" fill={C.navy} />
-              <circle cx="700" cy="62"  r="17" fill="none" stroke={C.navy} strokeWidth="1.5" opacity=".28" />
-              <text x="700" y="36"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fontWeight="700" fill={C.navy}>伊藤忠テクノソリューションズ</text>
-              <text x="700" y="94"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="13" fill={C.muted}>現職・エンタープライズ営業</text>
-              <rect x="768" y="112" width="212" height="66" rx="12" fill="#fff" stroke={C.line} />
-              <path d="M800 112 l-12 -14 l0 14 z" fill="#fff" stroke={C.line} />
-              <text x="788" y="140" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>「なぜ証券から</text>
-              <text x="788" y="162" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>SaaSに移ったか」</text>
-            </svg>
+            <div style={{ overflowX: "auto" }}>
+              <svg viewBox="0 0 1000 210" style={{ width: "100%", minWidth: 480, height: "auto" }} role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
+                <path d="M60 150 C 200 150, 220 96, 360 96 S 560 62, 700 62 S 880 62, 940 62" fill="none" stroke="#C9B896" strokeWidth="2" />
+                <circle cx="60"  cy="150" r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
+                <text x="60"  y="180" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>みずほ証券</text>
+                <text x="60"  y="200" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2016</text>
+                <circle cx="360" cy="96"  r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
+                <text x="360" y="126" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>Salesforce</text>
+                <text x="360" y="146" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2021</text>
+                <circle cx="700" cy="62"  r="10" fill={C.navy} />
+                <circle cx="700" cy="62"  r="17" fill="none" stroke={C.navy} strokeWidth="1.5" opacity=".28" />
+                <text x="700" y="36"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fontWeight="700" fill={C.navy}>伊藤忠テクノソリューションズ</text>
+                <text x="700" y="94"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="13" fill={C.muted}>現職・エンタープライズ営業</text>
+                <rect x="768" y="112" width="212" height="66" rx="12" fill="#fff" stroke={C.line} />
+                <path d="M800 112 l-12 -14 l0 14 z" fill="#fff" stroke={C.line} />
+                <text x="788" y="140" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>「なぜ証券から</text>
+                <text x="788" y="162" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>SaaSに移ったか」</text>
+              </svg>
+            </div>
             <p style={{ fontSize: 14, color: C.muted, marginTop: 14 }}>経歴が一本の線で見えるから、「なぜこの会社を選んだのか」を、その人自身に聞けます。</p>
           </div>
 
           {/* 4 feature cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div className="lp-grid2">
             {[
-              { icon: "verified", bg: "#E8EEFC", fg: C.blue,  title: "所属が認証されている",     body: "本人が勝手に名乗っているのではなく、企業側が在籍を確認したうえで公開しています。匿名の口コミサイトとは、情報の出どころが違います。" },
-              { icon: "why",      bg: "#E2F1EB", fg: C.green, title: "入社の理由が、聞ける",       body: "なぜ数ある会社の中でここを選んだのか。入ってみて何が想像どおりで、何が違ったのか。求人票にも面接にも出てこない話です。" },
-              { icon: "spark",    bg: "#FBEEDF", fg: C.amber, title: "やりがいを、本人の言葉で",   body: "会社が用意した文章ではなく、いま働いている人が自分の言葉で語ります。何が面白くて、何がしんどいのかまで含めて。" },
+              { icon: "verified", bg: "#E8EEFC", fg: C.blue,  title: "所属が認証されている",       body: "本人が勝手に名乗っているのではなく、企業側が在籍を確認したうえで公開しています。匿名の口コミサイトとは、情報の出どころが違います。" },
+              { icon: "why",      bg: "#E2F1EB", fg: C.green, title: "入社の理由が、聞ける",         body: "なぜ数ある会社の中でここを選んだのか。入ってみて何が想像どおりで、何が違ったのか。求人票にも面接にも出てこない話です。" },
+              { icon: "spark",    bg: "#FBEEDF", fg: C.amber, title: "やりがいを、本人の言葉で",     body: "会社が用意した文章ではなく、いま働いている人が自分の言葉で語ります。何が面白くて、何がしんどいのかまで含めて。" },
               { icon: "free",     bg: "#EDEDE7", fg: C.muted, title: "話を聞いても、応募しなくていい", body: "面談は選考と切り離されています。進む義務はありません。「今は動かない」という結論も、この場では正解です。" },
             ].map((f) => (
               <div key={f.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, padding: 32 }}>
@@ -251,21 +316,21 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </section>
 
       {/* ══ S3: 面談で聞けること ════════════════════════════════════════════ */}
-      <section style={{ padding: "92px 0" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+      <section className="lp-section">
+        <div className="lp-wrap">
           <div style={{ textAlign: "center", marginBottom: 54 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>面談で聞けること</div>
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>面接では、聞けないこと。</h2>
             <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>評価される場ではないので、こういう質問ができます。</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}>
+          <div className="lp-asks-grid">
             {ASKS.map((a) => (
-              <div key={a.q} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "24px 22px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div key={a.q} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "22px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, background: C.paper2, display: "grid", placeItems: "center" }}>
                   <Icon name={a.icon} size={20} color={a.color} />
                 </div>
                 <div>
-                  <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.6 }}>{a.q}</b>
+                  <b style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: C.navy, lineHeight: 1.6 }}>{a.q}</b>
                   <span style={{ fontSize: 13, color: C.muted }}>{a.sub}</span>
                 </div>
               </div>
@@ -275,14 +340,14 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </section>
 
       {/* ══ S4: 掲載企業 ════════════════════════════════════════════════════ */}
-      <section style={{ background: C.paper2, padding: "92px 0" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+      <section className="lp-section" style={{ background: C.paper2 }}>
+        <div className="lp-wrap">
           <div style={{ textAlign: "center", marginBottom: 54 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>掲載企業</div>
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>企業の「中身」が、ここに揃う。</h2>
             <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>取材記事・求人・そこで働く人のキャリアが、ひとつの企業ページに集まっています。</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
+          <div className="lp-grid3">
             {FEATURED.map((c) => (
               <Link key={c.href} href={c.href} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "26px 24px", textDecoration: "none", display: "block" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
@@ -293,9 +358,9 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
                   </div>
                 </div>
                 <div style={{ fontSize: 13.5, color: "#3E4A5C", paddingTop: 16, borderTop: "1px solid #F0F0EB", display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <span><span style={{ color: C.muted }}>取材記事 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif', fontVariantNumeric: "tabular-nums" }}>{c.articles}</strong></span>
-                  <span><span style={{ color: C.muted }}>求人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif', fontVariantNumeric: "tabular-nums" }}>{c.jobs}</strong></span>
-                  <span><span style={{ color: C.muted }}>話せる人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif', fontVariantNumeric: "tabular-nums" }}>{c.members}</strong></span>
+                  <span><span style={{ color: C.muted }}>取材記事 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.articles}</strong></span>
+                  <span><span style={{ color: C.muted }}>求人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.jobs}</strong></span>
+                  <span><span style={{ color: C.muted }}>話せる人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.members}</strong></span>
                 </div>
               </Link>
             ))}
@@ -311,17 +376,17 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </section>
 
       {/* ══ S5: 使い方3ステップ ══════════════════════════════════════════════ */}
-      <section style={{ padding: "92px 0" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+      <section className="lp-section">
+        <div className="lp-wrap">
           <div style={{ textAlign: "center", marginBottom: 54 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>使い方</div>
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>調べて、聞いて、あなたが決める</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
+          <div className="lp-grid3 lp-steps">
             {[
-              { bg: C.navy,    icon: "search", lab: "STEP 01 ・ 調べる", title: "内側を、知る",           body: "取材記事・求人票・社員のキャリアが一か所に。登録なしでも読めます。",                     href: "/companies" },
-              { bg: "#1F2B3E", icon: "talk",   lab: "STEP 02 ・ 聞く",  title: "本人に、聞く",           body: "気になった会社の現役社員に面談を申し込む。ここからは登録が必要です。",                   href: "/people"    },
-              { bg: C.green,   icon: "decide", lab: "STEP 03 ・ 決める", title: "自分のペースで、決める", body: "応募する、残る、保留する。急かされないので、どれを選んでも納得できます。",               href: "/companies" },
+              { bg: C.navy,    icon: "search", lab: "STEP 01 ・ 調べる", title: "内側を、知る",           body: "取材記事・求人票・社員のキャリアが一か所に。登録なしでも読めます。",               href: "/companies" },
+              { bg: "#1F2B3E", icon: "talk",   lab: "STEP 02 ・ 聞く",  title: "本人に、聞く",           body: "気になった会社の現役社員に面談を申し込む。ここからは登録が必要です。",             href: "/people"    },
+              { bg: C.green,   icon: "decide", lab: "STEP 03 ・ 決める", title: "自分のペースで、決める", body: "応募する、残る、保留する。急かされないので、どれを選んでも納得できます。",           href: "/companies" },
             ].map((s) => (
               <Link key={s.title} href={s.href} style={{ display: "block", background: s.bg, borderRadius: 15, padding: "32px 28px", color: "#fff", textDecoration: "none" }}>
                 <div style={{ marginBottom: 18 }}>
@@ -337,15 +402,15 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </section>
 
       {/* ══ S6: 比較テーブル ══════════════════════════════════════════════════ */}
-      <section style={{ background: C.paper2, padding: "92px 0" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+      <section className="lp-section" style={{ background: C.paper2 }}>
+        <div className="lp-wrap">
           <div style={{ textAlign: "center", marginBottom: 54 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>他のサービスとの違い</div>
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>なぜ、OPINIOなのか。</h2>
             <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>勝てないところも書いています。</p>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, overflow: "hidden" }}>
+            <table className="lp-cmp" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, overflow: "hidden" }}>
               <thead>
                 <tr>
                   <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2, borderBottom: "1px solid #F0F0EB" }} />
@@ -374,7 +439,7 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </section>
 
       {/* ══ S7: FAQ ════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: "92px 0" }}>
+      <section className="lp-section">
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 28px" }}>
           <div style={{ textAlign: "center", marginBottom: 54 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>よくあるご質問</div>
@@ -382,10 +447,11 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
           </div>
           <div style={{ borderTop: `1px solid ${C.line}` }}>
             {FAQ.map((item, i) => (
-              <details key={i} style={{ borderBottom: `1px solid ${C.line}`, padding: "22px 0" }}>
-                <summary style={{ cursor: "pointer", fontSize: 16, fontWeight: 700, color: C.navy, display: "flex", gap: 14, alignItems: "flex-start", listStyle: "none" }}>
+              <details key={i} open={item.open} style={{ borderBottom: `1px solid ${C.line}`, padding: "22px 0" }}>
+                <summary style={{ cursor: "pointer", fontSize: 16, fontWeight: 700, color: C.navy, display: "flex", gap: 14, alignItems: "flex-start", listStyle: "none", userSelect: "none" }}>
                   <span style={{ color: C.blue, fontFamily: '"Poppins", sans-serif', flexShrink: 0 }}>Q.</span>
-                  {item.q}
+                  <span style={{ flex: 1 }}>{item.q}</span>
+                  <span className="lp-faq-arrow" style={{ fontSize: 18, color: C.muted, flexShrink: 0, marginTop: 1 }}>›</span>
                 </summary>
                 <p style={{ fontSize: 14.5, color: "#3E4A5C", paddingLeft: 30, marginTop: 13, lineHeight: 1.8 }}>{item.a}</p>
               </details>
@@ -395,27 +461,42 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
       </section>
 
       {/* ══ FINAL CTA ════════════════════════════════════════════════════════ */}
-      <section style={{ background: C.navy, color: "#fff", textAlign: "center", padding: "98px 0", position: "relative", overflow: "hidden" }}>
+      <section className="lp-section" style={{ background: C.navy, color: "#fff", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        {/* 背景グラデーション */}
         <div style={{ pointerEvents: "none", position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% -20%, #1e3a8a, transparent 60%)", opacity: 0.5 }} />
+        {/* 装飾SVG（キャリアの軌跡） */}
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.06, pointerEvents: "none" }} viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <path d="M-40 320 C 200 320, 260 200, 480 200 S 760 100, 1000 100 1240 100 1240 100" fill="none" stroke="#fff" strokeWidth="1.5" />
+          <circle cx="120"  cy="310" r="4" fill="#fff" />
+          <circle cx="480"  cy="200" r="4" fill="#fff" />
+          <circle cx="840"  cy="120" r="6" fill="#fff" />
+          <circle cx="840"  cy="120" r="14" fill="none" stroke="#fff" strokeWidth="1" />
+        </svg>
+
         <div style={{ position: "relative", maxWidth: 780, margin: "0 auto", padding: "0 28px" }}>
           <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: "clamp(27px,3.4vw,42px)", fontWeight: 600, color: "#fff", marginBottom: 20 }}>深く知ってから、動く。</h2>
           <p style={{ color: "#B9C6DE", fontSize: 16, lineHeight: 1.8, marginBottom: 14 }}>今のキャリアを、無理に変えなくてもいい。<br />まずは知ることから、はじめよう。</p>
-          <div style={{ display: "inline-flex", flexDirection: "column", gap: 11, textAlign: "left", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 13, padding: "24px 30px", margin: "24px 0 32px" }}>
-            <b style={{ color: "#fff", display: "block", marginBottom: 3 }}>OPINIOでできること</b>
-            {["現役社員のキャリアを無料で見る", "企業取材記事を全文読む", "現場のメンバーに直接面談を申し込む"].map((t) => (
+
+          <div className="lp-cta-bullets">
+            <b style={{ color: "#fff", display: "block", marginBottom: 3 }}>登録すると、できること</b>
+            {[
+              "現役社員に面談を申し込める",
+              "気になる企業を保存して比較できる",
+              "新しく話せる人が増えたら通知が届く",
+            ].map((t) => (
               <span key={t} style={{ color: "#C6D2E8", display: "flex", alignItems: "center", gap: 11, fontSize: 14.5 }}>
                 <Icon name="check" size={16} color={C.green} />
                 {t}
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-            <Link href="/people" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#fff", color: C.navy, padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
-              話を聞ける人を見る
-              <Icon name="talk" size={17} color={C.navy} />
-            </Link>
-            <Link href="/auth" style={{ fontSize: 14, color: "#B9C6DE", textDecoration: "underline", textUnderlineOffset: 4 }}>
+
+          <div className="lp-cta-btns">
+            <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#fff", color: C.navy, padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
               メールアドレスで無料登録（30秒）
+            </Link>
+            <Link href="/companies" style={{ fontSize: 14, color: "#B9C6DE", textDecoration: "underline", textUnderlineOffset: 4 }}>
+              先に企業を見てみる →
             </Link>
           </div>
         </div>
