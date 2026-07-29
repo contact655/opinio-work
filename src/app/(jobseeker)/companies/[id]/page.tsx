@@ -2605,7 +2605,8 @@ function Sidebar({
                     fontSize: "var(--text-xs)",
                     textAlign: "center",
                     margin: "8px 0",
-                    opacity: 0.68,
+                    color: "#fff",
+                    opacity: 0.75,
                     lineHeight: 1.4,
                   }}
                 >
