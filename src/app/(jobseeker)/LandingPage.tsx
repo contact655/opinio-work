@@ -105,25 +105,7 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
   const memberCount = members.length;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
-
-      {/* ══ NAV ══════════════════════════════════════════════════════════════ */}
-      <header style={{ background: C.paper, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px", display: "flex", alignItems: "center", height: 70, gap: 34 }}>
-          <Link href="/" style={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600, fontSize: 21, letterSpacing: "0.06em", color: C.navy, textDecoration: "none" }}>
-            OPINIO<span style={{ color: "#E8833A" }}>.</span>
-          </Link>
-          <nav style={{ display: "flex", gap: 26 }}>
-            {[["企業", "/companies"], ["求人", "/jobs"], ["話せる人", "/people"], ["記事", "/articles"]].map(([label, href]) => (
-              <Link key={href} href={href} style={{ color: C.ink, textDecoration: "none", fontSize: 14 }}>{label}</Link>
-            ))}
-          </nav>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}>
-            <Link href="/auth" style={{ color: C.ink, textDecoration: "none", fontSize: 14 }}>ログイン</Link>
-            <Link href="/auth?mode=signup" style={{ background: C.navy, color: "#fff", padding: "9px 20px", borderRadius: 6, fontWeight: 700, textDecoration: "none", fontSize: 14 }}>無料登録</Link>
-          </div>
-        </div>
-      </header>
+    <div style={{ background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
 
       {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
       <div style={{ padding: "78px 0 92px", borderBottom: `1px solid ${C.line}`, position: "relative", overflow: "hidden" }}>
@@ -438,36 +420,6 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
           </div>
         </div>
       </section>
-
-      {/* ══ FOOTER ════════════════════════════════════════════════════════════ */}
-      <footer style={{ background: "#0A0F1A", color: "#8A94A5", padding: "66px 0 34px", fontSize: 13.5 }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 36 }}>
-            <div>
-              <span style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: '"Poppins",sans-serif' }}>OPINIO<span style={{ color: "#E8833A" }}>.</span></span>
-              <p style={{ marginTop: 4, fontSize: 13, color: "#5A6779", letterSpacing: "0.04em" }}>Truth to Careers</p>
-              <p style={{ marginTop: 16, lineHeight: 1.8 }}>IT/SaaS業界に特化したキャリアプラットフォーム。取材された企業情報と求人が、ここに揃っています。</p>
-            </div>
-            {[
-              { title: "求職者の方", links: [["企業を探す","/companies"],["求人を探す","/jobs"],["話せる人","/people"],["年収相場","/salary"],["記事","/articles"],["転職ガイド","/careers"]] },
-              { title: "企業・採用担当の方", links: [["OPINIOへの掲載","/business"],["企業ログイン","/biz/auth"]] },
-              { title: "会社情報", links: [["OPINIOについて","/about"],["掲載企業について","/about/scope"],["プライバシーポリシー","/privacy"],["利用規約","/terms"]] },
-            ].map((col) => (
-              <div key={col.title}>
-                <h4 style={{ color: "#fff", fontSize: 13.5, marginBottom: 16, fontWeight: 700 }}>{col.title}</h4>
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11 }}>
-                  {col.links.map(([label, href]) => (
-                    <li key={href}><Link href={href} style={{ color: "#8A94A5", textDecoration: "none" }}>{label}</Link></li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 46, paddingTop: 22, borderTop: "1px solid #1C2534", fontSize: 12, color: "#5A6779" }}>
-            © 2025 Opinio, Inc. All rights reserved.
-          </div>
-        </div>
-      </footer>
 
     </div>
   );
