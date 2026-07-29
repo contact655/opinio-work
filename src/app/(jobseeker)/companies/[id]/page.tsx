@@ -538,44 +538,6 @@ function AboutSection({
           </p>
         )}
 
-        {/* ③ 顧客規模・意思決定者（小さく末尾に） */}
-        {(detail.market_customer_size?.length || detail.market_decision_maker) && (
-          <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: 10 }}>
-            {detail.market_customer_size && detail.market_customer_size.length > 0 && (
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "Inter, sans-serif", flexShrink: 0, lineHeight: "22px" }}>
-                  顧客規模
-                </span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {detail.market_customer_size.map((s) => (
-                    <span key={s} style={{
-                      display: "inline-block",
-                      padding: "3px 10px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      background: "var(--success-soft)",
-                      color: "var(--success)",
-                      border: "1px solid #A7F3D0",
-                    }}>
-                      {CUSTOMER_SIZE_LABELS[s] ?? s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {detail.market_decision_maker && (
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "Inter, sans-serif", flexShrink: 0, lineHeight: "1.6" }}>
-                  意思決定者
-                </span>
-                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                  {detail.market_decision_maker}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
 
       </div>
     </section>
@@ -631,12 +593,6 @@ function productStyle(name: string): { bg: string; border: string; color: string
     return { ...GREEN, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg> };
   return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
-
-const CUSTOMER_SIZE_LABELS: Record<string, string> = {
-  enterprise: "エンタープライズ（大手・上場企業）",
-  mid_market: "ミッドマーケット（中規模企業）",
-  smb:        "SMB・中小企業",
-};
 
 // ─── ⑦ 資本関係・グループ ────────────────────────────────────────────────────
 
