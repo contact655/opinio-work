@@ -148,7 +148,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
       borderRadius: 16, padding: "var(--space-6)", marginBottom: "var(--space-4)",
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-        <h2 style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)" }}>同じ職種の求人</h2>
+        <h2 style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)" }}>同じ職種の募集</h2>
         <Link href="/jobs" style={{ fontSize: 12, color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>
           すべて見る →
         </Link>
@@ -583,7 +583,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
-            <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>求人</Link>
+            <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>募集</Link>
             <span>/</span>
             <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{job.role}</span>
           </div>
@@ -735,7 +735,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
                   </span>
-                  この求人のポイント
+                  この募集のポイント
                 </div>
                 <p style={{
                   fontFamily: 'var(--font-noto-serif)',
@@ -1495,7 +1495,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
                     </svg>
                   }>
-                    {company.name}の他の求人
+                    {company.name}の他の募集
                   </SecTitle>
                   <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
                     {relatedJobs.map((rj) => (
@@ -1588,7 +1588,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontWeight: 700, textDecoration: "none", textAlign: "center",
                     boxShadow: company.jobs_public ? "none" : "0 4px 16px rgba(0,35,102,0.28)",
                   }}>
-                    この求人に応募する
+                    この募集に応募する
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
@@ -1608,7 +1608,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* Job summary */}
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-4)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 14 }}>
-                  求人サマリー
+                  募集サマリー
                 </div>
                 {/* Salary — highlighted row */}
                 {(job.salary_min || job.salary_max) && (

@@ -512,7 +512,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             }}
             onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
           >
-            詳細を見る →
+            詳細 →
           </button>
 
           {/* ② ♡ボタン — 常時ピンク */}

@@ -16,7 +16,7 @@ const TABS = [
   },
   {
     href: "/jobs",
-    label: "求人",
+    label: "募集",
     icon: (active: boolean) => (
       <svg width="21" height="21" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>

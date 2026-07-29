@@ -10,7 +10,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const NAV_LINKS = [
   { href: "/companies", label: "企業", highlight: false },
-  { href: "/jobs", label: "求人", highlight: false },
+  { href: "/jobs", label: "募集", highlight: false },
   { href: "/people", label: "ユーザー", highlight: false },
   { href: "/feed", label: "フィード", highlight: false },
   { href: "/articles", label: "記事", highlight: false },
@@ -489,7 +489,7 @@ export function JobseekerHeader() {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
                       { href: "/companies", label: "企業一覧", icon: "🏢" },
-                      { href: "/jobs",      label: "求人一覧", icon: "💼" },
+                      { href: "/jobs",      label: "募集一覧", icon: "💼" },
                       { href: "/articles",  label: "記事",      icon: "📝" },
                     ].map(({ href, label, icon }) => (
                       <a key={href} href={href} onClick={() => setSearchOpen(false)}
@@ -526,7 +526,7 @@ export function JobseekerHeader() {
                   {/* 求人 */}
                   {suggestions.jobs.length > 0 && (
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>求人</div>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>募集</div>
                       {suggestions.jobs.map((j) => (
                         <a key={j.id} href={`/jobs/${j.id}`} onClick={() => setSearchOpen(false)}
                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}

@@ -1834,12 +1834,12 @@ function JobsSection({
       >
         <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
           <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>}>
-            募集中の求人
+            募集中の案件
           </SecTitle>
         </div>
         <div style={{ padding: "var(--space-6)", textAlign: "center" }}>
           <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", padding: "24px 0", margin: 0 }}>
-            現在、公開中の求人はありません。
+            現在、公開中の募集はありません。
           </p>
           {company.accepting_casual_meetings && (
             <Link href={`/companies/${company.id}/casual-meeting`} style={{
@@ -2488,7 +2488,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
             boxShadow: hasMeeting ? "none" : "0 3px 12px rgba(0,35,102,0.25)",
           }}
         >
-          求人を見て応募する
+          募集を見て応募する
         </a>
       )}
     </div>
@@ -2560,7 +2560,7 @@ function Sidebar({
                 ? "対話から、はじめよう。"
                 : hasJobs
                   ? `${company.job_count}件の求人を、見てみませんか？`
-                  : "現在、受付中の求人・面談はありません"}
+                  : "現在、受付中の募集・面談はありません"}
             </div>
 
             {/* ── case 1 & 2: accepting_casual_meetings = true ── */}
@@ -2612,7 +2612,7 @@ function Sidebar({
                 >
                   人事担当者が直接対応します
                 </p>
-                {/* 2nd (Secondary): 求人を見て応募する — job_count > 0 の時のみ */}
+                {/* 2nd (Secondary): 募集を見て応募する — job_count > 0 の時のみ */}
                 {hasJobs && (
                   <a
                     href="#jobs"
@@ -2631,7 +2631,7 @@ function Sidebar({
                       textDecoration: "none",
                     }}
                   >
-                    求人を見て応募する
+                    募集を見て応募する
                   </a>
                 )}
               </>
@@ -2655,7 +2655,7 @@ function Sidebar({
                   textDecoration: "none",
                 }}
               >
-                求人を見て応募する
+                募集を見て応募する
               </a>
             )}
 

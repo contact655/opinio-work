@@ -120,7 +120,7 @@ function computeMatchReason(
   // 年収フィルター — ラベル非表示
   // 勤務地フィルター
   if (prefecture && job.location?.includes(prefecture)) {
-    return `${prefecture}勤務の求人`;
+    return `${prefecture}勤務の募集`;
   }
   // キーワード検索
   if (q.trim().length >= 1) return `「${q.trim()}」の検索結果`;
@@ -363,7 +363,7 @@ function JobListItem({
             whiteSpace: "nowrap",
           }}
         >
-          詳細を見る
+          詳細
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
         </a>
 
@@ -382,7 +382,7 @@ function JobListItem({
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          面談をする
+          面談
         </a>
 
         {/* 保存をする */}
@@ -404,7 +404,7 @@ function JobListItem({
           }}
         >
           <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", flexShrink: 0 }} />
-          {bookmarked ? "保存済み" : "保存する"}
+          {bookmarked ? "保存済" : "保存"}
         </button>
       </div>
     </div>
@@ -1182,7 +1182,7 @@ export default function JobsClient({
 
   return (
     <>
-      <h1 className="sr-only">IT/SaaS 求人を探す</h1>
+      <h1 className="sr-only">IT/SaaS 募集を探す</h1>
 
       {/* ── 検索バー + フィルターピル（sticky、企業ページと同構造） ── */}
       <div
@@ -1216,7 +1216,7 @@ export default function JobsClient({
                 </svg>
                 <input
                   type="search"
-                  aria-label="求人を検索"
+                  aria-label="募集を検索"
                   placeholder="職種・企業名で検索..."
                   value={q}
                   onChange={(e) => { setQ(e.target.value); setShowSuggest(true); }}
@@ -1712,7 +1712,7 @@ export default function JobsClient({
               }}>
                 <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                  すべての求人
+                  すべての募集
                 </span>
                 <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
               </div>
@@ -1729,7 +1729,7 @@ export default function JobsClient({
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う求人が見つかりませんでした</h3>
+              <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う募集が見つかりませんでした</h3>
               <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えるか、企業のカジュアル面談で直接聞いてみましょう</p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <button type="button" onClick={() => router.replace("/jobs")} style={{

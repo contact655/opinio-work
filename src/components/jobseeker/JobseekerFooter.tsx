@@ -53,7 +53,7 @@ export function JobseekerFooter() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
                 { href: "/companies", label: "企業を探す" },
-                { href: "/jobs",      label: "求人を探す" },
+                { href: "/jobs",      label: "募集を探す" },
                 { href: "/salary",    label: "年収相場" },
                 { href: "/people",    label: "先輩を知る" },
                 { href: "/articles",  label: "記事" },
