@@ -34,6 +34,7 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
+import { ShowMoreButton } from "./ShowMoreButton";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -1990,19 +1991,12 @@ function JobsSection({
         ))}
 
         {/* Consolidated CTA */}
-        <div style={{ marginTop: 20, textAlign: "center" }}>
-          <Link
-            href={`/companies/${company.id}/jobs`}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-              padding: "11px 28px", background: "var(--royal)", color: "#fff",
-              borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
-              boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
-            }}
-          >
-            {company.job_count}件すべての求人を見る →
-          </Link>
-        </div>
+        <ShowMoreButton
+          variant="navigate"
+          label={`${company.job_count}件すべての求人を見る`}
+          href={`/companies/${company.id}/jobs`}
+          wrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
+        />
       </div>
     </section>
     </>

@@ -12,7 +12,7 @@ import {
   type CategorySlug,
 } from "@/lib/utils/toolCfg";
 import { InfoCard } from "./InfoCard";
-import { ExpandButton } from "./ExpandButton";
+import { ShowMoreButton } from "./ShowMoreButton";
 
 const GROUP_MAX = 6;
 
@@ -159,11 +159,12 @@ export default function ToolsSectionClient({ tools }: Props) {
               })}
             </div>
 
-            {/* グループ展開ボタン */}
             {!isExpanded && hiddenCount > 0 && (
-              <ExpandButton
-                onClick={() => toggleGroup(groupSlug)}
+              <ShowMoreButton
+                variant="expand"
                 label={`+${hiddenCount}件を見る`}
+                expanded={false}
+                onClick={() => toggleGroup(groupSlug)}
                 wrapperStyle={{ padding: "0 16px 14px" }}
               />
             )}

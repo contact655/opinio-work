@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
-import { ExpandButton, CollapseButton } from "./ExpandButton";
+import { ShowMoreButton } from "./ShowMoreButton";
 
 // ─── Division Config ───────────────────────────────────────────────────────────
 const DIVISION_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string; missionBg: string }> = {
@@ -358,14 +358,19 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
 
       {/* ── すべてを見る / 折りたたむ ── */}
       {!showAll && hiddenCount > 0 ? (
-        <ExpandButton
-          onClick={() => setShowAll(true)}
+        <ShowMoreButton
+          variant="expand"
           label={`すべてを見る（残り ${hiddenCount} 部門 · ${hiddenTeamCount} チーム）`}
+          expanded={false}
+          onClick={() => setShowAll(true)}
           fade
           wrapperStyle={{ padding: "0 28px 28px", marginTop: "var(--space-2)" }}
         />
       ) : showAll ? (
-        <CollapseButton
+        <ShowMoreButton
+          variant="expand"
+          label="折りたたむ"
+          expanded={true}
           onClick={() => setShowAll(false)}
           wrapperStyle={{ padding: "8px 28px 28px" }}
         />

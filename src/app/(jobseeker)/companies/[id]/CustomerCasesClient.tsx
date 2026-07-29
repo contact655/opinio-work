@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
-import { ExpandButton, CollapseButton } from "./ExpandButton";
+import { ShowMoreButton } from "./ShowMoreButton";
 
 const INITIAL_CASES = 3;
 
@@ -124,19 +124,22 @@ export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases
         ))}
       </div>
 
-      {/* 展開ボタン */}
       {!showAll && hiddenCount > 0 && (
-        <ExpandButton
-          onClick={() => setShowAll(true)}
+        <ShowMoreButton
+          variant="expand"
           label={`すべての導入事例を見る（残り ${hiddenCount} 社）`}
+          expanded={false}
+          onClick={() => setShowAll(true)}
           fade
           wrapperStyle={{ position: "relative", marginTop: -32 }}
         />
       )}
 
-      {/* 折りたたむボタン */}
       {showAll && cases.length > INITIAL_CASES && (
-        <CollapseButton
+        <ShowMoreButton
+          variant="expand"
+          label="折りたたむ"
+          expanded={true}
           onClick={() => setShowAll(false)}
           wrapperStyle={{ marginTop: "var(--space-3)" }}
         />
