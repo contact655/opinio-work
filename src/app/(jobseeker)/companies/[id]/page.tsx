@@ -1546,11 +1546,15 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   );
 
   const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
+  // 現在の会社名 / 現在の役職のみ（長い組織階層は省略）
   const subInfo = currentDisplayName ? (
     <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-      現在: {currentDisplayName}{employee.currentRoleTitle ? ` / ${employee.currentRoleTitle}` : ""}
+      {currentDisplayName}{employee.currentRoleTitle ? ` / ${employee.currentRoleTitle}` : ""}
     </p>
   ) : undefined;
+
+  // AlumniCard は roleTitle（在籍時の部署階層）を非表示にするため空の employee を渡す
+  const alumniEmployee = { ...employee, roleTitle: null };
 
   return (
     <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
@@ -1559,9 +1563,10 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         padding: "12px 14px",
         background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
         textDecoration: "none",
+        maxWidth: 380,
       }}
     >
-      <EmployeeCardInner employee={employee} age={age} badge={badge} subInfo={subInfo} />
+      <EmployeeCardInner employee={alumniEmployee} age={age} badge={badge} subInfo={subInfo} />
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginLeft: 6 }}>
         <polyline points="9 18 15 12 9 6"/>
       </svg>
