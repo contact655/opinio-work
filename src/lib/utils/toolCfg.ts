@@ -119,8 +119,8 @@ export const CATEGORY_TO_GROUP: Record<CategorySlug, GroupSlug> = {
 export const GROUP_ORDER: GroupSlug[] = [
   "sales_marketing",
   "communication",
-  "dev_data",
   "ai",
+  "dev_data",
   "other",
 ];
 

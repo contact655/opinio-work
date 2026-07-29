@@ -18,8 +18,11 @@ const GROUP_MAX = 6;
 
 type Props = { tools: CompanyTool[] };
 
+const VISIBLE_GROUPS = 3; // 最初に表示するグループ数
+
 export default function ToolsSectionClient({ tools }: Props) {
   const [expandedGroups, setExpandedGroups] = useState<Set<GroupSlug>>(new Set());
+  const [showAllGroups, setShowAllGroups] = useState(false);
 
   if (tools.length === 0) return null;
 
@@ -44,9 +47,14 @@ export default function ToolsSectionClient({ tools }: Props) {
     if (groupSlug) grouped.get(groupSlug)?.push(tool);
   }
 
+  // 実際にツールがあるグループだけ抽出
+  const activeGroups = GROUP_ORDER.filter((slug) => (grouped.get(slug)?.length ?? 0) > 0);
+  const visibleGroups = showAllGroups ? activeGroups : activeGroups.slice(0, VISIBLE_GROUPS);
+  const hiddenGroupCount = activeGroups.length - VISIBLE_GROUPS;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {GROUP_ORDER.map((groupSlug) => {
+      {visibleGroups.map((groupSlug) => {
         const groupTools = grouped.get(groupSlug) ?? [];
         if (groupTools.length === 0) return null;
 
@@ -171,6 +179,25 @@ export default function ToolsSectionClient({ tools }: Props) {
           </div>
         );
       })}
+
+      {!showAllGroups && hiddenGroupCount > 0 && (
+        <ShowMoreButton
+          variant="expand"
+          label={`すべてを見る（残り ${hiddenGroupCount} グループ）`}
+          expanded={false}
+          onClick={() => setShowAllGroups(true)}
+          wrapperStyle={{ marginTop: 4 }}
+        />
+      )}
+      {showAllGroups && activeGroups.length > VISIBLE_GROUPS && (
+        <ShowMoreButton
+          variant="expand"
+          label="折りたたむ"
+          expanded={true}
+          onClick={() => setShowAllGroups(false)}
+          wrapperStyle={{ marginTop: 4 }}
+        />
+      )}
     </div>
   );
 }
