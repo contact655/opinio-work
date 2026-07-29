@@ -1,441 +1,326 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 
+export type LPMember = {
+  id: string;
+  name: string;
+  avatarColor: string | null;
+  roleTitle: string | null;
+  companyName: string | null;
+};
+
+// ─── SVG Icon ───────────────────────────────────────────────────────────────
+function Icon({ name, size = 20, color }: { name: string; size?: number; color?: string }) {
+  const d: Record<string, React.ReactNode> = {
+    talk: (<><path d="M3.2 5.6h11.4v7.6H7.9L4.4 16v-2.8H3.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9.4 8.6h11.4v7.6h-1.2V19l-3.5-2.8h-2.3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></>),
+    check: <path d="M5 12.6l4.4 4.4L19 6.6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>,
+    arrow: <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>,
+    verified: (<><path d="M12 2.6l7.2 2.8v6c0 4.5-3 8.2-7.2 10-4.2-1.8-7.2-5.5-7.2-10v-6L12 2.6z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M8.6 11.8l2.4 2.4 4.4-4.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></>),
+    why: (<><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M9.4 9.6c.2-1.5 1.3-2.4 2.7-2.4 1.5 0 2.6 1 2.6 2.4 0 2-2.5 2.1-2.6 4.1" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="12.1" cy="16.8" r="1" fill="currentColor"/></>),
+    spark: <path d="M12 3.4l2 5.4 5.4 2-5.4 2-2 5.4-2-5.4-5.4-2 5.4-2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>,
+    free: (<><path d="M4 12h9.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M13.5 12l6.5-5.2V17.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><circle cx="4" cy="12" r="2" fill="none" stroke="currentColor" strokeWidth="1.5"/></>),
+    search: (<><circle cx="10.6" cy="10.6" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.6"/><path d="M15.4 15.4L20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></>),
+    decide: <path d="M4.5 12.5l4.6 4.6L19.5 6.7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
+    quiet: (<><path d="M6.6 16.4V11a5.4 5.4 0 0110.8 0v5.4h1.4H5.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M10.3 19a1.9 1.9 0 003.4 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M4 20L20 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></>),
+    day: (<><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M12 7.2V12l3.2 2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></>),
+    eval: <path d="M5 18.4V13m4.6 5.4V8.4M14.2 18.4v-7M18.8 18.4V5.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>,
+    team: (<><circle cx="9" cy="9.2" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M3.6 18.8c0-3 2.4-5 5.4-5s5.4 2 5.4 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M15.4 7.2a3 3 0 010 5.8M16.6 14.4c2.3.5 3.8 2.3 3.8 4.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></>),
+    hard: (<><path d="M12 4.2l8.4 15H3.6z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M12 10v3.6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="12" cy="16.2" r=".9" fill="currentColor"/></>),
+    quote: <path d="M9.4 6.5C6.4 7.6 4.6 10 4.6 13.2c0 2.6 1.6 4.3 3.8 4.3 2 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.4-1.5 1.6-2.7 3.2-3.4zM20.6 6.5c-3 1.1-4.8 3.5-4.8 6.7 0 2.6 1.6 4.3 3.8 4.3 2 0 3.4-1.4 3.4-3.3 0-1.8-1.3-3.1-3-3.1-.3 0-.6 0-.8.1.4-1.5 1.6-2.7 3.2-3.4z" fill="currentColor"/>,
+  };
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} style={{ display: "block", color: color ?? "currentColor", flexShrink: 0 }}>
+      {d[name]}
+    </svg>
+  );
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const C = {
+  paper:  "#FBFAF6",
+  paper2: "#F2F1EA",
+  navy:   "#0E2148",
+  navy2:  "#16305F",
+  ink:    "#16202F",
+  muted:  "#5A6779",
+  line:   "#E5E5DF",
+  blue:   "#2D5BD8",
+  green:  "#0E6B4F",
+  amber:  "#C77A2B",
+};
+
 const FEATURED = [
-  { letter: "S", name: "Salesforce Japan", tag: "CRM・営業支援", tone: "sky", href: "/companies/salesforce" },
-  { letter: "S", name: "SmartHR", tag: "HR Tech", tone: "slate", href: "/companies/smarthr" },
-  { letter: "F", name: "freee", tag: "FinTech", tone: "violet", href: "/companies/f98f5d13-c72f-42fa-9c91-ee4647de2793" },
+  { letter: "S", bg: "linear-gradient(135deg,#00A1E0,#0D74B8)", name: "Salesforce Japan", tag: "CRM・営業支援 ／ 外資SaaS", href: "/companies/salesforce", articles: 1, jobs: 5, members: 1 },
+  { letter: "H", bg: "linear-gradient(135deg,#EA580C,#FB923C)",  name: "HubSpot",          tag: "マーケティング自動化 ／ 外資SaaS", href: "/companies/hubspot",    articles: 1, jobs: 3, members: 0 },
+  { letter: "S", bg: "linear-gradient(135deg,#0ea5e9,#6366f1)", name: "SmartHR",           tag: "HR Tech ／ 国内SaaS",           href: "/companies/smarthr",    articles: 2, jobs: 0, members: 0 },
 ];
 
 const ROLES = [
-  { label: "フィールドセールス", href: "/jobs/dept/sales" },
-  { label: "インサイドセールス", href: "/jobs/dept/sales" },
-  { label: "カスタマーサクセス", href: "/jobs/dept/management" },
+  { label: "フィールドセールス",   href: "/jobs/dept/sales" },
+  { label: "インサイドセールス",   href: "/jobs/dept/sales" },
+  { label: "カスタマーサクセス",   href: "/jobs/dept/management" },
+  { label: "エンタープライズ営業", href: "/jobs/dept/sales" },
   { label: "プロダクトマネージャー", href: "/jobs/dept/product" },
-  { label: "エンジニア", href: "/jobs/dept/engineer" },
-  { label: "マーケティング", href: "/jobs/dept/marketing" },
+  { label: "マーケティング",       href: "/jobs/dept/marketing" },
+  { label: "エンジニア",           href: "/jobs/dept/engineer" },
+];
+
+const ASKS = [
+  { icon: "why",   color: C.blue,  q: "なぜ、この会社を選んだんですか",  sub: "他社と迷ったか、決め手は何だったか" },
+  { icon: "spark", color: C.green, q: "いま、何が面白いですか",           sub: "続けている理由と、手応えを感じる瞬間" },
+  { icon: "day",   color: C.amber, q: "1日って、どう流れますか",          sub: "実際の稼働時間、会議の量、リモートの実態" },
+  { icon: "eval",  color: C.blue,  q: "どう評価されるんですか",           sub: "目標の決まり方、昇給と昇格のリアル" },
+  { icon: "team",  color: C.green, q: "チームは、どんな人たちですか",     sub: "年齢層、雰囲気、意見の言いやすさ" },
+  { icon: "hard",  color: C.muted, q: "正直、しんどいのはどこですか",     sub: "やめたくなる瞬間と、それでも続く理由" },
 ];
 
 const COMPARE = [
-  { feature: "取材による企業情報",             opinio: true,  others: false },
-  { feature: "現役社員・OBとの面談",           opinio: true,  others: false },
-  { feature: "求人の更新日が見える",           opinio: true,  others: false },
-  { feature: "スカウト・営業電話なし",         opinio: true,  others: false },
-  { feature: "追われずに自分のペースで検討",   opinio: true,  others: false },
-  { feature: "メール登録のみ・完全無料",       opinio: true,  others: false },
+  { feature: "求人数",             opinio: "IT・SaaSに絞って掲載", others: "圧倒的に多い",      wins: false },
+  { feature: "現役社員と直接話せる", opinio: "できる",             others: "人事とのみ",        wins: true  },
+  { feature: "取材による企業情報",  opinio: "全掲載企業",          others: "一部のみ",          wins: true  },
+  { feature: "スカウト・営業電話",  opinio: "一切なし",            others: "届く",              wins: true  },
+  { feature: "登録に必要なもの",    opinio: "メールアドレスのみ",  others: "職務経歴の入力",    wins: true  },
 ];
 
 const FAQ = [
   {
-    q: "転職せずに、現職に残ってもいいですか?",
+    q: "転職せずに、現職に残ってもいいですか？",
     a: "もちろんです。OPINIOは「まず知る」ための場所です。調べた結果、今の会社に残るという判断も、私たちは等しく尊重します。残るよう急かす連絡も、転職を勧める連絡も一切ありません。",
   },
   {
-    q: "他の転職サービスと、何が違いますか?",
+    q: "他の転職サービスと、何が違いますか？",
     a: "スカウトも営業連絡もありません。編集部が実際に取材・審査した企業だけを掲載し、求人票には載らない組織の実態まで公開します。追われずに、自分のペースで比較できることが最大の違いです。",
   },
   {
-    q: "本当に無料で使えますか?",
+    q: "現役社員との面談は、どう申し込みますか？",
+    a: "気になる企業ページ内の「カジュアル面談を申し込む」ボタンから申請できます。メールアドレス登録（30秒）のみ必要です。面談は選考と切り離されており、進む義務はありません。",
+  },
+  {
+    q: "本当に無料で使えますか？",
     a: "はい。メールアドレスの登録だけで、掲載企業の情報にすべて無料でアクセスできます。求職者側の費用は一切かかりません。",
   },
 ];
 
-const Icon = ({ name, className = "w-5 h-5" }: { name: string; className?: string }) => {
-  const paths: Record<string, React.ReactNode> = {
-    clock: (<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>),
-    chat: <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />,
-    users: (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>),
-    search: (<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>),
-    compare: (<><rect x="3" y="4" width="7" height="16" rx="1" /><rect x="14" y="4" width="7" height="16" rx="1" /></>),
-    check: <path d="M20 6 9 17l-5-5" />,
-    arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
-    doc: (<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h6" /></>),
-    star: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />,
-    shield: (<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>),
-    zap: <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />,
-    eye: (<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>),
-    building: (<><rect x="3" y="7" width="18" height="14" rx="1" /><path d="M16 21V7a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v14M3 11h18M9 11v4M15 11v4" /></>),
-    briefcase: (<><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M12 12v.01" /></>),
-    phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.44 2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8a16 16 0 0 0 6.29 6.29l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />,
-    x: <path d="M18 6 6 18M6 6l12 12" />,
-  };
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      {paths[name]}
-    </svg>
-  );
-};
-
-const Eyebrow = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-block text-xs font-semibold tracking-[0.14em] uppercase text-blue-700/80">
-    {children}
-  </span>
-);
-
-const CompanyBadge = ({ letter, tone }: { letter: string; tone: string }) => {
-  const map: Record<string, string> = {
-    sky: "bg-sky-500", slate: "bg-slate-700", violet: "bg-violet-500", navy: "bg-[#0A1F44]",
-  };
-  return (
-    <div className={`flex items-center justify-center w-11 h-11 rounded-lg text-white text-sm font-semibold ${map[tone] ?? "bg-slate-700"}`}>
-      {letter}
-    </div>
-  );
-};
-
-// ─── Mini product mockups used in feature section ───────────────────────────
-
-const ArticleMockup = () => (
-  <div className="rounded-xl border border-[#EFEFEA] bg-white overflow-hidden shadow-sm">
-    <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-400" />
-    <div className="p-4">
-      <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center">
-          <Icon name="doc" className="w-3 h-3 text-blue-600" />
-        </span>
-        <span className="text-[10px] font-bold text-blue-700 tracking-wide uppercase">編集部の取材記事</span>
-      </div>
-      <div className="text-xs font-semibold text-slate-800 leading-snug mb-1.5">
-        「数字より先に、人を見る」現場が語る評価とカルチャー
-      </div>
-      <div className="text-[10px] text-slate-400 leading-relaxed">
-        入社3年目のAEと採用責任者に、求人票には載らない働き方を聞きました。
-      </div>
-      <div className="mt-3 pt-3 border-t border-[#F0F0EC] flex gap-2">
-        {["評価制度", "リモート実態", "チーム文化"].map(t => (
-          <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{t}</span>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-const PeopleMockup = () => (
-  <div className="space-y-2">
-    {[
-      { init: "K", col: "bg-indigo-500", role: "エンタープライズ営業", career: "証券 → Salesforce 4年目", badge: "現役" },
-      { init: "T", col: "bg-amber-500", role: "インサイドセールス", career: "在籍3年 → 現: SaaS VP", badge: "OB" },
-      { init: "N", col: "bg-violet-500", role: "カスタマーサクセス", career: "新卒入社 → スタートアップ創業", badge: "OG" },
-    ].map(p => (
-      <div key={p.init} className="flex items-center gap-3 rounded-xl border border-[#EFEFEA] bg-white px-3.5 py-2.5 shadow-sm">
-        <div className={`w-8 h-8 rounded-full ${p.col} text-white text-xs font-bold flex items-center justify-center shrink-0`}>{p.init}</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-slate-800 truncate">{p.role}</div>
-          <div className="text-[10px] text-slate-400 truncate">{p.career}</div>
-        </div>
-        <span className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full border ${p.badge === "現役" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>{p.badge}</span>
-      </div>
-    ))}
-    <div className="text-center pt-1">
-      <span className="text-[10px] text-blue-700">+ さらに 12名のプロフィールを見る →</span>
-    </div>
-  </div>
-);
-
-const JobsMockup = () => (
-  <div className="space-y-2">
-    {[
-      { role: "エンタープライズ営業", salary: "900–1,400万", remote: "リモート可", new: true },
-      { role: "インサイドセールス", salary: "550–780万", remote: "ハイブリッド", new: false },
-      { role: "カスタマーサクセス", salary: "600–900万", remote: "フル出社可", new: false },
-    ].map(j => (
-      <div key={j.role} className="rounded-xl border border-[#EFEFEA] bg-white px-3.5 py-2.5 shadow-sm">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-slate-800">{j.role}</span>
-              {j.new && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-600">NEW</span>}
-            </div>
-            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
-              <span className="text-emerald-600 font-semibold">¥ {j.salary}</span>
-              <span>·</span>
-              <span>{j.remote}</span>
-            </div>
-          </div>
-          <Icon name="arrow" className="w-3.5 h-3.5 text-slate-300 shrink-0 mt-0.5" />
-        </div>
-      </div>
-    ))}
-    <div className="text-center pt-0.5">
-      <span className="text-[10px] text-blue-700">+ 74件の求人を見る →</span>
-    </div>
-  </div>
-);
-
-const NoSpamMockup = () => (
-  <div className="rounded-xl border border-[#EFEFEA] bg-white p-4 shadow-sm">
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-semibold text-slate-700">あなたの受信トレイ</span>
-      <span className="text-[10px] text-slate-400">登録後</span>
-    </div>
-    <div className="space-y-2">
-      {[
-        { label: "OPINIOからのお知らせ", sub: "新着企業・求人のまとめ（週1回）", ok: true },
-      ].map(m => (
-        <div key={m.label} className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
-          <Icon name="check" className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-          <div>
-            <div className="text-[11px] font-semibold text-slate-700">{m.label}</div>
-            <div className="text-[10px] text-slate-400">{m.sub}</div>
-          </div>
-        </div>
-      ))}
-      <div className="border border-dashed border-slate-200 rounded-lg px-3 py-2.5 text-center">
-        <div className="text-[10px] text-slate-400">スカウトメール：0通</div>
-        <div className="text-[10px] text-slate-400">営業電話：0件</div>
-      </div>
-    </div>
-    <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400">
-      <Icon name="shield" className="w-3.5 h-3.5 text-blue-400" />
-      企業からあなたへの連絡は、一切ありません
-    </div>
-  </div>
-);
-
-export default function LandingPage() {
-  const [open, setOpen] = useState<number | null>(null);
+// ─── Component ───────────────────────────────────────────────────────────────
+export default function LandingPage({ members }: { members: LPMember[] }) {
+  const memberCount = members.length;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] text-[#0F172A] antialiased selection:bg-blue-100">
-      {/* NAV */}
-      <header className="sticky top-0 z-40 border-b border-[#EAEAE4] bg-[#FAFAF8]/80 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
-          <div className="flex items-baseline gap-2.5">
-            <span className="text-xl font-bold tracking-tight text-[#0A1F44]">OPINIO</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm" style={{ color: "var(--ink-soft)" }}>
-            <Link href="/companies" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">企業</Link>
-            <Link href="/jobs" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">求人</Link>
-            <Link href="/people" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">ユーザー</Link>
-            <Link href="/feed" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">フィード</Link>
-            <Link href="/articles" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }} className="hover:text-slate-900 transition-colors">記事</Link>
+    <div style={{ minHeight: "100vh", background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
+
+      {/* ══ NAV ══════════════════════════════════════════════════════════════ */}
+      <header style={{ background: C.paper, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px", display: "flex", alignItems: "center", height: 70, gap: 34 }}>
+          <Link href="/" style={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600, fontSize: 21, letterSpacing: "0.06em", color: C.navy, textDecoration: "none" }}>
+            OPINIO<span style={{ color: "#E8833A" }}>.</span>
+          </Link>
+          <nav style={{ display: "flex", gap: 26 }}>
+            {[["企業", "/companies"], ["求人", "/jobs"], ["話せる人", "/people"], ["記事", "/articles"]].map(([label, href]) => (
+              <Link key={href} href={href} style={{ color: C.ink, textDecoration: "none", fontSize: 14 }}>{label}</Link>
+            ))}
           </nav>
-          <div className="hidden md:flex items-center gap-1">
-            <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none", padding: "8px 14px" }}>
-              ログイン
-            </Link>
-            <span style={{ color: "var(--line)", fontSize: 16, userSelect: "none" }}>|</span>
-            <Link href="/auth?mode=signup" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", padding: "8px 14px" }}>
-              新規登録
-            </Link>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}>
+            <Link href="/auth" style={{ color: C.ink, textDecoration: "none", fontSize: 14 }}>ログイン</Link>
+            <Link href="/auth?mode=signup" style={{ background: C.navy, color: "#fff", padding: "9px 20px", borderRadius: 6, fontWeight: 700, textDecoration: "none", fontSize: 14 }}>無料登録</Link>
           </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden" style={{ background: "linear-gradient(160deg, #f0f4ff 0%, #f8f6ff 35%, #fff8f0 70%, #FAFAF8 100%)" }}>
-        <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
-          <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-10 items-center">
-            {/* 左: コピー */}
-            <div>
-              <Eyebrow>SaaS 業界特化のキャリアプラットフォーム</Eyebrow>
-              <h1 className="mt-6 font-serif text-5xl md:text-6xl leading-[1.15] tracking-tight text-[#0F172A]">
-                知ってから、動く。
-              </h1>
-              <p className="mt-7 text-lg leading-relaxed text-slate-600 max-w-xl">
-                取材された企業情報と求人を、ひとつの場所に。スカウトも営業電話もありません。
-                <br className="hidden sm:block" />
-                追われずに、自分のペースで確かめられます。
-              </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <Link href="/companies" className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#0A1F44] text-white font-medium hover:bg-[#0d2856] transition-colors">
-                  まず企業を見てみる
-                  <Icon name="arrow" className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link href="/auth" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
-                  無料登録はこちら（30秒）
-                </Link>
-              </div>
-            </div>
+      {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
+      <div style={{ padding: "78px 0 92px", borderBottom: `1px solid ${C.line}`, position: "relative", overflow: "hidden" }}>
+        {/* ドット背景 + キャリアの軌跡ライン */}
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5, pointerEvents: "none" }} viewBox="0 0 1440 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <pattern id="lp-dots" width="26" height="26" patternUnits="userSpaceOnUse">
+              <circle cx="1.6" cy="1.6" r="1.1" fill="#DFDCD1" />
+            </pattern>
+            <linearGradient id="lp-fade" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={C.paper} stopOpacity="1" />
+              <stop offset="55%" stopColor={C.paper} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <rect width="1440" height="620" fill="url(#lp-dots)" />
+          <rect width="1440" height="620" fill="url(#lp-fade)" />
+          <path d="M-40 470 C 240 470, 300 300, 560 300 S 900 150, 1180 150 1480 150 1480 150" fill="none" stroke="#C9B896" strokeWidth="1.6" opacity=".55" />
+          <circle cx="180" cy="459" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
+          <circle cx="560" cy="300" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
+          <circle cx="960" cy="176" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
+        </svg>
 
-            {/* 右: プロダクトモック */}
-            <div className="relative">
-              <div className="relative rounded-2xl border border-[#E5E5DF] bg-white shadow-[0_20px_60px_-20px_rgba(10,31,68,0.25)] overflow-hidden">
-                <div className="flex items-center gap-1.5 px-4 h-9 border-b border-[#EFEFEA] bg-[#F7F7F3]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E3655B]" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E9B44C]" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#4CAF7D]" />
-                  <span className="ml-3 text-[11px] text-slate-400">opinio.jp / companies</span>
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-sky-500 text-white font-semibold">S</div>
-                      <div>
-                        <div className="font-semibold text-slate-900 leading-tight">Salesforce Japan</div>
-                        <div className="text-xs text-slate-500">CRM・営業支援 / 外資SaaS</div>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      更新 3日前
-                    </span>
-                  </div>
-                  <div className="mt-4 rounded-xl border border-[#EFEFEA] bg-[#FAFAF8] p-3.5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-700 uppercase tracking-wide">
-                      <Icon name="doc" className="w-3.5 h-3.5" />
-                      編集部の取材記事
-                    </div>
-                    <div className="mt-2 text-sm font-medium text-slate-800 leading-snug">
-                      「数字より先に、人を見る」— 現場が語る評価とカルチャーの実像
-                    </div>
-                    <div className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-                      入社3年目のAEと採用責任者に、求人票には載らない働き方を聞きました。
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    {[
-                      { role: "エンタープライズ営業", meta: "年収 900–1,400万 / 東京・リモート可" },
-                      { role: "インサイドセールス", meta: "年収 550–780万 / 東京・リモート可" },
-                    ].map((j) => (
-                      <div key={j.role} className="flex items-center justify-between gap-3 rounded-lg border border-[#EFEFEA] bg-white px-3.5 py-2.5">
-                        <div>
-                          <div className="text-sm font-medium text-slate-800">{j.role}</div>
-                          <div className="text-[11px] text-slate-500">{j.meta}</div>
-                        </div>
-                        <Icon name="arrow" className="w-3.5 h-3.5 text-slate-300" />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-xl border border-[#EFEFEA] bg-[#FAFAF8] p-3.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                        <Icon name="users" className="w-3.5 h-3.5" />
-                        この会社の現役社員・OB
-                      </div>
-                      <span className="text-[11px] text-blue-700">すべて見る</span>
-                    </div>
-                    <div className="mt-3 space-y-2.5">
-                      {[
-                        { initial: "K", grad: "bg-indigo-500", role: "エンタープライズ営業", note: "前職: 証券 → 現職4年目" },
-                        { initial: "F", grad: "bg-teal-500", role: "フィールドセールス", note: "新卒入社 / SaaS一筋" },
-                      ].map((p) => (
-                        <div key={p.initial} className="flex items-center gap-3">
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-white text-xs font-semibold shrink-0 ${p.grad}`}>
-                            {p.initial}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-medium text-slate-800 leading-tight">{p.role}</div>
-                            <div className="text-[11px] text-slate-400 truncate">{p.note}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-400">
-                    <Icon name="check" className="w-3.5 h-3.5 text-emerald-500" />
-                    閲覧しても、この企業から連絡が来ることはありません
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -z-10 -bottom-4 -right-4 w-full h-full rounded-2xl bg-blue-100/40" />
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px", display: "grid", gridTemplateColumns: "1.03fr 0.97fr", gap: 60, alignItems: "center", position: "relative" }}>
+          {/* 左: コピー */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 22, textTransform: "uppercase" }}>IT・SaaS業界のキャリアプラットフォーム</div>
+            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(29px, 3.5vw, 49px)", lineHeight: 1.44, letterSpacing: "-0.01em", color: C.navy, marginBottom: 24 }}>
+              求人票に書いていないことは、<br />そこで働く人に聞く。
+            </h1>
+            <p style={{ fontSize: 16.5, color: "#374357", marginBottom: 34, maxWidth: "30em", lineHeight: 1.8 }}>
+              取材記事、現役社員のキャリア、そして本人との面談。<br />応募を決める前に、中身を確かめられます。
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
+              <Link href="/people" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: C.navy, color: "#fff", padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
+                話を聞ける人を見る
+                <Icon name="talk" size={17} />
+              </Link>
+              <Link href="/auth" style={{ color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, fontSize: 14.5, fontWeight: 500 }}>
+                メールアドレスだけで登録（30秒）
+              </Link>
             </div>
-          </div>
-        </div>
-        <div className="pointer-events-none absolute -top-24 -right-24 w-[520px] h-[520px] rounded-full opacity-[0.06] blur-3xl" style={{ background: "radial-gradient(circle, #2563EB, transparent 70%)" }} />
-      </section>
-
-      {/* ─── 4つの情報が揃っている（視覚フィーチャー）─── */}
-      <section className="bg-white border-y border-[#EAEAE4]">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="text-center mb-14">
-            <Eyebrow>OPINIOでできること</Eyebrow>
-            <h2 className="mt-4 font-serif text-4xl md:text-5xl tracking-tight">
-              企業の「中身」が、ここに揃う。
-            </h2>
-            <p className="mt-5 text-slate-500 max-w-xl mx-auto leading-relaxed">
-              求人票だけでは見えない情報が、一つの企業ページに集約されています。
+            <p style={{ marginTop: 22, fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon name="quiet" size={17} color={C.green} />
+              登録しても、企業から連絡が来ることはありません。スカウトも営業電話もゼロです。
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* 取材記事 */}
-            <div className="rounded-2xl border border-[#EAEAE4] bg-[#F8FAFF] p-7 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Icon name="doc" className="w-5 h-5 text-blue-700" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-900 text-sm">編集部の取材記事</div>
-                  <div className="text-xs text-slate-500">求人票に載らないカルチャー・評価・実態</div>
-                </div>
-              </div>
-              <ArticleMockup />
+          {/* 右: 話を聞ける人カード（DB動的） */}
+          <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, boxShadow: "0 20px 50px rgba(14,33,72,.10)", overflow: "hidden" }}>
+            <div style={{ padding: "16px 22px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: C.paper2 }}>
+              <strong style={{ fontSize: 13.5, fontWeight: 700, color: C.navy, display: "flex", alignItems: "center", gap: 9 }}>
+                <Icon name="talk" size={17} color={C.navy} />
+                いま話を聞ける現役社員
+              </strong>
+              {memberCount > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.green, background: "#E2F1EB", padding: "5px 12px", borderRadius: 999 }}>
+                  {memberCount}名が面談可
+                </span>
+              )}
             </div>
 
-            {/* 現役社員・OB */}
-            <div className="rounded-2xl border border-[#EAEAE4] bg-[#FFFDF8] p-7 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                  <Icon name="users" className="w-5 h-5 text-amber-700" />
+            {members.map((m) => (
+              <div key={m.id} style={{ padding: "18px 22px", borderBottom: `1px solid #F1F1EC`, display: "flex", gap: 15, alignItems: "flex-start" }}>
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: m.avatarColor ?? `linear-gradient(135deg,${C.navy},${C.blue})`, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: '"Poppins", sans-serif' }}>
+                    {m.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ position: "absolute", right: -4, bottom: -4, width: 18, height: 18, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,.18)" }}>
+                    <Icon name="check" size={11} color={C.green} />
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-slate-900 text-sm">現役社員・OB/OGのプロフィール</div>
-                  <div className="text-xs text-slate-500">入社経路・キャリア軌跡・転職後のキャリア</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.55, color: C.navy }}>
+                    {m.roleTitle ?? "メンバー"}{m.companyName ? ` ／ ${m.companyName}` : ""}
+                  </div>
                 </div>
               </div>
-              <PeopleMockup />
-            </div>
+            ))}
 
-            {/* 求人一覧 */}
-            <div className="rounded-2xl border border-[#EAEAE4] bg-[#F8FFF9] p-7 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                  <Icon name="briefcase" className="w-5 h-5 text-emerald-700" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-900 text-sm">最新の求人情報</div>
-                  <div className="text-xs text-slate-500">年収・勤務形態・選考プロセスまで掲載</div>
-                </div>
-              </div>
-              <JobsMockup />
+            <div style={{ padding: "18px 22px" }}>
+              <Link href="/people" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.navy, color: "#fff", borderRadius: 8, padding: "14px", textDecoration: "none", fontWeight: 700, fontSize: 14.5 }}>
+                この人たちに話を聞く →
+              </Link>
+              <p style={{ textAlign: "center", marginTop: 12, fontSize: 11.5, color: C.muted }}>会うかどうかも、会ってから動くかも、あなた次第です</p>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* スカウトなし */}
-            <div className="rounded-2xl border border-[#EAEAE4] bg-[#FAFAF8] p-7 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                  <Icon name="shield" className="w-5 h-5 text-slate-700" />
+      {/* ══ S2: 現役社員に聞ける + CAREER THREAD ════════════════════════════ */}
+      <section style={{ background: C.paper2, padding: "92px 0" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 54 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>OPINIOにしかないもの</div>
+            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>
+              答えるのは人事ではなく、<br />いまその席に座っている人です。
+            </h2>
+            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>会社が在籍を認証した現役社員が、あなたの質問に答えます。</p>
+          </div>
+
+          {/* CAREER THREAD box */}
+          <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 18, padding: "44px 40px 34px", marginBottom: 24, overflow: "hidden" }}>
+            <div style={{ fontSize: 12, letterSpacing: "0.12em", fontWeight: 700, color: C.muted, marginBottom: 6 }}>CAREER THREAD</div>
+            <div style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, color: C.navy, marginBottom: 26 }}>この人が、なぜここにいるのか。</div>
+            <svg viewBox="0 0 1000 210" style={{ width: "100%", height: "auto" }} role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
+              <path d="M60 150 C 200 150, 220 96, 360 96 S 560 62, 700 62 S 880 62, 940 62" fill="none" stroke="#C9B896" strokeWidth="2" />
+              <circle cx="60"  cy="150" r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
+              <text x="60"  y="180" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>みずほ証券</text>
+              <text x="60"  y="200" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2016</text>
+              <circle cx="360" cy="96"  r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
+              <text x="360" y="126" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>Salesforce</text>
+              <text x="360" y="146" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2021</text>
+              <circle cx="700" cy="62"  r="10" fill={C.navy} />
+              <circle cx="700" cy="62"  r="17" fill="none" stroke={C.navy} strokeWidth="1.5" opacity=".28" />
+              <text x="700" y="36"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fontWeight="700" fill={C.navy}>伊藤忠テクノソリューションズ</text>
+              <text x="700" y="94"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="13" fill={C.muted}>現職・エンタープライズ営業</text>
+              <rect x="768" y="112" width="212" height="66" rx="12" fill="#fff" stroke={C.line} />
+              <path d="M800 112 l-12 -14 l0 14 z" fill="#fff" stroke={C.line} />
+              <text x="788" y="140" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>「なぜ証券から</text>
+              <text x="788" y="162" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>SaaSに移ったか」</text>
+            </svg>
+            <p style={{ fontSize: 14, color: C.muted, marginTop: 14 }}>経歴が一本の線で見えるから、「なぜこの会社を選んだのか」を、その人自身に聞けます。</p>
+          </div>
+
+          {/* 4 feature cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            {[
+              { icon: "verified", bg: "#E8EEFC", fg: C.blue,  title: "所属が認証されている",     body: "本人が勝手に名乗っているのではなく、企業側が在籍を確認したうえで公開しています。匿名の口コミサイトとは、情報の出どころが違います。" },
+              { icon: "why",      bg: "#E2F1EB", fg: C.green, title: "入社の理由が、聞ける",       body: "なぜ数ある会社の中でここを選んだのか。入ってみて何が想像どおりで、何が違ったのか。求人票にも面接にも出てこない話です。" },
+              { icon: "spark",    bg: "#FBEEDF", fg: C.amber, title: "やりがいを、本人の言葉で",   body: "会社が用意した文章ではなく、いま働いている人が自分の言葉で語ります。何が面白くて、何がしんどいのかまで含めて。" },
+              { icon: "free",     bg: "#EDEDE7", fg: C.muted, title: "話を聞いても、応募しなくていい", body: "面談は選考と切り離されています。進む義務はありません。「今は動かない」という結論も、この場では正解です。" },
+            ].map((f) => (
+              <div key={f.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, padding: 32 }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: f.bg, display: "grid", placeItems: "center", marginBottom: 20 }}>
+                  <Icon name={f.icon} size={24} color={f.fg} />
                 </div>
-                <div>
-                  <div className="font-semibold text-slate-900 text-sm">スカウト・営業電話ゼロ</div>
-                  <div className="text-xs text-slate-500">登録しても、企業からの連絡は一切来ません</div>
-                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, color: C.navy }}>{f.title}</h3>
+                <p style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.7, margin: 0 }}>{f.body}</p>
               </div>
-              <NoSpamMockup />
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ─── 掲載企業の例 ─── */}
-      <section className="border-b border-[#EAEAE4] bg-[#FAFAF8]">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="flex items-baseline justify-between mb-8">
-            <h2 className="text-sm font-semibold tracking-wide text-slate-500">掲載企業（例）</h2>
-            <Link href="/companies" className="text-sm text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
-              すべての企業を見る <Icon name="arrow" className="w-3.5 h-3.5" />
-            </Link>
+      {/* ══ S3: 面談で聞けること ════════════════════════════════════════════ */}
+      <section style={{ padding: "92px 0" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 54 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>面談で聞けること</div>
+            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>面接では、聞けないこと。</h2>
+            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>評価される場ではないので、こういう質問ができます。</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}>
+            {ASKS.map((a) => (
+              <div key={a.q} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "24px 22px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, background: C.paper2, display: "grid", placeItems: "center" }}>
+                  <Icon name={a.icon} size={20} color={a.color} />
+                </div>
+                <div>
+                  <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.6 }}>{a.q}</b>
+                  <span style={{ fontSize: 13, color: C.muted }}>{a.sub}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ S4: 掲載企業 ════════════════════════════════════════════════════ */}
+      <section style={{ background: C.paper2, padding: "92px 0" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 54 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>掲載企業</div>
+            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>企業の「中身」が、ここに揃う。</h2>
+            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>取材記事・求人・そこで働く人のキャリアが、ひとつの企業ページに集まっています。</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
             {FEATURED.map((c) => (
-              <Link key={c.name} href={c.href} className="group rounded-2xl border border-[#EAEAE4] bg-white p-6 hover:border-slate-300 hover:shadow-sm transition-all" style={{ textDecoration: "none" }}>
-                <CompanyBadge letter={c.letter} tone={c.tone} />
-                <h3 className="mt-4 font-semibold text-slate-900">{c.name}</h3>
-                <p className="text-sm text-slate-500">{c.tag}</p>
-                <div className="mt-5 pt-4 border-t border-[#EAEAE4] text-sm text-slate-400 group-hover:text-blue-700 transition-colors inline-flex items-center gap-1">
-                  取材記事と求人を見る
-                  <Icon name="arrow" className="w-3.5 h-3.5" />
+              <Link key={c.href} href={c.href} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "26px 24px", textDecoration: "none", display: "block" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
+                  <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: c.bg, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 15 }}>{c.letter}</div>
+                  <div>
+                    <b style={{ fontSize: 15.5, color: C.navy, lineHeight: 1.5, display: "block" }}>{c.name}</b>
+                    <small style={{ color: C.muted, fontSize: 12, fontWeight: 400, display: "block" }}>{c.tag}</small>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13.5, color: "#3E4A5C", paddingTop: 16, borderTop: "1px solid #F0F0EB", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <span><span style={{ color: C.muted }}>取材記事 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif', fontVariantNumeric: "tabular-nums" }}>{c.articles}</strong></span>
+                  <span><span style={{ color: C.muted }}>求人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif', fontVariantNumeric: "tabular-nums" }}>{c.jobs}</strong></span>
+                  <span><span style={{ color: C.muted }}>話せる人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif', fontVariantNumeric: "tabular-nums" }}>{c.members}</strong></span>
                 </div>
               </Link>
             ))}
           </div>
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <span className="text-sm text-slate-500 mr-1">職種で探す</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 9, justifyContent: "center", marginTop: 34 }}>
             {ROLES.map((r) => (
-              <Link key={r.label} href={r.href} className="text-sm px-4 py-2 rounded-full border border-[#EAEAE4] bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700 transition-colors">
+              <Link key={r.label} href={r.href} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 999, padding: "9px 19px", fontSize: 13.5, color: C.ink, textDecoration: "none" }}>
                 {r.label}
               </Link>
             ))}
@@ -443,310 +328,147 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 使い方3ステップ（ビジュアル強化）─── */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <div className="text-center mb-14">
-          <Eyebrow>使い方</Eyebrow>
-          <h2 className="mt-4 font-serif text-4xl md:text-5xl tracking-tight">
-            調べて、比べて、あなたが決める
-          </h2>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Step 1 */}
-          <div className="flex flex-col">
-            <div className="relative rounded-2xl bg-[#0A1F44] overflow-hidden p-6 pb-8">
-              <span className="absolute top-4 right-5 text-7xl font-bold text-white/5 select-none leading-none">01</span>
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-5">
-                <Icon name="search" className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-[11px] font-bold tracking-widest text-blue-300 uppercase mb-2">Step 01 · Research</div>
-              <h3 className="text-xl font-semibold text-white leading-snug">内側を、知る</h3>
-              <p className="mt-3 text-sm text-blue-100/70 leading-relaxed">
-                取材記事・求人票・社員プロフィールが一か所に。メール登録だけで自由に調べられます。
-              </p>
-            </div>
-            <div className="mt-4 rounded-xl border border-[#EAEAE4] bg-white p-4">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-3">企業ページのイメージ</div>
-              <ArticleMockup />
-            </div>
-            <Link href="/companies" className="mt-4 text-sm text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
-              企業を見てみる <Icon name="arrow" className="w-3.5 h-3.5" />
-            </Link>
+      {/* ══ S5: 使い方3ステップ ══════════════════════════════════════════════ */}
+      <section style={{ padding: "92px 0" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 54 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>使い方</div>
+            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>調べて、聞いて、あなたが決める</h2>
           </div>
-
-          {/* Step 2 */}
-          <div className="flex flex-col">
-            <div className="relative rounded-2xl bg-slate-800 overflow-hidden p-6 pb-8">
-              <span className="absolute top-4 right-5 text-7xl font-bold text-white/5 select-none leading-none">02</span>
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-5">
-                <Icon name="compare" className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-[11px] font-bold tracking-widest text-slate-300 uppercase mb-2">Step 02 · Compare</div>
-              <h3 className="text-xl font-semibold text-white leading-snug">並べて、比べる</h3>
-              <p className="mt-3 text-sm text-slate-300/70 leading-relaxed">
-                職種・年収・働き方で横断検索。気になる企業を並べて比較できます。
-              </p>
-            </div>
-            <div className="mt-4 rounded-xl border border-[#EAEAE4] bg-white p-4">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-3">求人一覧のイメージ</div>
-              <JobsMockup />
-            </div>
-            <Link href="/jobs" className="mt-4 text-sm text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
-              求人を探す <Icon name="arrow" className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {/* Step 3 */}
-          <div className="flex flex-col">
-            <div className="relative rounded-2xl bg-emerald-800 overflow-hidden p-6 pb-8">
-              <span className="absolute top-4 right-5 text-7xl font-bold text-white/5 select-none leading-none">03</span>
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-5">
-                <Icon name="check" className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-[11px] font-bold tracking-widest text-emerald-200 uppercase mb-2">Step 03 · Decide</div>
-              <h3 className="text-xl font-semibold text-white leading-snug">自分のペースで、決める</h3>
-              <p className="mt-3 text-sm text-emerald-100/70 leading-relaxed">
-                急かされないから、どの選択も納得して選べる。応募する、残る、保留する——どれも正解。
-              </p>
-            </div>
-            <div className="mt-4 rounded-xl border border-[#EAEAE4] bg-white p-4">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-3">プロフィール（OB/OG）</div>
-              <PeopleMockup />
-            </div>
-            <Link href="/people" className="mt-4 text-sm text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
-              先輩のキャリアを見る <Icon name="arrow" className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-14 text-center">
-          <Link href="/companies" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#0A1F44] text-white font-medium hover:bg-[#0d2856] transition-colors">
-            まず企業を見てみる
-            <Icon name="arrow" className="w-4 h-4" />
-          </Link>
-          <p className="mt-3 text-sm text-slate-400">メール登録のみ・完全無料</p>
-        </div>
-      </section>
-
-      {/* ─── 比較テーブル ─── */}
-      <section className="bg-white border-y border-[#EAEAE4]">
-        <div className="mx-auto max-w-4xl px-6 py-20">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <Eyebrow>他のサービスとの違い</Eyebrow>
-            <h2 className="mt-5 font-serif text-4xl md:text-5xl tracking-tight">
-              なぜ、OPINIOなのか。
-            </h2>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-[#EAEAE4] shadow-sm">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="py-5 px-6 text-left text-sm font-medium text-slate-400 bg-[#FAFAF8] w-[44%]" />
-                  <th className="py-5 px-6 text-center bg-[#0A1F44] w-[28%]">
-                    <span className="text-sm font-bold text-white tracking-wide">OPINIO</span>
-                  </th>
-                  <th className="py-5 px-6 text-center bg-[#FAFAF8] w-[28%]">
-                    <span className="text-sm font-medium text-slate-400">一般の転職サービス</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARE.map((row, i) => (
-                  <tr key={i} className={`border-t border-[#EAEAE4] ${i % 2 === 0 ? "bg-white" : "bg-[#FAFAF8]/50"}`}>
-                    <td className="py-4 px-6 text-sm text-slate-700 font-medium">{row.feature}</td>
-                    <td className="py-4 px-6 text-center bg-[#0A1F44]/[0.04]">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-700">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      {row.others
-                        ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-700"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>
-                        : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-600"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── カジュアル面談 ─── */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <div className="grid lg:grid-cols-2 gap-14 items-center">
-          <div>
-            <Eyebrow>調べるだけで、終わらない</Eyebrow>
-            <h2 className="mt-5 font-serif text-4xl md:text-5xl tracking-tight leading-[1.2]">
-              現場の人と、
-              <br />
-              実際に会って話せる。
-            </h2>
-            <p className="mt-7 text-slate-600 leading-relaxed">
-              普通の転職では、会えるのは人事だけ。OPINIOなら、実際に一緒に働く現場のメンバーと直接話せます。
-            </p>
-            <p className="mt-4 text-slate-600 leading-relaxed">
-              日々の仕事のリアル、チームの雰囲気、入社後に見えてくること——求人票にも面接にも出てこない話を、現場の視点で聞いてから決められます。
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              {["現場メンバーと面談", "人事だけでは聞けない話", "会ってから判断できる"].map((t) => (
-                <span key={t} className="inline-flex items-center gap-1.5 text-sm px-3.5 py-1.5 rounded-full border border-[#EAEAE4] bg-[#FAFAF8] text-slate-700">
-                  <Icon name="check" className="w-3.5 h-3.5 text-emerald-600" />
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="relative">
-            <div className="rounded-2xl border border-[#E5E5DF] bg-[#FAFAF8] p-6 shadow-[0_20px_60px_-24px_rgba(10,31,68,0.2)]">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-700 uppercase tracking-wide">
-                <Icon name="chat" className="w-3.5 h-3.5" />
-                カジュアル面談
-              </div>
-              <div className="mt-4 space-y-3">
-                {[
-                  { initial: "K", grad: "bg-indigo-500", role: "エンタープライズ営業 / 現場マネージャー", note: "「数字の裏側の働き方を話します」" },
-                  { initial: "F", grad: "bg-teal-500", role: "フィールドセールス / 4年目", note: "「入社前後のギャップ、正直に話します」" },
-                ].map((p) => (
-                  <div key={p.initial} className="flex items-start gap-3 rounded-xl border border-[#EFEFEA] bg-white p-3.5">
-                    <div className={`flex items-center justify-center w-9 h-9 rounded-full text-white text-sm font-semibold shrink-0 ${p.grad}`}>
-                      {p.initial}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-slate-800 leading-tight">{p.role}</div>
-                      <div className="mt-1 text-xs text-slate-500 leading-relaxed">{p.note}</div>
-                    </div>
-                    <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      面談可
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <Link href="/companies" className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#0A1F44] text-white text-sm font-medium py-2.5 hover:bg-[#0d2856] transition-colors">
-                話を聞いてみる
-                <Icon name="arrow" className="w-4 h-4" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 22 }}>
+            {[
+              { bg: C.navy,    icon: "search", lab: "STEP 01 ・ 調べる", title: "内側を、知る",           body: "取材記事・求人票・社員のキャリアが一か所に。登録なしでも読めます。",                     href: "/companies" },
+              { bg: "#1F2B3E", icon: "talk",   lab: "STEP 02 ・ 聞く",  title: "本人に、聞く",           body: "気になった会社の現役社員に面談を申し込む。ここからは登録が必要です。",                   href: "/people"    },
+              { bg: C.green,   icon: "decide", lab: "STEP 03 ・ 決める", title: "自分のペースで、決める", body: "応募する、残る、保留する。急かされないので、どれを選んでも納得できます。",               href: "/companies" },
+            ].map((s) => (
+              <Link key={s.title} href={s.href} style={{ display: "block", background: s.bg, borderRadius: 15, padding: "32px 28px", color: "#fff", textDecoration: "none" }}>
+                <div style={{ marginBottom: 18 }}>
+                  <Icon name={s.icon} size={30} color="#fff" />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.13em", opacity: 0.6, marginBottom: 10, textTransform: "uppercase" }}>{s.lab}</div>
+                <h3 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, marginBottom: 11 }}>{s.title}</h3>
+                <p style={{ fontSize: 14, opacity: 0.86, lineHeight: 1.7, margin: 0 }}>{s.body}</p>
               </Link>
-              <p className="mt-3 text-center text-[11px] text-slate-400">
-                会うかどうかも、会ってから動くかも、あなた次第です
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FAQ ─── */}
-      <section className="border-t border-[#EAEAE4] bg-white">
-        <div className="mx-auto max-w-3xl px-6 py-24">
-          <div className="text-center">
-            <Eyebrow>よくあるご質問</Eyebrow>
-            <h2 className="mt-5 font-serif text-4xl tracking-tight">正直に、お答えします</h2>
-            <p className="mt-5 text-slate-600">OPINIOを初めて使う方から、よくいただく質問に。</p>
-          </div>
-          <div className="mt-12 divide-y divide-[#EAEAE4] border-y border-[#EAEAE4]">
-            {FAQ.map((item, i) => (
-              <div key={i}>
-                <button
-                  onClick={() => setOpen(open === i ? null : i)}
-                  className="w-full flex items-center justify-between gap-4 py-5 text-left group"
-                  aria-expanded={open === i}
-                >
-                  <span className="flex gap-3 font-medium text-slate-900">
-                    <span className="text-blue-700">Q.</span>
-                    {item.q}
-                  </span>
-                  <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-[#EAEAE4] text-slate-400 transition-transform ${open === i ? "rotate-45 bg-blue-50 border-blue-200 text-blue-700" : ""}`}>
-                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </span>
-                </button>
-                {open === i && (
-                  <p className="pb-6 -mt-1 text-sm text-slate-600 leading-relaxed pr-11 pl-7">{item.a}</p>
-                )}
-              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── 最終CTA ─── */}
-      <section className="relative bg-[#0A1F44] text-white overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(ellipse at 50% -20%, #1e3a8a, transparent 60%)" }} />
-        <div className="relative mx-auto max-w-3xl px-6 py-28 text-center">
-          <h2 className="font-serif text-4xl md:text-5xl tracking-tight text-white">深く知ってから、動く。</h2>
-          <p className="mt-6 text-lg text-blue-100/90 leading-relaxed">
-            今のキャリアを、無理に変えなくてもいい。まずは知ることから、はじめよう。
+      {/* ══ S6: 比較テーブル ══════════════════════════════════════════════════ */}
+      <section style={{ background: C.paper2, padding: "92px 0" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 54 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>他のサービスとの違い</div>
+            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>なぜ、OPINIOなのか。</h2>
+            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>勝てないところも書いています。</p>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, overflow: "hidden" }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2, borderBottom: "1px solid #F0F0EB" }} />
+                  <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 14, color: "#fff", fontWeight: 700, background: C.navy, borderBottom: "1px solid #F0F0EB" }}>OPINIO</th>
+                  <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2, borderBottom: "1px solid #F0F0EB" }}>大手転職サービス</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARE.map((row, i) => {
+                  const border = i < COMPARE.length - 1 ? "1px solid #F0F0EB" : "none";
+                  return (
+                    <tr key={i}>
+                      <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 14.5, color: C.ink, fontWeight: 500, borderBottom: border }}>{row.feature}</th>
+                      <td style={{ padding: "19px 22px", background: "#F7F9FE", fontSize: 14.5, fontWeight: 500, color: row.wins ? C.green : C.amber, borderBottom: border }}>{row.opinio}</td>
+                      <td style={{ padding: "19px 22px", fontSize: 14.5, color: C.muted, borderBottom: border }}>{row.others}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ marginTop: 22, fontSize: 13.5, color: C.muted, textAlign: "center" }}>
+            求人の量で選ぶなら、大手のほうが向いています。OPINIOは「1社を深く知ってから決めたい人」のためのサービスです。
           </p>
-          <p className="mt-4 text-sm text-blue-200/70">
-            取材された企業情報と求人が、ひとつの場所に。完全無料・メールアドレスのみで登録。
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-4">
-            <Link href="/companies" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white text-[#0A1F44] font-semibold hover:bg-blue-50 transition-colors">
-              まず企業を見てみる
-              <Icon name="arrow" className="w-4 h-4" />
+        </div>
+      </section>
+
+      {/* ══ S7: FAQ ════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: "92px 0" }}>
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ textAlign: "center", marginBottom: 54 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>よくあるご質問</div>
+            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>正直に、お答えします</h2>
+          </div>
+          <div style={{ borderTop: `1px solid ${C.line}` }}>
+            {FAQ.map((item, i) => (
+              <details key={i} style={{ borderBottom: `1px solid ${C.line}`, padding: "22px 0" }}>
+                <summary style={{ cursor: "pointer", fontSize: 16, fontWeight: 700, color: C.navy, display: "flex", gap: 14, alignItems: "flex-start", listStyle: "none" }}>
+                  <span style={{ color: C.blue, fontFamily: '"Poppins", sans-serif', flexShrink: 0 }}>Q.</span>
+                  {item.q}
+                </summary>
+                <p style={{ fontSize: 14.5, color: "#3E4A5C", paddingLeft: 30, marginTop: 13, lineHeight: 1.8 }}>{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ FINAL CTA ════════════════════════════════════════════════════════ */}
+      <section style={{ background: C.navy, color: "#fff", textAlign: "center", padding: "98px 0", position: "relative", overflow: "hidden" }}>
+        <div style={{ pointerEvents: "none", position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% -20%, #1e3a8a, transparent 60%)", opacity: 0.5 }} />
+        <div style={{ position: "relative", maxWidth: 780, margin: "0 auto", padding: "0 28px" }}>
+          <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: "clamp(27px,3.4vw,42px)", fontWeight: 600, color: "#fff", marginBottom: 20 }}>深く知ってから、動く。</h2>
+          <p style={{ color: "#B9C6DE", fontSize: 16, lineHeight: 1.8, marginBottom: 14 }}>今のキャリアを、無理に変えなくてもいい。<br />まずは知ることから、はじめよう。</p>
+          <div style={{ display: "inline-flex", flexDirection: "column", gap: 11, textAlign: "left", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 13, padding: "24px 30px", margin: "24px 0 32px" }}>
+            <b style={{ color: "#fff", display: "block", marginBottom: 3 }}>OPINIOでできること</b>
+            {["現役社員のキャリアを無料で見る", "企業取材記事を全文読む", "現場のメンバーに直接面談を申し込む"].map((t) => (
+              <span key={t} style={{ color: "#C6D2E8", display: "flex", alignItems: "center", gap: 11, fontSize: 14.5 }}>
+                <Icon name="check" size={16} color={C.green} />
+                {t}
+              </span>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <Link href="/people" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#fff", color: C.navy, padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
+              話を聞ける人を見る
+              <Icon name="talk" size={17} color={C.navy} />
             </Link>
-            <Link href="/auth" className="text-sm text-blue-200/80 hover:text-white transition-colors">
-              → メールアドレスで無料登録（30秒）
+            <Link href="/auth" style={{ fontSize: 14, color: "#B9C6DE", textDecoration: "underline", textUnderlineOffset: 4 }}>
+              メールアドレスで無料登録（30秒）
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ─── フッター ─── */}
-      <footer className="bg-[#0B1220] text-slate-400">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="grid md:grid-cols-4 gap-10">
+      {/* ══ FOOTER ════════════════════════════════════════════════════════════ */}
+      <footer style={{ background: "#0A0F1A", color: "#8A94A5", padding: "66px 0 34px", fontSize: 13.5 }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 36 }}>
             <div>
-              <span className="text-lg font-bold text-white">OPINIO</span>
-              <p className="mt-1 text-xs text-slate-500 tracking-wide">Truth to Careers</p>
-              <p className="mt-4 text-sm leading-relaxed">
-                IT/SaaS業界に特化した転職サービス。取材された企業情報と求人が、ここに揃っています。
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {["完全無料", "営業電話なし", "メール登録のみ"].map((t) => (
-                  <span key={t} className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border border-slate-700">
-                    <Icon name="check" className="w-3 h-3 text-emerald-400" />
-                    {t}
-                  </span>
-                ))}
+              <span style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: '"Poppins",sans-serif' }}>OPINIO<span style={{ color: "#E8833A" }}>.</span></span>
+              <p style={{ marginTop: 4, fontSize: 13, color: "#5A6779", letterSpacing: "0.04em" }}>Truth to Careers</p>
+              <p style={{ marginTop: 16, lineHeight: 1.8 }}>IT/SaaS業界に特化したキャリアプラットフォーム。取材された企業情報と求人が、ここに揃っています。</p>
+            </div>
+            {[
+              { title: "求職者の方", links: [["企業を探す","/companies"],["求人を探す","/jobs"],["話せる人","/people"],["年収相場","/salary"],["記事","/articles"],["転職ガイド","/careers"]] },
+              { title: "企業・採用担当の方", links: [["OPINIOへの掲載","/business"],["企業ログイン","/biz/auth"]] },
+              { title: "会社情報", links: [["OPINIOについて","/about"],["掲載企業について","/about/scope"],["プライバシーポリシー","/privacy"],["利用規約","/terms"]] },
+            ].map((col) => (
+              <div key={col.title}>
+                <h4 style={{ color: "#fff", fontSize: 13.5, marginBottom: 16, fontWeight: 700 }}>{col.title}</h4>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11 }}>
+                  {col.links.map(([label, href]) => (
+                    <li key={href}><Link href={href} style={{ color: "#8A94A5", textDecoration: "none" }}>{label}</Link></li>
+                  ))}
+                </ul>
               </div>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-slate-300 mb-4">求職者の方</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link href="/companies" className="hover:text-white transition-colors">企業を探す</Link></li>
-                <li><Link href="/jobs" className="hover:text-white transition-colors">求人を探す</Link></li>
-                <li><Link href="/salary" className="hover:text-white transition-colors">年収相場</Link></li>
-                <li><Link href="/people" className="hover:text-white transition-colors">先輩を知る</Link></li>
-                <li><Link href="/articles" className="hover:text-white transition-colors">記事</Link></li>
-                <li><Link href="/careers" className="hover:text-white transition-colors">転職ガイド</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-slate-300 mb-4">企業・採用担当の方</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link href="/business" className="hover:text-white transition-colors">OPINIOへの掲載</Link></li>
-                <li><Link href="/biz/auth" className="hover:text-white transition-colors">企業ログイン</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-slate-300 mb-4">会社情報</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link href="/about" className="hover:text-white transition-colors">OPINIOについて</Link></li>
-                <li><Link href="/about/scope" className="hover:text-white transition-colors">掲載企業について</Link></li>
-                <li><Link href="/privacy" className="hover:text-white transition-colors">プライバシーポリシー</Link></li>
-                <li><Link href="/terms" className="hover:text-white transition-colors">利用規約</Link></li>
-              </ul>
-            </div>
+            ))}
           </div>
-          <div className="mt-12 pt-8 border-t border-slate-800 text-xs text-slate-600">
+          <div style={{ marginTop: 46, paddingTop: 22, borderTop: "1px solid #1C2534", fontSize: 12, color: "#5A6779" }}>
             © 2025 Opinio, Inc. All rights reserved.
           </div>
         </div>
       </footer>
+
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import LandingPage from "./LandingPage";
+import { createAdminClient } from "@/lib/supabase/admin";
+import LandingPage, { type LPMember } from "./LandingPage";
 
 export const metadata: Metadata = {
   title: "OPINIO — IT/SaaS業界特化のキャリアプラットフォーム",
@@ -17,6 +18,47 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://opinio.jp" },
 };
 
-export default function HomePage() {
-  return <LandingPage />;
+type MemberRow = {
+  role_title: string | null;
+  ow_users: { id: string; name: string; avatar_color: string | null; visibility: string | null; is_test: boolean | null } | null;
+  ow_companies: { name: string; brand_name: string | null } | null;
+};
+
+export default async function HomePage() {
+  const adminSupabase = createAdminClient();
+
+  const { data: raw } = await adminSupabase
+    .from("ow_company_members")
+    .select(`
+      role_title,
+      ow_users!user_id(id, name, avatar_color, visibility, is_test),
+      ow_companies!company_id(name, brand_name)
+    `)
+    .eq("display_consent", true)
+    .eq("is_public", true)
+    .limit(8);
+
+  const members: LPMember[] = (raw ?? [])
+    .map((r) => r as unknown as MemberRow)
+    .filter((r) => {
+      const u = r.ow_users;
+      if (!u) return false;
+      if (u.is_test === true) return false;
+      if (u.visibility === "private") return false;
+      return true;
+    })
+    .map((r) => {
+      const u = r.ow_users!;
+      const co = r.ow_companies;
+      return {
+        id: u.id,
+        name: u.name,
+        avatarColor: u.avatar_color,
+        roleTitle: r.role_title,
+        companyName: co?.brand_name ?? co?.name ?? null,
+      };
+    })
+    .slice(0, 4);
+
+  return <LandingPage members={members} />;
 }
