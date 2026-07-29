@@ -407,25 +407,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
-          {/* リモート＋募集中 */}
-          {(remoteText || company.job_count > 0) && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
-              {remoteText && (
-                <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{remoteText}</span>
-              )}
-              {company.job_count > 0 && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
-                }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/>
-                    <path d="M16 3h-8l-2 4h12l-2-4z"/>
-                  </svg>
-                  募集中 {company.job_count}件
-                </span>
-              )}
+          {/* リモート */}
+          {remoteText && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{remoteText}</span>
             </div>
           )}
 
@@ -454,7 +439,24 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                約{company.employee_count}名
+                {(() => {
+                  const raw = String(company.employee_count);
+                  if (raw.includes("名")) return raw;
+                  return `約${raw}名`;
+                })()}
+              </span>
+            )}
+            {company.job_count > 0 && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 100,
+                background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
+              }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 3h-8l-2 4h12l-2-4z"/>
+                </svg>
+                募集中 {company.job_count}件
               </span>
             )}
             {/* #7: メンバーアバター */}
@@ -495,38 +497,23 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
         {/* ── CTA + ブックマーク ── */}
         <div className="clc-cta" style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-          {company.job_count > 0 ? (
-            <button
-              type="button"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-                background: "linear-gradient(135deg, var(--royal), var(--accent))",
-                color: "#fff", border: "none", cursor: "pointer", whiteSpace: "nowrap",
-                boxShadow: "0 2px 8px rgba(0,35,102,0.20)",
-              }}
-              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}#jobs`); }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <rect x="2" y="7" width="20" height="14" rx="2"/>
-                <path d="M16 3h-8l-2 4h12l-2-4z"/>
-              </svg>
-              募集中 {company.job_count}件
-            </button>
-          ) : (
-            <button
-              type="button"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-                background: "var(--royal-50)", color: "var(--royal)",
-                border: "1px solid var(--royal-100)", cursor: "pointer", whiteSpace: "nowrap",
-              }}
-              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
-            >
-              詳細を見る →
-            </button>
-          )}
+          <button
+            type="button"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
+              background: company.job_count > 0
+                ? "linear-gradient(135deg, var(--royal), var(--accent))"
+                : "var(--royal-50)",
+              color: company.job_count > 0 ? "#fff" : "var(--royal)",
+              border: company.job_count > 0 ? "none" : "1px solid var(--royal-100)",
+              cursor: "pointer", whiteSpace: "nowrap",
+              boxShadow: company.job_count > 0 ? "0 2px 8px rgba(0,35,102,0.20)" : "none",
+            }}
+            onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
+          >
+            詳細を見る →
+          </button>
 
           {/* ② ♡ボタン — 常時ピンク */}
           <button
