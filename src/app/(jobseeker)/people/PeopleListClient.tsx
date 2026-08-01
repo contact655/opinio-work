@@ -385,7 +385,7 @@ export function PeopleListClient({ ambassadors }: Props) {
   const hasFilter = !!(keyword || role || age);
 
   function clearAll() {
-    setKeyword(""); setRole(""); setAge(""); setCompany("");
+    setKeyword(""); setRole(""); setAge("");
   }
 
   if (ambassadors.length === 0) {

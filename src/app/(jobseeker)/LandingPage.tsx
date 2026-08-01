@@ -148,6 +148,9 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
         details summary::marker { display: none; }
         details[open] summary .lp-faq-arrow { transform: rotate(90deg); }
         .lp-faq-arrow { transition: transform 0.2s; }
+        .lp-step-card h1, .lp-step-card h2, .lp-step-card h3,
+        .lp-step-card h4, .lp-step-card h5, .lp-step-card h6,
+        .lp-step-card p { color: inherit; }
       `}</style>
 
       {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
@@ -388,11 +391,11 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
               { bg: "#1F2B3E", icon: "talk",   lab: "STEP 02 ・ 聞く",  title: "本人に、聞く",           body: "気になった会社の現役社員に面談を申し込む。ここからは登録が必要です。",             href: "/people"    },
               { bg: C.green,   icon: "decide", lab: "STEP 03 ・ 決める", title: "自分のペースで、決める", body: "応募する、残る、保留する。急かされないので、どれを選んでも納得できます。",           href: "/companies" },
             ].map((s) => (
-              <Link key={s.title} href={s.href} style={{ display: "block", background: s.bg, borderRadius: 15, padding: "32px 28px", color: "#fff", textDecoration: "none" }}>
+              <Link key={s.title} href={s.href} className="lp-step-card" style={{ display: "block", background: s.bg, borderRadius: 15, padding: "32px 28px", color: "#fff", textDecoration: "none" }}>
                 <div style={{ marginBottom: 18 }}>
                   <Icon name={s.icon} size={30} color="#fff" />
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.13em", opacity: 0.6, marginBottom: 10, textTransform: "uppercase" }}>{s.lab}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.13em", opacity: 0.8, marginBottom: 10, textTransform: "uppercase" }}>{s.lab}</div>
                 <h3 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, marginBottom: 11 }}>{s.title}</h3>
                 <p style={{ fontSize: 14, opacity: 0.86, lineHeight: 1.7, margin: 0 }}>{s.body}</p>
               </Link>

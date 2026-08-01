@@ -345,7 +345,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   }>;
 
   // キャリアサマリー自動計算
-  const careerSummary = (() => {
+  const _careerSummary = (() => {
     if (timelineCareers.length === 0) return null;
     let totalMonths = 0;
     // 会社カウント: company_id で重複排除 → 名前テキスト → 非公開は各エントリーを1社としてカウント
