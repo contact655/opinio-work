@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
-import type { SidebarFollow, SidebarJob, SidebarMentor } from "./page";
+import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -66,6 +66,7 @@ type Props = {
   myCompany?: string | null;
   myLikedPostIds: string[];
   sidebarFollows: SidebarFollow[];
+  sidebarUserFollows: SidebarUserFollow[];
   sidebarSavedJobs: SidebarJob[];
   sidebarMentors: SidebarMentor[];
   hiddenMembersCount: number;
@@ -1151,6 +1152,121 @@ function FeedLeftPanel({
   );
 }
 
+// ─── フォロー中サマリーパネル ──────────────────────────────────────────────────
+
+function FollowSummaryPanel({ companies, users }: { companies: SidebarFollow[]; users: SidebarUserFollow[] }) {
+  const total = companies.length + users.length;
+  const FONT = '"Noto Sans JP", sans-serif';
+
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
+      padding: "20px 20px", marginBottom: 16,
+      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+    }}>
+      {/* ヘッダー: 合計数 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>フォロー中</span>
+        <span style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: "var(--royal)", color: "#fff",
+          borderRadius: 100, padding: "2px 10px",
+          fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+        }}>
+          合計 {total}
+        </span>
+      </div>
+
+      {/* 企業セクション */}
+      <div style={{ marginBottom: companies.length > 0 ? 20 : 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          </svg>
+          <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
+            企業 {companies.length}社
+          </span>
+        </div>
+        {companies.length === 0 ? (
+          <p style={{ fontFamily: FONT, fontSize: 13, color: "var(--ink-mute)", margin: 0, paddingLeft: 2 }}>
+            フォロー中の企業はありません。<Link href="/companies" style={{ color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>企業一覧 →</Link>
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {companies.map((co) => {
+              const displayName = co.brand_name ?? co.name;
+              const href = `/companies/${co.slug ?? co.id}`;
+              return (
+                <Link key={co.id} href={href} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                    background: co.logo_gradient ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontSize: 14, fontWeight: 700,
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                  }}>
+                    {co.logo_url
+                      ? <img src={co.logo_url} alt={displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : (co.logo_letter ?? displayName.charAt(0))
+                    }
+                  </div>
+                  <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {displayName}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {companies.length > 0 && users.length > 0 && (
+        <div style={{ height: 1, background: "var(--line)", margin: "0 0 18px" }} />
+      )}
+
+      {/* ユーザーセクション */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
+            ユーザー {users.length}人
+          </span>
+        </div>
+        {users.length === 0 ? (
+          <p style={{ fontFamily: FONT, fontSize: 13, color: "var(--ink-mute)", margin: 0, paddingLeft: 2 }}>
+            フォロー中のユーザーはいません。
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {users.map((u) => (
+              <Link key={u.id} href={`/u/${u.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                  background: u.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 14, fontWeight: 700,
+                  overflow: "hidden",
+                }}>
+                  {u.avatar_url
+                    ? <img src={u.avatar_url} alt={u.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : u.name.charAt(0)
+                  }
+                </div>
+                <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {u.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── 右サイドバー ─────────────────────────────────────────────────────────────
 
 function FeedSidebar({
@@ -1212,7 +1328,7 @@ function FeedSidebar({
 
       {/* (b) 気になる求人 */}
       <div style={PANEL_STYLE}>
-        <p style={PANEL_TITLE_STYLE}>気になる求人</p>
+        <p style={PANEL_TITLE_STYLE}>気になる募集</p>
         {savedJobs.length === 0 ? (
           <p style={EMPTY_STYLE}>求人を保存すると<br />ここに表示されます</p>
         ) : (
@@ -1956,6 +2072,7 @@ export default function FeedClient({
   myCompany,
   myLikedPostIds: _myLikedPostIds,
   sidebarFollows,
+  sidebarUserFollows,
   sidebarSavedJobs,
   sidebarMentors,
   hiddenMembersCount,
@@ -2176,18 +2293,19 @@ export default function FeedClient({
         </div>
       )}
 
+      {/* フォロー中タブ: フォロー一覧サマリー */}
+      {tab === "followed" && (
+        <FollowSummaryPanel companies={sidebarFollows} users={sidebarUserFollows} />
+      )}
+
       {/* 投稿リスト */}
       {tab === "followed" && followedLoading ? (
         <div style={{ textAlign: "center", padding: "48px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif', fontSize: 14 }}>
           読み込み中…
         </div>
       ) : tab === "followed" && followedPosts !== null && followedPosts.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>🏢</div>
-          <p style={{ fontSize: 15, margin: 0, fontWeight: 700, color: "var(--ink-soft)" }}>フォロー中の企業がありません</p>
-          <p style={{ fontSize: 13, marginTop: 6, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-            企業ページの「フォロー」ボタンを押すと<br />その企業の投稿がここに流れます
-          </p>
+        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif' }}>
+          <p style={{ fontSize: 14, margin: 0, color: "var(--ink-soft)" }}>フォロー中の投稿はまだありません</p>
         </div>
       ) : activePosts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "var(--ink-mute)", fontFamily: '"Noto Sans JP", sans-serif' }}>

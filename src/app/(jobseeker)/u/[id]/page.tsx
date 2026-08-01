@@ -579,49 +579,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </span>
                   )}
                 </div>
-                {/* Career stats */}
-                {careerSummary && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                    {/* スキル数: purple + tag */}
-                    {skillTags.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "var(--purple-soft)", borderRadius: 10, padding: "8px 16px", border: "1px solid #c4b5fd", minWidth: 64 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 2 }}>
-                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
-                        </svg>
-                        <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--purple)", lineHeight: 1 }}>{skillTags.length}</span>
-                        <span style={{ fontSize: 11, color: "var(--purple)", marginTop: 3, whiteSpace: "nowrap", opacity: 0.75 }}>スキル</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {skillTags.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                    {skillTags.slice(0, 6).map((tag) => {
-                      return (
-                        <span key={tag.id as string} style={{
-                          display: "inline-flex", alignItems: "center", gap: 4,
-                          padding: "4px 11px", borderRadius: 100,
-                          background: "#fff",
-                          border: "1.5px solid var(--line)",
-                          fontSize: 12, color: "var(--ink-soft)", fontWeight: 600,
-                          transition: "box-shadow 0.15s",
-                        }}>
-                          {tag.label as string}
-                        </span>
-                      );
-                    })}
-                    {skillTags.length > 6 && (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "4px 11px", borderRadius: 100,
-                        background: "var(--bg-tint)", border: "1.5px solid var(--line)",
-                        fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
-                      }}>
-                        +{skillTags.length - 6}
-                      </span>
-                    )}
-                  </div>
-                )}
                 {activeSocials.length > 0 && (
                   <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
                     {activeSocials.map((platform) => {
@@ -1092,17 +1049,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       padding: "12px 14px", borderRadius: 10,
                       background: "var(--bg-tint)", border: "1px solid var(--line)",
                     }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                        background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 2px 6px rgba(217,119,6,0.2)",
-                      }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
-                          <circle cx="12" cy="8" r="6" />
-                          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-                        </svg>
-                      </div>
                       <span style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.4 }}>
                         {cert.name}
                       </span>
@@ -1171,102 +1117,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
-            {/* ── スキル・専門性 (LinkedIn順: 学歴の直後) ── */}
-            {skillTags.length > 0 && (
-              <section id="skills" style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    スキル・専門性
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    SKILLS
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-                    {skillTags.length}件
-                  </span>
-                </div>
-                {(() => {
-                  const CATEGORY_ORDER = ["技術・開発", "プロダクト・UX", "ビジネス・営業", "マーケティング", "データ・分析", "マネジメント", "その他"];
-                  const CATEGORY_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-                    "技術・開発":    { color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-                    "プロダクト・UX": { color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                    "ビジネス・営業": { color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                    "マーケティング": { color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                    "データ・分析":  { color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
-                    "マネジメント":  { color: "#DC2626", bg: "#FEE2E2", border: "#FECACA" },
-                    "その他":        { color: "var(--ink-soft)", bg: "var(--bg-tint)", border: "var(--line)" },
-                  };
-                  const grouped = new Map<string, typeof skillTags>();
-                  const uncategorized: typeof skillTags = [];
-                  for (const tag of skillTags) {
-                    uncategorized.push(tag);
-                  }
-                  if (uncategorized.length > 0) grouped.set("その他", [...(grouped.get("その他") ?? []), ...uncategorized]);
-                  const hasGroups = grouped.size > 1 || (grouped.size === 1 && !grouped.has("その他"));
-                  if (!hasGroups) {
-                    return (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                        {skillTags.map((tag) => (
-                          <span key={tag.id as string} style={{
-                            display: "inline-flex", alignItems: "center", gap: 6,
-                            padding: "7px 14px", borderRadius: 8,
-                            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                            fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 600,
-                          }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            {tag.label as string}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  }
-                  const groupedKeys = Array.from(grouped.keys());
-                  const orderedKeys = [...CATEGORY_ORDER.filter((k) => grouped.has(k)), ...groupedKeys.filter((k) => !CATEGORY_ORDER.includes(k))];
-                  return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                      {orderedKeys.map((cat) => {
-                        const tags = grouped.get(cat)!;
-                        const style = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS["その他"];
-                        return (
-                          <div key={cat}>
-                            <div style={{
-                              fontSize: "var(--text-xs)", fontWeight: 700, color: style.color,
-                              letterSpacing: "0.06em", marginBottom: "var(--space-2)",
-                              display: "flex", alignItems: "center", gap: 6,
-                            }}>
-                              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: style.color, flexShrink: 0 }} />
-                              {cat}
-                            </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                              {tags.map((tag) => (
-                                <span key={tag.id as string} style={{
-                                  display: "inline-flex", alignItems: "center", gap: 5,
-                                  padding: "6px 12px", borderRadius: 8,
-                                  background: style.bg, border: `1px solid ${style.border}`,
-                                  fontSize: 12, color: style.color, fontWeight: 600,
-                                }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                  {tag.label as string}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </section>
-            )}
 
             {/* ── アクティビティ（投稿フォーム + 最近の投稿） ── */}
             {(viewerIsOwner || recentPostsTyped.length > 0) && (
@@ -1652,10 +1502,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     marginBottom: "var(--space-3)",
                   }}>
                     <div style={{
-                      width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                      width: 40, height: 40, borderRadius: 9, flexShrink: 0,
                       background: currentCareer.logo_gradient ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 18, fontWeight: 700,
+                      color: "#fff", fontSize: 16, fontWeight: 700,
                       border: "1px solid rgba(0,0,0,0.06)",
                     }}>
                       {currentCareer.logo_letter ?? currentCareer.company_name.charAt(0)}
@@ -1680,12 +1530,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   /* 企業不明: 非リンク表示 */
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
                     <div style={{
-                      width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                      width: 40, height: 40, borderRadius: 9, flexShrink: 0,
                       background: "linear-gradient(135deg, #64748b, #94a3b8)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       border: "1px solid rgba(0,0,0,0.06)",
                     }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     </div>

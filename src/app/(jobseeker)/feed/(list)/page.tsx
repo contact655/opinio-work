@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 // サイドバー用型
 export type SidebarFollow = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
+export type SidebarUserFollow = { id: string; name: string; avatar_color: string | null; avatar_url: string | null; role_title: string | null; company_name: string | null };
 export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
 export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
@@ -185,14 +186,20 @@ export default async function FeedPage() {
   });
 
   // ── サイドバーデータ（並列取得） ─────────────────────────────────────────────
-  const [followResult, bookmarkResult, mentorResult] = await Promise.all([
-    // (a) フォロー中の企業 (max 5)
+  const [followResult, userFollowResult, bookmarkResult, mentorResult] = await Promise.all([
+    // (a) フォロー中の企業 (全件)
     myOwUserId
       ? adminSupabase
           .from("ow_company_follows")
           .select("ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)")
           .eq("follower_user_id", myOwUserId)
-          .limit(5)
+      : Promise.resolve({ data: [] }),
+    // (a2) フォロー中のユーザー (全件)
+    myOwUserId
+      ? adminSupabase
+          .from("ow_career_follows")
+          .select("ow_career_profiles!target_profile_id(user_id, ow_users!user_id(id, name, avatar_color, avatar_url))")
+          .eq("follower_user_id", myOwUserId)
       : Promise.resolve({ data: [] }),
     // (b) 気になる求人 (max 3) — ow_saved_jobs
     myOwUserId
@@ -219,6 +226,16 @@ export default async function FeedPage() {
   const sidebarFollows: SidebarFollow[] = (followResult.data ?? [])
     .map((r: Record<string, unknown>) => r["ow_companies"])
     .filter(Boolean) as SidebarFollow[];
+
+  const sidebarUserFollows: SidebarUserFollow[] = (userFollowResult.data ?? [])
+    .map((r: Record<string, unknown>) => {
+      const profile = r["ow_career_profiles"] as Record<string, unknown> | null;
+      if (!profile) return null;
+      const user = profile["ow_users"] as { id: string; name: string; avatar_color: string | null; avatar_url: string | null } | null;
+      if (!user) return null;
+      return { id: user.id, name: user.name, avatar_color: user.avatar_color, avatar_url: user.avatar_url, role_title: null, company_name: null };
+    })
+    .filter(Boolean) as SidebarUserFollow[];
 
   // 気になる求人: job IDリストを取得してから jobs をフェッチ
   const bookmarkedJobIds = (bookmarkResult.data ?? []).map((r: { job_id: string }) => r.job_id).filter(Boolean);
@@ -294,6 +311,7 @@ export default async function FeedPage() {
       myCompany={myCompany}
       myLikedPostIds={Array.from(likedPostIds)}
       sidebarFollows={sidebarFollows}
+      sidebarUserFollows={sidebarUserFollows}
       sidebarSavedJobs={sidebarSavedJobs}
       sidebarMentors={sidebarMentors}
       hiddenMembersCount={hiddenMembersCount}

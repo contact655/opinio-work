@@ -334,16 +334,12 @@ function matchAge(card: AmbassadorCard, v: string): boolean {
   const opt = AGE_OPTIONS.find((o) => o.value === v);
   return opt ? age >= opt.min && age <= opt.max : true;
 }
-function matchCompany(card: AmbassadorCard, v: string): boolean {
-  if (!v) return true;
-  return card.companyId === v;
-}
 
 // ── PeopleListClient ─────────────────────────────────────────────────
 export function PeopleListClient({ ambassadors }: Props) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [role, setRole] = useState("");
-  const [company, setCompany] = useState("");
+
   const [age, setAge] = useState("");
   const [sort, setSort] = useState("newest");
   const [keyword, setKeyword] = useState("");
@@ -366,22 +362,11 @@ export function PeopleListClient({ ambassadors }: Props) {
     setOpenChip(openChip === name ? null : name);
   }
 
-  const companyOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const a of ambassadors) {
-      if (!seen.has(a.companyId)) seen.set(a.companyId, a.companyName);
-    }
-    return Array.from(seen.entries())
-      .sort((a, b) => a[1].localeCompare(b[1], "ja"))
-      .map(([value, label]) => ({ value, label }));
-  }, [ambassadors]);
-
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchRole(a, role)) return false;
       if (!matchAge(a, age)) return false;
-      if (!matchCompany(a, company)) return false;
       if (!q) return true;
       return (
         a.name.toLowerCase().includes(q) ||
@@ -390,14 +375,14 @@ export function PeopleListClient({ ambassadors }: Props) {
         a.talkThemes.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [ambassadors, role, age, company, keyword]);
+  }, [ambassadors, role, age, keyword]);
 
   const sorted = useMemo(() => {
     if (sort === "exp") return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     return filtered;
   }, [filtered, sort]);
 
-  const hasFilter = !!(keyword || role || age || company);
+  const hasFilter = !!(keyword || role || age);
 
   function clearAll() {
     setKeyword(""); setRole(""); setAge(""); setCompany("");
@@ -527,7 +512,7 @@ export function PeopleListClient({ ambassadors }: Props) {
             {/* モバイル: フィルタトグル */}
             <button
               type="button"
-              className={`ppl-filter-toggle${(role || age || company) ? " active" : ""}`}
+              className={`ppl-filter-toggle${(role || age) ? " active" : ""}`}
               onClick={() => setFiltersExpanded(!filtersExpanded)}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -540,7 +525,6 @@ export function PeopleListClient({ ambassadors }: Props) {
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
               <FilterChip label="年齢" value={age} options={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setAge(v ?? ""); setOpenChip(null); }} isOpen={openChip === "age"} onToggle={() => toggleChip("age")} />
-              <FilterChip label="在籍企業" value={company} options={companyOptions} onSelect={(v) => { setCompany(v ?? ""); setOpenChip(null); }} isOpen={openChip === "company"} onToggle={() => toggleChip("company")} />
               {hasFilter && (
                 <button type="button" onClick={clearAll} style={{ fontSize: 12.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}
