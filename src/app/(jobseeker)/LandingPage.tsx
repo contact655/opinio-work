@@ -1,9 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export type LPMember = {
   id: string;
   name: string;
   avatarColor: string | null;
+  /** public/images/people/ の透過PNG。未設定ならイニシャル表示にフォールバックする */
+  photoUrl: string | null;
   roleTitle: string | null;
   companyName: string | null;
   careerFlow: string[] | null;
@@ -106,20 +109,36 @@ const FAQ = [
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function LandingPage({ members }: { members: LPMember[] }) {
-  const memberCount = members.length;
+export default function LandingPage({
+  members,
+  bookableCount,
+  bandMembers,
+}: {
+  members: LPMember[];
+  /** 実際にカジュアル面談を申し込める人数。表示専用メンバーは含まない */
+  bookableCount: number;
+  /** ヒーロー直下の人物帯。掲載同意済みなら面談可否を問わない */
+  bandMembers: LPMember[];
+}) {
+  const memberCount = bookableCount;
 
   return (
     <div style={{ background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
       <style>{`
         .lp-hero { padding: 78px 0 92px; border-bottom: 1px solid ${C.line}; position: relative; overflow: hidden; }
         .lp-hero-grid { display: grid; grid-template-columns: 1.03fr 0.97fr; gap: 60px; align-items: center; }
+        .lp-hero-grid--solo { grid-template-columns: 1fr; }
         .lp-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .lp-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
         .lp-asks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         .lp-section { padding: 92px 0; }
         .lp-wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
         .lp-thread-box { padding: 44px 40px 34px; }
+        .lp-thread-svg-narrow { display: none; width: 100%; max-width: 400px; height: auto; margin: 0 auto; }
+        .lp-cmp-cards { display: none; }
+        /* 人物帯: デスクトップは4人横並び、モバイルは2×2（縦を伸ばさないため） */
+        .lp-portraits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .lp-portrait-media { aspect-ratio: 4 / 5; }
         .lp-member-flow { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
         .lp-member-flow em { font-style: normal; font-size: 11.5px; color: ${C.muted}; background: ${C.paper2}; border-radius: 999px; padding: 2px 8px; }
         .lp-member-flow .lp-dot { width: 4px; height: 4px; border-radius: 50%; background: #CBD5E0; flex-shrink: 0; display: inline-block; }
@@ -138,11 +157,38 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
           .lp-thread-box { padding: 30px 22px 24px; }
           .lp-wrap { padding: 0 18px; }
           table.lp-cmp th, table.lp-cmp td { padding: 14px 13px; font-size: 13.5px; }
+
+          /* 谷① S1: 1カラムに落ちたカード群を、罫線区切りの1枚のリストに解く */
+          .lp-features { gap: 0 !important; background: #fff; border: 1px solid ${C.line}; border-radius: 14px; overflow: hidden; }
+          .lp-feature { background: transparent !important; border: 0 !important; border-radius: 0 !important;
+                        padding: 17px 17px !important; display: flex; gap: 13px; align-items: flex-start; }
+          .lp-feature + .lp-feature { border-top: 1px solid #F0F0EB !important; }
+          .lp-feature-icon { width: 32px !important; height: 32px !important; border-radius: 9px !important; margin-bottom: 0 !important; }
+          .lp-feature-icon svg { width: 19px !important; height: 19px !important; }
+          .lp-feature h3 { font-size: 15px !important; margin-bottom: 4px !important; line-height: 1.5; }
+          .lp-feature p { font-size: 13px !important; line-height: 1.65 !important; }
+
+          /* 谷③ S3: 企業カードをロゴ＋社名＋業種の行に圧縮し、指標行は落とす */
+          .lp-companies { gap: 0 !important; background: #fff; border: 1px solid ${C.line}; border-radius: 14px; overflow: hidden; }
+          .lp-co-card { border: 0 !important; border-radius: 0 !important; padding: 13px 16px !important; }
+          .lp-co-card + .lp-co-card { border-top: 1px solid #F0F0EB !important; }
+          .lp-co-head { margin-bottom: 0 !important; }
+          .lp-co-metrics { display: none !important; }
         }
         @media (max-width: 580px) {
           .lp-asks-grid { grid-template-columns: 1fr; }
           .lp-grid3.lp-steps { grid-template-columns: 1fr; }
           .lp-cta-bullets { padding: 20px 22px; }
+          .lp-thread-svg-wide { display: none; }
+          .lp-thread-svg-narrow { display: block; }
+          .lp-portraits { grid-template-columns: 1fr 1fr; gap: 14px; }
+          .lp-portrait-media { aspect-ratio: 1 / 1; }
+          .lp-people-band { padding: 38px 0 42px !important; }
+          .lp-people-head { margin-bottom: 20px !important; }
+
+          /* 谷② S5: 3列の表を1項目1カードの縦積みに差し替える */
+          .lp-cmp-wrap { display: none; }
+          .lp-cmp-cards { display: block; }
         }
         details summary::-webkit-details-marker { display: none; }
         details summary::marker { display: none; }
@@ -174,15 +220,24 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
           <circle cx="960" cy="176" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
         </svg>
 
-        <div className="lp-wrap lp-hero-grid" style={{ position: "relative" }}>
+        {/* 面談を受け付けている人が0名のときはカード自体を出さない。
+            空のカードを出すと「いま話を聞ける現役社員 0名」を見せることになるため、
+            ヒーローを1カラムに畳む。 */}
+        <div className={`lp-wrap lp-hero-grid${members.length === 0 ? " lp-hero-grid--solo" : ""}`} style={{ position: "relative" }}>
           {/* 左: コピー */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 22, textTransform: "uppercase" }}>IT・SaaS業界のキャリアプラットフォーム</div>
-            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(29px, 3.5vw, 49px)", lineHeight: 1.44, letterSpacing: "-0.01em", color: C.navy, marginBottom: 24 }}>
-              求人票に書いていないことは、<br />そこで働く人に聞く。
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 22 }}>IT・SaaS特化</div>
+            {/* 短い見出しなのでポスター寸法に上げ、改行位置は意図どおり固定する */}
+            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(38px, 4.6vw, 60px)", lineHeight: 1.32, letterSpacing: "-0.02em", color: C.navy, marginBottom: 22 }}>
+              入社後が、<br />先に見える。
             </h1>
-            <p style={{ fontSize: 16.5, color: "#374357", marginBottom: 34, maxWidth: "30em", lineHeight: 1.8 }}>
-              取材記事、現役社員のキャリア、そして本人との面談。<br />応募を決める前に、中身を確かめられます。
+            {/* maxWidth 26em だと実測440pxの本文に余白2pxしか無く、フォントフォールバック時に
+                「か。」だけが2行目に落ちるため30emにする。
+                さらに読点を境に inline-block で塊にして、折り返しが句の途中で起きないようにする
+                （デスクトップ=1行 / モバイル=読点で2行）。 */}
+            <p style={{ fontSize: 17, color: "#374357", marginBottom: 34, maxWidth: "30em", lineHeight: 1.85 }}>
+              <span style={{ display: "inline-block" }}>その会社にどんな人がいて、</span>
+              <span style={{ display: "inline-block" }}>どこから来て、どこへ行ったか。</span>
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
               <Link href="/people" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: C.navy, color: "#fff", padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
@@ -199,7 +254,8 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
             </p>
           </div>
 
-          {/* 右: 話を聞ける人カード（DB動的） */}
+          {/* 右: 話を聞ける人カード（DB動的 / can_casual_meeting = true の人のみ） */}
+          {members.length > 0 && (
           <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, boxShadow: "0 20px 50px rgba(14,33,72,.10)", overflow: "hidden" }}>
             <div style={{ padding: "16px 22px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: C.paper2 }}>
               <strong style={{ fontSize: 13.5, fontWeight: 700, color: C.navy, display: "flex", alignItems: "center", gap: 9 }}>
@@ -217,16 +273,31 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
               <div key={m.id} style={{ padding: "16px 22px", borderBottom: `1px solid #F1F1EC` }}>
                 <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                   <div style={{ position: "relative", flexShrink: 0 }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 11, background: m.avatarColor ?? `linear-gradient(135deg,${C.navy},${C.blue})`, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: '"Poppins", sans-serif' }}>
-                      {m.name.charAt(0).toUpperCase()}
-                    </div>
+                    {m.photoUrl ? (
+                      // 透過PNG。被写体は上17%から始まり頭部中心が高さ44.6%にあるため、
+                      // 145%に拡大して上下左右をずらし、円の中心に顔が来るようにする。
+                      <div style={{ width: 42, height: 42, borderRadius: "50%", overflow: "hidden", position: "relative" }}>
+                        <Image
+                          src={m.photoUrl}
+                          alt={`${m.name}さん`}
+                          width={84}
+                          height={84}
+                          style={{ position: "absolute", width: "145%", height: "145%", left: "-22.5%", top: "-14.7%", objectFit: "cover" }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ width: 42, height: 42, borderRadius: "50%", background: m.avatarColor ?? `linear-gradient(135deg,${C.navy},${C.blue})`, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: '"Poppins", sans-serif' }}>
+                        {m.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div style={{ position: "absolute", right: -4, bottom: -4, width: 18, height: 18, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,.18)" }}>
                       <Icon name="check" size={11} color={C.green} />
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* role_title 未確認のメンバーは「メンバー ／ 社名」ではなく社名だけを出す */}
                     <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.5, color: C.navy }}>
-                      {m.roleTitle ?? "メンバー"}{m.companyName ? ` ／ ${m.companyName}` : ""}
+                      {[m.roleTitle, m.companyName].filter(Boolean).join(" ／ ") || m.name}
                     </div>
                     {/* Career flow */}
                     {m.careerFlow && m.careerFlow.length > 0 && (
@@ -258,8 +329,62 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
               <p style={{ textAlign: "center", marginTop: 12, fontSize: 11.5, color: C.muted }}>会うかどうかも、会ってから動くかも、あなた次第です</p>
             </div>
           </div>
+          )}
         </div>
       </div>
+
+      {/* ══ 人物帯: ヒーロー直下 ══════════════════════════════════════════════
+          掲載同意済みの現役社員を顔で見せる。面談可否は問わないため、
+          見出しは面談を約束しない語にし、申込CTAは置かない（/people へのリンクのみ）。
+          ⚠️ 背景込みの人物写真は用意され次第 .lp-portrait-media の中身を差し替える。
+             いまは背景を落とした切り抜きPNGを地色の上に置いた仮置き。 */}
+      {bandMembers.length > 0 && (
+      <section className="lp-people-band" style={{ background: C.paper2, borderBottom: `1px solid ${C.line}`, padding: "56px 0 60px" }}>
+        <div className="lp-wrap">
+          <div className="lp-people-head" style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 28 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 10 }}>PEOPLE</div>
+              <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(22px,2.4vw,30px)", lineHeight: 1.45, color: C.navy }}>
+                OPINIOに参加している現役社員
+              </h2>
+            </div>
+            <Link href="/people" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
+              全員を見る →
+            </Link>
+          </div>
+
+          <div className="lp-portraits">
+            {bandMembers.map((m) => (
+              <div key={m.id} className="lp-portrait">
+                {/* 地色は白。切り抜きPNGの輪郭に元背景の白フチが残っているため、
+                    地を白に寄せてフチを目立たなくしている。
+                    背景込みの写真に差し替えたら、この背景指定は不要になる。 */}
+                <div className="lp-portrait-media" style={{ background: "#fff", borderRadius: 14, overflow: "hidden", position: "relative" }}>
+                  {m.photoUrl ? (
+                    <Image src={m.photoUrl} alt={`${m.name}さん`} width={320} height={320}
+                      sizes="(max-width: 900px) 46vw, 260px"
+                      style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 12%" }} />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: C.navy, fontSize: 34, fontWeight: 700, fontFamily: '"Poppins", sans-serif', opacity: 0.35 }}>
+                      {m.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div style={{ marginTop: 13 }}>
+                  <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.5 }}>{m.name}</b>
+                  {m.companyName && (
+                    <span style={{ display: "block", fontSize: 12.5, color: C.muted, marginTop: 2 }}>{m.companyName}</span>
+                  )}
+                  {m.quote && (
+                    <span style={{ display: "block", fontSize: 12.5, color: "#3E4A5C", marginTop: 7, lineHeight: 1.65 }}>{m.quote}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      )}
 
       {/* ══ S2: 現役社員に聞ける + CAREER THREAD ════════════════════════════ */}
       <section className="lp-section" style={{ background: C.paper2 }}>
@@ -277,7 +402,25 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
             <div style={{ fontSize: 12, letterSpacing: "0.12em", fontWeight: 700, color: C.muted, marginBottom: 6 }}>CAREER THREAD</div>
             <div style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, color: C.navy, marginBottom: 26 }}>この人が、なぜここにいるのか。</div>
             <div style={{ overflowX: "auto" }}>
-              <svg viewBox="0 0 1000 210" style={{ width: "100%", minWidth: 480, height: "auto" }} role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
+              {/* モバイル（≤580px）: 幅に収まる比率の縦長ビューボックス */}
+              <svg className="lp-thread-svg-narrow" viewBox="0 78 360 222" role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
+                <path d="M40 250 C 90 250, 100 200, 150 195 S 220 130, 265 125" fill="none" stroke="#C9B896" strokeWidth="2" />
+                <circle cx="40"  cy="250" r="6" fill={C.paper} stroke="#C9B896" strokeWidth="2" />
+                <text x="40"  y="272" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="12" fill={C.muted}>みずほ証券</text>
+                <text x="40"  y="290" textAnchor="middle" fontFamily="Poppins"    fontSize="10" fill="#A9AEB8">2016</text>
+                <circle cx="150" cy="195" r="6" fill={C.paper} stroke="#C9B896" strokeWidth="2" />
+                <text x="150" y="217" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="12" fill={C.muted}>Salesforce</text>
+                <text x="150" y="235" textAnchor="middle" fontFamily="Poppins"    fontSize="10" fill="#A9AEB8">2021</text>
+                <circle cx="265" cy="125" r="8"  fill={C.navy} />
+                <circle cx="265" cy="125" r="14" fill="none" stroke={C.navy} strokeWidth="1.5" opacity=".28" />
+                <text x="265" y="101" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="12" fontWeight="700" fill={C.navy}>伊藤忠テクノソリューションズ</text>
+                <text x="265" y="147" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="11" fill={C.muted}>現職・エンタープライズ営業</text>
+                <rect x="185" y="185" width="168" height="52" rx="10" fill="#fff" stroke={C.line} />
+                <path d="M255 185 l10 -12 l0 12 z" fill="#fff" stroke={C.line} />
+                <text x="196" y="209" fontFamily="Noto Sans JP" fontSize="11" fill={C.ink}>「なぜ証券から</text>
+                <text x="196" y="228" fontFamily="Noto Sans JP" fontSize="11" fill={C.ink}>SaaSに移ったか」</text>
+              </svg>
+              <svg className="lp-thread-svg-wide" viewBox="0 0 1000 210" style={{ width: "100%", minWidth: 480, height: "auto" }} role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
                 <path d="M60 150 C 200 150, 220 96, 360 96 S 560 62, 700 62 S 880 62, 940 62" fill="none" stroke="#C9B896" strokeWidth="2" />
                 <circle cx="60"  cy="150" r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
                 <text x="60"  y="180" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>みずほ証券</text>
@@ -298,20 +441,22 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
             <p style={{ fontSize: 14, color: C.muted, marginTop: 14 }}>経歴が一本の線で見えるから、「なぜこの会社を選んだのか」を、その人自身に聞けます。</p>
           </div>
 
-          {/* 4 feature cards */}
-          <div className="lp-grid2">
+          {/* 4 feature cards（≤900px ではカードを解いて罫線区切りのリストになる） */}
+          <div className="lp-grid2 lp-features">
             {[
               { icon: "verified", bg: "#E8EEFC", fg: C.blue,  title: "所属が認証されている",       body: "本人が勝手に名乗っているのではなく、企業側が在籍を確認したうえで公開しています。匿名の口コミサイトとは、情報の出どころが違います。" },
               { icon: "why",      bg: "#E2F1EB", fg: C.green, title: "入社の理由が、聞ける",         body: "なぜ数ある会社の中でここを選んだのか。入ってみて何が想像どおりで、何が違ったのか。求人票にも面接にも出てこない話です。" },
               { icon: "spark",    bg: "#FBEEDF", fg: C.amber, title: "やりがいを、本人の言葉で",     body: "会社が用意した文章ではなく、いま働いている人が自分の言葉で語ります。何が面白くて、何がしんどいのかまで含めて。" },
               { icon: "free",     bg: "#EDEDE7", fg: C.muted, title: "話を聞いても、応募しなくていい", body: "面談は選考と切り離されています。進む義務はありません。「今は動かない」という結論も、この場では正解です。" },
             ].map((f) => (
-              <div key={f.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, padding: 32 }}>
-                <div style={{ width: 46, height: 46, borderRadius: 12, background: f.bg, display: "grid", placeItems: "center", marginBottom: 20 }}>
+              <div key={f.title} className="lp-feature" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, padding: 32 }}>
+                <div className="lp-feature-icon" style={{ width: 46, height: 46, borderRadius: 12, background: f.bg, display: "grid", placeItems: "center", marginBottom: 20 }}>
                   <Icon name={f.icon} size={24} color={f.fg} />
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, color: C.navy }}>{f.title}</h3>
-                <p style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.7, margin: 0 }}>{f.body}</p>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, color: C.navy }}>{f.title}</h3>
+                  <p style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.7, margin: 0 }}>{f.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -350,17 +495,18 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>企業の「中身」が、ここに揃う。</h2>
             <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>取材記事・求人・そこで働く人のキャリアが、ひとつの企業ページに集まっています。</p>
           </div>
-          <div className="lp-grid3">
+          {/* ≤900px ではカードを解いて、ロゴ＋社名＋業種だけのコンパクトな行にする */}
+          <div className="lp-grid3 lp-companies">
             {FEATURED.map((c) => (
-              <Link key={c.href} href={c.href} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "26px 24px", textDecoration: "none", display: "block" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
+              <Link key={c.href} href={c.href} className="lp-co-card" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "26px 24px", textDecoration: "none", display: "block" }}>
+                <div className="lp-co-head" style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
                   <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: c.bg, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 15 }}>{c.letter}</div>
                   <div>
                     <b style={{ fontSize: 15.5, color: C.navy, lineHeight: 1.5, display: "block" }}>{c.name}</b>
                     <small style={{ color: C.muted, fontSize: 12, fontWeight: 400, display: "block" }}>{c.tag}</small>
                   </div>
                 </div>
-                <div style={{ fontSize: 13.5, color: "#3E4A5C", paddingTop: 16, borderTop: "1px solid #F0F0EB", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <div className="lp-co-metrics" style={{ fontSize: 13.5, color: "#3E4A5C", paddingTop: 16, borderTop: "1px solid #F0F0EB", display: "flex", gap: 16, flexWrap: "wrap" }}>
                   <span><span style={{ color: C.muted }}>取材記事 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.articles}</strong></span>
                   <span><span style={{ color: C.muted }}>求人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.jobs}</strong></span>
                   <span><span style={{ color: C.muted }}>話せる人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.members}</strong></span>
@@ -412,7 +558,23 @@ export default function LandingPage({ members }: { members: LPMember[] }) {
             <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>なぜ、OPINIOなのか。</h2>
             <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>勝てないところも書いています。</p>
           </div>
-          <div style={{ overflowX: "auto" }}>
+          {/* モバイル（≤580px）: 表を1項目1カードの縦積みに置き換える */}
+          <div className="lp-cmp-cards">
+            {COMPARE.map((row, i) => (
+              <div key={i} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 15px", marginBottom: 8 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink, marginBottom: 8 }}>{row.feature}</div>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 5 }}>
+                  <span style={{ flexShrink: 0, width: 58, fontSize: 10.5, fontWeight: 700, color: "#fff", background: C.navy, borderRadius: 999, padding: "3px 0", textAlign: "center" }}>OPINIO</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 500, color: row.wins ? C.green : C.amber }}>{row.opinio}</span>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                  <span style={{ flexShrink: 0, width: 58, fontSize: 10.5, fontWeight: 500, color: C.muted, background: C.paper2, borderRadius: 999, padding: "3px 0", textAlign: "center" }}>大手</span>
+                  <span style={{ fontSize: 13.5, color: C.muted }}>{row.others}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="lp-cmp-wrap" style={{ overflowX: "auto" }}>
             <table className="lp-cmp" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, overflow: "hidden" }}>
               <thead>
                 <tr>
