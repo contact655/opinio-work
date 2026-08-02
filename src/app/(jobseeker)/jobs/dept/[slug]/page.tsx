@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { getJobs } from "@/lib/supabase/queries";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 
-export const revalidate = 3600;
+// 求人の掲載状態（published / closed）がここに出るため、鮮度は求人詳細に合わせて60秒。
+// 1時間だと求人を閉じた後も最大1時間このページから流入し続ける。
+export const revalidate = 60;
 
 // ─── カテゴリ定義 ─────────────────────────────────────────────────────────────
 
