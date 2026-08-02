@@ -7801,6 +7801,7 @@ export type Database = {
         Row: {
           about_me: string | null
           auth_id: string | null
+          auth_linked_at: string | null
           avatar_color: string | null
           avatar_url: string | null
           birth_date: string | null
@@ -7833,6 +7834,7 @@ export type Database = {
         Insert: {
           about_me?: string | null
           auth_id?: string | null
+          auth_linked_at?: string | null
           avatar_color?: string | null
           avatar_url?: string | null
           birth_date?: string | null
@@ -7865,6 +7867,7 @@ export type Database = {
         Update: {
           about_me?: string | null
           auth_id?: string | null
+          auth_linked_at?: string | null
           avatar_color?: string | null
           avatar_url?: string | null
           birth_date?: string | null

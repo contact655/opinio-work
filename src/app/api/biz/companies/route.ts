@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
 import { newCompanyAdminTemplate } from "@/lib/notify/templates";
+import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
 
 /**
  * POST /api/biz/companies
@@ -128,32 +129,25 @@ export async function POST(req: Request) {
   }
 
   // 5. ow_company_admins INSERT（作成者を最初の admin として登録）
-  let { data: owUser } = await admin
-    .from("ow_users")
-    .select("id, name")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+  // 以前はここで email 一致だけを根拠に auth_id を無条件で補完していたが、
+  // それだと他人のメールアドレスで登録した人が既存プロフィールを引き継げてしまう。
+  // 共通ヘルパーに寄せ、所有証明（メール確認済み）があるときだけ引き継ぐようにする。
+  const resolution = await resolveOrLinkOwUser({
+    authId: user.id,
+    email: user.email,
+    name: user.user_metadata?.name || user.user_metadata?.full_name || null,
+    emailVerified: !!user.email_confirmed_at,
+  });
 
-  // auth_id が NULL のまま残っている孤立レコードへのフォールバック（email で照合して auth_id を補完）
-  if (!owUser && user.email) {
-    const { data: owUserByEmail } = await admin
-      .from("ow_users")
-      .select("id, name")
-      .eq("email", user.email)
-      .is("auth_id", null)
-      .maybeSingle();
-    if (owUserByEmail) {
-      owUser = owUserByEmail;
-      // auth_id を自動補完（best-effort）
-      await admin
-        .from("ow_users")
-        .update({ auth_id: user.id, updated_at: new Date().toISOString() })
-        .eq("id", owUserByEmail.id);
-    }
-  }
+  const owUser = resolution.status === "error" || resolution.status === "needs_verification"
+    ? null
+    : resolution.owUser;
 
   if (!owUser) {
-    console.error("[POST /api/biz/companies] ow_users not found for current user");
+    console.error(
+      "[POST /api/biz/companies] ow_users not resolved for current user:",
+      resolution.status === "error" ? resolution.message : resolution.status
+    );
     // ow_users が見つからない場合も company は作成済みなのでエラーにしない
   } else {
     const { error: adminError } = await admin

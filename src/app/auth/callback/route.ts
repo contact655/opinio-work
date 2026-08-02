@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { addUserRole } from "@/lib/roles";
 import { notify } from "@/lib/notify/email";
+import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -17,29 +18,43 @@ export async function GET(request: Request) {
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && session) {
-      // ow_users レコードが存在するか確認（トリガーで自動作成されるはず）
-      const { data: owUser } = await supabase
-        .from("ow_users")
-        .select("id, name")
-        .eq("auth_id", session.user.id)
-        .maybeSingle();
-
-      const isNewUser = !owUser;
-
-      if (!owUser) {
-        // トリガーが動かなかった場合のフォールバック: 手動作成
-        const rawName: string =
+      // ow_users レコードを解決する。
+      // このルートに有効な code を持って到達できるのは、そのアドレス宛に送られたリンクを
+      // クリックした人（マジックリンク / 確認メール / パスワード再設定）か、
+      // OAuth プロバイダで検証を終えた人だけ。到達したこと自体がメールアドレスの
+      // 所有証明になるので、ここでだけ emailVerified: true を渡してよい。
+      // （パスワードログイン/登録はこのルートを通らない）
+      const resolution = await resolveOrLinkOwUser({
+        authId: session.user.id,
+        email: session.user.email,
+        name:
           session.user.user_metadata?.name ||
           session.user.user_metadata?.full_name ||
-          session.user.email?.split("@")[0] ||
-          "ユーザー";
-        await supabase.from("ow_users").insert({
-          auth_id: session.user.id,
-          email: session.user.email ?? "",
-          name: rawName.slice(0, 100),
-          visibility: "public",
-        });
+          null,
+        emailVerified: true,
+      });
+
+      if (resolution.status === "error") {
+        // 握り潰さない。ここで失敗すると「認証は通っているのに ow_users 行が無い」
+        // ユーザーが生まれ、以降の画面が静かに壊れる。
+        console.error("[auth/callback] resolveOrLinkOwUser failed:", resolution.message);
+      } else if (resolution.status === "needs_verification") {
+        // ここは emailVerified: true で呼んでいるので、未紐付け行なら引き継げているはず。
+        // それでも email 衝突するのは「その email の行が既に別の auth_id に紐付いている」場合。
+        console.error(
+          "[auth/callback] email already belongs to a different linked ow_users row:",
+          session.user.email
+        );
+      } else if (resolution.status === "linked") {
+        console.info(
+          "[auth/callback] linked pre-created ow_users row:",
+          resolution.owUser.id,
+          session.user.email
+        );
       }
+
+      // 引き継ぎ（linked）は運営が用意した既存プロフィールなので「新規ユーザー」ではない。
+      const isNewUser = resolution.status === "created";
 
       // パスワードリセットフローはそのまま update-password へ
       if (type === "recovery") {
@@ -51,15 +66,22 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/biz/dashboard`);
       }
 
-      // role='candidate' を best-effort で登録（重複は無視）
-      await addUserRole(supabase, "candidate").catch(() => {});
+      // role='candidate' を best-effort で登録（重複は無視）。
+      // 失敗しても認証は続行するが、無言では落とさずログに残す。
+      await addUserRole(supabase, "candidate").catch((e: unknown) => {
+        console.error("[auth/callback] addUserRole failed:", e);
+      });
 
       // onboarding_completed チェック: 未完了のユーザーはオンボーディングへ
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("ow_profiles")
         .select("onboarding_completed")
         .eq("user_id", session.user.id)
         .maybeSingle();
+
+      if (profileError) {
+        console.error("[auth/callback] ow_profiles lookup failed:", profileError.message);
+      }
 
       const needsOnboarding = !profile?.onboarding_completed;
 
