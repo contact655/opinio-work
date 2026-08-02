@@ -47,3 +47,6 @@ docs/backups/
 
 # Supabase CLI cache (auto-generated)
 supabase/.temp/
+
+# Lazyweb (デザイン調査の作業用ディレクトリ。スクリーンショット等で数十MBになる)
+.lazyweb/
