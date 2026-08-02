@@ -53,6 +53,59 @@ dev と本番で挙動が異なる場合がある。
 
 ---
 
+## ⚠️ ルートキャッシュと Supabase クライアントの判別軸（2026-08-03 確立）
+
+**DBを更新したのに画面に反映されない場合、まずここを疑う。**
+
+App Router は「動的関数を使っていないページ」を静的レンダリングして結果を固定する。
+`fetch` ではなく supabase-js でデータを取る場合、Next は動的だと判断できないため、
+**コードを変えるまで DB の更新が画面に反映されない。**
+
+### 判別軸：`cookies()` を呼ぶかどうか
+
+| クライアント | 実装 | 動的判定 | 静的化リスク |
+|---|---|---|---|
+| `createClient()`（`lib/supabase/server.ts`） | 内部で `cookies()` を呼ぶ | **自動的に動的** | なし |
+| `createAdminClient()`（`lib/supabase/admin.ts`） | 素の supabase-js。Cookie を触らない | されない | **あり** |
+
+`searchParams` を受け取るページ、`headers()` を使うページも自動的に動的になる。
+
+### レイアウト単位の保護
+
+| レイアウト | `cookies()` | 効果 |
+|---|---|---|
+| `admin/layout.tsx` | あり | **admin 配下は全ページ自動的に動的** |
+| `biz/layout.tsx` | あり | **biz 配下は全ページ自動的に動的** |
+| `(jobseeker)/layout.tsx` | **なし** | **各ページが自力で宣言する必要がある** |
+
+### 原則
+
+**`(jobseeker)` 配下で `createAdminClient`（および `lib/supabase/queries.ts` /
+`lib/search/companies.ts` 経由）を使うページは、`revalidate` か `dynamic` の宣言が必須。**
+
+`cookies()` も `searchParams` も使わないページで宣言を忘れると、
+本番で「再デプロイするまで永久に古いデータを出し続ける」状態になる。
+
+2026-08-03 の事例: LP（`(jobseeker)/page.tsx`）が唯一この穴に落ちていた。
+migration で talk_themes を更新しても LP に反映されず、原因は静的レンダリングだった。
+`export const revalidate = 300` を追加して解消。同日の全ルート監査では他に該当なし
+（86ページ中、DB利用70ページ・GETルートハンドラ全件を確認）。
+
+### 現在の鮮度設定
+
+| 間隔 | ルート |
+|---|---|
+| `force-dynamic` | `/jobs`(一覧) `/people` `/people/role/[slug]` `/schools/[id]` `/mypage/*` |
+| 60秒 | `/companies/[id]` `/jobs/[id]` `/companies/[id]/casual-meeting` `/jobs/dept/[slug]` |
+| 300秒 | `/`（LP） `/articles`(一覧) `/articles/[slug]` |
+| 3600秒 | `/salary` `/salary/[slug]` `/articles/type/[slug]` |
+
+掲載状態（`is_published` / 求人の `status`）が出るページは60秒以下にすること。
+`/jobs/dept/[slug]` は当初3600秒だったが、求人を閉じた後も最大1時間流入し続けるため60秒に変更した。
+`/salary` 系は集計ページで掲載状態を直接出さないため3600秒のままでよい。
+
+---
+
 ## データ表示の原則
 
 「値が無い」ことを、「ある値」に置き換えない。
@@ -96,6 +149,8 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 4. **OnboardingClient の ow_experiences INSERT**（onboarding/OnboardingClient.tsx）
    - `role_category_id` NOT NULL 制約により毎回 DB エラーが発生していたが、`catch {/* best-effort */}` で握りつぶされていた
    - 会社名は入力させていたが、INSERT が常に失敗するため **どこにも保存されていなかった**
+   - ✅ **解消済み（2026-08-02 確認）**: 失敗する INSERT は削除され、理由がコメントに明記されている。
+     ただし会社名入力欄自体は残っており、求職者にとっては現在も保存先がない（後述の「オンボーディングの現状」参照）
 
 5. **StrengthsFinder UI**（profile/edit/ProfileEditClient.tsx）
    - 34テーマの選択 UI があり、最大5件選択できたが、`handleSaveBasic` で API に送信していなかった
@@ -113,6 +168,70 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 - 「入力させたのに保存しない」UI を作らない
 - 保存経路（API 呼び出し・DB INSERT）が無い入力 UI は実装しない
 - UI を先に作る場合は、保存先が未実装であることをコメントに明記する
+
+---
+
+## オンボーディングの現状（2026-08-02 実測・これが正）
+
+**過去セッションの記述（5ステップ / 3ステップ / jobTypes.ts 参照）はすべて古い。以下が実装の実態。**
+
+### 画面構成：1画面のみ
+
+`src/app/onboarding/OnboardingClient.tsx` は**単一画面**。
+見出しは「現在お勤めの会社を教えてください」で、企業検索インプット1つだけ（任意入力）。
+
+- 職種は聞いていない。`src/lib/constants/jobTypes.ts` は **import されていない**
+- 経験年数・悩みも聞いていない
+- ステップ分岐・ステップインジケータは存在しない
+
+### 保存されるもの：`onboarding_completed` だけ
+
+```
+ow_profiles.onboarding_completed = true
+```
+
+**入力された会社名（`query` / `selectedCompany`）は求職者としては保存されない。**
+用途は企業側サインアップリンク（`/biz/auth?company=...`）への引き継ぎのみ。
+
+理由はコード内コメントの通り、`ow_experiences.role_category_id` が NOT NULL で
+オンボーディング時点では解決できないため。将来タスクとして職種選択の追加が必要。
+
+### ow_experiences の INSERT 経路は1本だけ
+
+| 経路 | 状態 |
+|---|---|
+| `POST /api/jobseeker/experiences` | ✅ 唯一の INSERT 経路。呼び出し元は `CareerHistoryEditor.tsx`（`/profile/edit`）のみ |
+| OnboardingClient | ❌ INSERT は削除済み（失敗し続けていたため） |
+
+`role_category_id` は**親カテゴリの UUID をそのまま入れてよい**。
+`ow_roles` のトップレベルは9件（経営・CxO / 事業開発 / 営業 / カスタマーサクセス /
+マーケティング / プロダクト / データ・AI / エンジニア / コーポレート）。
+実データでも `営業`・`コーポレート` が親のまま `role_category_id` に入っている。
+表示側（`CurrentEmployeesSection`）も `roleParentId` で親集約に対応済み。
+
+---
+
+## visibility_company の適用範囲（2026-08-02 確立）
+
+`ow_experiences.visibility_company`（`real` / `masked` / `hidden`）が**どの画面に効くか**は
+画面ごとに違う。混同すると同意なき公開になる。
+
+| 画面 | 判定に使うもの |
+|---|---|
+| `/career-trajectories` | `visibility_company` + `ow_career_profiles.is_published` + `ow_users.visibility` |
+| `/u/[id]` | `visibility_company_profile` |
+| `/companies/[id]` 現役社員・OB/OG | **`visibility_company` + `ow_users.visibility` + 企業側の `ow_company_hidden_experiences`** |
+
+**⚠️ 2026-08-02 以前は `/companies/[id]` が `visibility_company` を見ていなかった。**
+`getCompanyEmployees()` が `createAdminClient()` で RLS をバイパスし、
+`ow_users.visibility` だけで判定していたため、`hidden` を選んでも企業ページには載り続けた。
+（実害は0件だった。`hidden` の行が当時0件だったため）
+
+### 原則：ユーザー側の非公開希望を常に優先する
+
+`ow_career_profiles` の RLS が「is_published と ow_users.visibility が矛盾したら厳しい方を採用」
+で設計されているのに揃える。ユーザーの非表示希望と企業側の掲載要望が衝突した場合、
+**必ずユーザー側を優先する。**
 
 ---
 
@@ -365,6 +484,9 @@ phase は「企業グループとしてのステージ」を表す。
   - 調査レポート: `docs/research-statuspill-2026-07.md`
 
   **オンボーディング改善（`src/app/onboarding/OnboardingClient.tsx` 他）:**
+  - ⚠️⚠️ **この項の記述は現在の実装と一致しない（2026-08-02 確認）。**
+    下記「3ステップ（職種 / 経験年数 / 悩み）」「jobTypes.ts をオンボーディングが参照」は**いずれも現在は該当しない**。
+    現状は上部の「オンボーディングの現状」セクションを参照すること。以下は当時の記録として残す。
   - ⚠️ **CLAUDE.md 旧記述の訂正**: オンボーディングは「5ステップ強制完走」ではなく**3ステップ**（職種 / 経験年数 / 悩み）。
     「後で設定する」ボタン（スキップ）は**最初から実装済み**で `onboarding_completed: true` をセットして離脱できる。
     OnboardingGuard とも整合済み（スキップ後のリダイレクトループなし）。
@@ -884,10 +1006,46 @@ phase は「企業グループとしてのステージ」を表す。
 
 ### ✅ 完了 2026-06-02 セッション10後半: テストデータ完全削除・OGP自動取得・Admin記事ユーザー紐づけ
 
-  **テストデータ完全削除（Migration 133・134）:**
-  - Migration 133: テスト企業31社・求人・テスト担当者30名・テストユーザー10名・現役社員サンプル120名を削除
+  **テストデータ削除（Migration 133・134）:**
+  - Migration 133: テスト企業31社・求人・テスト担当者30名・テストユーザー10名・現役社員サンプルを削除
   - Migration 134: test-mentor-01〜10@opinio.local の ow_users レコード10件を削除（auth_idなしのため auth.users 削除は不要）
-  - 現在のDB状態: 企業13社・求人0件・メンター13名・ユーザー96名
+  - 当時のDB状態: 企業13社・求人0件・メンター13名・ユーザー96名（2026-06-02 時点）
+
+  ⚠️ Migration 133 は「完全削除」ではなかった。`@seed.internal` の90行
+  （`OB社員_001`〜`030` と `現役社員_001`〜`060`、すべて 2026-05-01 作成）が残存していた。
+  **2026-08-03 の Migration `20260802162003_delete_seed_internal_users` で削除完了。**
+
+  **削除後のDB状態（2026-08-03 実測）:**
+
+  | 区分 | 件数 |
+  |---|---|
+  | `ow_users` 合計 | 25 |
+  | うち実ユーザー（`is_test` でも `is_system` でもない） | 6 |
+  | うち `is_test = true`（社内・検証用、**残すもの**） | 18 |
+  | うち `is_system = true`（OPINIO システムユーザー） | 1 |
+  | `@seed.internal` 残存 | **0** |
+  | `auth_id IS NULL` の残存 | 2（生藤さん + システムユーザー） |
+
+### ⚠️ ow_users を一括削除するときの注意（2026-08-03 確立）
+
+  **`WHERE is_test = true` で消してはならない。**
+  削除当時 `is_test = true` は108行あったが、`@seed.internal` の90行以外の18行
+  （opinio.co.jp 15 / third-box.jp 2 / gmail.com 1）は**実 auth アカウント付きの
+  社内・検証用アカウント**であり、シードデータではない。絞り込みは必ず email で行う。
+
+  **FK があっても DELETE はエラーで止まらない。**
+  `ow_users` を参照する FK 45列のうち **29列が `ON DELETE CASCADE`**
+  （`ow_experiences` `ow_company_members` `ow_posts` `ow_conversations` `ow_bookmarks`
+  `ow_salary_reports` 等 28テーブル）。参照が残っていても**黙って関連行を巻き込む**。
+  エラーで止まるのは `RESTRICT` の `ow_job_applications` 1列だけ。
+  内訳: CASCADE 29 / SET NULL 14 / NO ACTION 1 / RESTRICT 1。
+
+  したがって削除 migration には**事前の参照チェックを必ず組み込む**こと。
+  上記 migration では `DO $$` ブロックで5段階（件数確認 → 性質チェック →
+  参照0件の動的検証 → DELETE → 事後確認）を検証し、いずれかで `RAISE EXCEPTION` すると
+  トランザクションごとロールバックされる設計にした。
+  参照チェックの列リストは `pg_constraint` と `information_schema` から適用時に動的生成しており
+  （FK 45列 + FK制約の無い user_id 系 uuid 26列 = 71列）、テーブルが増えても自動で検査対象に入る。
 
   **発信コンテンツ OGP 自動取得（`/api/jobseeker/content-links/ogp/route.ts`）:**
   - `GET /api/jobseeker/content-links/ogp?url=...` 新規APIルート作成
@@ -1726,6 +1884,49 @@ ow_jobs.updated_at      → Job.updated_days_ago
 - ファイルは `/Users/hisato/opinio-work/src/...` に直接書く（worktree 不要）
 - dev サーバーは `/Users/hisato/opinio-work/` で `npm run dev`（launch.json の `dev`）
 
+### ⚠️ dev サーバーは絶対に2つ同時に起動しない（2026-08-03 確立）
+
+**起動前に必ず既存プロセスを確認し、あれば停止する。**
+
+```bash
+ps aux | grep -E "next-server|next dev" | grep -v grep
+# 出てきたら親（node .../next dev）→ 子（next-server）の順に kill
+```
+
+`preview_start` が「port 3000 was in use, so port XXXXX was assigned instead」と言ったら、
+**それは前のセッションの dev サーバーが生き残っているサイン**。別ポートで起動せず、先に止める。
+
+#### なぜ致命的か
+
+2つの dev サーバーが同じ `.next/cache/webpack/` に書き込むと pack ファイルが壊れ、
+**古いモジュールを持つ側がリクエストに応答して「変更が反映されない」症状が出る。**
+
+エラーの連鎖はこの順で起きる（ログに出るのは②③だが、原因は①）:
+
+| # | ログ | 意味 |
+|---|---|---|
+| ① | `Caching failed for pack: ENOENT: rename '0.pack.gz_' -> '0.pack.gz'` | **これが原因。** webpack は `X.pack.gz_` に書いてから rename するが、2プロセスが競合して一時ファイルを奪い合い、pack が書かれない／途中で切れる |
+| ② | `Restoring pack failed: Error: invalid code lengths set` | ①の結果。gzip 解凍失敗＝ファイル破損 |
+| ③ | `Restoring pack failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')` | ①の結果。snapshot が `undefined` に化けている（`hasStartTime` は webpack `FileSystemInfo.js` の `Snapshot` のメソッド） |
+
+#### 症状
+
+- インライン style などの変更が反映されない（`✓ Compiled` は出るのに）
+- **ソースから消したはずの変数を参照して実行時エラー**（例: `filtered is not defined`）。
+  `grep` でも `tsc --noEmit` でも異常なしなので、修正済みのコードを疑ってしまう
+- **間欠的**。どちらのサーバーが応答するかに依存するタイミング依存の不具合
+
+#### 対処
+
+`rm -rf .next && npm run dev` は**対症療法**。2つ目のサーバーが動き続ける限り再発する。
+必ず**プロセスを1つに落としてから** `.next` を消すこと。
+
+#### 誤りだった仮説（同日に否定済み）
+
+- ~~Sentry の webpack プラグインとの干渉~~ → `next.config.mjs` は
+  `isDev ? nextConfig : withSentryConfig(...)` で **dev では Sentry を適用していない**
+- ~~Node v26.5.0 と Next 14.2.35 の非互換~~ → ENOENT-on-rename は明確に競合の痕跡。単一プロセスでは起きない
+
 ### Git 運用方針（2026-05-03 確定）
 - main ブランチに直接コミットする（worktree 作成禁止）
 - worktree が既に存在する場合は、`git worktree remove` で削除してから作業を開始する
@@ -1826,6 +2027,8 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
    → `BizCompany` 型・DB transformer・表示 JSX のすべてに対応がないと動作しない（logoUrl バグの教訓）
 6. **Next.js dev server の .next キャッシュ**
    → ファイル編集中に MODULE_NOT_FOUND が出たら `rm -rf .next && npm run dev` で解決
+   → ⚠️ ただし「変更が反映されない」系は **dev サーバーの二重起動が原因のことがある**。
+     `rm -rf .next` は対症療法にすぎないので、先に「⚠️ dev サーバーは絶対に2つ同時に起動しない」の節を参照すること（2026-08-03 追記）
 7. **`.env.development.local` は `.env.local` より優先される**
    → Next.js の環境変数読み込み順序を意識する。`NEXT_PUBLIC_BIZ_MOCK_MODE=true` が残留して本番 DB が見えなくなった経験から
 8. **insertActivity の best-effort パターン**
