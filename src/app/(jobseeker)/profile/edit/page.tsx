@@ -8,7 +8,7 @@ export const metadata = { title: { absolute: "プロフィール設定 | OPINIO"
 export default async function ProfileEditPage({
   searchParams,
 }: {
-  searchParams: { welcome?: string };
+  searchParams: { welcome?: string; tab?: string };
 }) {
   const isWelcome = searchParams.welcome === "1";
   const supabase = createClient();
@@ -210,6 +210,7 @@ export default async function ProfileEditPage({
       initialExperiences={initialExperiences}
       initialContentLinks={contentLinksRaw ?? []}
       roles={roles}
+      initialTab={searchParams.tab}
       isWelcome={isWelcome}
       initialScoutEnabled={profilePrefs?.scout_enabled ?? null}
       initialProfilePrefs={profilePrefs}

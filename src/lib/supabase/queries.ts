@@ -1100,12 +1100,16 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   const hiddenIds = (hiddenRows ?? []).map((r) => r.experience_id as string);
 
   // 現役社員 (is_current = true)
+  // visibility_company='hidden' は本人が「経歴に含めない」を選んだ状態。
+  // 企業側の掲載要望より本人の非公開希望を優先する（ow_career_profiles の
+  // RLS が「矛盾したら厳しい方を採用」で設計されているのに揃える）。
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
     .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility, birth_date)")
     .eq("company_id", companyId)
-    .eq("is_current", true);
+    .eq("is_current", true)
+    .neq("visibility_company", "hidden");
   if (hiddenIds.length > 0) {
     currentQuery = currentQuery.not("id", "in", `(${hiddenIds.join(",")})`);
   }
@@ -1123,6 +1127,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility, birth_date)")
     .eq("company_id", companyId)
     .eq("is_current", false)
+    .neq("visibility_company", "hidden")
     .not("ended_at", "is", null)
     .order("ended_at", { ascending: false });
   if (hiddenIds.length > 0) {

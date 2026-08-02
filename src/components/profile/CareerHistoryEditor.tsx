@@ -980,13 +980,15 @@ function StintForm({
         gap: 12,
       }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
-          公開設定（キャリア軌跡ページへの表示）
+          公開設定（この職歴を、どの画面に出すか）
         </div>
 
         {/* 会社名公開設定（2カラム） */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
-            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 11 }}>キャリア軌跡ページ</label>
+            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 11 }}>
+              キャリア軌跡ページ・企業ページ
+            </label>
             <select
               value={draft.visibilityCompany}
               onChange={(e) => set("visibilityCompany", e.target.value as "real" | "masked" | "hidden")}
@@ -1012,6 +1014,12 @@ function StintForm({
             </select>
           </div>
         </div>
+
+        {/* 掲載先の説明: 「企業ページ」が何を指すか明示しないと同意なき公開になる */}
+        <p style={{ margin: 0, fontSize: 11, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+          「実名で表示する」を選ぶと、その企業の紹介ページ（現役社員 / OB・OG セクション）に
+          あなたのお名前が掲載されます。「含めない」を選ぶと、どちらのページにも掲載されません。
+        </p>
 
         {/* 年収を公開するか */}
         <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>

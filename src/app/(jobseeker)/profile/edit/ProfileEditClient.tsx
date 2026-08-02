@@ -2689,6 +2689,7 @@ export default function ProfileEditClient({
   initialExperiences,
   initialContentLinks,
   roles,
+  initialTab,
   isWelcome = false,
   initialScoutEnabled = null,
   initialProfilePrefs = null,
@@ -2705,6 +2706,8 @@ export default function ProfileEditClient({
   initialExperiences: Stint[];
   initialContentLinks: ContentLink[];
   roles: RoleItem[];
+  /** `?tab=` の値。不正な値は無視して既定タブを開く */
+  initialTab?: string;
   isWelcome?: boolean;
   initialScoutEnabled?: boolean | null;
   initialProfilePrefs?: {
@@ -2718,7 +2721,13 @@ export default function ProfileEditClient({
     worry: string | null;
   } | null;
 }) {
-  const [activeTab, setActiveTab] = useState<ProfileTab>("basic");
+  const VALID_TABS: ProfileTab[] = [
+    "basic", "career", "skills", "preferences",
+    "certs_achievements", "socials_content", "privacy", "account",
+  ];
+  const [activeTab, setActiveTab] = useState<ProfileTab>(
+    VALID_TABS.includes(initialTab as ProfileTab) ? (initialTab as ProfileTab) : "basic"
+  );
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   // ── 希望条件 (ow_profiles) state ─────────────────────────────────────────────

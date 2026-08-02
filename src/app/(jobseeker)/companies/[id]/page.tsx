@@ -1574,6 +1574,110 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   );
 }
 
+// ─── 掲載設定 CTA ────────────────────────────────────────────────────────────
+// 「この企業ページに自分を掲載するか」を、在籍者・経験者本人にだけ提示する。
+// 既存の公開設定 UI（/profile/edit）は掲載先を「キャリア軌跡ページ」としか
+// 説明していなかったため、企業ページに載ることを本人が認識できていない。
+// ここでは掲載先を明示したうえで、現在の状態と変更導線を出す。
+
+type ViewerListing = "public" | "login_only" | "hidden";
+
+type ViewerRelation =
+  | { kind: "anonymous" }
+  | { kind: "unrelated" }
+  | { kind: "affiliated"; listing: ViewerListing; experienceCount: number };
+
+function ListingStatusPanel({
+  relation,
+  companyName,
+}: {
+  relation: ViewerRelation;
+  companyName: string;
+}) {
+  // 在籍者・経験者以外には出さない。求職者向けの獲得導線は別途（段階0〜2の設計）。
+  if (relation.kind !== "affiliated") return null;
+
+  const COPY: Record<ViewerListing, {
+    tone: string;
+    toneSoft: string;
+    label: string;
+    body: string;
+    action: string;
+  }> = {
+    public: {
+      tone: "var(--success)",
+      toneSoft: "var(--success-soft)",
+      label: "このページに掲載中です",
+      body: `あなたの職歴は ${companyName} のページに掲載され、ログインしていない方にも表示されています。`,
+      action: "掲載設定を変更する",
+    },
+    login_only: {
+      tone: "var(--warm)",
+      toneSoft: "var(--warm-soft)",
+      label: "ログインした方にのみ掲載中です",
+      body: `あなたの職歴は ${companyName} のページに掲載されていますが、ログインしていない方には表示されていません。全体に公開すると、この会社に興味を持った方から見つけてもらえます。`,
+      action: "掲載設定を変更する",
+    },
+    hidden: {
+      tone: "var(--ink-mute)",
+      toneSoft: "var(--bg-tint)",
+      label: "このページには掲載されていません",
+      body: `あなたには ${companyName} での職歴が登録されていますが、このページには掲載されていません。掲載すると、この会社を調べている方があなたを見つけられるようになります。`,
+      action: "掲載する",
+    },
+  };
+
+  const c = COPY[relation.listing];
+
+  return (
+    <section
+      style={{
+        background: c.toneSoft,
+        border: `1px solid ${c.tone}`,
+        borderRadius: 14,
+        padding: "18px 20px",
+        marginBottom: "var(--space-6)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: c.tone, flexShrink: 0,
+          }}
+        />
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+          {c.label}
+        </span>
+      </div>
+
+      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.8, color: "var(--ink-soft)" }}>
+        {c.body}
+      </p>
+
+      <a
+        href="/profile/edit?tab=career"
+        style={{
+          alignSelf: "flex-start",
+          padding: "8px 18px",
+          borderRadius: 100,
+          background: relation.listing === "public" ? "transparent" : c.tone,
+          border: `1px solid ${c.tone}`,
+          color: relation.listing === "public" ? c.tone : "#fff",
+          fontSize: 12.5,
+          fontWeight: 700,
+          textDecoration: "none",
+        }}
+      >
+        {c.action} →
+      </a>
+    </section>
+  );
+}
+
 function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
   return (
     <section
@@ -2958,6 +3062,44 @@ export default async function CompanyDetailPage({
   const visibleAlumniEmps = filterByVisibility(employees.alumni);
   const hiddenAlumniCount = employees.alumni.length - visibleAlumniEmps.length;
 
+  // ── 閲覧者とこの企業の関係を判定（公開設定導線用） ───────────────────────────
+  // 在籍者・経験者本人にだけ「このページに掲載するか」を選べる導線を出す。
+  // 参照するのは本人自身の ow_experiences 行のみ。
+  let viewerRelation: ViewerRelation = { kind: "anonymous" };
+  if (authUser) {
+    viewerRelation = { kind: "unrelated" };
+    const { data: viewerRow, error: viewerErr } = await adminSupabase
+      .from("ow_users")
+      .select("id, visibility")
+      .eq("auth_id", authUser.id)
+      .maybeSingle();
+    if (viewerErr) {
+      console.error("[companies/[id]] viewer lookup", viewerErr.message);
+    } else if (viewerRow) {
+      const { data: ownExps, error: ownErr } = await adminSupabase
+        .from("ow_experiences")
+        .select("id, visibility_company")
+        .eq("user_id", viewerRow.id as string)
+        .eq("company_id", resolvedId);
+      if (ownErr) {
+        console.error("[companies/[id]] viewer experiences", ownErr.message);
+      } else if (ownExps && ownExps.length > 0) {
+        const allHidden = ownExps.every((e) => e.visibility_company === "hidden");
+        const userVisibility = (viewerRow.visibility as string | null) ?? null;
+        // 掲載レベルは「本人の非公開希望を優先」で決める。
+        // どちらか一方でも非公開なら非公開側に倒す。
+        const listing: ViewerListing = allHidden
+          ? "hidden"
+          : userVisibility === "public"
+            ? "public"
+            : userVisibility === "login_only"
+              ? "login_only"
+              : "hidden";
+        viewerRelation = { kind: "affiliated", listing, experienceCount: ownExps.length };
+      }
+    }
+  }
+
   // フィード投稿 (会社ID + 求人ID OR + 記事ID OR)
   type ActivityPost = {
     id: string;
@@ -3116,6 +3258,8 @@ export default async function CompanyDetailPage({
             <ToolsSection tools={companyTools} />
 
             {/* 5. 社員・OB/OG（voices → current-employees → alumni） */}
+            {/* 在籍者・経験者本人にだけ、このページへの掲載設定を提示する */}
+            <ListingStatusPanel relation={viewerRelation} companyName={company.name} />
             <EmployeeVoicesSection employees={visibleCurrentEmps} />
             <CurrentEmployeesSection
               employees={visibleCurrentEmps}
