@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getDirectoryPeople, type DirectoryPerson } from "@/lib/people/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +59,7 @@ const ROLE_MAP: Record<string, {
   hr: {
     label: "人事・採用",
     labelEn: "HR / Talent Acquisition",
-    description: "IT/SaaS企業で採用・HRBPを経験した先輩。組織づくり・採用の内側・キャリアの広がりについて聞けます。",
+    description: "IT/SaaS企業で採用・HRBPを経験した方。組織づくり・採用の内側・キャリアの広がりについて聞けます。",
     icon: "👥",
     pattern: /人事|採用|hr|recruit/i,
     salarySlug: null,
@@ -77,9 +77,9 @@ const ROLE_MAP: Record<string, {
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const role = ROLE_MAP[params.slug];
-  if (!role) return { title: { absolute: "先輩を知る | OPINIO" } };
+  if (!role) return { title: { absolute: "登録ユーザーを探す | OPINIO" } };
 
-  const title = `${role.label}の先輩に話を聞く | OPINIO`;
+  const title = `${role.label}の経験者を探す | OPINIO`;
   const description = `${role.description} IT/SaaS業界特化のキャリアプラットフォームOPINIO。`;
 
   return {
@@ -93,40 +93,17 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 // ─── データ取得 ──────────────────────────────────────────────────────────────
 
-type AmbassadorRow = {
-  id: string;
-  user_id: string;
-  company_id: string;
-  role_title: string | null;
-  talk_themes: string[] | null;
-  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; is_test: boolean | null; visibility: string | null } | null;
-  ow_companies: { id: string; name: string | null; brand_name: string | null; slug: string | null; logo_url: string | null; logo_gradient: string | null; logo_letter: string | null; phase: string | null } | null;
-};
-
-async function getAmbassadorsByRole(pattern: RegExp, isLoggedIn: boolean): Promise<AmbassadorRow[]> {
-  const adminSupabase = createAdminClient();
-
-  const { data, error } = await adminSupabase
-    .from("ow_company_members")
-    .select(`
-      id, user_id, company_id, role_title, talk_themes,
-      ow_users!user_id(id, name, avatar_color, avatar_url, is_test, visibility),
-      ow_companies!company_id(id, name, brand_name, slug, logo_url, logo_gradient, logo_letter, phase)
-    `)
-    .eq("display_consent", true)
-    .eq("is_public", true)
-    .limit(100);
-
-  if (error || !data) return [];
-
-  return (data as unknown as AmbassadorRow[]).filter((row) => {
-    if (row.ow_users?.is_test) return false;
-    const vis = (row.ow_users as { visibility?: string | null } | null)?.visibility;
-    if (vis === "private") return false;
-    if (vis === "login_only" && !isLoggedIn) return false;
-    const roleTitle = row.role_title ?? "";
-    return pattern.test(roleTitle);
-  });
+/**
+ * 表示条件は /people と共有する（src/lib/people/directory.ts）。
+ *
+ * ⚠️ 2026-08-04 まではここが独自に ow_company_members を引いていたため、
+ *    親を「登録ユーザー一覧」に変えると同じ人が親には出て子には出ない状態になった。
+ *    条件を足したくなったら directory.ts 側に書くこと。
+ */
+async function getPeopleByRole(pattern: RegExp, isLoggedIn: boolean): Promise<DirectoryPerson[]> {
+  const all = await getDirectoryPeople(isLoggedIn);
+  // 承認済みと自己申告の役職名を両方含む roleText で判定する
+  return all.filter((p) => pattern.test(p.roleText)).slice(0, 100);
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -137,7 +114,7 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const ambassadors = await getAmbassadorsByRole(role.pattern, !!user);
+  const people = await getPeopleByRole(role.pattern, !!user);
 
   const otherRoles = Object.entries(ROLE_MAP).filter(([slug]) => slug !== params.slug);
 
@@ -156,20 +133,20 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
       <div style={{ background: "linear-gradient(155deg,#edf0fa 0%,#ece8ff 40%,#f6f0ff 70%,#fff 100%)", padding: "44px 24px 36px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12 }}>
-            <Link href="/people" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }}>先輩を知る</Link>
+            <Link href="/people" style={{ color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }}>登録ユーザー</Link>
             <span style={{ color: "var(--ink-mute)" }}>›</span>
             <span style={{ color: "var(--royal)", fontWeight: 600 }}>{role.label}</span>
           </div>
           <div style={{ fontSize: 36, marginBottom: 12 }}>{role.icon}</div>
           <h1 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(22px,3.2vw,34px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 12px", lineHeight: 1.3 }}>
-            {role.label}の先輩に話を聞く
+            {role.label}の経験者を探す
           </h1>
           <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 18px", lineHeight: 1.7, maxWidth: 540 }}>
             {role.description}
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ display: "inline-block", padding: "4px 14px", borderRadius: 100, fontSize: 13, fontWeight: 700, background: "#fff", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
-              {ambassadors.length}名の先輩
+              {people.length}名が登録
             </span>
             {role.salarySlug && (
               <Link href={`/salary/${role.salarySlug}`} style={{ display: "inline-block", padding: "4px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--success-soft)", color: "var(--success)", textDecoration: "none", border: "1px solid #A7F3D0" }}>
@@ -182,64 +159,65 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "36px 20px 80px" }}>
 
-        {/* ─ アンバサダーグリッド ─ */}
-        {ambassadors.length === 0 ? (
+        {/* ─ 一覧 ─ */}
+        {people.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "var(--ink-mute)" }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>{role.icon}</div>
-            <p style={{ fontSize: 15, margin: "0 0 16px" }}>この職種のアンバサダーは近日公開予定です</p>
+            <p style={{ fontSize: 15, margin: "0 0 16px" }}>この職種の登録者はまだいません</p>
             <Link href="/people" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-              全員の先輩を見る →
+              登録ユーザーをすべて見る →
             </Link>
           </div>
         ) : (
           <>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 16px" }}>
-              {role.label}の経験者（{ambassadors.length}名）
+              {role.label}の経験者（{people.length}名）
             </h2>
             <div className="pr-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 14, marginBottom: 40 }}>
-              {ambassadors.map((a) => {
-                const user = a.ow_users;
-                const company = a.ow_companies;
-                const name = user?.name ?? "名無し";
-                const initial = name.slice(0, 1);
-                const gradient = user?.avatar_color ?? "linear-gradient(135deg,#002366,#3B5FD9)";
-                const companyName = company?.brand_name ?? company?.name ?? "";
-                const companySlug = company?.slug ?? company?.id ?? "";
-                const themes = a.talk_themes ?? [];
-
+              {people.map((p) => {
+                const aff = p.affiliation;
+                const themes = p.talkThemes;
                 return (
-                  <Link key={a.id} href={`/companies/${companySlug}`} className="pr-card-link">
+                  // 遷移先は本人のプロフィール。以前は企業ページに飛ばしていたが、
+                  // 所属が無い人がいるので本人に統一する。
+                  <Link key={p.userId} href={`/u/${p.userId}`} className="pr-card-link">
                     <div className="pr-card">
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-                        {/* アバター */}
-                        <div style={{ width: 52, height: 52, borderRadius: "50%", background: gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff", fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
-                          {user?.avatar_url
-                            ? <img src={user.avatar_url} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            : initial
+                        <div style={{ width: 52, height: 52, borderRadius: "50%", background: p.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff", fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
+                          {p.avatarUrl
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={p.avatarUrl} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : p.initial
                           }
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-                          {a.role_title && (
-                            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                          {aff.kind !== "none" && aff.roleTitle && (
+                            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{aff.roleTitle}</div>
                           )}
-                          {companyName && (
-                            <div style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>{companyName}</div>
+                          {aff.kind !== "none" && (
+                            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                              {aff.companyName}
+                              {/* 企業の採用担当が在籍を確認済みの所属だけに付く */}
+                              {aff.kind === "verified" && <span style={{ color: "var(--royal)", fontWeight: 800 }}> ✓</span>}
+                            </div>
+                          )}
+                          {aff.kind === "none" && p.skills.length > 0 && (
+                            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>{p.skills.join(" / ")}</div>
                           )}
                         </div>
                       </div>
-                      {/* 話せるテーマ */}
                       {themes.length > 0 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                           {themes.slice(0, 3).map((t) => (
-                            <span key={t} style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 10, fontWeight: 600, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                            <span key={t} style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
                               {t}
                             </span>
                           ))}
                         </div>
                       )}
                       <div style={{ marginTop: 14, fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                        話を聞く →
+                        プロフィールを見る →
                       </div>
                     </div>
                   </Link>
@@ -251,7 +229,7 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
 
         {/* ─ 他の職種 ─ */}
         <div style={{ marginTop: 20, paddingTop: 32, borderTop: "1px solid var(--line)" }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 14px" }}>他の職種の先輩を見る</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 14px" }}>他の職種を見る</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 10 }}>
             {otherRoles.map(([slug, info]) => (
               <Link key={slug} href={`/people/role/${slug}`} className="pr-role-chip">
@@ -265,10 +243,10 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
         {/* ─ CTA ─ */}
         <div style={{ marginTop: 40, padding: "28px 24px", borderRadius: 16, background: "linear-gradient(135deg,var(--royal),#3B5FD9)", textAlign: "center" }}>
           <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, margin: "0 0 16px", lineHeight: 1.6 }}>
-            転職の参考に、先輩の話をカジュアルに聞いてみませんか。
+            気になる企業から、どんな人が働いているかを見てみませんか。
           </p>
           <Link href="/companies" style={{ display: "inline-block", padding: "10px 28px", borderRadius: 100, background: "#fff", color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-            企業ページから面談を申し込む →
+            企業を探す →
           </Link>
         </div>
       </div>

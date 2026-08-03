@@ -1,123 +1,35 @@
 // revalidate を無効化: auth によって表示が変わるため静的キャッシュ不可
 export const dynamic = "force-dynamic";
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
-import { PeopleListClient, type AmbassadorCard } from "./PeopleListClient";
+import { getDirectoryPeople } from "@/lib/people/directory";
+import { PeopleListClient } from "./PeopleListClient";
 
+/**
+ * 登録ユーザーの一覧。
+ *
+ * 2026-08-04 に「企業が承認した所属を持つ人」から「登録ユーザー全体」に変更した。
+ * 取得と表示条件は src/lib/people/directory.ts に集約している
+ * （/people/role/[slug] の7ページと共有するため。片方だけ変えると食い違う）。
+ *
+ * robots は noindex。middleware でログイン必須にもしている。
+ */
 export const metadata: Metadata = {
-  title: { absolute: "先輩を知る | OPINIO" },
-  description: "IT/SaaS企業の現役社員・OB/OGに、はたらくリアルを直接聞いてみましょう。キャリア選択の参考に。",
+  title: { absolute: "登録ユーザーを探す | OPINIO" },
+  description:
+    "OPINIO に登録しているユーザーの一覧です。経歴・スキルから、話を聞いてみたい人を探せます。",
   robots: { index: false, follow: false },
 };
-
-type DbAmbassador = {
-  id: string;
-  user_id: string;
-  company_id: string;
-  role_title: string | null;
-  talk_themes: string[] | null;
-  created_at: string | null;
-  ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; visibility: string | null; email: string | null; is_test: boolean | null } | null;
-  ow_companies: {
-    id: string;
-    name: string | null;
-    brand_name: string | null;
-    logo_url: string | null;
-    logo_gradient: string | null;
-    logo_letter: string | null;
-    phase: string | null;
-  } | null;
-};
-
-const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-
-async function getAmbassadors(isLoggedIn: boolean): Promise<AmbassadorCard[]> {
-  const adminSupabase = createAdminClient();
-
-  const { data, error } = await adminSupabase
-    .from("ow_company_members")
-    .select(`
-      id,
-      user_id,
-      company_id,
-      role_title,
-      talk_themes,
-      created_at,
-      ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test),
-      ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)
-    `)
-    .eq("display_consent", true)
-    .eq("is_public", true)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("[people] fetch error:", error.message);
-    return [];
-  }
-
-  const rows = (data ?? []) as unknown as DbAmbassador[];
-  const filteredRows = rows.filter((r) => {
-    const vis = r.ow_users?.visibility;
-    // private は常に非表示、login_only は isLoggedIn で制御
-    if (vis === "private") return false;
-    if (vis === "login_only" && !isLoggedIn) return false;
-    if (!r.ow_users?.name) return false;
-    if (r.ow_users?.is_test) return false;
-    return true;
-  });
-
-  if (filteredRows.length === 0) return [];
-
-  // Fetch profiles for all user_ids in bulk
-  const userIds = filteredRows.map((r) => r.user_id);
-  const careerRes = await adminSupabase
-    .from("ow_career_profiles")
-    .select("user_id, birth_year")
-    .in("user_id", userIds);
-
-  const birthYearMap: Record<string, number | null> = {};
-  for (const c of careerRes.data ?? []) {
-    const cc = c as { user_id: string; birth_year: number | null };
-    birthYearMap[cc.user_id] = cc.birth_year;
-  }
-
-  return filteredRows.map((r) => {
-    const gradient =
-      r.ow_users?.avatar_color?.startsWith("linear-gradient")
-        ? r.ow_users.avatar_color
-        : FALLBACK_GRADIENT;
-
-    return {
-      adminId: r.id,
-      userId: r.user_id,
-      name: r.ow_users?.name ?? "—",
-      initial: r.ow_users?.name?.charAt(0) ?? "?",
-      gradient,
-      avatarUrl: r.ow_users?.avatar_url ?? null,
-      roleTitle: r.role_title,
-      talkThemes: r.talk_themes ?? [],
-      companyId: r.ow_companies?.id ?? r.company_id,
-      companyName: r.ow_companies?.brand_name ?? r.ow_companies?.name ?? "—",
-      companyPhase: r.ow_companies?.phase ?? null,
-      companyLogoUrl: r.ow_companies?.logo_url ?? null,
-      companyLogoGradient: r.ow_companies?.logo_gradient ?? null,
-      companyLogoLetter: r.ow_companies?.logo_letter ?? null,
-      birthYear: birthYearMap[r.user_id] ?? null,
-      createdAt: r.created_at ?? null,
-    };
-  });
-}
 
 export default async function PeoplePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const ambassadors = await getAmbassadors(!!user);
+  const people = await getDirectoryPeople(!!user);
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={ambassadors} />
+      <PeopleListClient ambassadors={people} />
     </div>
   );
 }

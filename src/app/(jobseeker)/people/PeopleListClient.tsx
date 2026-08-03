@@ -4,25 +4,14 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import type { DirectoryPerson } from "@/lib/people/directory";
 
-export type AmbassadorCard = {
-  adminId: string;
-  userId: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  avatarUrl: string | null;
-  roleTitle: string | null;
-  talkThemes: string[];
-  companyId: string;
-  companyName: string;
-  companyPhase: string | null;
-  companyLogoUrl: string | null;
-  companyLogoGradient: string | null;
-  companyLogoLetter: string | null;
-  birthYear: number | null;
-  createdAt: string | null;
-};
+/**
+ * カード1枚のデータ。取得は src/lib/people/directory.ts。
+ * 2026-08-04 に「企業が承認した所属を持つ人」から「登録ユーザー全体」に変えたため、
+ * 社名・役職は必ずあるとは限らない（affiliation.kind === "none" の人がいる）。
+ */
+export type AmbassadorCard = DirectoryPerson;
 
 type Props = { ambassadors: AmbassadorCard[] };
 
@@ -49,8 +38,9 @@ const AGE_OPTIONS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: "newest", label: "新着順" },
-  { value: "exp",    label: "経験年数順" },
+  { value: "profile", label: "プロフィール順" },
+  { value: "newest",  label: "新着順" },
+  { value: "exp",     label: "経験年数順" },
 ];
 
 // ── FilterChip ────────────────────────────────────────────────────────
@@ -159,44 +149,71 @@ function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
   );
 }
 
-function companyInitial(card: AmbassadorCard): string {
-  if (card.companyLogoLetter) return card.companyLogoLetter;
-  return card.companyName
-    .replace(/^(株式会社|合同会社|有限会社|一般社団法人|一般財団法人|公益社団法人)\s*/, "")
-    .replace(/\s*(株式会社|合同会社|有限会社)$/, "")
-    .charAt(0) || card.companyName.charAt(0) || "社";
+function companyInitial(name: string, letter: string | null): string {
+  if (letter) return letter;
+  return (
+    name
+      .replace(/^(株式会社|合同会社|有限会社|一般社団法人|一般財団法人|公益社団法人)\s*/, "")
+      .replace(/\s*(株式会社|合同会社|有限会社)$/, "")
+      .charAt(0) || name.charAt(0) || "社"
+  );
 }
 
-function CompanyBadge({ card, large }: { card: AmbassadorCard; large?: boolean }) {
-  const bg = card.companyLogoGradient ?? "linear-gradient(135deg, #001233, #002366)";
-  const iconSize = large ? 22 : 18;
-  const fontSize = large ? 13 : 12;
+/**
+ * 所属の表示。出どころで見た目を変える。
+ *
+ *   verified … ow_company_members。企業の採用担当が承認した所属。企業ロゴ + ✓
+ *   self     … ow_experiences の現職。本人の自己申告。ロゴなしのテキストのみ
+ *   none     … スキルタグ
+ *
+ * ⚠️ 承認済みと自己申告を同じ見た目にしないこと。
+ *    ロゴが付いているかどうかが「企業が認めた所属か」の唯一の手がかりになっている。
+ */
+function AffiliationBlock({ card }: { card: AmbassadorCard }) {
+  const a = card.affiliation;
+
+  if (a.kind === "none") {
+    if (!card.skills.length) return null;
+    return (
+      <div className="ppl-skills">
+        {card.skills.map((sk) => (
+          <span key={sk} className="ppl-skill-chip">{sk}</span>
+        ))}
+      </div>
+    );
+  }
+
+  if (a.kind === "self") {
+    return (
+      <div className="ppl-company ppl-company-self">
+        <span>{a.companyName}</span>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-      {card.companyLogoUrl ? (
+    <div className="ppl-company">
+      {a.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={card.companyLogoUrl} alt="" style={{ width: iconSize, height: iconSize, borderRadius: 5, objectFit: "contain", background: "#fff", border: "1px solid var(--line)", flexShrink: 0 }} />
+        <img src={a.logoUrl} alt="" className="ppl-company-logo" />
       ) : (
-        <div style={{
-          width: iconSize, height: iconSize, borderRadius: 5, background: bg,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: iconSize * 0.48, fontWeight: 800, color: "#fff", flexShrink: 0,
-        }}>
-          {companyInitial(card)}
-        </div>
+        <span
+          className="ppl-company-logo ppl-company-logo-fallback"
+          style={{ background: a.logoGradient ?? "linear-gradient(135deg, #001233, #002366)" }}
+        >
+          {companyInitial(a.companyName, a.logoLetter)}
+        </span>
       )}
-      <span style={{ fontSize, color: large ? "var(--ink)" : "var(--ink-soft)", fontWeight: large ? 600 : 500, lineHeight: 1.3 }}>
-        {card.companyName}
-      </span>
+      <span>{a.companyName}</span>
+      <span className="ppl-verified" title="企業の採用担当が在籍を確認しています" aria-label="所属確認済み">✓</span>
     </div>
   );
 }
 
-
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
-  const role = card.roleTitle ?? "—";
+  const role = card.affiliation.kind === "none" ? null : card.affiliation.roleTitle;
   const isAvailable = card.talkThemes.length > 0;
 
   return (
@@ -227,15 +244,15 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         <Avatar card={card} size={88} />
       </div>
 
-      {/* 名前・役職・会社 */}
-      <div style={{ textAlign: "center", marginBottom: 12, marginTop: 6 }}>
+      {/* 名前・役職・所属 */}
+      <div style={{ textAlign: "center", marginBottom: 12, marginTop: 6, width: "100%" }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3 }}>
           {card.name}
         </div>
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.5, minHeight: 20 }}>
-          {role}
-        </div>
-        <CompanyBadge card={card} large />
+        {/* ⚠️ 役職が無いときに「—」を出さない。値が無いことを、ある値に置き換えない。
+               高さは minHeight で揃える。 */}
+        <div className="ppl-role">{role}</div>
+        <AffiliationBlock card={card} />
       </div>
 
       {/* CTAボタン */}
@@ -263,9 +280,10 @@ function GridCard({ card }: { card: AmbassadorCard }) {
 // ── フィルタ判定 ─────────────────────────────────────────────────────
 function matchRole(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
-  const text = card.roleTitle ?? "";
+  // 承認済みの役職名と自己申告の職歴の役職名を両方見る（roleText に連結済み）。
+  // 片方だけだと、自己申告しかない人がどの職種にも当たらない。
   const opt = ROLE_OPTIONS.find((o) => o.value === v);
-  return opt ? opt.pattern.test(text) : true;
+  return opt ? opt.pattern.test(card.roleText) : true;
 }
 function matchAge(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
@@ -280,7 +298,7 @@ export function PeopleListClient({ ambassadors }: Props) {
   const [role, setRole] = useState("");
 
   const [age, setAge] = useState("");
-  const [sort, setSort] = useState("newest");
+  const [sort, setSort] = useState("profile");
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -307,17 +325,34 @@ export function PeopleListClient({ ambassadors }: Props) {
       if (!matchRole(a, role)) return false;
       if (!matchAge(a, age)) return false;
       if (!q) return true;
+      const company = a.affiliation.kind === "none" ? "" : a.affiliation.companyName;
+      const roleLabel = a.affiliation.kind === "none" ? "" : (a.affiliation.roleTitle ?? "");
       return (
         a.name.toLowerCase().includes(q) ||
-        a.companyName.toLowerCase().includes(q) ||
-        (a.roleTitle ?? "").toLowerCase().includes(q) ||
+        company.toLowerCase().includes(q) ||
+        roleLabel.toLowerCase().includes(q) ||
+        a.skills.some((sk) => sk.toLowerCase().includes(q)) ||
         a.talkThemes.some((t) => t.toLowerCase().includes(q))
       );
     });
   }, [ambassadors, role, age, keyword]);
 
   const sorted = useMemo(() => {
-    if (sort === "exp") return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    // 既定（プロフィール順）はサーバー側で publicScore 降順に並べてあるのでそのまま。
+    if (sort === "newest") {
+      return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    }
+    if (sort === "exp") {
+      // ⚠️ 以前ここは createdAt 降順で、「新着順」と同じ結果を返していた（2026-08-04 修正）。
+      //    実際の経験月数（最初の職歴の開始〜現在）で並べる。
+      //    職歴が無い人は算出できないので、0 扱いにせず必ず末尾に置く。
+      return [...filtered].sort((a, b) => {
+        if (a.experienceMonths == null && b.experienceMonths == null) return 0;
+        if (a.experienceMonths == null) return 1;
+        if (b.experienceMonths == null) return -1;
+        return b.experienceMonths - a.experienceMonths;
+      });
+    }
     return filtered;
   }, [filtered, sort]);
 
@@ -332,7 +367,7 @@ export function PeopleListClient({ ambassadors }: Props) {
       <div style={{ textAlign: "center", padding: "80px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>💬</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>まだ登録がありません</div>
-        <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>登録ユーザーが表示されます。</div>
+        <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>プロフィールを登録した方から順に表示されます。</div>
       </div>
     );
   }
@@ -370,7 +405,10 @@ export function PeopleListClient({ ambassadors }: Props) {
         }
         @media (max-width: 1024px) { .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
         @media (max-width: 768px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
-        @media (max-width: 420px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+        /* ⚠️ 1列に落とすのは 560px。420px にすると 421〜560px の帯で
+              2列 × 180〜250px になり、5列時（235px）より細いカードが出てしまう。
+              「狭い画面ほどカードが細い」わけではないので、境界は列数から逆算すること。 */
+        @media (max-width: 560px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
 
         /* グリッドカード */
         .ppl-grid-card {
@@ -383,6 +421,45 @@ export function PeopleListClient({ ambassadors }: Props) {
           align-items: center;
           cursor: pointer;
           transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+        }
+        /* ── 役職・所属 ─────────────────────────────────────────────────────
+           役職は2行までにクランプする。自己申告の役職名は部署名を含んで長く、
+           5列時のカード幅（235px）に1行で収まらないことがあるため。
+           途中で切り詰めない（切れた役職名は誤読のもとになる）。 */
+        .ppl-role {
+          font-size: 13px; color: var(--ink-soft); line-height: 1.5;
+          margin-bottom: 10px; min-height: 20px;
+          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+          overflow: hidden; overflow-wrap: anywhere;
+        }
+        .ppl-company {
+          display: flex; align-items: center; justify-content: center; gap: 7px;
+          font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+        /* 自己申告の所属。企業ロゴを付けない = 承認済みと区別が付く */
+        .ppl-company-self { font-weight: 500; color: var(--ink-soft); }
+        .ppl-company-logo {
+          width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+          object-fit: contain; background: #fff; border: 1px solid var(--line);
+        }
+        .ppl-company-logo-fallback {
+          display: flex; align-items: center; justify-content: center;
+          border: none; font-size: 10.5px; font-weight: 800; color: #fff;
+        }
+        /* 企業の採用担当が在籍を確認済みであることの印 */
+        .ppl-verified {
+          flex-shrink: 0; width: 15px; height: 15px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: var(--royal-50); color: var(--royal);
+          font-size: 9px; font-weight: 800; line-height: 1;
+        }
+        /* 所属が無い人。スキルタグで埋める */
+        .ppl-skills { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .ppl-skill-chip {
+          font-size: 12px; font-weight: 500; color: var(--ink-soft);
+          background: var(--bg-tint); border: 1px solid var(--line-soft);
+          border-radius: 100px; padding: 3px 9px; line-height: 1.4;
         }
         .ppl-grid-card:hover {
           box-shadow: 0 8px 32px rgba(0,35,102,0.12);
@@ -424,7 +501,7 @@ export function PeopleListClient({ ambassadors }: Props) {
         }
       `}</style>
 
-      <h1 className="sr-only">ユーザーを探す — 話せる人を探す</h1>
+      <h1 className="sr-only">登録ユーザーを探す</h1>
 
 
       {/* ── 検索 + フィルタバー ── */}
@@ -559,7 +636,8 @@ export function PeopleListClient({ ambassadors }: Props) {
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 10, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
-          ※ 「話せる人」は各企業の採用担当が承認した現役社員です。カジュアル面談（無料）でお話を聞けます。
+          ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>面談可</strong> は、話を聞く相手として登録している方です。無料で相談できます。<br />
+          企業ロゴの横の <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>✓</strong> は、その企業の採用担当が在籍を確認済みであることを示します。ロゴの無い所属はご本人の登録内容です。
         </div>
       </div>
     </>
