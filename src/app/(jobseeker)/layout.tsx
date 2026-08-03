@@ -11,11 +11,28 @@ export const metadata: Metadata = {
     default: "IT/SaaS業界の転職・求人情報",
     template: "%s | OPINIO",
   },
+  /*
+    ⚠️ ここは検索結果と SNS シェアに出る、外から見える説明文。
+       方針を変えたら真っ先に直すこと。2026-08-03 に3点を修正した。
+
+       1. 「カジュアル面談対応」を削除
+          面談を前提にした説明はプラットフォーム側では使わない方針。
+
+       2. 「編集部取材済み」「編集部取材の」を削除
+          取材は前提ではないため「取材」という言葉を使わない方針
+          （実際に取材した記事の中で「取材協力」と書くのは事実として正確なので、そちらは残す）。
+
+       3. 「スカウトなし」「スカウトも営業電話もありません」を削除
+          事実と異なっていた。スカウト機能は実装済みで（ow_scouts / can_send_scout）、
+          受け取る設定にした場合にだけ届く（初期設定はオフ）。
+          この但し書きは meta description に収まらないので、ここでは触れない。
+          正確な説明は LP の FAQ にある。
+  */
   description:
-    "IT/SaaS業界特化のキャリアプラットフォーム。編集部取材済みの企業情報・求人を掲載。スカウトなし・カジュアル面談対応。完全無料・営業電話なし・メール登録のみ。",
+    "IT/SaaS業界特化のキャリアプラットフォーム。企業情報・求人・そこで働く人の経歴まで、登録なしで検索できます。完全無料・営業電話なし・登録はメールのみ。",
   openGraph: {
     title: "OPINIO | IT/SaaS業界特化の転職・求人情報",
-    description: "IT/SaaS業界特化。編集部取材の企業情報・求人と、カジュアル面談でリアルな声が聞けるキャリアプラットフォーム。",
+    description: "IT/SaaS業界特化。企業情報と求人を、登録なしでまとめて探せるキャリアプラットフォーム。",
     type: "website",
     url: "https://opinio.jp",
     siteName: "OPINIO",
@@ -23,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "OPINIO | IT/SaaS転職・キャリア",
-    description: "IT/SaaS業界特化。企業情報と求人を、登録なしで。スカウトも営業電話もありません。完全無料。",
+    description: "IT/SaaS業界特化。企業情報と求人を、登録なしで。完全無料・営業電話なし。",
   },
   alternates: {
     canonical: "https://opinio.jp",

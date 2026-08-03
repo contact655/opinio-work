@@ -32,8 +32,14 @@ export const metadata: Metadata = {
   // サイト共通の説明文。掲載数のような変動する数字はここに置かない
   // （全ページの既定値なので、古くなったときに気づけず外から見える説明が腐る）。
   // 実数はLPの generateMetadata が実データから出す。
+  //
+  // ⚠️ 2026-08-03: 「スカウトも営業電話もありません」を削除した。事実と異なっていたため。
+  //    スカウト機能は実装済みで（ow_scouts / can_send_scout）、受け取る設定に
+  //    した場合にだけ届く（初期設定はオフ）。この但し書きは説明文に収まらないので
+  //    ここでは触れず、正確な説明は LP の FAQ に置いている。
+  //    営業電話が無いのは事実なのでそちらは残す。
   description:
-    "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。スカウトも営業電話もありません。完全無料。",
+    "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
   keywords: [
     "IT転職",
     "SaaS転職",
@@ -51,7 +57,7 @@ export const metadata: Metadata = {
     siteName: "OPINIO",
     title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
-      "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。スカウトも営業電話もありません。完全無料。",
+      "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
     images: [
       {
         url: "/og-image.png",
@@ -65,7 +71,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
-      "IT/SaaS業界の企業情報と求人を、登録なしで。スカウトも営業電話もありません。完全無料。",
+      "IT/SaaS業界の企業情報と求人を、登録なしで。完全無料・営業電話なし。",
     images: ["/og-image.png"],
   },
   robots: {
@@ -124,7 +130,7 @@ const jsonLd = {
       url: "https://opinio.jp",
       name: "OPINIO",
       description:
-        "IT/SaaS業界の企業情報・求人を掲載。登録なしで全て読める、スカウトなしのキャリアプラットフォーム。完全無料。",
+        "IT/SaaS業界の企業情報・求人を、登録なしで全て読めるキャリアプラットフォーム。完全無料。",
       publisher: { "@id": "https://opinio.jp/#organization" },
       potentialAction: {
         "@type": "SearchAction",

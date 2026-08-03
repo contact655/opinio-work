@@ -57,9 +57,18 @@ export async function generateMetadata({
   const { company, slug } = result;
 
   const canonicalId = slug ?? params.id;
+  // 「カジュアル面談受付中」「カジュアル面談で現場の声を聞けます」は 2026-08-03 に削除。
+  // 面談前提の説明はプラットフォーム側では使わない方針。掲載企業ぶん全ページの
+  // meta description になるので、外向きの文言としては最も露出が大きい。
+  //
+  // ⚠️ employee_count は数値ではなく自由記述で、「約200名」「3500名以上」のように
+  //    単位まで含んだ文字列が入る（2026-08-03 時点で値のある全社が「名」を含む）。
+  //    以前は一律 `+ "名規模"` していたため「3500名以上名規模」「約200名名規模」と
+  //    全社の meta description が二重になっていた。値はそのまま使う。
+  const size = company.employee_count?.toString().trim() || null;
   const description = company.tagline
-    ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}業界・${company.employee_count ? company.employee_count.toString() + "名規模" : "詳細はページへ"}。カジュアル面談受付中。`
-    : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。カジュアル面談で現場の声を聞けます。`;
+    ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}業界${size ? `・${size}` : ""}。企業情報と求人をOPINIOで確認。`
+    : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。`;
 
   const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}`;
 
@@ -67,7 +76,8 @@ export async function generateMetadata({
     title: { absolute: `${company.name} — 企業情報・求人 | OPINIO` },
     description,
     alternates: { canonical: `/companies/${canonicalId}` },
-    keywords: [company.name, company.industry ?? "", "カジュアル面談", "IT転職", "SaaS転職"].filter(Boolean),
+    // 「カジュアル面談」は 2026-08-03 に削除（面談前提の説明はプラットフォーム側では使わない）
+    keywords: [company.name, company.industry ?? "", "企業情報", "求人", "IT転職", "SaaS転職"].filter(Boolean),
     openGraph: {
       title: `${company.name} | OPINIO`,
       description,

@@ -23,7 +23,13 @@ export async function generateMetadata(): Promise<Metadata> {
     companyCount && jobCount
       ? `掲載企業${companyCount.toLocaleString("ja-JP")}社・求人${jobCount.toLocaleString("ja-JP")}件。`
       : "";
-  const description = `IT/SaaS業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。スカウトも営業電話もありません。`;
+  // ⚠️ 2026-08-03: 「スカウトも営業電話もありません」を削除した。事実と異なっていたため。
+  //    スカウト機能は実装済みで（ow_scouts / can_send_scout）、受け取る設定にした場合に
+  //    だけ届く（初期設定はオフ）。この但し書きは description に収まらないので触れず、
+  //    正確な説明は LP の FAQ に置いている。営業電話が無いのは事実なので残す。
+  //    ここは LP の generateMetadata で、layout の既定値を上書きする。
+  //    検索結果と SNS シェアに最も出るのはこの文言なので、方針変更時は真っ先に直すこと。
+  const description = `IT/SaaS業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。完全無料・営業電話なし。`;
 
   return {
     title: "OPINIO — IT/SaaS業界の企業と求人を探す",
