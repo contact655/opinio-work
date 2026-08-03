@@ -132,7 +132,7 @@ export default function ApplicationForm({
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="apply-name" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               お名前
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>プロフィールから自動取得</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>プロフィールから自動取得</span>
             </label>
             <input
               id="apply-name"
@@ -153,7 +153,7 @@ export default function ApplicationForm({
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="apply-email" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               メールアドレス
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>認証メールから自動取得</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>認証メールから自動取得</span>
             </label>
             <input
               id="apply-email"
@@ -174,7 +174,7 @@ export default function ApplicationForm({
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="apply-phone" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               電話番号
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>任意</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>任意</span>
             </label>
             <input
               id="apply-phone"
@@ -197,7 +197,7 @@ export default function ApplicationForm({
           <div style={{ marginBottom: 28 }}>
             <label htmlFor="apply-message" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
               志望動機・メッセージ
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>任意</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>任意</span>
             </label>
             <textarea
               id="apply-message"
@@ -214,7 +214,7 @@ export default function ApplicationForm({
                 boxSizing: "border-box",
               }}
             />
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 6 }}>
               {message.length} 文字
             </div>
           </div>
@@ -250,7 +250,7 @@ export default function ApplicationForm({
             {isSubmitting ? "送信中..." : "この求人に応募する"}
           </button>
 
-          <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
             応募後、採用担当者からメールにて連絡が届きます。
           </p>
         </div>
@@ -271,7 +271,7 @@ export default function ApplicationForm({
             {companyInitial}
           </div>
           <div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 2 }}>{companyName}</div>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginBottom: 2 }}>{companyName}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{jobTitle}</div>
           </div>
         </div>

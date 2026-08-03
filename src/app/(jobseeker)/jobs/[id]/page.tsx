@@ -165,15 +165,19 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
               size={40}
               borderRadius={8}
             />
+            {/* ⚠️ 年収を横に並べない。
+                   年収は折り返せないため flexShrink: 0 が必要で、12px だと約135px を占める。
+                   375px の画面では見出しに 110px しか残らず「Enterp…」まで切り詰められ、
+                   社名は3行に折り返していた（2026-08-04 実測）。縦に積めば全幅を使える。 */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{rj.companyName}</div>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.companyName}</div>
+              {(rj.salaryMin || rj.salaryMax) && (
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 2 }}>
+                  {rj.salaryMin && rj.salaryMax ? `${fmtMan(rj.salaryMin)}〜${fmtMan(rj.salaryMax)}万円` : rj.salaryMin ? `${fmtMan(rj.salaryMin)}万円〜` : `〜${fmtMan(rj.salaryMax)}万円`}
+                </div>
+              )}
             </div>
-            {(rj.salaryMin || rj.salaryMax) && (
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", flexShrink: 0 }}>
-                {rj.salaryMin && rj.salaryMax ? `${fmtMan(rj.salaryMin)}〜${fmtMan(rj.salaryMax)}万円` : rj.salaryMin ? `${fmtMan(rj.salaryMin)}万円〜` : `〜${fmtMan(rj.salaryMax)}万円`}
-              </div>
-            )}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5}><path d="M9 18l6-6-6-6" /></svg>
           </Link>
         ))}
@@ -191,7 +195,7 @@ function StatusBadge({ status, label }: { status: PositionMember["status"]; labe
   const s = styles[status];
   return (
     <span style={{
-      fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
+      fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
       background: s.bg, color: s.color, border: `1px solid ${s.border}`,
       whiteSpace: "nowrap", flexShrink: 0,
     }}>
@@ -245,7 +249,7 @@ function JobEmployeeCard({ emp, companyId: _companyId }: { emp: CompanyEmployee;
           <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.roleTitle}</div>
         )}
         {emp.catchphrase && (
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>{emp.catchphrase}</div>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>{emp.catchphrase}</div>
         )}
       </div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
@@ -352,7 +356,7 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
           <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
             このポジションを経験した先輩
           </h2>
-          <p style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>
+          <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 2 }}>
             {jobCategory} の経験者に話を聞けます
           </p>
         </div>
@@ -385,7 +389,7 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
                 <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
                 {m.isCurrent && (
                   <span style={{
-                    fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
+                    fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
                     background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
                     letterSpacing: "0.04em",
                   }}>
@@ -394,7 +398,7 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
                 )}
               </div>
               <div style={{
-                fontSize: 11.5, color: "var(--ink-mute)", overflow: "hidden",
+                fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, overflow: "hidden",
                 textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
                 {m.roleTitle}
@@ -409,7 +413,7 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
                 padding: "6px 12px", borderRadius: 8,
                 background: "var(--royal-50)", color: "var(--royal)",
                 border: "1px solid var(--royal-100)",
-                fontSize: 11.5, fontWeight: 700, textDecoration: "none",
+                fontSize: 12, fontWeight: 700, textDecoration: "none",
                 whiteSpace: "nowrap",
               }}
             >
@@ -627,7 +631,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <Link href={`/companies/${company.id}`} style={{ fontSize: "var(--text-base)", color: "var(--royal)", fontWeight: 700 }}>
                   {company.name}
                 </Link>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
                   {company.industry}{company.employee_count != null ? ` · ${company.employee_count.toLocaleString()}名` : ""}
                 </span>
               </div>
@@ -638,7 +642,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "4px 10px", borderRadius: 6, marginBottom: "var(--space-2)",
                   background: "#FEE2E2", color: "#DC2626",
-                  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
+                  fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
                   fontFamily: "Inter, sans-serif", border: "1px solid #FECACA",
                 }}>
                   🔥 積極採用中
@@ -659,7 +663,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 {(job.salary_min || job.salary_max) ? (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)" }}>想定年収</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>想定年収</span>
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "5px 14px", borderRadius: 100,
@@ -706,7 +710,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {[job.employment_type, job.work_style, job.location, job.experience].filter(Boolean).map((b) => (
                   <span key={b} style={{
                     display: "inline-flex", alignItems: "center",
-                    fontSize: 11.5, fontWeight: 600, padding: "5px 11px",
+                    fontSize: 12, fontWeight: 600, padding: "5px 11px",
                     background: "#fff", border: "1px solid var(--line)", borderRadius: 100,
                     color: "var(--ink)",
                   }}>
@@ -729,7 +733,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       {/* Body */}
       <div style={{ background: "var(--bg-tint)" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 py-8 md:px-12 md:py-10">
-          <div className="grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]">
+          {/* ⚠️ 1fr ではなく minmax(0,1fr)。
+              1fr は minmax(auto,1fr) と同じで、トラックが中身の min-content 未満に
+              縮まない。長い英数字や nowrap の要素が1つあるだけでトラックが広がり、
+              375px の画面で本文が 414px になってはみ出す（2026-08-04 実測）。
+              祖先の overflow:hidden で切れるので気づきにくい。 */}
+          <div className="grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]">
 
             {/* ── Main column ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -743,7 +752,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
-                  fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.08em",
+                  fontSize: 12, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.08em",
                 }}>
                   <span style={{
                     width: 22, height: 22, borderRadius: 6, background: "var(--royal)",
@@ -793,7 +802,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {/* 必須スキル — pill tags */}
                 {job.required_skills.length > 0 && (
                 <div style={{ marginBottom: job.preferred_skills.length > 0 ? "var(--space-5)" : 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                     必須スキル
                   </div>
@@ -815,7 +824,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {/* 歓迎スキル — pill tags (lighter style) */}
                 {job.preferred_skills.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     歓迎スキル
                   </div>
@@ -890,7 +899,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {isBusinessJob && ((job.sales_segment?.length ?? 0) > 0 || job.sales_hunter_farmer || job.incentive_note) && (
                   <div style={{ gridColumn: "1 / -1", padding: "16px 20px", borderRadius: 12, background: "#F8FAFC", border: "1px solid var(--line)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>担当領域・インセンティブ</span>
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -919,7 +928,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                       </svg>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>勤務地</span>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>勤務地</span>
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.location}</span>
                   </div>
@@ -931,7 +940,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
                         <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
                       </svg>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>働き方</span>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>働き方</span>
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.work_style}</span>
                   </div>
@@ -943,7 +952,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                       </svg>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>雇用形態</span>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>雇用形態</span>
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.employment_type}</span>
                   </div>
@@ -955,7 +964,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                       </svg>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>職種</span>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>職種</span>
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.roleName ?? job.dept}</span>
                   </div>
@@ -999,7 +1008,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                             background: "var(--royal-50)", color: "var(--royal)",
                             border: "1.5px solid var(--royal-100)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 11, fontWeight: 800, fontFamily: "Inter", marginTop: 2,
+                            fontSize: 12, fontWeight: 800, fontFamily: "Inter", marginTop: 2,
                           }}>{i + 1}</span>
                           <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
                             {sentence.trim().replace(/。$/, "")}。
@@ -1161,7 +1170,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         }}>
                           「{m.catch}」
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--ink-mute)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5}>
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <path d="M14 2v6h6"/>
@@ -1177,7 +1186,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {/* Status legend */}
                 <div style={{
                   marginTop: "var(--space-4)", paddingTop: 14, borderTop: "1px solid var(--line-soft)",
-                  display: "flex", flexWrap: "wrap", gap: "var(--space-3)", fontSize: 11, color: "var(--ink-mute)",
+                  display: "flex", flexWrap: "wrap", gap: "var(--space-3)", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500,
                 }}>
                   {[
                     { dot: "var(--success)", label: "現役・現職継続" },
@@ -1214,7 +1223,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
                         color: "#fff",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif",
+                        fontSize: 12, fontWeight: 800, fontFamily: "Inter, sans-serif",
                       }}>
                         {i + 1}
                       </span>
@@ -1307,7 +1316,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         </div>
                         {/* 右：内容 */}
                         <div style={{ flex: 1, paddingBottom: isLast ? 0 : 20, paddingTop: 6 }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", marginBottom: 3 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", marginBottom: 3 }}>
                             {step.step}
                           </div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: step.meta ? 4 : 0 }}>
@@ -1360,7 +1369,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        display: "flex", alignItems: "center", gap: 6, fontSize: 10,
+                        display: "flex", alignItems: "center", gap: 6, fontSize: 12,
                         color: "var(--ink-mute)", marginBottom: 5, fontWeight: 600,
                       }}>
                         <span style={{ padding: "2px 7px", borderRadius: 4, background: "var(--success-soft)", color: "var(--success)" }}>
@@ -1430,13 +1439,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     }}>
                       {company.name}
                       <span style={{
-                        fontSize: 10, padding: "2px 8px", borderRadius: 100,
+                        fontSize: 12, padding: "2px 8px", borderRadius: 100,
                         background: "var(--warm-soft)", color: "#B45309", fontWeight: 600,
                       }}>
                         {company.phase}
                       </span>
                     </div>
-                    <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, flexWrap: "wrap" }}>
                       <span>業種 <strong style={{ color: "var(--ink)" }}>{company.industry}</strong></span>
                       <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{company.employee_count?.toLocaleString() ?? "—"}</strong>名</span>
                     </div>
@@ -1447,7 +1456,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {company.fit_positives && company.fit_positives.length > 0 && (
                 <div style={{ marginTop: "var(--space-3)" }}>
                   <div style={{
-                    fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em",
+                    fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em",
                     marginBottom: "var(--space-2)", display: "flex", alignItems: "center", gap: 6,
                   }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
@@ -1537,7 +1546,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 3 }}>
                             {rj.role}
                           </div>
-                          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
                             {(rj.salary_min || rj.salary_max)
                               ? `${rj.salary_min && rj.salary_max ? `${fmtMan(rj.salary_min)}〜${fmtMan(rj.salary_max)}万円` : rj.salary_min ? `${fmtMan(rj.salary_min)}万円〜` : `〜${fmtMan(rj.salary_max)}万円`} · `
                               : ""}{rj.work_style}
@@ -1625,7 +1634,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
               {/* Job summary */}
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-4)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 14 }}>
                   募集サマリー
                 </div>
                 {/* Salary — highlighted row */}
@@ -1635,7 +1644,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   padding: "var(--space-2) var(--space-3)", marginBottom: "var(--space-2)", borderRadius: 8,
                   background: "var(--royal-50)", border: "1px solid var(--royal-100)", gap: "var(--space-2)",
                 }}>
-                  <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, flexShrink: 0 }}>想定年収</span>
+                  <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, flexShrink: 0 }}>想定年収</span>
                   <span style={{
                     fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--royal)",
                     fontFamily: "Inter, sans-serif", textAlign: "right" as const,
@@ -1658,7 +1667,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     display: "flex", justifyContent: "space-between", alignItems: "flex-start",
                     padding: "var(--space-2) 0", borderBottom: "1px solid var(--line-soft, #F1F5F9)", gap: "var(--space-2)",
                   }}>
-                    <span style={{ fontSize: 11, color: "var(--ink-mute)", flexShrink: 0 }}>{key}</span>
+                    <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, flexShrink: 0 }}>{key}</span>
                     <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", textAlign: "right" as const }}>{value}</span>
                   </div>
                 ))}

@@ -28,7 +28,7 @@ export function JobInlineShare({
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
-      <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>シェア：</span>
+      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>シェア：</span>
       <button
         type="button"
         onClick={handleCopy}
