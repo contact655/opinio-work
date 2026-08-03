@@ -4034,8 +4034,10 @@ export default function ProfileEditClient({
                       color: isPrivate ? "var(--error)" : "var(--success)", fontSize: 10, fontWeight: 700,
                     }}>{isPrivate ? "✗" : "✓"}</span>
                     <span>
-                      {settings.visibility === "public" && "すべてのOPINIOユーザーに公開"}
-                      {settings.visibility === "login_only" && "ログイン中のOPINIOユーザーに公開"}
+                      {/* 現在の挙動をそのまま書く。public と login_only は
+                          いま同じ見え方になるので、違いは「将来の扱い」であることを示す。 */}
+                      {settings.visibility === "public" && "公開（ログイン中のOPINIOユーザーが閲覧可）"}
+                      {settings.visibility === "login_only" && "ログイン中のOPINIOユーザーのみ閲覧可"}
                       {settings.visibility === "private" && <span style={{ color: "var(--ink-soft)" }}>非公開（自分のみ閲覧可）</span>}
                     </span>
                   </div>
@@ -4116,9 +4118,26 @@ export default function ProfileEditClient({
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {(
                     [
-                      { value: "public",     label: "すべてのOPINIOユーザーに公開",  desc: "ログイン中の求職者・企業担当者が閲覧できます" },
-                      { value: "login_only", label: "ログインユーザーのみ（初期設定）", desc: "ログインしていないゲストには表示されません" },
-                      { value: "private",    label: "非公開",                       desc: "自分だけ閲覧できます" },
+                      // ⚠️ public の説明は「ログイン中の…」ではない。
+                      //    現在は /people と /u/[id] が middleware でログイン必須のため
+                      //    public でも未ログインには出ないが、その制限が外れたときに
+                      //    意味が変わる設定なので、いま同意を取るべき範囲で書く。
+                      //    設定の意味を後から拡大しないこと（2026-08-04）。
+                      {
+                        value: "public",
+                        label: "公開",
+                        desc: "OPINIO にログインしている人が閲覧できます。将来この制限を外す場合は、事前にお知らせします（外れると、ログインしていない人や検索エンジンからも見える状態になります）。",
+                      },
+                      {
+                        value: "login_only",
+                        label: "ログインユーザーのみ（初期設定）",
+                        desc: "OPINIO にログインしている人だけが閲覧できます。ログインしていない人には、この制限が外れた後も表示されません。",
+                      },
+                      {
+                        value: "private",
+                        label: "非公開",
+                        desc: "自分だけが閲覧できます。企業の候補者検索にも表示されません。",
+                      },
                     ] as const
                   ).map((opt) => (
                     <label

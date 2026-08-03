@@ -260,66 +260,6 @@ function GridCard({ card }: { card: AmbassadorCard }) {
   );
 }
 
-// ── リスト行 ──────────────────────────────────────────────────────────
-function ListRow({ card, isLast }: { card: AmbassadorCard; isLast: boolean }) {
-  const router = useRouter();
-  const role = card.roleTitle ?? "—";
-  const isAvailable = card.talkThemes.length > 0;
-
-  return (
-    <div
-      onClick={() => router.push(`/u/${card.userId}`)}
-      style={{
-        display: "flex", alignItems: "center", gap: 16,
-        padding: "16px 24px",
-        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-        background: "#fff", cursor: "pointer", transition: "background 0.1s",
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#FAFBFF"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; }}
-    >
-      <div style={{ flexShrink: 0 }}>
-        <Avatar card={card} size={52} />
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>{card.name}</span>
-          {isAvailable && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 10, fontWeight: 700,
-              padding: "2px 8px", borderRadius: 100,
-              background: "#FFF7ED", color: "#C2410C",
-              border: "1px solid #FED7AA",
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-              面談可
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 5 }}>{role}</div>
-        <CompanyBadge card={card} />
-      </div>
-
-      <Link
-        href={`/u/${card.userId}`}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          flexShrink: 0,
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          padding: "7px 14px",
-          background: "#fff", border: "1.5px solid var(--royal-100)",
-          color: "var(--royal)", borderRadius: 8,
-          fontSize: 11, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
-        }}
-      >
-        プロフィール
-      </Link>
-    </div>
-  );
-}
-
 // ── フィルタ判定 ─────────────────────────────────────────────────────
 function matchRole(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
@@ -337,7 +277,6 @@ function matchAge(card: AmbassadorCard, v: string): boolean {
 
 // ── PeopleListClient ─────────────────────────────────────────────────
 export function PeopleListClient({ ambassadors }: Props) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [role, setRole] = useState("");
 
   const [age, setAge] = useState("");
@@ -409,9 +348,28 @@ export function PeopleListClient({ ambassadors }: Props) {
         }
 
         /* グリッド: 3列 → 2列 → 1列 */
+        /* ── コンテナ幅と列数（2026-08-04）──────────────────────────────────
+           1440px 以上で 5列にする。人数が増えたときのための変更で、現時点では4名。
+
+           ⚠️ 1100px のまま5列にすると 1枚 198px になり、職種が2行に折り返す。
+              「セールス（デジタルセールス）」が「ス）」だけ2行目に落ちる状態。
+              なので 1440px 以上ではコンテナも 1300px に広げ、1枚 235px を確保する。
+              4列時（251px）とほぼ同じ幅なので、カード内の見え方は今と変わらない。
+              社名だけは18文字級（日本ヒューレット・パッカード合同会社）が2行になるが、
+              これは現在の4列でも同じで、今回の変更による劣化ではない。
+
+           ⚠️ maxWidth をインラインに戻さないこと。インラインはメディアクエリに勝つので
+              下の 1300px が一切効かなくなる（CLAUDE.md 参照）。 */
+        /* ⚠️ 基底ルールを先に書くこと。同じ詳細度なので、後に書いたほうが勝つ。
+              .ppl-grid の4列指定をメディアクエリより後ろに置くと 5列が効かない。 */
+        .ppl-wrap { max-width: 1100px; }
         .ppl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+        @media (min-width: 1440px) {
+          .ppl-wrap { max-width: 1300px; }
+          .ppl-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        }
         @media (max-width: 1024px) { .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
-        @media (max-width: 700px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+        @media (max-width: 768px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
         @media (max-width: 420px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
 
         /* グリッドカード */
@@ -480,7 +438,7 @@ export function PeopleListClient({ ambassadors }: Props) {
           padding: "20px 0 0",
         }}
       >
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 14px" }}>
+        <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {/* 検索インプット */}
             <div style={{
@@ -540,7 +498,7 @@ export function PeopleListClient({ ambassadors }: Props) {
 
       {/* ── 並び替えバー ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 24px" }}>
+      <div className="ppl-wrap" style={{ margin: "0 auto", padding: "12px 24px" }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
           background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
@@ -569,27 +527,13 @@ export function PeopleListClient({ ambassadors }: Props) {
             </div>
           </div>
 
-          {/* ビュートグル + 件数 */}
+          {/* 件数。
+              一覧/詳細のトグルは 2026-08-04 に撤去した。
+              詳細ビューのほうが情報量が少なく、一覧との差が利用者に伝わらないため。
+              /schools/[id] でも同じ判断で撤去済み（commit f83fc122）。 */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div style={{ display: "flex", gap: 2, background: "var(--line-soft)", borderRadius: 8, padding: 2 }}>
-              {([
-                { mode: "grid" as const, label: "一覧", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>) },
-                { mode: "list" as const, label: "詳細", icon: (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>) },
-              ]).map(({ mode, label, icon }) => (
-                <button key={mode} type="button" onClick={() => setViewMode(mode)} style={{
-                  background: viewMode === mode ? "var(--royal)" : "transparent",
-                  color: viewMode === mode ? "#fff" : "var(--ink-mute)",
-                  border: "none", cursor: "pointer", borderRadius: 6,
-                  padding: "5px 10px", display: "flex", alignItems: "center", gap: 5,
-                  fontSize: 12, fontWeight: 600, transition: "all 0.15s", whiteSpace: "nowrap",
-                }}>
-                  {icon}{label}
-                </button>
-              ))}
-            </div>
-            <div style={{ width: 1, height: 18, background: "var(--line)" }} />
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>
+              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 16 }}>
                 {sorted.length}
               </strong> 名
             </span>
@@ -599,16 +543,10 @@ export function PeopleListClient({ ambassadors }: Props) {
       </div>
 
       {/* ── コンテンツ ── */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 24px 80px" }}>
+      <div className="ppl-wrap" style={{ margin: "0 auto", padding: "16px 24px 80px" }}>
         {sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
             該当する方が見つかりません
-          </div>
-        ) : viewMode === "list" ? (
-          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
-            {sorted.map((card, i) => (
-              <ListRow key={card.userId} card={card} isLast={i === sorted.length - 1} />
-            ))}
           </div>
         ) : (
           <div className="ppl-grid">
