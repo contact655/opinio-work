@@ -1023,15 +1023,6 @@ body {
 }
 
 /* 差別化カードに添える実画面。上端だけ見せて下をフェードさせる */
-.lp-trust-shot {
-  display: block; margin-top: 16px; border: 1px solid; border-radius: 8px;
-  overflow: hidden; position: relative; max-height: 150px;
-}
-.lp-trust-shot::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 52px;
-  background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
-  pointer-events: none;
-}
 
 /* 広い画面 / 狭い画面で画像そのものを差し替える。
    ⚠️ display はここで持つこと。インラインに書くとこのメディアクエリが効かない

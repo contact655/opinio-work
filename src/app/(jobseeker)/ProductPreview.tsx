@@ -16,7 +16,16 @@ import Link from "next/link";
  *   2枚目: 企業ページの製品・導入事例。求人票に書いていない情報が載ることを示す
  *
  * ── 画像について ────────────────────────────────────────────────────────────
- * 実データのスクリーンショット（1440px幅・Retina 2x、WebP）。
+ * 実データのスクリーンショット（Retina 2x、WebP）。
+ *
+ * ⚠️ ページ全体を撮らないこと。カードの表示幅は 518px（lp-wrap 1064px の2カラム）で、
+ *    1120px幅のページ全体を入れると 0.46倍になり、13px の文字が 6px になって読めない。
+ *    2026-08-04 まで実際にそうなっていた。
+ *    文字が読める上限は「表示幅 × 1.3」= 約 670px。それ以内の範囲を切り出す。
+ *      1枚目 640×400 CSS … /jobs の求人カード2.5件。年収レンジが読めることが要件
+ *      2枚目 660×310 CSS … /companies/[id] の導入事例2件。成果の数字が読めることが要件
+ *    モバイル用（-sm）も同じ理由で別に切り出してある。
+ *
  * ⚠️ 企業ページ上部の「企業について」にはサンプル写真（ストックフォトの
  *    プレースホルダー）が入るため、その範囲は意図的に外して撮っている。
  *    差し替え時も同じ理由でヒーロー直下を写さないこと。
@@ -37,7 +46,7 @@ type Panel = {
 
 const PANELS: Panel[] = [
   {
-    wide:   { src: "/images/lp/preview-search.webp",    w: 2240, h: 1120 },
+    wide:   { src: "/images/lp/preview-search.webp",    w: 1280, h: 800  },
     narrow: { src: "/images/lp/preview-search-sm.webp", w: 900,  h: 376  },
     alt: "OPINIO の募集検索結果。職種・年収・勤務形態で絞り込め、各募集に年収レンジが表示されている。",
     label: "1. 探す",
@@ -45,7 +54,7 @@ const PANELS: Panel[] = [
     href: "/jobs",
   },
   {
-    wide:   { src: "/images/lp/preview-company.webp",    w: 2240, h: 1182 },
+    wide:   { src: "/images/lp/preview-company.webp",    w: 1320, h: 620  },
     narrow: { src: "/images/lp/preview-company-sm.webp", w: 900,  h: 311  },
     alt: "OPINIO の企業ページ。主な製品・サービス10製品と、導入事例8社の活用内容・成果が並んでいる。",
     label: "2. 深く知る",

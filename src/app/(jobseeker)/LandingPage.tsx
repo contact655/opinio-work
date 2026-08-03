@@ -3,7 +3,6 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { HeroSearch } from "./HeroSearch";
 import { FinalCta } from "./FinalCta";
 import { ProductPreview } from "./ProductPreview";
-import Image from "next/image";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type LPTotals = { companies: number; jobs: number };
@@ -139,7 +138,7 @@ export default function LandingPage({
 
         .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         .lp-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
-        /* .lp-trust-shot と .pp-* は globals.css 側にある。
+        /* .pp-* は globals.css 側にある。
            空文字を指定する content の引用符が、Server Component の style タグでは
            実体参照にエスケープされ、raw text 要素なのでブラウザが復元しないため。
            この style タグの中には引用符・大なり・小なりを書かないこと。 */
@@ -195,27 +194,24 @@ export default function LandingPage({
           </div>
           <div className="lp-trust">
             {[
+              // ⚠️ ここに実画面を1枚だけ添えていたが 2026-08-04 に外した。理由は3つ。
+              //    ① カード幅342px・画像292pxでは、文字が読める切り出し幅の上限が
+              //       380px しかなく、導入事例1件の左半分（読める数字は1つ）しか入らない
+              //    ② 同じ画面を FV 直下の ProductPreview でも使っており、
+              //       同一ページに2回出ることになる
+              //    ③ 3枚のうち1枚だけ画像がある状態だった。残り2枚は実在の個人が写るため
+              //       本人確認が済むまで追加できず、当面揃わない
+              //    3枚分の素材が揃ってから、まとめて入れ直すこと。
               {
                 title: "企業情報を独自に作成している",
                 body: "掲載企業の情報は web から自動で集めたものではなく、OPINIO が作成・編集しています。事業内容・組織体制・働き方まで揃えています。",
-                // 主張の裏付けとして実画面を添える。テキストで言うより証明力が高い。
-                // 残り2枚（所属の認証 / 経歴の構造化）は実在の個人が写るため、
-                // LP 掲載の可否を本人に確認してから追加する。
-                shot: { src: "/images/lp/preview-company.webp", alt: "企業ページに並ぶ、製品・サービス10製品と導入事例8社の活用内容・成果。", w: 2240, h: 1182 },
               },
-              { title: "所属が認証されている", body: "社員として掲載されている人は、本人が名乗っているのではなく企業側が在籍を確認しています。匿名の口コミサイトとは情報の出どころが違います。", shot: null },
-              { title: "経歴が構造化されている", body: "どこから来て、どこへ行ったか。社員のキャリアがデータとして残っているので、企業単位でも職種単位でも辿れます。", shot: null },
+              { title: "所属が認証されている", body: "社員として掲載されている人は、本人が名乗っているのではなく企業側が在籍を確認しています。匿名の口コミサイトとは情報の出どころが違います。" },
+              { title: "経歴が構造化されている", body: "どこから来て、どこへ行ったか。社員のキャリアがデータとして残っているので、企業単位でも職種単位でも辿れます。" },
             ].map((t) => (
               <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, display: "flex", flexDirection: "column" }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{t.title}</h3>
                 <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{t.body}</p>
-                {t.shot && (
-                  <span className="lp-trust-shot" style={{ borderColor: C.line }}>
-                    <Image src={t.shot.src} alt={t.shot.alt} width={t.shot.w} height={t.shot.h}
-                      sizes="(max-width: 900px) 100vw, 340px"
-                      style={{ width: "100%", height: "auto", display: "block" }} />
-                  </span>
-                )}
               </div>
             ))}
           </div>
