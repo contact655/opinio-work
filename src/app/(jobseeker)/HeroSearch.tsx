@@ -1,65 +1,53 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
- * LP ヒーローの検索。Intent Modes（企業／求人）は検索スコープそのもので、
- * モードを切り替えても入力中のクエリは保持したまま遷移先だけが変わる。
- * LP は入口に徹し、絞り込みの本体は遷移先の一覧ページが担う。
+ * LP ヒーローの検索。
+ *
+ * 2026-08-03: Intent Modes（企業を調べる / 求人を探す）を廃止し単一の検索窓にした。
+ * 検索前にスコープを選ばせるのは、まだ何があるか分かっていない利用者に
+ * 判断を押し付ける形だったため。企業／求人の振り分けは /search が担当する。
+ *
+ * プレースホルダーは短くしないこと。見出しが英語になったので、
+ * 「IT・SaaS 業界の」という対象範囲を日本語で示しているのはここだけ。
  */
-type Mode = "companies" | "jobs";
-
-const MODES: { key: Mode; label: string; placeholder: string; path: string }[] = [
-  { key: "companies", label: "企業を調べる", placeholder: "会社名・業種で探す", path: "/companies" },
-  { key: "jobs",      label: "求人を探す",   placeholder: "職種・キーワードで探す", path: "/jobs" },
-];
-
 export function HeroSearch({ navy, line, muted }: { navy: string; line: string; muted: string }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("companies"); // 既定は「企業を調べる」
   const [q, setQ] = useState("");
 
-  const active = MODES.find((m) => m.key === mode)!;
+  /*
+    プレースホルダーは幅で出し分ける。
+    375px 幅だと長いほうは「IT・SaaS業界の会社名・」で切れてしまい、
+    説明としての役目を果たさない（見出しが英語なので、対象が IT・SaaS 業界だと
+    書いてあるのはここだけ）。CSS だけでは文言を変えられないので matchMedia で切り替える。
+    短いほうからも「IT・SaaS」は落とさないこと。
+  */
+  const LONG = "IT・SaaS業界の会社名・職種で探す";
+  const SHORT = "IT・SaaSの会社名・職種";
+  // SSR と初期描画は長いほうで揃える（hydration mismatch を避ける）
+  const [placeholder, setPlaceholder] = useState(LONG);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 560px)");
+    const apply = () => setPlaceholder(mq.matches ? SHORT : LONG);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const query = q.trim();
-    router.push(query ? `${active.path}?q=${encodeURIComponent(query)}` : active.path);
+    // 空送信は企業一覧へ。/search を通しても同じ結果になるが、1ホップ省ける
+    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/companies");
   }
 
   return (
-    <form onSubmit={submit} style={{ width: "100%", maxWidth: 720 }}>
-      {/* Intent Modes — 検索欄の上に置き、スコープを先に選ばせる */}
-      <div role="tablist" aria-label="検索の対象" style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-        {MODES.map((m) => {
-          const on = m.key === mode;
-          return (
-            <button
-              key={m.key}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => setMode(m.key)}
-              style={{
-                padding: "8px 18px",
-                borderRadius: "10px 10px 0 0",
-                border: `1px solid ${on ? line : "transparent"}`,
-                borderBottom: "none",
-                background: on ? "#fff" : "transparent",
-                color: on ? navy : muted,
-                fontSize: 14,
-                fontWeight: on ? 700 : 500,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              {m.label}
-            </button>
-          );
-        })}
-      </div>
-
+    // 検索窓は Glassdoor / Indeed と同程度の 700px を上限にする。
+    // 520px だとプレースホルダーの日本語が窮屈で、入力中も語尾が隠れやすかった。
+    <form onSubmit={submit} style={{ width: "100%", maxWidth: 700 }}>
       <div
         style={{
           display: "flex",
@@ -80,22 +68,25 @@ export function HeroSearch({ navy, line, muted }: { navy: string; line: string; 
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={active.placeholder}
-          aria-label={active.placeholder}
+          placeholder={placeholder}
+          aria-label={LONG}
+          className="hero-search-input"
           style={{
             flex: 1,
             minWidth: 0,
             border: "none",
             outline: "none",
-            padding: "18px 12px",
-            fontSize: 16,
             fontFamily: "inherit",
             color: "inherit",
             background: "transparent",
+            // ⚠️ font-size / padding はここに書かないこと。
+            //    インラインスタイルはメディアクエリより強いため、
+            //    狭幅用の指定（下の @media）が一切効かなくなる。
           }}
         />
         <button
           type="submit"
+          className="hero-search-submit"
           style={{
             flexShrink: 0,
             margin: 6,
@@ -113,6 +104,19 @@ export function HeroSearch({ navy, line, muted }: { navy: string; line: string; 
           検索
         </button>
       </div>
+
+      <style>{`
+        .hero-search-input { font-size: 16px; padding: 18px 12px; }
+        /* プレースホルダーは薄くしすぎると読めない。
+           日本語ゴシックは同じ色でも欧文より細く見えるため 500 を当てる。 */
+        .hero-search-input::placeholder { color: ${muted}; font-weight: 500; opacity: 1; }
+        @media (max-width: 560px) {
+          /* 狭幅ではプレースホルダーの表示幅を稼ぐ。
+             文字を詰めるだけでは足りないので、検索ボタンの左右パディングも削る。 */
+          .hero-search-input { font-size: 14px; padding: 16px 6px 16px 4px; }
+          .hero-search-submit { padding: 0 16px; font-size: 14px; }
+        }
+      `}</style>
     </form>
   );
 }

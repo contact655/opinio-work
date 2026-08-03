@@ -150,24 +150,6 @@ export default async function HomePage() {
 
   // フェーズはDB値が英語・日本語混在。実データは listed / unicorn / non_listed / series_d が確認済み
   // （2026-08-03）。シリーズ表記は今後 A〜E が入りうるので全て「成長ステージ」に寄せる。
-  const PHASE_BUCKETS: { label: string; values: string[] }[] = [
-    { label: "上場", values: ["listed", "上場"] },
-    { label: "ユニコーン", values: ["unicorn", "ユニコーン"] },
-    {
-      label: "成長ステージ",
-      values: [
-        "seed", "シード",
-        ...["a", "b", "c", "d", "e"].flatMap((s) => [`series_${s}`, `series-${s}`, `シリーズ${s.toUpperCase()}`]),
-      ],
-    },
-    { label: "非上場", values: ["non_listed", "非上場"] },
-  ];
-  const phaseFacets: LPFacet[] = PHASE_BUCKETS.map((b) => ({
-    key: b.label,
-    label: b.label,
-    count: facetRows.filter((r) => r.phase && b.values.includes(r.phase)).length,
-    href: `/companies?phase=${encodeURIComponent(b.label)}`,
-  }));
 
   // ── 企業カードの付帯件数 ────────────────────────────────────────
   // プレビュー12社ぶんだけを対象にするので、件数が増えても負荷は一定。
@@ -300,7 +282,6 @@ export default async function HomePage() {
     <LandingPage
       totals={totals}
       industryFacets={industryFacets}
-      phaseFacets={phaseFacets}
       schoolFacets={schoolFacets}
       companies={companies}
       jobs={jobs}

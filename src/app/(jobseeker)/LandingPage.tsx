@@ -48,12 +48,13 @@ const C = {
    * 欧文基準で選んだトーンだと同じコントラスト比でも薄く感じられるため。
    * WCAG は画数の多い日本語を想定していないので、比率だけでは判断できない。
    *
-   * #47546B は AAA (7:1) に到達する最も薄い値として選んだ。
-   * これ以上濃くすると（例: #3E4A5C = 8.6:1）本文との差が消えて階層が潰れる。
+   * 2026-08-03 に #5A6779 → #47546B（AAA 到達）に上げたが、実機ではまだ薄く見えた。
+   * 同日さらに #3D4759 まで一段濃くしている（比率ではなく見た目で判断）。
+   * 本文 ink(#16202F) との差はまだ十分あり、階層は潰れていない。
    *
    * → AA で測って「問題ないのになぜ濃いのか」と薄く戻さないこと。
    */
-  muted:  "#47546B",
+  muted:  "#3D4759",
   line:   "#E5E5DF",
   blue:   "#2D5BD8",
   green:  "#0E6B4F",
@@ -97,14 +98,12 @@ function salaryText(min: number | null, max: number | null): string | null {
 export default function LandingPage({
   totals,
   industryFacets,
-  phaseFacets,
   schoolFacets,
   companies,
   jobs,
 }: {
   totals: LPTotals;
   industryFacets: LPFacet[];
-  phaseFacets: LPFacet[];
   /** 出身校。出身業界は前職のマスタ紐付けが必要で現状ほぼ取れないため未実装 */
   schoolFacets: LPFacet[];
   companies: LPCompanyCard[];
@@ -157,10 +156,14 @@ export default function LandingPage({
       {/* ══ HERO — 検索が主役 ═══════════════════════════════════════════════ */}
       <section style={{ borderBottom: `1px solid ${C.line}`, padding: "64px 0 56px" }}>
         <div className="lp-wrap" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <div className="lp-eyebrow">IT・SaaS特化</div>
-          {/* FV は アイブロウ・見出し・検索窓の3要素のみ。サブコピー / 注記 / 件数バッジは置かない */}
-          <h1 style={{ fontSize: "clamp(28px, 3.2vw, 42px)", fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.02em", color: C.navy, marginBottom: 30 }}>
-            知ってから、決める。
+          {/*
+            FV は 見出し・検索窓の2要素のみ。サブコピー / 注記 / 件数バッジ / アイブロウは置かない。
+            見出しが英語のため「何のサービスか」は検索窓のプレースホルダーが担う
+            （IT・SaaS という業界の限定はそこにしか書いていないので、短くしないこと）。
+            英語見出しは letter-spacing を詰めない — 和文と違って詰めると読みにくくなる。
+          */}
+          <h1 style={{ fontSize: "clamp(30px, 3.6vw, 50px)", fontWeight: 800, lineHeight: 1.25, letterSpacing: "-0.015em", color: C.navy, marginBottom: 34 }}>
+            The full picture,<br />before you apply.
           </h1>
 
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
@@ -191,19 +194,8 @@ export default function LandingPage({
             ))}
           </div>
 
-          <div style={{ marginTop: 26 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, marginBottom: 10 }}>フェーズから探す</div>
-            <div className="lp-facets">
-              {phaseFacets.map((f) => (
-                <Link key={f.key} href={f.href} className="lp-facet">
-                  <span style={{ fontSize: 13.5, color: C.ink }}>{f.label}</span>
-                  <strong style={{ fontFamily: '"Poppins", sans-serif', fontSize: 14, color: f.count > 0 ? C.navy : C.muted }}>
-                    {f.count}
-                  </strong>
-                </Link>
-              ))}
-            </div>
-          </div>
+          {/* 「フェーズから探す」は 2026-08-03 に削除。業種と並べる軸としては粒度が粗く、
+              LP の導線を業種ひとつに絞った。フェーズでの絞り込みは /companies 側に残っている。 */}
         </div>
       </section>
 
