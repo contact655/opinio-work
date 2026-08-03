@@ -109,8 +109,12 @@ export default function LandingPage({
   companies: LPCompanyCard[];
   jobs: LPJobCard[];
 }) {
+  // font-family は globals.css の body と同じ順序にする。
+  // 欧文・数字は Inter、和文は Noto Sans JP（Inter に和文グリフが無いので自動で振り分けられる）。
+  // ⚠️ next/font のファミリ名はビルドごとに変わるので必ず CSS 変数で参照すること。
+  //    リテラルの "Noto Sans JP" は next/font のフォントに当たらず OS フォールバックに落ちる。
   return (
-    <div style={{ background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
+    <div style={{ background: C.paper, color: C.ink, fontFamily: 'var(--font-inter), var(--font-noto), -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
       <style>{`
         .lp-wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
         .lp-section { padding: 72px 0; }
@@ -186,8 +190,8 @@ export default function LandingPage({
           <div className="lp-facets">
             {industryFacets.map((f) => (
               <Link key={f.key} href={f.href} className="lp-facet">
-                <span style={{ fontSize: 13.5, color: C.ink }}>{f.label}</span>
-                <strong style={{ fontFamily: '"Poppins", sans-serif', fontSize: 14, color: f.count > 0 ? C.navy : C.muted }}>
+                <span style={{ fontSize: 13.5, fontWeight: 500, color: C.ink }}>{f.label}</span>
+                <strong style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 14, fontWeight: 700, color: f.count > 0 ? C.navy : C.muted }}>
                   {f.count}
                 </strong>
               </Link>
@@ -226,15 +230,15 @@ export default function LandingPage({
                   />
                   <div style={{ minWidth: 0 }}>
                     <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.45 }}>{c.name}</b>
-                    {/* 12px以下は 500。日本語ゴシックは 400 だと線が細く沈む */}
-                    <small style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.muted }}>
+                    {/* 淡色(muted)を 12px で使うので weight 600。12px 未満は作らない */}
+                    <small style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.muted }}>
                       {[c.industry, phaseText(c.phase)].filter(Boolean).join(" ／ ") || "—"}
                     </small>
                   </div>
                 </div>
                 {/* 0 でも欄を出す。件数が増えたときに伸びが見えるようにするため */}
-                {/* ラベルは 500 / 数字は 700 + navy。ウェイトを上げても数字が主役の階層は保つ */}
-                <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, fontWeight: 500, color: C.muted }}>
+                {/* ラベルは 600 / 数字は 700 + navy。ウェイトを上げても「数字が主役」の階層は色で保つ */}
+                <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, fontWeight: 600, color: C.muted }}>
                   {[
                     { label: "記事", n: c.articleCount },
                     { label: "求人", n: c.jobCount },
@@ -242,7 +246,7 @@ export default function LandingPage({
                   ].map((m) => (
                     <span key={m.label}>
                       {m.label}{" "}
-                      <strong style={{ fontFamily: '"Poppins", sans-serif', color: m.n > 0 ? C.navy : C.muted }}>{m.n}</strong>
+                      <strong style={{ fontFamily: 'var(--font-inter), sans-serif', fontWeight: 700, color: m.n > 0 ? C.navy : C.muted }}>{m.n}</strong>
                     </span>
                   ))}
                 </div>
@@ -279,7 +283,7 @@ export default function LandingPage({
                   <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.5, marginBottom: 4 }}>
                     {j.title}
                   </b>
-                  <span style={{ display: "block", fontSize: 13, color: C.ink, marginBottom: 10 }}>{j.companyName}</span>
+                  <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: C.ink, marginBottom: 10 }}>{j.companyName}</span>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {meta.map((m, i) => (
                       <span
@@ -288,7 +292,7 @@ export default function LandingPage({
                           fontSize: 12, padding: "3px 9px", borderRadius: 999,
                           background: i === 0 && salary ? "#ECFDF5" : C.paper2,
                           color: i === 0 && salary ? C.green : C.muted,
-                          fontWeight: i === 0 && salary ? 700 : 500,
+                          fontWeight: i === 0 && salary ? 700 : 600,
                         }}
                       >
                         {m}
@@ -331,7 +335,7 @@ export default function LandingPage({
                 }}
               >
                 {s.label}
-                <strong style={{ fontFamily: '"Poppins", sans-serif', fontSize: 13, color: C.navy }}>{s.count}</strong>
+                <strong style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.navy }}>{s.count}</strong>
               </Link>
             ))}
           </div>
@@ -380,7 +384,7 @@ export default function LandingPage({
               { n: "03", title: "決める", body: "応募する、時期を待つ、今の会社に残る。急かす連絡は届きません。", href: "/jobs" },
             ].map((s) => (
               <Link key={s.n} href={s.href} style={{ display: "block", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, textDecoration: "none" }}>
-                <div style={{ fontFamily: '"Poppins", sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>{s.n}</div>
+                <div style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>{s.n}</div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{s.title}</h3>
                 <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{s.body}</p>
               </Link>

@@ -107,8 +107,11 @@ export function MobileBottomNav() {
                 gap: 3,
                 textDecoration: "none",
                 color: active ? "var(--royal)" : "var(--ink-mute)",
-                fontSize: 9,
-                fontWeight: active ? 700 : 500,
+                // 12px未満のテキストを作らない方針（2026-08-03）。9px は読めない小ささだった。
+                // 5タブ × 375px でも「マイページ」が折り返さないことを実機で確認済み。
+                fontSize: 12,
+                fontWeight: active ? 700 : 600,
+                whiteSpace: "nowrap",
                 letterSpacing: "0.02em",
                 transition: "color 0.15s",
                 WebkitTapHighlightColor: "transparent",

@@ -166,7 +166,18 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${inter.className} antialiased`}>
+      {/*
+        ⚠️ inter.className を body に当てないこと（2026-08-03 修正）。
+           Inter は日本語グリフを持たないため、body の font-family が Inter だけだと
+           和文はすべて OS のフォールバック（macOS: Hiragino Sans / Windows: Yu Gothic）に落ちる。
+           next/font で 400〜800 を読み込んでいる Noto Sans JP が一度も使われず、
+           weight 500/600 は実ファイルが無いまま合成されるか、より細いウェイトに丸められていた。
+           これが「文字が薄い」の主因だった（コントラスト不足ではない）。
+
+           font-family は globals.css の body 側で
+           「Inter（欧文・数字）→ Noto Sans JP（和文）」の順に指定する。
+      */}
+      <body className="antialiased">
         <NextTopLoader
           color="var(--royal, var(--royal))"
           initialPosition={0.08}

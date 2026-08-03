@@ -82,7 +82,7 @@ function JobMiniCard({ job }: { job: SidebarJob }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 13,
               fontWeight: 700,
               color: "var(--ink)",
@@ -96,7 +96,7 @@ function JobMiniCard({ job }: { job: SidebarJob }) {
           </div>
           <div
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 11,
               color: "var(--ink-soft)",
               marginTop: 2,
@@ -188,7 +188,7 @@ function PersonMiniCard({ person }: { person: SidebarPerson }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 13,
               fontWeight: 700,
               color: "var(--ink)",
@@ -201,7 +201,7 @@ function PersonMiniCard({ person }: { person: SidebarPerson }) {
           </div>
           <div
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 11,
               color: "var(--ink-soft)",
               marginTop: 2,
@@ -242,7 +242,7 @@ function SectionHeader({ label }: { label: string }) {
   return (
     <div
       style={{
-        fontFamily: '"Noto Sans JP", sans-serif',
+        fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
         fontSize: 12,
         fontWeight: 700,
         color: "var(--ink-soft)",
@@ -263,7 +263,7 @@ export function FeedInsertJobCard({ job }: { job: SidebarJob }) {
     <div className="feed-insert-card">
       <div
         style={{
-          fontFamily: '"Noto Sans JP", sans-serif',
+          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
           fontSize: 11,
           fontWeight: 700,
           color: "var(--ink-mute)",
@@ -283,7 +283,7 @@ export function FeedInsertPersonCard({ person }: { person: SidebarPerson }) {
     <div className="feed-insert-card">
       <div
         style={{
-          fontFamily: '"Noto Sans JP", sans-serif',
+          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
           fontSize: 11,
           fontWeight: 700,
           color: "var(--ink-mute)",
@@ -341,7 +341,7 @@ export default function FeedSidebar({
               display: "block",
               textAlign: "right",
               marginTop: 10,
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 12,
               color: "var(--royal)",
               textDecoration: "none",
@@ -368,7 +368,7 @@ export default function FeedSidebar({
               display: "block",
               textAlign: "right",
               marginTop: 10,
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 12,
               color: "var(--royal)",
               textDecoration: "none",

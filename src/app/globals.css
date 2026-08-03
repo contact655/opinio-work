@@ -114,11 +114,43 @@ html {
 body {
   color: #0f172a;
   background: var(--background);
-  font-weight: 400;
+
+  /* 欧文・数字は Inter、和文は Noto Sans JP。
+     Inter に和文グリフが無いので、この順で書くと自動的に使い分けられる。
+     ⚠️ next/font が生成する実際のファミリ名はビルドごとに変わる
+     （例: __Noto_Sans_JP_4f418b）ため、必ず CSS 変数で参照すること。
+     リテラル名で書いても next/font のフォントには当たらず、
+     OS のフォールバックに落ちる。2026-08-03 まで全ページがその状態だった。 */
+  font-family: var(--font-inter), var(--font-noto), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* 和文の既定を 500 にする。400 だと画数の多い漢字が細って見える。
+     Noto Sans JP は 400/500/600/700/800 を実ファイルで持っているので、
+     500 を指定しても合成にはならない。 */
+  font-weight: 500;
+
+  /* 偽ボールド・偽イタリックを禁止する。
+     実ファイルの無いウェイトを要求したとき、ブラウザは字形を太らせて誤魔化す。
+     これが「細くて汚い」見え方の原因になるため、合成させずに実ウェイトへ寄せる。 */
+  font-synthesis: none;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
+
+  /* 和文は字面が詰まるので、欧文向けの 1.5〜1.6 では窮屈になる */
+  line-height: 1.7;
+
   overflow-x: hidden; /* belt-and-suspenders against any wide child */
+}
+
+/* 見出し・ラベル・チップの和文詰め（プロポーショナルメトリクス）。
+   括弧や読点まわりの余白が詰まり、締まって見える。
+   本文には掛けない（長文だと字間が不均一に感じられるため）。
+   デジタル庁デザインシステムも Body 以外に設定している。 */
+h1, h2, h3, h4, h5, h6,
+.lp-h2, .lp-eyebrow, .lp-facet, .lp-card,
+button, label, th,
+[class*="chip"], [class*="badge"], [class*="tag"], [class*="pill"] {
+  font-feature-settings: "palt" 1;
 }
 
 /* ── Brand text selection ── */

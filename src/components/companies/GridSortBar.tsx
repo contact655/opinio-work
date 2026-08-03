@@ -89,7 +89,7 @@ export function GridSortBar({ totalCount }: Props) {
           align-items: center;
           gap: 5px;
           white-space: nowrap;
-          font-family: "Noto Sans JP", sans-serif;
+          font-family: var(--font-noto), "Noto Sans JP", sans-serif;
         }
         .sort-btn:hover {
           border-color: var(--royal-100);
@@ -123,7 +123,7 @@ export function GridSortBar({ totalCount }: Props) {
           font-size: 12px;
           font-weight: 600;
           transition: all 0.15s;
-          font-family: "Noto Sans JP", sans-serif;
+          font-family: var(--font-noto), "Noto Sans JP", sans-serif;
           white-space: nowrap;
           border: none;
         }

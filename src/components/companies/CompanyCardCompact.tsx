@@ -190,7 +190,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
             <span style={{
               fontSize: 24, fontWeight: 800,
               color: 'rgba(255,255,255,0.9)',
-              fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+              fontFamily: 'Inter, var(--font-noto), "Noto Sans JP", sans-serif',
               lineHeight: 1, userSelect: 'none', zIndex: 1, position: 'relative',
             }}>
               {initial}

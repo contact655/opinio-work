@@ -79,7 +79,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
       <div style={{ padding: "10px 16px 0" }}>
         <div
           style={{
-            fontFamily: '"Noto Sans JP", sans-serif',
+            fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
             fontSize: 15,
             fontWeight: 800,
             color: "var(--ink)",
@@ -91,7 +91,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
         {(profile.roleTitle || profile.companyName) && (
           <div
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 12,
               color: "var(--ink-soft)",
               marginTop: 4,
@@ -110,7 +110,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
       <div style={{ padding: "0 16px 14px" }}>
         <div
           style={{
-            fontFamily: '"Noto Sans JP", sans-serif',
+            fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
             fontSize: 11,
             fontWeight: 700,
             color: "var(--ink-mute)",
@@ -178,7 +178,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
         >
           <span
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 12,
               fontWeight: 600,
               color: "var(--ink)",
@@ -205,7 +205,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
         >
           <span
             style={{
-              fontFamily: '"Noto Sans JP", sans-serif',
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
               fontSize: 12,
               fontWeight: 600,
               color: "var(--royal)",

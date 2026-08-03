@@ -92,7 +92,7 @@ export function LinkPreviewCard({
           {linkTitle && (
             <div
               style={{
-                fontFamily: '"Noto Sans JP", sans-serif',
+                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                 fontSize: 13,
                 fontWeight: 700,
                 color: "var(--ink)",
@@ -111,7 +111,7 @@ export function LinkPreviewCard({
           {linkDescription && (
             <div
               style={{
-                fontFamily: '"Noto Sans JP", sans-serif',
+                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                 fontSize: 12,
                 color: "var(--ink-soft)",
                 lineHeight: 1.5,

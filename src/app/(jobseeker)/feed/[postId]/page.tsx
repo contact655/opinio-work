@@ -105,7 +105,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
           color: "var(--ink-soft)",
           textDecoration: "none",
           fontSize: 14,
-          fontFamily: '"Noto Sans JP", sans-serif',
+          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
           marginBottom: 20,
         }}
       >
@@ -152,12 +152,12 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
           <div>
             <Link
               href={`/u/${p.user?.id ?? ""}`}
-              style={{ fontFamily: '"Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
+              style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
             >
               {p.user?.name ?? "不明"}
             </Link>
             {(roleTitle || company) && (
-              <div style={{ fontFamily: '"Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+              <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
                 {[roleTitle, company].filter(Boolean).join(" · ")}
               </div>
             )}
@@ -171,7 +171,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
         <p
           style={{
             margin: "0 0 14px",
-            fontFamily: '"Noto Sans JP", sans-serif',
+            fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
             fontSize: 15,
             color: "var(--ink)",
             lineHeight: 1.75,
@@ -215,7 +215,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
             gap: 16,
             paddingTop: 12,
             borderTop: "1px solid var(--line)",
-            fontFamily: '"Noto Sans JP", sans-serif',
+            fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
             fontSize: 14,
             color: "var(--ink-soft)",
           }}
