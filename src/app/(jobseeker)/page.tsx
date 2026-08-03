@@ -70,13 +70,20 @@ export default async function HomePage() {
     .select("id", { count: "exact", head: true })
     .eq("status", "published");
 
+  // ── 出身校ファセット ────────────────────────────────────────────
+  // 公開ユーザーの学歴のみ。行数はユーザー数に比例するが、学歴レコードは
+  // ユーザーあたり数件なので集計コストは低い。
+  const schoolRowsP = db
+    .from("ow_user_educations")
+    .select("user_id, school_id, ow_schools!school_id(id, name), ow_users!user_id(is_test, is_system, visibility)")
+    .not("school_id", "is", null);
+
   // ── プレビュー（各12件だけ）──────────────────────────────────────
-  const companiesP = db
-    .from("ow_companies")
-    .select("id, name, brand_name, industry, phase, logo_url, logo_letter, logo_gradient, url")
-    .eq("is_published", true)
-    .order("updated_at", { ascending: false })
-    .limit(PREVIEW_COMPANIES);
+  // 中身が入っている企業を優先する。求人・記事を持つ企業IDは
+  // コンテンツ量に比例する小さな集合なので、企業数が増えても取得コストは増えない。
+  const jobCompanyIdsP = db.from("ow_jobs").select("company_id").eq("status", "published");
+  const articleCompanyIdsP = db
+    .from("ow_articles").select("company_id").eq("is_published", true).not("company_id", "is", null);
 
   const jobsP = db
     .from("ow_jobs")
@@ -87,11 +94,39 @@ export default async function HomePage() {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(PREVIEW_JOBS);
 
-  const [facetRes, companyCountRes, jobCountRes, companiesRes, jobsRes] =
-    await Promise.all([facetRowsP, companyCountP, jobCountP, companiesP, jobsP]);
+  const [facetRes, companyCountRes, jobCountRes, jobsRes, schoolRes, jobCoRes, articleCoRes] =
+    await Promise.all([facetRowsP, companyCountP, jobCountP, jobsP, schoolRowsP, jobCompanyIdsP, articleCompanyIdsP]);
+
+  // ── ピックアップ企業の選定 ──────────────────────────────────────
+  // 記事・求人・社員のいずれかが入っている企業を優先する。
+  // 数を隠す方針ではないので 0 はそのまま表示するが、プレビューに出す顔ぶれは
+  // 中身のあるものを先に見せる。
+  const withContentIds = Array.from(new Set([
+    ...((jobCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
+    ...((articleCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
+  ].filter(Boolean) as string[]));
+
+  const COMPANY_COLS = "id, name, brand_name, industry, phase, logo_url, logo_letter, logo_gradient, url";
+  const pickedP = withContentIds.length > 0
+    ? db.from("ow_companies").select(COMPANY_COLS).eq("is_published", true)
+        .in("id", withContentIds).order("updated_at", { ascending: false }).limit(PREVIEW_COMPANIES)
+    : Promise.resolve({ data: [], error: null });
+  const pickedRes = await pickedP;
+
+  // 中身のある企業だけで枠が埋まらない場合は、更新の新しい企業で補う
+  let companyRowsRaw = (pickedRes.data ?? []) as Record<string, unknown>[];
+  if (companyRowsRaw.length < PREVIEW_COMPANIES) {
+    const exclude = companyRowsRaw.map((c) => c.id as string);
+    let fill = db.from("ow_companies").select(COMPANY_COLS).eq("is_published", true)
+      .order("updated_at", { ascending: false }).limit(PREVIEW_COMPANIES - companyRowsRaw.length);
+    if (exclude.length > 0) fill = fill.not("id", "in", `(${exclude.join(",")})`);
+    const fillRes = await fill;
+    if (fillRes.error) console.error("[HomePage] company fill fetch failed:", fillRes.error.message);
+    companyRowsRaw = [...companyRowsRaw, ...((fillRes.data ?? []) as Record<string, unknown>[])];
+  }
 
   for (const [label, res] of Object.entries({
-    facets: facetRes, companies: companiesRes, jobs: jobsRes,
+    facets: facetRes, jobs: jobsRes, schools: schoolRes, picked: pickedRes,
   })) {
     if (res.error) console.error(`[HomePage] ${label} fetch failed:`, res.error.message);
   }
@@ -136,7 +171,7 @@ export default async function HomePage() {
 
   // ── 企業カードの付帯件数 ────────────────────────────────────────
   // プレビュー12社ぶんだけを対象にするので、件数が増えても負荷は一定。
-  const companyRows = (companiesRes.data ?? []) as {
+  const companyRows = companyRowsRaw as unknown as {
     id: string; name: string; brand_name: string | null; industry: string | null;
     phase: string | null; logo_url: string | null; logo_letter: string | null;
     logo_gradient: string | null; url: string | null;
@@ -212,11 +247,34 @@ export default async function HomePage() {
     remoteStatus: j.remote_work_status,
   }));
 
+  // ── 出身校ファセット ────────────────────────────────────────────
+  // 本人の非公開希望を優先する（private は除外）。テスト・システムユーザーも外す。
+  type EduRow = {
+    user_id: string;
+    ow_schools: { id: string; name: string } | null;
+    ow_users: { is_test: boolean | null; is_system: boolean | null; visibility: string | null } | null;
+  };
+  const bySchool = new Map<string, { name: string; users: Set<string> }>();
+  for (const r of (schoolRes.data ?? []) as unknown as EduRow[]) {
+    const s = r.ow_schools;
+    const u = r.ow_users;
+    if (!s || !u) continue;
+    if (u.is_test === true || u.is_system === true || u.visibility === "private") continue;
+    const entry = bySchool.get(s.id) ?? { name: s.name, users: new Set<string>() };
+    entry.users.add(r.user_id);
+    bySchool.set(s.id, entry);
+  }
+  const schoolFacets: LPFacet[] = Array.from(bySchool.entries())
+    .map(([id, v]) => ({ key: id, label: v.name, count: v.users.size, href: `/schools/${id}` }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ja"))
+    .slice(0, 12);
+
   return (
     <LandingPage
       totals={totals}
       industryFacets={industryFacets}
       phaseFacets={phaseFacets}
+      schoolFacets={schoolFacets}
       companies={companies}
       jobs={jobs}
     />

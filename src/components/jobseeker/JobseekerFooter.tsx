@@ -23,7 +23,7 @@ export function JobseekerFooter() {
               OPINIO
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 260, marginBottom: 20 }}>
-              IT/SaaS業界に特化した転職サービス。<br />
+              IT/SaaS業界の企業と求人を探せるプラットフォーム。<br />
               企業情報と求人が、ここに揃っています。
             </p>
             {/* Trust chips */}
@@ -52,12 +52,12 @@ export function JobseekerFooter() {
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
+                // /people（先輩を知る）は Career Agent へ移設する導線で 307 を返すため削除。
+                // /careers（転職ガイド）は中身がカジュアル面談前提で現方針と食い違うため削除（書き直しは別途）。
+                // /salary（年収相場）は年収データを増やす予定が無く、育たない導線なので削除。
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "募集を探す" },
-                { href: "/salary",    label: "年収相場" },
-                { href: "/people",    label: "先輩を知る" },
                 { href: "/articles",  label: "記事" },
-                { href: "/careers",   label: "転職ガイド" },
                 { href: "/auth",      label: "無料登録（無料）" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{

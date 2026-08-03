@@ -84,12 +84,15 @@ export default function LandingPage({
   totals,
   industryFacets,
   phaseFacets,
+  schoolFacets,
   companies,
   jobs,
 }: {
   totals: LPTotals;
   industryFacets: LPFacet[];
   phaseFacets: LPFacet[];
+  /** 出身校。出身業界は前職のマスタ紐付けが必要で現状ほぼ取れないため未実装 */
+  schoolFacets: LPFacet[];
   companies: LPCompanyCard[];
   jobs: LPJobCard[];
 }) {
@@ -125,7 +128,6 @@ export default function LandingPage({
           /* プレビューは1カラムだと縦に伸びすぎるので6件までに絞る。
              総件数は「N社すべて見る」で示しているので数は隠していない。 */
           .lp-cards > :nth-child(n+7), .lp-jobs > :nth-child(n+7) { display: none; }
-          table.lp-cmp th, table.lp-cmp td { padding: 13px 12px; font-size: 13.5px; }
         }
         details summary::-webkit-details-marker { display: none; }
         details summary::marker { display: none; }
@@ -137,23 +139,15 @@ export default function LandingPage({
       <section style={{ borderBottom: `1px solid ${C.line}`, padding: "64px 0 56px" }}>
         <div className="lp-wrap" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           <div className="lp-eyebrow">IT・SaaS特化</div>
-          <h1 style={{ fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.02em", color: C.navy, marginBottom: 10 }}>
-            IT・SaaS業界の企業と求人を、まとめて調べる。
+          <h1 style={{ fontSize: "clamp(28px, 3.2vw, 42px)", fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.02em", color: C.navy, marginBottom: 12 }}>
+            知ってから、決める。
           </h1>
           <p style={{ fontSize: 15.5, color: C.muted, marginBottom: 26 }}>
-            企業情報も求人も、登録なしで全て読めます。
+            IT・SaaS業界の企業・求人・そこで働く人の経歴まで。
           </p>
 
+          {/* FV は 見出し・サブコピー・検索窓のみ。注記や件数バッジは置かない */}
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
-
-          {/* FV は 見出し・サブコピー・検索窓のみ。件数は各セクションの「すべて見る」で示す */}
-          <p style={{ marginTop: 20, fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 8 }}>
-            <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" style={{ display: "block", color: C.green, flexShrink: 0 }}>
-              <path d="M6.6 16.4V11a5.4 5.4 0 0110.8 0v5.4h1.4H5.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M4 20L20 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-            </svg>
-            スカウトも営業電話もありません。登録なしで全て読めます。
-          </p>
         </div>
       </section>
 
@@ -203,7 +197,7 @@ export default function LandingPage({
           <div className="lp-sec-head">
             <div>
               <div className="lp-eyebrow">COMPANIES</div>
-              <h2 className="lp-h2">掲載企業</h2>
+              <h2 className="lp-h2">ピックアップ企業</h2>
             </div>
             <Link href="/companies" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
               {totals.companies.toLocaleString("ja-JP")}社すべて見る →
@@ -298,6 +292,43 @@ export default function LandingPage({
         </div>
       </section>
 
+      {/* ══ 人から探す ═══════════════════════════════════════════════════════
+          出身業界（前職の業種）は前職がマスタ企業に紐づいている必要があり、
+          現状ほぼ取得できないため今回は出さない。紐付けが進んだら軸を足す。 */}
+      {schoolFacets.length > 0 && (
+      <section className="lp-section">
+        <div className="lp-wrap">
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">PEOPLE</div>
+              <h2 className="lp-h2">人から探す</h2>
+              <p style={{ fontSize: 14.5, color: C.muted, marginTop: 8 }}>
+                自分と近い経歴の人が、どの会社にいるか。
+              </p>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, marginBottom: 10 }}>出身校から</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
+            {schoolFacets.map((s) => (
+              <Link
+                key={s.key}
+                href={s.href}
+                style={{
+                  display: "inline-flex", alignItems: "baseline", gap: 8,
+                  background: "#fff", border: `1px solid ${C.line}`, borderRadius: 999,
+                  padding: "9px 16px", fontSize: 13.5, color: C.ink, textDecoration: "none",
+                }}
+              >
+                {s.label}
+                <strong style={{ fontFamily: '"Poppins", sans-serif', fontSize: 13, color: C.navy }}>{s.count}</strong>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+      )}
+
       {/* ══ データの出どころ ══════════════════════════════════════════════════ */}
       <section className="lp-section">
         <div className="lp-wrap">
@@ -328,14 +359,15 @@ export default function LandingPage({
           <div className="lp-sec-head">
             <div>
               <div className="lp-eyebrow">HOW IT WORKS</div>
-              <h2 className="lp-h2">探して、比べて、応募する</h2>
+              <h2 className="lp-h2">探して、比べて、決める</h2>
             </div>
           </div>
           <div className="lp-steps">
             {[
               { n: "01", title: "探す", body: "業種・フェーズ・勤務形態で絞り込む。登録は要りません。", href: "/companies" },
               { n: "02", title: "比べる", body: "記事・求人・働く人の経歴を、企業ページで横に並べて見る。", href: "/companies" },
-              { n: "03", title: "応募する", body: "気になる求人にそのまま応募。急かす連絡は届きません。", href: "/jobs" },
+              // 転職を前提にしない。「今は動かない」も結論として扱う
+              { n: "03", title: "決める", body: "応募する、時期を待つ、今の会社に残る。急かす連絡は届きません。", href: "/jobs" },
             ].map((s) => (
               <Link key={s.n} href={s.href} style={{ display: "block", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, textDecoration: "none" }}>
                 <div style={{ fontFamily: '"Poppins", sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>{s.n}</div>
@@ -343,48 +375,6 @@ export default function LandingPage({
                 <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{s.body}</p>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ 比較 ═════════════════════════════════════════════════════════════ */}
-      <section className="lp-section">
-        <div className="lp-wrap">
-          <div className="lp-sec-head">
-            <div>
-              <div className="lp-eyebrow">COMPARE</div>
-              <h2 className="lp-h2">大手転職サービスとの違い</h2>
-            </div>
-            <span style={{ fontSize: 13, color: C.muted }}>勝てないところも書いています。</span>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table className="lp-cmp" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2 }} />
-                  <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 14, color: "#fff", fontWeight: 700, background: C.navy }}>OPINIO</th>
-                  <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2 }}>大手転職サービス</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { f: "掲載数",             o: "IT・SaaSに絞って掲載",      x: "圧倒的に多い",       win: false },
-                  { f: "企業情報の作り方",     o: "独自に作成・編集",          x: "企業からの提供が中心", win: true  },
-                  { f: "登録なしで読める範囲",  o: "すべて",                  x: "一部のみ",           win: true  },
-                  { f: "スカウト・営業電話",   o: "一切なし",                x: "届く",              win: true  },
-                  { f: "登録に必要なもの",     o: "メールアドレスのみ",        x: "職務経歴の入力",     win: true  },
-                ].map((row, i, arr) => {
-                  const border = i < arr.length - 1 ? `1px solid ${C.paper2}` : "none";
-                  return (
-                    <tr key={row.f}>
-                      <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 14, color: C.ink, fontWeight: 500, borderBottom: border }}>{row.f}</th>
-                      <td style={{ padding: "16px 20px", background: "#F7F9FE", fontSize: 14, fontWeight: 500, color: row.win ? C.green : "#C77A2B", borderBottom: border }}>{row.o}</td>
-                      <td style={{ padding: "16px 20px", fontSize: 14, color: C.muted, borderBottom: border }}>{row.x}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       </section>
@@ -399,7 +389,9 @@ export default function LandingPage({
           <div style={{ borderTop: `1px solid ${C.line}` }}>
             {[
               { q: "登録しないと使えませんか？", a: "いいえ。企業情報・求人・記事はすべて登録なしで読めます。登録は、気になる企業を保存したり、新しい求人が出たときに通知を受け取るためのものです。", open: true },
-              { q: "登録すると、スカウトが届きますか？", a: "届きません。企業側から求職者へ連絡する機能を用意していないためです。営業電話もありません。" },
+              // スカウト機能は実装済み（ow_scouts / can_send_scout）。ただし scout_enabled は
+              // デフォルト値が無く、本人が明示的にONにした場合のみ届く。事実に合わせて書く。
+              { q: "登録すると、スカウトが届きますか？", a: "スカウトは、あなたが受け取ると設定した場合にだけ届きます。初期設定はオフです。設定は登録後にいつでも変更できます。営業電話はありません。" },
               { q: "掲載企業はどうやって選んでいますか？", a: "IT・SaaS業界に絞ったうえで、OPINIO が選定した企業を掲載しています。web上の情報を自動で集めたものではありません。" },
               { q: "本当に無料で使えますか？", a: "はい。求職者側の費用は一切かかりません。" },
             ].map((item, i) => (
