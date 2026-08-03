@@ -377,10 +377,13 @@ export default function LandingPage({
                 <div style={{ marginTop: 13 }}>
                   <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.5 }}>{m.name}</b>
                   {/* この枠の主役は現職ではなく「起点 → 現在」。反応の起点になるのは前職側 */}
-                  <div style={{ marginTop: 5, display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 13, color: C.muted }}>{m.fromCompany}</span>
-                    <span style={{ fontSize: 12, color: "#C9B896" }}>→</span>
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: C.navy }}>{m.toCompany}</span>
+                  {/* 折り返しても矢印が行末に取り残されないよう、矢印は行き先と1つの塊にする */}
+                  <div style={{ marginTop: 5, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+                    <span>{m.fromCompany}</span>
+                    <span style={{ display: "inline-block" }}>
+                      <span style={{ color: "#C9B896", margin: "0 5px" }}>→</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: C.navy }}>{m.toCompany}</span>
+                    </span>
                   </div>
                   {m.viaCount > 0 && (
                     <span style={{ display: "block", fontSize: 11.5, color: "#94A3B8", marginTop: 3 }}>

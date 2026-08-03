@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useTransition } from "react";
+import { toggleCanCasualMeeting } from "./actions";
 
 export function CanCasualMeetingToggle({
   userId,
@@ -11,24 +11,22 @@ export function CanCasualMeetingToggle({
   initialValue: boolean;
 }) {
   const [value, setValue] = useState(initialValue);
-  const [saving, setSaving] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const saving = isPending;
 
-  async function toggle() {
-    if (saving) return;
-    setSaving(true);
+  // ブラウザの anon クライアントから ow_users を直接 UPDATE すると RLS に弾かれるため、
+  // 隣の CanTalkCandidatesToggle と同じく Server Action 経由にする。
+  function toggle() {
+    if (isPending) return;
     const newValue = !value;
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("ow_users")
-      .update({ can_casual_meeting: newValue })
-      .eq("id", userId);
-
-    if (!error) {
-      setValue(newValue);
-    } else {
-      console.error("can_casual_meeting update failed:", error.message);
-    }
-    setSaving(false);
+    setValue(newValue);
+    startTransition(async () => {
+      const res = await toggleCanCasualMeeting(userId, newValue);
+      if (!res.ok) {
+        setValue(!newValue); // rollback
+        console.error("can_casual_meeting update failed:", res.error);
+      }
+    });
   }
 
   return (

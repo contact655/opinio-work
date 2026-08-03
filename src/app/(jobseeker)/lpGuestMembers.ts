@@ -37,15 +37,19 @@ export type LPBandMember = {
  * DB にアカウントがある人の帯表示ラベル。キーは ow_users.id。
  * 中間社数と公開可否は DB から算出・検証するのでここには持たない。
  *
- * ⚠️ 生藤 弘樹（0c99e403-…）はここに載せていない。
- *    ow_experiences 上、現職セールスフォース・ジャパンの行が
- *    visibility_company = 'masked'（社名を伏せる）のため。
- *    人物帯は経歴を見せる枠なので経歴側の同意が効く。
- *    本人が実名掲載に同意し 'real' へ変わったら、ここに1行足せば帯に復帰する。
+ * ここに載っていても、ow_experiences の起点・現職が visibility_company='real' で
+ * なければ page.tsx 側の検証で自動的に帯から外れる。
  */
 export const DB_BAND_LABELS: Record<string, { fromCompany: string; toCompany: string }> = {
   // 木村 雅樹: みずほ証券 → 伊藤忠テクノソリューションズ（中間は セールスフォース・ジャパン 1社）
   "b51fc35e-776a-425e-876f-dcb2005c4389": { fromCompany: "みずほ証券", toCompany: "CTC" },
+  // 生藤 弘樹: 富士フイルムビジネスイノベーションジャパン → セールスフォース・ジャパン
+  //   起点は当時の社名「富士ゼロックス」で見せる（2021年に富士フイルムビジネスイノベーションへ改称）。
+  //   中間はフライル1社。2026-08-03 に本人確認のうえ masked → real へ変更済み。
+  "0c99e403-7540-4cf9-8bb1-67571af4f2b6": {
+    fromCompany: "富士ゼロックス",
+    toCompany: "セールスフォース・ジャパン",
+  },
 };
 
 /**

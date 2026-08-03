@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { bulkSetVisibility, bulkDeleteUsers } from "./actions";
 import { CanTalkCandidatesToggle } from "./CanTalkCandidatesToggle";
+import { CanCasualMeetingToggle } from "./CanCasualMeetingToggle";
 
 type User = {
   id: string;
@@ -239,9 +240,10 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     </td>
                     {/* 面談可 */}
                     <td style={{ padding: "11px 14px" }}>
-                      <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>
-                        {u.can_casual_meeting ? "✓" : "—"}
-                      </span>
+                      <CanCasualMeetingToggle
+                        userId={u.id}
+                        initialValue={u.can_casual_meeting ?? false}
+                      />
                     </td>
                     {/* 話せる（can_talk_to_candidates） */}
                     <td style={{ padding: "11px 14px" }}>

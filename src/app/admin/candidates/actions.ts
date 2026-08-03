@@ -47,6 +47,31 @@ export async function toggleCanTalkToCandidates(
   return { ok: true };
 }
 
+/**
+ * can_casual_meeting の切り替え。
+ * この値が true の人だけが LP の「いま話を聞ける現役社員」枠と
+ * /u/[id] のカジュアル面談CTAに出る（掲載 ≠ 面談可）。
+ *
+ * 本来は本人が設定すべき値だが、現状 /profile/edit に導線が無いため
+ * 運営が代理で設定する。can_talk_to_hr との統合は別タスク。
+ */
+export async function toggleCanCasualMeeting(
+  userId: string,
+  value: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("ow_users")
+    .update({ can_casual_meeting: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/candidates");
+  // LP の FV カードはこの値で出し分けるので、あわせて再検証する
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function bulkDeleteUsers(
   userIds: string[]
 ): Promise<{ ok: boolean; deleted: number; error?: string }> {
