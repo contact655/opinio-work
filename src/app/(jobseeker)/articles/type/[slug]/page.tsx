@@ -40,7 +40,7 @@ const ARTICLE_TYPE_MAP: Record<string, {
     type: "report",
     label: "組織レポート",
     labelEn: "Company Reports",
-    description: "OPINIOが取材した企業の組織・開発文化・プロダクト戦略の深掘りレポート。数字だけではわからない実態を伝えます。",
+    description: "掲載企業の組織・開発文化・プロダクト戦略の深掘りレポート。数字だけではわからない実態を伝えます。",
     icon: "📊",
   },
 };
