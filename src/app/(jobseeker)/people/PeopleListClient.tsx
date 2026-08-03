@@ -219,37 +219,31 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
 }
 
 /**
- * 経験年数と職種。
+ * 経験年数。
  *
- * 「経験年数順」で並べ替えられるのにカードに年数が出ていなかったため、
- * 並べ替えた結果を利用者が確認できなかった。あわせて職種を出す。
+ * 「経験年数順」で並べ替えられるのにカードに年数が出ておらず、
+ * 並べ替えた結果を利用者が確認できなかったため出している。
  *
- * ⚠️ どちらも値が無ければ項目ごと出さない。「—」や「0年」に置き換えない。
- *    職歴が無い人（経験年数も職種も無い）は行ごと消える。
+ * 職種は役職行（上）に出すのでここには入れない。両方に出すと
+ * 同じことを2回違う言葉で言うことになる。
+ *
+ * ⚠️ 値が無ければ行ごと出さない。「—」や「0年」に置き換えない。
  */
 function CardFacts({ card }: { card: AmbassadorCard }) {
-  const years = card.experienceMonths == null ? null : Math.floor(card.experienceMonths / 12);
-  const parts: string[] = [];
-  if (years != null && years >= 1) parts.push(`経験 ${years}年`);
-  else if (card.experienceMonths != null) parts.push("経験 1年未満");
-  if (card.roleName) parts.push(card.roleName);
-  if (!parts.length) return null;
-  return (
-    <div className="ppl-facts">
-      {parts.map((t, i) => (
-        <span key={t}>
-          {i > 0 && <span className="ppl-facts-sep" aria-hidden>・</span>}
-          {t}
-        </span>
-      ))}
-    </div>
-  );
+  if (card.experienceMonths == null) return null;
+  const years = Math.floor(card.experienceMonths / 12);
+  return <div className="ppl-facts">{years >= 1 ? `経験 ${years}年` : "経験 1年未満"}</div>;
 }
 
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
-  const role = card.affiliation.kind === "none" ? null : card.affiliation.roleTitle;
+  // ⚠️ ow_company_members.role_title（自由記述）ではなく ow_roles の職種名を出す。
+  //    自由記述は「営業」「Enterprise Account Executive」「セールス（デジタルセールス）」
+  //    「営業（金融ソリューション）」のように粒度がばらばらで、
+  //    同じ職種でも読み手が毎回解釈することになるため（2026-08-04）。
+  //    肩書きそのものに意味がある /u/[id] と /biz/candidates では役職名を残している。
+  const role = card.roleName;
   // ⚠️ talk_themes の件数ではなく can_casual_meeting で判定する（2026-08-04）。
   //    talk_themes は本来「何を話せるか」であって可否ではなく、代用だった。
   //    可否のフラグは ow_users.can_casual_meeting（/admin/candidates で切り替え）。
@@ -502,12 +496,11 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
           display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
           overflow: hidden; overflow-wrap: anywhere;
         }
-        /* 経験年数・職種。並べ替えの軸をカード上でも見えるようにする */
+        /* 経験年数。並べ替えの軸をカード上でも見えるようにする */
         .ppl-facts {
           margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
           line-height: 1.5; overflow-wrap: anywhere;
         }
-        .ppl-facts-sep { color: var(--ink-mute); margin: 0 5px; font-weight: 500; }
         .ppl-grid-card:hover {
           box-shadow: 0 8px 32px rgba(0,35,102,0.12);
           transform: translateY(-3px);

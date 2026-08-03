@@ -202,8 +202,10 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                          {aff.kind !== "none" && aff.roleTitle && (
-                            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{aff.roleTitle}</div>
+                          {/* /people のカードと同じく ow_roles の職種名を出す。
+                              自由記述の role_title は粒度がばらばらなので一覧では使わない */}
+                          {p.roleName && (
+                            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.roleName}</div>
                           )}
                           {aff.kind !== "none" && (
                             <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
@@ -217,19 +219,12 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
                           )}
                         </div>
                       </div>
-                      {/* 経験年数・職種。カード（/people）と同じ軸で出す */}
-                      {(p.experienceMonths != null || p.roleName) && (
+                      {/* 経験年数。職種は上の行に出すのでここには入れない */}
+                      {p.experienceMonths != null && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {p.experienceMonths != null && (
-                            <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>
-                              経験 {Math.max(1, Math.floor(p.experienceMonths / 12))}年
-                            </span>
-                          )}
-                          {p.roleName && (
-                            <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
-                              {p.roleName}
-                            </span>
-                          )}
+                          <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>
+                            経験 {Math.max(1, Math.floor(p.experienceMonths / 12))}年
+                          </span>
                         </div>
                       )}
                       <div style={{ marginTop: 14, fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
