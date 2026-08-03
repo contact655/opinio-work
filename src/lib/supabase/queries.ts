@@ -1833,7 +1833,7 @@ export async function getCompanyReviewSummaries(): Promise<Record<string, Compan
 // ─── Role alias map (alias → role_id) ────────────────────────────────────────
 export type RoleAlias = { alias: string; roleId: string };
 
-export const getRoleAliases = unstable_cache(
+const getRoleAliasRows = unstable_cache(
   async (): Promise<RoleAlias[]> => {
     const supabase = createPublicClient();
     const { data } = await supabase.from("ow_role_aliases").select("alias, role_id");
@@ -1842,6 +1842,41 @@ export const getRoleAliases = unstable_cache(
   ["role-aliases"],
   { revalidate: 3600 }
 );
+
+/**
+ * 検索用のエイリアス。`roleIds` には「そのエイリアスが指す職種 ＋ その祖先」が入る。
+ *
+ * ── 祖先まで広げる理由（2026-08-03）────────────────────────────────────────
+ * ow_role_aliases 117件は細かい職種53種（バックエンド / SDR / CSM …）に付いているが、
+ * 求人がタグ付けされている職種は 7種しかない。両者が一度も交差しないため、
+ * エイリアス検索は **構造的に必ず0件** になっていた。
+ * 実測: 117件中トップレベル職種に付いているもの 0 件 /
+ *       求人が実際に使う職種を指すもの 0 件。
+ *
+ * 「サーバーサイド」→ バックエンド → 親のエンジニア まで広げると、
+ * エンジニアとしてタグ付けされた求人に届く。
+ *
+ * ⚠️ 副作用として再現率に寄る。「サーバーサイド」でフロントエンドの求人も
+ *    ヒットしうる（どちらも親がエンジニアのため）。
+ *    これは求人のタグ付けが粗いことの裏返しで、企業が細かい職種を選ぶほど
+ *    自動的に精度が上がる。0件を返し続けるよりは広く拾うほうを選んだ。
+ */
+export type SearchAlias = { alias: string; roleIds: string[] };
+
+export const getRoleAliases = cache(async function getRoleAliases(): Promise<SearchAlias[]> {
+  const [rows, tree] = await Promise.all([getRoleAliasRows(), getRoleTree()]);
+  return rows.map((r) => {
+    const ids = new Set<string>([r.roleId]);
+    let node = tree.byId.get(r.roleId) ?? null;
+    const seen = new Set<string>();
+    while (node?.parentId && !seen.has(node.id)) {
+      seen.add(node.id);
+      ids.add(node.parentId);
+      node = tree.byId.get(node.parentId) ?? null;
+    }
+    return { alias: r.alias, roleIds: Array.from(ids) };
+  });
+});
 
 // ─── Company Tools ────────────────────────────────────────────────────────────
 

@@ -751,7 +751,8 @@ export default function JobsClient({
   parentRoles: { id: string; name: string }[];
   recommendations?: RecommendedJob[];
   reviewSummaries?: Record<string, CompanyReviewSummary>;
-  roleAliases?: { alias: string; roleId: string }[];
+  /** ow_role_aliases。roleIds には祖先まで展開済み（queries.ts の getRoleAliases 参照） */
+  roleAliases?: { alias: string; roleIds: string[] }[];
   industries?: { id: string; parent_id: string | null; name: string; slug: string }[];
 }) {
   const router = useRouter();
@@ -927,31 +928,92 @@ export default function JobsClient({
     return PREFECTURES.filter((p) => prefSet.has(p));
   }, [allJobs]);
 
-  const filtered = useMemo(() => {
+  const searchResult = useMemo(() => {
     let list = [...allJobs];
+    let ignoredTerms: string[] = [];
 
     if (q.trim()) {
-      const lq = q.trim().toLowerCase();
-      // エイリアスにマッチするroleIdを収集（例: "サーバーサイド" → バックエンドのrole_id）
-      const aliasMatchedRoleIds = new Set(
-        roleAliases
-          .filter((a) => a.alias.toLowerCase().includes(lq))
-          .map((a) => a.roleId)
-      );
-      const jobMatchesAlias = (j: (typeof list)[number]) => {
-        // ow_job_roles の全職種 UUID で判定（複数職種対応）
-        const ids = j.roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
-        return ids.some((id) => aliasMatchedRoleIds.has(id));
+      /*
+        語ごとに絞り込む（2026-08-03）。
+
+        以前はクエリ全体を1語として includes() していたため、
+        「エンタープライズ企業 営業」が丸ごと1つの文字列として扱われ 0件 になっていた。
+        /companies?q= 側（lib/search/companies.ts）は既に空白区切りの AND 検索なので、
+        そちらに揃える。
+
+        ただし単純な AND だと、こちらで解釈できない語が1つでも混ざると 0件 になる。
+        「エンタープライズ企業」は企業規模の言い換えで、今はまだ辞書に無い。
+        そこで **どの求人にも当たらなかった語は絞り込みから外す** ことにした。
+        結果として「解釈できた語だけを AND する」挙動になる。
+
+          エンタープライズ企業 営業 → 「エンタープライズ企業」は0件なので除外
+                                    → 「営業」だけで絞る
+          営業 エンジニア           → どちらも当たるので AND（＝セールスエンジニア系）
+          ぬるぽ                    → 全語が当たらない → 0件（黙って全件返さない）
+
+        外した語は ignoredTerms に入れ、画面に「絞り込みに使わなかった語」として出す。
+        黙って無視すると、入力した条件が効いていないことに気づけないため。
+      */
+      const words = q.trim().toLowerCase().split(/[\s　]+/).filter(Boolean);
+
+      const jobRoleIds = (j: (typeof list)[number]) =>
+        j.roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
+
+      const matchesText = (j: (typeof list)[number], w: string) => {
+        const co = companyMap.get(j.company_id);
+        return (
+          j.role.toLowerCase().includes(w) ||
+          (co?.name ?? "").toLowerCase().includes(w) ||
+          (co?.brand_name ?? "").toLowerCase().includes(w) ||
+          (co?.slug ?? "").toLowerCase().includes(w) ||
+          j.highlight.toLowerCase().includes(w)
+        );
       };
-      list = list.filter(
-        (j) =>
-          j.role.toLowerCase().includes(lq) ||
-          (companyMap.get(j.company_id)?.name ?? "").toLowerCase().includes(lq) ||
-          (companyMap.get(j.company_id)?.brand_name ?? "").toLowerCase().includes(lq) ||
-          (companyMap.get(j.company_id)?.slug ?? "").toLowerCase().includes(lq) ||
-          j.highlight.toLowerCase().includes(lq) ||
-          jobMatchesAlias(j)
-      );
+
+      /*
+        辞書は2段階で当てる。roleIds[0] がエイリアスの指す職種そのもの、
+        以降が祖先（queries.ts の getRoleAliases で展開済み）。
+
+        第1段: 職種そのもので当てる。
+        第2段: 第1段が全滅したときだけ祖先まで広げる。
+
+        いきなり祖先まで広げると精度が落ちる。たとえば「エンジニア」は
+        エイリアス「セールスエンジニア」経由で 営業 まで遡れてしまい、
+        純粋な AE 求人まで巻き込む（ow_roles 上プリセールスは営業配下のため）。
+        求人が具体職種でタグ付けされていれば第1段で足り、
+        粗くしかタグ付けされていない場合だけ祖先に頼る、という順序にする。
+      */
+      const matchByAlias = (w: string, pool: typeof list) => {
+        const hits = roleAliases.filter((a) => a.alias.toLowerCase().includes(w));
+        if (hits.length === 0) return null;
+
+        const own = new Set(hits.map((a) => a.roleIds[0]).filter(Boolean));
+        const exact = pool.filter((j) => jobRoleIds(j).some((id) => own.has(id)));
+        if (exact.length > 0) return exact;
+
+        const withAncestors = new Set(hits.flatMap((a) => a.roleIds));
+        const loose = pool.filter((j) => jobRoleIds(j).some((id) => withAncestors.has(id)));
+        return loose.length > 0 ? loose : null;
+      };
+
+      const ignored: string[] = [];
+      for (const w of words) {
+        const byText = list.filter((j) => matchesText(j, w));
+        const byAlias = matchByAlias(w, list) ?? [];
+        // 本文一致と辞書一致の和集合
+        const merged = byText.length || byAlias.length
+          ? Array.from(new Set([...byText, ...byAlias]))
+          : [];
+
+        if (merged.length === 0) {
+          ignored.push(w);   // 解釈できなかった語。絞り込みには使わない
+          continue;
+        }
+        list = merged;
+      }
+      // 全語が解釈できなかったときだけ 0件 にする
+      if (ignored.length === words.length) list = [];
+      ignoredTerms = ignored;
     }
 
     // ビジネス職のみフィルタ
@@ -1101,8 +1163,11 @@ export default function JobsClient({
       });
     }
 
-    return list;
+    return { list, ignoredTerms };
   }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, empTypeSet, companyStage, companyStageSet, techStack, sort, companies, companyMap, roleAliases, industries]);
+
+  const filtered = searchResult.list;
+  const ignoredTerms = searchResult.ignoredTerms;
 
   // ⑧ グルーピング適用（1社あたり最大3件・更新日新しい順）
   const filteredForDisplay = useMemo(() => {
@@ -1379,6 +1444,29 @@ export default function JobsClient({
         }}
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 py-3 md:px-12">
+
+          {/* 解釈できなかった検索語の通知。
+              「エンタープライズ企業 営業」のように、こちらで扱えない語が混ざったとき
+              その語は絞り込みから外している。黙って外すと、入力した条件が効いていない
+              ことに気づけないので明示する。 */}
+          {ignoredTerms.length > 0 && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+              background: "var(--warm-soft)", border: "1px solid #FDE68A",
+              borderRadius: 10, padding: "8px 14px",
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#92400E" }}>
+                {ignoredTerms.map((t) => `「${t}」`).join("")}
+                は絞り込みに使えませんでした
+              </span>
+              {/* 全語が使えなかったときは「残りの語」が存在しないので出さない */}
+              {ignoredTerms.length < q.trim().split(/[\s　]+/).filter(Boolean).length && (
+                <span style={{ fontSize: 11.5, color: "#92400E", opacity: 0.85 }}>
+                  残りの語だけで検索しています
+                </span>
+              )}
+            </div>
+          )}
 
           {/* 並び替えバー */}
           <div style={{
