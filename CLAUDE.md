@@ -1927,6 +1927,55 @@ ps aux | grep -E "next-server|next dev" | grep -v grep
   `isDev ? nextConfig : withSentryConfig(...)` で **dev では Sentry を適用していない**
 - ~~Node v26.5.0 と Next 14.2.35 の非互換~~ → ENOENT-on-rename は明確に競合の痕跡。単一プロセスでは起きない
 
+### ⚠️ dev サーバー稼働中に `npm run build` を打たない（2026-08-03 確立）
+
+**上の「dev 二重起動」とは別の事象。症状が似ているので混同しないこと。**
+
+#### 症状
+
+```
+Error: Cannot find module './vendor-chunks/@supabase.js'
+```
+
+dev サーバーが 500 を返すようになる。モジュール名は `@supabase.js` に限らず、
+その時参照されたチャンクなら何でも出る。
+
+#### 原因
+
+`npm run dev` と `npm run build` は**同じ `.next/` を共有する**。
+dev サーバーが稼働したまま build を走らせると、build が
+`.next/server/vendor-chunks/` 以下を production 用に総入れ替えするため、
+dev サーバーが握っていたチャンクへの参照が解決できなくなる。
+
+#### 対処
+
+```bash
+ps aux | grep -E "next-server|next dev" | grep -v grep   # 稼働中の dev を確認
+# 出てきたら kill してから
+rm -rf .next && npm run dev
+```
+
+`rm -rf .next` だけでは足りない。**dev を止めてから消すこと**（止めずに消すと
+dev が消えた先を参照し続けて同じ症状が残る）。
+
+#### 二重起動との違い
+
+| | dev 二重起動 | build と dev の同居（本項） |
+|---|---|---|
+| 何が起きるか | 2プロセスが `.next/cache/webpack/` の pack を奪い合って壊す | build が `.next/server/` を上書きする |
+| 再現性 | **間欠的**。どちらのサーバーが応答するか次第 | **確実に再現する** |
+| 典型ログ | `Caching failed for pack: ENOENT: rename '0.pack.gz_'` → `invalid code lengths set` | `Cannot find module './vendor-chunks/*.js'` |
+| 症状 | 変更が反映されない・消したはずの変数を参照して落ちる | ページが 500 になる |
+| 直し方 | プロセスを1つに落としてから `.next` 削除 | dev を止めてから `.next` 削除 |
+
+**判別のコツ**: 「変更が反映されない」なら二重起動、
+「モジュールが見つからない」なら build との同居を疑う。
+
+型チェックだけしたいなら build ではなく `npx tsc --noEmit` を使えば
+`.next` を触らないので dev を止めずに済む。
+ESLint も `npx next lint --dir src` は `.next` を書き換えない。
+`npm run build` が要るのは本番ビルドの通過確認だけ。
+
 ### Git 運用方針（2026-05-03 確定）
 - main ブランチに直接コミットする（worktree 作成禁止）
 - worktree が既に存在する場合は、`git worktree remove` で削除してから作業を開始する
@@ -2027,8 +2076,10 @@ src/app/companies/mockCompanies.ts(219,31): error TS2802
    → `BizCompany` 型・DB transformer・表示 JSX のすべてに対応がないと動作しない（logoUrl バグの教訓）
 6. **Next.js dev server の .next キャッシュ**
    → ファイル編集中に MODULE_NOT_FOUND が出たら `rm -rf .next && npm run dev` で解決
-   → ⚠️ ただし「変更が反映されない」系は **dev サーバーの二重起動が原因のことがある**。
-     `rm -rf .next` は対症療法にすぎないので、先に「⚠️ dev サーバーは絶対に2つ同時に起動しない」の節を参照すること（2026-08-03 追記）
+   → ⚠️ ただし `rm -rf .next` は対症療法。原因が別にある場合は再発するので、
+     先に下記2節のどちらに当たるか切り分けること（2026-08-03 追記）
+     - 「変更が反映されない」 → 「⚠️ dev サーバーは絶対に2つ同時に起動しない」
+     - 「Cannot find module './vendor-chunks/*.js'」 → 「⚠️ dev サーバー稼働中に `npm run build` を打たない」
 7. **`.env.development.local` は `.env.local` より優先される**
    → Next.js の環境変数読み込み順序を意識する。`NEXT_PUBLIC_BIZ_MOCK_MODE=true` が残留して本番 DB が見えなくなった経験から
 8. **insertActivity の best-effort パターン**
