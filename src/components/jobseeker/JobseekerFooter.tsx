@@ -34,7 +34,7 @@ export function JobseekerFooter() {
                   padding: "4px 11px", borderRadius: 100,
                   border: "1px solid rgba(255,255,255,0.15)",
                   fontSize: 11, fontWeight: 500,
-                  color: "rgba(255,255,255,0.5)",
+                  color: "rgba(255,255,255,0.62)",
                 }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(5,150,105,0.9)" strokeWidth={3} strokeLinecap="round">
                     <polyline points="20 6 9 17 4 12" />
@@ -47,7 +47,7 @@ export function JobseekerFooter() {
 
           {/* 求職者の方 */}
           <div>
-            <h4 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 18 }}>
+            <h4 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 18 }}>
               求職者の方
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -71,7 +71,7 @@ export function JobseekerFooter() {
 
           {/* 企業の方 */}
           <div>
-            <h4 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 18 }}>
+            <h4 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 18 }}>
               企業の方
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -90,7 +90,7 @@ export function JobseekerFooter() {
 
           {/* 運営 */}
           <div>
-            <h4 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 18 }}>
+            <h4 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 18 }}>
               運営
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -119,15 +119,19 @@ export function JobseekerFooter() {
           display: "flex", justifyContent: "space-between", alignItems: "center",
           flexWrap: "wrap", gap: 12,
         }}>
+          {/*
+            2026-08-03: alpha 0.18〜0.25 は --ink 上で 1.74〜2.25:1 しかなく WCAG AA (4.5:1) 割れだった。
+            0.5〜0.55 に引き上げて AA 通過（約5.2〜5.6:1）。これ以上薄くしないこと。
+          */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
               © 2026 Opinio Inc. All rights reserved.
             </span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.18)" }}>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
               Opinio Inc. · 〒107-0062 東京都港区南青山
             </span>
           </div>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
             IT/SaaS業界特化のキャリアプラットフォーム
           </span>
         </div>

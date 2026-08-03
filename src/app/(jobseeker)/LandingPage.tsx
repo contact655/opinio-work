@@ -39,7 +39,21 @@ const C = {
   paper2: "#F2F1EA",
   navy:   "#0E2148",
   ink:    "#16202F",
-  muted:  "#5A6779",
+  /**
+   * 補助テキスト・ラベル・タグに使う色。
+   *
+   * ⚠️ WCAG AA 違反の修正ではない。2026-08-03 に LP の全282テキスト要素を実測したところ、
+   * AA (4.5:1) を割る箇所は 0件 で、最低値でも 5.08:1 だった（旧色 #5A6779）。
+   * それでも濃くしているのは、日本語ゴシックが欧文サンセリフより線が細く見え、
+   * 欧文基準で選んだトーンだと同じコントラスト比でも薄く感じられるため。
+   * WCAG は画数の多い日本語を想定していないので、比率だけでは判断できない。
+   *
+   * #47546B は AAA (7:1) に到達する最も薄い値として選んだ。
+   * これ以上濃くすると（例: #3E4A5C = 8.6:1）本文との差が消えて階層が潰れる。
+   *
+   * → AA で測って「問題ないのになぜ濃いのか」と薄く戻さないこと。
+   */
+  muted:  "#47546B",
   line:   "#E5E5DF",
   blue:   "#2D5BD8",
   green:  "#0E6B4F",
@@ -127,7 +141,12 @@ export default function LandingPage({
           .lp-cards, .lp-jobs, .lp-steps, .lp-trust { grid-template-columns: 1fr; }
           /* プレビューは1カラムだと縦に伸びすぎるので6件までに絞る。
              総件数は「N社すべて見る」で示しているので数は隠していない。 */
-          .lp-cards > :nth-child(n+7), .lp-jobs > :nth-child(n+7) { display: none; }
+          /* 子結合子（大なり記号）は使わないこと。Server Component 内の style タグでは
+             React がサーバー出力で実体参照にエスケープするが、style は raw text 要素のため
+             ブラウザが復元せず、SSR 時点でセレクタが壊れる（hydration mismatch も出る）。
+             同じ理由で、この中に大なり・小なり・引用符を書かないこと。
+             nth-child は元々親基準なので、子クラス指定で足りる。 */
+          .lp-cards .lp-card:nth-child(n+7), .lp-jobs .lp-card:nth-child(n+7) { display: none; }
         }
         details summary::-webkit-details-marker { display: none; }
         details summary::marker { display: none; }
@@ -139,14 +158,11 @@ export default function LandingPage({
       <section style={{ borderBottom: `1px solid ${C.line}`, padding: "64px 0 56px" }}>
         <div className="lp-wrap" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           <div className="lp-eyebrow">IT・SaaS特化</div>
-          <h1 style={{ fontSize: "clamp(28px, 3.2vw, 42px)", fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.02em", color: C.navy, marginBottom: 12 }}>
+          {/* FV は アイブロウ・見出し・検索窓の3要素のみ。サブコピー / 注記 / 件数バッジは置かない */}
+          <h1 style={{ fontSize: "clamp(28px, 3.2vw, 42px)", fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.02em", color: C.navy, marginBottom: 30 }}>
             知ってから、決める。
           </h1>
-          <p style={{ fontSize: 15.5, color: C.muted, marginBottom: 26 }}>
-            IT・SaaS業界の企業・求人・そこで働く人の経歴まで。
-          </p>
 
-          {/* FV は 見出し・サブコピー・検索窓のみ。注記や件数バッジは置かない */}
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
         </div>
       </section>
@@ -218,13 +234,15 @@ export default function LandingPage({
                   />
                   <div style={{ minWidth: 0 }}>
                     <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.45 }}>{c.name}</b>
-                    <small style={{ display: "block", fontSize: 12, color: C.muted }}>
+                    {/* 12px以下は 500。日本語ゴシックは 400 だと線が細く沈む */}
+                    <small style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.muted }}>
                       {[c.industry, phaseText(c.phase)].filter(Boolean).join(" ／ ") || "—"}
                     </small>
                   </div>
                 </div>
                 {/* 0 でも欄を出す。件数が増えたときに伸びが見えるようにするため */}
-                <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, color: C.muted }}>
+                {/* ラベルは 500 / 数字は 700 + navy。ウェイトを上げても数字が主役の階層は保つ */}
+                <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, fontWeight: 500, color: C.muted }}>
                   {[
                     { label: "記事", n: c.articleCount },
                     { label: "求人", n: c.jobCount },
@@ -278,7 +296,7 @@ export default function LandingPage({
                           fontSize: 12, padding: "3px 9px", borderRadius: 999,
                           background: i === 0 && salary ? "#ECFDF5" : C.paper2,
                           color: i === 0 && salary ? C.green : C.muted,
-                          fontWeight: i === 0 && salary ? 700 : 400,
+                          fontWeight: i === 0 && salary ? 700 : 500,
                         }}
                       >
                         {m}
