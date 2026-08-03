@@ -46,28 +46,11 @@ async function fetchUserRecommendations(
     const adminSupabase = createAdminClient();
 
     // ow_profiles.user_id = auth.users.id（直接 auth UUID）
-    // ow_user_skill_tags.user_id = ow_users.id（ow_users 経由）
-    // → 両テーブルで FK が異なるため別々に解決する
-    const [{ data: profile }, owUserResult] = await Promise.all([
-      adminSupabase
-        .from("ow_profiles")
-        .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, desired_phase")
-        .eq("user_id", user.id)   // Fix 1: auth UUID を直接使う
-        .maybeSingle(),
-      adminSupabase
-        .from("ow_users")
-        .select("id")
-        .eq("auth_id", user.id)
-        .maybeSingle(),
-    ]);
-
-    const owUserId = owUserResult.data?.id;
-    const { data: skillRows } = owUserId
-      ? await adminSupabase
-          .from("ow_user_skill_tags")
-          .select("label")
-          .eq("user_id", owUserId)
-      : { data: [] };
+    const { data: profile } = await adminSupabase
+      .from("ow_profiles")
+      .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, desired_phase")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (!profile) return [];
 
@@ -77,7 +60,6 @@ async function fetchUserRecommendations(
       desired_salary_min: profile.desired_salary_min ? Number(profile.desired_salary_min) : null,
       desired_salary_max: profile.desired_salary_max ? Number(profile.desired_salary_max) : null,
       desired_phase: (profile.desired_phase as string[] | null) ?? null,
-      skill_labels: (skillRows ?? []).map((r: { label: string }) => r.label).filter(Boolean),
     };
 
     // company_id → phase マップを構築

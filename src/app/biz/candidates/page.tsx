@@ -3,6 +3,8 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import CandidatesClient from "./CandidatesClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
+import { getRoleTree } from "@/lib/supabase/queries";
+import { resolveTopRole } from "@/lib/roles/jobRoles";
 
 export const dynamic = "force-dynamic";
 
@@ -159,13 +161,14 @@ export default async function CandidatesPage() {
   const { data: currentExps } = userIds.length > 0
     ? await adminClient
         .from("ow_experiences")
-        .select(`user_id, role_title, employment_type, started_at, ${EXPERIENCE_COMPANY_COLS}`)
+        .select(`user_id, role_title, role_category_id, employment_type, started_at, ${EXPERIENCE_COMPANY_COLS}`)
         .in("user_id", userIds)
         .eq("is_current", true)
     : { data: [] };
 
   const currentExpByUser = new Map<string, {
     role_title: string | null;
+    role_category_id: string | null;
     company: string | null;
     employment_type: string | null;
     started_at: string | null;
@@ -178,6 +181,7 @@ export default async function CandidatesPage() {
       const company = resolveExperienceCompanyName(exp);
       currentExpByUser.set(exp.user_id as string, {
         role_title: exp.role_title as string | null,
+        role_category_id: exp.role_category_id as string | null,
         company,
         employment_type: exp.employment_type as string | null,
         started_at: exp.started_at as string | null,
@@ -185,21 +189,11 @@ export default async function CandidatesPage() {
     }
   }
 
-  // スキルタグ（user_id → labels）
-  const { data: skillRows } = userIds.length > 0
-    ? await adminClient
-        .from("ow_user_skill_tags")
-        .select("user_id, label, sort_order")
-        .in("user_id", userIds)
-        .order("sort_order")
-    : { data: [] };
-
-  const skillsByUser = new Map<string, string[]>();
-  for (const s of skillRows ?? []) {
-    const uid = s.user_id as string;
-    if (!skillsByUser.has(uid)) skillsByUser.set(uid, []);
-    skillsByUser.get(uid)!.push(s.label as string);
-  }
+  // 職種（ow_roles）。
+  // ⚠️ 2026-08-04 まで自由記述のスキルタグを出していた。
+  //    表記揺れがあり絞り込みの精度が出ないため、マスタに紐づいた職種に置き換えた。
+  //    子階層があれば子（フィールドセールス）、無ければ大分類（営業）を出す。
+  const roleTree = await getRoleTree();
 
   // 自社求人一覧
   const { data: companyJobs } = await adminClient
@@ -227,7 +221,14 @@ export default async function CandidatesPage() {
         currentCompany: currentExp?.company ?? null,
         employmentType: currentExp?.employment_type ?? null,
         startedAt: currentExp?.started_at ?? null,
-        skills: skillsByUser.get(u.id as string) ?? [],
+        roleName: (() => {
+          const rid = currentExp?.role_category_id;
+          return rid ? roleTree.byId.get(rid)?.name ?? null : null;
+        })(),
+        topRoleName: (() => {
+          const top = resolveTopRole(roleTree, currentExp?.role_category_id);
+          return top?.name ?? null;
+        })(),
         jobType: profile?.job_type || null,
         workStyle: profile?.desired_work_style || null,
         desiredPhase: profile?.desired_phase || null,

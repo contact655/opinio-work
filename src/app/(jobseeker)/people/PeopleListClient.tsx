@@ -13,21 +13,33 @@ import type { DirectoryPerson } from "@/lib/people/directory";
  */
 export type AmbassadorCard = DirectoryPerson;
 
-type Props = { ambassadors: AmbassadorCard[] };
+type Props = {
+  ambassadors: AmbassadorCard[];
+  /** ow_roles の slug → id。フィルタの照合に使う。page 側で解決して渡す */
+  roleSlugToId: Record<string, string>;
+};
 
 // ── フィルタ・ソート定数 ────────────────────────────────────────────
+/**
+ * 職種フィルタ。ow_roles のトップレベル9件（slug 付き）に対応する。
+ *
+ * ⚠️ 2026-08-04 まで role_title の正規表現マッチだった。
+ *    自由記述との照合なので「営業」が「営業企画」にも当たるなど精度が出ず、
+ *    カードに出す職種（ow_roles 由来）と軸も食い違っていた。
+ *    値は ow_roles の slug で、page 側で slug → id に解決して topRoleId と比較する。
+ *    ここに無い slug を足すときは ow_roles 側にも同じ slug があることを確認すること。
+ */
 const ROLE_OPTIONS = [
-  { value: "exec",  label: "経営・役員",          pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|事業部長/i },
-  { value: "inside_sales",  label: "インサイドセールス", pattern: /インサイドセールス|inside sales|sdr|bdr|テレセールス/i },
-  { value: "field_sales",   label: "フィールドセールス", pattern: /フィールドセールス|field sales|account executive|account manager|ae\b|営業/i },
-  { value: "cs",    label: "カスタマーサクセス", pattern: /カスタマーサクセス|customer success|csm/i },
-  { value: "mkt",   label: "マーケティング",     pattern: /マーケ|market/i },
-  { value: "eng",   label: "エンジニア",         pattern: /エンジニア|engineer|開発|dev|tech|ソフトウェア/i },
-  { value: "pm",    label: "PM / PdM",           pattern: /プロダクトマネージャー|product manager|\bpm\b|pdm/i },
-  { value: "hr",    label: "人事・採用",          pattern: /人事|採用|hr|recruit/i },
-  { value: "other", label: "その他",              pattern: /その他|general|administration|総務|経理|法務|財務/i },
+  { value: "sales",     label: "営業" },
+  { value: "cs",        label: "カスタマーサクセス" },
+  { value: "marketing", label: "マーケティング" },
+  { value: "product",   label: "プロダクト" },
+  { value: "engineer",  label: "エンジニア" },
+  { value: "data-ai",   label: "データ・AI" },
+  { value: "bizdev",    label: "事業開発" },
+  { value: "corporate", label: "コーポレート" },
+  { value: "exec",      label: "経営・CxO" },
 ];
-
 
 const AGE_OPTIONS = [
   { value: "20s", label: "20代", min: 20, max: 29 },
@@ -173,14 +185,10 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
   const a = card.affiliation;
 
   if (a.kind === "none") {
-    if (!card.skills.length) return null;
-    return (
-      <div className="ppl-skills">
-        {card.skills.map((sk) => (
-          <span key={sk} className="ppl-skill-chip">{sk}</span>
-        ))}
-      </div>
-    );
+    // 所属が無い人。表示条件が「所属 または 自己紹介」なので、
+    // ここに来る人は必ず自己紹介を持っている（空欄が構造的に発生しない）。
+    if (!card.aboutMe) return null;
+    return <p className="ppl-about">{card.aboutMe}</p>;
   }
 
   if (a.kind === "self") {
@@ -210,11 +218,42 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
   );
 }
 
+/**
+ * 経験年数と職種。
+ *
+ * 「経験年数順」で並べ替えられるのにカードに年数が出ていなかったため、
+ * 並べ替えた結果を利用者が確認できなかった。あわせて職種を出す。
+ *
+ * ⚠️ どちらも値が無ければ項目ごと出さない。「—」や「0年」に置き換えない。
+ *    職歴が無い人（経験年数も職種も無い）は行ごと消える。
+ */
+function CardFacts({ card }: { card: AmbassadorCard }) {
+  const years = card.experienceMonths == null ? null : Math.floor(card.experienceMonths / 12);
+  const parts: string[] = [];
+  if (years != null && years >= 1) parts.push(`経験 ${years}年`);
+  else if (card.experienceMonths != null) parts.push("経験 1年未満");
+  if (card.roleName) parts.push(card.roleName);
+  if (!parts.length) return null;
+  return (
+    <div className="ppl-facts">
+      {parts.map((t, i) => (
+        <span key={t}>
+          {i > 0 && <span className="ppl-facts-sep" aria-hidden>・</span>}
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card }: { card: AmbassadorCard }) {
   const router = useRouter();
   const role = card.affiliation.kind === "none" ? null : card.affiliation.roleTitle;
-  const isAvailable = card.talkThemes.length > 0;
+  // ⚠️ talk_themes の件数ではなく can_casual_meeting で判定する（2026-08-04）。
+  //    talk_themes は本来「何を話せるか」であって可否ではなく、代用だった。
+  //    可否のフラグは ow_users.can_casual_meeting（/admin/candidates で切り替え）。
+  const isAvailable = card.canCasualMeeting;
 
   return (
     <div
@@ -253,6 +292,7 @@ function GridCard({ card }: { card: AmbassadorCard }) {
                高さは minHeight で揃える。 */}
         <div className="ppl-role">{role}</div>
         <AffiliationBlock card={card} />
+        <CardFacts card={card} />
       </div>
 
       {/* CTAボタン */}
@@ -278,12 +318,12 @@ function GridCard({ card }: { card: AmbassadorCard }) {
 }
 
 // ── フィルタ判定 ─────────────────────────────────────────────────────
-function matchRole(card: AmbassadorCard, v: string): boolean {
+/** v は ow_roles の slug。roleSlugToId は page 側で解決して渡す */
+function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string, string>): boolean {
   if (!v) return true;
-  // 承認済みの役職名と自己申告の職歴の役職名を両方見る（roleText に連結済み）。
-  // 片方だけだと、自己申告しかない人がどの職種にも当たらない。
-  const opt = ROLE_OPTIONS.find((o) => o.value === v);
-  return opt ? opt.pattern.test(card.roleText) : true;
+  const id = roleSlugToId[v];
+  if (!id) return true;          // slug が解決できない = 絞り込まない（黙って0件にしない）
+  return card.topRoleId === id;
 }
 function matchAge(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
@@ -294,7 +334,7 @@ function matchAge(card: AmbassadorCard, v: string): boolean {
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
   const [role, setRole] = useState("");
 
   const [age, setAge] = useState("");
@@ -322,7 +362,7 @@ export function PeopleListClient({ ambassadors }: Props) {
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
-      if (!matchRole(a, role)) return false;
+      if (!matchRole(a, role, roleSlugToId)) return false;
       if (!matchAge(a, age)) return false;
       if (!q) return true;
       const company = a.affiliation.kind === "none" ? "" : a.affiliation.companyName;
@@ -331,11 +371,10 @@ export function PeopleListClient({ ambassadors }: Props) {
         a.name.toLowerCase().includes(q) ||
         company.toLowerCase().includes(q) ||
         roleLabel.toLowerCase().includes(q) ||
-        a.skills.some((sk) => sk.toLowerCase().includes(q)) ||
-        a.talkThemes.some((t) => t.toLowerCase().includes(q))
+        (a.roleName ?? "").toLowerCase().includes(q)
       );
     });
-  }, [ambassadors, role, age, keyword]);
+  }, [ambassadors, role, age, keyword, roleSlugToId]);
 
   const sorted = useMemo(() => {
     // 既定（プロフィール順）はサーバー側で publicScore 降順に並べてあるのでそのまま。
@@ -454,13 +493,21 @@ export function PeopleListClient({ ambassadors }: Props) {
           background: var(--royal-50); color: var(--royal);
           font-size: 9px; font-weight: 800; line-height: 1;
         }
-        /* 所属が無い人。スキルタグで埋める */
-        .ppl-skills { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
-        .ppl-skill-chip {
-          font-size: 12px; font-weight: 500; color: var(--ink-soft);
-          background: var(--bg-tint); border: 1px solid var(--line-soft);
-          border-radius: 100px; padding: 3px 9px; line-height: 1.4;
+        /* 所属が無い人。自己紹介の冒頭で埋める。
+           表示条件が「所属 または 自己紹介」なので、ここに来る人は必ず自己紹介を持つ。
+           2026-08-04 まではスキルタグを出していたが、機能ごと廃止した。 */
+        .ppl-about {
+          margin: 0; font-size: 12px; font-weight: 500; color: var(--ink-soft);
+          line-height: 1.6; text-align: left;
+          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+          overflow: hidden; overflow-wrap: anywhere;
         }
+        /* 経験年数・職種。並べ替えの軸をカード上でも見えるようにする */
+        .ppl-facts {
+          margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
+          line-height: 1.5; overflow-wrap: anywhere;
+        }
+        .ppl-facts-sep { color: var(--ink-mute); margin: 0 5px; font-weight: 500; }
         .ppl-grid-card:hover {
           box-shadow: 0 8px 32px rgba(0,35,102,0.12);
           transform: translateY(-3px);
@@ -535,7 +582,7 @@ export function PeopleListClient({ ambassadors }: Props) {
                 type="search"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                placeholder="名前・会社・役職・スキルで検索"
+                placeholder="名前・会社・職種で検索"
                 style={{ flex: 1, border: "none", outline: "none", fontSize: 13.5, color: "var(--ink)", background: "transparent", padding: "9px 0", minWidth: 0, fontFamily: "inherit" }}
                 aria-label="ユーザーを検索"
               />

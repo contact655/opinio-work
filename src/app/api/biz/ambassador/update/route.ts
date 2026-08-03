@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 // PATCH /api/biz/ambassador/update
-// Body: { member_id: string; talk_themes?: string[]; is_public?: boolean; role_title?: string }
+// Body: { member_id: string; is_public?: boolean; role_title?: string }
 export async function PATCH(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,14 +13,14 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "管理者のみ操作できます" }, { status: 403 });
   }
 
-  let body: { member_id?: string; talk_themes?: string[]; is_public?: boolean; role_title?: string };
+  let body: { member_id?: string; is_public?: boolean; role_title?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { member_id, talk_themes, is_public, role_title } = body;
+  const { member_id, is_public, role_title } = body;
   if (!member_id) return NextResponse.json({ error: "member_id required" }, { status: 400 });
 
   const admin = createAdminClient();
@@ -36,7 +36,6 @@ export async function PATCH(req: NextRequest) {
   if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const patch: Record<string, unknown> = {};
-  if (talk_themes !== undefined) patch.talk_themes = talk_themes;
   if (is_public !== undefined) patch.is_public = is_public;
   if (role_title !== undefined) patch.role_title = role_title.trim() || null;
 

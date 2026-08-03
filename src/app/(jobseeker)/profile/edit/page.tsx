@@ -24,11 +24,9 @@ export default async function ProfileEditPage({
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // スキルタグ + 学歴 + 資格 + 実績 + 受賞 + メディア掲載 + 職歴 + 職種マスター を並列取得
+  // 学歴 + 実績 + 受賞 + メディア掲載 + 職歴 + 職種マスター を並列取得
   const [
-    { data: skillTagsRaw },
     { data: educationsRaw },
-    { data: certificationsRaw },
     { data: achievementsRaw },
     { data: awardsRaw },
     { data: mediaAppearancesRaw },
@@ -38,22 +36,8 @@ export default async function ProfileEditPage({
   ] = await Promise.all([
     owUser
       ? supabase
-          .from("ow_user_skill_tags")
-          .select("id, label, sort_order")
-          .eq("user_id", owUser.id)
-          .order("sort_order", { ascending: true })
-      : Promise.resolve({ data: [] }),
-    owUser
-      ? supabase
           .from("ow_user_educations")
           .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
-          .eq("user_id", owUser.id)
-          .order("sort_order", { ascending: true })
-      : Promise.resolve({ data: [] }),
-    owUser
-      ? supabase
-          .from("ow_user_certifications")
-          .select("id, name, sort_order")
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
@@ -199,10 +183,8 @@ export default async function ProfileEditPage({
     <ProfileEditClient
       owUser={owUser}
       authEmail={user.email ?? ""}
-      initialSkillTags={skillTagsRaw ?? []}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialEducations={(educationsRaw ?? []) as any}
-      initialCertifications={certificationsRaw ?? []}
       initialSocialLinks={(owUser?.social_links as Record<string, string> | null) ?? {}}
       initialAchievements={achievementsRaw ?? []}
       initialAwards={awardsRaw ?? []}

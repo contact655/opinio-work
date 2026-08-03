@@ -23,7 +23,6 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SkillTag = { id: string; label: string; sort_order: number };
 
 type EducationSchoolMaster = {
   id: string;
@@ -57,11 +56,6 @@ type School = {
   type: string;
 };
 
-type Certification = {
-  id: string;
-  name: string;
-  sort_order: number;
-};
 
 /** JSONB キー名は "x"（ν-8 段階6-1 E で twitter → x 移行済み）。値は URL 文字列。空文字列 = 未設定。 */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
@@ -127,7 +121,7 @@ function detectPlatform(url: string): string {
   return "other";
 }
 
-type ProfileTab = "basic" | "career" | "skills" | "preferences" | "certs_achievements" | "socials_content" | "privacy" | "account";
+type ProfileTab = "basic" | "career" | "preferences" | "certs_achievements" | "socials_content" | "privacy" | "account";
 
 type OwUser = {
   id: string;
@@ -430,9 +424,8 @@ function formatYMToDate(year: string, month: string): string | null {
 const PROFILE_TABS: TabItem[] = [
   { key: "basic",             label: "基本情報" },
   { key: "career",            label: "職歴・学歴" },
-  { key: "skills",            label: "スキル" },
   { key: "preferences",       label: "希望条件" },
-  { key: "certs_achievements", label: "資格・実績" },
+  { key: "certs_achievements", label: "実績・受賞" },
   { key: "socials_content",   label: "SNS・発信" },
   { key: "privacy",           label: "公開設定" },
   { key: "account",           label: "アカウント" },
@@ -608,254 +601,6 @@ function NotificationSettingsSection() {
         💡 メール通知の配信は登録メールアドレスに送られます。迷惑メールフォルダもご確認ください。
       </div>
     </div>
-  );
-}
-
-// ─── Skill Tags Editor ────────────────────────────────────────────────────────
-
-function SkillTagsEditor({
-  skillTags,
-  setSkillTags,
-}: {
-  skillTags: SkillTag[];
-  setSkillTags: React.Dispatch<React.SetStateAction<SkillTag[]>>;
-}) {
-  const [pendingLabel, setPendingLabel] = useState("");
-  const [inputError, setInputError]     = useState<string | null>(null);
-  const [skillToastMsg,     setSkillToastMsg]     = useState<string | null>(null);
-  const [skillToastVariant, setSkillToastVariant] = useState<"default" | "error">("default");
-  const [addedFeedback, setAddedFeedback] = useState<string | null>(null);
-
-  const count       = skillTags.length;
-  const isAtLimit   = count >= 15;
-  const isAlmost    = count >= 12 && count < 15; // 残り3個以下
-  const charLen     = pendingLabel.length;
-  const charIsAmber = charLen > 40;
-
-  const handleAdd = async () => {
-    const label = pendingLabel.trim();
-    if (label.length === 0) return;
-
-    // クライアント側バリデーション
-    if (label.length > 50) {
-      setInputError("タグは50字以内で入力してください。");
-      return;
-    }
-    if (skillTags.some((t) => t.label === label)) {
-      setInputError("同じタグがすでに登録されています。");
-      return;
-    }
-    if (count >= 15) {
-      setInputError("スキルタグは最大15個まで登録できます。");
-      return;
-    }
-
-    setInputError(null);
-
-    // 楽観更新: 仮 ID で先にチップを追加
-    const tempId  = `pending-${Date.now()}`;
-    const tempTag: SkillTag = { id: tempId, label, sort_order: 9999 };
-    setSkillTags((prev) => [...prev, tempTag]);
-    setPendingLabel("");
-
-    try {
-      const res = await fetch("/api/jobseeker/skill-tags", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? res.statusText);
-      }
-      const confirmed: SkillTag = await res.json();
-      // サーバ確定値（id, sort_order）で仮チップを置換
-      setSkillTags((prev) => prev.map((t) => (t.id === tempId ? confirmed : t)));
-      setSkillToastVariant("default");
-      setSkillToastMsg("スキルタグを追加しました");
-      // 即時フィードバック
-      setAddedFeedback("この技術に注目している企業：12社（サンプル）");
-      setTimeout(() => setAddedFeedback(null), 4000);
-    } catch (e) {
-      // ロールバック: 仮チップを除去 + inline エラー
-      setSkillTags((prev) => prev.filter((t) => t.id !== tempId));
-      setInputError((e as Error).message ?? "保存に失敗しました。");
-    }
-  };
-
-  const handleDelete = async (tag: SkillTag) => {
-    // 楽観更新: 即チップを除去
-    setSkillTags((prev) => prev.filter((t) => t.id !== tag.id));
-
-    try {
-      const res = await fetch(`/api/jobseeker/skill-tags/${tag.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("削除に失敗しました。");
-      setSkillToastVariant("default");
-      setSkillToastMsg("スキルタグを削除しました");
-    } catch {
-      // ロールバック: sort_order 順で復元
-      setSkillTags((prev) =>
-        [...prev, tag].sort((a, b) => a.sort_order - b.sort_order)
-      );
-      setSkillToastVariant("error");
-      setSkillToastMsg("削除に失敗しました。もう一度お試しください。");
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      handleAdd();
-    }
-  };
-
-  return (
-    <>
-    <FormSection
-      title="スキル"
-      desc="あなたのスキルや得意な技術・経験した領域をタグで登録してください。最大15個まで。"
-    >
-      {/* why-fill hint */}
-      <div style={{
-        display: "flex", alignItems: "flex-start", gap: 8,
-        padding: "10px 12px", borderRadius: 8, marginBottom: 14,
-        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span style={{ fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
-          埋めると、同じ技術スタックの企業ページで「相性の良い人」として表示されます
-        </span>
-      </div>
-
-      {/* スキル追加直後の即時フィードバック */}
-      {addedFeedback && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "8px 12px", borderRadius: 8, marginBottom: 12,
-          background: "var(--warm-soft)", border: "1px solid #FDE68A",
-          animation: "fadeInUp 0.2s ease",
-        }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#92400E" }}>{addedFeedback}</span>
-        </div>
-      )}
-
-      {/* 確定済みタグのチップ列 */}
-      {skillTags.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
-          {skillTags.map((tag) => (
-            <span
-              key={tag.id}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "5px 10px 5px 12px", borderRadius: 100,
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                fontSize: "var(--text-sm)", color: "var(--royal)", fontWeight: 500,
-                opacity: tag.id.startsWith("pending-") ? 0.55 : 1,
-                transition: "opacity 0.2s",
-              }}
-            >
-              {tag.label}
-              {/* 仮IDのチップ（保存中）には✕を出さない */}
-              {!tag.id.startsWith("pending-") && (
-                <button
-                  type="button"
-                  onClick={() => handleDelete(tag)}
-                  aria-label={`${tag.label} を削除`}
-                  style={{
-                    background: "none", border: "none", padding: 2,
-                    cursor: "pointer", color: "var(--royal)", opacity: 0.5,
-                    display: "flex", alignItems: "center",
-                    borderRadius: "50%", transition: "opacity 0.15s",
-                    lineHeight: 1,
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.5"; }}
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* 入力エリア（上限未達の場合のみ表示） */}
-      {!isAtLimit && (
-        <div>
-          <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-            <div style={{ position: "relative", flex: 1 }}>
-              <input
-                type="text"
-                value={pendingLabel}
-                onChange={(e) => {
-                  setPendingLabel(e.target.value);
-                  setInputError(null);
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="例: TypeScript, React, Supabase…（Enter または , で確定）"
-                maxLength={55}
-                style={inputStyle({ paddingRight: charLen > 0 ? 68 : 12 })}
-              />
-              {/* 入力中文字数カウンター */}
-              {charLen > 0 && (
-                <span style={{
-                  position: "absolute", right: 12, top: "50%",
-                  transform: "translateY(-50%)",
-                  fontSize: "var(--text-xs)",
-                  color: charIsAmber ? "var(--warm)" : "var(--ink-mute)",
-                  fontFamily: "Inter, sans-serif",
-                  pointerEvents: "none",
-                }}>
-                  {charLen} / 50
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* inline エラー */}
-          {inputError && (
-            <div style={{ fontSize: 11, color: "var(--error)", marginTop: 6, lineHeight: 1.6 }}>
-              {inputError}
-            </div>
-          )}
-
-          {/* 確定ヒント */}
-          {!inputError && (
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.6 }}>
-              Enter またはカンマ（,）で確定
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* タグカウンター（n / 15） */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "var(--space-3)" }}>
-        <span style={{
-          fontSize: "var(--text-xs)", fontFamily: "Inter, sans-serif",
-          color: isAtLimit ? "var(--error)" : isAlmost ? "var(--warm)" : "var(--ink-mute)",
-        }}>
-          {isAtLimit
-            ? `${count} / 15（上限に達しました）`
-            : isAlmost
-            ? `${count} / 15（残り${15 - count}個）`
-            : `${count} / 15`}
-        </span>
-      </div>
-    </FormSection>
-    {skillToastMsg && (
-      <Toast
-        message={skillToastMsg}
-        variant={skillToastVariant}
-        onDone={() => setSkillToastMsg(null)}
-      />
-    )}
-    </>
   );
 }
 
@@ -1814,157 +1559,6 @@ function EducationEditor({
   );
 }
 
-// ─── Certification Editor ─────────────────────────────────────────────────────
-
-function CertCard({
-  cert, onEdit, onDelete,
-}: { cert: Certification; onEdit: () => void; onDelete: () => void; }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
-        <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", flex: 1, minWidth: 0 }}>
-          {cert.name}
-        </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
-          <AchieveIconBtn onClick={onEdit} title="編集"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></AchieveIconBtn>
-          <AchieveIconBtn onClick={onDelete} title="削除" danger><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></AchieveIconBtn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CertificationEditor({
-  certifications,
-  setCertifications,
-}: {
-  certifications: Certification[];
-  setCertifications: React.Dispatch<React.SetStateAction<Certification[]>>;
-}) {
-  const [editingId,    setEditingId]    = useState<string | null>(null);
-  const [editDraft,    setEditDraft]    = useState("");
-  const [editSaving,   setEditSaving]   = useState(false);
-  const [editJustSaved, setEditJustSaved] = useState(false);
-  const [adding,       setAdding]       = useState(false);
-  const [addDraft,     setAddDraft]     = useState("");
-  const [addSaving,    setAddSaving]    = useState(false);
-  const [addJustSaved, setAddJustSaved] = useState(false);
-  const [toastMsg,     setToastMsg]     = useState<string | null>(null);
-  const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
-  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
-    setToastVariant(variant); setToastMsg(msg);
-  }, []);
-
-  const saveEdit = useCallback(async () => {
-    if (!editingId) return;
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/jobseeker/certifications/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editDraft.trim() }),
-      });
-      if (!res.ok) throw new Error();
-      const updated: Certification = await res.json();
-      setCertifications((prev) => prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c)));
-      showToast("資格を更新しました");
-      setEditJustSaved(true);
-      await new Promise((r) => setTimeout(r, 800));
-      setEditingId(null); setEditDraft("");
-      setEditJustSaved(false);
-    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
-    finally { setEditSaving(false); }
-  }, [editingId, editDraft, setCertifications, showToast]);
-
-  const saveAdd = useCallback(async () => {
-    setAddSaving(true);
-    try {
-      const res = await fetch("/api/jobseeker/certifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: addDraft.trim() }),
-      });
-      if (!res.ok) throw new Error();
-      const inserted: Certification = await res.json();
-      setCertifications((prev) => [...prev, inserted]);
-      showToast("資格を追加しました");
-      setAddJustSaved(true);
-      await new Promise((r) => setTimeout(r, 800));
-      setAdding(false); setAddDraft("");
-      setAddJustSaved(false);
-    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
-    finally { setAddSaving(false); }
-  }, [addDraft, setCertifications, showToast]);
-
-  const handleDelete = useCallback(async (cert: Certification) => {
-    try {
-      const res = await fetch(`/api/jobseeker/certifications/${cert.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      setCertifications((prev) => prev.filter((c) => c.id !== cert.id));
-      showToast("資格を削除しました");
-    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
-  }, [setCertifications, showToast]);
-
-  return (
-    <div style={{ maxWidth: 680 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>資格・認定</div>
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-        取得済みの資格や認定を登録できます。新しい順に入力することをおすすめします。
-      </div>
-      {certifications.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
-          資格はまだ登録されていません
-        </div>
-      )}
-      {certifications.map((cert, idx) => (
-        <div key={cert.id}>
-          {editingId === cert.id ? (
-            <div style={formBox}>
-              <div>
-                <label style={ael()}>資格名 *</label>
-                <input type="text" value={editDraft}
-                  onChange={(e) => setEditDraft(e.target.value)}
-                  placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト…"
-                  maxLength={100} disabled={editSaving} style={aef()} autoFocus />
-              </div>
-              <AchieveFormActions isSaving={editSaving} justSaved={editJustSaved} canSave={!!editDraft.trim() && !editSaving}
-                onSave={() => { void saveEdit(); }}
-                onCancel={() => { setEditingId(null); setEditDraft(""); }} />
-            </div>
-          ) : (
-            <CertCard cert={cert}
-              onEdit={() => { setEditingId(cert.id); setEditDraft(cert.name); }}
-              onDelete={() => { void handleDelete(cert); }} />
-          )}
-          {idx < certifications.length - 1 && editingId !== cert.id && (
-            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-          )}
-        </div>
-      ))}
-      {adding && (
-        <div style={{ marginTop: certifications.length > 0 ? 12 : 0 }}>
-          <div style={formBox}>
-            <div>
-              <label style={ael()}>資格名 *</label>
-              <input type="text" value={addDraft}
-                onChange={(e) => setAddDraft(e.target.value)}
-                placeholder="例：国家資格キャリアコンサルタント、AWS ソリューションアーキテクト…"
-                maxLength={100} disabled={addSaving} style={aef()} autoFocus />
-            </div>
-            <AchieveFormActions isSaving={addSaving} justSaved={addJustSaved} canSave={!!addDraft.trim() && !addSaving}
-              onSave={() => { void saveAdd(); }}
-              onCancel={() => { setAdding(false); setAddDraft(""); }} />
-          </div>
-        </div>
-      )}
-      {!adding && <AddSectionBtn label="資格を追加" onClick={() => setAdding(true)} />}
-      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
-    </div>
-  );
-}
-
 // ─── 実績・受賞タブ — shared helpers ─────────────────────────────────────────
 
 /** "2024-06-01" → "2024年6月" */
@@ -2679,9 +2273,7 @@ export type RoleItem = {
 export default function ProfileEditClient({
   owUser,
   authEmail,
-  initialSkillTags,
   initialEducations,
-  initialCertifications,
   initialSocialLinks,
   initialAchievements,
   initialAwards,
@@ -2696,9 +2288,7 @@ export default function ProfileEditClient({
 }: {
   owUser: OwUser;
   authEmail: string;
-  initialSkillTags: SkillTag[];
   initialEducations: Education[];
-  initialCertifications: Certification[];
   initialSocialLinks: SocialLinks;
   initialAchievements: Achievement[];
   initialAwards: Award[];
@@ -2722,7 +2312,7 @@ export default function ProfileEditClient({
   } | null;
 }) {
   const VALID_TABS: ProfileTab[] = [
-    "basic", "career", "skills", "preferences",
+    "basic", "career", "preferences",
     "certs_achievements", "socials_content", "privacy", "account",
   ];
   const [activeTab, setActiveTab] = useState<ProfileTab>(
@@ -3033,13 +2623,11 @@ export default function ProfileEditClient({
   }, []);
 
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
-  const [skillTags, setSkillTags] = useState<SkillTag[]>(initialSkillTags);
 
   // ── 学歴タブの状態 ───────────────────────────────────────────────────────
   const [educations, setEducations] = useState<Education[]>(initialEducations);
 
-  // ── 資格タブの状態 ───────────────────────────────────────────────────────
-  const [certifications, setCertifications] = useState<Certification[]>(initialCertifications);
+  // ── 実績・受賞タブの状態 ───────────────────────────────────────────────────────
 
   // ── 実績・受賞タブの状態 ─────────────────────────────────────────────────
   const [achievements,     setAchievements]     = useState<Achievement[]>(initialAchievements);
@@ -3172,9 +2760,8 @@ export default function ProfileEditClient({
   const tabCompletion: Record<ProfileTab, boolean> = {
     basic:             !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
     career:            initialExperiences.length > 0 || educations.length > 0,
-    skills:            skillTags.length > 0,
     preferences:       !!(prefJobType || prefWorkStyle || prefSalaryMin || prefSalaryMax || prefTiming),
-    certs_achievements: certifications.length > 0 || achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
+    certs_achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
     socials_content:   Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
     privacy:           true,
     account:           true,
@@ -3224,7 +2811,6 @@ export default function ProfileEditClient({
                 {[
                   { tab: "basic" as ProfileTab, label: "① 基本情報" },
                   { tab: "career" as ProfileTab, label: "② 職歴" },
-                  { tab: "skills" as ProfileTab, label: "③ スキル" },
                 ].map(({ tab, label }) => (
                   <button
                     key={tab}
@@ -3319,9 +2905,8 @@ export default function ProfileEditClient({
             hasAvatar:             !!owUser?.avatar_url,
             experienceCount:       initialExperiences.length,
             educationCount:        educations.length,
-            skillCount:            skillTags.length,
             hasPreferences:        !!(prefJobType || prefWorkStyle || prefTiming),
-            certOrAchievementCount: certifications.length + achievements.length + awards.length + mediaAppearances.length,
+            certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
             socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
           };
           return (
@@ -3500,16 +3085,6 @@ export default function ProfileEditClient({
               educations={educations}
               setEducations={setEducations}
               schools={schools}
-            />
-          </div>
-        )}
-
-        {/* スキルタブ */}
-        {activeTab === "skills" && (
-          <div style={{ maxWidth: 680 }}>
-            <SkillTagsEditor
-              skillTags={skillTags}
-              setSkillTags={setSkillTags}
             />
           </div>
         )}
@@ -3778,14 +3353,10 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* 資格・実績タブ */}
+        {/* 実績・受賞タブ */}
         {activeTab === "certs_achievements" && (
           <div style={{ maxWidth: 680 }}>
-            <CertificationEditor
-              certifications={certifications}
-              setCertifications={setCertifications}
-            />
-            <div style={{ marginTop: 24 }}>
+            <div>
               {/* why-fill hint */}
               <div style={{
                 display: "flex", alignItems: "flex-start", gap: 8,

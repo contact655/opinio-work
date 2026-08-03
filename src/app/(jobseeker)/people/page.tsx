@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
+import { getRoleTree } from "@/lib/supabase/queries";
 import { PeopleListClient } from "./PeopleListClient";
 
 /**
@@ -25,11 +26,19 @@ export const metadata: Metadata = {
 export default async function PeoplePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const people = await getDirectoryPeople(!!user);
+  const [people, roleTree] = await Promise.all([
+    getDirectoryPeople(!!user),
+    getRoleTree(),
+  ]);
+
+  // 職種フィルタは slug で持ち、ここで id に解決する。
+  // クライアント側に ow_roles を渡さずに済ませるため。
+  const roleSlugToId: Record<string, string> = {};
+  for (const r of roleTree.topLevel) if (r.slug) roleSlugToId[r.slug] = r.id;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={people} />
+      <PeopleListClient ambassadors={people} roleSlugToId={roleSlugToId} />
     </div>
   );
 }

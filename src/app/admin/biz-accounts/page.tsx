@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { AmbassadorToggle } from "./AmbassadorToggle";
-import { TalkThemesEditor } from "./TalkThemesEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +57,6 @@ type BizAccount = {
   roleTitle: string | null;
   isActive: boolean;
   isAmbassador: boolean;
-  talkThemes: string[];
   createdAt: string;
   lastLogin: string | null;
   neverLoggedIn: boolean;
@@ -71,7 +69,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
     await Promise.all([
       admin
         .from("ow_company_admins")
-        .select("id, company_id, user_id, permission, role_title, is_active, is_ambassador, talk_themes, created_at")
+        .select("id, company_id, user_id, permission, role_title, is_active, is_ambassador, created_at")
         .order("created_at", { ascending: false }),
       admin.from("ow_users").select("id, auth_id, name, email, avatar_color"),
       admin.from("ow_companies").select("id, name, engagement_status, is_published"),
@@ -120,7 +118,6 @@ async function getBizAccounts(): Promise<BizAccount[]> {
       roleTitle: row.role_title as string | null,
       isActive: row.is_active as boolean,
       isAmbassador: (row.is_ambassador as boolean) ?? false,
-      talkThemes: (row.talk_themes as string[] | null) ?? [],
       createdAt: row.created_at as string,
       lastLogin,
       neverLoggedIn: !lastLogin,
@@ -399,14 +396,6 @@ export default async function AdminBizAccountsPage({
                       </div>
                     </td>
 
-                    {/* 話せるテーマ */}
-                    <td style={{ padding: "12px 16px", minWidth: 200 }}>
-                      {acc.isAmbassador ? (
-                        <TalkThemesEditor adminId={acc.id} initialThemes={acc.talkThemes} />
-                      ) : (
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>—</span>
-                      )}
-                    </td>
                   </tr>
                 );
               })}

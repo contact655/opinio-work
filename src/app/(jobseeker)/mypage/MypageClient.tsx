@@ -290,7 +290,7 @@ function DashboardView({
   userId, userName, userInitial, userAvatar,
   currentRole,
   userLocation, userAboutMe, userBirthDate, userSocialLinks,
-  userSkillTags, userEducations, userCertifications, timelineCareers,
+  userEducations, timelineCareers,
   ambassadorMemberships = [],
   schoolPeerCounts = {},
 }: {
@@ -300,14 +300,12 @@ function DashboardView({
   userLocation?: string | null; userAboutMe?: string | null;
   userBirthDate?: string | null;
   userSocialLinks?: Record<string, string> | null;
-  userSkillTags?: { id: string; label: string; sort_order: number }[];
   userEducations?: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  userCertifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
   ambassadorMemberships?: AmbassadorMembership[];
   schoolPeerCounts?: Record<string, number>;
@@ -331,8 +329,6 @@ function DashboardView({
         userBirthDate={userBirthDate}
         
         userSocialLinks={userSocialLinks}
-        userSkillTags={userSkillTags}
-        userCertifications={userCertifications}
         isMentor={false}
       />
 
@@ -688,9 +684,7 @@ type AmbassadorMembership = { id: string; company_id: string; company_name: stri
 
 export default function MypageClient({
   owUser,
-  skillTags = [],
   educations = [],
-  certifications = [],
   timelineCareers = [],
   companyBookmarks,
   jobBookmarks,
@@ -706,14 +700,12 @@ export default function MypageClient({
   schoolPeerCounts = {},
 }: {
   owUser: OwUser;
-  skillTags?: { id: string; label: string; sort_order: number }[];
   educations?: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  certifications?: { id: string; name: string; sort_order: number }[];
   timelineCareers?: CareerEntry[];
   companyBookmarks: Bookmark[];
   jobBookmarks: Bookmark[];
@@ -867,9 +859,9 @@ export default function MypageClient({
           hasAvatar:             !!owUser?.avatar_url,
           experienceCount:       timelineCareers?.length ?? 0,
           educationCount:        educations?.length ?? 0,
-          skillCount:            skillTags?.length ?? 0,
           hasPreferences:        hasCareerPreferences,
-          certOrAchievementCount: certifications?.length ?? 0,
+          // 資格は 2026-08-04 に廃止。実績・受賞・メディア掲載は /mypage では未取得のため 0
+          certOrAchievementCount: 0,
           socialOrContentCount:  Object.values((owUser?.social_links as Record<string, unknown>) ?? {}).filter(Boolean).length,
         };
         return <ProfileCompletionBar data={completionData} mode="mypage" />;
@@ -1141,9 +1133,7 @@ export default function MypageClient({
           userBirthDate={owUser?.birth_date}
 
           userSocialLinks={owUser?.social_links as Record<string, string> | null}
-          userSkillTags={skillTags}
           userEducations={educations}
-          userCertifications={certifications}
           timelineCareers={timelineCareers}
           ambassadorMemberships={ambassadorMemberships}
           schoolPeerCounts={schoolPeerCounts}

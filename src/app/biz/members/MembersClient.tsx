@@ -19,7 +19,6 @@ export type AmbassadorRecord = {
   display_consent: boolean;
   is_public: boolean;
   invited_at: string | null;
-  talk_themes: string[];
 };
 
 export type AmbassadorCandidate = {

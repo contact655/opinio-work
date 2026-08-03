@@ -25,10 +25,6 @@ export type UserProfileCardProps = {
   userBirthDate?: string | null;
   /** social_links JSONB — SocialPlatform キー（"twitter" は E で "x" に移行済み）*/
   userSocialLinks?: Record<string, string> | null;
-  /** ow_user_skill_tags — sort_order 昇順 */
-  userSkillTags?: { id: string; label: string; sort_order: number }[];
-  /** ow_user_certifications — sort_order 昇順（資格名のみ） */
-  userCertifications?: { id: string; name: string; sort_order: number }[];
   isMentor: boolean;
 };
 
@@ -73,8 +69,6 @@ export default function UserProfileCard({
   userAboutMe,
   userBirthDate,
   userSocialLinks,
-  userSkillTags = [],
-  userCertifications = [],
   isMentor,
 }: UserProfileCardProps) {
 
@@ -238,86 +232,6 @@ export default function UserProfileCard({
           <Link href="/profile/edit" style={{ color: "var(--royal)", marginLeft: 6, fontWeight: 600 }}>
             追加する →
           </Link>
-        </div>
-      )}
-
-      {/* ── スキルタグ ───────────────────────────────────────────────────── */}
-      {userSkillTags.length > 0 && (() => {
-        const TECH_KEYWORDS = [
-          "html","css","javascript","typescript","react","vue","angular","next","nuxt",
-          "node","python","java","go","ruby","php","swift","kotlin","rust","scala","c++","c#",
-          "sql","aws","gcp","azure","docker","kubernetes","git","github","graphql","rest","api",
-          "tailwind","sass","figma","sketch","adobe","supabase","firebase","mongodb","postgresql",
-          "mysql","redis","terraform","jenkins","ci/cd","linux","bash","webpack","vite",
-        ];
-        const isTech = (label: string) =>
-          TECH_KEYWORDS.some(k => label.toLowerCase().includes(k));
-        const techTags = userSkillTags.filter(t => isTech(t.label));
-        const bizTags  = userSkillTags.filter(t => !isTech(t.label));
-        return (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
-              スキル
-            </div>
-            {bizTags.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>ビジネス</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {bizTags.map((tag) => (
-                    <span key={tag.id} style={{
-                      display: "inline-flex", alignItems: "center",
-                      padding: "4px 10px", borderRadius: 100,
-                      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                      fontSize: 12, color: "var(--royal)", fontWeight: 500,
-                    }}>{tag.label}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {techTags.length > 0 && (
-              <div>
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 5 }}>テクノロジー</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {techTags.map((tag) => (
-                    <span key={tag.id} style={{
-                      display: "inline-flex", alignItems: "center",
-                      padding: "4px 10px", borderRadius: 100,
-                      background: "#F0FDF4", border: "1px solid #BBF7D0",
-                      fontSize: 12, color: "#15803D", fontWeight: 500,
-                    }}>{tag.label}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ── 資格・認定（資格名のみ） ─────────────────────────────────────── */}
-      {userCertifications.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
-            資格・認定
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {userCertifications.map((cert) => (
-              <span
-                key={cert.id}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "4px 10px", borderRadius: 100,
-                  background: "var(--warm-soft)", border: "1px solid #FDE68A",
-                  fontSize: 12, color: "#92400E", fontWeight: 500,
-                }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="6" />
-                  <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-                </svg>
-                {cert.name}
-              </span>
-            ))}
-          </div>
         </div>
       )}
 

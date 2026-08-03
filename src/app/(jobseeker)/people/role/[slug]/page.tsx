@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDirectoryPeople, type DirectoryPerson } from "@/lib/people/directory";
+import { getRoleTree } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,13 @@ const ROLE_MAP: Record<string, {
   labelEn: string;
   description: string;
   icon: string;
-  pattern: RegExp;
+  /**
+   * ow_roles のトップレベル slug。URL の slug とは別。
+   * URL 側（sales/cs/mkt/eng/pm/hr/exec）は既存リンクを壊さないため変えない。
+   * ⚠️ 2026-08-04 まで role_title の正規表現だった。ow_roles に寄せて
+   *    カード表示・/people のフィルタと軸を揃えている。
+   */
+  roleSlug: string;
   salarySlug: string | null;
 }> = {
   sales: {
@@ -21,7 +28,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "Sales / Account Executive",
     description: "外資系SaaS・IT企業の営業職経験者。新規開拓・商談・クロージングのリアルな話を聞けます。",
     icon: "📈",
-    pattern: /営業|sales|セールス|account executive|account manager|フィールドセールス|インサイドセールス|sdr|bdr/i,
+    roleSlug: "sales",
     salarySlug: "enterprise-sales",
   },
   cs: {
@@ -29,7 +36,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "Customer Success",
     description: "顧客の継続・活用支援を担うCS職経験者。日々の業務や必要なスキルセットについて直接聞けます。",
     icon: "🤝",
-    pattern: /カスタマーサクセス|customer success|csm/i,
+    roleSlug: "cs",
     salarySlug: "customer-success",
   },
   mkt: {
@@ -37,7 +44,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "Marketing",
     description: "B2B・SaaSマーケティング経験者。コンテンツ・需要創出・ブランド戦略など多彩なキャリアについて聞けます。",
     icon: "📣",
-    pattern: /マーケ|market/i,
+    roleSlug: "marketing",
     salarySlug: null,
   },
   eng: {
@@ -45,7 +52,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "Software Engineer",
     description: "IT/SaaS企業の開発・インフラエンジニア経験者。技術スタック・開発文化・キャリアパスを直接確認できます。",
     icon: "⚙️",
-    pattern: /エンジニア|engineer|開発|dev|tech|ソフトウェア/i,
+    roleSlug: "engineer",
     salarySlug: "backend-engineer",
   },
   pm: {
@@ -53,7 +60,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "Product Manager",
     description: "SaaS・IT企業のPM・PdM経験者。プロダクト戦略・ロードマップ・ステークホルダー調整の実態を聞けます。",
     icon: "🗂️",
-    pattern: /プロダクトマネージャー|product manager|\bpm\b|pdm/i,
+    roleSlug: "product",
     salarySlug: "product-manager",
   },
   hr: {
@@ -61,7 +68,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "HR / Talent Acquisition",
     description: "IT/SaaS企業で採用・HRBPを経験した方。組織づくり・採用の内側・キャリアの広がりについて聞けます。",
     icon: "👥",
-    pattern: /人事|採用|hr|recruit/i,
+    roleSlug: "corporate",
     salarySlug: null,
   },
   exec: {
@@ -69,7 +76,7 @@ const ROLE_MAP: Record<string, {
     labelEn: "Executive / Leadership",
     description: "CEO・CTO・VP・事業部長など経営層経験者。意思決定・事業戦略・スタートアップの実態について聞けます。",
     icon: "🏆",
-    pattern: /CEO|CTO|COO|CFO|VP|役員|代表|社長|事業部長/i,
+    roleSlug: "exec",
     salarySlug: null,
   },
 };
@@ -100,10 +107,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
  *    親を「登録ユーザー一覧」に変えると同じ人が親には出て子には出ない状態になった。
  *    条件を足したくなったら directory.ts 側に書くこと。
  */
-async function getPeopleByRole(pattern: RegExp, isLoggedIn: boolean): Promise<DirectoryPerson[]> {
-  const all = await getDirectoryPeople(isLoggedIn);
-  // 承認済みと自己申告の役職名を両方含む roleText で判定する
-  return all.filter((p) => pattern.test(p.roleText)).slice(0, 100);
+async function getPeopleByRole(slug: string, isLoggedIn: boolean): Promise<DirectoryPerson[]> {
+  const [all, tree] = await Promise.all([getDirectoryPeople(isLoggedIn), getRoleTree()]);
+  // ⚠️ 2026-08-04 まで role_title の正規表現マッチだった。
+  //    自由記述との照合で精度が出ず、カードに出す職種（ow_roles 由来）と軸も
+  //    食い違っていたため、ow_roles の9大分類 ID で判定する。
+  const top = tree.topBySlug.get(slug);
+  if (!top) return [];
+  return all.filter((p) => p.topRoleId === top.id).slice(0, 100);
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -114,7 +125,7 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const people = await getPeopleByRole(role.pattern, !!user);
+  const people = await getPeopleByRole(role.roleSlug, !!user);
 
   const otherRoles = Object.entries(ROLE_MAP).filter(([slug]) => slug !== params.slug);
 
@@ -176,7 +187,6 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
             <div className="pr-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 14, marginBottom: 40 }}>
               {people.map((p) => {
                 const aff = p.affiliation;
-                const themes = p.talkThemes;
                 return (
                   // 遷移先は本人のプロフィール。以前は企業ページに飛ばしていたが、
                   // 所属が無い人がいるので本人に統一する。
@@ -202,18 +212,24 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
                               {aff.kind === "verified" && <span style={{ color: "var(--royal)", fontWeight: 800 }}> ✓</span>}
                             </div>
                           )}
-                          {aff.kind === "none" && p.skills.length > 0 && (
-                            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>{p.skills.join(" / ")}</div>
+                          {aff.kind === "none" && p.aboutMe && (
+                            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.aboutMe}</div>
                           )}
                         </div>
                       </div>
-                      {themes.length > 0 && (
+                      {/* 経験年数・職種。カード（/people）と同じ軸で出す */}
+                      {(p.experienceMonths != null || p.roleName) && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {themes.slice(0, 3).map((t) => (
-                            <span key={t} style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
-                              {t}
+                          {p.experienceMonths != null && (
+                            <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>
+                              経験 {Math.max(1, Math.floor(p.experienceMonths / 12))}年
                             </span>
-                          ))}
+                          )}
+                          {p.roleName && (
+                            <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                              {p.roleName}
+                            </span>
+                          )}
                         </div>
                       )}
                       <div style={{ marginTop: 14, fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>

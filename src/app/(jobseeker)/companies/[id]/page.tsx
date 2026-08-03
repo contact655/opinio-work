@@ -1130,7 +1130,7 @@ function EmployeeCard({
 }: {
   employee: CompanyEmployee;
   showEndedAt?: boolean;
-  ambassadorInfo?: { memberId: string; themes: string[] } | null;
+  ambassadorInfo?: { memberId: string } | null;
   companyId?: string;
 }) {
   const isAmbassador = !!ambassadorInfo;
@@ -1234,7 +1234,7 @@ function CurrentEmployeesSection({
   hiddenCount?: number;
   totalCount?: number;
   categories: CompanyEmployeeCategoryItem[];
-  ambassadorMap: Map<string, { memberId: string; themes: string[] }>;
+  ambassadorMap: Map<string, { memberId: string }>;
   companyId: string;
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
@@ -2203,11 +2203,10 @@ type PublicAmbassador = {
   id: string;
   user_id: string;
   role_title: string | null;
-  talk_themes: string[] | null;
   ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
 };
 
-type AmbassadorInfo = { memberId: string; themes: string[] };
+type AmbassadorInfo = { memberId: string };
 
 type CompanyPost = {
   id: string;
@@ -3043,7 +3042,7 @@ export default async function CompanyDetailPage({
       .eq("is_approved", true),
     adminSupabase
       .from("ow_company_members")
-      .select("id, user_id, role_title, talk_themes, ow_users!user_id(name, avatar_color, avatar_url)")
+      .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url)")
       .eq("company_id", companyId)
       .eq("display_consent", true)
       .eq("is_public", true)
@@ -3058,7 +3057,7 @@ export default async function CompanyDetailPage({
   // userId → ambassador情報のマップ（EmployeeCardの面談OKバッジ用）
   const ambassadorMap = new Map<string, AmbassadorInfo>();
   for (const a of ambassadors) {
-    ambassadorMap.set(a.user_id, { memberId: a.id, themes: a.talk_themes ?? [] });
+    ambassadorMap.set(a.user_id, { memberId: a.id });
   }
 
   const authUser = authResult.data.user;

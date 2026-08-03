@@ -74,11 +74,6 @@ type Education = {
   sort_order: number;
 };
 
-type Certification = {
-  id: string;
-  name: string;
-  sort_order: number;
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -159,10 +154,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
     (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
   );
 
-  // Fetch experiences + skill tags + educations + certifications + content links + achievements + awards + media in parallel
+  // Fetch experiences + educations + content links + achievements + awards + media in parallel
   const [
-    { data: expRows }, { data: allRoles }, { data: skillTagsRaw },
-    { data: educationsRaw }, { data: certificationsRaw }, { data: contentLinksRaw },
+    { data: expRows }, { data: allRoles },
+    { data: educationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
     { data: recentPostsRaw },
   ] = await Promise.all([
@@ -174,18 +169,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .order("started_at", { ascending: false }),
     supabase.from("ow_roles").select("id, name, parent_id"),
     supabase
-      .from("ow_user_skill_tags")
-      .select("id, label, sort_order")
-      .eq("user_id", owUser.id)
-      .order("sort_order", { ascending: true }),
-    supabase
       .from("ow_user_educations")
       .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
-      .eq("user_id", owUser.id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("ow_user_certifications")
-      .select("id, name, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
     supabase
@@ -216,9 +201,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .limit(6),
   ]);
 
-  const skillTags      = skillTagsRaw      ?? [];
   const educations     = (educationsRaw     ?? []) as Education[];
-  const certifications = (certificationsRaw ?? []) as Certification[];
   const contentLinks   = (contentLinksRaw  ?? []) as Array<{
     id: string; url: string; platform: string | null;
     title: string | null; description: string | null;
@@ -384,14 +367,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const currentCompanyPhase = currentCareer?.company_id ? (companyInfoById.get(currentCareer.company_id)?.phase ?? null) : null;
 
   // サイドバーにコンテンツがあるか（なければ1カラム）
-  const hasSidebarContent = isCurrentCompanyKnown || certifications.length > 0;
+  const hasSidebarContent = isCurrentCompanyKnown;
 
   // セクションナビ用リスト（ProfileNavClient に渡す）
   const navSections = [
     owUser.about_me ? { id: "about", label: "自己紹介" } : null,
     timelineCareers.length > 0 ? { id: "career", label: "職歴" } : null,
     timelineEdus.length > 0 ? { id: "education", label: "学歴" } : null,
-    skillTags.length > 0 ? { id: "skills", label: "スキル" } : null,
     (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
     contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
     (viewerIsOwner || recentPostsTyped.length > 0) ? { id: "activity", label: "投稿" } : null,
@@ -790,12 +772,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
               const items = [
                 { label: "自己紹介", done: !!owUser.about_me, tab: "basic", icon: "✍️" },
                 { label: "職歴", done: timelineCareers.length > 0, tab: "career", icon: "🏢" },
-                { label: "スキル", done: skillTags.length > 0, tab: "skills", icon: "⚡" },
                 { label: "目指していること", done: !!owUser.future_aspirations, tab: "basic", icon: "🎯" },
                 { label: "数値実績", done: achievements.length > 0, tab: "career", icon: "📊" },
                 { label: "受賞・表彰", done: awards.length > 0, tab: "career", icon: "🏆" },
                 { label: "発信コンテンツ", done: contentLinks.length > 0, tab: "content", icon: "📝" },
-                { label: "資格・認定", done: certifications.length > 0, tab: "certs", icon: "🏅" },
               ];
               const completedCount = items.filter((i) => i.done).length;
               const percentage = Math.round((completedCount / items.length) * 100);
@@ -1020,52 +1000,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </div>
                   ))}
                 </div>
-              </section>
-            )}
-
-            {/* ── 資格・認定（メインカラム） ── */}
-            {certifications.length > 0 && (
-              <section style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    資格・認定
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    LICENSES &amp; CERTIFICATIONS
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-                    {certifications.length}件
-                  </span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {certifications.map((cert) => (
-                    <div key={cert.id} style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "12px 14px", borderRadius: 10,
-                      background: "var(--bg-tint)", border: "1px solid var(--line)",
-                    }}>
-                      <span style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.4 }}>
-                        {cert.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {viewerIsOwner && (
-                  <Link href="/profile/edit?tab=certs" style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    marginTop: 14, fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
-                  }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    資格を追加
-                  </Link>
-                )}
               </section>
             )}
 
@@ -1736,40 +1670,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </div>
                 );
               })()}
-
-              {/* Certifications */}
-              {certifications.length > 0 && (
-                <div style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "18px 20px",
-                }}>
-                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", marginBottom: "var(--space-3)", textTransform: "uppercase" }}>
-                    資格・認定
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                    {certifications.map((cert) => (
-                      <div key={cert.id} style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "8px 10px", borderRadius: 8,
-                        background: "var(--bg-tint)", border: "1px solid var(--line)",
-                      }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                          background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
-                            <circle cx="12" cy="8" r="6" />
-                            <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-                          </svg>
-                        </div>
-                        <span style={{ fontSize: 12, color: "var(--ink)", fontWeight: 500, lineHeight: 1.4 }}>{cert.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
 
             </div>
           </aside>

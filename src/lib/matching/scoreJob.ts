@@ -1,13 +1,12 @@
 import type { Job } from "@/app/jobs/mockJobData";
 
-// ─── ユーザープロフィール（ow_profiles + ow_user_skill_tags）──────────────
+// ─── ユーザープロフィール（ow_profiles）──────────────────────────────────
 export type ScoringProfile = {
   job_type: string | null;           // 希望職種
   desired_salary_min: number | null; // 万円
   desired_salary_max: number | null;
   desired_phase: string[] | null;    // 希望企業フェーズ（例: ["シリーズA","上場"]）
   desired_work_style: string | null; // "full_remote" | "hybrid" | "on_site" | Japanese
-  skill_labels: string[];            // ow_user_skill_tags.label[]
 };
 
 // ─── 出力型 ──────────────────────────────────────────────────────────────
@@ -66,13 +65,23 @@ function matchesJobCategory(profileJobType: string, jobCategory: string): boolea
 }
 
 // ─── 設定定数 ─────────────────────────────────────────────────────────────
+/**
+ * 配点。合計 120。
+ *
+ * ── 2026-08-04 の変更 ──────────────────────────────────────────────────────
+ * スキルタグ機能の廃止に伴い SKILL（最大20点）を削除し、
+ * 残った4軸に比例配分（×1.2）した。合計が 120 のままなので
+ * RECOMMEND_CONFIG.MIN_SCORE = 30 のしきい値の意味も変わらない。
+ *   JOB_TYPE 40→48 / SALARY 25→30 / PHASE 20→24 / WORK_STYLE 15→18
+ *
+ * ⚠️ ow_jobs.required_skills / preferred_skills は求人票の表示に使うため残っている。
+ *    突き合わせる相手（ユーザー側のスキル）が無くなっただけで、求人側は無関係。
+ */
 const WEIGHTS = {
-  JOB_TYPE:    40,
-  SALARY:      25,
-  PHASE:       20,
-  WORK_STYLE:  15,
-  SKILL_EACH:   5,
-  SKILL_MAX:   20,
+  JOB_TYPE:    48,
+  SALARY:      30,
+  PHASE:       24,
+  WORK_STYLE:  18,
 };
 
 export const RECOMMEND_CONFIG = {
@@ -158,24 +167,6 @@ export function scoreJob(
     if (normWorkStyle(profile.desired_work_style) === normWorkStyle(job.work_style)) {
       score += WEIGHTS.WORK_STYLE;
       reasonParts.push(`勤務形態（${job.work_style}）が希望と一致`);
-    }
-  }
-
-  // 5. スキル重なり
-  if (profile.skill_labels.length > 0) {
-    const jobSkillPool = [
-      ...(job.required_skills ?? []),
-      ...(job.preferred_skills ?? []),
-    ].map((s) => s.toLowerCase());
-    const matched = profile.skill_labels.filter((skill) =>
-      jobSkillPool.some(
-        (js) => js.includes(skill.toLowerCase()) || skill.toLowerCase().includes(js)
-      )
-    );
-    if (matched.length > 0) {
-      const pts = Math.min(matched.length * WEIGHTS.SKILL_EACH, WEIGHTS.SKILL_MAX);
-      score += pts;
-      reasonParts.push(`スキル（${matched.slice(0, 2).join("・")}）が活かせる`);
     }
   }
 

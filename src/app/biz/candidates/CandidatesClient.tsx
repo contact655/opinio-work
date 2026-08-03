@@ -14,7 +14,10 @@ type Candidate = {
   currentCompany: string | null;
   employmentType: string | null;
   startedAt: string | null;
-  skills: string[];
+  /** ow_roles の職種名。子階層があれば子、無ければ大分類 */
+  roleName: string | null;
+  /** ow_roles の9大分類名 */
+  topRoleName: string | null;
   jobType: string | null;
   workStyle: string | null;
   desiredPhase: string[] | null;
@@ -250,7 +253,8 @@ export default function CandidatesClient({
           (c.currentRole ?? "").toLowerCase().includes(t) ||
           (c.currentCompany ?? "").toLowerCase().includes(t) ||
           (c.location ?? "").includes(t) ||
-          c.skills.some((s) => s.toLowerCase().includes(t))
+          (c.roleName ?? "").toLowerCase().includes(t) ||
+          (c.topRoleName ?? "").toLowerCase().includes(t)
         )
       );
     }
@@ -797,13 +801,24 @@ export default function CandidatesClient({
                           </div>
                         )}
 
-                        {/* タグ行: 居住地のみ */}
-                        {c.location && (
-                          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, padding: "2px 8px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
-                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                              {extractPrefecture(c.location) ?? c.location}
-                            </span>
+                        {/* タグ行: 職種・居住地。
+                            職種は ow_roles 由来（2026-08-04）。
+                            以前は自由記述のスキルタグを検索対象にしていたが、
+                            表記揺れで絞り込みの精度が出ないためマスタの職種に置き換えた。
+                            旧スキルタグはカードに表示していなかったので、ここは新規表示。 */}
+                        {(c.roleName || c.location) && (
+                          <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+                            {c.roleName && (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)" }}>
+                                {c.roleName}
+                              </span>
+                            )}
+                            {c.location && (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 500, padding: "2px 8px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                {extractPrefecture(c.location) ?? c.location}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

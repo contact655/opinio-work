@@ -4,6 +4,8 @@ import {
   resolveExperienceCompanyLabel,
   EXPERIENCE_COMPANY_COLS,
 } from "@/lib/experiences/companyName";
+import { getRoleTree } from "@/lib/supabase/queries";
+import { resolveTopRole } from "@/lib/roles/jobRoles";
 
 /**
  * /people と /people/role/[slug] が共有する「登録ユーザー一覧」の取得。
@@ -18,9 +20,9 @@ import {
  *
  * ── 出す / 出さないの線 ─────────────────────────────────────────────────────
  * 「カードに出せる情報が1つでもあること」を下限にする。
- *   現職の所属 / 自己紹介 / スキル3件以上 のいずれか。
- * 名前だけのカードが並ぶのを避けるためで、実質「完成度30%相当」に当たる。
- * 職歴の有無だけで切らないのは、職歴未入力でもスキル・学歴・自己紹介が
+ *   現職の所属 または 自己紹介。
+ * 名前だけのカードが並ぶのを避けるため。
+ * 職歴の有無だけで切らないのは、職歴未入力でも学歴・自己紹介が
  * 揃っている人がいるため（切ると落ちる）。
  *
  * visibility は従来どおり。private は常に除外、login_only はログイン時のみ。
@@ -57,21 +59,24 @@ export type DirectoryPerson = {
   gradient: string;
   avatarUrl: string | null;
   affiliation: Affiliation;
-  /** 所属が無い人のカードに出す。最大3件 */
-  skills: string[];
-  /** ow_company_members.talk_themes。1件以上で「面談可」バッジ */
-  talkThemes: string[];
+  /**
+   * 職種。ow_experiences.role_category_id → ow_roles。
+   * 子階層があれば子（フィールドセールス）、無ければ大分類（営業）。
+   * 5名中4名が大分類「営業」で識別できないため、細かいほうを出す。
+   */
+  roleName: string | null;
+  /** 職種フィルタ用の9大分類 ID。roleName とは粒度が違う（フィルタは粗く） */
+  topRoleId: string | null;
+  /** 所属が無い人のカードに出す自己紹介の抜粋。表示条件と一致するので必ず何か入る */
+  aboutMe: string | null;
+  /** ow_users.can_casual_meeting。true で「面談可」バッジ */
+  canCasualMeeting: boolean;
   /** 公開項目だけの完成度（81点満点）。既定の並び順に使う */
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
   experienceMonths: number | null;
   birthYear: number | null;
   createdAt: string | null;
-  /** 職種フィルタの照合対象。承認済みと自己申告の役職名を両方含む */
-  roleText: string;
-  /** 下限判定に使う内部値。skills は表示用に3件へ切っているので別に持つ */
-  _hasAboutMe: boolean;
-  _skillCount: number;
 };
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
@@ -101,6 +106,7 @@ type ExpRow = {
   started_at: string | null;
   ended_at: string | null;
   role_title: string | null;
+  role_category_id: string | null;
   visibility_company: string | null;
   company_id: string | null;
   company_text: string | null;
@@ -111,7 +117,6 @@ type ExpRow = {
 type MemberRow = {
   user_id: string;
   role_title: string | null;
-  talk_themes: string[] | null;
   company_id: string;
   ow_companies: {
     id: string; name: string | null; brand_name: string | null;
@@ -124,7 +129,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
 
   const { data: userRows, error } = await db
     .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, about_me, location, social_links, created_at");
+    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, about_me, location, social_links, created_at, can_casual_meeting");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -136,6 +141,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
     about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
+    can_casual_meeting: boolean | null;
   };
 
   const visible = ((userRows ?? []) as UserRow[]).filter((u) => {
@@ -152,23 +158,27 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   // 完成度と所属の材料をまとめて引く。
   // ⚠️ 希望条件（ow_profiles）は引かない。公開されない情報を並び順に混ぜないため
   //    （src/lib/profile/completion.ts の PUBLIC_KEYS を参照）。
-  const [expRes, eduRes, skillRes, certRes, linkRes, memberRes, careerRes] = await Promise.all([
+  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, memberRes, careerRes, roleTree] = await Promise.all([
     db.from("ow_experiences")
-      .select(`user_id, is_current, started_at, ended_at, role_title, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
+      .select(`user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
       .in("user_id", ids),
     db.from("ow_user_educations").select("user_id").in("user_id", ids),
-    db.from("ow_user_skill_tags").select("user_id, label, sort_order").in("user_id", ids).order("sort_order"),
-    db.from("ow_user_certifications").select("user_id").in("user_id", ids),
     db.from("ow_user_content_links").select("user_id").in("user_id", ids),
+    // 「実績・受賞」3点。資格は 2026-08-04 に廃止したのでこの3テーブルだけ見る
+    db.from("ow_user_achievements").select("user_id").in("user_id", ids),
+    db.from("ow_user_awards").select("user_id").in("user_id", ids),
+    db.from("ow_user_media_appearances").select("user_id").in("user_id", ids),
     db.from("ow_company_members")
-      .select("user_id, role_title, talk_themes, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)")
+      .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)")
       .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
     db.from("ow_career_profiles").select("user_id, birth_year").in("user_id", ids),
+    getRoleTree(),
   ]);
 
   for (const [label, res] of Object.entries({
-    experiences: expRes, educations: eduRes, skills: skillRes,
-    certifications: certRes, links: linkRes, members: memberRes, career: careerRes,
+    experiences: expRes, educations: eduRes, links: linkRes,
+    achievements: achRes, awards: awdRes, media: medRes,
+    members: memberRes, career: careerRes,
   })) {
     if (res.error) console.error(`[people] ${label} fetch error:`, res.error.message);
   }
@@ -184,9 +194,12 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
 
   const exps    = byUser((expRes.data ?? []) as unknown as ExpRow[]);
   const edus    = byUser((eduRes.data ?? []) as { user_id: string }[]);
-  const skills  = byUser((skillRes.data ?? []) as { user_id: string; label: string }[]);
-  const certs   = byUser((certRes.data ?? []) as { user_id: string }[]);
   const links   = byUser((linkRes.data ?? []) as { user_id: string }[]);
+  const achieve = byUser([
+    ...((achRes.data ?? []) as { user_id: string }[]),
+    ...((awdRes.data ?? []) as { user_id: string }[]),
+    ...((medRes.data ?? []) as { user_id: string }[]),
+  ]);
   const members = byUser((memberRes.data ?? []) as unknown as MemberRow[]);
   const birthYear = new Map<string, number | null>(
     ((careerRes.data ?? []) as { user_id: string; birth_year: number | null }[]).map((c) => [c.user_id, c.birth_year])
@@ -196,7 +209,6 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
 
   const people = visible.map((u): DirectoryPerson => {
     const myExps    = exps.get(u.id) ?? [];
-    const mySkills  = (skills.get(u.id) ?? []).map((s) => s.label).filter(Boolean);
     const myMembers = members.get(u.id) ?? [];
 
     // ── 所属。承認済み > 自己申告（現職）> なし ──────────────────────────
@@ -233,7 +245,19 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       experienceMonths = monthsBetween(first, last);
     }
 
-    const hasAboutMe = !!u.about_me?.trim();
+    // ── 職種。現職 → 無ければ直近の職歴 から role_category_id を引く ──────
+    //    ⚠️ カードには「子があれば子」を出す。5名中4名が大分類「営業」で、
+    //       大分類だけでは誰が誰だか分からないため。
+    //       フィルタ用の topRoleId は逆に大分類（粗いほうが絞り込みには効く）。
+    const roleSource = myExps.find((e) => e.is_current && e.role_category_id)
+      ?? myExps.find((e) => e.role_category_id);
+    const roleNode = roleSource?.role_category_id
+      ? roleTree.byId.get(roleSource.role_category_id) ?? null
+      : null;
+    const topRole = resolveTopRole(roleTree, roleSource?.role_category_id);
+
+    const about = u.about_me?.trim() ?? "";
+    const hasAboutMe = about.length > 0;
 
     const publicScore = calcPublicScore({
       hasName: true,
@@ -242,8 +266,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       hasAvatar: !!u.avatar_url,
       experienceCount: myExps.length,
       educationCount: (edus.get(u.id) ?? []).length,
-      skillCount: mySkills.length,
-      certOrAchievementCount: (certs.get(u.id) ?? []).length,
+      certOrAchievementCount: (achieve.get(u.id) ?? []).length,
       socialOrContentCount:
         Object.values(u.social_links ?? {}).filter(Boolean).length + (links.get(u.id) ?? []).length,
     });
@@ -255,28 +278,23 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       gradient: u.avatar_color?.startsWith("linear-gradient") ? u.avatar_color : FALLBACK_GRADIENT,
       avatarUrl: u.avatar_url,
       affiliation,
-      skills: mySkills.slice(0, 3),
-      talkThemes: myMembers.flatMap((m) => m.talk_themes ?? []),
+      roleName: roleNode?.name ?? null,
+      topRoleId: topRole?.id ?? null,
+      aboutMe: hasAboutMe ? about.replace(/\s+/g, " ") : null,
+      canCasualMeeting: u.can_casual_meeting === true,
       publicScore,
       experienceMonths,
       birthYear: birthYear.get(u.id) ?? null,
       createdAt: u.created_at,
-      // 職種フィルタは承認済み・自己申告の両方を見る。
-      // 片方だけだと、自己申告しかない人がどの職種にも当たらなくなる。
-      roleText: [
-        ...myMembers.map((m) => m.role_title ?? ""),
-        ...myExps.map((e) => e.role_title ?? ""),
-      ].join(" "),
-      _hasAboutMe: hasAboutMe,
-      _skillCount: mySkills.length,
     };
   });
 
   // ── 下限: カードに出せる情報が1つでもあること ────────────────────────────
-  //    名前だけのカードを並べないための線。この3つはいずれもカード上に出る情報。
-  const shown = people.filter(
-    (p) => p.affiliation.kind !== "none" || p._hasAboutMe || p._skillCount >= 3
-  );
+  //    名前だけのカードを並べないための線。どちらもカード上に出る情報。
+  //    ⚠️ 2026-08-04 まで「スキル3件以上」も条件に入れていたが、
+  //       スキルタグ機能の廃止に伴い外した。対象者は変わらない
+  //       （唯一スキルで通っていた人も自己紹介を持っていたため）。
+  const shown = people.filter((p) => p.affiliation.kind !== "none" || p.aboutMe !== null);
 
   // 既定は完成度の高い順。同点は新しい登録順
   return shown.sort(

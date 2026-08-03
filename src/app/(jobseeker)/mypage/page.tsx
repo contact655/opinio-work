@@ -34,37 +34,23 @@ export default async function MypagePage({
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // Fetch skill tags + educations + certifications + experiences + roles in parallel
-  let skillTags: { id: string; label: string; sort_order: number }[] = [];
+  // Fetch educations + experiences + roles in parallel
   let educations: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
-  let certifications: { id: string; name: string; sort_order: number }[] = [];
   let timelineCareers: CareerEntry[] = [];
   if (owUser) {
     const [
-      { data: tags },
       { data: edus },
-      { data: certs },
       { data: expRows },
       { data: allRoles },
     ] = await Promise.all([
       supabase
-        .from("ow_user_skill_tags")
-        .select("id, label, sort_order")
-        .eq("user_id", owUser.id)
-        .order("sort_order", { ascending: true }),
-      supabase
         .from("ow_user_educations")
         .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
-        .eq("user_id", owUser.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("ow_user_certifications")
-        .select("id, name, sort_order")
         .eq("user_id", owUser.id)
         .order("sort_order", { ascending: true }),
       supabase
@@ -78,11 +64,6 @@ export default async function MypagePage({
         .select("id, name, parent_id"),
     ]);
 
-    skillTags = (tags ?? []).map((t) => ({
-      id: t.id as string,
-      label: t.label as string,
-      sort_order: t.sort_order as number,
-    }));
     educations = (edus ?? []).map((e) => ({
       id: e.id as string,
       school: e.school as string,
@@ -94,11 +75,6 @@ export default async function MypagePage({
       graduated_at: (e.graduated_at as string | null) ?? null,
       is_current: e.is_current as boolean,
       sort_order: e.sort_order as number,
-    }));
-    certifications = (certs ?? []).map((c) => ({
-      id: c.id as string,
-      name: c.name as string,
-      sort_order: c.sort_order as number,
     }));
 
     // ロール情報 Map（職種名 + 親カテゴリ名）
@@ -371,5 +347,5 @@ export default async function MypagePage({
   const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} skillTags={skillTags} educations={educations} certifications={certifications} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  return <MypageClient owUser={owUser} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }
