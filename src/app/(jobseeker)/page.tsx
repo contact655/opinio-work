@@ -264,10 +264,37 @@ export default async function HomePage() {
     entry.users.add(r.user_id);
     bySchool.set(s.id, entry);
   }
-  const schoolFacets: LPFacet[] = Array.from(bySchool.entries())
+  const allSchoolFacets: LPFacet[] = Array.from(bySchool.entries())
     .map(([id, v]) => ({ key: id, label: v.name, count: v.users.size, href: `/schools/${id}` }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ja"))
     .slice(0, 12);
+
+  /**
+   * 「人から探す」を出すかどうかの閾値。5校以上かつ実人数10名以上。
+   *
+   * なぜ隠すか: 1名の学校がいくつも並ぶ状態は、探す手がかりとして機能しない。
+   * 「数を隠さない」方針とは矛盾しない ——「表示する値を偽らない」ことと
+   * 「セクションを出すかどうか」は別の判断で、ここは後者。出す値は常に実数。
+   *
+   * なぜ2条件か: 学校数だけでは足りず、1校あたりの密度が要る。チップをクリックした
+   * 先が1名では回遊にならないため、平均2名程度（= 5校に対して10名）になるまで待つ。
+   *
+   * 人数は distinct なユーザー数で数える。1人が高校と大学の2件を登録するため、
+   * 学校ごとの件数を単純合計すると同じ人を重複して数えてしまう
+   * （2026-08-03 時点: 8校 / 学歴9件 / 実人数5名 → 人数が足りず非表示）。
+   *
+   * データが増えて閾値を超えれば自動的に表示される。将来ここが表示されていない
+   * 場合は、バグではなくこの閾値に達していないだけ。
+   */
+  const SCHOOL_MIN_SCHOOLS = 5;
+  const SCHOOL_MIN_USERS = 10;
+  const distinctSchoolUsers = new Set(
+    Array.from(bySchool.values()).flatMap((v) => Array.from(v.users))
+  ).size;
+  const schoolFacets: LPFacet[] =
+    allSchoolFacets.length >= SCHOOL_MIN_SCHOOLS && distinctSchoolUsers >= SCHOOL_MIN_USERS
+      ? allSchoolFacets
+      : [];
 
   return (
     <LandingPage
