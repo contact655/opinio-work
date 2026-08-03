@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { LPBandMember } from "./lpGuestMembers";
 
 export type LPMember = {
   id: string;
@@ -117,8 +118,8 @@ export default function LandingPage({
   members: LPMember[];
   /** 実際にカジュアル面談を申し込める人数。表示専用メンバーは含まない */
   bookableCount: number;
-  /** ヒーロー直下の人物帯。掲載同意済みなら面談可否を問わない */
-  bandMembers: LPMember[];
+  /** ヒーロー直下の人物帯「その転職を、すでにした人」 */
+  bandMembers: LPBandMember[];
 }) {
   const memberCount = bookableCount;
 
@@ -228,16 +229,19 @@ export default function LandingPage({
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 22 }}>IT・SaaS特化</div>
             {/* 短い見出しなのでポスター寸法に上げ、改行位置は意図どおり固定する */}
-            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(38px, 4.6vw, 60px)", lineHeight: 1.32, letterSpacing: "-0.02em", color: C.navy, marginBottom: 22 }}>
-              入社後が、<br />先に見える。
+            {/* 2行目「すでにした人がいます。」が11文字。FVカードが出ている2カラム時の
+                カラム幅517px と モバイル390px時の354px の両方に収まるサイズに抑える
+                （44px×11=484 / 30px×11=330）。上げると2カラム復活時に溢れる。 */}
+            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(30px, 3.4vw, 44px)", lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 22 }}>
+              その転職を、<br />すでにした人がいます。
             </h1>
             {/* maxWidth 26em だと実測440pxの本文に余白2pxしか無く、フォントフォールバック時に
                 「か。」だけが2行目に落ちるため30emにする。
                 さらに読点を境に inline-block で塊にして、折り返しが句の途中で起きないようにする
                 （デスクトップ=1行 / モバイル=読点で2行）。 */}
             <p style={{ fontSize: 17, color: "#374357", marginBottom: 34, maxWidth: "30em", lineHeight: 1.85 }}>
-              <span style={{ display: "inline-block" }}>その会社にどんな人がいて、</span>
-              <span style={{ display: "inline-block" }}>どこから来て、どこへ行ったか。</span>
+              <span style={{ display: "inline-block" }}>一般論ではなく、</span>
+              <span style={{ display: "inline-block" }}>その人の判断を聞けます。</span>
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
               <Link href="/people" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: C.navy, color: "#fff", padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
@@ -345,7 +349,7 @@ export default function LandingPage({
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 10 }}>PEOPLE</div>
               <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(22px,2.4vw,30px)", lineHeight: 1.45, color: C.navy }}>
-                OPINIOに参加している現役社員
+                その転職を、すでにした人
               </h2>
             </div>
             <Link href="/people" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
@@ -372,11 +376,19 @@ export default function LandingPage({
                 </div>
                 <div style={{ marginTop: 13 }}>
                   <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.5 }}>{m.name}</b>
-                  {m.companyName && (
-                    <span style={{ display: "block", fontSize: 12.5, color: C.muted, marginTop: 2 }}>{m.companyName}</span>
+                  {/* この枠の主役は現職ではなく「起点 → 現在」。反応の起点になるのは前職側 */}
+                  <div style={{ marginTop: 5, display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, color: C.muted }}>{m.fromCompany}</span>
+                    <span style={{ fontSize: 12, color: "#C9B896" }}>→</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: C.navy }}>{m.toCompany}</span>
+                  </div>
+                  {m.viaCount > 0 && (
+                    <span style={{ display: "block", fontSize: 11.5, color: "#94A3B8", marginTop: 3 }}>
+                      （他{m.viaCount}社を経て）
+                    </span>
                   )}
                   {m.quote && (
-                    <span style={{ display: "block", fontSize: 12.5, color: "#3E4A5C", marginTop: 7, lineHeight: 1.65 }}>{m.quote}</span>
+                    <span style={{ display: "block", fontSize: 12.5, color: "#3E4A5C", marginTop: 8, lineHeight: 1.65 }}>{m.quote}</span>
                   )}
                 </div>
               </div>

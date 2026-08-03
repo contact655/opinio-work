@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import LandingPage, { type LPMember } from "./LandingPage";
-import { LP_GUEST_MEMBERS } from "./lpGuestMembers";
+import { DB_BAND_LABELS, LP_GUEST_BAND, type LPBandMember } from "./lpGuestMembers";
 
 export const metadata: Metadata = {
   title: "OPINIO — IT/SaaS業界特化のキャリアプラットフォーム",
@@ -46,9 +46,11 @@ const MEMBER_PHOTOS: Record<string, string> = {
 
 type ExpRow = {
   user_id: string;
+  company_id: string | null;
   company_text: string | null;
   started_at: string | null;
   is_current: boolean | null;
+  visibility_company: string | null;
 };
 
 export default async function HomePage() {
@@ -78,23 +80,54 @@ export default async function HomePage() {
     });
 
   // Fetch career history for each member
+  // company_text だけでなく company_id も取る。マスタ企業に紐づく職歴は company_text が
+  // NULL のため、company_text だけを見ると経歴の大半が欠落する。
   const userIds = listed.map((r) => r.ow_users!.id);
   const expByUser: Record<string, string[]> = {};
+  const expRowsByUser: Record<string, ExpRow[]> = {};
 
   if (userIds.length > 0) {
-    const { data: exps } = await adminSupabase
+    const { data: exps, error: expError } = await adminSupabase
       .from("ow_experiences")
-      .select("user_id, company_text, started_at, is_current")
+      .select("user_id, company_id, company_text, started_at, is_current, visibility_company")
       .in("user_id", userIds)
-      .not("company_text", "is", null)
       .order("started_at", { ascending: true, nullsFirst: false });
 
+    if (expError) {
+      console.error("[HomePage] ow_experiences fetch failed:", expError.message);
+    }
+
     for (const e of (exps ?? []) as ExpRow[]) {
-      if (!e.user_id || !e.company_text) continue;
-      if (!expByUser[e.user_id]) expByUser[e.user_id] = [];
-      expByUser[e.user_id].push(e.company_text);
+      if (!e.user_id) continue;
+      (expRowsByUser[e.user_id] ??= []).push(e);
+      // FVカードの経歴チップは自由入力の社名のみ（従来どおり）
+      if (e.company_text) (expByUser[e.user_id] ??= []).push(e.company_text);
     }
   }
+
+  /**
+   * 人物帯用に、ある人の「中間の会社数」と「起点・現職の公開可否」を求める。
+   * 同じ会社での役割変更が別行になっているため、行数ではなく会社の distinct 数で数える
+   * （木村さんは4行あるが会社は3社で、中間は1社）。
+   */
+  const analyzeCareer = (rows: ExpRow[]) => {
+    const keys: string[] = [];
+    for (const r of rows) {
+      const key = r.company_id ?? r.company_text;
+      if (!key) continue;
+      if (keys[keys.length - 1] !== key) keys.push(key); // 連続する同一社をまとめる
+    }
+    const distinct = Array.from(new Set(keys));
+    const first = rows.find((r) => (r.company_id ?? r.company_text) === keys[0]);
+    const current = rows.find((r) => r.is_current === true) ?? rows[rows.length - 1];
+    return {
+      viaCount: Math.max(0, distinct.length - 2),
+      // 起点と現職のどちらかが実名公開でなければ帯には出さない。
+      // 人物帯は経歴を見せる枠なので、経歴側の同意（visibility_company）が効く。
+      canShowRealNames:
+        first?.visibility_company === "real" && current?.visibility_company === "real",
+    };
+  };
 
   const toLPMember = (r: MemberRow): LPMember => {
     const u = r.ow_users!;
@@ -127,10 +160,34 @@ export default async function HomePage() {
     .sort(photoFirst)
     .slice(0, 4);
 
-  // ヒーロー直下の人物帯: 掲載同意済みなら面談可否を問わず対象。
-  // アカウントを持たない掲載のみの人（LP_GUEST_MEMBERS）もここに入る。
-  const bandMembers = [...listed.map(toLPMember), ...LP_GUEST_MEMBERS]
-    .sort(photoFirst)
+  // ヒーロー直下の人物帯「その転職を、すでにした人」。
+  // 表示文字列は DB_BAND_LABELS / LP_GUEST_BAND が持ち、
+  // 中間社数と公開可否は DB のある人だけ ow_experiences から算出・検証する。
+  const dbBand: LPBandMember[] = listed.flatMap((r) => {
+    const u = r.ow_users!;
+    const label = DB_BAND_LABELS[u.id];
+    if (!label) return []; // 帯に出すラベルが未定義の人は出さない
+
+    const { viaCount, canShowRealNames } = analyzeCareer(expRowsByUser[u.id] ?? []);
+    if (!canShowRealNames) {
+      // 本人が経歴上「社名を伏せる」を選んでいる。企業側の掲載要望より本人の希望を優先する。
+      console.info("[HomePage] 人物帯から除外（visibility_company が real でない）:", u.name);
+      return [];
+    }
+
+    return [{
+      id: u.id,
+      name: u.name,
+      photoUrl: MEMBER_PHOTOS[u.id] ?? null,
+      fromCompany: label.fromCompany,
+      toCompany: label.toCompany,
+      viaCount,
+      quote: r.talk_themes?.[0] ?? null,
+    }];
+  });
+
+  const bandMembers: LPBandMember[] = [...dbBand, ...LP_GUEST_BAND]
+    .sort((a, b) => a.name.localeCompare(b.name, "ja"))
     .slice(0, 4);
 
   // 枠に出ている全員が面談可なので、そのまま人数になる。
