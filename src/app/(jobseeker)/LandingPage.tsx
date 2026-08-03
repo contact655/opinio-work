@@ -168,12 +168,23 @@ export default function LandingPage({
         <div className="lp-wrap" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           {/*
             FV は 見出し・検索窓の2要素のみ。サブコピー / 注記 / 件数バッジ / アイブロウは置かない。
-            見出しが英語のため「何のサービスか」は検索窓のプレースホルダーが担う
+            「何のサービスか」は検索窓のプレースホルダーが担う
             （IT・SaaS という業界の限定はそこにしか書いていないので、短くしないこと）。
-            英語見出しは letter-spacing を詰めない — 和文と違って詰めると読みにくくなる。
+
+            ⚠️ 2026-08-04: 英語見出し「The full picture, before you apply.」から戻した。
+               ① apply（応募）が転職を前提にしており、「転職を前提にしない」という
+                  プロダクトの方針と矛盾していた。見出しで応募を前提に置くと、
+                  情報収集の段階にいる人を最初の一画面で締め出すことになる
+               ② 無名ブランドの英語見出しは日本市場で意味伝達が弱い。
+                  英語見出しが機能するのは、読み手が既にブランドを知っていて
+                  「雰囲気」として受け取れる場合に限られる
+               英語に戻すなら上の2点をどう解くかを先に決めること。
+
+            和文なので letter-spacing を軽く詰める（英語では詰めていなかった）。
+            文字数が減った分 fontSize を上げている。実機で 375/768/1440px を確認済み。
           */}
-          <h1 style={{ fontSize: "clamp(30px, 3.6vw, 50px)", fontWeight: 800, lineHeight: 1.25, letterSpacing: "-0.015em", color: C.navy, marginBottom: 34 }}>
-            The full picture,<br />before you apply.
+          <h1 style={{ fontSize: "clamp(34px, 4.6vw, 62px)", fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.02em", color: C.navy, marginBottom: 34 }}>
+            確かめてから、動く。
           </h1>
 
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
