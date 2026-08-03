@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getJobs } from "@/lib/supabase/queries";
+import { getJobs, getRoleTree } from "@/lib/supabase/queries";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 
 // 求人の掲載状態（published / closed）がここに出るため、鮮度は求人詳細に合わせて60秒。
@@ -9,63 +9,48 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 export const revalidate = 60;
 
 // ─── カテゴリ定義 ─────────────────────────────────────────────────────────────
-
-const DEPT_SLUG_MAP: Record<string, {
-  label: string;
-  labelEn: string;
-  description: string;
-  jobCategories: string[];
-}> = {
-  sales: {
-    label: "セールス・CS",
-    labelEn: "Sales & Customer Success",
-    description: "IT/SaaS企業のフィールドセールス・インサイドセールス・SDR・BDR・カスタマーサクセス求人。",
-    jobCategories: ["フィールドセールス", "インサイドセールス", "SDR", "BDR", "カスタマーサクセス", "カスタマーサポート"],
-  },
-  marketing: {
-    label: "マーケティング",
-    labelEn: "Marketing",
-    description: "IT/SaaS企業のマーケティング・プロダクトマーケティング求人。",
-    jobCategories: ["マーケティング", "プロダクトマーケティング"],
-  },
-  management: {
-    label: "経営・事業開発",
-    labelEn: "Management & Business Development",
-    description: "IT/SaaS企業の経営・事業開発・BizDev求人。",
-    jobCategories: ["経営・CxO", "事業開発", "事業開発・BizDev"],
-  },
-  corporate: {
-    label: "コーポレート",
-    labelEn: "Corporate",
-    description: "IT/SaaS企業のHR・人事・財務・経理・法務・コーポレート求人。",
-    jobCategories: ["コーポレート", "HR・人事", "財務・経理", "法務"],
-  },
-  product: {
-    label: "プロダクト・デザイン",
-    labelEn: "Product & Design",
-    description: "IT/SaaS企業のプロダクトマネージャー・デザイナー・データサイエンティスト求人。",
-    jobCategories: ["プロダクトマネージャー", "デザイナー", "データサイエンティスト"],
-  },
-  engineer: {
-    label: "ソフトウェアエンジニア",
-    labelEn: "Software Engineer",
-    description: "IT/SaaS企業のバックエンド・フロントエンド・フルスタックエンジニア求人。",
-    jobCategories: ["バックエンド", "フロントエンド", "フルスタック"],
-  },
-  infra: {
-    label: "インフラ・SRE",
-    labelEn: "Infrastructure & SRE",
-    description: "IT/SaaS企業のSRE・インフラ・iOS/Androidエンジニア求人。",
-    jobCategories: ["SRE/インフラ", "iOS/Android"],
-  },
+//
+// 2026-08-03: 職種の分類を ow_roles の9大分類に一本化した。
+//
+// 旧実装は独自の7スラッグ × job_category のフリーテキスト一致だった。
+// 企業が biz の職種セレクトで正しく選んでも、その語彙（営業 / エンジニア / PdM 等）が
+// ここの jobCategories（フィールドセールス / バックエンド 等）と噛み合わず、
+// 7つの職種ページのうち6つが常に0件になっていた（published 18件中15件が到達不能）。
+//
+// slug と label は ow_roles（parent_id IS NULL の9件）から引く。ここに持つのは
+// SEO 用の説明文だけ。マスタに無い分類をここで増やさないこと——
+// 語彙をコード側に作った結果が上記の破綻だった。
+const DEPT_SEO: Record<string, { labelEn: string; description: string }> = {
+  exec:      { labelEn: "Executive & CxO",        description: "IT/SaaS企業の経営・CxO・幹部候補の求人。" },
+  bizdev:    { labelEn: "Business Development",   description: "IT/SaaS企業の事業開発・アライアンス・BizDev求人。" },
+  sales:     { labelEn: "Sales",                  description: "IT/SaaS企業のフィールドセールス・インサイドセールス・SDR/BDR・セールスエンジニア・プリセールスの求人。" },
+  cs:        { labelEn: "Customer Success",       description: "IT/SaaS企業のカスタマーサクセス・カスタマーサポート・テクニカルサポート求人。" },
+  marketing: { labelEn: "Marketing",              description: "IT/SaaS企業のマーケティング・プロダクトマーケティング求人。" },
+  product:   { labelEn: "Product & Design",       description: "IT/SaaS企業のプロダクトマネージャー・デザイナーの求人。" },
+  "data-ai": { labelEn: "Data & AI",              description: "IT/SaaS企業のデータサイエンティスト・データアナリスト・機械学習エンジニア求人。" },
+  engineer:  { labelEn: "Software Engineer",      description: "IT/SaaS企業のバックエンド・フロントエンド・SRE・モバイルエンジニア求人。" },
+  corporate: { labelEn: "Corporate",              description: "IT/SaaS企業のHR・人事・財務・経理・法務・コーポレート求人。" },
 };
 
+/** ow_roles の9大分類を SEO 文言つきで取得する */
+async function getDeptCategories() {
+  const tree = await getRoleTree();
+  return tree.topLevel
+    .filter((r) => r.slug && DEPT_SEO[r.slug])
+    .map((r) => ({
+      slug: r.slug as string,
+      id: r.id,
+      label: r.name,
+      ...DEPT_SEO[r.slug as string],
+    }));
+}
+
 export async function generateStaticParams() {
-  return Object.keys(DEPT_SLUG_MAP).map((slug) => ({ slug }));
+  return Object.keys(DEPT_SEO).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const cat = DEPT_SLUG_MAP[params.slug];
+  const cat = (await getDeptCategories()).find((c) => c.slug === params.slug);
   if (!cat) return { title: { absolute: "求人 | OPINIO" } };
 
   const title = `${cat.label}の求人 | OPINIO`;
@@ -99,18 +84,17 @@ function formatSalary(min: number, max: number): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function JobDeptPage({ params }: { params: { slug: string } }) {
-  const cat = DEPT_SLUG_MAP[params.slug];
+  const categories = await getDeptCategories();
+  const cat = categories.find((c) => c.slug === params.slug);
   if (!cat) notFound();
 
   const { jobs, companies } = await getJobs();
 
   const companyMap = new Map(companies.map((c) => [c.id, c]));
 
-  const filteredJobs = jobs.filter((j) =>
-    cat.jobCategories.some(
-      (cat) => j.dept === cat || (j.role ?? "").includes(cat)
-    )
-  );
+  // getJobs は roleIds に「具体職種＋その祖先」を入れているので、
+  // 大分類の UUID がそのまま含まれているかを見るだけでよい。
+  const filteredJobs = jobs.filter((j) => (j.roleIds ?? []).includes(cat.id));
 
   return (
     <>
@@ -163,7 +147,8 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
           }}>
             {filteredJobs.length}件の求人
           </span>
-          <Link href={`/jobs?dept=${encodeURIComponent(cat.jobCategories[0])}`} style={{
+          {/* /jobs の職種フィルタは ow_roles の UUID を受ける（?dept= の文字列一致は廃止） */}
+          <Link href={`/jobs?category=${cat.id}`} style={{
             fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
           }}>
             フィルタで絞り込む →
@@ -223,6 +208,18 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                       </div>
                       {/* メタ情報 */}
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                        {/* 具体職種。大分類に集約して出しているので、
+                            なぜこのページに載っているかが分かるよう実際の職種名も出す
+                            （例: 営業ページに「セールスエンジニア」） */}
+                        {job.roleName && job.roleName !== cat.label && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+                            background: "var(--bg-tint)", color: "var(--ink-soft)",
+                            border: "1px solid var(--line)",
+                          }}>
+                            {job.roleName}
+                          </span>
+                        )}
                         {hasSalary && (
                           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>
                             {formatSalary(job.salary_min, job.salary_max)}
@@ -279,15 +276,15 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
           他の職種カテゴリ
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-          {Object.entries(DEPT_SLUG_MAP)
-            .filter(([slug]) => slug !== params.slug)
-            .map(([slug, info]) => (
+          {categories
+            .filter((c) => c.slug !== params.slug)
+            .map((c) => (
               <Link
-                key={slug}
-                href={`/jobs/dept/${slug}`}
+                key={c.slug}
+                href={`/jobs/dept/${c.slug}`}
                 className="dept-cat-chip"
               >
-                {info.label}
+                {c.label}
               </Link>
             ))}
         </div>

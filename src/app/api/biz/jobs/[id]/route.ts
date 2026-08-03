@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
+import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -52,7 +53,8 @@ export async function PUT(
     .update({
       title: str(body.title, 200),
       employment_type: str(body.employmentType, 50),
-      job_category: str(body.jobCategory, 100),
+      // job_category はクライアントから受け取らない。職種の正は ow_job_roles で、
+      // この列は下の syncJobCategoryFromRoles が primary ロール名から派生させる。
       department: str(body.department, 100),
       salary_min: salaryMin,
       salary_max: salaryMax,
@@ -120,6 +122,8 @@ export async function PUT(
       await supabase.from("ow_job_roles").insert(
         jobRoles.map((r) => ({ job_id: jobId, role_id: r.roleId, is_primary: r.isPrimary }))
       );
+      // job_category は primary ロール名から派生させる（移行期間中の表示用互換値）
+      await syncJobCategoryFromRoles(supabase, jobId, jobRoles);
     }
   } catch { /* best-effort */ }
 

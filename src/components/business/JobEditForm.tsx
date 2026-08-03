@@ -12,13 +12,12 @@ import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
-import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS, isSalesJob } from "@/lib/constants/salesFields";
+import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
 const EMPLOYMENT_TYPES = ["正社員", "業務委託", "契約社員", "インターン", "アルバイト・パート"];
-const JOB_CATEGORIES = ["営業", "PdM / PM", "カスタマーサクセス", "エンジニア", "マーケティング", "経営・CxO", "その他"];
 const REMOTE_OPTIONS = ["フルリモート可", "ハイブリッド（週2-3日出社）", "原則出社"];
 const DURATION_OPTIONS = ["応相談", "1ヶ月以内", "3ヶ月以内", "半年以内"];
 
@@ -292,6 +291,27 @@ export function JobEditForm({
   const parentRoles = useMemo(() => roles.filter((r) => r.parent_id === null), [roles]);
   const childRoles = useMemo(() => roleParentId ? roles.filter((r) => r.parent_id === roleParentId) : [], [roleParentId, roles]);
 
+  // セールス専用ブロック（OTE・担当セグメント）の出し分け。
+  // 旧実装は job_category のフリーテキストを見ていたが、その入力欄を廃止したため
+  // 選択中のロールが「営業」配下かどうかで判定する。ow_roles は最大3階層あり
+  // （営業 → ソリューションエンジニア・プリセールス → セールスエンジニア）、
+  // 親を1回辿るだけでは足りないのでルートまで遡る。
+  const isSalesSelected = useMemo(() => {
+    const byId = new Map(roles.map((r) => [r.id, r]));
+    const salesRootId = parentRoles.find((r) => r.name === "営業")?.id;
+    if (!salesRootId) return false;
+    return selectedRoles.some((sr) => {
+      let node = byId.get(sr.roleId);
+      const seen = new Set<string>();
+      while (node && !seen.has(node.id)) {
+        if (node.id === salesRootId) return true;
+        seen.add(node.id);
+        node = node.parent_id ? byId.get(node.parent_id) : undefined;
+      }
+      return false;
+    });
+  }, [roles, parentRoles, selectedRoles]);
+
   const addRole = () => {
     const targetId = childRoles.length > 0 ? roleChildId : roleParentId;
     if (!targetId || selectedRoles.some((r) => r.roleId === targetId)) return;
@@ -493,11 +513,18 @@ export function JobEditForm({
                   ))}
                 </div>
               </FormGroup>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <FormGroup style={{ margin: 0 }}>
-                  <FormLabel required htmlFor="jef-job-category">職種カテゴリ</FormLabel>
-                  <FormSelect id="jef-job-category" value={form.jobCategory} onChange={(v) => updateForm("jobCategory", v)} options={JOB_CATEGORIES} />
-                </FormGroup>
+              {/*
+                「職種カテゴリ」セレクト（JOB_CATEGORIES 7値 → ow_jobs.job_category）は
+                2026-08-03 に削除した。職種は下の「職種（ow_roles）」ピッカー一本に統一する。
+
+                削除した理由: この7値（営業 / PdM・PM / エンジニア / その他 など）が
+                職種ページ側の語彙と噛み合わず、正しく選んでも4/7はどの職種ページにも
+                載らなかった。二重入力で、しかも壊れているほうを残す理由が無い。
+
+                job_category カラム自体はまだ残っており、API 側で primary ロール名から
+                派生させて書いている（表示用の互換値）。参照箇所の移行が済んだら列ごと落とす。
+              */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
                 <FormGroup style={{ margin: 0 }}>
                   <FormLabel optional htmlFor="jef-department">所属部門</FormLabel>
                   {departments.length > 0 ? (
@@ -723,7 +750,7 @@ export function JobEditForm({
               </FormGroup>
 
               {/* ── セールス職専用ブロック ── */}
-              {isSalesJob(form.jobCategory) && (
+              {isSalesSelected && (
                 <div style={{ border: "1.5px solid #DBEAFE", borderRadius: 12, padding: "20px 20px 12px", background: "#EFF6FF", marginTop: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>

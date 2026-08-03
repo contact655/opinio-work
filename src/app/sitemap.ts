@@ -81,7 +81,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     })),
     // ── Static: job dept pages ───────────────────────────────────────────────
-    ...["sales", "marketing", "management", "corporate", "product", "engineer", "infra"].map((slug) => ({
+    // ow_roles の9大分類の slug と一致させること（2026-08-03 に独自7スラッグから移行）。
+    // 旧 management / infra は next.config.mjs で 301 を張っている。
+    ...["exec", "bizdev", "sales", "cs", "marketing", "product", "data-ai", "engineer", "corporate"].map((slug) => ({
       url: `${baseUrl}/jobs/dept/${slug}`,
       lastModified: new Date(),
       changeFrequency: "weekly" as const,

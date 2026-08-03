@@ -11,6 +11,7 @@ import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
+import { buildRoleTree, type RoleTree, type RoleNode } from "@/lib/roles/jobRoles";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
@@ -135,7 +136,12 @@ function mapJob(row: Record<string, any>): Job {
     slug: (row.slug as string | null) ?? null,
     company_id: row.company_id as string,
     role: (row.title as string) ?? "",
+    // ⚠️ dept は ow_jobs.job_category（廃止予定のフリーテキスト）。
+    //    職種の判定・フィルタには使わないこと。roleIds / roleName を使う。
+    //    2026-08-03 時点で残しているのは /salary が job_category の粒度に
+    //    合わせて作られているため（別タスクで整理する）。
     dept: (row.job_category as string) ?? "",
+    // ⚠️ role_category_id は migration の一括投入のまま。biz UI が更新しないため廃止予定。
     role_category_id: (row.role_category_id as string) ?? undefined,
     employment_type: (row.employment_type as string) ?? "正社員",
     location: (row.location as string) ?? "",
@@ -707,6 +713,61 @@ export const getParentRoles = unstable_cache(
   { revalidate: 3600 } // 1時間キャッシュ（ロールはほぼ変わらない）
 );
 
+/**
+ * ow_roles を全階層まとめて取得する。
+ * ow_job_roles に入るのは「具体職種」なので、9大分類に集約するには
+ * 全階層が要る（最大3階層。resolveTopRole() 参照）。
+ */
+// ⚠️ unstable_cache は戻り値を JSON 化して保存するため、Map / Set を返すと
+//    復元時に素のオブジェクトになり .get() が消える。
+//    キャッシュするのは配列（JSON で往復できる形）だけにし、
+//    Map の組み立てはリクエストごとに react cache() 側で行う。
+const getRoleRows = unstable_cache(
+  async (): Promise<RoleNode[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("ow_roles")
+      .select("id, parent_id, name, slug, display_order")
+      .eq("is_active", true);
+    if (error) console.error("[getRoleRows]", error.message);
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      parentId: (r.parent_id as string | null) ?? null,
+      name: r.name as string,
+      slug: (r.slug as string | null) ?? null,
+      displayOrder: (r.display_order as number | null) ?? 0,
+    }));
+  },
+  ["role-rows"],
+  { revalidate: 3600 }
+);
+
+export const getRoleTree = cache(async function getRoleTree(): Promise<RoleTree> {
+  return buildRoleTree(await getRoleRows());
+});
+
+/** job_id → ow_job_roles の role_id[]（is_primary が先頭）。RLS バイパス */
+export async function getJobRoleMap(jobIds?: string[]): Promise<Map<string, string[]>> {
+  const admin = createAdminClient();
+  let q = admin.from("ow_job_roles").select("job_id, role_id, is_primary");
+  if (jobIds && jobIds.length > 0) q = q.in("job_id", jobIds);
+  const { data, error } = await q;
+  if (error) console.error("[getJobRoleMap]", error.message);
+
+  const map = new Map<string, { id: string; primary: boolean }[]>();
+  for (const r of data ?? []) {
+    const jid = r.job_id as string;
+    if (!map.has(jid)) map.set(jid, []);
+    map.get(jid)!.push({ id: r.role_id as string, primary: (r.is_primary as boolean) === true });
+  }
+  const out = new Map<string, string[]>();
+  map.forEach((rows, jid) => {
+    rows.sort((a, b) => Number(b.primary) - Number(a.primary));
+    out.set(jid, rows.map((r) => r.id));
+  });
+  return out;
+}
+
 // ─── Job queries ──────────────────────────────────────────────────────────────
 
 const JOB_LIST_COLS = [
@@ -746,29 +807,51 @@ export const getJobs = unstable_cache(
       jobQuery = jobQuery.in("status", ["active", "published"]);
     }
 
-    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }] = await Promise.all([
+    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree] = await Promise.all([
       jobQuery,
       supabase.from("ow_companies").select(COMPANY_LIST_COLS),
       // ow_job_roles: 全求人の職種紐づけを一括取得（admin: RLS バイパス）
-      admin.from("ow_job_roles").select("job_id, role_id"),
+      admin.from("ow_job_roles").select("job_id, role_id, is_primary"),
+      getRoleTree(),
     ]);
 
     if (jobErr) console.error("[getJobs]", jobErr.message);
 
-    // job_id → role_id[] マップを構築
-    const jobRoleMap = new Map<string, string[]>();
+    // job_id → role_id[]（is_primary を先頭に）
+    const jobRoleMap = new Map<string, { id: string; primary: boolean }[]>();
     for (const r of (jobRoleRows ?? [])) {
       const jid = r.job_id as string;
       if (!jobRoleMap.has(jid)) jobRoleMap.set(jid, []);
-      jobRoleMap.get(jid)!.push(r.role_id as string);
+      jobRoleMap.get(jid)!.push({ id: r.role_id as string, primary: (r.is_primary as boolean) === true });
     }
 
     const companies = (compRows ?? []).map((row) => mapCompany(row));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jobs = (jobRows ?? []).map((row: Record<string, any>) => {
       const job = mapJob(row);
-      const roleIds = jobRoleMap.get(job.id);
-      if (roleIds && roleIds.length > 0) job.roleIds = roleIds;
+      const rows = jobRoleMap.get(job.id);
+      if (rows && rows.length > 0) {
+        rows.sort((a, b) => Number(b.primary) - Number(a.primary));
+        const own = rows.map((r) => r.id);
+
+        // roleIds には「求人に紐づく具体職種」＋「その祖先」を入れる。
+        // ow_job_roles にはピッカーで選ばれた具体職種（例: セールスエンジニア）が
+        // 入るため、9大分類（例: 営業）で絞り込むフィルタは祖先まで展開しないと
+        // ヒットしない。祖先を含めておけば、大分類でも子階層でも同じ判定で通る。
+        const expanded = new Set(own);
+        for (const id of own) {
+          let node = roleTree.byId.get(id) ?? null;
+          const seen = new Set<string>();
+          while (node?.parentId && !seen.has(node.id)) {
+            seen.add(node.id);
+            expanded.add(node.parentId);
+            node = roleTree.byId.get(node.parentId) ?? null;
+          }
+        }
+        job.roleIds = Array.from(expanded);
+        // 表示用は primary の具体職種名（祖先ではなく、選ばれたそのもの）
+        job.roleName = roleTree.byId.get(own[0])?.name ?? null;
+      }
       return job;
     });
 
@@ -898,8 +981,28 @@ export const getJobById = cache(async function getJobById(
   }
   const relatedJobs: Job[] = (relatedRows ?? []).map((r) => mapJob(r as Record<string, unknown>));
 
+  // 職種は ow_job_roles が正。詳細ページでも roleIds / roleName を使えるようにする
+  // （job_category は移行期間中の派生値で、判定には使わない）。
+  const job = mapJob(jobRow);
+  const [roleMap, roleTree] = await Promise.all([getJobRoleMap([job.id]), getRoleTree()]);
+  const own = roleMap.get(job.id) ?? [];
+  if (own.length > 0) {
+    const expanded = new Set(own);
+    for (const rid of own) {
+      let node = roleTree.byId.get(rid) ?? null;
+      const seen = new Set<string>();
+      while (node?.parentId && !seen.has(node.id)) {
+        seen.add(node.id);
+        expanded.add(node.parentId);
+        node = roleTree.byId.get(node.parentId) ?? null;
+      }
+    }
+    job.roleIds = Array.from(expanded);
+    job.roleName = roleTree.byId.get(own[0])?.name ?? null;
+  }
+
   return {
-    job: mapJob(jobRow),
+    job,
     company: mapCompany(compData),
     relatedJobs,
   };

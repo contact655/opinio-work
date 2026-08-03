@@ -30,9 +30,15 @@ export type Job = {
   slug?: string | null;
   company_id: string;
   role: string;
-  dept: string;
-  role_category_id?: string; // ow_roles 親カテゴリ UUID (/jobs?category= フィルタ用, 非推奨)
-  roleIds?: string[];        // ow_job_roles 由来の全職種 UUID（複数職種対応）
+  dept: string;              // ow_jobs.job_category（廃止予定のフリーテキスト）。職種判定には使わない
+  role_category_id?: string; // ow_roles UUID。biz UI が更新しないため廃止予定
+  /**
+   * 職種の正。ow_job_roles の具体職種 ＋ その祖先まで展開した UUID 群。
+   * 9大分類でも子階層でも `roleIds.includes(id)` の同じ判定で絞り込める。
+   */
+  roleIds?: string[];
+  /** 表示用の職種名。ow_job_roles の primary（具体職種）の名前。無ければ null */
+  roleName?: string | null;
   employment_type: string;
   location: string;
   work_style: string;

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getRoleTree, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +13,8 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
-import { isSalesJob, getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
+import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
+import { isBusinessRole } from "@/lib/roles/jobRoles";
 import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
 import { fmtMan } from "@/lib/utils/salary";
 
@@ -43,13 +44,13 @@ export async function generateMetadata({
     "IT/SaaS業界の求人はOPINIOで。",
   ].filter(Boolean).join("｜");
 
-  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.dept ?? "")}`;
+  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.roleName ?? job.dept ?? "")}`;
 
   return {
     title: { absolute: `${job.role} — ${company.name} | OPINIO` },
     description,
     alternates: { canonical: `/jobs/${canonicalId}` },
-    keywords: [job.role, company.name, job.dept ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),
+    keywords: [job.role, company.name, job.roleName ?? job.dept ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),
     openGraph: {
       title: `${job.role} — ${company.name} | OPINIO`,
       description,
@@ -441,6 +442,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   const initial = company.name.charAt(0).toUpperCase();
 
+  // ビジネス職（OTE・担当セグメントの表示対象）かどうかは ow_roles で判定する。
+  // 旧実装は job_category のフリーテキストを Set 照合していたため、
+  // 「エンタープライズ営業」は該当するのに「営業」は該当しない、といった穴があった。
+  const jobRoleTree = await getRoleTree();
+  const isBusinessJob = isBusinessRole(jobRoleTree, job.roleIds);
+
   // Position members — people with matching role experience
   const positionMembers = await getJobPositionMembers(job.dept ?? "");
 
@@ -470,17 +477,28 @@ export default async function JobDetailPage({ params }: { params: { id: string }
     }
   }
 
-  // Fetch same-category jobs from other companies
+  // 同じ職種の他社求人。
+  // 旧実装は job_category の完全一致だったため、「エンタープライズ営業」と「営業」が
+  // 別物になり関連求人がほぼ出なかった。ow_job_roles で同じ職種を持つ求人を引く。
   const sameCategoryJobs: RelatedJob[] = [];
-  if (job.dept) {
-    const { data: sameCatRaw } = await supabase
-      .from("ow_jobs")
-      .select("id, slug, title, job_category, salary_min, salary_max, company_id, updated_at, ow_companies!inner(id, name, logo_url, logo_letter, logo_gradient)")
-      .in("status", ["published", "active"])
-      .eq("job_category", job.dept)
-      .neq("id", jobId)
-      .order("updated_at", { ascending: false })
-      .limit(3);
+  const ownRoleIds = job.roleIds ?? [];
+  if (ownRoleIds.length > 0) {
+    const { data: siblingRoleRows } = await supabase
+      .from("ow_job_roles")
+      .select("job_id")
+      .in("role_id", ownRoleIds)
+      .neq("job_id", jobId);
+    const siblingIds = Array.from(new Set((siblingRoleRows ?? []).map((r) => r.job_id as string)));
+
+    const { data: sameCatRaw } = siblingIds.length > 0
+      ? await supabase
+          .from("ow_jobs")
+          .select("id, slug, title, job_category, salary_min, salary_max, company_id, updated_at, ow_companies!inner(id, name, logo_url, logo_letter, logo_gradient)")
+          .in("status", ["published", "active"])
+          .in("id", siblingIds)
+          .order("updated_at", { ascending: false })
+          .limit(3)
+      : { data: null };
 
     if (sameCatRaw) {
       for (const row of sameCatRaw as unknown as Array<{
@@ -666,7 +684,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </span>
                 )}
                 {/* OTE ピル（営業職かつ入力あり） */}
-                {isSalesJob(job.dept) && (job.ote_min || job.ote_max) && (
+                {isBusinessJob && (job.ote_min || job.ote_max) && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "5px 14px", borderRadius: 100,
@@ -834,7 +852,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {(job.salary_min || job.salary_max) && (
                   <div style={{ gridColumn: "1 / -1" }}>
                     {/* 基本給行 */}
-                    <div style={{ padding: "16px 20px", borderRadius: isSalesJob(job.dept) && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ padding: "16px 20px", borderRadius: isBusinessJob && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
                           想定年収
@@ -848,7 +866,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </span>
                     </div>
                     {/* OTE行（営業職かつ入力あり） */}
-                    {isSalesJob(job.dept) && (job.ote_min || job.ote_max) && (
+                    {isBusinessJob && (job.ote_min || job.ote_max) && (
                     <div style={{ padding: "14px 20px", borderRadius: "0 0 12px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderTop: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ width: 28, height: 28, borderRadius: 7, background: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -869,7 +887,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                   )}
                   {/* セールス専用: 担当セグメント・新規/既存 */}
-                  {isSalesJob(job.dept) && ((job.sales_segment?.length ?? 0) > 0 || job.sales_hunter_farmer || job.incentive_note) && (
+                  {isBusinessJob && ((job.sales_segment?.length ?? 0) > 0 || job.sales_hunter_farmer || job.incentive_note) && (
                   <div style={{ gridColumn: "1 / -1", padding: "16px 20px", borderRadius: 12, background: "#F8FAFC", border: "1px solid var(--line)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
@@ -931,7 +949,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                   )}
                   {/* 職種 */}
-                  {job.dept && (
+                  {(job.roleName ?? job.dept) && (
                   <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
@@ -939,7 +957,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </svg>
                       <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>職種</span>
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.dept}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.roleName ?? job.dept}</span>
                   </div>
                   )}
                 </div>
@@ -1630,7 +1648,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
                 )}
                 {[
-                  { key: "職種", value: job.dept },
+                  { key: "職種", value: job.roleName ?? job.dept },
                   { key: "雇用形態", value: job.employment_type },
                   { key: "勤務地", value: job.location },
                   { key: "働き方", value: job.work_style },

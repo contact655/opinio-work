@@ -65,6 +65,21 @@ const nextConfig = {
         destination: "/people",
         permanent: true,
       },
+      // 職種ページを ow_roles の9大分類に揃えた際に消えた2スラッグ（2026-08-03）。
+      // 移行時点で両方とも0件だったが sitemap に載っていたのでクローラは辿る。
+      // /jobs/dept/management は「経営・事業開発」で、9大分類では exec と bizdev に
+      // 分かれる。ラベルの先頭が「経営」だったため exec に寄せた。
+      {
+        source: "/jobs/dept/management",
+        destination: "/jobs/dept/exec",
+        permanent: true,
+      },
+      // 「インフラ・SRE」は9大分類では engineer 配下（SRE/インフラ）に含まれる。
+      {
+        source: "/jobs/dept/infra",
+        destination: "/jobs/dept/engineer",
+        permanent: true,
+      },
       {
         source: "/biz/company/employees/categories",
         destination: "/biz/organization",
