@@ -45,10 +45,12 @@ export const DB_BAND_LABELS: Record<string, { fromCompany: string; toCompany: st
   "b51fc35e-776a-425e-876f-dcb2005c4389": { fromCompany: "みずほ証券", toCompany: "CTC" },
   // 生藤 弘樹: 富士フイルムビジネスイノベーションジャパン → セールスフォース・ジャパン
   //   起点は当時の社名「富士ゼロックス」で見せる（2021年に富士フイルムビジネスイノベーションへ改称）。
+  //   行き先は FV カードの brand_name と揃えて「Salesforce」。正式名称だとカード幅251pxに
+  //   収まらず、この1枚だけ経路が2行になって他の3枚（KOSKA / Sansan / CTC）と体裁が揃わない。
   //   中間はフライル1社。2026-08-03 に本人確認のうえ masked → real へ変更済み。
   "0c99e403-7540-4cf9-8bb1-67571af4f2b6": {
     fromCompany: "富士ゼロックス",
-    toCompany: "セールスフォース・ジャパン",
+    toCompany: "Salesforce",
   },
 };
 
