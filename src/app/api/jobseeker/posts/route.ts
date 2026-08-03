@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 export const dynamic = "force-dynamic";
 
@@ -64,14 +65,14 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
   if (userIds.length === 0) return map;
   const { data: exps } = await admin
     .from("ow_experiences")
-    .select("user_id, role_title, company_text, company_anonymized")
+    .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
     .in("user_id", userIds)
     .eq("is_current", true);
   for (const exp of exps ?? []) {
     if (!map.has(exp.user_id)) {
       map.set(exp.user_id, {
         roleTitle: exp.role_title ?? null,
-        company: exp.company_text || exp.company_anonymized || null,
+        company: resolveExperienceCompanyName(exp),
       });
     }
   }

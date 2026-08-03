@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,14 +54,14 @@ export async function GET(
   if (p.user?.id) {
     const { data: exp } = await adminSupabase
       .from("ow_experiences")
-      .select("role_title, company_text, company_anonymized")
+      .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
       .eq("user_id", p.user.id)
       .eq("is_current", true)
       .limit(1)
       .maybeSingle();
     if (exp) {
       roleTitle = exp.role_title ?? null;
-      company = exp.company_text || exp.company_anonymized || null;
+      company = resolveExperienceCompanyName(exp);
     }
   }
 

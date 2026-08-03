@@ -2,6 +2,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import CandidatesClient from "./CandidatesClient";
+import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 export const dynamic = "force-dynamic";
 
@@ -158,7 +159,7 @@ export default async function CandidatesPage() {
   const { data: currentExps } = userIds.length > 0
     ? await adminClient
         .from("ow_experiences")
-        .select("user_id, role_title, company_text, company_anonymized, employment_type, started_at")
+        .select(`user_id, role_title, employment_type, started_at, ${EXPERIENCE_COMPANY_COLS}`)
         .in("user_id", userIds)
         .eq("is_current", true)
     : { data: [] };
@@ -171,9 +172,10 @@ export default async function CandidatesPage() {
   }>();
   for (const exp of currentExps ?? []) {
     if (!currentExpByUser.has(exp.user_id as string)) {
-      const company = (exp.company_text as string | null)
-        || (exp.company_anonymized as string | null)
-        || null;
+      // master（company_id → ow_companies.name）を最優先。
+      // ここは以前 company_text だけを見ていたため、マスタ紐づけの職歴
+      // （2026-08-03 時点で 18件中13件）が全て社名なしで表示されていた。
+      const company = resolveExperienceCompanyName(exp);
       currentExpByUser.set(exp.user_id as string, {
         role_title: exp.role_title as string | null,
         company,

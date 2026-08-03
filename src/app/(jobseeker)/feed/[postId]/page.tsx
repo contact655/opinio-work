@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
+import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 type RawPost = {
   id: string;
@@ -77,14 +78,14 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   if (p.user?.id) {
     const { data: exp } = await adminSupabase
       .from("ow_experiences")
-      .select("role_title, company_text, company_anonymized")
+      .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
       .eq("user_id", p.user.id)
       .eq("is_current", true)
       .limit(1)
       .maybeSingle();
     if (exp) {
       roleTitle = exp.role_title ?? null;
-      company = exp.company_text || exp.company_anonymized || null;
+      company = resolveExperienceCompanyName(exp);
     }
   }
 

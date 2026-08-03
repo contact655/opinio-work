@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import FeedClient from "./FeedClient";
+import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 export const metadata: Metadata = {
   title: "投稿 | OPINIO",
@@ -69,14 +70,14 @@ export default async function FeedPage() {
   if (myOwUserId) {
     const { data: myExp } = await adminSupabase
       .from("ow_experiences")
-      .select("role_title, company_text, company_anonymized")
+      .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
       .eq("user_id", myOwUserId)
       .eq("is_current", true)
       .limit(1)
       .maybeSingle();
     if (myExp) {
       myRoleTitle = myExp.role_title ?? null;
-      myCompany = myExp.company_text || myExp.company_anonymized || null;
+      myCompany = resolveExperienceCompanyName(myExp);
     }
   }
 
@@ -126,14 +127,14 @@ export default async function FeedPage() {
   if (userIds.length > 0) {
     const { data: exps } = await adminSupabase
       .from("ow_experiences")
-      .select("user_id, role_title, company_text, company_anonymized")
+      .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
       .in("user_id", userIds)
       .eq("is_current", true);
     for (const exp of exps ?? []) {
       if (!expByUser.has(exp.user_id)) {
         expByUser.set(exp.user_id, {
           roleTitle: exp.role_title ?? null,
-          company: exp.company_text || exp.company_anonymized || null,
+          company: resolveExperienceCompanyName(exp),
         });
       }
     }

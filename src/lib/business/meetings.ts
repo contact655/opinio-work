@@ -1,6 +1,7 @@
 import type { MeetingApplication, MeetingStatus } from "@/lib/business/mockMeetings";
 import type { createClient } from "@/lib/supabase/server";
 import { getUserAge } from "@/lib/age";
+import { resolveExperienceCompanyName } from "@/lib/experiences/companyName";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -82,11 +83,11 @@ function generateGradient(id: string): string {
   return GRADIENTS[hash % GRADIENTS.length];
 }
 
+// 解決順（master > custom > anon）は @/lib/experiences/companyName に集約した。
+// ここは JOIN を `company:ow_companies!company_id (name)` にエイリアスしているが、
+// 共通ヘルパーは ow_companies / company の両方を見るのでそのまま渡せる。
 function resolveCompanyName(exp: DbExperience): string {
-  if (exp.company?.name) return exp.company.name;
-  if (exp.company_text) return exp.company_text;
-  if (exp.company_anonymized) return exp.company_anonymized;
-  return "—";
+  return resolveExperienceCompanyName(exp) ?? "—";
 }
 
 function formatPeriod(start: string, end: string | null, isCurrent: boolean): string {

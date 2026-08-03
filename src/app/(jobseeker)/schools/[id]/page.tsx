@@ -5,6 +5,7 @@ import { GraduationCap, Users } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import SchoolGraduatesClient, { type Graduate, type SchoolPost } from "./SchoolGraduatesClient";
+import { resolveExperienceCompanyName, resolveExperienceCompanyLabel, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +35,9 @@ async function getSchool(id: string): Promise<SchoolRow | null> {
   return data as SchoolRow;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function resolveExpCompanyName(exp: Record<string, any>): string | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const co = exp.ow_companies as Record<string, any> | null;
-  if (co?.name) return co.name as string;
-  return (exp.company_text as string | null) ?? null;
-}
+// resolveExpCompanyName はここのローカル実装だったが、
+// 同じ解決を必要とする箇所が他に6つあり、そのすべてが JOIN を張り忘れて
+// マスタ紐づけの社名を出せていなかったため @/lib/experiences/companyName へ移した。
 
 async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Graduate[]> {
   const supabase = createAdminClient();
@@ -117,7 +114,7 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Grad
   const userIds = baseGraduates.map((g) => g.userId);
   const { data: expRows } = await supabase
     .from("ow_experiences")
-    .select("user_id, role_title, company_text, is_current, started_at, visibility_company, ow_companies(name)")
+    .select(`user_id, role_title, is_current, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
     .in("user_id", userIds)
     .order("started_at", { ascending: true });
 
@@ -137,19 +134,17 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Grad
     // 現職 (is_current=true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentExp = exps.find((e: Record<string, any>) => e.is_current === true);
-    const currentCompany = currentExp ? resolveExpCompanyName(currentExp) : null;
+    const currentCompany = resolveExperienceCompanyName(currentExp);
     const currentRoleTitle = currentExp ? ((currentExp.role_title as string | null) ?? null) : null;
 
-    // キャリアの流れ: hidden 除外、masked は「非公開」、real は社名
+    // キャリアの流れ: hidden は行ごと除外 / masked は「非公開」/ real は社名。
+    // null が返るのは hidden か、出せる社名がそもそも無い場合。
+    // 旧実装は後者を「非公開」と表示していたが、非公開希望ではなく単に未入力なので
+    // 行ごと落とすようにした（空欄を「ある値」に置き換えない）。
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const visibleNames = exps
-      .filter((e: Record<string, any>) => (e.visibility_company as string | null) !== "hidden")
-      .map((e: Record<string, any>) => {
-        const vis = (e.visibility_company as string | null) ?? "real";
-        if (vis === "masked") return "非公開";
-        return resolveExpCompanyName(e) ?? "非公開";
-      })
-      .filter(Boolean) as string[];
+      .map((e: Record<string, any>) => resolveExperienceCompanyLabel(e))
+      .filter((n): n is string => !!n);
 
     // 連続する同一企業を除去 → 直近3社 + 「…」
     const deduped = visibleNames.filter((n, i) => i === 0 || n !== visibleNames[i - 1]);
