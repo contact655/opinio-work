@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { HeroSearch } from "./HeroSearch";
+import { FinalCta } from "./FinalCta";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type LPTotals = { companies: number; jobs: number };
@@ -427,17 +428,9 @@ export default function LandingPage({
           <h2 style={{ fontSize: "clamp(22px,2.6vw,32px)", fontWeight: 800, color: "#fff", marginBottom: 14, letterSpacing: "-0.01em" }}>
             まず、調べるところから。
           </h2>
-          <p style={{ color: "#B9C6DE", fontSize: 15.5, lineHeight: 1.8, marginBottom: 26 }}>
-            登録すると、気になる企業を保存して比べられます。<br />新しい求人が出たときの通知も受け取れます。
-          </p>
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/companies" style={{ display: "inline-flex", alignItems: "center", background: "#fff", color: C.navy, padding: "15px 28px", borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
-              企業を探す
-            </Link>
-            <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", border: "1px solid rgba(255,255,255,.35)", color: "#fff", padding: "15px 28px", borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
-              メールアドレスで無料登録
-            </Link>
-          </div>
+          {/* 本文とボタンはログイン状態で出し分ける。
+              登録済みの人に「無料登録」を出さないため（FinalCta.tsx 参照）。 */}
+          <FinalCta navy={C.navy} />
         </div>
       </section>
 
