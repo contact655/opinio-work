@@ -243,7 +243,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               }}>{displayName}</span>
               {showSubtitle && company.name && (
                 <span style={{
-                  fontSize: 10.5, color: "var(--ink-mute)", lineHeight: 1.3,
+                  fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.3,
                   fontFamily: "var(--font-noto-sans)",
                   overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
                   display: "block",
@@ -265,7 +265,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {/* 行4: メタ（所在地 + 従業員数） */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {company.location && (
-                <span style={{ fontSize: 11, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
@@ -273,13 +273,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   {company.branch_locations && company.branch_locations.length > 0 && (
                     <span style={{ color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
                       ＋{company.branch_locations.slice(0, 2).join("・")}
-                      {company.branch_locations.length > 2 && <span style={{ fontSize: 10 }}> 他</span>}
+                      {company.branch_locations.length > 2 && <span style={{ fontSize: 12 }}> 他</span>}
                     </span>
                   )}
                 </span>
               )}
               {company.employee_count && (
-                <span style={{ fontSize: 11, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
               )}
             </div>
 
@@ -287,7 +287,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {remoteText && (
-                  <span style={{ fontSize: 11, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{remoteText}</span>
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{remoteText}</span>
                 )}
                 {/* アバターアイコン列（現役・OBOG） */}
                 {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
@@ -295,7 +295,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                     {members.slice(0, 4).map((m) => (
                       <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
                     ))}
-                    <span style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, marginLeft: members.length > 0 ? 8 : 0, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginLeft: members.length > 0 ? 8 : 0, whiteSpace: "nowrap" }}>
                       {memberCount > 0 ? `現役${memberCount}名` : ""}
                       {obogCount > 0 ? `・OB${obogCount}名` : ""}
                     </span>
@@ -304,7 +304,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 {company.job_count > 0 && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 11, fontWeight: 800, padding: "3px 9px", borderRadius: 100,
+                    fontSize: 12, fontWeight: 800, padding: "3px 9px", borderRadius: 100,
                     background: "var(--royal)", color: "#fff",
                     whiteSpace: "nowrap",
                   }}>
@@ -323,7 +323,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 3,
-                  fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
+                  fontSize: 12, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
                   background: "#FFFBEB", color: "#92400E",
                   border: "1px solid #FDE68A", whiteSpace: "nowrap",
                 }}>
@@ -391,7 +391,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               {displayName}
             </span>
             {showSubtitle && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 6 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: 6 }}>
                 {company.name}
               </span>
             )}
@@ -424,7 +424,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 </svg>
                 <span>{company.location.replace(/[（(].*/, "").trim().replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
                 {company.branch_locations && company.branch_locations.length > 0 && (
-                  <span style={{ color: "var(--ink-mute)", fontSize: 11 }}>
+                  <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>
                     ＋{company.branch_locations.slice(0, 3).join("・")}
                     {company.branch_locations.length > 3 && " 他"}
                   </span>
@@ -449,7 +449,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             {company.job_count > 0 && (
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 100,
+                fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 100,
                 background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
               }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -466,7 +466,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
                 ))}
                 {members.length > 4 && (
-                  <span style={{ fontSize: 10, color: "var(--ink-mute)", marginLeft: 8 }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: 8 }}>
                     +{members.length - 4}名
                   </span>
                 )}
@@ -489,7 +489,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 <span style={{ fontSize: 14, fontWeight: 800, color: "#92400E", fontFamily: "Inter, sans-serif" }}>
                   ★ {company.review_avg.toFixed(1)}
                 </span>
-                <span style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>口コミ {company.review_count}件</span>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>口コミ {company.review_count}件</span>
               </div>
             </>
           )}
@@ -559,9 +559,9 @@ function StatCol({ label, value, unit, highlight }: { label: string; value: numb
           fontFamily: "Inter, sans-serif",
           color: highlight ? "var(--royal)" : "var(--ink)",
         }}>{value}</span>
-        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{unit}</span>
+        <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{unit}</span>
       </div>
-      <div style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{label}</div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{label}</div>
     </div>
   );
 }

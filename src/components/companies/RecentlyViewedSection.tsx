@@ -93,7 +93,7 @@ export function RecentlyViewedSection() {
           </svg>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>最近見た企業</span>
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
+            fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
             background: "var(--royal-50)", color: "var(--royal)",
           }}>{companies.length}</span>
         </div>
@@ -101,7 +101,7 @@ export function RecentlyViewedSection() {
           type="button"
           onClick={clearItems}
           style={{
-            fontSize: 11.5, color: "var(--ink-mute)", background: "none", border: "none",
+            fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none",
             cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3,
           }}
         >

@@ -84,7 +84,7 @@ function FilterChip({
         {isActive ? (
           <span
             onClick={(e) => { e.stopPropagation(); onSelect(null); }}
-            style={{ fontSize: 10, marginLeft: 1, opacity: 0.75, lineHeight: 1 }}
+            style={{ fontSize: 12, marginLeft: 1, opacity: 0.75, lineHeight: 1 }}
             aria-label="クリア"
           >
             ✕
@@ -144,7 +144,7 @@ function FilterChip({
                         {o.label}
                       </span>
                       {o.desc && (
-                        <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
+                        <span style={{ display: "block", fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>
                           {o.desc}
                         </span>
                       )}
@@ -739,8 +739,8 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
                 currentWorkStyle === "hybrid" ? "ハイブリッド" : "出社のみ"
               ) : "勤務形態"}
               {currentWorkStyle
-                ? <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>
-                : <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>}
+                ? <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>
+                : <span style={{ fontSize: 12, marginLeft: 2 }}>▾</span>}
             </button>
             {openChip === "workStyle" && (
               <div className="csb-filter-pill-menu">
@@ -766,8 +766,8 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             >
               {currentSalaryMin ? `${currentSalaryMin}万円以上` : "年収"}
               {currentSalaryMin
-                ? <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>
-                : <span style={{ fontSize: 10, marginLeft: 2 }}>▾</span>}
+                ? <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>
+                : <span style={{ fontSize: 12, marginLeft: 2 }}>▾</span>}
             </button>
             {openChip === "salaryMin" && (
               <div className="csb-filter-pill-menu">
@@ -787,7 +787,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             onClick={() => updateParam("foreign", currentForeign ? null : "1")}
             aria-pressed={currentForeign}
           >
-            外資系{currentForeign && <span style={{ fontSize: 10, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+            外資系{currentForeign && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
           </button>
 
           {/* 面談受付中 */}
@@ -804,7 +804,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               display: "inline-block",
             }} />
             {currentHiring ? (
-              <>面談受付中 <span style={{ fontSize: 10, opacity: 0.85 }}>✕</span></>
+              <>面談受付中 <span style={{ fontSize: 12, opacity: 0.85 }}>✕</span></>
             ) : (
               <>面談受付中</>
             )}
@@ -854,7 +854,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             }}
           >
             <style>{`.csb-active-filters::-webkit-scrollbar { display: none; }`}</style>
-            <span style={{ fontSize: 11, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
+            <span style={{ fontSize: 12, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
               絞り込み中:
             </span>
             {activeFilters.map((f) => (
@@ -880,7 +880,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dot, flexShrink: 0 }} />
                 )}
                 {f.label}
-                <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 1 }}>✕</span>
+                <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 1 }}>✕</span>
               </button>
             ))}
           </div>

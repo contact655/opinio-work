@@ -217,7 +217,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4, alignItems: 'center' }}>
                 {stageCfg && (
                   <span style={{
-                    fontSize: 10, fontWeight: stageCfg.fontWeight ?? 700, padding: '2px 6px', borderRadius: 100,
+                    fontSize: 12, fontWeight: stageCfg.fontWeight ?? 700, padding: '2px 6px', borderRadius: 100,
                     background: stageCfg.bg, color: stageCfg.color, border: `1px solid ${stageCfg.border}`,
                   }}>
                     {stageCfg.label}
@@ -225,7 +225,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                 )}
                 {articleCount > 0 && (
                   <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
+                    fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
                     background: '#fef3c7', color: '#92400e',
                     border: '1px solid #fde68a',
                   }}>
@@ -257,7 +257,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
           {/* 中段: タグライン */}
           {company.tagline && (
             <div style={{
-              fontSize: 11, color: 'var(--ink-soft)', lineHeight: 1.4,
+              fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.4,
               overflow: 'hidden', display: '-webkit-box',
               WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as const,
             }}>
@@ -270,7 +270,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
                 background: 'linear-gradient(135deg, #FFF7ED, #FEF3C7)',
                 color: '#C2410C', border: '1.5px solid #FDBA74',
                 boxShadow: '0 1px 3px rgba(234,88,12,0.15)',
@@ -282,7 +282,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
                 面談受付中
               </span>
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
                 background: 'var(--royal-50)', color: 'var(--royal)',
                 border: '1px solid var(--royal-100)',
               }}>

@@ -111,6 +111,23 @@ export function GridSortBar({ totalCount }: Props) {
           overflow-x: auto;
           scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
+          /* 横スクロール前提の行だが、flex の中では中身に押されて幅が潰れる。
+             2026-08-04 に文字を 11.5px → 12px にしたところ兄弟（表示切替・件数）が広がり、
+             このスクロール領域が 36px まで縮んで実質操作できなくなった。
+             flex-basis: 0 + flex-grow で「余りを取るが、中身では膨らまない」形にする。 */
+          flex: 1 1 0;
+          min-width: 0;
+        }
+        .sort-bar-label { display: flex; }
+        .sort-bar-left { display: flex; flex: 1 1 0; }
+        @media (max-width: 560px) {
+          /* 375px では「並び替え」ラベル + ソート + 表示切替 + 件数 が一行に収まらない。
+             左右を明示的に2段に分ける（左だけ 100% 幅にして折り返しを起こす）。
+             縮めて収める形にすると、ソートpillと表示切替が重なる。
+             ラベルは省いてスクロール領域に幅を回す。 */
+          .sort-bar-row { flex-wrap: wrap; row-gap: 10px; }
+          .sort-bar-left { flex: 1 1 100%; }
+          .sort-bar-label { display: none; }
         }
         .sort-scroll::-webkit-scrollbar { display: none; }
         .view-btn {
@@ -130,7 +147,7 @@ export function GridSortBar({ totalCount }: Props) {
         .view-btn:hover { opacity: 0.85; }
       `}</style>
 
-      <div style={{
+      <div className="sort-bar-row" style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -144,16 +161,19 @@ export function GridSortBar({ totalCount }: Props) {
       }}>
 
         {/* 左: ソートボタン群 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 5,
+        <div className="sort-bar-left" style={{ alignItems: "center", gap: 8, minWidth: 0 }}>
+          {/* ⚠️ display はインラインで書かないこと。
+                 インラインスタイルはメディアクエリより強く、
+                 狭幅で隠す指定（.sort-bar-label { display:none }）が効かなくなる。 */}
+          <div className="sort-bar-label" style={{
+            alignItems: "center", gap: 5,
             color: "var(--ink-soft)", fontSize: 12, fontWeight: 600,
             flexShrink: 0,
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18M7 12h10M11 18h2"/>
             </svg>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>並び替え</span>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>並び替え</span>
           </div>
 
           <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />

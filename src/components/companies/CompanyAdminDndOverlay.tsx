@@ -159,10 +159,10 @@ export function CompanyAdminDndOverlay() {
           <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", background: "var(--error)", color: "#fff", padding: "1px 5px", borderRadius: 4 }}>ADMIN</span>
+                <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", background: "var(--error)", color: "#fff", padding: "1px 5px", borderRadius: 4 }}>ADMIN</span>
                 企業の表示順
               </div>
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 3 }}>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
                 ドラッグして並び替え・即時保存
               </div>
             </div>
@@ -212,7 +212,7 @@ export function CompanyAdminDndOverlay() {
                 }}
               >
                 <span style={{ color: "var(--ink-mute)", fontSize: 16, flexShrink: 0, lineHeight: 1 }}>⠿</span>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0, minWidth: 18, textAlign: "right" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0, minWidth: 18, textAlign: "right" }}>
                   {i + 1}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
@@ -223,7 +223,7 @@ export function CompanyAdminDndOverlay() {
           </div>
 
           {/* フッター */}
-          <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
             公開ページへの反映は最大5分です（ISRキャッシュ）。
           </div>
         </div>
