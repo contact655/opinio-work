@@ -8,26 +8,33 @@ import {
 } from "@/app/articles/mockArticleData";
 import { getArticles } from "@/lib/supabase/queries";
 import ArticleFilterBar from "./ArticleFilterBar";
+import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: { absolute: "記事 | OPINIO" },
-  description:
-    "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方。社員インタビュー・CEOインタビュー・組織レポートを届けます。",
-  keywords: ["IT業界インタビュー", "SaaS転職", "社員の声", "組織文化", "キャリア", "OPINIO"],
-  alternates: { canonical: "/articles" },
-  openGraph: {
-    title: "IT/SaaS業界の記事 | OPINIO",
-    description: "LayerX・SmartHR・Ubie・Salesforceなど、IT/SaaS業界のリアルな働き方。社員・CEO・組織レポートの3カテゴリ。",
-    type: "website",
-    url: "/articles",
-    // OG画像の title も「記事」に合わせる（旧: 取材記事）
-    images: [{ url: "/api/og?type=list&title=%E8%A8%98%E4%BA%8B&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%AA%E5%83%8D%E3%81%8D%E6%96%B9", width: 1200, height: 630 }],
-  },
-  twitter: { card: "summary_large_image" },
-};
+// 企業名はベタ書きしない（理由は lib/seo/featuredCompanies.ts のコメント参照）。
+// 記事ページなので基準は "articles"＝公開記事を持つ企業から採る。
+export async function generateMetadata(): Promise<Metadata> {
+  const lead = await featuredCompanyPrefix("articles");
+  const description = `${lead}IT/SaaS業界のリアルな働き方。社員インタビュー・CEOインタビュー・組織レポートを届けます。`;
+
+  return {
+    title: { absolute: "記事 | OPINIO" },
+    description,
+    keywords: ["IT業界インタビュー", "SaaS転職", "社員の声", "組織文化", "キャリア", "OPINIO"],
+    alternates: { canonical: "/articles" },
+    openGraph: {
+      title: "IT/SaaS業界の記事 | OPINIO",
+      description,
+      type: "website",
+      url: "/articles",
+      // OG画像の title も「記事」に合わせる（旧: 取材記事）
+      images: [{ url: "/api/og?type=list&title=%E8%A8%98%E4%BA%8B&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%AA%E5%83%8D%E3%81%8D%E6%96%B9", width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image", description },
+  };
+}
 
 // ─── Article Card ─────────────────────────────────────────────────────────────
 

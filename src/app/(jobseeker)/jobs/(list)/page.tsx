@@ -5,26 +5,34 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
 import JobsClient from "./JobsClient";
+import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 
 // ログイン状態でパーソナライズするため force-dynamic
 // （getJobs は unstable_cache 内部キャッシュで高速）
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: { absolute: "IT/SaaS募集を探す | OPINIO" },
-  description:
-    "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の最新募集情報。フルリモート・高年収・PdM・エンジニアの募集を検索。",
-  keywords: ["IT転職", "SaaS転職", "エンジニア転職", "PdM転職", "フルリモート", "高年収", "OPINIO"],
-  alternates: { canonical: "/jobs" },
-  openGraph: {
-    title: "IT/SaaS募集を探す | OPINIO",
-    description: "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の最新募集情報。フルリモート・高年収・PdM・エンジニアの募集を検索。",
-    type: "website",
-    url: "/jobs",
-    images: [{ url: "/api/og?type=list&title=%E6%B1%82%E4%BA%BA%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E6%9C%80%E6%96%B0%E6%B1%82%E4%BA%BA%E6%83%85%E5%A0%B1", width: 1200, height: 630 }],
-  },
-  twitter: { card: "summary_large_image" },
-};
+// 企業名はベタ書きしない。以前は「LayerX・SmartHR・…」と書いていたが、
+// LayerX は Migration 239 で削除済みで、掲載していない企業名が検索結果に出ていた。
+// 公開中かつ求人を持つ企業から引く（lib/seo/featuredCompanies.ts）。
+export async function generateMetadata(): Promise<Metadata> {
+  const lead = await featuredCompanyPrefix("jobs");
+  const description = `${lead}IT/SaaS業界の最新募集情報。フルリモート・高年収・職種別に検索できます。`;
+
+  return {
+    title: { absolute: "IT/SaaS募集を探す | OPINIO" },
+    description,
+    keywords: ["IT転職", "SaaS転職", "エンジニア転職", "PdM転職", "フルリモート", "高年収", "OPINIO"],
+    alternates: { canonical: "/jobs" },
+    openGraph: {
+      title: "IT/SaaS募集を探す | OPINIO",
+      description,
+      type: "website",
+      url: "/jobs",
+      images: [{ url: "/api/og?type=list&title=%E6%B1%82%E4%BA%BA%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E6%9C%80%E6%96%B0%E6%B1%82%E4%BA%BA%E6%83%85%E5%A0%B1", width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image", description },
+  };
+}
 
 async function fetchUserRecommendations(
   jobs: Awaited<ReturnType<typeof getJobs>>["jobs"],

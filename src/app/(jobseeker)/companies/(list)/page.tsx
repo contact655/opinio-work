@@ -9,26 +9,33 @@ import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSect
 import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
+import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 
 type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
 
-export const metadata: Metadata = {
-  title: { absolute: "IT/SaaS企業を知る | OPINIO" },
-  description:
-    "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の企業情報・求人・組織文化をまとめて確認。",
-  keywords: ["IT企業", "SaaS企業", "スタートアップ", "転職", "企業文化", "求人", "OPINIO"],
-  alternates: { canonical: "/companies" },
-  openGraph: {
-    title: "IT/SaaS企業を探す | OPINIO",
-    description: "LayerX・SmartHR・HubSpot・Salesforceなど、IT/SaaS業界の企業情報・求人・組織文化をまとめて確認。",
-    type: "website",
-    url: "/companies",
-    // OG画像の sub も「企業・求人」に合わせる（旧: 企業・カジュアル面談）
-    images: [{ url: "/api/og?type=list&title=%E4%BC%81%E6%A5%AD%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E4%BC%81%E6%A5%AD%E3%83%BB%E6%B1%82%E4%BA%BA", width: 1200, height: 630 }],
-  },
-  twitter: { card: "summary_large_image" },
-};
+// 企業名はベタ書きしない（理由は lib/seo/featuredCompanies.ts のコメント参照）。
+// 一覧ページなので基準は "content"＝求人と記事の合計が多い順。
+export async function generateMetadata(): Promise<Metadata> {
+  const lead = await featuredCompanyPrefix("content");
+  const description = `${lead}IT/SaaS業界の企業情報・求人・組織文化をまとめて確認できます。`;
+
+  return {
+    title: { absolute: "IT/SaaS企業を知る | OPINIO" },
+    description,
+    keywords: ["IT企業", "SaaS企業", "スタートアップ", "転職", "企業文化", "求人", "OPINIO"],
+    alternates: { canonical: "/companies" },
+    openGraph: {
+      title: "IT/SaaS企業を探す | OPINIO",
+      description,
+      type: "website",
+      url: "/companies",
+      // OG画像の sub も「企業・求人」に合わせる（旧: 企業・カジュアル面談）
+      images: [{ url: "/api/og?type=list&title=%E4%BC%81%E6%A5%AD%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E4%BC%81%E6%A5%AD%E3%83%BB%E6%B1%82%E4%BA%BA", width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image", description },
+  };
+}
 
 const PAGE_SIZE = 40;
 
