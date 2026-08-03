@@ -91,13 +91,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     // ── Static: careers hub ──────────────────────────────────────────────────
     { url: `${baseUrl}/careers`, lastModified: new Date(), changeFrequency: "monthly" as const, priority: 0.85 },
-    // ── Static: people role pages ────────────────────────────────────────────
-    ...["sales", "cs", "mkt", "eng", "pm", "hr", "exec"].map((slug) => ({
-      url: `${baseUrl}/people/role/${slug}`,
-      lastModified: new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.75,
-    })),
+    // ── /people 配下は載せない ───────────────────────────────────────────────
+    //    親（/people）は 7dd4eff4 で sitemap から外し robots.ts でも Disallow にしたが、
+    //    子の /people/role/[slug] 7ページが priority 0.75 のまま残っていた（2026-08-04 削除）。
+    //    認証必須ページなのでクローラに知らせる意味がない。
     // ── Dynamic: jobs ────────────────────────────────────────────────────────
     ...(jobs?.map((job) => ({
       url: `${baseUrl}/jobs/${job.slug ?? job.id}`,

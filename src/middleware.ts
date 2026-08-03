@@ -27,7 +27,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/admin") ||
     (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname)) ||
     pathname.startsWith("/u/") ||
-    pathname === "/people";
+    // ⚠️ 完全一致にしないこと。/people/role/[slug] の7ページも同じ個人情報を出す。
+    //    2026-07-13 の 7dd4eff4 では === "/people" だったため子が素通りしていた（2026-08-04 修正）。
+    pathname === "/people" || pathname.startsWith("/people/");
 
   // Supabase セッションクッキーの有無を確認（sb-<ref>-auth-token）
   const hasSessionCookie = request.cookies.getAll().some(
