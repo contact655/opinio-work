@@ -281,7 +281,7 @@ function JobListItem({
           {/* 行4: 勤務地 · 勤務形態 · 年収 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {job.location && (
-              <span style={{ fontSize: 11, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2 }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2 }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
@@ -289,11 +289,11 @@ function JobListItem({
               </span>
             )}
             {job.work_style && job.location && (
-              <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
+              <span style={{ fontSize: 12, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             {job.work_style && (
               <span style={{
-                fontSize: 11, fontWeight: 500, display: "flex", alignItems: "center", gap: 3,
+                fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 3,
                 color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? "var(--success)" : "var(--ink-soft)",
               }}>
                 {job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? (
@@ -313,7 +313,7 @@ function JobListItem({
               </span>
             )}
             {hasSalaryData(job.salary_min, job.salary_max) && (
-              <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
+              <span style={{ fontSize: 12, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             <span style={{
               fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
@@ -323,8 +323,8 @@ function JobListItem({
             </span>
             {reviewSummary && reviewSummary.count >= 1 && (
               <>
-                <span style={{ fontSize: 10, color: "var(--line)", userSelect: "none" }}>·</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "#B45309", fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: "var(--line)", userSelect: "none" }}>·</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "#B45309", fontWeight: 600 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" aria-hidden="true">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
@@ -359,7 +359,7 @@ function JobListItem({
             display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,
             backgroundColor: "#002366", color: "#fff",
-            fontSize: 11, fontWeight: 700, textDecoration: "none",
+            fontSize: 12, fontWeight: 700, textDecoration: "none",
             whiteSpace: "nowrap",
           }}
         >
@@ -375,7 +375,7 @@ function JobListItem({
             padding: "8px 6px", borderRadius: 7,
             backgroundColor: "#FFF7ED", color: "#C2410C",
             border: "1.5px solid #FDBA74",
-            fontSize: 11, fontWeight: 700, textDecoration: "none",
+            fontSize: 12, fontWeight: 700, textDecoration: "none",
             whiteSpace: "nowrap",
           }}
         >
@@ -397,7 +397,7 @@ function JobListItem({
             backgroundColor: bookmarked ? "#FEF2F2" : "#fff",
             color: bookmarked ? "#e24b4a" : "#475569",
             border: `1.5px solid ${bookmarked ? "#FECACA" : "#E2E8F0"}`,
-            fontSize: 11, fontWeight: 700, cursor: "pointer",
+            fontSize: 12, fontWeight: 700, cursor: "pointer",
             whiteSpace: "nowrap",
             transform: bookmarkAnim ? "scale(1.05)" : "scale(1)",
             transition: "all 0.2s",
@@ -490,7 +490,7 @@ function SidebarFilters({
           {label}
         </span>
         {count !== undefined && (
-          <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>({count})</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>({count})</span>
         )}
       </label>
     );
@@ -522,7 +522,7 @@ function SidebarFilters({
                 >
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.4 }} />
                   <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 10, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
+                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 12, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
                   {isActive && <svg style={{ flexShrink: 0 }} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                 </button>
               );
@@ -564,7 +564,7 @@ function SidebarFilters({
         <SectionHeader label="年収" sectionKey="salary" hasActive={!!salary} />
         {!collapsed.has("salary") && (
           <div style={{ padding: "4px 14px 12px" }}>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>下限年収</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6 }}>下限年収</div>
             <select value={salary} onChange={(e) => setParam("salary", e.target.value)}
               style={{ width: "100%", height: 36, padding: "0 10px", border: `1.5px solid ${salary ? "var(--royal)" : "var(--line)"}`, borderRadius: 8, fontSize: 13, background: "#fff", color: salary ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", outline: "none" }}
             >
@@ -583,7 +583,7 @@ function SidebarFilters({
           hasActive={workStyleSet.size > 0 || companyStageSet.has("foreign")} />
         {!collapsed.has("kodawari") && (
           <div style={{ paddingBottom: 10 }}>
-            <div style={{ padding: "6px 14px 4px", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>働き方</div>
+            <div style={{ padding: "6px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>働き方</div>
             {[
               { value: "フルリモート", label: "フルリモート" },
               { value: "リモート可", label: "リモート可" },
@@ -592,7 +592,7 @@ function SidebarFilters({
               <CheckItem key={value} label={label} active={workStyleSet.has(value)}
                 onClick={() => toggleParamFn("work_style", value, workStyle)} />
             ))}
-            <div style={{ padding: "8px 14px 4px", fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>企業特性</div>
+            <div style={{ padding: "8px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>企業特性</div>
             <CheckItem label="外資系" active={companyStageSet.has("foreign")}
               onClick={() => toggleStage("foreign")} />
           </div>
@@ -687,7 +687,7 @@ function MobileDetailSection({
         {/* 業種 */}
         {parentIndustries.length > 0 && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>業種</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>業種</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
               {parentIndustries.map((ind) => (
                 <button key={ind.id} type="button" onClick={() => setParam("industry_id", industryId === ind.id ? "" : ind.id)}
@@ -700,7 +700,7 @@ function MobileDetailSection({
         )}
         {/* 雇用形態 */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {["正社員", "業務委託", "副業"].map(v => (
               <button key={v} type="button" onClick={() => setParam("emp_type", empType === v ? "" : v)}
@@ -712,7 +712,7 @@ function MobileDetailSection({
         </div>
         {/* 企業ステージ */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>企業ステージ</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>企業ステージ</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
             {([
               { key: "listed",  label: "上場",           color: "var(--success)",  bg: "var(--success-soft)" },
@@ -1328,7 +1328,7 @@ export default function JobsClient({
                       </svg>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
-                        {s.sub && <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
+                        {s.sub && <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
                       </div>
                     </button>
                   ))}
@@ -1411,7 +1411,7 @@ export default function JobsClient({
                 }}
                 style={{ flexShrink: 0 }}
               >
-                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 10, marginLeft: 3 }}>✕</span>}
+                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, marginLeft: 3 }}>✕</span>}
               </button>
 
               {/* 面談受付中 トグルピル */}
@@ -1426,7 +1426,7 @@ export default function JobsClient({
 
               {(hasFilter || q) && (
                 <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                  style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
+                  style={{ fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
                 >✕ リセット</button>
               )}
             </div>
@@ -1461,7 +1461,7 @@ export default function JobsClient({
               </span>
               {/* 全語が使えなかったときは「残りの語」が存在しないので出さない */}
               {ignoredTerms.length < q.trim().split(/[\s　]+/).filter(Boolean).length && (
-                <span style={{ fontSize: 11.5, color: "#92400E", opacity: 0.85 }}>
+                <span style={{ fontSize: 12, color: "#92400E", opacity: 0.85 }}>
                   残りの語だけで検索しています
                 </span>
               )}
@@ -1480,7 +1480,7 @@ export default function JobsClient({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18M7 12h10M11 18h2"/>
                 </svg>
-                <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>並び替え</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>並び替え</span>
               </div>
               <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
               <div style={{ display: "flex", gap: 6, alignItems: "center", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -1516,9 +1516,9 @@ export default function JobsClient({
                     {groupByCompany ? "✓ " : ""}1社3件まで
                   </button>
                   {groupByCompany && hiddenByGrouping > 0 && (
-                    <span style={{ fontSize: 10, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 12, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
                       {hiddenByGrouping}件非表示
-                      <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 10, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
+                      <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
                     </span>
                   )}
                 </>
@@ -1527,7 +1527,7 @@ export default function JobsClient({
               <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
                 <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>{filteredForDisplay.length}</strong>
                 <span style={{ marginLeft: 2 }}>件</span>
-                {(hasFilter || q) && <span style={{ fontSize: 10, color: "var(--success)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
+                {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
               </span>
             </div>
           </div>
@@ -1544,7 +1544,7 @@ export default function JobsClient({
                   onClick={() => setParam("category", active ? "" : role.id)}
                   style={{
                     flexShrink: 0, height: 30, padding: "0 12px", borderRadius: 999,
-                    fontSize: 11.5, fontWeight: active ? 700 : 500,
+                    fontSize: 12, fontWeight: active ? 700 : 500,
                     border: `1.5px solid ${active ? rc.color : "#e2e8f0"}`,
                     background: active ? rc.bg : "#fff",
                     color: active ? rc.color : "var(--ink-soft)",
@@ -1553,7 +1553,7 @@ export default function JobsClient({
                   }}
                 >
                   {role.name}
-                  {roleCounts.get(role.id) ? <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.7 }}>({roleCounts.get(role.id)})</span> : null}
+                  {roleCounts.get(role.id) ? <span style={{ fontSize: 12, marginLeft: 4, opacity: 0.7 }}>({roleCounts.get(role.id)})</span> : null}
                 </button>
               );
             })}
@@ -1562,7 +1562,7 @@ export default function JobsClient({
           {/* アクティブフィルター (optional row 4) */}
           {hasFilter && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 2, paddingBottom: 2, alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
               {category && (() => {
                 const r = parentRoles.find(r => r.id === category);
                 const rc = r ? getRoleColor(r.name) : { color: "var(--royal)", bg: "var(--royal-50)" };
@@ -1571,10 +1571,10 @@ export default function JobsClient({
                     display: "inline-flex", alignItems: "center", gap: 4,
                     padding: "3px 10px", borderRadius: 100,
                     background: rc.bg, border: `1.5px solid ${rc.color}`,
-                    color: rc.color, fontSize: 11, fontWeight: 700,
+                    color: rc.color, fontSize: 12, fontWeight: 700,
                     cursor: "pointer", fontFamily: "inherit",
                   }}>
-                    職種: {r.name} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                    職種: {r.name} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                   </button>
                 ) : null;
               })()}
@@ -1583,10 +1583,10 @@ export default function JobsClient({
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
                   background: "var(--success-soft)", border: "1.5px solid #6EE7B7",
-                  color: "#065F46", fontSize: 11, fontWeight: 700,
+                  color: "#065F46", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
-                  勤務形態: {work_style} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  勤務形態: {work_style} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                 </button>
               )}
               {salary && (() => {
@@ -1596,10 +1596,10 @@ export default function JobsClient({
                     display: "inline-flex", alignItems: "center", gap: 4,
                     padding: "3px 10px", borderRadius: 100,
                     background: "#FEF3C7", border: "1.5px solid #FDE68A",
-                    color: "#92400E", fontSize: 11, fontWeight: 700,
+                    color: "#92400E", fontSize: 12, fontWeight: 700,
                     cursor: "pointer", fontFamily: "inherit",
                   }}>
-                    年収: {tier.label} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                    年収: {tier.label} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                   </button>
                 ) : null;
               })()}
@@ -1608,10 +1608,10 @@ export default function JobsClient({
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
                   background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
-                  color: "var(--royal)", fontSize: 11, fontWeight: 700,
+                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
-                  雇用形態: {empType} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  雇用形態: {empType} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                 </button>
               )}
               {prefecture && (
@@ -1619,10 +1619,10 @@ export default function JobsClient({
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
                   background: "#F0FDF4", border: "1.5px solid #BBF7D0",
-                  color: "#16A34A", fontSize: 11, fontWeight: 700,
+                  color: "#16A34A", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
-                  地域: {prefecture} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  地域: {prefecture} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                 </button>
               )}
               {techStack.map((t) => (
@@ -1630,14 +1630,14 @@ export default function JobsClient({
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
                   background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
-                  color: "var(--royal)", fontSize: 11, fontWeight: 700,
+                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
-                  {t} <span style={{ fontSize: 10, opacity: 0.8 }}>✕</span>
+                  {t} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                 </button>
               ))}
               <button type="button" onClick={() => { setQ(""); setTechStack([]); router.replace("/jobs"); }} style={{
-                fontSize: 11, color: "var(--ink-mute)", background: "none",
+                fontSize: 12, color: "var(--ink-mute)", background: "none",
                 border: "none", cursor: "pointer", padding: "3px 4px",
                 fontFamily: "inherit", textDecoration: "underline",
               }}>
@@ -1699,7 +1699,7 @@ export default function JobsClient({
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>あなたへのおすすめ</span>
-                <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 600 }}>
+                <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 600 }}>
                   {recommendations.length}件
                 </span>
               </div>
@@ -1736,12 +1736,12 @@ export default function JobsClient({
                           {job.role}
                         </div>
                         {recCompany && (
-                          <div style={{ fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <div style={{ fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {(recCompany as any).brand_name ?? recCompany.name}
                           </div>
                         )}
                         {(job.salary_min ?? 0) > 0 && (
-                          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
                             {job.salary_min}
                             {job.salary_max && job.salary_max > job.salary_min! ? `〜${job.salary_max}` : ""}万円
                           </div>
@@ -1753,7 +1753,7 @@ export default function JobsClient({
               </div>
               {recommendations.length > 4 && (
                 <div style={{ marginTop: 8, textAlign: "right" }}>
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
                 </div>
               )}
             </div>
@@ -1773,7 +1773,7 @@ export default function JobsClient({
                   あなたの希望職種にマッチ
                 </span>
                 <span style={{
-                  fontSize: 11, padding: "2px 9px", borderRadius: 100,
+                  fontSize: 12, padding: "2px 9px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)",
                   fontWeight: 700, border: "1px solid var(--royal-100)",
                 }}>
@@ -1868,14 +1868,14 @@ export default function JobsClient({
               {/* ⑦ プログレスバー + もっと見るボタン */}
               <div style={{ marginTop: 16, marginBottom: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
                     <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{paged.length}</strong>
                     {" / "}
                     <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{filteredForDisplay.length}</strong>
                     {" 件表示中"}
                   </span>
                   {hasMore && (
-                    <span style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>残り{remainingCount}件</span>
+                    <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>残り{remainingCount}件</span>
                   )}
                 </div>
                 <div style={{ height: 4, background: "var(--line)", borderRadius: 99, overflow: "hidden" }}>
@@ -2189,7 +2189,7 @@ export default function JobsClient({
                 {techStack.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
                     {techStack.map((t) => (
-                      <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 999, background: "var(--royal)", color: "#fff", fontSize: 11, fontWeight: 700 }}>
+                      <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 999, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700 }}>
                         {t}
                         <button type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, opacity: 0.8 }}>×</button>
                       </span>
@@ -2198,7 +2198,7 @@ export default function JobsClient({
                 )}
                 {TECH_STACK_CATEGORIES.map((cat) => (
                   <div key={cat.label} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{cat.label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{cat.label}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                       {cat.items.map((tech) => {
                         const active = techStack.includes(tech);
