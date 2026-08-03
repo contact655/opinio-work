@@ -24,7 +24,7 @@ export function JobseekerFooter() {
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 260, marginBottom: 20 }}>
               IT/SaaS業界に特化した転職サービス。<br />
-              取材された企業情報と求人が、ここに揃っています。
+              企業情報と求人が、ここに揃っています。
             </p>
             {/* Trust chips */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

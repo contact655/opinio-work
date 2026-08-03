@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "OPINIO | IT/SaaS転職・キャリア",
-    description: "IT/SaaS業界特化。企業情報・求人・カジュアル面談が揃うキャリアプラットフォーム。完全無料。",
+    description: "IT/SaaS業界特化。企業情報と求人を、登録なしで。スカウトも営業電話もありません。完全無料。",
   },
   alternates: {
     canonical: "https://opinio.jp",

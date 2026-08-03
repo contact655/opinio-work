@@ -85,7 +85,7 @@ export default function NotFound() {
             fontSize: 14,
             border: "1.5px solid var(--royal-100)",
           }}>
-            取材記事
+            記事
           </Link>
         </div>
 

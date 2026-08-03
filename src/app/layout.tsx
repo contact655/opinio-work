@@ -29,8 +29,11 @@ export const metadata: Metadata = {
     default: "OPINIO | IT/SaaS業界の転職・求人情報",
     template: "%s | OPINIO",
   },
+  // サイト共通の説明文。掲載数のような変動する数字はここに置かない
+  // （全ページの既定値なので、古くなったときに気づけず外から見える説明が腐る）。
+  // 実数はLPの generateMetadata が実データから出す。
   description:
-    "IT/SaaS業界の転職は、情報戦。OPINIO編集部が取材した企業情報と求人を掲載。スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
+    "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。スカウトも営業電話もありません。完全無料。",
   keywords: [
     "IT転職",
     "SaaS転職",
@@ -48,7 +51,7 @@ export const metadata: Metadata = {
     siteName: "OPINIO",
     title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
-      "IT/SaaS業界の転職は、情報戦。OPINIO編集部が120社を取材し、スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
+      "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。スカウトも営業電話もありません。完全無料。",
     images: [
       {
         url: "/og-image.png",
@@ -62,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
-      "OPINIO編集部が120社を取材し、スカウトなし・カジュアル面談で、納得のいくキャリア選択を。完全無料。",
+      "IT/SaaS業界の企業情報と求人を、登録なしで。スカウトも営業電話もありません。完全無料。",
     images: ["/og-image.png"],
   },
   robots: {
@@ -121,7 +124,7 @@ const jsonLd = {
       url: "https://opinio.jp",
       name: "OPINIO",
       description:
-        "IT/SaaS業界の転職は、情報戦。OPINIO編集部が取材した企業情報・求人を掲載。スカウトなし・カジュアル面談対応のキャリアプラットフォーム。完全無料。",
+        "IT/SaaS業界の企業情報・求人を掲載。登録なしで全て読める、スカウトなしのキャリアプラットフォーム。完全無料。",
       publisher: { "@id": "https://opinio.jp/#organization" },
       potentialAction: {
         "@type": "SearchAction",

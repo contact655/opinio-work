@@ -1,197 +1,224 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
-import LandingPage, { type LPMember } from "./LandingPage";
-import { DB_BAND_LABELS, LP_GUEST_BAND, type LPBandMember } from "./lpGuestMembers";
-
-export const metadata: Metadata = {
-  title: "OPINIO — IT/SaaS業界特化のキャリアプラットフォーム",
-  description:
-    "取材された企業情報と求人を、ひとつの場所に。スカウトも営業電話もなく、自分のペースでIT/SaaS企業のリアルを調べられます。",
-  openGraph: {
-    title: "OPINIO — 知ってから、動く。",
-    description:
-      "IT/SaaS業界に特化したキャリアプラットフォーム。取材された企業情報と求人票で、追われずに転職を考えられます。",
-    url: "https://opinio.jp",
-    siteName: "OPINIO",
-    locale: "ja_JP",
-    type: "website",
-  },
-  alternates: { canonical: "https://opinio.jp" },
-};
-
-// このページはメンバー情報を Supabase から取る。fetch ではなく supabase-js 経由なので
-// Next は動的だと判断できず、指定が無いと静的レンダリング結果が固定される
-// （= コードを変えるまで DB の更新が LP に反映されない）。
-// マーケティングページなので force-dynamic ではなく ISR にして、
-// 表示速度を保ちつつ最大5分で追従させる。
-export const revalidate = 300;
-
-type MemberRow = {
-  role_title: string | null;
-  talk_themes: string[] | null;
-  ow_users: { id: string; name: string; avatar_color: string | null; visibility: string | null; is_test: boolean | null; can_casual_meeting: boolean | null } | null;
-  ow_companies: { name: string; brand_name: string | null } | null;
-};
+import LandingPage, {
+  type LPCompanyCard,
+  type LPJobCard,
+  type LPFacet,
+  type LPTotals,
+} from "./LandingPage";
+import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 
 /**
- * FV「いま話を聞ける現役社員」の顔写真（public/images/people/ の透過PNG）。
- * キーは ow_users.id。ここに無いユーザーはイニシャル表示にフォールバックする。
+ * 掲載数は実データから出す。ハードコードすると外から見える説明文が古いまま腐るため。
+ * サイト共通の layout.tsx 側には数字を置かない（全ページの既定値で気づけないため）。
  */
-const MEMBER_PHOTOS: Record<string, string> = {
-  // 生藤 弘樹（セールスフォース・ジャパン）
-  "0c99e403-7540-4cf9-8bb1-67571af4f2b6": "/images/people/shodo.png",
-  // 木村 雅樹（伊藤忠テクノソリューションズ）
-  "b51fc35e-776a-425e-876f-dcb2005c4389": "/images/people/kimura.png",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const db = createAdminClient();
+  const [{ count: companyCount }, { count: jobCount }] = await Promise.all([
+    db.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
+    db.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published"),
+  ]);
 
-type ExpRow = {
-  user_id: string;
-  company_id: string | null;
-  company_text: string | null;
-  started_at: string | null;
-  is_current: boolean | null;
-  visibility_company: string | null;
-};
+  const scale =
+    companyCount && jobCount
+      ? `掲載企業${companyCount.toLocaleString("ja-JP")}社・求人${jobCount.toLocaleString("ja-JP")}件。`
+      : "";
+  const description = `IT/SaaS業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。スカウトも営業電話もありません。`;
+
+  return {
+    title: "OPINIO — IT/SaaS業界の企業と求人を探す",
+    description,
+    openGraph: {
+      title: "OPINIO — IT/SaaS業界の企業と求人を探す",
+      description,
+      url: "https://opinio.jp",
+      siteName: "OPINIO",
+      locale: "ja_JP",
+      type: "website",
+    },
+    alternates: { canonical: "https://opinio.jp" },
+  };
+}
+
+// supabase-js 経由の取得は Next が動的だと判断できず、宣言が無いと静的レンダリング
+// 結果が固定される（= コードを変えるまで DB 更新が反映されない）。
+// 入口ページなので force-dynamic ではなく ISR で追従させる。
+export const revalidate = 300;
+
+/** LP に出すプレビュー件数。実体の絞り込みは一覧ページ側が担う */
+const PREVIEW_COMPANIES = 12;
+const PREVIEW_JOBS = 12;
 
 export default async function HomePage() {
-  const adminSupabase = createAdminClient();
+  const db = createAdminClient();
 
-  const { data: raw } = await adminSupabase
-    .from("ow_company_members")
-    .select(`
-      role_title,
-      talk_themes,
-      ow_users!user_id(id, name, avatar_color, visibility, is_test, can_casual_meeting),
-      ow_companies!company_id(name, brand_name)
-    `)
-    .eq("display_consent", true)
-    .eq("is_public", true)
-    .limit(24);
+  // ── ファセット用の軽量取得 ────────────────────────────────────────
+  // 集計のために industry / phase の2列だけを引く。行数は企業数に比例するが
+  // 列を絞っているので数千社まで許容範囲。これ以上増えたら集計ビューに移す。
+  const facetRowsP = db
+    .from("ow_companies")
+    .select("industry, phase")
+    .eq("is_published", true);
 
-  // 掲載同意済みで表に出してよい人。面談可否はここでは問わない。
-  const listed = (raw ?? [])
-    .map((r) => r as unknown as MemberRow)
-    .filter((r) => {
-      const u = r.ow_users;
-      if (!u) return false;
-      if (u.is_test === true) return false;
-      if (u.visibility === "private") return false;
-      return true;
-    });
+  // ── 総件数（count only: 行は取得しない）─────────────────────────
+  const companyCountP = db
+    .from("ow_companies")
+    .select("id", { count: "exact", head: true })
+    .eq("is_published", true);
+  const jobCountP = db
+    .from("ow_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published");
 
-  // Fetch career history for each member
-  // company_text だけでなく company_id も取る。マスタ企業に紐づく職歴は company_text が
-  // NULL のため、company_text だけを見ると経歴の大半が欠落する。
-  const userIds = listed.map((r) => r.ow_users!.id);
-  const expByUser: Record<string, string[]> = {};
-  const expRowsByUser: Record<string, ExpRow[]> = {};
+  // ── プレビュー（各12件だけ）──────────────────────────────────────
+  const companiesP = db
+    .from("ow_companies")
+    .select("id, name, brand_name, industry, phase, logo_url, logo_letter, logo_gradient, url")
+    .eq("is_published", true)
+    .order("updated_at", { ascending: false })
+    .limit(PREVIEW_COMPANIES);
 
-  if (userIds.length > 0) {
-    const { data: exps, error: expError } = await adminSupabase
-      .from("ow_experiences")
-      .select("user_id, company_id, company_text, started_at, is_current, visibility_company")
-      .in("user_id", userIds)
-      .order("started_at", { ascending: true, nullsFirst: false });
+  const jobsP = db
+    .from("ow_jobs")
+    .select(
+      "id, title, job_category, salary_min, salary_max, location, employment_type, remote_work_status, company_id, published_at"
+    )
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(PREVIEW_JOBS);
 
-    if (expError) {
-      console.error("[HomePage] ow_experiences fetch failed:", expError.message);
+  const [facetRes, companyCountRes, jobCountRes, companiesRes, jobsRes] =
+    await Promise.all([facetRowsP, companyCountP, jobCountP, companiesP, jobsP]);
+
+  for (const [label, res] of Object.entries({
+    facets: facetRes, companies: companiesRes, jobs: jobsRes,
+  })) {
+    if (res.error) console.error(`[HomePage] ${label} fetch failed:`, res.error.message);
+  }
+
+  const totals: LPTotals = {
+    companies: companyCountRes.count ?? 0,
+    jobs: jobCountRes.count ?? 0,
+  };
+
+  // ── ファセット集計 ──────────────────────────────────────────────
+  // 0件でもラベルは出す。件数が増えたときに伸びが見えるようにするため、
+  // 「0なら隠す」ことはしない。
+  const facetRows = (facetRes.data ?? []) as { industry: string | null; phase: string | null }[];
+
+  const industryFacets: LPFacet[] = INDUSTRY_GROUPS.map((g) => ({
+    key: g.key,
+    label: g.label,
+    count: facetRows.filter((r) => r.industry && (g.values as readonly string[]).includes(r.industry)).length,
+    href: `/companies?industry=${g.key}`,
+  }));
+
+  // フェーズはDB値が英語・日本語混在。実データは listed / unicorn / non_listed / series_d が確認済み
+  // （2026-08-03）。シリーズ表記は今後 A〜E が入りうるので全て「成長ステージ」に寄せる。
+  const PHASE_BUCKETS: { label: string; values: string[] }[] = [
+    { label: "上場", values: ["listed", "上場"] },
+    { label: "ユニコーン", values: ["unicorn", "ユニコーン"] },
+    {
+      label: "成長ステージ",
+      values: [
+        "seed", "シード",
+        ...["a", "b", "c", "d", "e"].flatMap((s) => [`series_${s}`, `series-${s}`, `シリーズ${s.toUpperCase()}`]),
+      ],
+    },
+    { label: "非上場", values: ["non_listed", "非上場"] },
+  ];
+  const phaseFacets: LPFacet[] = PHASE_BUCKETS.map((b) => ({
+    key: b.label,
+    label: b.label,
+    count: facetRows.filter((r) => r.phase && b.values.includes(r.phase)).length,
+    href: `/companies?phase=${encodeURIComponent(b.label)}`,
+  }));
+
+  // ── 企業カードの付帯件数 ────────────────────────────────────────
+  // プレビュー12社ぶんだけを対象にするので、件数が増えても負荷は一定。
+  const companyRows = (companiesRes.data ?? []) as {
+    id: string; name: string; brand_name: string | null; industry: string | null;
+    phase: string | null; logo_url: string | null; logo_letter: string | null;
+    logo_gradient: string | null; url: string | null;
+  }[];
+  const previewIds = companyRows.map((c) => c.id);
+
+  const tally = async (table: string, col: string, filter?: [string, string]) => {
+    const map = new Map<string, number>();
+    if (previewIds.length === 0) return map;
+    let q = db.from(table).select(col).in(col, previewIds);
+    if (filter) q = q.eq(filter[0], filter[1]);
+    const { data, error } = await q;
+    if (error) { console.error(`[HomePage] ${table} tally failed:`, error.message); return map; }
+    for (const row of (data ?? []) as unknown as Record<string, string>[]) {
+      const id = row[col];
+      if (id) map.set(id, (map.get(id) ?? 0) + 1);
     }
+    return map;
+  };
 
-    for (const e of (exps ?? []) as ExpRow[]) {
-      if (!e.user_id) continue;
-      (expRowsByUser[e.user_id] ??= []).push(e);
-      // FVカードの経歴チップは自由入力の社名のみ（従来どおり）
-      if (e.company_text) (expByUser[e.user_id] ??= []).push(e.company_text);
+  const [articleByCompany, jobByCompany, memberByCompany] = await Promise.all([
+    tally("ow_articles", "company_id", ["is_published", "true"]),
+    tally("ow_jobs", "company_id", ["status", "published"]),
+    tally("ow_company_members", "company_id", ["is_public", "true"]),
+  ]);
+
+  const companies: LPCompanyCard[] = companyRows.map((c) => ({
+    id: c.id,
+    name: c.brand_name ?? c.name,
+    industry: c.industry,
+    phase: c.phase,
+    logoUrl: c.logo_url,
+    logoLetter: c.logo_letter,
+    logoGradient: c.logo_gradient,
+    companyUrl: c.url,
+    // 0 でもそのまま出す
+    articleCount: articleByCompany.get(c.id) ?? 0,
+    jobCount: jobByCompany.get(c.id) ?? 0,
+    memberCount: memberByCompany.get(c.id) ?? 0,
+  }));
+
+  // ── 求人カード ──────────────────────────────────────────────────
+  const jobRows = (jobsRes.data ?? []) as {
+    id: string; title: string; job_category: string | null;
+    salary_min: number | null; salary_max: number | null;
+    location: string | null; employment_type: string | null;
+    remote_work_status: string | null; company_id: string;
+  }[];
+
+  const jobCompanyIds = Array.from(new Set(jobRows.map((j) => j.company_id).filter(Boolean)));
+  const companyNameById = new Map<string, string>();
+  if (jobCompanyIds.length > 0) {
+    const { data, error } = await db
+      .from("ow_companies")
+      .select("id, name, brand_name")
+      .in("id", jobCompanyIds);
+    if (error) console.error("[HomePage] job companies fetch failed:", error.message);
+    for (const c of (data ?? []) as { id: string; name: string; brand_name: string | null }[]) {
+      companyNameById.set(c.id, c.brand_name ?? c.name);
     }
   }
 
-  /**
-   * 人物帯用に、ある人の「中間の会社数」と「起点・現職の公開可否」を求める。
-   * 同じ会社での役割変更が別行になっているため、行数ではなく会社の distinct 数で数える
-   * （木村さんは4行あるが会社は3社で、中間は1社）。
-   */
-  const analyzeCareer = (rows: ExpRow[]) => {
-    const keys: string[] = [];
-    for (const r of rows) {
-      const key = r.company_id ?? r.company_text;
-      if (!key) continue;
-      if (keys[keys.length - 1] !== key) keys.push(key); // 連続する同一社をまとめる
-    }
-    const distinct = Array.from(new Set(keys));
-    const first = rows.find((r) => (r.company_id ?? r.company_text) === keys[0]);
-    const current = rows.find((r) => r.is_current === true) ?? rows[rows.length - 1];
-    return {
-      viaCount: Math.max(0, distinct.length - 2),
-      // 起点と現職のどちらかが実名公開でなければ帯には出さない。
-      // 人物帯は経歴を見せる枠なので、経歴側の同意（visibility_company）が効く。
-      canShowRealNames:
-        first?.visibility_company === "real" && current?.visibility_company === "real",
-    };
-  };
+  const jobs: LPJobCard[] = jobRows.map((j) => ({
+    id: j.id,
+    title: j.title,
+    companyName: companyNameById.get(j.company_id) ?? "",
+    jobCategory: j.job_category,
+    // salary_min/max の単位は円ではなく万円
+    salaryMin: j.salary_min,
+    salaryMax: j.salary_max,
+    location: j.location,
+    employmentType: j.employment_type,
+    remoteStatus: j.remote_work_status,
+  }));
 
-  const toLPMember = (r: MemberRow): LPMember => {
-    const u = r.ow_users!;
-    const co = r.ow_companies;
-    const flow = expByUser[u.id] ?? null;
-    return {
-      id: u.id,
-      name: u.name,
-      avatarColor: u.avatar_color,
-      photoUrl: MEMBER_PHOTOS[u.id] ?? null,
-      roleTitle: r.role_title,
-      companyName: co?.brand_name ?? co?.name ?? null,
-      careerFlow: flow && flow.length > 1 ? flow : null,
-      quote: r.talk_themes?.[0] ?? null,
-    };
-  };
-
-  // ow_company_members に表示順カラムが無く、ORDER BY なしの並びは不定。
-  // 4枠に絞る前に、顔写真のあるメンバーを優先して決定的に並べる。
-  const photoFirst = (a: LPMember, b: LPMember) => {
-    const rank = (m: LPMember) => (m.photoUrl ? 0 : 1);
-    return rank(a) - rank(b) || a.name.localeCompare(b.name, "ja");
-  };
-
-  // FV カード: can_casual_meeting = true の人だけ（掲載 ≠ 面談可）。
-  // /u/[id] のカジュアル面談CTAと同じ条件に揃えている。
-  const members = listed
-    .filter((r) => r.ow_users!.can_casual_meeting === true)
-    .map(toLPMember)
-    .sort(photoFirst)
-    .slice(0, 4);
-
-  // ヒーロー直下の人物帯「その転職を、すでにした人」。
-  // 表示文字列は DB_BAND_LABELS / LP_GUEST_BAND が持ち、
-  // 中間社数と公開可否は DB のある人だけ ow_experiences から算出・検証する。
-  const dbBand: LPBandMember[] = listed.flatMap((r) => {
-    const u = r.ow_users!;
-    const label = DB_BAND_LABELS[u.id];
-    if (!label) return []; // 帯に出すラベルが未定義の人は出さない
-
-    const { viaCount, canShowRealNames } = analyzeCareer(expRowsByUser[u.id] ?? []);
-    if (!canShowRealNames) {
-      // 本人が経歴上「社名を伏せる」を選んでいる。企業側の掲載要望より本人の希望を優先する。
-      console.info("[HomePage] 人物帯から除外（visibility_company が real でない）:", u.name);
-      return [];
-    }
-
-    return [{
-      id: u.id,
-      name: u.name,
-      photoUrl: MEMBER_PHOTOS[u.id] ?? null,
-      fromCompany: label.fromCompany,
-      toCompany: label.toCompany,
-      viaCount,
-      quote: r.talk_themes?.[0] ?? null,
-    }];
-  });
-
-  const bandMembers: LPBandMember[] = [...dbBand, ...LP_GUEST_BAND]
-    .sort((a, b) => a.name.localeCompare(b.name, "ja"))
-    .slice(0, 4);
-
-  // 枠に出ている全員が面談可なので、そのまま人数になる。
   return (
-    <LandingPage members={members} bookableCount={members.length} bandMembers={bandMembers} />
+    <LandingPage
+      totals={totals}
+      industryFacets={industryFacets}
+      phaseFacets={phaseFacets}
+      companies={companies}
+      jobs={jobs}
+    />
   );
 }

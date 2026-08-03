@@ -1,687 +1,442 @@
 import Link from "next/link";
-import Image from "next/image";
-import type { LPBandMember } from "./lpGuestMembers";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
+import { HeroSearch } from "./HeroSearch";
 
-export type LPMember = {
+// ─── Types ───────────────────────────────────────────────────────────────────
+export type LPTotals = { companies: number; jobs: number };
+export type LPFacet = { key: string; label: string; count: number; href: string };
+
+export type LPCompanyCard = {
   id: string;
   name: string;
-  avatarColor: string | null;
-  /** public/images/people/ の透過PNG。未設定ならイニシャル表示にフォールバックする */
-  photoUrl: string | null;
-  roleTitle: string | null;
-  companyName: string | null;
-  careerFlow: string[] | null;
-  quote: string | null;
+  industry: string | null;
+  phase: string | null;
+  logoUrl: string | null;
+  logoLetter: string | null;
+  logoGradient: string | null;
+  companyUrl: string | null;
+  articleCount: number;
+  jobCount: number;
+  memberCount: number;
 };
 
-// ─── SVG Icon ───────────────────────────────────────────────────────────────
-function Icon({ name, size = 20, color }: { name: string; size?: number; color?: string }) {
-  const d: Record<string, React.ReactNode> = {
-    talk: (<><path d="M3.2 5.6h11.4v7.6H7.9L4.4 16v-2.8H3.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9.4 8.6h11.4v7.6h-1.2V19l-3.5-2.8h-2.3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></>),
-    check: <path d="M5 12.6l4.4 4.4L19 6.6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>,
-    arrow: <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>,
-    verified: (<><path d="M12 2.6l7.2 2.8v6c0 4.5-3 8.2-7.2 10-4.2-1.8-7.2-5.5-7.2-10v-6L12 2.6z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M8.6 11.8l2.4 2.4 4.4-4.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></>),
-    why: (<><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M9.4 9.6c.2-1.5 1.3-2.4 2.7-2.4 1.5 0 2.6 1 2.6 2.4 0 2-2.5 2.1-2.6 4.1" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="12.1" cy="16.8" r="1" fill="currentColor"/></>),
-    spark: <path d="M12 3.4l2 5.4 5.4 2-5.4 2-2 5.4-2-5.4-5.4-2 5.4-2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>,
-    free: (<><path d="M4 12h9.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M13.5 12l6.5-5.2V17.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><circle cx="4" cy="12" r="2" fill="none" stroke="currentColor" strokeWidth="1.5"/></>),
-    search: (<><circle cx="10.6" cy="10.6" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.6"/><path d="M15.4 15.4L20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></>),
-    decide: <path d="M4.5 12.5l4.6 4.6L19.5 6.7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
-    quiet: (<><path d="M6.6 16.4V11a5.4 5.4 0 0110.8 0v5.4h1.4H5.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M10.3 19a1.9 1.9 0 003.4 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M4 20L20 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></>),
-    day: (<><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M12 7.2V12l3.2 2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></>),
-    eval: <path d="M5 18.4V13m4.6 5.4V8.4M14.2 18.4v-7M18.8 18.4V5.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>,
-    team: (<><circle cx="9" cy="9.2" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.5"/><path d="M3.6 18.8c0-3 2.4-5 5.4-5s5.4 2 5.4 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M15.4 7.2a3 3 0 010 5.8M16.6 14.4c2.3.5 3.8 2.3 3.8 4.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></>),
-    hard: (<><path d="M12 4.2l8.4 15H3.6z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M12 10v3.6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="12" cy="16.2" r=".9" fill="currentColor"/></>),
-  };
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} style={{ display: "block", color: color ?? "currentColor", flexShrink: 0 }}>
-      {d[name]}
-    </svg>
-  );
-}
+export type LPJobCard = {
+  id: string;
+  title: string;
+  companyName: string;
+  jobCategory: string | null;
+  /** 単位は万円（DB の salary_min/max がそのまま万円で入っている） */
+  salaryMin: number | null;
+  salaryMax: number | null;
+  location: string | null;
+  employmentType: string | null;
+  remoteStatus: string | null;
+};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const C = {
   paper:  "#FBFAF6",
   paper2: "#F2F1EA",
   navy:   "#0E2148",
-  navy2:  "#16305F",
   ink:    "#16202F",
   muted:  "#5A6779",
   line:   "#E5E5DF",
   blue:   "#2D5BD8",
   green:  "#0E6B4F",
-  amber:  "#C77A2B",
 };
 
-const FEATURED = [
-  { letter: "S", bg: "linear-gradient(135deg,#00A1E0,#0D74B8)", name: "Salesforce Japan", tag: "CRM・営業支援 ／ 外資SaaS", href: "/companies/salesforce", articles: 1, jobs: 5, members: 1 },
-  { letter: "H", bg: "linear-gradient(135deg,#EA580C,#FB923C)",  name: "HubSpot",          tag: "マーケティング自動化 ／ 外資SaaS", href: "/companies/hubspot",    articles: 1, jobs: 3, members: 0 },
-  { letter: "S", bg: "linear-gradient(135deg,#0ea5e9,#6366f1)", name: "SmartHR",           tag: "HR Tech ／ 国内SaaS",           href: "/companies/smarthr",    articles: 2, jobs: 0, members: 0 },
-];
+/**
+ * 人物帯（その転職を、すでにした人）は Career Agent へ移設するため非表示。
+ * データと表示ロジックは lpGuestMembers.ts に残してあるので、
+ * 移設先で再利用するか、方針が変わればここを true に戻せば復帰する。
+ */
+const SHOW_PEOPLE_BAND = false;
 
-const ROLES = [
-  { label: "フィールドセールス",   href: "/jobs/dept/sales" },
-  { label: "インサイドセールス",   href: "/jobs/dept/sales" },
-  { label: "カスタマーサクセス",   href: "/jobs/dept/management" },
-  { label: "エンタープライズ営業", href: "/jobs/dept/sales" },
-  { label: "プロダクトマネージャー", href: "/jobs/dept/product" },
-  { label: "マーケティング",       href: "/jobs/dept/marketing" },
-  { label: "エンジニア",           href: "/jobs/dept/engineer" },
-];
+const REMOTE_LABEL: Record<string, string> = {
+  full_remote: "フルリモート",
+  hybrid: "ハイブリッド",
+  on_site: "出社",
+};
 
-const ASKS = [
-  { icon: "why",   color: C.blue,  q: "なぜ、この会社を選んだんですか",  sub: "他社と迷ったか、決め手は何だったか" },
-  { icon: "spark", color: C.green, q: "いま、何が面白いですか",           sub: "続けている理由と、手応えを感じる瞬間" },
-  { icon: "day",   color: C.amber, q: "1日って、どう流れますか",          sub: "実際の稼働時間、会議の量、リモートの実態" },
-  { icon: "eval",  color: C.blue,  q: "どう評価されるんですか",           sub: "目標の決まり方、昇給と昇格のリアル" },
-  { icon: "team",  color: C.green, q: "チームは、どんな人たちですか",     sub: "年齢層、雰囲気、意見の言いやすさ" },
-  { icon: "hard",  color: C.muted, q: "正直、しんどいのはどこですか",     sub: "やめたくなる瞬間と、それでも続く理由" },
-];
+/** ow_companies.phase は英語スラッグと日本語が混在しているので表示時に日本語へ寄せる */
+const PHASE_LABEL: Record<string, string> = {
+  listed: "上場",
+  non_listed: "非上場",
+  unicorn: "ユニコーン",
+  seed: "シード",
+  series_a: "シリーズA", series_b: "シリーズB", series_c: "シリーズC",
+  series_d: "シリーズD", series_e: "シリーズE",
+};
+function phaseText(phase: string | null): string | null {
+  if (!phase) return null;
+  return PHASE_LABEL[phase] ?? phase;
+}
 
-const COMPARE = [
-  { feature: "求人数",             opinio: "IT・SaaSに絞って掲載", others: "圧倒的に多い",      wins: false },
-  { feature: "現役社員と直接話せる", opinio: "できる",             others: "人事とのみ",        wins: true  },
-  { feature: "取材による企業情報",  opinio: "全掲載企業",          others: "一部のみ",          wins: true  },
-  { feature: "スカウト・営業電話",  opinio: "一切なし",            others: "届く",              wins: true  },
-  { feature: "登録に必要なもの",    opinio: "メールアドレスのみ",  others: "職務経歴の入力",    wins: true  },
-];
-
-const FAQ = [
-  {
-    q: "登録すると、何ができるようになりますか？",
-    a: "現役社員に直接カジュアル面談を申し込めるようになります。企業情報・求人・取材記事はログイン不要で読めます。登録にはメールアドレスのみ必要で、30秒で完了します。スカウトや営業連絡は一切来ません。",
-    open: true,
-  },
-  {
-    q: "面談したことは、今の会社に知られませんか？",
-    a: "知られません。企業への申し込みはOPINIO経由であり、面談相手の現役社員は守秘義務があります。あなたの会社に情報が伝わることはありません。",
-    open: false,
-  },
-  {
-    q: "転職せずに、現職に残ってもいいですか？",
-    a: "もちろんです。OPINIOは「まず知る」ための場所です。調べた結果、今の会社に残るという判断も、私たちは等しく尊重します。残るよう急かす連絡も、転職を勧める連絡も一切ありません。",
-    open: false,
-  },
-  {
-    q: "本当に無料で使えますか？",
-    a: "はい。メールアドレスの登録だけで、掲載企業の情報にすべて無料でアクセスできます。求職者側の費用は一切かかりません。",
-    open: false,
-  },
-];
+function salaryText(min: number | null, max: number | null): string | null {
+  if (min && max) return `${min.toLocaleString("ja-JP")}〜${max.toLocaleString("ja-JP")}万円`;
+  if (min) return `${min.toLocaleString("ja-JP")}万円〜`;
+  if (max) return `〜${max.toLocaleString("ja-JP")}万円`;
+  return null;
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function LandingPage({
-  members,
-  bookableCount,
-  bandMembers,
+  totals,
+  industryFacets,
+  phaseFacets,
+  companies,
+  jobs,
 }: {
-  members: LPMember[];
-  /** 実際にカジュアル面談を申し込める人数。表示専用メンバーは含まない */
-  bookableCount: number;
-  /** ヒーロー直下の人物帯「その転職を、すでにした人」 */
-  bandMembers: LPBandMember[];
+  totals: LPTotals;
+  industryFacets: LPFacet[];
+  phaseFacets: LPFacet[];
+  companies: LPCompanyCard[];
+  jobs: LPJobCard[];
 }) {
-  const memberCount = bookableCount;
-
   return (
     <div style={{ background: C.paper, color: C.ink, fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif', WebkitFontSmoothing: "antialiased", lineHeight: 1.8 }}>
       <style>{`
-        .lp-hero { padding: 78px 0 92px; border-bottom: 1px solid ${C.line}; position: relative; overflow: hidden; }
-        .lp-hero-grid { display: grid; grid-template-columns: 1.03fr 0.97fr; gap: 60px; align-items: center; }
-        .lp-hero-grid--solo { grid-template-columns: 1fr; }
-        .lp-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .lp-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-        .lp-asks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .lp-section { padding: 92px 0; }
         .lp-wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
-        .lp-thread-box { padding: 44px 40px 34px; }
-        .lp-thread-svg-narrow { display: none; width: 100%; max-width: 400px; height: auto; margin: 0 auto; }
-        .lp-cmp-cards { display: none; }
-        /* 人物帯: デスクトップは4人横並び、モバイルは2×2（縦を伸ばさないため） */
-        .lp-portraits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .lp-portrait-media { aspect-ratio: 4 / 5; }
-        .lp-member-flow { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
-        .lp-member-flow em { font-style: normal; font-size: 11.5px; color: ${C.muted}; background: ${C.paper2}; border-radius: 999px; padding: 2px 8px; }
-        .lp-member-flow .lp-dot { width: 4px; height: 4px; border-radius: 50%; background: #CBD5E0; flex-shrink: 0; display: inline-block; }
-        .lp-member-quote { margin-top: 8px; display: flex; gap: 7px; align-items: flex-start; }
-        .lp-member-quote .lp-ql { color: ${C.blue}; font-size: 17px; line-height: 1.1; flex-shrink: 0; font-family: serif; }
-        .lp-member-quote span { font-size: 12px; color: #374357; line-height: 1.6; }
-        .lp-cta-bullets { display: inline-flex; flex-direction: column; gap: 11px; text-align: left; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13); border-radius: 13px; padding: 24px 30px; margin: 24px 0 32px; }
-        .lp-cta-btns { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .lp-section { padding: 72px 0; }
+        .lp-h2 { font-size: clamp(22px, 2.4vw, 30px); font-weight: 800; line-height: 1.45; color: ${C.navy}; letter-spacing: -0.01em; }
+        .lp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; color: ${C.blue}; margin-bottom: 10px; }
+        .lp-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
+
+        .lp-facets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .lp-facet { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+                    background: #fff; border: 1px solid ${C.line}; border-radius: 10px;
+                    padding: 12px 14px; text-decoration: none; }
+        .lp-facet:hover { border-color: ${C.blue}; }
+
+        .lp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .lp-card { background: #fff; border: 1px solid ${C.line}; border-radius: 12px; padding: 20px; text-decoration: none; display: block; }
+        .lp-card:hover { border-color: ${C.blue}; box-shadow: 0 6px 20px rgba(14,33,72,.07); }
+
+        .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+
+        .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .lp-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+
         @media (max-width: 900px) {
-          .lp-hero { padding: 52px 0 64px; }
-          .lp-hero-grid { grid-template-columns: 1fr; gap: 40px; }
-          .lp-grid2 { grid-template-columns: 1fr; }
-          .lp-grid3 { grid-template-columns: 1fr; }
-          .lp-asks-grid { grid-template-columns: 1fr 1fr; }
-          .lp-section { padding: 64px 0; }
-          .lp-thread-box { padding: 30px 22px 24px; }
+          .lp-section { padding: 52px 0; }
           .lp-wrap { padding: 0 18px; }
-          table.lp-cmp th, table.lp-cmp td { padding: 14px 13px; font-size: 13.5px; }
-
-          /* 谷① S1: 1カラムに落ちたカード群を、罫線区切りの1枚のリストに解く */
-          .lp-features { gap: 0 !important; background: #fff; border: 1px solid ${C.line}; border-radius: 14px; overflow: hidden; }
-          .lp-feature { background: transparent !important; border: 0 !important; border-radius: 0 !important;
-                        padding: 17px 17px !important; display: flex; gap: 13px; align-items: flex-start; }
-          .lp-feature + .lp-feature { border-top: 1px solid #F0F0EB !important; }
-          .lp-feature-icon { width: 32px !important; height: 32px !important; border-radius: 9px !important; margin-bottom: 0 !important; }
-          .lp-feature-icon svg { width: 19px !important; height: 19px !important; }
-          .lp-feature h3 { font-size: 15px !important; margin-bottom: 4px !important; line-height: 1.5; }
-          .lp-feature p { font-size: 13px !important; line-height: 1.65 !important; }
-
-          /* 谷③ S3: 企業カードをロゴ＋社名＋業種の行に圧縮し、指標行は落とす */
-          .lp-companies { gap: 0 !important; background: #fff; border: 1px solid ${C.line}; border-radius: 14px; overflow: hidden; }
-          .lp-co-card { border: 0 !important; border-radius: 0 !important; padding: 13px 16px !important; }
-          .lp-co-card + .lp-co-card { border-top: 1px solid #F0F0EB !important; }
-          .lp-co-head { margin-bottom: 0 !important; }
-          .lp-co-metrics { display: none !important; }
-        }
-        @media (max-width: 580px) {
-          .lp-asks-grid { grid-template-columns: 1fr; }
-          .lp-grid3.lp-steps { grid-template-columns: 1fr; }
-          .lp-cta-bullets { padding: 20px 22px; }
-          .lp-thread-svg-wide { display: none; }
-          .lp-thread-svg-narrow { display: block; }
-          .lp-portraits { grid-template-columns: 1fr 1fr; gap: 14px; }
-          .lp-portrait-media { aspect-ratio: 1 / 1; }
-          .lp-people-band { padding: 38px 0 42px !important; }
-          .lp-people-head { margin-bottom: 20px !important; }
-
-          /* 谷② S5: 3列の表を1項目1カードの縦積みに差し替える */
-          .lp-cmp-wrap { display: none; }
-          .lp-cmp-cards { display: block; }
+          .lp-facets { grid-template-columns: repeat(2, 1fr); }
+          .lp-cards, .lp-jobs, .lp-steps, .lp-trust { grid-template-columns: 1fr; }
+          /* プレビューは1カラムだと縦に伸びすぎるので6件までに絞る。
+             総件数は「N社すべて見る」で示しているので数は隠していない。 */
+          .lp-cards > :nth-child(n+7), .lp-jobs > :nth-child(n+7) { display: none; }
+          table.lp-cmp th, table.lp-cmp td { padding: 13px 12px; font-size: 13.5px; }
         }
         details summary::-webkit-details-marker { display: none; }
         details summary::marker { display: none; }
         details[open] summary .lp-faq-arrow { transform: rotate(90deg); }
-        .lp-faq-arrow { transition: transform 0.2s; }
-        .lp-step-card h1, .lp-step-card h2, .lp-step-card h3,
-        .lp-step-card h4, .lp-step-card h5, .lp-step-card h6,
-        .lp-step-card p { color: inherit; }
+        .lp-faq-arrow { transition: transform .2s; }
       `}</style>
 
-      {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
-      <div className="lp-hero">
-        {/* ドット背景 */}
-        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5, pointerEvents: "none" }} viewBox="0 0 1440 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <defs>
-            <pattern id="lp-dots" width="26" height="26" patternUnits="userSpaceOnUse">
-              <circle cx="1.6" cy="1.6" r="1.1" fill="#DFDCD1" />
-            </pattern>
-            <linearGradient id="lp-fade" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor={C.paper} stopOpacity="1" />
-              <stop offset="55%" stopColor={C.paper} stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <rect width="1440" height="620" fill="url(#lp-dots)" />
-          <rect width="1440" height="620" fill="url(#lp-fade)" />
-          <path d="M-40 470 C 240 470, 300 300, 560 300 S 900 150, 1180 150 1480 150 1480 150" fill="none" stroke="#C9B896" strokeWidth="1.6" opacity=".55" />
-          <circle cx="180" cy="459" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
-          <circle cx="560" cy="300" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
-          <circle cx="960" cy="176" r="5" fill={C.paper} stroke="#C9B896" strokeWidth="1.6" />
-        </svg>
+      {/* ══ HERO — 検索が主役 ═══════════════════════════════════════════════ */}
+      <section style={{ borderBottom: `1px solid ${C.line}`, padding: "64px 0 56px" }}>
+        <div className="lp-wrap" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div className="lp-eyebrow">IT・SaaS特化</div>
+          <h1 style={{ fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.02em", color: C.navy, marginBottom: 10 }}>
+            IT・SaaS業界の企業と求人を、まとめて調べる。
+          </h1>
+          <p style={{ fontSize: 15.5, color: C.muted, marginBottom: 26 }}>
+            企業情報も求人も、登録なしで全て読めます。
+          </p>
 
-        {/* 面談を受け付けている人が0名のときはカード自体を出さない。
-            空のカードを出すと「いま話を聞ける現役社員 0名」を見せることになるため、
-            ヒーローを1カラムに畳む。 */}
-        <div className={`lp-wrap lp-hero-grid${members.length === 0 ? " lp-hero-grid--solo" : ""}`} style={{ position: "relative" }}>
-          {/* 左: コピー */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 22 }}>IT・SaaS特化</div>
-            {/* 短い見出しなのでポスター寸法に上げ、改行位置は意図どおり固定する */}
-            {/* 2行目「すでにした人がいます。」が11文字。FVカードが出ている2カラム時の
-                カラム幅517px と モバイル390px時の354px の両方に収まるサイズに抑える
-                （44px×11=484 / 30px×11=330）。上げると2カラム復活時に溢れる。 */}
-            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(30px, 3.4vw, 44px)", lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 22 }}>
-              その転職を、<br />すでにした人がいます。
-            </h1>
-            {/* maxWidth 26em だと実測440pxの本文に余白2pxしか無く、フォントフォールバック時に
-                「か。」だけが2行目に落ちるため30emにする。
-                さらに読点を境に inline-block で塊にして、折り返しが句の途中で起きないようにする
-                （デスクトップ=1行 / モバイル=読点で2行）。 */}
-            <p style={{ fontSize: 17, color: "#374357", marginBottom: 34, maxWidth: "30em", lineHeight: 1.85 }}>
-              <span style={{ display: "inline-block" }}>一般論ではなく、</span>
-              <span style={{ display: "inline-block" }}>その人の判断を聞けます。</span>
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
-              <Link href="/people" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: C.navy, color: "#fff", padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
-                話を聞ける人を見る
-                <Icon name="talk" size={17} />
-              </Link>
-              <Link href="/auth" style={{ color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, fontSize: 14.5, fontWeight: 500 }}>
-                メールアドレスだけで登録（30秒）
-              </Link>
-            </div>
-            <p style={{ marginTop: 22, fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name="quiet" size={17} color={C.green} />
-              登録しても、企業から連絡が来ることはありません。スカウトも営業電話もゼロです。
-            </p>
-          </div>
+          <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
 
-          {/* 右: 話を聞ける人カード（DB動的 / can_casual_meeting = true の人のみ） */}
-          {members.length > 0 && (
-          <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, boxShadow: "0 20px 50px rgba(14,33,72,.10)", overflow: "hidden" }}>
-            <div style={{ padding: "16px 22px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: C.paper2 }}>
-              <strong style={{ fontSize: 13.5, fontWeight: 700, color: C.navy, display: "flex", alignItems: "center", gap: 9 }}>
-                <Icon name="talk" size={17} color={C.navy} />
-                いま話を聞ける現役社員
-              </strong>
-              {memberCount > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: C.green, background: "#E2F1EB", padding: "5px 12px", borderRadius: 999 }}>
-                  {memberCount}名が面談可
-                </span>
-              )}
-            </div>
-
-            {members.map((m) => (
-              <div key={m.id} style={{ padding: "16px 22px", borderBottom: `1px solid #F1F1EC` }}>
-                <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    {m.photoUrl ? (
-                      // 透過PNG。被写体は上17%から始まり頭部中心が高さ44.6%にあるため、
-                      // 145%に拡大して上下左右をずらし、円の中心に顔が来るようにする。
-                      <div style={{ width: 42, height: 42, borderRadius: "50%", overflow: "hidden", position: "relative" }}>
-                        <Image
-                          src={m.photoUrl}
-                          alt={`${m.name}さん`}
-                          width={84}
-                          height={84}
-                          style={{ position: "absolute", width: "145%", height: "145%", left: "-22.5%", top: "-14.7%", objectFit: "cover" }}
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ width: 42, height: 42, borderRadius: "50%", background: m.avatarColor ?? `linear-gradient(135deg,${C.navy},${C.blue})`, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: '"Poppins", sans-serif' }}>
-                        {m.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div style={{ position: "absolute", right: -4, bottom: -4, width: 18, height: 18, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,.18)" }}>
-                      <Icon name="check" size={11} color={C.green} />
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* role_title 未確認のメンバーは「メンバー ／ 社名」ではなく社名だけを出す */}
-                    <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.5, color: C.navy }}>
-                      {[m.roleTitle, m.companyName].filter(Boolean).join(" ／ ") || m.name}
-                    </div>
-                    {/* Career flow */}
-                    {m.careerFlow && m.careerFlow.length > 0 && (
-                      <div className="lp-member-flow">
-                        {m.careerFlow.map((co, i) => (
-                          <span key={i} style={{ display: "contents" }}>
-                            {i > 0 && <span className="lp-dot" />}
-                            <em>{co}</em>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {/* Quote / theme */}
-                    {m.quote && (
-                      <div className="lp-member-quote">
-                        <span className="lp-ql">&#8220;</span>
-                        <span>{m.quote}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <div style={{ padding: "18px 22px" }}>
-              <Link href="/people" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.navy, color: "#fff", borderRadius: 8, padding: "14px", textDecoration: "none", fontWeight: 700, fontSize: 14.5 }}>
-                この人たちに話を聞く →
-              </Link>
-              <p style={{ textAlign: "center", marginTop: 12, fontSize: 11.5, color: C.muted }}>会うかどうかも、会ってから動くかも、あなた次第です</p>
-            </div>
-          </div>
-          )}
+          {/* FV は 見出し・サブコピー・検索窓のみ。件数は各セクションの「すべて見る」で示す */}
+          <p style={{ marginTop: 20, fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 8 }}>
+            <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" style={{ display: "block", color: C.green, flexShrink: 0 }}>
+              <path d="M6.6 16.4V11a5.4 5.4 0 0110.8 0v5.4h1.4H5.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M4 20L20 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+            スカウトも営業電話もありません。登録なしで全て読めます。
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* ══ 人物帯: ヒーロー直下 ══════════════════════════════════════════════
-          掲載同意済みの現役社員を顔で見せる。面談可否は問わないため、
-          見出しは面談を約束しない語にし、申込CTAは置かない（/people へのリンクのみ）。
-          ⚠️ 背景込みの人物写真は用意され次第 .lp-portrait-media の中身を差し替える。
-             いまは背景を落とした切り抜きPNGを地色の上に置いた仮置き。 */}
-      {bandMembers.length > 0 && (
-      <section className="lp-people-band" style={{ background: C.paper2, borderBottom: `1px solid ${C.line}`, padding: "56px 0 60px" }}>
+      {/* ══ ファセット ═══════════════════════════════════════════════════════ */}
+      <section className="lp-section" style={{ background: C.paper2 }}>
         <div className="lp-wrap">
-          <div className="lp-people-head" style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 28 }}>
+          <div className="lp-sec-head">
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 10 }}>PEOPLE</div>
-              <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(22px,2.4vw,30px)", lineHeight: 1.45, color: C.navy }}>
-                その転職を、すでにした人
-              </h2>
+              <div className="lp-eyebrow">BROWSE</div>
+              <h2 className="lp-h2">業種から探す</h2>
             </div>
-            <Link href="/people" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
-              全員を見る →
+            <Link href="/companies" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
+              すべての条件で絞り込む →
             </Link>
           </div>
 
-          <div className="lp-portraits">
-            {bandMembers.map((m) => (
-              <div key={m.id} className="lp-portrait">
-                {/* 地色は白。切り抜きPNGの輪郭に元背景の白フチが残っているため、
-                    地を白に寄せてフチを目立たなくしている。
-                    背景込みの写真に差し替えたら、この背景指定は不要になる。 */}
-                <div className="lp-portrait-media" style={{ background: "#fff", borderRadius: 14, overflow: "hidden", position: "relative" }}>
-                  {m.photoUrl ? (
-                    <Image src={m.photoUrl} alt={`${m.name}さん`} width={320} height={320}
-                      sizes="(max-width: 900px) 46vw, 260px"
-                      style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 12%" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: C.navy, fontSize: 34, fontWeight: 700, fontFamily: '"Poppins", sans-serif', opacity: 0.35 }}>
-                      {m.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div style={{ marginTop: 13 }}>
-                  <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.5 }}>{m.name}</b>
-                  {/* この枠の主役は現職ではなく「起点 → 現在」。反応の起点になるのは前職側 */}
-                  {/* 折り返しても矢印が行末に取り残されないよう、矢印は行き先と1つの塊にする */}
-                  <div style={{ marginTop: 5, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
-                    <span>{m.fromCompany}</span>
-                    <span style={{ display: "inline-block" }}>
-                      <span style={{ color: "#C9B896", margin: "0 5px" }}>→</span>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: C.navy }}>{m.toCompany}</span>
-                    </span>
-                  </div>
-                  {m.viaCount > 0 && (
-                    <span style={{ display: "block", fontSize: 11.5, color: "#94A3B8", marginTop: 3 }}>
-                      （他{m.viaCount}社を経て）
-                    </span>
-                  )}
-                  {m.quote && (
-                    <span style={{ display: "block", fontSize: 12.5, color: "#3E4A5C", marginTop: 8, lineHeight: 1.65 }}>{m.quote}</span>
-                  )}
-                </div>
-              </div>
+          <div className="lp-facets">
+            {industryFacets.map((f) => (
+              <Link key={f.key} href={f.href} className="lp-facet">
+                <span style={{ fontSize: 13.5, color: C.ink }}>{f.label}</span>
+                <strong style={{ fontFamily: '"Poppins", sans-serif', fontSize: 14, color: f.count > 0 ? C.navy : C.muted }}>
+                  {f.count}
+                </strong>
+              </Link>
             ))}
           </div>
-        </div>
-      </section>
-      )}
 
-      {/* ══ S2: 現役社員に聞ける + CAREER THREAD ════════════════════════════ */}
-      <section className="lp-section" style={{ background: C.paper2 }}>
-        <div className="lp-wrap">
-          <div style={{ textAlign: "center", marginBottom: 54 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>OPINIOにしかないもの</div>
-            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>
-              答えるのは人事ではなく、<br />いまその席に座っている人です。
-            </h2>
-            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>会社が在籍を認証した現役社員が、あなたの質問に答えます。</p>
-          </div>
-
-          {/* CAREER THREAD box */}
-          <div className="lp-thread-box" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 18, marginBottom: 24, overflow: "hidden" }}>
-            <div style={{ fontSize: 12, letterSpacing: "0.12em", fontWeight: 700, color: C.muted, marginBottom: 6 }}>CAREER THREAD</div>
-            <div style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, color: C.navy, marginBottom: 26 }}>この人が、なぜここにいるのか。</div>
-            <div style={{ overflowX: "auto" }}>
-              {/* モバイル（≤580px）: 幅に収まる比率の縦長ビューボックス */}
-              <svg className="lp-thread-svg-narrow" viewBox="0 78 360 222" role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
-                <path d="M40 250 C 90 250, 100 200, 150 195 S 220 130, 265 125" fill="none" stroke="#C9B896" strokeWidth="2" />
-                <circle cx="40"  cy="250" r="6" fill={C.paper} stroke="#C9B896" strokeWidth="2" />
-                <text x="40"  y="272" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="12" fill={C.muted}>みずほ証券</text>
-                <text x="40"  y="290" textAnchor="middle" fontFamily="Poppins"    fontSize="10" fill="#A9AEB8">2016</text>
-                <circle cx="150" cy="195" r="6" fill={C.paper} stroke="#C9B896" strokeWidth="2" />
-                <text x="150" y="217" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="12" fill={C.muted}>Salesforce</text>
-                <text x="150" y="235" textAnchor="middle" fontFamily="Poppins"    fontSize="10" fill="#A9AEB8">2021</text>
-                <circle cx="265" cy="125" r="8"  fill={C.navy} />
-                <circle cx="265" cy="125" r="14" fill="none" stroke={C.navy} strokeWidth="1.5" opacity=".28" />
-                <text x="265" y="101" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="12" fontWeight="700" fill={C.navy}>伊藤忠テクノソリューションズ</text>
-                <text x="265" y="147" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="11" fill={C.muted}>現職・エンタープライズ営業</text>
-                <rect x="185" y="185" width="168" height="52" rx="10" fill="#fff" stroke={C.line} />
-                <path d="M255 185 l10 -12 l0 12 z" fill="#fff" stroke={C.line} />
-                <text x="196" y="209" fontFamily="Noto Sans JP" fontSize="11" fill={C.ink}>「なぜ証券から</text>
-                <text x="196" y="228" fontFamily="Noto Sans JP" fontSize="11" fill={C.ink}>SaaSに移ったか」</text>
-              </svg>
-              <svg className="lp-thread-svg-wide" viewBox="0 0 1000 210" style={{ width: "100%", minWidth: 480, height: "auto" }} role="img" aria-label="みずほ証券からSalesforceを経て伊藤忠テクノソリューションズへ至るキャリアの軌跡">
-                <path d="M60 150 C 200 150, 220 96, 360 96 S 560 62, 700 62 S 880 62, 940 62" fill="none" stroke="#C9B896" strokeWidth="2" />
-                <circle cx="60"  cy="150" r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
-                <text x="60"  y="180" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>みずほ証券</text>
-                <text x="60"  y="200" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2016</text>
-                <circle cx="360" cy="96"  r="7"  fill={C.paper} stroke="#C9B896" strokeWidth="2" />
-                <text x="360" y="126" textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fill={C.muted}>Salesforce</text>
-                <text x="360" y="146" textAnchor="middle" fontFamily="Poppins"    fontSize="12" fill="#A9AEB8">2021</text>
-                <circle cx="700" cy="62"  r="10" fill={C.navy} />
-                <circle cx="700" cy="62"  r="17" fill="none" stroke={C.navy} strokeWidth="1.5" opacity=".28" />
-                <text x="700" y="36"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="14" fontWeight="700" fill={C.navy}>伊藤忠テクノソリューションズ</text>
-                <text x="700" y="94"  textAnchor="middle" fontFamily="Noto Sans JP" fontSize="13" fill={C.muted}>現職・エンタープライズ営業</text>
-                <rect x="768" y="112" width="212" height="66" rx="12" fill="#fff" stroke={C.line} />
-                <path d="M800 112 l-12 -14 l0 14 z" fill="#fff" stroke={C.line} />
-                <text x="788" y="140" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>「なぜ証券から</text>
-                <text x="788" y="162" fontFamily="Noto Sans JP" fontSize="13" fill={C.ink}>SaaSに移ったか」</text>
-              </svg>
+          <div style={{ marginTop: 26 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, marginBottom: 10 }}>フェーズから探す</div>
+            <div className="lp-facets">
+              {phaseFacets.map((f) => (
+                <Link key={f.key} href={f.href} className="lp-facet">
+                  <span style={{ fontSize: 13.5, color: C.ink }}>{f.label}</span>
+                  <strong style={{ fontFamily: '"Poppins", sans-serif', fontSize: 14, color: f.count > 0 ? C.navy : C.muted }}>
+                    {f.count}
+                  </strong>
+                </Link>
+              ))}
             </div>
-            <p style={{ fontSize: 14, color: C.muted, marginTop: 14 }}>経歴が一本の線で見えるから、「なぜこの会社を選んだのか」を、その人自身に聞けます。</p>
-          </div>
-
-          {/* 4 feature cards（≤900px ではカードを解いて罫線区切りのリストになる） */}
-          <div className="lp-grid2 lp-features">
-            {[
-              { icon: "verified", bg: "#E8EEFC", fg: C.blue,  title: "所属が認証されている",       body: "本人が勝手に名乗っているのではなく、企業側が在籍を確認したうえで公開しています。匿名の口コミサイトとは、情報の出どころが違います。" },
-              { icon: "why",      bg: "#E2F1EB", fg: C.green, title: "入社の理由が、聞ける",         body: "なぜ数ある会社の中でここを選んだのか。入ってみて何が想像どおりで、何が違ったのか。求人票にも面接にも出てこない話です。" },
-              { icon: "spark",    bg: "#FBEEDF", fg: C.amber, title: "やりがいを、本人の言葉で",     body: "会社が用意した文章ではなく、いま働いている人が自分の言葉で語ります。何が面白くて、何がしんどいのかまで含めて。" },
-              { icon: "free",     bg: "#EDEDE7", fg: C.muted, title: "話を聞いても、応募しなくていい", body: "面談は選考と切り離されています。進む義務はありません。「今は動かない」という結論も、この場では正解です。" },
-            ].map((f) => (
-              <div key={f.title} className="lp-feature" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, padding: 32 }}>
-                <div className="lp-feature-icon" style={{ width: 46, height: 46, borderRadius: 12, background: f.bg, display: "grid", placeItems: "center", marginBottom: 20 }}>
-                  <Icon name={f.icon} size={24} color={f.fg} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, color: C.navy }}>{f.title}</h3>
-                  <p style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.7, margin: 0 }}>{f.body}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
-      {/* ══ S3: 面談で聞けること ════════════════════════════════════════════ */}
+      {/* ══ 企業インデックス ══════════════════════════════════════════════════ */}
       <section className="lp-section">
         <div className="lp-wrap">
-          <div style={{ textAlign: "center", marginBottom: 54 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>面談で聞けること</div>
-            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>面接では、聞けないこと。</h2>
-            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>評価される場ではないので、こういう質問ができます。</p>
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">COMPANIES</div>
+              <h2 className="lp-h2">掲載企業</h2>
+            </div>
+            <Link href="/companies" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
+              {totals.companies.toLocaleString("ja-JP")}社すべて見る →
+            </Link>
           </div>
-          <div className="lp-asks-grid">
-            {ASKS.map((a) => (
-              <div key={a.q} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "22px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, background: C.paper2, display: "grid", placeItems: "center" }}>
-                  <Icon name={a.icon} size={20} color={a.color} />
-                </div>
-                <div>
-                  <b style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: C.navy, lineHeight: 1.6 }}>{a.q}</b>
-                  <span style={{ fontSize: 13, color: C.muted }}>{a.sub}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ══ S4: 掲載企業 ════════════════════════════════════════════════════ */}
-      <section className="lp-section" style={{ background: C.paper2 }}>
-        <div className="lp-wrap">
-          <div style={{ textAlign: "center", marginBottom: 54 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>掲載企業</div>
-            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>企業の「中身」が、ここに揃う。</h2>
-            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>取材記事・求人・そこで働く人のキャリアが、ひとつの企業ページに集まっています。</p>
-          </div>
-          {/* ≤900px ではカードを解いて、ロゴ＋社名＋業種だけのコンパクトな行にする */}
-          <div className="lp-grid3 lp-companies">
-            {FEATURED.map((c) => (
-              <Link key={c.href} href={c.href} className="lp-co-card" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 13, padding: "26px 24px", textDecoration: "none", display: "block" }}>
-                <div className="lp-co-head" style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
-                  <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: c.bg, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 15 }}>{c.letter}</div>
-                  <div>
-                    <b style={{ fontSize: 15.5, color: C.navy, lineHeight: 1.5, display: "block" }}>{c.name}</b>
-                    <small style={{ color: C.muted, fontSize: 12, fontWeight: 400, display: "block" }}>{c.tag}</small>
+          <div className="lp-cards">
+            {companies.map((c) => (
+              <Link key={c.id} href={`/companies/${c.id}`} className="lp-card">
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                  <CompanyLogo
+                    name={c.name}
+                    logoUrl={c.logoUrl}
+                    logoLetter={c.logoLetter}
+                    logoGradient={c.logoGradient}
+                    companyUrl={c.companyUrl}
+                    size="sm"
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.45 }}>{c.name}</b>
+                    <small style={{ display: "block", fontSize: 12, color: C.muted }}>
+                      {[c.industry, phaseText(c.phase)].filter(Boolean).join(" ／ ") || "—"}
+                    </small>
                   </div>
                 </div>
-                <div className="lp-co-metrics" style={{ fontSize: 13.5, color: "#3E4A5C", paddingTop: 16, borderTop: "1px solid #F0F0EB", display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <span><span style={{ color: C.muted }}>取材記事 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.articles}</strong></span>
-                  <span><span style={{ color: C.muted }}>求人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.jobs}</strong></span>
-                  <span><span style={{ color: C.muted }}>話せる人 </span><strong style={{ color: C.navy, fontFamily: '"Poppins",sans-serif' }}>{c.members}</strong></span>
+                {/* 0 でも欄を出す。件数が増えたときに伸びが見えるようにするため */}
+                <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, color: C.muted }}>
+                  {[
+                    { label: "記事", n: c.articleCount },
+                    { label: "求人", n: c.jobCount },
+                    { label: "社員", n: c.memberCount },
+                  ].map((m) => (
+                    <span key={m.label}>
+                      {m.label}{" "}
+                      <strong style={{ fontFamily: '"Poppins", sans-serif', color: m.n > 0 ? C.navy : C.muted }}>{m.n}</strong>
+                    </span>
+                  ))}
                 </div>
-              </Link>
-            ))}
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 9, justifyContent: "center", marginTop: 34 }}>
-            {ROLES.map((r) => (
-              <Link key={r.label} href={r.href} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 999, padding: "9px 19px", fontSize: 13.5, color: C.ink, textDecoration: "none" }}>
-                {r.label}
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══ S5: 使い方3ステップ ══════════════════════════════════════════════ */}
-      <section className="lp-section">
-        <div className="lp-wrap">
-          <div style={{ textAlign: "center", marginBottom: 54 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>使い方</div>
-            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>調べて、聞いて、あなたが決める</h2>
-          </div>
-          <div className="lp-grid3 lp-steps">
-            {[
-              { bg: C.navy,    icon: "search", lab: "STEP 01 ・ 調べる", title: "内側を、知る",           body: "取材記事・求人票・社員のキャリアが一か所に。登録なしでも読めます。",               href: "/companies" },
-              { bg: "#1F2B3E", icon: "talk",   lab: "STEP 02 ・ 聞く",  title: "本人に、聞く",           body: "気になった会社の現役社員に面談を申し込む。ここからは登録が必要です。",             href: "/people"    },
-              { bg: C.green,   icon: "decide", lab: "STEP 03 ・ 決める", title: "自分のペースで、決める", body: "応募する、残る、保留する。急かされないので、どれを選んでも納得できます。",           href: "/companies" },
-            ].map((s) => (
-              <Link key={s.title} href={s.href} className="lp-step-card" style={{ display: "block", background: s.bg, borderRadius: 15, padding: "32px 28px", color: "#fff", textDecoration: "none" }}>
-                <div style={{ marginBottom: 18 }}>
-                  <Icon name={s.icon} size={30} color="#fff" />
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.13em", opacity: 0.8, marginBottom: 10, textTransform: "uppercase" }}>{s.lab}</div>
-                <h3 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 21, fontWeight: 600, marginBottom: 11 }}>{s.title}</h3>
-                <p style={{ fontSize: 14, opacity: 0.86, lineHeight: 1.7, margin: 0 }}>{s.body}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ S6: 比較テーブル ══════════════════════════════════════════════════ */}
+      {/* ══ 求人インデックス ══════════════════════════════════════════════════ */}
       <section className="lp-section" style={{ background: C.paper2 }}>
         <div className="lp-wrap">
-          <div style={{ textAlign: "center", marginBottom: 54 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>他のサービスとの違い</div>
-            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>なぜ、OPINIOなのか。</h2>
-            <p style={{ marginTop: 16, color: C.muted, fontSize: 15.5 }}>勝てないところも書いています。</p>
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">JOBS</div>
+              <h2 className="lp-h2">募集中の求人</h2>
+            </div>
+            <Link href="/jobs" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
+              {totals.jobs.toLocaleString("ja-JP")}件すべて見る →
+            </Link>
           </div>
-          {/* モバイル（≤580px）: 表を1項目1カードの縦積みに置き換える */}
-          <div className="lp-cmp-cards">
-            {COMPARE.map((row, i) => (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 15px", marginBottom: 8 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink, marginBottom: 8 }}>{row.feature}</div>
-                <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 5 }}>
-                  <span style={{ flexShrink: 0, width: 58, fontSize: 10.5, fontWeight: 700, color: "#fff", background: C.navy, borderRadius: 999, padding: "3px 0", textAlign: "center" }}>OPINIO</span>
-                  <span style={{ fontSize: 13.5, fontWeight: 500, color: row.wins ? C.green : C.amber }}>{row.opinio}</span>
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
-                  <span style={{ flexShrink: 0, width: 58, fontSize: 10.5, fontWeight: 500, color: C.muted, background: C.paper2, borderRadius: 999, padding: "3px 0", textAlign: "center" }}>大手</span>
-                  <span style={{ fontSize: 13.5, color: C.muted }}>{row.others}</span>
-                </div>
+
+          <div className="lp-jobs">
+            {jobs.map((j) => {
+              const salary = salaryText(j.salaryMin, j.salaryMax);
+              const meta = [
+                salary,
+                j.location,
+                j.remoteStatus ? REMOTE_LABEL[j.remoteStatus] ?? null : null,
+                j.employmentType,
+              ].filter(Boolean) as string[];
+              return (
+                <Link key={j.id} href={`/jobs/${j.id}`} className="lp-card">
+                  <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.5, marginBottom: 4 }}>
+                    {j.title}
+                  </b>
+                  <span style={{ display: "block", fontSize: 13, color: C.ink, marginBottom: 10 }}>{j.companyName}</span>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {meta.map((m, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          fontSize: 12, padding: "3px 9px", borderRadius: 999,
+                          background: i === 0 && salary ? "#ECFDF5" : C.paper2,
+                          color: i === 0 && salary ? C.green : C.muted,
+                          fontWeight: i === 0 && salary ? 700 : 400,
+                        }}
+                      >
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ データの出どころ ══════════════════════════════════════════════════ */}
+      <section className="lp-section">
+        <div className="lp-wrap">
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">DATA</div>
+              <h2 className="lp-h2">このデータは、どこから来ているか</h2>
+            </div>
+          </div>
+          <div className="lp-trust">
+            {[
+              { title: "企業情報を独自に作成している", body: "掲載企業の情報は web から自動で集めたものではなく、OPINIO が作成・編集しています。事業内容・組織体制・働き方まで揃えています。" },
+              { title: "所属が認証されている", body: "社員として掲載されている人は、本人が名乗っているのではなく企業側が在籍を確認しています。匿名の口コミサイトとは情報の出どころが違います。" },
+              { title: "経歴が構造化されている", body: "どこから来て、どこへ行ったか。社員のキャリアがデータとして残っているので、企業単位でも職種単位でも辿れます。" },
+            ].map((t) => (
+              <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{t.title}</h3>
+                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{t.body}</p>
               </div>
             ))}
           </div>
-          <div className="lp-cmp-wrap" style={{ overflowX: "auto" }}>
-            <table className="lp-cmp" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 15, overflow: "hidden" }}>
+        </div>
+      </section>
+
+      {/* ══ 使い方 ═══════════════════════════════════════════════════════════ */}
+      <section className="lp-section" style={{ background: C.paper2 }}>
+        <div className="lp-wrap">
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">HOW IT WORKS</div>
+              <h2 className="lp-h2">探して、比べて、応募する</h2>
+            </div>
+          </div>
+          <div className="lp-steps">
+            {[
+              { n: "01", title: "探す", body: "業種・フェーズ・勤務形態で絞り込む。登録は要りません。", href: "/companies" },
+              { n: "02", title: "比べる", body: "記事・求人・働く人の経歴を、企業ページで横に並べて見る。", href: "/companies" },
+              { n: "03", title: "応募する", body: "気になる求人にそのまま応募。急かす連絡は届きません。", href: "/jobs" },
+            ].map((s) => (
+              <Link key={s.n} href={s.href} style={{ display: "block", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, textDecoration: "none" }}>
+                <div style={{ fontFamily: '"Poppins", sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>{s.n}</div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{s.title}</h3>
+                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{s.body}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ 比較 ═════════════════════════════════════════════════════════════ */}
+      <section className="lp-section">
+        <div className="lp-wrap">
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">COMPARE</div>
+              <h2 className="lp-h2">大手転職サービスとの違い</h2>
+            </div>
+            <span style={{ fontSize: 13, color: C.muted }}>勝てないところも書いています。</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="lp-cmp" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
               <thead>
                 <tr>
-                  <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2, borderBottom: "1px solid #F0F0EB" }} />
-                  <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 14, color: "#fff", fontWeight: 700, background: C.navy, borderBottom: "1px solid #F0F0EB" }}>OPINIO</th>
-                  <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2, borderBottom: "1px solid #F0F0EB" }}>大手転職サービス</th>
+                  <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2 }} />
+                  <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 14, color: "#fff", fontWeight: 700, background: C.navy }}>OPINIO</th>
+                  <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 13, color: C.muted, fontWeight: 700, background: C.paper2 }}>大手転職サービス</th>
                 </tr>
               </thead>
               <tbody>
-                {COMPARE.map((row, i) => {
-                  const border = i < COMPARE.length - 1 ? "1px solid #F0F0EB" : "none";
+                {[
+                  { f: "掲載数",             o: "IT・SaaSに絞って掲載",      x: "圧倒的に多い",       win: false },
+                  { f: "企業情報の作り方",     o: "独自に作成・編集",          x: "企業からの提供が中心", win: true  },
+                  { f: "登録なしで読める範囲",  o: "すべて",                  x: "一部のみ",           win: true  },
+                  { f: "スカウト・営業電話",   o: "一切なし",                x: "届く",              win: true  },
+                  { f: "登録に必要なもの",     o: "メールアドレスのみ",        x: "職務経歴の入力",     win: true  },
+                ].map((row, i, arr) => {
+                  const border = i < arr.length - 1 ? `1px solid ${C.paper2}` : "none";
                   return (
-                    <tr key={i}>
-                      <th style={{ padding: "19px 22px", textAlign: "left", fontSize: 14.5, color: C.ink, fontWeight: 500, borderBottom: border }}>{row.feature}</th>
-                      <td style={{ padding: "19px 22px", background: "#F7F9FE", fontSize: 14.5, fontWeight: 500, color: row.wins ? C.green : C.amber, borderBottom: border }}>{row.opinio}</td>
-                      <td style={{ padding: "19px 22px", fontSize: 14.5, color: C.muted, borderBottom: border }}>{row.others}</td>
+                    <tr key={row.f}>
+                      <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 14, color: C.ink, fontWeight: 500, borderBottom: border }}>{row.f}</th>
+                      <td style={{ padding: "16px 20px", background: "#F7F9FE", fontSize: 14, fontWeight: 500, color: row.win ? C.green : "#C77A2B", borderBottom: border }}>{row.o}</td>
+                      <td style={{ padding: "16px 20px", fontSize: 14, color: C.muted, borderBottom: border }}>{row.x}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <p style={{ marginTop: 22, fontSize: 13.5, color: C.muted, textAlign: "center" }}>
-            求人の量で選ぶなら、大手のほうが向いています。OPINIOは「1社を深く知ってから決めたい人」のためのサービスです。
-          </p>
         </div>
       </section>
 
-      {/* ══ S7: FAQ ════════════════════════════════════════════════════════════ */}
-      <section className="lp-section">
+      {/* ══ FAQ ══════════════════════════════════════════════════════════════ */}
+      <section className="lp-section" style={{ background: C.paper2 }}>
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 28px" }}>
-          <div style={{ textAlign: "center", marginBottom: 54 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", color: C.blue, marginBottom: 16, textTransform: "uppercase" }}>よくあるご質問</div>
-            <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontWeight: 600, fontSize: "clamp(25px,3vw,38px)", lineHeight: 1.45, color: C.navy }}>正直に、お答えします</h2>
+          <div style={{ marginBottom: 26 }}>
+            <div className="lp-eyebrow">FAQ</div>
+            <h2 className="lp-h2">よくあるご質問</h2>
           </div>
           <div style={{ borderTop: `1px solid ${C.line}` }}>
-            {FAQ.map((item, i) => (
-              <details key={i} open={item.open} style={{ borderBottom: `1px solid ${C.line}`, padding: "22px 0" }}>
-                <summary style={{ cursor: "pointer", fontSize: 16, fontWeight: 700, color: C.navy, display: "flex", gap: 14, alignItems: "flex-start", listStyle: "none", userSelect: "none" }}>
-                  <span style={{ color: C.blue, fontFamily: '"Poppins", sans-serif', flexShrink: 0 }}>Q.</span>
+            {[
+              { q: "登録しないと使えませんか？", a: "いいえ。企業情報・求人・記事はすべて登録なしで読めます。登録は、気になる企業を保存したり、新しい求人が出たときに通知を受け取るためのものです。", open: true },
+              { q: "登録すると、スカウトが届きますか？", a: "届きません。企業側から求職者へ連絡する機能を用意していないためです。営業電話もありません。" },
+              { q: "掲載企業はどうやって選んでいますか？", a: "IT・SaaS業界に絞ったうえで、OPINIO が選定した企業を掲載しています。web上の情報を自動で集めたものではありません。" },
+              { q: "本当に無料で使えますか？", a: "はい。求職者側の費用は一切かかりません。" },
+            ].map((item, i) => (
+              <details key={i} open={item.open} style={{ borderBottom: `1px solid ${C.line}`, padding: "18px 0" }}>
+                <summary style={{ cursor: "pointer", fontSize: 15.5, fontWeight: 700, color: C.navy, display: "flex", gap: 12, alignItems: "flex-start", listStyle: "none", userSelect: "none" }}>
                   <span style={{ flex: 1 }}>{item.q}</span>
-                  <span className="lp-faq-arrow" style={{ fontSize: 18, color: C.muted, flexShrink: 0, marginTop: 1 }}>›</span>
+                  <span className="lp-faq-arrow" style={{ fontSize: 18, color: C.muted, flexShrink: 0 }}>›</span>
                 </summary>
-                <p style={{ fontSize: 14.5, color: "#3E4A5C", paddingLeft: 30, marginTop: 13, lineHeight: 1.8 }}>{item.a}</p>
+                <p style={{ fontSize: 14, color: "#3E4A5C", marginTop: 11, lineHeight: 1.8 }}>{item.a}</p>
               </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══ FINAL CTA ════════════════════════════════════════════════════════ */}
-      <section className="lp-section" style={{ background: C.navy, color: "#fff", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        {/* 背景グラデーション */}
-        <div style={{ pointerEvents: "none", position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% -20%, #1e3a8a, transparent 60%)", opacity: 0.5 }} />
-        {/* 装飾SVG（キャリアの軌跡） */}
-        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.06, pointerEvents: "none" }} viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <path d="M-40 320 C 200 320, 260 200, 480 200 S 760 100, 1000 100 1240 100 1240 100" fill="none" stroke="#fff" strokeWidth="1.5" />
-          <circle cx="120"  cy="310" r="4" fill="#fff" />
-          <circle cx="480"  cy="200" r="4" fill="#fff" />
-          <circle cx="840"  cy="120" r="6" fill="#fff" />
-          <circle cx="840"  cy="120" r="14" fill="none" stroke="#fff" strokeWidth="1" />
-        </svg>
-
-        <div style={{ position: "relative", maxWidth: 780, margin: "0 auto", padding: "0 28px" }}>
-          <h2 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: "clamp(27px,3.4vw,42px)", fontWeight: 600, color: "#fff", marginBottom: 20 }}>深く知ってから、動く。</h2>
-          <p style={{ color: "#B9C6DE", fontSize: 16, lineHeight: 1.8, marginBottom: 14 }}>今のキャリアを、無理に変えなくてもいい。<br />まずは知ることから、はじめよう。</p>
-
-          <div className="lp-cta-bullets">
-            <b style={{ color: "#fff", display: "block", marginBottom: 3 }}>登録すると、できること</b>
-            {[
-              "現役社員に面談を申し込める",
-              "気になる企業を保存して比較できる",
-              "新しく話せる人が増えたら通知が届く",
-            ].map((t) => (
-              <span key={t} style={{ color: "#C6D2E8", display: "flex", alignItems: "center", gap: 11, fontSize: 14.5 }}>
-                <Icon name="check" size={16} color={C.green} />
-                {t}
-              </span>
-            ))}
-          </div>
-
-          <div className="lp-cta-btns">
-            <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#fff", color: C.navy, padding: "16px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>
-              メールアドレスで無料登録（30秒）
+      {/* ══ 最終CTA ══════════════════════════════════════════════════════════ */}
+      <section className="lp-section" style={{ background: C.navy, color: "#fff", textAlign: "center" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 28px" }}>
+          <h2 style={{ fontSize: "clamp(22px,2.6vw,32px)", fontWeight: 800, color: "#fff", marginBottom: 14, letterSpacing: "-0.01em" }}>
+            まず、調べるところから。
+          </h2>
+          <p style={{ color: "#B9C6DE", fontSize: 15.5, lineHeight: 1.8, marginBottom: 26 }}>
+            登録すると、気になる企業を保存して比べられます。<br />新しい求人が出たときの通知も受け取れます。
+          </p>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/companies" style={{ display: "inline-flex", alignItems: "center", background: "#fff", color: C.navy, padding: "15px 28px", borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
+              企業を探す
             </Link>
-            <Link href="/companies" style={{ fontSize: 14, color: "#B9C6DE", textDecoration: "underline", textUnderlineOffset: 4 }}>
-              先に企業を見てみる →
+            <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", border: "1px solid rgba(255,255,255,.35)", color: "#fff", padding: "15px 28px", borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
+              メールアドレスで無料登録
             </Link>
           </div>
         </div>
       </section>
 
+      {/* 人物帯は Career Agent へ移設のため非表示（SHOW_PEOPLE_BAND を true で復帰） */}
+      {SHOW_PEOPLE_BAND && null}
     </div>
   );
 }

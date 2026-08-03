@@ -784,7 +784,8 @@ export default function JobsClient({
   }, []);
 
   // Local-only keyword search
-  const [q, setQ] = useState("");
+  // LP のヒーロー検索から ?q= で飛んでくるため URL を初期値にする
+  const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [showSuggest, setShowSuggest] = useState(false);
   const searchBarRef = useRef<HTMLDivElement>(null);
   const [openFilter, setOpenFilter] = useState<string | null>(null);
