@@ -12,6 +12,7 @@ import {
 import {
   getArticleBySlug,
   getArticlesBySlugs,
+  resolvePublishedCompanyHref,
 } from "@/lib/supabase/queries";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
@@ -154,7 +155,24 @@ function QASection({ qa }: { qa: QA[] }) {
   );
 }
 
-function CompanyCTA({ article }: { article: Article }) {
+/**
+ * 記事末尾の企業CTA。
+ *
+ * companyHref が null（＝掲載を終えた企業・綴り違い）のときは**ブロックごと出さない**。
+ * 見出しだけ残すと「この企業について、もっと知る」と言いながら行き先が無い状態になる。
+ *
+ * 掲載終了を明示するバッジ等は出さない方針（2026-08-04）。
+ * 掲載していた事実を掲示する必要は無く、読者にとっても
+ * 「もう見られない企業」を知らせる価値が薄いため。記事本文に社名は残る。
+ *
+ * リンクは企業ページ1本に統一した。以前は「求人を見る」が /jobs?company=xxx を
+ * 指していたが、/jobs に company パラメータは実装されておらず**全社の求人が出ていた**。
+ * 企業ページにその企業の求人が載っているので、新しいパラメータを足すより
+ * 既にある正しい導線に寄せる。
+ */
+function CompanyCTA({ article, companyHref }: { article: Article; companyHref: string | null }) {
+  if (!companyHref) return null;
+
   return (
     <div style={{
       marginTop: 48,
@@ -174,31 +192,18 @@ function CompanyCTA({ article }: { article: Article }) {
       }}>
         {article.company_name}で、働く。
       </h3>
-      {article.company_id && (
-        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link
-            href={`/jobs?company=${article.company_id}`}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "11px var(--space-6)", background: "#fff", color: ROYAL,
-              borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-            }}
-          >
-            求人を見る
-          </Link>
-          <Link
-            href={`/companies/${article.company_id}`}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "11px var(--space-6)", background: "transparent", color: "#fff",
-              border: "2px solid rgba(255,255,255,0.5)",
-              borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-            }}
-          >
-            企業を見る
-          </Link>
-        </div>
-      )}
+      <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
+        <Link
+          href={companyHref}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "11px var(--space-6)", background: "#fff", color: ROYAL,
+            borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
+          }}
+        >
+          企業情報と求人を見る
+        </Link>
+      </div>
     </div>
   );
 }
@@ -411,6 +416,10 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   if (!article) notFound();
 
+  // article.company_id は FK ではなく company_slug（自由記述）。
+  // 企業を削除しても残るため、公開中の企業が実在するときだけ CTA を出す。
+  const companyHref = await resolvePublishedCompanyHref(article.company_id);
+
   // Fetch related articles server-side (slugs from DB)
   const relatedArticles = await getArticlesBySlugs(
     (article.related_article_slugs ?? []).slice(0, 4)
@@ -577,7 +586,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             )}
 
             {/* Company CTA — all interview types */}
-            <CompanyCTA article={article} />
+            <CompanyCTA article={article} companyHref={companyHref} />
           </>
         )}
 
@@ -624,7 +633,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             )}
 
             {/* report型にも企業CTA */}
-            <CompanyCTA article={article} />
+            <CompanyCTA article={article} companyHref={companyHref} />
           </>
         )}
       </article>

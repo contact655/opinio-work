@@ -696,6 +696,49 @@ export async function getCompanyBySlugOrId(
   return { ...result, resolvedId, slug };
 }
 
+/**
+ * 記事の company_slug から「公開中の企業ページの URL」を解決する。
+ * 該当が無ければ null（＝掲載を終えた企業、または綴り違い）。
+ *
+ * ── なぜ必要か（2026-08-04）────────────────────────────────────────────────
+ * ow_articles.company_slug は FK ではなく自由記述のテキスト列で、
+ * 企業を削除しても残る（FK の company_id は ON DELETE SET NULL で自動的に外れる）。
+ * そのため記事末尾の CTA が存在しない企業ページへリンクし 404 になっていた。
+ * 掲載を終えた企業（LayerX / freee / Archi Village）の記事4件が該当していた。
+ *
+ * ⚠️ ここでは development でも is_published を必ず見る。
+ *    CLAUDE.md にあるとおり dev は通常 is_published をフィルタしないが、
+ *    この関数の目的は「本番で 404 になるリンクを出さない」ことなので、
+ *    dev で見えてしまうと確認にならない。dev と prod で同じ判定にする。
+ *
+ * 詳細は要らないので getCompanyBySlugOrId（企業詳細まで取得する）は使わない。
+ */
+export const resolvePublishedCompanyHref = cache(async function resolvePublishedCompanyHref(
+  slugOrId: string | null | undefined
+): Promise<string | null> {
+  const key = (slugOrId ?? "").trim();
+  if (!key) return null;
+
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key);
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("ow_companies")
+    .select("id, slug")
+    .eq(isUUID ? "id" : "slug", key)
+    .eq("is_published", true)
+    .limit(1);
+
+  if (error) {
+    console.error("[resolvePublishedCompanyHref]", error.message);
+    return null;
+  }
+  const row = data?.[0];
+  if (!row) return null;
+
+  return `/companies/${(row.slug as string | null) ?? (row.id as string)}`;
+});
+
 // ─── Role queries ─────────────────────────────────────────────────────────────
 
 /** 求職者向け /jobs カテゴリピル用: ow_roles の親カテゴリ (parent_id IS NULL) を取得 */
