@@ -1819,7 +1819,10 @@ export default function JobsClient({
                 </svg>
               </div>
               <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う募集が見つかりませんでした</h3>
-              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: 20 }}>フィルター条件を変えるか、企業のカジュアル面談で直接聞いてみましょう</p>
+              {/* 「カジュアル面談で直接聞いてみましょう」は 2026-08-03 に差し替え。
+                  面談を前提にした案内はプラットフォーム側の説明では使わない方針。
+                  ここは検索結果が0件のときの導線なので、条件を緩めるか企業から辿るかを示す。 */}
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: 20 }}>条件を緩めるか、企業から探してみてください</p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <button type="button" onClick={() => router.replace("/jobs")} style={{
                   padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
