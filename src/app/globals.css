@@ -991,3 +991,58 @@ body {
 @media (max-width: 480px) {
   .ca-steps-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ─── LP プロダクトプレビュー ─────────────────────────────────────────────
+   ⚠️ ここに置いている理由: content: "" の引用符を Server Component の
+   style タグに書くと React が実体参照にエスケープし、style は raw text 要素
+   なのでブラウザが復元せずルールが壊れる（hydration mismatch も出る）。
+   CLAUDE.md「インラインstyle と CSS の優先順位」の隣に同じ話を記録している。 */
+
+.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+
+.pp-frame {
+  display: block; background: #fff; border: 1px solid;
+  border-radius: 12px; overflow: hidden; text-decoration: none;
+  box-shadow: 0 10px 34px rgba(14,33,72,.10);
+  transition: box-shadow .2s, transform .2s;
+}
+.pp-frame:hover { box-shadow: 0 16px 44px rgba(14,33,72,.16); transform: translateY(-2px); }
+
+.pp-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 12px; border-bottom: 1px solid; background: #FAFAF8;
+}
+.pp-bar i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+
+/* 下端フェード。画像はここで切れているのではなく続いている、と伝える */
+.pp-shot { display: block; position: relative; max-height: 330px; overflow: hidden; }
+.pp-shot::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 88px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
+  pointer-events: none;
+}
+
+/* 差別化カードに添える実画面。上端だけ見せて下をフェードさせる */
+.lp-trust-shot {
+  display: block; margin-top: 16px; border: 1px solid; border-radius: 8px;
+  overflow: hidden; position: relative; max-height: 150px;
+}
+.lp-trust-shot::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 52px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
+  pointer-events: none;
+}
+
+/* 広い画面 / 狭い画面で画像そのものを差し替える。
+   ⚠️ display はここで持つこと。インラインに書くとこのメディアクエリが効かない
+   （CLAUDE.md「インラインstyle と CSS の優先順位」）。 */
+.pp-wide   { display: block; }
+.pp-narrow { display: none; }
+
+@media (max-width: 900px) {
+  .pp-grid { grid-template-columns: 1fr; gap: 28px; }
+  .pp-wide   { display: none; }
+  .pp-narrow { display: block; }
+  /* 切り出し済みなので高さを抑える必要がない。フェードだけ残す */
+  .pp-shot { max-height: none; }
+}
