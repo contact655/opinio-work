@@ -97,23 +97,23 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
                       display: "inline-flex", alignItems: "center", gap: 3,
                       padding: "2px 7px", borderRadius: 4,
                       background: "#FEE2E2", color: "#DC2626",
-                      fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
+                      fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
                       fontFamily: "Inter, sans-serif", border: "1px solid #FECACA",
                     }}>🔥 HOT</span>
                   )}
                   {job.is_new && (
-                    <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", fontWeight: 700, border: "1px solid #A7F3D0" }}>
+                    <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", fontWeight: 700, border: "1px solid #A7F3D0" }}>
                       新着
                     </span>
                   )}
                   <span style={{
-                    display: "inline-block", fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                    display: "inline-block", fontSize: 12, padding: "2px 8px", borderRadius: 4,
                     background: catColor.bg, color: catColor.text, fontWeight: 600,
                   }}>{catName}</span>
                   {wl && (
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 3,
-                      fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                      fontSize: 12, padding: "2px 7px", borderRadius: 4,
                       background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
                       color: isRemote ? "var(--success)" : "var(--ink-mute)",
                       border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
@@ -124,7 +124,7 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
                   )}
                   {job.employmentType && (
                     <span style={{
-                      fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                      fontSize: 12, padding: "2px 7px", borderRadius: 4,
                       background: "var(--bg-tint)", color: "var(--ink-mute)",
                       border: "1px solid var(--line)", fontWeight: 500,
                     }}>{job.employmentType}</span>
@@ -171,7 +171,7 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
             {/* なぜ採用するか */}
             {job.whyHire && (
               <div style={{ marginBottom: "var(--space-4)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                   募集背景
                 </div>
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
@@ -183,7 +183,7 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
             {/* 仕事内容（whyHire がない場合の代替） */}
             {!job.whyHire && job.description && (
               <div style={{ marginBottom: "var(--space-4)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                   仕事内容
                 </div>
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
@@ -195,7 +195,7 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
             {/* 応募要件 */}
             {job.requirements && (
               <div style={{ marginBottom: "var(--space-4)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                   必須要件
                 </div>
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.7 }}>
@@ -207,7 +207,7 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
             {/* 選考フロー */}
             {selectionSteps.length > 0 && (
               <div style={{ marginBottom: "var(--space-4)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
                   選考フロー
                 </div>
                 <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0 }}>
@@ -221,12 +221,12 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
                           width: 22, height: 22, borderRadius: "50%",
                           background: "var(--royal)", color: "#fff",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 10, fontWeight: 800, fontFamily: "Inter, sans-serif",
+                          fontSize: 12, fontWeight: 800, fontFamily: "Inter, sans-serif",
                           flexShrink: 0,
                         }}>
                           {i + 1}
                         </div>
-                        <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, whiteSpace: "nowrap", maxWidth: 90, textAlign: "center", lineHeight: 1.3 }}>
+                        <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500, whiteSpace: "nowrap", maxWidth: 90, textAlign: "center", lineHeight: 1.3 }}>
                           {step}
                         </span>
                       </div>

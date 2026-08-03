@@ -206,13 +206,13 @@ export default function CasualMeetingForm({
           {companyInitial}
         </div>
         <div>
-          <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, letterSpacing: "0.08em", fontFamily: "Inter, sans-serif", marginBottom: 3 }}>
+          <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, letterSpacing: "0.08em", fontFamily: "Inter, sans-serif", marginBottom: 3 }}>
             申し込み先
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>
             {companyName}
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
             このフォームの内容は<strong>直接企業の採用担当に届きます</strong>
           </div>
         </div>
@@ -278,7 +278,7 @@ export default function CasualMeetingForm({
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 2 }}>
                     {opt.label}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
                     {opt.desc}
                   </span>
                 </span>
@@ -297,7 +297,7 @@ export default function CasualMeetingForm({
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="cm-interest-reason" style={labelStyle}>
               興味を持ったきっかけ
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
             </label>
             <textarea
               id="cm-interest-reason"
@@ -311,7 +311,7 @@ export default function CasualMeetingForm({
           <div>
             <label htmlFor="cm-questions" style={labelStyle}>
               面談で聞きたいこと
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
             </label>
             <textarea
               id="cm-questions"
@@ -333,7 +333,7 @@ export default function CasualMeetingForm({
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="cm-contact-email" style={labelStyle}>
               メールアドレス
-              <span style={{ fontSize: 11, color: "var(--error)", marginLeft: 6 }}>必須</span>
+              <span style={{ fontSize: 12, color: "var(--error)", marginLeft: 6 }}>必須</span>
             </label>
             <input
               id="cm-contact-email"
@@ -345,14 +345,14 @@ export default function CasualMeetingForm({
               required
               style={inputStyle}
             />
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 6 }}>
               企業からの連絡先として使われます。
             </div>
           </div>
           <div>
             <label htmlFor="cm-preferred-format" style={labelStyle}>
               希望する面談形式
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 400, marginLeft: 8 }}>任意</span>
             </label>
             <select
               id="cm-preferred-format"
@@ -410,7 +410,7 @@ export default function CasualMeetingForm({
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             background: "rgba(255,255,255,0.15)", borderRadius: 100,
-            padding: "5px 14px", fontSize: 11, color: "#fff",
+            padding: "5px 14px", fontSize: 12, color: "#fff",
             fontWeight: 600, letterSpacing: "0.06em", marginBottom: 14,
           }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">

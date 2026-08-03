@@ -57,7 +57,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
           {c.name}
         </span>
         <span style={{
-          fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",
+          fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 100, padding: "2px 9px",
           fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap",
@@ -69,7 +69,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
             const s = productStyle(p);
             return (
               <span key={pi} style={{
-                fontSize: 10, fontWeight: 600, color: s.color,
+                fontSize: 12, fontWeight: 600, color: s.color,
                 background: s.bg, border: `1px solid ${s.border}`,
                 borderRadius: 100, padding: "2px 8px",
                 fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",

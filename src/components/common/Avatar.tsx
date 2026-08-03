@@ -12,7 +12,7 @@ interface AvatarProps {
 }
 
 const SIZES: Record<AvatarSize, { px: number; fontSize: number }> = {
-  sm: { px: 28, fontSize: 11 },
+  sm: { px: 28, fontSize: 12 },
   md: { px: 36, fontSize: 13 },
   lg: { px: 52, fontSize: 20 },
   xl: { px: 72, fontSize: 28 },

@@ -207,7 +207,7 @@ function Hero({
             <div style={{ paddingTop: "var(--space-3)" }}>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 12,
                   color: "var(--ink-mute)",
                   marginBottom: "var(--space-2)",
                   fontWeight: 700,
@@ -373,14 +373,14 @@ function Hero({
                   )}
                   {detail.url && (
                     <a href={detail.url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 11, fontWeight: 600 }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                       公式サイト
                     </a>
                   )}
                   {company.careers_url && (
                     <a href={company.careers_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A", textDecoration: "none", fontSize: 11, fontWeight: 700 }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
                       採用情報
                     </a>
@@ -655,7 +655,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な製品・サービス</h3>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             <style>{`
@@ -717,7 +717,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             <CustomerCasesClient cases={detail.customer_cases!} defaultCollapsed={detail.customer_cases!.length > 3} />
@@ -1104,7 +1104,7 @@ function EmployeeCardInner({
             {employee.name}
           </span>
           {age !== null && (
-            <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
               {age}歳
             </span>
           )}
@@ -1112,7 +1112,7 @@ function EmployeeCardInner({
         </div>
         {/* 2行目: 職種のみ（部署階層は表示しない） */}
         {employee.roleTitle && (
-          <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {employee.roleTitle}
           </p>
         )}
@@ -1138,7 +1138,7 @@ function EmployeeCard({
 
   const badge = isAmbassador ? (
     <span style={{
-      fontSize: 10, fontWeight: 700,
+      fontSize: 12, fontWeight: 700,
       padding: "2px 7px", borderRadius: 100,
       background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
       color: "#92400E", border: "1px solid #FCD34D",
@@ -1351,7 +1351,7 @@ function CurrentEmployeesSection({
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 16px" }}>
               {entries.map(([name, count], i) => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--ink-soft)" }}>
+                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-soft)" }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0, display: "inline-block" }} />
                   {name}
                   <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{count}</span>名
@@ -1545,11 +1545,11 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   const badge = (
     <>
       {tenure && (
-        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
           {tenure}
         </span>
       )}
-      <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", background: "var(--bg-tint)", padding: "1px 6px", borderRadius: 100, border: "1px solid var(--line)", flexShrink: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", background: "var(--bg-tint)", padding: "1px 6px", borderRadius: 100, border: "1px solid var(--line)", flexShrink: 0 }}>
         💬 DM可
       </span>
     </>
@@ -1558,7 +1558,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
   // 現在の会社名 / 現在の役職のみ（長い組織階層は省略）
   const subInfo = currentDisplayName ? (
-    <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
       {currentDisplayName}{employee.currentRoleTitle ? ` / ${employee.currentRoleTitle}` : ""}
     </p>
   ) : undefined;
@@ -1861,14 +1861,14 @@ function JobEmbedCard({
           {/* Meta pills */}
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{
-              fontSize: 10, padding: "2px 8px", borderRadius: 4,
+              fontSize: 12, padding: "2px 8px", borderRadius: 4,
               background: "var(--royal-50)", color: "var(--royal)",
               border: "1px solid var(--royal-100)", fontWeight: 600,
             }}>{catName}</span>
             {showLoc && (
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                fontSize: 12, padding: "2px 7px", borderRadius: 4,
                 background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
                 color: isRemote ? "var(--success)" : "var(--ink-mute)",
                 border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
@@ -1882,22 +1882,22 @@ function JobEmbedCard({
               const WS: Record<string, string> = { full_remote: "フルリモート", hybrid: "ハイブリッド", on_site: "出社" };
               const label = WS[job.workStyle] ?? job.workStyle;
               return (
-                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", border: "1px solid #A7F3D0", fontWeight: 600 }}>{label}</span>
+                <span style={{ fontSize: 12, padding: "2px 7px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", border: "1px solid #A7F3D0", fontWeight: 600 }}>{label}</span>
               );
             })()}
             {job.employmentType && (
-              <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 500 }}>{job.employmentType}</span>
+              <span style={{ fontSize: 12, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 500 }}>{job.employmentType}</span>
             )}
             {job.urgency === "hot" && (
               <span style={{
-                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                fontSize: 12, padding: "2px 7px", borderRadius: 4,
                 background: "#FEE2E2", color: "#DC2626",
                 border: "1px solid #FECACA", fontWeight: 700,
               }}>🔥 HOT</span>
             )}
             {badge && (
               <span style={{
-                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                fontSize: 12, padding: "2px 7px", borderRadius: 4,
                 background: "var(--success-soft,#ECFDF5)", color: "var(--success)",
                 border: "1px solid #A7F3D0", fontWeight: 700,
               }}>{badge}</span>
@@ -2043,7 +2043,7 @@ function JobsSection({
                   {cat.cat}
                 </span>
                 <span style={{
-                  fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                  fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
                   color: "var(--ink-mute)", background: "var(--bg-tint)",
                   border: "1px solid var(--line)", padding: "1px 7px", borderRadius: 100,
                 }}>
@@ -2164,7 +2164,7 @@ function RecruitersSection({
               </div>
               {/* 2行目: 部門 › 職種 */}
               {(r.department || r.role_title) && (
-                <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[r.department, r.role_title].filter(Boolean).join(" › ")}
                 </p>
               )}
@@ -2257,7 +2257,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
           企業からの投稿
         </SecTitle>
         <span style={{
-          fontSize: 11, fontWeight: 700, color: "var(--purple)",
+          fontSize: 12, fontWeight: 700, color: "var(--purple)",
           background: "var(--purple-soft)", border: "1px solid #e9d5ff",
           padding: "2px 10px", borderRadius: 100, fontFamily: "Inter, sans-serif",
           flexShrink: 0,
@@ -2288,7 +2288,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
                   <span style={{
                     display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 100,
                     background: "var(--purple-soft)", color: "var(--purple)",
-                    fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
+                    fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
                     width: "fit-content",
                   }}>
                     {catLabel}
@@ -2304,7 +2304,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
                   </p>
                 )}
                 {post.published_at && (
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                     {new Date(post.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
                   </span>
                 )}
@@ -2356,7 +2356,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
         </SecTitle>
         {articles.length > 0 && (
           <span style={{
-            fontSize: 11, fontWeight: 700, color: "var(--royal)",
+            fontSize: 12, fontWeight: 700, color: "var(--royal)",
             background: "var(--royal-50)", border: "1px solid var(--royal-100)",
             padding: "2px 10px", borderRadius: 100, fontFamily: "Inter, sans-serif",
             flexShrink: 0,
@@ -2400,11 +2400,11 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                         }}>
                           <div style={{ position: "absolute", inset: 0, background: "rgba(0,15,60,0.50)" }} />
                           <div style={{ position: "absolute", top: 12, left: 14, zIndex: 1 }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700 }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700 }}>
                               {badge.label}
                             </span>
                           </div>
-                          <div style={{ position: "absolute", top: 12, right: 14, fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 600, zIndex: 1 }}>
+                          <div style={{ position: "absolute", top: 12, right: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 600, zIndex: 1 }}>
                             {article.read_min} min
                           </div>
                           <p style={{ position: "relative", zIndex: 1, margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 14, fontWeight: 800, lineHeight: 1.55, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}>
@@ -2414,13 +2414,13 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                         <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                           {authorName ? (
                             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--royal-50)", border: "2px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--royal-50)", border: "2px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                                 {authorName.slice(0, 1)}
                               </div>
                               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{authorName}</span>
                             </div>
                           ) : <div />}
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 7, background: "var(--royal)", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 7, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                             記事を読む
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                           </div>
@@ -2429,7 +2429,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                     </Link>
                     {/* 右: もっと知るパネル (40%) */}
                     <div style={{ flex: "0 0 40%", minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>
                         もっと知る
                       </div>
                       {[
@@ -2443,7 +2443,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{label}</div>
-                            {sub && <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>{sub}</div>}
+                            {sub && <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>{sub}</div>}
                           </div>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
                         </a>
@@ -2491,7 +2491,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                             {article.title}
                           </p>
                           {(article.subject?.name ?? (article.subjects && article.subjects[0]?.name)) && (
-                            <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)" }}>
+                            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>
                               {article.subject?.name ?? article.subjects?.[0]?.name}
                             </p>
                           )}
@@ -2830,7 +2830,7 @@ function Sidebar({
               {ambassadors.length}名が対応可能
             </span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
             選考なし・完全無料。この会社のことを直接聞けます。<br />転職意欲がなくてもOK。
           </div>
           <a href={`#current-employees`} style={{
@@ -2865,7 +2865,7 @@ function Sidebar({
           </p>
           <p style={{
             margin: "4px 0 0",
-            fontSize: 11,
+            fontSize: 12,
             color: "var(--ink-mute)",
             lineHeight: 1.5,
           }}>
@@ -2983,7 +2983,7 @@ function Sidebar({
                 ) : (
                   <div>
                     <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{value}</span>
-                    {subText && <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6 }}>{subText}</p>}
+                    {subText && <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>{subText}</p>}
                   </div>
                 )}
               </div>
@@ -3249,7 +3249,7 @@ export default async function CompanyDetailPage({
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", lineHeight: 1.5 }}>
                     働く環境を読んだら、次は実際の声を聞いてみませんか？
                   </div>
-                  <div style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
+                  <div style={{ fontSize: 12, color: "#B45309", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
                 </div>
                 <Link href={`/companies/${company.id}/casual-meeting`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
@@ -3291,7 +3291,7 @@ export default async function CompanyDetailPage({
             {activityGroups.length > 0 && (
               <div id="activity" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
                     ACTIVITY
                   </div>
                   <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
@@ -3351,7 +3351,7 @@ export default async function CompanyDetailPage({
                           {icon}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{dateLabel}</div>
+                          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{dateLabel}</div>
                           {href ? (
                             <Link href={href} style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, textDecoration: "none", lineHeight: 1.5, display: "block" }}
                               className="hover:underline">
@@ -3389,7 +3389,7 @@ export default async function CompanyDetailPage({
                 boxShadow: "0 4px 24px rgba(245,158,11,0.12)",
               }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#B45309", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#B45309", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
                     NEXT STEP
                   </div>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", lineHeight: 1.4 }}>

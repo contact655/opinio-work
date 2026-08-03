@@ -39,7 +39,7 @@ export default function EvaluationText({ text }: { text: string }) {
           ))}
           {hasMore && (
             <li style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 14 }}>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>…他 {sentences.length - PREVIEW_SENTENCES} 項目</span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>…他 {sentences.length - PREVIEW_SENTENCES} 項目</span>
             </li>
           )}
         </ul>

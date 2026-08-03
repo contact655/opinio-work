@@ -97,7 +97,7 @@ function UserChip({ user }: { user: { id: string; name: string } }) {
         {user.name[0]?.toUpperCase() ?? "?"}
       </div>
       <span style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: "0.01em",
+        fontSize: 12, fontWeight: 600, letterSpacing: "0.01em",
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>
         {user.name}
@@ -456,7 +456,7 @@ function SamplePhotoGrid() {
           <div style={{
             position: "absolute", top: 10, left: 10,
             background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
-            color: "#fff", fontSize: 10, fontWeight: 700,
+            color: "#fff", fontSize: 12, fontWeight: 700,
             padding: "3px 8px", borderRadius: 100, letterSpacing: "0.05em",
           }}>
             サンプル写真
@@ -475,7 +475,7 @@ function SamplePhotoGrid() {
           </div>
         ))}
       </div>
-      <p style={{ margin: "8px 0 0", fontSize: 11.5, color: "var(--ink-mute)", textAlign: "right" }}>
+      <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)", textAlign: "right" }}>
         ※ 実際の写真は準備中です。上記はイメージ画像です。
       </p>
     </div>
@@ -540,7 +540,7 @@ export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
               >
                 {tab.label}
                 <span style={{
-                  fontSize: 10, fontFamily: "Inter, sans-serif",
+                  fontSize: 12, fontFamily: "Inter, sans-serif",
                   background: active ? "rgba(255,255,255,0.25)" : "var(--royal-50)",
                   color: active ? "#fff" : "var(--royal)",
                   borderRadius: 99, padding: "1px 5px", fontWeight: 700,

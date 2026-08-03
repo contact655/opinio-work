@@ -115,7 +115,7 @@ export default function ToolsSectionClient({ tools }: Props) {
               </span>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: "var(--ink-mute)",
                   marginLeft: "auto",
                 }}

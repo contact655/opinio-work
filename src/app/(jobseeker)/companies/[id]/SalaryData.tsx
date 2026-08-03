@@ -55,11 +55,11 @@ export default function SalaryDataSection({ companyId }: Props) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <span style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
+            fontSize: 12, fontWeight: 700, letterSpacing: "0.1em",
             background: "#D1FAE5", color: "#065F46", border: "1px solid #6EE7B7",
             padding: "2px 8px", borderRadius: 100, fontFamily: "Inter, sans-serif",
           }}>在籍者の実額</span>
-          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>会員の自己申告データ（匿名集計）</span>
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>会員の自己申告データ（匿名集計）</span>
         </div>
 
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
@@ -70,7 +70,7 @@ export default function SalaryDataSection({ companyId }: Props) {
             { label: "件数", value: `${summary.count}件` },
           ].map(({ label, value, highlight }) => (
             <div key={label} style={{ background: "#fff", borderRadius: 10, padding: "12px 18px", border: "1px solid #A7F3D0", minWidth: 90 }}>
-              <div style={{ fontSize: 10, color: "#059669", fontWeight: 600, marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 12, color: "#059669", fontWeight: 600, marginBottom: 4 }}>{label}</div>
               <div style={{ fontSize: highlight ? 22 : 16, fontWeight: 800, color: highlight ? "var(--success)" : "var(--ink)", fontFamily: "Inter, sans-serif" }}>{value}</div>
             </div>
           ))}
@@ -84,7 +84,7 @@ export default function SalaryDataSection({ companyId }: Props) {
                 <div key={r.roleId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 8, padding: "8px 14px", border: "1px solid #D1FAE5" }}>
                   <span style={{ fontSize: 13, color: "var(--ink)" }}>{r.roleName}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{r.count}件</span>
+                    <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{r.count}件</span>
                     <span style={{ fontSize: 15, fontWeight: 700, color: "var(--success)", fontFamily: "Inter, sans-serif" }}>{fmt(r.avg)}</span>
                   </div>
                 </div>
@@ -93,7 +93,7 @@ export default function SalaryDataSection({ companyId }: Props) {
           </div>
         )}
 
-        <p style={{ fontSize: 11, color: "#065F46", marginTop: 12, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 12, color: "#065F46", marginTop: 12, lineHeight: 1.6 }}>
           ※ 会員の自己申告データを統計処理したものです。{SALARY_MIN_REPORTS_TO_DISPLAY}件未満のグループは非表示です。<br />
           ※ 利用規約第13条の4の範囲内でのみ使用されます。
         </p>

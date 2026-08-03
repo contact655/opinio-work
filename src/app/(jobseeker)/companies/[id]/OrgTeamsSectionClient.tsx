@@ -232,7 +232,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
 
                         {/* en_name badge */}
                         <span style={{
-                          flexShrink: 0, fontSize: 10, fontWeight: 700,
+                          flexShrink: 0, fontSize: 12, fontWeight: 700,
                           color: config.color,
                           background: isOpen ? "#fff" : config.bg,
                           border: `1px solid ${config.border}`,
@@ -284,7 +284,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                               {team.roles.map((role) => (
                                 <span key={role} style={{
-                                  fontSize: 10, fontWeight: 600, color: config.color,
+                                  fontSize: 12, fontWeight: 600, color: config.color,
                                   background: "#fff", border: `1px solid ${config.border}`,
                                   padding: "2px 8px", borderRadius: 100,
                                   fontFamily: "Inter, sans-serif",
@@ -301,7 +301,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                               padding: "6px 13px", borderRadius: 7,
                               background: "#FEF3C7", color: "#92400E",
                               border: "1px solid #FDE68A",
-                              fontSize: 11, fontWeight: 700, textDecoration: "none",
+                              fontSize: 12, fontWeight: 700, textDecoration: "none",
                             }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
                               この企業の求人を見る（{jobCount}件）→
@@ -340,7 +340,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                     marginTop: 8, width: "100%", padding: "7px 14px",
                     background: "transparent", border: "1px solid var(--line)",
                     borderRadius: 8, color: "var(--ink-mute)",
-                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                     fontFamily: "var(--font-noto-sans)",
                   }}

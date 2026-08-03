@@ -45,7 +45,7 @@ export function ShareButton({ companyName, companyId }: { companyName: string; c
         onClick={() => setOpen((v) => !v)}
         style={{
           display: "inline-flex", alignItems: "center", gap: 4,
-          padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 600,
+          padding: "5px 11px", borderRadius: 100, fontSize: 12, fontWeight: 600,
           background: copied ? "var(--success-soft)" : "var(--bg-tint)",
           color: copied ? "var(--success)" : "var(--ink-mute)",
           border: `1px solid ${copied ? "#A7F3D0" : "var(--line)"}`,

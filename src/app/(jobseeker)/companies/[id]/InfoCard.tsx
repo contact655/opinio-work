@@ -47,7 +47,7 @@ export function InfoCard({ icon, label, sublabel, color, bg, border }: InfoCardP
           {label}
         </div>
         {sublabel && (
-          <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400, marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 400, marginTop: 2 }}>
             {sublabel}
           </div>
         )}
