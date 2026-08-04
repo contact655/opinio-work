@@ -18,8 +18,10 @@ import { PeopleListClient } from "./PeopleListClient";
  */
 export const metadata: Metadata = {
   title: { absolute: "登録ユーザーを探す | OPINIO" },
+  // ⚠️ スキルタグは 2026-08-04 に廃止した。ここに「スキル」と書かない。
+  //    カードに出るのは 所属企業 / 職種（ow_roles）/ 経験年数 の3つ。
   description:
-    "OPINIO に登録しているユーザーの一覧です。経歴・スキルから、話を聞いてみたい人を探せます。",
+    "OPINIO に登録しているユーザーの一覧です。所属企業・職種・経験年数から、話を聞いてみたい人を探せます。",
   robots: { index: false, follow: false },
 };
 
