@@ -230,7 +230,7 @@ function PhotoCard({
             border: "1px solid transparent",
             background: "transparent",
             fontFamily: "inherit",
-            fontSize: 11,
+            fontSize: 12, fontWeight: 500,
             color: "var(--ink)",
             borderRadius: 4,
             outline: "none",
@@ -270,11 +270,11 @@ function PhotoCard({
               width: 18, height: 18, borderRadius: 4, flexShrink: 0,
               background: "var(--royal-50)", color: "var(--royal)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 9, fontWeight: 800,
+              fontSize: 12, fontWeight: 800,
             }}>
               {taggedUserName?.[0]?.toUpperCase() ?? "?"}
             </div>
-            <span style={{ fontSize: 11, color: "var(--ink)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {taggedUserName}
             </span>
             <button
@@ -288,7 +288,7 @@ function PhotoCard({
           /* Selector state: show inline select + cancel */
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
             {membersLoading ? (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>読み込み中…</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>読み込み中…</span>
             ) : (
               <select
                 autoFocus
@@ -300,7 +300,7 @@ function PhotoCard({
                   }
                 }}
                 style={{
-                  flex: 1, fontSize: 11, padding: "3px 6px",
+                  flex: 1, fontSize: 12, fontWeight: 500, padding: "3px 6px",
                   border: "1px solid var(--royal)", borderRadius: 5,
                   color: "var(--ink)", background: "#fff", outline: "none",
                 }}
@@ -319,7 +319,7 @@ function PhotoCard({
             <button
               type="button"
               onClick={() => setShowSelector(false)}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--ink-mute)", padding: "2px 4px" }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", padding: "2px 4px" }}
             >×</button>
           </div>
         ) : (
@@ -329,7 +329,7 @@ function PhotoCard({
             onClick={() => { onLoadMembers(); setShowSelector(true); }}
             style={{
               background: "none", border: "none", cursor: "pointer", padding: 0,
-              fontSize: 11, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 4,
+              fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 4,
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)"; }}
@@ -394,7 +394,7 @@ function PhotoAddCard({
         alignItems: "center", justifyContent: "center",
         gap: 6,
         color: "var(--ink-mute)",
-        fontSize: 11, fontWeight: 600,
+        fontSize: 12, fontWeight: 600,
       }}>
         {uploading ? (
           <>
@@ -481,7 +481,7 @@ function PhotoCategorySection({
         </div>
         <div style={{
           fontFamily: "'Inter', sans-serif",
-          fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
+          fontSize: 12, fontWeight: 600, color: "var(--ink-mute)",
         }}>
           <strong style={{ color: "var(--ink)" }}>{photos.length}</strong> / {MAX_PHOTOS_PER_CATEGORY}枚
         </div>
@@ -770,7 +770,7 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 6 }}>
             写真選びのポイント
           </div>
-          <ul style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.8, listStyle: "none", padding: 0 }}>
+          <ul style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, listStyle: "none", padding: 0 }}>
             {[
               "各カテゴリ、無理に枚数を埋める必要はありません",
               "「この写真で何が伝わるか」を意識して選んでください",

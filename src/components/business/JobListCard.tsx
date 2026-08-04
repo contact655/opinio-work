@@ -44,7 +44,7 @@ function ActionBtn({
         border: `1px solid ${primary ? "var(--royal)" : danger ? "var(--line)" : "var(--line)"}`,
         borderRadius: 6,
         fontFamily: "inherit",
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 600,
         color: primary ? "#fff" : "var(--ink)",
         cursor: "pointer",
@@ -248,7 +248,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
             <span style={{
               padding: "3px 8px",
               borderRadius: 4,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 600,
               background: "var(--bg-tint)",
               color: "var(--ink-soft)",
@@ -263,10 +263,10 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
           }}>
             {job.title}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
             {job.jobRoleNames && job.jobRoleNames.length > 0 ? (
               job.jobRoleNames.map((name) => (
-                <span key={name} style={{ color: "var(--royal)", fontWeight: 600, background: "var(--royal-50)", padding: "1px 7px", borderRadius: 4, fontSize: 11 }}>{name}</span>
+                <span key={name} style={{ color: "var(--royal)", fontWeight: 600, background: "var(--royal-50)", padding: "1px 7px", borderRadius: 4, fontSize: 12 }}>{name}</span>
               ))
             ) : (
               job.jobCategory && <span style={{ color: "var(--royal)", fontWeight: 600 }}>{job.jobCategory}</span>
@@ -317,16 +317,16 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
           </div>
           <div style={{ flex: 1 }}>
             <div style={{
-              fontSize: 10, fontWeight: 700, color: "var(--error)",
+              fontSize: 12, fontWeight: 700, color: "var(--error)",
               letterSpacing: "0.1em", marginBottom: 4,
             }}>
               運営からのフィードバック
             </div>
-            <div style={{ fontSize: 12, color: "#7F1D1D", lineHeight: 1.7 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "#7F1D1D", lineHeight: 1.7 }}>
               {job.rejectionReason}
             </div>
             {job.rejectionDate && (
-              <div style={{ fontSize: 10, color: "#991B1B", marginTop: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#991B1B", marginTop: 4 }}>
                 {job.rejectionDate} · {job.rejectionReviewer}
               </div>
             )}
@@ -341,7 +341,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
         gap: 16,
         paddingTop: 12,
         borderTop: "1px dashed var(--line)",
-        fontSize: 11,
+        fontSize: 12, fontWeight: 500,
         color: "var(--ink-soft)",
         flexWrap: "wrap",
       }}>

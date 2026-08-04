@@ -364,7 +364,7 @@ function CurrentBadge() {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         letterSpacing: "0.04em",
         color: "var(--success)",
@@ -388,7 +388,7 @@ function EnrolledBadge() {
     <span
       style={{
         display: "inline-block",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         letterSpacing: "0.04em",
         color: "var(--purple)",
@@ -411,7 +411,7 @@ function ParallelBadge() {
     <span
       style={{
         display: "inline-block",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         letterSpacing: "0.04em",
         color: "var(--warm)",
@@ -612,7 +612,7 @@ function YearSeparator({ year, age }: { year: number; age: number | null }) {
             border: "1.5px solid var(--line)",
             borderRadius: 100,
             padding: "2px 9px",
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             color: "var(--ink-soft)",
             fontFamily: "Inter, sans-serif",
@@ -629,7 +629,7 @@ function YearSeparator({ year, age }: { year: number; age: number | null }) {
         {age !== null && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 600,
               color: "var(--ink-mute)",
               fontFamily: "Inter, sans-serif",
@@ -720,7 +720,7 @@ function CareerContent({
         )}
         {data.employment_type && (
           <span style={{
-            fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",
+            fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
             background: "var(--line-soft)", borderRadius: 4, padding: "2px 7px",
           }}>
             {data.employment_type}
@@ -744,7 +744,7 @@ function CareerContent({
 
       {/* 期間 */}
       <div style={{
-        fontFamily: "Inter, sans-serif", fontSize: 12,
+        fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
         color: "var(--ink-mute)", marginBottom: hasDesc ? 12 : 0, lineHeight: 1.4,
       }}>
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
@@ -809,7 +809,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
 
       {/* Date + duration — always inline */}
       <div style={{
-        fontFamily: "Inter, sans-serif", fontSize: 12,
+        fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
         color: "var(--ink-mute)", lineHeight: 1.4,
       }}>
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
@@ -914,14 +914,14 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
       </div>
       {/* 部門 / 職種サブ */}
       {(data.role_parent_name || (data.role_title && data.role_label !== data.role_title)) && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 3 }}>
           {[data.role_parent_name, data.role_title ? data.role_label : null].filter(Boolean).join(" · ")}
         </div>
       )}
 
       {/* 期間 */}
       <div style={{
-        fontFamily: "Inter, sans-serif", fontSize: 12,
+        fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
         color: "var(--ink-mute)", marginBottom: data.description ? 8 : 0, lineHeight: 1.4,
       }}>
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
@@ -1177,11 +1177,11 @@ export default function MergedTimeline({
                 <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
                   {/* グループ期間インライン表示 */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.4 }}>
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.4 }}>
                       {startLabel} – {endLabel}{duration && ` · ${duration}`}
                     </div>
                     <span style={{
-                      fontSize: 10, fontWeight: 700, color: "#7C3AED",
+                      fontSize: 12, fontWeight: 700, color: "#7C3AED",
                       background: "#EDE9FE", border: "1px solid #C4B5FD",
                       borderRadius: 4, padding: "1px 6px", lineHeight: 1.6,
                       letterSpacing: "0.02em",
@@ -1245,7 +1245,7 @@ export default function MergedTimeline({
                       </span>
                     )}
                     {duration && (
-                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)" }}>
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                         {duration}
                       </span>
                     )}
@@ -1281,7 +1281,7 @@ export default function MergedTimeline({
                           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35 }}>
                             {positionLabel}
                             {c.is_current && items.length > 1 && (
-                              <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
+                              <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
                                 在籍中
                               </span>
                             )}
@@ -1295,7 +1295,7 @@ export default function MergedTimeline({
                           )}
 
                           {/* 期間 */}
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
                             {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
                             {posDuration && ` · ${posDuration}`}
                           </div>

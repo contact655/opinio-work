@@ -333,7 +333,7 @@ export function JobseekerHeader() {
                     }}>
                       <div style={{ padding: "12px 16px", borderBottom: "0.5px solid var(--line-soft)" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{user.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{user.email}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>{user.email}</div>
                       </div>
                       <Link
                         href="/mypage"
@@ -475,7 +475,7 @@ export function JobseekerHeader() {
               {/* クエリなし: 人気タグ + クイックリンク */}
               {!searchQuery && (
                 <div style={{ padding: "12px 0 20px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>よく検索されるキーワード</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>よく検索されるキーワード</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
                     {POPULAR_QUERIES.map((q) => (
                       <button key={q} type="button"
@@ -485,7 +485,7 @@ export function JobseekerHeader() {
                       </button>
                     ))}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>クイックナビ</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>クイックナビ</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
                       { href: "/companies", label: "企業一覧", icon: "🏢" },
@@ -507,16 +507,16 @@ export function JobseekerHeader() {
                   {/* 企業 */}
                   {suggestions.companies.length > 0 && (
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>企業</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>企業</div>
                       {suggestions.companies.map((c) => (
                         <a key={c.id} href={`/companies/${c.slug ?? c.id}`} onClick={() => setSearchOpen(false)}
                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
                           onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ width: 28, height: 28, borderRadius: 6, background: c.logo_gradient ?? "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{c.logo_letter ?? c.name[0]}</div>
+                          <div style={{ width: 28, height: 28, borderRadius: 6, background: c.logo_gradient ?? "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{c.logo_letter ?? c.name[0]}</div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
-                            {c.industry && <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.industry}</div>}
+                            {c.industry && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{c.industry}</div>}
                           </div>
                         </a>
                       ))}
@@ -526,7 +526,7 @@ export function JobseekerHeader() {
                   {/* 求人 */}
                   {suggestions.jobs.length > 0 && (
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>募集</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>募集</div>
                       {suggestions.jobs.map((j) => (
                         <a key={j.id} href={`/jobs/${j.id}`} onClick={() => setSearchOpen(false)}
                           style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
@@ -539,7 +539,7 @@ export function JobseekerHeader() {
                           </div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{j.title}</div>
-                            {j.job_category && <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{j.job_category}</div>}
+                            {j.job_category && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{j.job_category}</div>}
                           </div>
                         </a>
                       ))}
@@ -607,7 +607,7 @@ export function JobseekerHeader() {
               <InitialAvatar name={user.name || user.email} size={40} />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{user.name}</div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{user.email}</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>{user.email}</div>
               </div>
             </div>
           </div>
@@ -639,7 +639,7 @@ export function JobseekerHeader() {
                 >
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D97706", flexShrink: 0 }} />
                   {label}
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", marginLeft: "auto" }}>無料</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", marginLeft: "auto" }}>無料</span>
                 </Link>
               );
             }

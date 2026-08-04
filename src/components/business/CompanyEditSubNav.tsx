@@ -69,7 +69,7 @@ export function CompanyEditSubNav({
       }}>
         {/* 保存状態 */}
         {saveState && saveState !== "idle" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: saveState === "error" ? "var(--error)" : "var(--ink-mute)", fontWeight: 500 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: saveState === "error" ? "var(--error)" : "var(--ink-mute)", fontWeight: 500 }}>
             {saveState === "saving" && (
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
                 <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
@@ -80,7 +80,7 @@ export function CompanyEditSubNav({
             )}
             {saveStatusText}
             {saveState === "error" && onRetrySave && (
-              <button type="button" onClick={onRetrySave} style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: "var(--error)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>再試行</button>
+              <button type="button" onClick={onRetrySave} style={{ marginLeft: 4, fontSize: 12, fontWeight: 600, color: "var(--error)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>再試行</button>
             )}
           </div>
         )}
@@ -118,7 +118,7 @@ export function CompanyEditSubNav({
             background: "var(--warm-soft)", border: "1px solid #FDE68A",
           }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm)", flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#92400E" }}>未公開の変更あり</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#92400E" }}>未公開の変更あり</span>
           </div>
         ) : (
           <div style={{
@@ -127,7 +127,7 @@ export function CompanyEditSubNav({
             background: "var(--success-soft)", border: "1px solid #A7F3D0",
           }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--success)" }}>公開済み・最新</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>公開済み・最新</span>
           </div>
         )}
       </div>
@@ -172,7 +172,7 @@ export function CompanyEditSubNav({
               {s.showStatus && s.hasDraft && (
                 <span style={{
                   fontFamily: "'Inter', sans-serif",
-                  fontSize: 9,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: "var(--warm)",
                   background: "var(--warm-soft)",
@@ -197,16 +197,16 @@ export function CompanyEditSubNav({
           border: "1px solid var(--line)",
           borderRadius: 10,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
             最終公開
           </div>
-          <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 4 }}>
             {lastPublishedAt} に公開
           </div>
           {lastPublishedAgo && (
             <div style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: 10,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-mute)",
               marginBottom: 8,
             }}>
@@ -226,7 +226,7 @@ export function CompanyEditSubNav({
               background: "#fff",
               border: "1px solid var(--line)",
               borderRadius: 6,
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 600,
               color: "var(--ink)",
               cursor: "pointer",
@@ -261,12 +261,12 @@ export function CompanyEditSubNav({
         border: "1px solid var(--line)",
         borderRadius: 10,
       }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
           開示充実度
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--ink-soft)", marginBottom: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
               <span>あなたが入力できる項目</span>
               <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)" }}>{bizScore} / 45</span>
             </div>
@@ -275,7 +275,7 @@ export function CompanyEditSubNav({
             </div>
           </div>
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--ink-soft)", marginBottom: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
               <span>取材・投稿で埋まる項目</span>
               <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / 55</span>
             </div>

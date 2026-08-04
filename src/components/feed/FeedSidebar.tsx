@@ -97,7 +97,7 @@ function JobMiniCard({ job }: { job: SidebarJob }) {
           <div
             style={{
               fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-              fontSize: 11,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-soft)",
               marginTop: 2,
               overflow: "hidden",
@@ -111,7 +111,7 @@ function JobMiniCard({ job }: { job: SidebarJob }) {
             <div
               style={{
                 fontFamily: "Inter, sans-serif",
-                fontSize: 11,
+                fontSize: 12,
                 color: "var(--success)",
                 fontWeight: 600,
                 marginTop: 2,
@@ -202,7 +202,7 @@ function PersonMiniCard({ person }: { person: SidebarPerson }) {
           <div
             style={{
               fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-              fontSize: 11,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-soft)",
               marginTop: 2,
               overflow: "hidden",
@@ -218,7 +218,7 @@ function PersonMiniCard({ person }: { person: SidebarPerson }) {
         <div
           style={{
             flexShrink: 0,
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             color: "var(--success)",
             background: "var(--success-soft)",
@@ -264,7 +264,7 @@ export function FeedInsertJobCard({ job }: { job: SidebarJob }) {
       <div
         style={{
           fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           color: "var(--ink-mute)",
           letterSpacing: "0.05em",
@@ -284,7 +284,7 @@ export function FeedInsertPersonCard({ person }: { person: SidebarPerson }) {
       <div
         style={{
           fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           color: "var(--ink-mute)",
           letterSpacing: "0.05em",

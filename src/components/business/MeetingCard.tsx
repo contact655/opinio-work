@@ -75,14 +75,14 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
             {m.applicantName}
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5 }}>
             {m.applicantAge} · {m.applicantCurrentCompany} 在籍中
           </div>
         </div>
 
         <div style={{
           fontFamily: "'Inter', sans-serif",
-          fontSize: 10,
+          fontSize: 12, fontWeight: 500,
           color: "var(--ink-mute)",
           whiteSpace: "nowrap",
           flexShrink: 0,
@@ -93,7 +93,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
 
       {/* 興味 */}
       <div style={{
-        fontSize: 11,
+        fontSize: 12, fontWeight: 500,
         color: "var(--ink-soft)",
         paddingLeft: 46,
         marginTop: 2,
@@ -119,7 +119,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
             padding: "2px 7px",
             borderRadius: 3,
             fontFamily: "'Inter', sans-serif",
-            fontSize: 9,
+            fontSize: 12,
             fontWeight: 700,
             letterSpacing: "0.05em",
             background: "#EEF2FF",
@@ -138,7 +138,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
             padding: "2px 7px",
             borderRadius: 3,
             fontFamily: "'Inter', sans-serif",
-            fontSize: 9,
+            fontSize: 12,
             fontWeight: 700,
             letterSpacing: "0.05em",
             background: "var(--line-soft)",
@@ -151,7 +151,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
         {/* 詳細を見る CTA — hover時に右側に表示 */}
         <span style={{
           marginLeft: "auto",
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 600,
           color: isSelected ? "var(--royal)" : "var(--ink-mute)",
           display: "flex",
