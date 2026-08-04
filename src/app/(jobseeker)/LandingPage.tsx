@@ -8,28 +8,44 @@ import { ProductPreview } from "./ProductPreview";
 /**
  * DATA セクション「経歴が構造化されている」に添える実画面。
  *
- * ⚠️ null のあいだはカードが3列グリッドのまま（画面なし）になる。本番の見た目は変わらない。
- *    掲載許可が取れたら CAREER_SHOT に値を入れるだけで全幅レイアウトに切り替わる。
+ * ⚠️ null にすると画面なしの3列グリッドに戻る（掲載を止めたくなったときはここを null に）。
  *
- * ── 出典と切り出し（2026-08-05）──────────────────────────────────────────────
- * /u/b51fc35e（木村雅樹さん）の職歴タイムライン。ご本人から、検索エンジンに
- * 載ることを含めて掲載許可を得ている。
+ * ── 出典（2026-08-05）───────────────────────────────────────────────────────
+ * /u/b51fc35e（木村雅樹さん）の職歴タイムライン。ご本人から、実績値を含め、
+ * 検索エンジンに載ることも含めて掲載許可を得ている。
+ * ⚠️ /u/[id] は middleware でログイン必須（visibility=login_only）。つまりこの画像は
+ *    ログインしないと見られない情報を公開ページに出している。撮り直し・差し替えのときも
+ *    本人の許可を取り直すこと。他の人に差し替える場合も同じ。
  * ⚠️ 生藤弘樹さんは運営が作ったプレースホルダーなので、許可があっても使わない。
  *    「実データが構造化されている」証拠にならないため。
  *
- * viewport 1440px（デスクトップの実レイアウト）で 700×715px を 2x で切り出したもの。
- *   ・表示幅584pxに対し縮小率 0.83。現行の ProductPreview（0.81）より緩く、14pxの本文が読める
- *   ・モバイル幅で撮ると社名が折り返し、下部ナビも写り込むのでデスクトップで撮ること
- *   ・下端は必ず行の境目に合わせる。実測位置は 職歴見出し top=856 / カード左端 x=210 で
- *     525=セールスフォース1つ目の説明文の直後 / 715=同社の続きを読むの直後 / 866=みずほ証券の期間の直後
- *   ・715 を選んだのは、会社の移動（CTC←セールスフォース）と
- *     同社内の職種変化（インサイドセールス→AE）が両方映り、本文2文の両方を裏付けるため
+ * ── 切り出し ────────────────────────────────────────────────────────────────
+ * wide: viewport 1440px（デスクトップの実レイアウト）で 700×715px。表示584pxに対し 0.83倍。
+ *   現行の ProductPreview（0.81）より緩く、14pxの本文が読める。
+ *   下端は必ず行の境目に合わせる。実測位置は 職歴見出し top=856 / カード左端 x=210 で
+ *     470=AEの期間の直後（実績値が入らない） / 525=AEの説明文の直後 /
+ *     715=セールスフォースの続きを読むの直後 / 866=みずほ証券の期間の直後
+ *   715 は、会社の移動（CTC←セールスフォース）と同社内の職種変化
+ *   （インサイドセールス→AE）が両方映り、本文2文の両方を裏付けるため選んだ。
+ *
+ * narrow: viewport 440px（1カラム表示）で 372×543px。実測 職歴見出し top=1019 / x=20 / 幅400。
+ *   ⚠️ wide をそのまま狭い画面に出すと破綻する。375px幅では表示291pxまで縮んで
+ *      0.42倍になり、14pxの本文が6pxになる。2026-08-04 に preview-search で踏んだのと同じ。
+ *      切り替えは 620px 未満（下の .lp-career-* を参照）。
  *
  * ⚠️ 差し替えるときは必ずファイル名の連番を上げること（-v1 → -v2）。
  *    Next の画像最適化は元パスをキーにするので、同名だと古いバイト列が配信され続ける。
  *    2026-08-04 に実際に起きた。
  */
-const CAREER_SHOT: { src: string; w: number; h: number; alt: string } | null = null;
+const CAREER_SHOT: {
+  wide: { src: string; w: number; h: number };
+  narrow: { src: string; w: number; h: number };
+  alt: string;
+} | null = {
+  wide:   { src: "/images/lp/preview-career-v1.webp",    w: 1168, h: 1193 },
+  narrow: { src: "/images/lp/preview-career-sm-v1.webp", w: 1088, h: 1588 },
+  alt: "OPINIO のプロフィール画面の職歴。年ごとに会社名・部署・役職・職種・在籍期間が構造化されて並び、同じ会社の中での職種の変化も辿れる。",
+};
 
 const CAREER_CARD = {
   title: "経歴が構造化されている",
@@ -178,8 +194,14 @@ export default function LandingPage({
         .lp-trust-2 { grid-template-columns: repeat(2, 1fr); margin-bottom: 18px; }
         .lp-trust-wide { display: grid; grid-template-columns: 1fr 584px; gap: 32px; align-items: center;
                          background: #fff; border: 1px solid ${C.line}; border-radius: 12px; padding: 24px; }
-        .lp-trust-wide img { width: 584px; height: auto; display: block;
+        .lp-trust-wide img { width: 100%; height: auto; display: block;
                              border: 1px solid ${C.line}; border-radius: 8px; }
+        /* 画面幅で画像そのものを差し替える。ProductPreview の .pp-wide / .pp-narrow と同じ理由。
+           wide は 700px幅の切り出しなので、表示幅が 540px を下回ると本文が読めなくなる。
+           620px 未満では 372px幅で撮り直した narrow に切り替える。
+           CSS の縮小では解決しない（元の情報量が多すぎる）ので画像を分けている。 */
+        .lp-career-wide { display: block; }
+        .lp-career-narrow { display: none; }
         /* .pp-* は globals.css 側にある。
            空文字を指定する content の引用符が、Server Component の style タグでは
            実体参照にエスケープされ、raw text 要素なのでブラウザが復元しないため。
@@ -190,12 +212,11 @@ export default function LandingPage({
           .lp-wrap { padding: 0 18px; }
           .lp-facets { grid-template-columns: repeat(2, 1fr); }
           .lp-cards, .lp-jobs, .lp-steps, .lp-trust { grid-template-columns: 1fr; }
-          /* 狭い画面では経歴カードも縦積みにする。584px の画像は入らないので
-             幅いっぱいに縮める（元が700px幅の切り出しなので、
-             360px 前後まで縮むと本文が読めなくなる点は要確認）。 */
+          /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
+             620px までは wide の切り出しのまま。ここでは表示幅が 600px 前後あり、
+             縮小率 0.85 で本文が読める。 */
           .lp-trust-2 { grid-template-columns: 1fr; }
           .lp-trust-wide { grid-template-columns: 1fr; gap: 20px; }
-          .lp-trust-wide img { width: 100%; }
           /* プレビューは1カラムだと縦に伸びすぎるので6件までに絞る。
              総件数は「N社すべて見る」で示しているので数は隠していない。 */
           /* 子結合子（大なり記号）は使わないこと。Server Component 内の style タグでは
@@ -204,6 +225,12 @@ export default function LandingPage({
              同じ理由で、この中に大なり・小なり・引用符を書かないこと。
              nth-child は元々親基準なので、子クラス指定で足りる。 */
           .lp-cards .lp-card:nth-child(n+7), .lp-jobs .lp-card:nth-child(n+7) { display: none; }
+        }
+        /* 経歴の画像だけ 620px で切り替える。レイアウトの折り返し（900px）とは別の境目。
+           900px はカードが縦積みになる点、620px は wide の切り出しが読めなくなる点。 */
+        @media (max-width: 620px) {
+          .lp-career-wide { display: none; }
+          .lp-career-narrow { display: block; }
         }
         details summary::-webkit-details-marker { display: none; }
         details summary::marker { display: none; }
@@ -290,8 +317,16 @@ export default function LandingPage({
                   画面は実際のものです。掲載内容は変わることがあります。
                 </p>
               </div>
-              <Image src={CAREER_SHOT.src} alt={CAREER_SHOT.alt}
-                width={CAREER_SHOT.w} height={CAREER_SHOT.h} sizes="584px" />
+              {/* 画面幅で画像そのものを差し替える。CSS の縮小では読めるようにならない
+                  （理由は CAREER_SHOT のコメントと .lp-career-* を参照） */}
+              <span className="lp-career-wide">
+                <Image src={CAREER_SHOT.wide.src} alt={CAREER_SHOT.alt}
+                  width={CAREER_SHOT.wide.w} height={CAREER_SHOT.wide.h} sizes="584px" />
+              </span>
+              <span className="lp-career-narrow">
+                <Image src={CAREER_SHOT.narrow.src} alt={CAREER_SHOT.alt}
+                  width={CAREER_SHOT.narrow.w} height={CAREER_SHOT.narrow.h} sizes="100vw" />
+              </span>
             </div>
           )}
         </div>
