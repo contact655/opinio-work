@@ -2421,42 +2421,6 @@ export type Database = {
           },
         ]
       }
-      ow_career_follows: {
-        Row: {
-          created_at: string
-          follower_user_id: string
-          id: string
-          target_profile_id: string
-        }
-        Insert: {
-          created_at?: string
-          follower_user_id: string
-          id?: string
-          target_profile_id: string
-        }
-        Update: {
-          created_at?: string
-          follower_user_id?: string
-          id?: string
-          target_profile_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_career_follows_follower_user_id_fkey"
-            columns: ["follower_user_id"]
-            isOneToOne: false
-            referencedRelation: "ow_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_career_follows_target_profile_id_fkey"
-            columns: ["target_profile_id"]
-            isOneToOne: false
-            referencedRelation: "ow_career_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_career_profiles: {
         Row: {
           birth_year: number | null
@@ -3110,7 +3074,6 @@ export type Database = {
           joined_at: string | null
           permission: string
           role_title: string | null
-          talk_themes: string[] | null
           user_id: string | null
         }
         Insert: {
@@ -3133,7 +3096,6 @@ export type Database = {
           joined_at?: string | null
           permission?: string
           role_title?: string | null
-          talk_themes?: string[] | null
           user_id?: string | null
         }
         Update: {
@@ -3156,7 +3118,6 @@ export type Database = {
           joined_at?: string | null
           permission?: string
           role_title?: string | null
-          talk_themes?: string[] | null
           user_id?: string | null
         }
         Relationships: [
@@ -3836,7 +3797,6 @@ export type Database = {
           invited_by: string | null
           is_public: boolean
           role_title: string | null
-          talk_themes: string[] | null
           updated_at: string
           user_id: string
         }
@@ -3851,7 +3811,6 @@ export type Database = {
           invited_by?: string | null
           is_public?: boolean
           role_title?: string | null
-          talk_themes?: string[] | null
           updated_at?: string
           user_id: string
         }
@@ -3866,7 +3825,6 @@ export type Database = {
           invited_by?: string | null
           is_public?: boolean
           role_title?: string | null
-          talk_themes?: string[] | null
           updated_at?: string
           user_id?: string
         }
@@ -7390,38 +7348,6 @@ export type Database = {
           },
         ]
       }
-      ow_user_certifications: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          sort_order: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          sort_order: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          sort_order?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_user_certifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "ow_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_user_content_links: {
         Row: {
           created_at: string
@@ -7520,6 +7446,42 @@ export type Database = {
           {
             foreignKeyName: "ow_user_educations_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_user_follows: {
+        Row: {
+          created_at: string
+          follower_user_id: string
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_user_id: string
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_user_id?: string
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_career_follows_follower_user_id_fkey"
+            columns: ["follower_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_user_follows_target_user_id_fkey"
+            columns: ["target_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
             referencedColumns: ["id"]
@@ -7711,41 +7673,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ow_user_skill_tags: {
-        Row: {
-          created_at: string
-          id: string
-          label: string
-          master_id: string | null
-          sort_order: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          label: string
-          master_id?: string | null
-          sort_order: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          label?: string
-          master_id?: string | null
-          sort_order?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_user_skill_tags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]

@@ -436,6 +436,15 @@ function AuthPageInner() {
                   </a>
                   {" "}に同意したものとみなします。
                 </p>
+                {/*
+                  スカウトの初期値の告知。
+                  ⚠️ 2026-08-04 に ow_profiles.scout_enabled の既定を true にしたため必須。
+                     既定でオンにする以上、登録時点で知らせないと「黙って設定された」ことになる。
+                     既定値を false に戻すことがあれば、この一文も同時に消すこと。
+                */}
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 6 }}>
+                  登録すると、企業からのスカウトを受け取る設定になります。プロフィール編集の「公開設定」からいつでもオフにできます。
+                </p>
                 <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 6, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
                   当社は、お預かりした情報を匿名化・統計化した上で、職種別の待遇水準等として公表することがあります（
                   <a href="/terms#統計的利用" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink-mute)", textDecoration: "underline" }}>
