@@ -201,7 +201,7 @@ function inputStyle(disabled?: boolean): React.CSSProperties {
 function labelStyle(): React.CSSProperties {
   return {
     display: "block",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
     color: "var(--ink-mute)",
     letterSpacing: "0.08em",
@@ -315,7 +315,7 @@ function TypeBadge({ type }: { type: StoryType }) {
     <span
       style={{
         display: "inline-block",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         fontFamily: "Inter, sans-serif",
         letterSpacing: "0.06em",
@@ -429,7 +429,7 @@ function StoryCard({
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
             <TypeBadge type={story.type} />
             {formatPeriod(story.period_start, story.period_end) && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 {formatPeriod(story.period_start, story.period_end)}
               </span>
             )}
@@ -457,7 +457,7 @@ function StoryCard({
                 </div>
               )}
               {story.description && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                   {story.description}
                 </div>
               )}
@@ -487,7 +487,7 @@ function StoryCard({
               ) : (
                 /* 非 YouTube or ID 抽出失敗 → URL truncate テキストにフォールバック */
                 story.video_url && (
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", wordBreak: "break-all", marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", wordBreak: "break-all", marginBottom: 4 }}>
                     {truncateUrl(story.video_url)}
                   </div>
                 )
@@ -498,7 +498,7 @@ function StoryCard({
                 </div>
               )}
               {story.description && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                   {story.description}
                 </div>
               )}
@@ -522,7 +522,7 @@ function StoryCard({
                 </div>
               )}
               {story.description && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                   {story.description}
                 </div>
               )}
@@ -595,7 +595,7 @@ function StoryCard({
                   {domain && (
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 12, fontWeight: 500,
                         color: "var(--ink-mute)",
                         fontFamily: "Inter, sans-serif",
                       }}
@@ -744,7 +744,7 @@ function SectionHeader({
               border: "1.5px solid var(--royal)",
               borderRadius: 5,
               padding: "2px 7px",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: "var(--ink)",
               background: "#fff",
@@ -759,7 +759,7 @@ function SectionHeader({
             onClick={() => { void handleSave(); }}
             style={{
               padding: "2px 10px",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               fontFamily: "inherit",
               background: justSaved ? "var(--success)" : !name.trim() ? "var(--ink-mute)" : "var(--royal)",
@@ -779,7 +779,7 @@ function SectionHeader({
             disabled={saving}
             style={{
               padding: "2px 8px",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 600,
               fontFamily: "inherit",
               background: "transparent",
@@ -800,7 +800,7 @@ function SectionHeader({
           <span
             style={{
               flex: 1,
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: "var(--ink-soft)",
               letterSpacing: "0.08em",
@@ -946,7 +946,7 @@ function StoryForm({
             disabled={isSaving}
             style={{ ...inputStyle(isSaving), flex: 1 }}
           />
-          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
           <input
             type="month"
             value={draft.period_end}
@@ -956,7 +956,7 @@ function StoryForm({
           />
         </div>
         {periodInvalid && (
-          <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>
             終了年月は開始年月以降に設定してください
           </div>
         )}
@@ -1022,20 +1022,20 @@ function StoryForm({
               style={{ display: "none" }}
               onChange={(e) => { void handleFileChange(e); }}
             />
-            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
               JPEG / PNG / WebP / GIF、5MB 以下
             </span>
           </div>
 
           {/* Upload error */}
           {fileErr && (
-            <div style={{ fontSize: 11, color: "var(--error)", marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginBottom: 6 }}>
               {fileErr}
             </div>
           )}
 
           {/* URL fallback input */}
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6 }}>
             または URL を直接入力
           </div>
           <input
@@ -1071,11 +1071,11 @@ function StoryForm({
               }}
             />
             {showError ? (
-              <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>
                 YouTube の URL を入力してください（youtube.com または youtu.be）
               </div>
             ) : !hasInput ? (
-              <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4 }}>
                 youtube.com または youtu.be の URL を入力してください。
               </div>
             ) : null}
@@ -1699,7 +1699,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
         {/* Chevron */}
         <span
           style={{
-            fontSize: 10,
+            fontSize: 12, fontWeight: 500,
             color: "var(--ink-mute)",
             transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
             transition: "transform 0.2s",
@@ -1712,7 +1712,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
         </span>
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 600,
             color: "var(--ink-mute)",
             letterSpacing: "0.04em",
@@ -1721,7 +1721,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
           {countLabel}
         </span>
         {loading && (
-          <span style={{ fontSize: 11, color: "var(--ink-mute)", fontStyle: "italic" }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic" }}>
             読み込み中…
           </span>
         )}
@@ -1782,7 +1782,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
                         {sectionStories.length === 0 && (
                           <div
                             style={{
-                              fontSize: 11,
+                              fontSize: 12, fontWeight: 500,
                               color: "var(--ink-mute)",
                               fontStyle: "italic",
                               padding: "4px 0 4px 4px",
@@ -1804,7 +1804,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
                 {hasAnySections && uncategorized.length > 0 && (
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: "var(--ink-mute)",
                       letterSpacing: "0.08em",
@@ -1844,7 +1844,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
                     {!hasAnySections && uncategorized.length === 0 && !adding && (
                       <div
                         style={{
-                          fontSize: 12,
+                          fontSize: 12, fontWeight: 500,
                           color: "var(--ink-mute)",
                           fontStyle: "italic",
                           padding: "2px 0 6px",
@@ -1869,7 +1869,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
                       border: "1.5px solid var(--royal)",
                       borderRadius: 6,
                       padding: "4px 10px",
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: "var(--ink-soft)",
                       letterSpacing: "0.08em",
@@ -1968,7 +1968,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
                     background: "transparent",
                     border: "1px dashed var(--line-soft)",
                     borderRadius: 8,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 600,
                     color: "var(--ink-mute)",
                     cursor: "pointer",
@@ -2009,7 +2009,7 @@ export default function StoryAccordion({ experienceId }: StoryAccordionProps) {
                       border: "1.5px solid var(--royal)",
                       borderRadius: 6,
                       padding: "4px 8px",
-                      fontSize: 12,
+                      fontSize: 12, fontWeight: 500,
                       color: "var(--ink)",
                       background: "#fff",
                       outline: "none",

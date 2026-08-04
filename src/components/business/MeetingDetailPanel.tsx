@@ -120,7 +120,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       fontFamily: "'Inter', sans-serif",
-      fontSize: 10, fontWeight: 700,
+      fontSize: 12, fontWeight: 700,
       color: "var(--ink-mute)",
       letterSpacing: "0.15em",
       textTransform: "uppercase",
@@ -150,7 +150,7 @@ function BlockField({ label, children }: { label: string; children: React.ReactN
     <div style={{ paddingLeft: 12, borderLeft: "2px solid var(--line)" }}>
       <div style={{
         fontFamily: "'Inter', sans-serif",
-        fontSize: 10, fontWeight: 700,
+        fontSize: 12, fontWeight: 700,
         color: "var(--ink-mute)",
         letterSpacing: "0.05em",
         textTransform: "uppercase",
@@ -193,7 +193,7 @@ export function MeetingDetailPanel({
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)" }}>申込を選択してください</div>
-        <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>左のリストから申込を選んでください</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>左のリストから申込を選んでください</div>
       </div>
     );
   }
@@ -235,7 +235,7 @@ export function MeetingDetailPanel({
             {m.applicantName}
             <MeetingStatusBadge status={m.status} />
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
             {m.applicantAge} · {m.applicantCurrentCompany} {m.applicantCurrentRole}
           </div>
         </div>
@@ -353,7 +353,7 @@ export function MeetingDetailPanel({
           }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>対応者</div>
-              <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
                 この申込を対応するメンバー
               </div>
             </div>
@@ -377,7 +377,7 @@ export function MeetingDetailPanel({
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{m.assigneeName}</div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>担当者</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>担当者</div>
               </div>
               <div style={{ flex: 1 }} />
               <button
@@ -386,7 +386,7 @@ export function MeetingDetailPanel({
                 title="この機能は現在準備中です"
                 style={{
                   padding: "5px 10px",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                  fontFamily: "inherit", fontSize: 12, fontWeight: 600,
                   border: "1px solid var(--line)", borderRadius: 6,
                   background: "#fff", color: "var(--ink-mute)", cursor: "not-allowed",
                   opacity: 0.6,
@@ -406,7 +406,7 @@ export function MeetingDetailPanel({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--ink-mute)", flexShrink: 0 }}>
                   <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
                 </svg>
-                <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>まだ対応者がいません</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>まだ対応者がいません</span>
               </div>
               <button
                 type="button"
@@ -448,7 +448,7 @@ export function MeetingDetailPanel({
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 2 }}>
                   興味を持った求人
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
@@ -507,12 +507,12 @@ export function MeetingDetailPanel({
                 href={`/u/${m.applicantUserId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
+                style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
               >
                 詳細プロフィール →
               </a>
             ) : (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
                 詳細プロフィール
               </span>
             )}
@@ -522,7 +522,9 @@ export function MeetingDetailPanel({
             {m.career.map((c, i) => (
               <div key={i} style={{
                 display: "grid",
-                gridTemplateColumns: "90px 1fr",
+                // ⚠️ 期間は formatPeriod が "2020.04 — 2023.03"（em ダッシュ込み17字）を返す。
+                //    12px では約118px 必要で、90px だとはみ出す。11px でも既にはみ出していた。
+                gridTemplateColumns: "124px 1fr",
                 gap: 14,
                 padding: "8px 0",
                 borderBottom: i < m.career.length - 1 ? "1px dashed var(--line)" : "none",
@@ -530,7 +532,7 @@ export function MeetingDetailPanel({
               }}>
                 <div style={{
                   fontFamily: "'Inter', sans-serif",
-                  fontSize: 11, fontWeight: 500, color: "var(--ink-mute)",
+                  fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
                 }}>
                   {c.period}
                 </div>
@@ -541,7 +543,7 @@ export function MeetingDetailPanel({
                       <span style={{
                         background: "var(--success-soft)", color: "var(--success)",
                         padding: "1px 6px", borderRadius: 4,
-                        fontWeight: 700, fontSize: 9, letterSpacing: "0.05em",
+                        fontWeight: 700, fontSize: 12, letterSpacing: "0.05em",
                       }}>
                         CURRENT
                       </span>
@@ -569,7 +571,7 @@ export function MeetingDetailPanel({
             </svg>
             <span style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: 10, fontWeight: 700, color: "#B45309", letterSpacing: "0.15em",
+              fontSize: 12, fontWeight: 700, color: "#B45309", letterSpacing: "0.15em",
             }}>
               INTERNAL NOTE
             </span>
@@ -578,10 +580,10 @@ export function MeetingDetailPanel({
             </span>
             <span aria-live="polite" style={{ marginLeft: "auto" }}>
               {memoSaveState === "saving" && (
-                <span style={{ fontSize: 10, color: "#B45309" }}>保存中…</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#B45309" }}>保存中…</span>
               )}
               {memoSaveState === "saved" && (
-                <span style={{ fontSize: 10, color: "var(--success)" }}>✓ 保存済み</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--success)" }}>✓ 保存済み</span>
               )}
             </span>
           </div>
@@ -598,7 +600,7 @@ export function MeetingDetailPanel({
               borderRadius: 8,
               background: "#fff",
               fontFamily: "inherit",
-              fontSize: 12,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink)",
               lineHeight: 1.7,
               minHeight: 70,
@@ -610,7 +612,7 @@ export function MeetingDetailPanel({
             onBlur={(e) => { e.currentTarget.style.borderColor = "#FDE68A"; }}
           />
 
-          <div style={{ fontSize: 10, color: "#78350F", marginTop: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#78350F", marginTop: 6 }}>
             ※ このメモは貴社チームのみが閲覧できます。候補者には共有されません。
           </div>
         </div>

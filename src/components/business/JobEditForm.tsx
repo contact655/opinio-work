@@ -126,8 +126,8 @@ function FormLabel({ children, required, optional, htmlFor }: { children: React.
   return (
     <label htmlFor={htmlFor} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
       {children}
-      {required && <span style={{ color: "var(--error)", fontSize: 11 }}>必須</span>}
-      {optional && <span style={{ color: "var(--ink-mute)", fontSize: 10, fontWeight: 400 }}>任意</span>}
+      {required && <span style={{ color: "var(--error)", fontSize: 12, fontWeight: 600 }}>必須</span>}
+      {optional && <span style={{ color: "var(--ink-mute)", fontSize: 12, fontWeight: 400 }}>任意</span>}
     </label>
   );
 }
@@ -205,7 +205,7 @@ function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaL
       {maxLength && (
         <span style={{
           position: "absolute", bottom: 6, right: 10,
-          fontSize: 10,
+          fontSize: 12,
           color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
           fontWeight: nearLimit ? 600 : 400, pointerEvents: "none",
           fontFamily: "'Inter', sans-serif",
@@ -226,7 +226,7 @@ function FormSection({ title, desc, children }: { title: string; desc?: string; 
       <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: desc ? 6 : 18, display: "flex", alignItems: "center", gap: 8 }}>
         {title}
       </div>
-      {desc && <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 18, lineHeight: 1.7 }}>{desc}</div>}
+      {desc && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 18, lineHeight: 1.7 }}>{desc}</div>}
       {children}
     </div>
   );
@@ -237,7 +237,7 @@ function FormGroup({ children, style }: { children: React.ReactNode; style?: Rea
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.7 }}>{children}</div>;
+  return <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.7 }}>{children}</div>;
 }
 
 // ─── メインコンポーネント ────────────────────────────────────────────────────
@@ -461,7 +461,7 @@ export function JobEditForm({
   // topbar 保存状態ピル
   const saveStatusStyle: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: 6,
-    fontSize: 11, padding: "4px 10px", borderRadius: 100,
+    fontSize: 12, padding: "4px 10px", borderRadius: 100,
     transition: "all 0.3s", flexShrink: 0,
     ...(saveState === "saving" ? { color: "var(--warm)", background: "var(--warm-soft)" }
       : saveState === "saved"  ? { color: "var(--success)", background: "var(--success-soft)" }
@@ -556,14 +556,14 @@ export function JobEditForm({
                         ))}
                         {departments.filter((d) => !d.parent_id && !departments.some((c) => c.parent_id === d.id)).length === 0 && null}
                       </select>
-                      <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
                         部門マスタは <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> から管理できます
                       </p>
                     </div>
                   ) : (
                     <div>
                       <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
-                      <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 5 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
                         <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> で部門マスタを登録すると、ここでセレクトできるようになります
                       </p>
                     </div>
@@ -611,22 +611,22 @@ export function JobEditForm({
                             <input type="radio" name="primary-role" checked={sr.isPrimary} onChange={() => setPrimary(sr.roleId)} style={{ accentColor: "var(--royal)", cursor: "pointer" }} />
                             <span style={{ flex: 1, fontSize: 13, fontWeight: sr.isPrimary ? 700 : 400, color: sr.isPrimary ? "var(--royal)" : "var(--ink)" }}>
                               {role?.name ?? sr.roleId}
-                              {sr.isPrimary && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--ink-mute)", fontWeight: 400 }}>（代表）</span>}
+                              {sr.isPrimary && <span style={{ marginLeft: 6, fontSize: 12, color: "var(--ink-mute)", fontWeight: 400 }}>（代表）</span>}
                             </span>
-                            <button type="button" onClick={() => removeRole(sr.roleId)} style={{ fontSize: 11, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>解除</button>
+                            <button type="button" onClick={() => removeRole(sr.roleId)} style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>解除</button>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6 }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>
                     複数選択可。ラジオボタンで代表職種を1つ指定してください。
                   </p>
                 </FormGroup>
               )}
               <FormGroup>
                 <FormLabel optional htmlFor="jef-business-model">業態タグ（プロダクト特性）</FormLabel>
-                <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
                   「どういう売り方・提供形態か」を求職者に伝えるタグです。業界（ドメイン）とは別の軸です。
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -661,12 +661,12 @@ export function JobEditForm({
               {/* 技術スタック (Migration 245) */}
               <FormGroup>
                 <FormLabel optional>技術スタック</FormLabel>
-                <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 12, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 12, lineHeight: 1.6 }}>
                   このポジションで主に使う技術・ツールを選択してください（複数可、任意）。
                 </p>
                 {TECH_STACK_CATEGORIES.map((cat) => (
                   <div key={cat.label} style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
                       {cat.label}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -704,7 +704,7 @@ export function JobEditForm({
                 ))}
                 {form.techStack.length > 0 && (
                   <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                    <span style={{ fontSize: 12, color: "var(--ink-mute)", marginRight: 4 }}>選択中:</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginRight: 4 }}>選択中:</span>
                     {form.techStack.map((t) => (
                       <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700 }}>
                         {t}
@@ -731,18 +731,18 @@ export function JobEditForm({
                   <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" id="jef-salary-min" />
                   <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
                   <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                 </div>
                 {/* 入力時バリデーション */}
                 {form.salaryMin && form.salaryMax && Number(form.salaryMax) < Number(form.salaryMin) && (
-                  <p style={{ fontSize: 12, color: "var(--error)", marginTop: 4 }}>最高給与は最低給与以上に設定してください</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>最高給与は最低給与以上に設定してください</p>
                 )}
                 {form.salaryMin && form.salaryMax && Number(form.salaryMax) >= Number(form.salaryMin) && (Number(form.salaryMax) - Number(form.salaryMin)) > 250 && (
-                  <p style={{ fontSize: 12, color: "var(--warm)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
                 )}
                 {/* 未入力時の注意文 */}
                 {(!form.salaryMin && !form.salaryMax) && (
-                  <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>
                     💡 給与レンジを記載すると応募数が増加します。未記載の求人は検索結果で下位に表示されます。
                   </p>
                 )}
@@ -753,21 +753,21 @@ export function JobEditForm({
               {isSalesSelected && (
                 <div style={{ border: "1.5px solid #DBEAFE", borderRadius: 12, padding: "20px 20px 12px", background: "#EFF6FF", marginTop: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
                     <span style={{ fontSize: 12, color: "#1D4ED8", fontWeight: 600 }}>セールス専用の報酬・担当領域</span>
                   </div>
 
                   {/* OTE */}
                   <FormGroup>
                     <FormLabel optional>OTE（目標達成時の想定年収）</FormLabel>
-                    <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
                       インセンティブ・コミッション込みで目標達成時に想定される年収レンジ。基本給レンジとは別に入力してください。
                     </p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
                       <FormInput value={form.oteMin} onChange={(v) => updateForm("oteMin", v)} placeholder="800" type="number" id="jef-ote-min" />
                       <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
                       <FormInput value={form.oteMax} onChange={(v) => updateForm("oteMax", v)} placeholder="1400" type="number" id="jef-ote-max" />
-                      <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                     </div>
                   </FormGroup>
 
@@ -890,7 +890,7 @@ export function JobEditForm({
                       {(i === 2 || i === 4) && <div key={`div-${i}`} style={{ width: 1, background: "var(--line)", margin: "4px 4px" }} />}
                       <button key={tool} type="button" onClick={() => {}} style={{
                         padding: "5px 10px", background: "transparent", border: "none", borderRadius: 5,
-                        fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700,
+                        fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700,
                         color: "var(--ink-soft)", cursor: "pointer",
                       }}>{tool}</button>
                     </>
@@ -1045,7 +1045,7 @@ export function JobEditForm({
                       {/* Info */}
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{member.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{member.role}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{member.role}</div>
                       </div>
                     </button>
                   );
@@ -1088,7 +1088,7 @@ export function JobEditForm({
                       }}>
                         {opt.label}
                       </div>
-                      <div style={{ fontSize: 11, color: isSelected ? opt.color : "var(--ink-mute)", fontWeight: 600 }}>
+                      <div style={{ fontSize: 12, color: isSelected ? opt.color : "var(--ink-mute)", fontWeight: 600 }}>
                         {opt.sublabel}
                       </div>
                     </button>
@@ -1123,7 +1123,7 @@ export function JobEditForm({
                     </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{opt.title}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7 }}>{opt.desc}</div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7 }}>{opt.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -1139,7 +1139,7 @@ export function JobEditForm({
               <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: 16, fontWeight: 600, color: "var(--royal)", marginBottom: 8 }}>
                 準備ができたら、公開申請をしてください
               </div>
-              <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16 }}>
                 公開申請後、OPINIO運営が内容を確認します（通常2-3営業日）。<br/>審査通過後、求職者に公開されます。
               </div>
               <button
@@ -1159,7 +1159,7 @@ export function JobEditForm({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 公開申請する
               </button>
-              <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 12 }}>
                 公開申請することで、求人掲載ガイドラインに同意したものとみなされます。
               </div>
             </div>

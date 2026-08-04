@@ -508,7 +508,7 @@ function CompanySearch({
         }}>
           {/* ローディング表示（結果0件かつロード中のみ） */}
           {loading && results.length === 0 && (
-            <div style={{ padding: "10px 14px", fontSize: 12, color: "var(--ink-mute)" }}>
+            <div style={{ padding: "10px 14px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
               検索中…
             </div>
           )}
@@ -544,7 +544,7 @@ function CompanySearch({
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
                   {(c.industry || c.employee_count) && (
-                    <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
                       {[c.industry, c.employee_count ? `${c.employee_count}名` : null].filter(Boolean).join(" · ")}
                     </div>
                   )}
@@ -647,7 +647,7 @@ function StintForm({
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <label style={labelStyle()}>会社名<RequiredMark /></label>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: companyLocked ? "var(--ink-mute)" : "var(--ink-soft)", cursor: companyLocked ? "default" : "pointer", userSelect: "none" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 500, color: companyLocked ? "var(--ink-mute)" : "var(--ink-soft)", cursor: companyLocked ? "default" : "pointer", userSelect: "none" }}>
             <input
               type="checkbox"
               checked={draft.isAnon}
@@ -758,7 +758,7 @@ function StintForm({
       {/* 職種名 */}
       <div>
         <label style={labelStyle()}>職種名（任意）</label>
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
           社内職名・グレード（例: M2、シニアアソシエイト、プロデューサーなど社内で規定されているグレード・等級名を入力してください）
         </div>
         <input
@@ -845,7 +845,7 @@ function StintForm({
           </div>
         )}
         {periodInvalid && (
-          <div style={{ fontSize: 11, color: "var(--error)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
             退職年月は入社年月以降に設定してください
           </div>
         )}
@@ -863,7 +863,7 @@ function StintForm({
           rows={3}
           style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7 }}
         />
-        <div style={{ fontSize: 11, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
           {descOver ? `${descLen - 500} 文字超過` : `残り ${500 - descLen} 文字`}
         </div>
       </div>
@@ -872,7 +872,7 @@ function StintForm({
       <div>
         <label style={labelStyle()}>
           <span>なぜこの会社を選んだか（任意）</span>
-          <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
+          <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
             公開プロフィールに表示
           </span>
         </label>
@@ -885,7 +885,7 @@ function StintForm({
           rows={2}
           style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7, borderColor: "var(--purple-soft)" }}
         />
-        <div style={{ fontSize: 11, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
           {draft.joinReason.length > 300 ? `${draft.joinReason.length - 300} 文字超過` : `残り ${300 - draft.joinReason.length} 文字`}
         </div>
       </div>
@@ -904,8 +904,8 @@ function StintForm({
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               {/* ベースの給与 */}
               <div>
-                <label style={{ ...labelStyle(), fontSize: 11 }}>ベースの給与</label>
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>基本給＋残業代</div>
+                <label style={{ ...labelStyle(), fontSize: 12 }}>ベースの給与</label>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>基本給＋残業代</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <input
                     type="number"
@@ -916,14 +916,14 @@ function StintForm({
                     min={0} max={10000}
                     style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
                   />
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
                 </div>
               </div>
 
               {/* 賞与・インセンティブ */}
               <div>
-                <label style={{ ...labelStyle(), fontSize: 11 }}>賞与・インセンティブ</label>
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>年間合計（なし=0）</div>
+                <label style={{ ...labelStyle(), fontSize: 12 }}>賞与・インセンティブ</label>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>年間合計（なし=0）</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <input
                     type="number"
@@ -934,14 +934,14 @@ function StintForm({
                     min={0} max={10000}
                     style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
                   />
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
                 </div>
               </div>
 
               {/* 株式報酬 */}
               <div>
-                <label style={{ ...labelStyle(), fontSize: 11 }}>株式報酬（任意）</label>
-                <div style={{ fontSize: 10, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>RSU/SO 年間換算</div>
+                <label style={{ ...labelStyle(), fontSize: 12 }}>株式報酬（任意）</label>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>RSU/SO 年間換算</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <input
                     type="number"
@@ -952,7 +952,7 @@ function StintForm({
                     min={0} max={10000}
                     style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
                   />
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
                 </div>
               </div>
             </div>
@@ -986,7 +986,7 @@ function StintForm({
         {/* 会社名公開設定（2カラム） */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
-            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 11 }}>
+            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 12 }}>
               キャリア軌跡ページ・企業ページ
             </label>
             <select
@@ -1001,7 +1001,7 @@ function StintForm({
             </select>
           </div>
           <div>
-            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 11 }}>プロフィールページ</label>
+            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 12 }}>プロフィールページ</label>
             <select
               value={draft.visibilityCompanyProfile}
               onChange={(e) => set("visibilityCompanyProfile", e.target.value as "real" | "masked" | "hidden")}
@@ -1016,7 +1016,7 @@ function StintForm({
         </div>
 
         {/* 掲載先の説明: 「企業ページ」が何を指すか明示しないと同意なき公開になる */}
-        <p style={{ margin: 0, fontSize: 11, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
           「実名で表示する」を選ぶと、その企業の紹介ページ（現役社員 / OB・OG セクション）に
           あなたのお名前が掲載されます。「含めない」を選ぶと、どちらのページにも掲載されません。
         </p>
@@ -1123,20 +1123,20 @@ function StintCard({
               {stint.roleTitle || stint.roleLabel}
             </span>
             {stint.showCurrentBadge && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em", flexShrink: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em", flexShrink: 0 }}>
                 現在
               </span>
             )}
           </div>
           {/* Period */}
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
             {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
           </div>
           {/* Employment type badge */}
           {stint.employmentType && (
             <span style={{
               display: "inline-flex", alignItems: "center",
-              fontSize: 10, fontWeight: 600, color: "var(--ink-soft)",
+              fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
               background: "var(--bg-tint)", border: "1px solid var(--line)",
               padding: "1px 7px", borderRadius: 100,
               marginTop: 4,
@@ -1148,7 +1148,7 @@ function StintCard({
           {stint.description && (
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12, fontWeight: 500,
                 color: "var(--ink-soft)",
                 marginTop: 6,
                 paddingLeft: 8,
@@ -1169,7 +1169,7 @@ function StintCard({
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
                 <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
               </svg>
-              <span style={{ fontSize: 11, color: "var(--purple)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--purple)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                 {stint.joinReason}
               </span>
             </div>
@@ -1536,7 +1536,7 @@ export default function CareerHistoryEditor({
                 border: "1px solid var(--royal-100)",
                 borderRadius: 100,
                 padding: "2px 9px",
-                fontSize: 11, fontWeight: 700,
+                fontSize: 12, fontWeight: 700,
                 color: "var(--royal)",
                 fontFamily: "Inter, sans-serif",
                 letterSpacing: "0.04em",
@@ -1545,7 +1545,7 @@ export default function CareerHistoryEditor({
                 {year}年
               </div>
               {age !== null && (
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                   {age}歳
                 </span>
               )}
@@ -1607,7 +1607,7 @@ export default function CareerHistoryEditor({
                       {group.displayCompanyName}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
                         {formatGroupDateRange(group)}
                       </span>
                       <span style={{
@@ -1673,7 +1673,7 @@ export default function CareerHistoryEditor({
 
       {/* Empty state */}
       {stints.length === 0 && addingForCompanyKey === null && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           職歴はまだ登録されていません
         </div>
       )}
@@ -1801,7 +1801,7 @@ export default function CareerHistoryEditor({
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "var(--ink-mute)", padding: "0 0 0 8px", lineHeight: 1 }}
             >×</button>
           </div>
-          <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.6 }}>
             実際の年収を匿名で投稿して、同じ職種を目指す人の参考に。運営が確認後に公開されます。
           </p>
           <div style={{ display: "flex", gap: 8 }}>
