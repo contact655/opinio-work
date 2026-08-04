@@ -272,7 +272,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 4 }}>
           その職位での、フル稼働1年間の想定年収（OTE）<span style={{ color: "var(--error)" }}>*</span>
         </label>
-        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 8px", lineHeight: 1.6 }}>
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 8px", lineHeight: 1.6 }}>
           外資SaaS営業の場合は「基本給 ＋ インセンティブ目標額」の合計（＝ OTE）を入力してください。
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -299,7 +299,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 6 }}>
           グレード・等級（任意）
         </label>
-        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 8px" }}>
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 8px" }}>
           例: Grade 4、L5、主任、Senior AE など（自由入力）
         </p>
         <input
@@ -324,7 +324,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
 
         {showBreakdown && (
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 16, padding: "16px", background: "var(--bg-tint)", borderRadius: 12, border: "1px solid var(--line)" }}>
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, lineHeight: 1.7 }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: 0, lineHeight: 1.7 }}>
               内訳を入力することで、他のユーザーが「基本給の割合」「インセンティブ比率」を把握しやすくなります。
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px 16px" }}>
@@ -337,7 +337,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
                 ["固定残業代", fixedOTMan, setFixedOTMan],
               ] as [string, string, React.Dispatch<React.SetStateAction<string>>][]).map(([label, val, setter]) => (
                 <div key={label}>
-                  <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4 }}>{label}（万円）</div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>{label}（万円）</div>
                   <input
                     type="number" min="0" max="99999" placeholder="—"
                     value={val}
@@ -417,7 +417,7 @@ export default function SalarySubmitForm({ grouped, prefillCompanyId, prefillCom
         >
           {submitting ? "送信中..." : "投稿する（匿名）"}
         </button>
-        <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", marginTop: 8, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "center", marginTop: 8, lineHeight: 1.6 }}>
           投稿データは匿名集計にのみ使用されます。管理者の承認後に公開されます。
         </p>
       </div>

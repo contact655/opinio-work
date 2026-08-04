@@ -105,7 +105,7 @@ function GridCard({ g }: { g: Graduate }) {
       </div>
       {(g.currentRoleTitle || g.currentCompany) && (
         <div style={{
-          fontSize: 11, fontWeight: 600, color: "var(--royal)",
+          fontSize: 12, fontWeight: 600, color: "var(--royal)",
           marginBottom: 4, textAlign: "center", lineHeight: 1.4,
           overflow: "hidden", display: "-webkit-box",
           WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -115,7 +115,7 @@ function GridCard({ g }: { g: Graduate }) {
       )}
       {sub && (
         <div style={{
-          fontSize: 11, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 5 : 8,
+          fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 5 : 8,
           textAlign: "center", lineHeight: 1.5,
         }}>
           {sub}
@@ -123,7 +123,7 @@ function GridCard({ g }: { g: Graduate }) {
       )}
       {g.careerSummary && (
         <div style={{
-          fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.5,
+          fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5,
           marginBottom: 8, textAlign: "center",
           overflow: "hidden", display: "-webkit-box",
           WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -133,7 +133,7 @@ function GridCard({ g }: { g: Graduate }) {
       )}
       {g.catchphrase && (
         <div style={{
-          fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6,
+          fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6,
           marginBottom: 10, textAlign: "center",
           overflow: "hidden", display: "-webkit-box",
           WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -179,16 +179,16 @@ function BandCard({ g }: { g: Graduate }) {
           </div>
         )}
         {sub && (
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 4 : 0 }}>{sub}</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 4 : 0 }}>{sub}</div>
         )}
         {g.careerSummary && (
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5, marginBottom: g.catchphrase ? 6 : 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5, marginBottom: g.catchphrase ? 6 : 0 }}>
             {g.careerSummary}
           </div>
         )}
         {g.catchphrase && (
           <div style={{
-            fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6,
+            fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6,
             overflow: "hidden", display: "-webkit-box",
             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
           }}>
@@ -234,7 +234,7 @@ function SchoolPostCard({ post }: { post: SchoolPost }) {
           }}>
             {post.userName}
           </Link>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>
             {timeAgo(post.createdAt)}
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function SchoolGraduatesClient({ graduates, posts }: Props) {
                 width: 20, height: 20, borderRadius: 10,
                 background: tab === key ? "var(--royal-50)" : "var(--line-soft)",
                 color: tab === key ? "var(--royal)" : "var(--ink-mute)",
-                fontSize: 11, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
               }}>
                 {count}
               </span>

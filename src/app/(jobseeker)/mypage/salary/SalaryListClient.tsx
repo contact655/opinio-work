@@ -298,14 +298,14 @@ export default function SalaryListClient({
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {r.is_approved ? (
-                    <span style={{ fontSize: 11, fontWeight: 700, background: "var(--success-soft)", color: "var(--success)", padding: "3px 10px", borderRadius: 100 }}>公開中</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, background: "var(--success-soft)", color: "var(--success)", padding: "3px 10px", borderRadius: 100 }}>公開中</span>
                   ) : (
-                    <span style={{ fontSize: 11, fontWeight: 700, background: "var(--warm-soft)", color: "#92400E", padding: "3px 10px", borderRadius: 100 }}>承認待ち</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, background: "var(--warm-soft)", color: "#92400E", padding: "3px 10px", borderRadius: 100 }}>承認待ち</span>
                   )}
                   {r.is_flagged && (
-                    <span style={{ fontSize: 11, fontWeight: 700, background: "#FDE8D8", color: "#C2410C", padding: "3px 10px", borderRadius: 100 }}>⚠ 確認中</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, background: "#FDE8D8", color: "#C2410C", padding: "3px 10px", borderRadius: 100 }}>⚠ 確認中</span>
                   )}
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                     投稿日: {new Date(r.created_at).toLocaleDateString("ja-JP")}
                   </span>
                 </div>
@@ -338,7 +338,7 @@ export default function SalaryListClient({
                     {r.ote && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", marginLeft: 6 }}>OTE</span>}
                   </div>
 
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 6 }}>
                     {r.start_year_month ? (
                       <span>{r.start_year_month} 〜 {r.end_year_month ?? "現在"}</span>
                     ) : (
@@ -352,18 +352,18 @@ export default function SalaryListClient({
 
                   {(r.base_salary || r.bonus_salary || r.incentive || r.stock_options || r.allowances || r.fixed_overtime) && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {r.base_salary && <span style={{ fontSize: 11, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>固定給 {fmtYen(r.base_salary)}</span>}
-                      {r.bonus_salary && <span style={{ fontSize: 11, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>賞与 {fmtYen(r.bonus_salary)}</span>}
-                      {r.incentive && <span style={{ fontSize: 11, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>インセンティブ {fmtYen(r.incentive)}</span>}
-                      {r.stock_options && <span style={{ fontSize: 11, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>株式 {fmtYen(r.stock_options)}</span>}
-                      {r.allowances && <span style={{ fontSize: 11, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>手当 {fmtYen(r.allowances)}</span>}
-                      {r.fixed_overtime && <span style={{ fontSize: 11, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>固定残業 {fmtYen(r.fixed_overtime)}</span>}
+                      {r.base_salary && <span style={{ fontSize: 12, fontWeight: 500, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>固定給 {fmtYen(r.base_salary)}</span>}
+                      {r.bonus_salary && <span style={{ fontSize: 12, fontWeight: 500, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>賞与 {fmtYen(r.bonus_salary)}</span>}
+                      {r.incentive && <span style={{ fontSize: 12, fontWeight: 500, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>インセンティブ {fmtYen(r.incentive)}</span>}
+                      {r.stock_options && <span style={{ fontSize: 12, fontWeight: 500, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>株式 {fmtYen(r.stock_options)}</span>}
+                      {r.allowances && <span style={{ fontSize: 12, fontWeight: 500, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>手当 {fmtYen(r.allowances)}</span>}
+                      {r.fixed_overtime && <span style={{ fontSize: 12, fontWeight: 500, background: "var(--line-soft)", color: "var(--ink-soft)", borderRadius: 6, padding: "2px 8px" }}>固定残業 {fmtYen(r.fixed_overtime)}</span>}
                     </div>
                   )}
 
                   {/* 承認待ち note */}
                   {!r.is_approved && (
-                    <div style={{ marginTop: 10, fontSize: 12, color: "#92400E", background: "var(--warm-soft)", borderRadius: 8, padding: "8px 12px" }}>
+                    <div style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: "#92400E", background: "var(--warm-soft)", borderRadius: 8, padding: "8px 12px" }}>
                       現在、編集部が内容を確認中です。承認されると /salary ページに公開されます。
                     </div>
                   )}
@@ -400,7 +400,7 @@ export default function SalaryListClient({
                 <div>
                   <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 12 }}>
                     企業: <strong style={{ color: "var(--ink)" }}>{r.company_name ?? "—"}</strong>
-                    <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 8 }}>（企業の変更は削除して再投稿してください）</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 8 }}>（企業の変更は削除して再投稿してください）</span>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px" }}>
@@ -528,7 +528,7 @@ export default function SalaryListClient({
                           ["fixed_overtime", "固定残業代"],
                         ] as const).map(([key, label]) => (
                           <div key={key}>
-                            <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>{label}</div>
                             <input
                               type="number" min="0" max="99999" placeholder="0"
                               value={editState[key]}

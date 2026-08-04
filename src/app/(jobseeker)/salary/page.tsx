@@ -33,10 +33,10 @@ export default async function SalaryPage() {
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 100, padding: "3px 10px" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 100, padding: "3px 10px" }}>
               匿名年収レポート
             </span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 100, padding: "3px 10px" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 100, padding: "3px 10px" }}>
               🔒 完全匿名
             </span>
           </div>

@@ -295,7 +295,7 @@ export default async function SchoolPage(
             <div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: "rgba(255,255,255,0.7)",
                   letterSpacing: "0.06em",

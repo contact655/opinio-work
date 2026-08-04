@@ -267,13 +267,13 @@ export default function MyReportsSection({
       {/* Section header */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <span style={{
-          fontSize: 11, fontWeight: 700, background: "var(--warm-soft)",
+          fontSize: 12, fontWeight: 700, background: "var(--warm-soft)",
           color: "#92400E", padding: "3px 10px", borderRadius: 100,
           border: "1px solid #FDE68A",
         }}>
           あなたの投稿
         </span>
-        <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
           編集・削除できます
         </span>
       </div>
@@ -295,11 +295,11 @@ export default function MyReportsSection({
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: isEditing ? 12 : 10 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   {r.is_approved ? (
-                    <span style={{ fontSize: 11, fontWeight: 700, background: "var(--success-soft)", color: "var(--success)", padding: "3px 10px", borderRadius: 100 }}>公開中</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, background: "var(--success-soft)", color: "var(--success)", padding: "3px 10px", borderRadius: 100 }}>公開中</span>
                   ) : (
-                    <span style={{ fontSize: 11, fontWeight: 700, background: "var(--warm-soft)", color: "#92400E", padding: "3px 10px", borderRadius: 100 }}>承認待ち</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, background: "var(--warm-soft)", color: "#92400E", padding: "3px 10px", borderRadius: 100 }}>承認待ち</span>
                   )}
-                  <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                     投稿日: {new Date(r.created_at).toLocaleDateString("ja-JP")}
                   </span>
                 </div>
@@ -346,13 +346,13 @@ export default function MyReportsSection({
               {/* Summary view */}
               {!isEditing && !isDeleting && (
                 <>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 2 }}>{r.company_name ?? "—"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 2 }}>{r.company_name ?? "—"}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{r.role_name ?? "—"}</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "var(--success)", fontFamily: "Inter, sans-serif", marginBottom: 4 }}>
                     {fmtYen(salaryYen) ?? "—"}
-                    {r.ote && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", marginLeft: 6 }}>OTE</span>}
+                    {r.ote && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", marginLeft: 6 }}>OTE</span>}
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "var(--ink-soft)" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
                     {r.start_year_month ? (
                       <span>{r.start_year_month} 〜 {r.end_year_month ?? "現在"}</span>
                     ) : (
@@ -364,7 +364,7 @@ export default function MyReportsSection({
                     {r.prefecture && <span>{r.prefecture}</span>}
                   </div>
                   {!r.is_approved && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: "#92400E", background: "var(--warm-soft)", borderRadius: 8, padding: "7px 12px" }}>
+                    <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: "#92400E", background: "var(--warm-soft)", borderRadius: 8, padding: "7px 12px" }}>
                       現在、編集部が内容を確認中です。承認されると集計に反映されます。
                     </div>
                   )}
@@ -375,7 +375,7 @@ export default function MyReportsSection({
               {isDeleting && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 16px" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--error)", marginBottom: 8 }}>このデータを削除しますか？</div>
-                  <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 12 }}>
                     {r.company_name} / {r.role_name} / {fmtYen(r.ote ?? r.annual_salary)} を削除します。この操作は取り消せません。
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -388,7 +388,7 @@ export default function MyReportsSection({
                     </button>
                     <button
                       onClick={() => setDeletingId(null)}
-                      style={{ padding: "7px 14px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, cursor: "pointer" }}
+                      style={{ padding: "7px 14px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: "pointer" }}
                     >
                       キャンセル
                     </button>
@@ -399,9 +399,9 @@ export default function MyReportsSection({
               {/* Inline edit form */}
               {isEditing && editState && (
                 <div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 12 }}>
                     企業: <strong style={{ color: "var(--ink)" }}>{r.company_name ?? "—"}</strong>
-                    <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 8 }}>（企業の変更は削除して再投稿してください）</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 8 }}>（企業の変更は削除して再投稿してください）</span>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px" }}>
@@ -532,7 +532,7 @@ export default function MyReportsSection({
                           ["fixed_overtime", "固定残業代"],
                         ] as const).map(([key, label]) => (
                           <div key={key}>
-                            <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>{label}</div>
                             <input
                               type="number" min="0" max="99999" placeholder="0"
                               value={editState[key]}

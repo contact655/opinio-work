@@ -153,7 +153,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
           <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>
             📖 このデータベースについて
           </h2>
-          <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 20px" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 20px" }}>
             Glassdoor・levels.fyi と同じ「Give to Get」方式です
           </p>
           {[
@@ -211,7 +211,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
               匿名年収レポート
             </h2>
-            <span style={{ fontSize: 11, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", borderRadius: 100, padding: "3px 10px", fontWeight: 600 }}>
+            <span style={{ fontSize: 12, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", borderRadius: 100, padding: "3px 10px", fontWeight: 600 }}>
               0 件（準備中）
             </span>
           </div>
@@ -228,7 +228,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
               あなたが最初の報告者になりましょう。<br />
               報告が集まると、職種別・企業別の実績年収データが閲覧できるようになります。
             </p>
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 24px" }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 24px" }}>
               完全匿名・無料・1分で完了
             </p>
             <Link
@@ -243,18 +243,18 @@ export function SalaryClient({ stats, maxBar }: Props) {
 
             {/* データが集まるとこうなる（イメージ） */}
             <div style={{ marginTop: 32, padding: "16px", background: "var(--bg-tint)", borderRadius: 12, textAlign: "left" }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 データが集まると表示されるもの（イメージ）
               </p>
               {DUMMY_REPORTS.map((r) => (
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line-soft)", opacity: 0.4 }}>
                   <span style={{ flex: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.role}</span>
-                  <span style={{ flex: 2, fontSize: 12, color: "var(--ink-soft)" }}>{r.company}</span>
+                  <span style={{ flex: 2, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>{r.company}</span>
                   <span style={{ flex: 1, textAlign: "right", fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>{r.salary}万</span>
-                  <span style={{ flex: 1, textAlign: "right", fontSize: 12, color: "var(--ink-mute)" }}>{r.yoe}年</span>
+                  <span style={{ flex: 1, textAlign: "right", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{r.yoe}年</span>
                 </div>
               ))}
-              <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "10px 0 0", textAlign: "center" }}>
+              <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "10px 0 0", textAlign: "center" }}>
                 ※ これはイメージです。実際のデータは報告が集まり次第表示されます。
               </p>
             </div>
@@ -269,7 +269,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
               <p style={{ fontSize: 13, fontWeight: 700, color: "#92400e", margin: "0 0 4px" }}>
                 以下は「求人票」ベースの参考データです
               </p>
-              <p style={{ fontSize: 12, color: "#b45309", margin: 0, lineHeight: 1.65 }}>
+              <p style={{ fontSize: 12, fontWeight: 500, color: "#b45309", margin: 0, lineHeight: 1.65 }}>
                 企業が求人票に記載した希望年収レンジの集計値であり、<strong>実際に在籍した社員の年収ではありません。</strong>
                 参考情報としてご活用ください。実際の年収はこれより高い・低い場合があります。
               </p>
@@ -305,7 +305,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{s.label}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" }}>
                         求人票 {s.jobCount}件
                       </span>
                     </div>
@@ -313,23 +313,23 @@ export function SalaryClient({ stats, maxBar }: Props) {
                       <span style={{ fontSize: 20, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
                         {s.avgMin}〜{s.avgMax}
                       </span>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>万円（求人票平均レンジ）</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>万円（求人票平均レンジ）</span>
                     </div>
                     <div className="sc-bar-outer" style={{ marginTop: 10 }}>
                       <div style={{ height: 8, borderRadius: 100, background: "linear-gradient(90deg,#d97706,#f59e0b)", width: `${barPct}%` }} />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter,sans-serif" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter,sans-serif" }}>
                       <span>下限 {s.avgMin}万</span>
                       <span>中央 {Math.round((s.avgMin + s.avgMax) / 2)}万</span>
                       <span>上限 {s.avgMax}万</span>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 2 }}>求人票最高</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 2 }}>求人票最高</div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
-                      {s.maxSalary}<span style={{ fontSize: 11, fontWeight: 500 }}>万円</span>
+                      {s.maxSalary}<span style={{ fontSize: 12, fontWeight: 500 }}>万円</span>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                    <div style={{ marginTop: 6, fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
                       求人を見る →
                     </div>
                   </div>

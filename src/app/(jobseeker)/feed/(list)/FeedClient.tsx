@@ -171,7 +171,7 @@ function CharCountRing({ remaining, max }: { remaining: number; max: number }) {
         <span style={{
           position: "absolute",
           fontFamily: "Inter, sans-serif",
-          fontSize: 8,
+          fontSize: 12,
           fontWeight: 700,
           color: isOver ? "var(--error)" : "#f59e0b",
           lineHeight: 1,
@@ -471,7 +471,7 @@ function PostComposer({
 
           {/* リンクプレビュー（OGP先読み） */}
           {ogpFetching && (
-            <div style={{ marginTop: 10, fontSize: 12, color: "var(--ink-mute)" }}>
+            <div style={{ marginTop: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
               🔗 リンク情報を取得中…
             </div>
           )}
@@ -798,7 +798,7 @@ function CommentSection({
                 <span
                   style={{
                     fontFamily: "Inter, sans-serif",
-                    fontSize: 11,
+                    fontSize: 12, fontWeight: 500,
                     color: "var(--ink-mute)",
                   }}
                 >
@@ -826,7 +826,7 @@ function CommentSection({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  fontSize: 11,
+                  fontSize: 12, fontWeight: 500,
                   color: "var(--ink-mute)",
                   marginTop: 4,
                   padding: "2px 4px",
@@ -1058,7 +1058,7 @@ function FeedLeftPanel({
           {tagline && (
             <div style={{
               fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-              fontSize: 11,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-soft)",
               marginTop: 2,
               overflow: "hidden",
@@ -1074,7 +1074,7 @@ function FeedLeftPanel({
               style={{
                 display: "inline-block",
                 marginTop: 10,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                 fontWeight: 600,
                 color: "var(--royal)",
@@ -1094,7 +1094,7 @@ function FeedLeftPanel({
               style={{
                 display: "inline-block",
                 marginTop: 10,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                 fontWeight: 600,
                 color: "#fff",
@@ -1256,7 +1256,7 @@ function FeedSidebar({
                     {u.name}
                   </div>
                   {(u.role_title || u.company_name) && (
-                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
                     </div>
                   )}
@@ -1286,11 +1286,11 @@ function FeedSidebar({
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {job.companyName && (
-                    <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                    <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                       {job.companyName}
                     </span>
                   )}
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
                     {formatSalary(job.salary_min, job.salary_max)}
                   </span>
                 </div>
@@ -1338,7 +1338,7 @@ function FeedSidebar({
                     {m.name}
                   </div>
                   {(m.current_role || m.current_company) && (
-                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {[m.current_role, m.current_company].filter(Boolean).join(" · ")}
                     </div>
                   )}
@@ -1486,17 +1486,17 @@ function PostCard({
               )}
               {/* バッジ */}
               {post.user.is_system && (
-                <span style={{ fontSize: 10, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
+                <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
                   企業
                 </span>
               )}
               {!post.user.is_system && post.post_type === "mentor_post" && (
-                <span style={{ fontSize: 10, fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 4, padding: "1px 5px" }}>
+                <span style={{ fontSize: 12, fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 4, padding: "1px 5px" }}>
                   面談OK
                 </span>
               )}
               {/* 日付インライン */}
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)" }}>
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                 · {relativeTime(post.created_at)}
               </span>
             </div>
@@ -1516,7 +1516,7 @@ function PostCard({
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: 12, fontWeight: 500,
                     color: "var(--ink-soft)",
                     fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                   }}
@@ -1531,7 +1531,7 @@ function PostCard({
                     border: "none",
                     borderRadius: 6,
                     padding: "4px 10px",
-                    fontSize: 12,
+                    fontSize: 12, fontWeight: 600,
                     cursor: "pointer",
                     fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                   }}
@@ -1546,7 +1546,7 @@ function PostCard({
                     border: "none",
                     borderRadius: 6,
                     padding: "4px 10px",
-                    fontSize: 12,
+                    fontSize: 12, fontWeight: 500,
                     cursor: "pointer",
                     fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
                   }}
@@ -1635,7 +1635,7 @@ function PostCard({
             <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--royal)" }}>
               {post.ref_company.brand_name ?? post.ref_company.name}
             </div>
-            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
               企業ページを見る →
             </div>
           </div>
@@ -1695,7 +1695,7 @@ function PostCard({
                   {hasMn && hasMx ? `${mn}〜${mx}万円` : hasMn ? `${mn}万円〜` : `〜${mx}万円`}
                 </div>
               ) : (
-                <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>応相談</div>
+                <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 3 }}>応相談</div>
               );
             })()}
           </div>
@@ -1724,7 +1724,7 @@ function PostCard({
             <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {post.ref_article.title}
             </div>
-            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
               取材記事を読む →
             </div>
           </div>
@@ -1749,12 +1749,12 @@ function PostCard({
                 {post.event_title}
               </div>
               {post.event_starts_at && (
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-soft)", marginTop: 4 }}>
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 4 }}>
                   🕐 {new Date(post.event_starts_at).toLocaleString("ja-JP", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </div>
               )}
               {post.event_location && (
-                <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
+                <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
                   📍 {post.event_location}
                 </div>
               )}
@@ -1883,7 +1883,7 @@ function PostCard({
                   position: "relative",
                   background: liker.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontWeight: 700, fontSize: 8, fontFamily: "Inter, sans-serif",
+                  color: "#fff", fontWeight: 700, fontSize: 12, fontFamily: "Inter, sans-serif",
                   overflow: "hidden", flexShrink: 0,
                 }}
               >
@@ -1893,7 +1893,7 @@ function PostCard({
               </div>
             ))}
             {post.like_count > 3 && (
-              <span style={{ marginLeft: 5, fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ marginLeft: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                 +{post.like_count - 3}
               </span>
             )}
@@ -2292,7 +2292,7 @@ export default function FeedClient({
         </div>
       )}
       {!showLoadMore && (activePosts.length > 0) && (
-        <div style={{ textAlign: "center", padding: "16px 0 8px", color: "var(--ink-mute)", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12 }}>
+        <div style={{ textAlign: "center", padding: "16px 0 8px", color: "var(--ink-mute)", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500 }}>
           すべての投稿を読み込みました
         </div>
       )}

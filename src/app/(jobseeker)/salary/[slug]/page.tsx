@@ -61,7 +61,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
             <span style={{ color: "var(--ink-mute)" }}>›</span>
             <span style={{ color: "var(--royal)", fontWeight: 600 }}>{info.label}</span>
           </div>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 10 }}>
             {info.labelEn}
           </div>
           <h1 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(22px,3.2vw,34px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 12px", lineHeight: 1.3 }}>
@@ -114,7 +114,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                     borderRadius: 100,
                   }} />
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "var(--ink-mute)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                   <span>0</span>
                   <span>{Math.round(barMax / 2)}万</span>
                   <span>{barMax}万円</span>
@@ -129,13 +129,13 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                   { label: "最高", val: `${myStat.maxSalary.toLocaleString("ja-JP")}万円` },
                 ].map(({ label, val, highlight }) => (
                   <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: highlight ? "var(--royal-50)" : "var(--bg-tint)", borderRadius: 10, border: `1px solid ${highlight ? "var(--royal-100)" : "var(--line)"}` }}>
-                    <div style={{ fontSize: 10, color: highlight ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                    <div style={{ fontSize: 12, color: highlight ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, marginBottom: 4 }}>{label}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: highlight ? "var(--royal)" : "var(--ink)", fontFamily: "Inter,sans-serif" }}>{val}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ marginTop: 14, fontSize: 11, color: "var(--ink-mute)" }}>
+              <div style={{ marginTop: 14, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                 ※ OPINIOに掲載中の求人票の給与レンジをもとに集計。企業・経験・スキルにより異なります。
               </div>
             </div>
@@ -171,7 +171,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {job.companyName && (
-                          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 3, fontWeight: 500 }}>{job.companyName}</div>
+                          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 3, fontWeight: 500 }}>{job.companyName}</div>
                         )}
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6 }}>
                           {job.title}
@@ -185,15 +185,15 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                             </span>
                           )}
                           {job.workStyle && (
-                            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
                               {job.workStyle}
                             </span>
                           )}
                           {job.location && (
-                            <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>📍 {job.location}</span>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>📍 {job.location}</span>
                           )}
                           {job.isNew && (
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A" }}>NEW</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A" }}>NEW</span>
                           )}
                         </div>
                       </div>
