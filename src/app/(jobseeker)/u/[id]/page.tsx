@@ -22,6 +22,8 @@ import {
 } from "@/components/SocialIcon";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
+import { FollowCounts } from "@/components/profile/FollowCounts";
+import { getFollowCounts } from "@/lib/people/followCounts";
 import { ProfileNavClient } from "@/components/profile/ProfileNavClient";
 import { DMButton } from "@/components/profile/DMButton";
 
@@ -144,6 +146,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const coverColor = owUser.cover_color ?? owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
+
+  // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
+  const followCounts = await getFollowCounts(owUser.id);
 
   // フォロー状態。本人・未ログインには問い合わせない（どちらもボタンを出さないか、
   // 出しても押した時点で /auth に飛ばすため）。
@@ -578,6 +583,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       {owUser.location}
                     </span>
                   )}
+                  {/* フォロー数。年齢・所在地と同じ控えめなメタ行に置く。
+                      名前・職種・所属より下であることが条件（主役は経歴なので、
+                      数字が価値の代理指標に見えないようにする）。0 は出ない。 */}
+                  <FollowCounts counts={followCounts} />
                 </div>
                 {activeSocials.length > 0 && (
                   <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>

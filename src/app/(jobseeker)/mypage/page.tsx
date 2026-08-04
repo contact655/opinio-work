@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getFollowCounts } from "@/lib/people/followCounts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import MypageClient from "./MypageClient";
 import type {
@@ -33,6 +34,9 @@ export default async function MypagePage({
     .select("id, name, avatar_color, avatar_url, cover_color, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
     .eq("auth_id", user.id)
     .maybeSingle();
+
+  // フォロー数。0 の項目は FollowCounts 側で落とすのでここでは素通し。
+  const followCounts = owUser ? await getFollowCounts(owUser.id) : { followers: 0, following: 0 };
 
   // Fetch educations + experiences + roles in parallel
   let educations: {
@@ -347,5 +351,5 @@ export default async function MypagePage({
   const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  return <MypageClient owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }

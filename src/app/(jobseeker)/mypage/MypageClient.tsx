@@ -290,6 +290,7 @@ function DashboardView({
   userId, userName, userInitial, userAvatar,
   currentRole,
   userLocation, userAboutMe, userBirthDate, userSocialLinks,
+  followCounts,
   userEducations, timelineCareers,
   ambassadorMemberships = [],
   schoolPeerCounts = {},
@@ -300,6 +301,8 @@ function DashboardView({
   userLocation?: string | null; userAboutMe?: string | null;
   userBirthDate?: string | null;
   userSocialLinks?: Record<string, string> | null;
+  /** フォロワー数 / フォロー中の数。0 の項目は出ない */
+  followCounts?: { followers: number; following: number };
   userEducations?: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
@@ -329,6 +332,7 @@ function DashboardView({
         userBirthDate={userBirthDate}
         
         userSocialLinks={userSocialLinks}
+        followCounts={followCounts}
         isMentor={false}
       />
 
@@ -684,6 +688,7 @@ type AmbassadorMembership = { id: string; company_id: string; company_name: stri
 
 export default function MypageClient({
   owUser,
+  followCounts,
   educations = [],
   timelineCareers = [],
   companyBookmarks,
@@ -700,6 +705,8 @@ export default function MypageClient({
   schoolPeerCounts = {},
 }: {
   owUser: OwUser;
+  /** フォロワー数 / フォロー中の数。0 の項目は出ない */
+  followCounts?: { followers: number; following: number };
   educations?: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
@@ -1133,6 +1140,7 @@ export default function MypageClient({
           userBirthDate={owUser?.birth_date}
 
           userSocialLinks={owUser?.social_links as Record<string, string> | null}
+          followCounts={followCounts}
           userEducations={educations}
           timelineCareers={timelineCareers}
           ambassadorMemberships={ambassadorMemberships}

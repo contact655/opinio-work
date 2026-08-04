@@ -3,6 +3,7 @@
 // 編集は /profile/edit を正とし、このコンポーネントは表示のみ担当する。
 
 import Link from "next/link";
+import { FollowCounts } from "@/components/profile/FollowCounts";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -25,6 +26,8 @@ export type UserProfileCardProps = {
   userBirthDate?: string | null;
   /** social_links JSONB — SocialPlatform キー（"twitter" は E で "x" に移行済み）*/
   userSocialLinks?: Record<string, string> | null;
+  /** フォロワー数 / フォロー中の数。0 の項目は出ない（FollowCounts 側で落とす） */
+  followCounts?: { followers: number; following: number };
   isMentor: boolean;
 };
 
@@ -69,6 +72,7 @@ export default function UserProfileCard({
   userAboutMe,
   userBirthDate,
   userSocialLinks,
+  followCounts,
   isMentor,
 }: UserProfileCardProps) {
 
@@ -208,6 +212,10 @@ export default function UserProfileCard({
                 text={userLocation}
               />
             )}
+            {/* フォロー数。年齢・所在地と同じメタ行に控えめに置く。
+                名前・職種より下であることが条件（主役は経歴なので、
+                数字が価値の代理指標に見えないようにする）。0 は出ない。 */}
+            {followCounts && <FollowCounts counts={followCounts} />}
           </div>
         </div>
       </div>
