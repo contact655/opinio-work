@@ -11,7 +11,7 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
  * /people と /people/role/[slug] が共有する「登録ユーザー一覧」の取得。
  *
  * ── 2026-08-04 の方針変更 ───────────────────────────────────────────────────
- * 以前は ow_company_members（企業の採用担当が承認した所属）を起点にしていたため、
+ * 以前は ow_company_members（運営が作成した掲載レコード）を起点にしていたため、
  * 登録しただけの人は一切出なかった。LinkedIn のメンバーディレクトリと同じ考え方に
  * 変え、ow_users を起点にする。
  *
@@ -29,9 +29,15 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
  * is_test / is_system も除外する。
  *
  * ── 所属の出どころは2系統ある ───────────────────────────────────────────────
- *   verified … ow_company_members。企業の採用担当が承認した所属
+ *   verified … ow_company_members。企業ページに掲載されている所属
  *   self     … ow_experiences の is_current。本人の自己申告
  * カード側でロゴの有無を変えて区別する。混ぜて同じ見た目にしないこと。
+ *
+ * ⚠️ verified は「企業が在籍を確認した」という意味ではない。名前に反するので注意。
+ *    2026-08-04 実測で、公開中の4件はすべて invited_at / invited_by が空＝
+ *    運営が直接作った行。企業側の招待フロー（/api/biz/ambassador/invite）を
+ *    通っておらず、ドメイン認証済みの企業も 85社中0社。
+ *    この kind を根拠に「確認済み」と表示しないこと。
  */
 
 export type Affiliation =

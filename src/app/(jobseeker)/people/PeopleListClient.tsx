@@ -174,13 +174,16 @@ function companyInitial(name: string, letter: string | null): string {
 /**
  * 所属の表示。出どころで見た目を変える。
  *
- *   verified … ow_company_members 由来。企業ロゴ + ✓
+ *   verified … ow_company_members 由来。企業ロゴ付き
  *   self     … ow_experiences の現職。ロゴなしのテキストのみ
  *   past     … 現職が無い人の直近の所属。「元 Salesforce」の形
  *   none     … 何も出さない（この人はそもそも一覧に出ない）
  *
- * ⚠️ verified と self を同じ見た目にしないこと。
- *    ロゴが付いているかどうかが、出どころの唯一の手がかりになっている。
+ * ⚠️ verified は「企業が在籍を確認した」という意味ではない。2026-08-04 実測で、
+ *    公開中の4件はすべて invited_at / invited_by が空＝運営が直接作った行であり、
+ *    企業側の招待フローを通っていない。ドメイン認証済みの企業も 85社中0社。
+ *    在籍確認済みを示す ✓ を出していたが、根拠が無いため同日削除した。
+ *    企業側の確認フローが実際に回り始めるまで、確認済みを示す印を復活させないこと。
  *
  * ⚠️ カードに自由記述（自己紹介 / 役職名）は出さない。人によって品質がばらつき、
  *    一覧の比較軸が崩れるため。出すのは所属企業と ow_roles の職種だけ。
@@ -221,7 +224,6 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
         </span>
       )}
       <span>{a.companyName}</span>
-      <span className="ppl-verified" title="企業の採用担当が在籍を確認しています" aria-label="所属確認済み">✓</span>
     </div>
   );
 }
@@ -488,13 +490,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
           display: flex; align-items: center; justify-content: center;
           border: none; font-size: 10.5px; font-weight: 800; color: #fff;
         }
-        /* 企業の採用担当が在籍を確認済みであることの印 */
-        .ppl-verified {
-          flex-shrink: 0; width: 15px; height: 15px; border-radius: 50%;
-          display: inline-flex; align-items: center; justify-content: center;
-          background: var(--royal-50); color: var(--royal);
-          font-size: 9px; font-weight: 800; line-height: 1;
-        }
         /* 現職が無い人の「元」。社名より弱く出す */
         .ppl-past-mark {
           flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--ink-mute);
@@ -682,7 +677,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
           borderRadius: 10, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
           ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>面談可</strong> は、話を聞く相手として登録している方です。無料で相談できます。<br />
-          企業ロゴの横の <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>✓</strong> は、その企業の採用担当が在籍を確認済みであることを示します。ロゴの無い所属はご本人の登録内容です。
+          所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。
         </div>
       </div>
     </>

@@ -212,7 +212,6 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
                               {/* 現職が無い人は「元 ○○」。/people のカードと同じ形 */}
                               {aff.kind === "past" && <span style={{ marginRight: 4 }}>元</span>}
                               {aff.companyName}
-                              {aff.kind === "verified" && <span style={{ color: "var(--royal)", fontWeight: 800 }}> ✓</span>}
                             </div>
                           )}
                         </div>
