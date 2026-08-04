@@ -196,10 +196,13 @@ export default async function FeedPage() {
           .eq("follower_user_id", myOwUserId)
       : Promise.resolve({ data: [] }),
     // (a2) フォロー中のユーザー (全件)
+    //     ⚠️ 2026-08-04 まで ow_career_follows（対象が ow_career_profiles）を見ていた。
+    //        あちらは実ユーザー5名中1名しか行が無く、1人しかフォローできなかったため
+    //        ow_user_follows（対象が ow_users）に張り替えた。
     myOwUserId
       ? adminSupabase
-          .from("ow_career_follows")
-          .select("ow_career_profiles!target_profile_id(user_id, ow_users!user_id(id, name, avatar_color, avatar_url))")
+          .from("ow_user_follows")
+          .select("ow_users!target_user_id(id, name, avatar_color, avatar_url)")
           .eq("follower_user_id", myOwUserId)
       : Promise.resolve({ data: [] }),
     // (b) 気になる求人 (max 3) — ow_saved_jobs
@@ -230,9 +233,7 @@ export default async function FeedPage() {
 
   const sidebarUserFollows: SidebarUserFollow[] = (userFollowResult.data ?? [])
     .map((r: Record<string, unknown>) => {
-      const profile = r["ow_career_profiles"] as Record<string, unknown> | null;
-      if (!profile) return null;
-      const user = profile["ow_users"] as { id: string; name: string; avatar_color: string | null; avatar_url: string | null } | null;
+      const user = r["ow_users"] as { id: string; name: string; avatar_color: string | null; avatar_url: string | null } | null;
       if (!user) return null;
       return { id: user.id, name: user.name, avatar_color: user.avatar_color, avatar_url: user.avatar_url, role_title: null, company_name: null };
     })

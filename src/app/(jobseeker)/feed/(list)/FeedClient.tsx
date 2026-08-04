@@ -1154,128 +1154,27 @@ function FeedLeftPanel({
 
 // ─── フォロー中サマリーパネル ──────────────────────────────────────────────────
 
-function FollowSummaryPanel({ companies, users }: { companies: SidebarFollow[]; users: SidebarUserFollow[] }) {
-  const total = companies.length + users.length;
-  const FONT = 'var(--font-noto), "Noto Sans JP", sans-serif';
-
-  return (
-    <div style={{
-      background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
-      padding: "20px 20px", marginBottom: 16,
-      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-    }}>
-      {/* ヘッダー: 合計数 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>フォロー中</span>
-        <span style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          background: "var(--royal)", color: "#fff",
-          borderRadius: 100, padding: "2px 10px",
-          fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
-        }}>
-          合計 {total}
-        </span>
-      </div>
-
-      {/* 企業セクション */}
-      <div style={{ marginBottom: companies.length > 0 ? 20 : 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
-            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          </svg>
-          <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
-            企業 {companies.length}社
-          </span>
-        </div>
-        {companies.length === 0 ? (
-          <p style={{ fontFamily: FONT, fontSize: 13, color: "var(--ink-mute)", margin: 0, paddingLeft: 2 }}>
-            フォロー中の企業はありません。<Link href="/companies" style={{ color: "var(--royal)", textDecoration: "none", fontWeight: 600 }}>企業一覧 →</Link>
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {companies.map((co) => {
-              const displayName = co.brand_name ?? co.name;
-              const href = `/companies/${co.slug ?? co.id}`;
-              return (
-                <Link key={co.id} href={href} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                    background: co.logo_gradient ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: 14, fontWeight: 700,
-                    border: "1px solid rgba(0,0,0,0.06)",
-                    overflow: "hidden",
-                  }}>
-                    {co.logo_url
-                      ? <img src={co.logo_url} alt={displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : (co.logo_letter ?? displayName.charAt(0))
-                    }
-                  </div>
-                  <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {displayName}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {companies.length > 0 && users.length > 0 && (
-        <div style={{ height: 1, background: "var(--line)", margin: "0 0 18px" }} />
-      )}
-
-      {/* ユーザーセクション */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em" }}>
-            ユーザー {users.length}人
-          </span>
-        </div>
-        {users.length === 0 ? (
-          <p style={{ fontFamily: FONT, fontSize: 13, color: "var(--ink-mute)", margin: 0, paddingLeft: 2 }}>
-            フォロー中のユーザーはいません。
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {users.map((u) => (
-              <Link key={u.id} href={`/u/${u.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                  background: u.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: 14, fontWeight: 700,
-                  overflow: "hidden",
-                }}>
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt={u.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : u.name.charAt(0)
-                  }
-                </div>
-                <span style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {u.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── 右サイドバー ─────────────────────────────────────────────────────────────
 
+/**
+ * 右サイドバー。
+ *
+ * ⚠️ フォロー中は「企業」と「ユーザー」を1つのパネルにまとめてある（2026-08-04）。
+ *    以前はユーザー分が中央カラムの FollowSummaryPanel にあり、
+ *    「フォロー中」タブを開いたときしか出なかったので、
+ *    既定タブでは存在自体に気づけなかった。
+ *    企業フォローは API もボタンも揃っているのに 0行で、導線の弱さが原因と見て
+ *    ユーザーフォローは同じ轍を踏まないよう常時見える場所に置いている。
+ */
 function FeedSidebar({
   follows,
+  userFollows,
   savedJobs,
   mentors,
   hiddenMembersCount,
 }: {
   follows: SidebarFollow[];
+  userFollows: SidebarUserFollow[];
   savedJobs: SidebarJob[];
   mentors: SidebarMentor[];
   hiddenMembersCount: number;
@@ -1292,7 +1191,7 @@ function FeedSidebar({
     <div style={{ width: 340, flexShrink: 0 }}>
       {/* (a) フォロー中の企業 */}
       <div style={PANEL_STYLE}>
-        <p style={PANEL_TITLE_STYLE}>フォロー中の企業</p>
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中の企業</p>
         {follows.length === 0 ? (
           <p style={EMPTY_STYLE}>企業をフォローすると<br />ここに表示されます</p>
         ) : (
@@ -1324,6 +1223,49 @@ function FeedSidebar({
           </div>
         )}
         <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
+
+        {/* ユーザー。企業と同じパネルに置く。見出しで区切るだけにして、
+            パネルを分けない（フォローという1つの関心事なので） */}
+        <div style={{ height: 1, background: "var(--line-soft)", margin: "14px 0 12px" }} />
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中のユーザー</p>
+        {userFollows.length === 0 ? (
+          <p style={EMPTY_STYLE}>プロフィールからフォローすると<br />ここに表示されます</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {userFollows.map((u) => (
+              <Link
+                key={u.id}
+                href={`/u/${u.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Inter, sans-serif",
+                    overflow: "hidden",
+                  }}
+                >
+                  {u.avatar_url
+                    ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : u.name.charAt(0)}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {u.name}
+                  </div>
+                  {(u.role_title || u.company_name) && (
+                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
       </div>
 
       {/* (b) 気になる求人 */}
@@ -2294,11 +2236,6 @@ export default function FeedClient({
         </div>
       )}
 
-      {/* フォロー中タブ: フォロー一覧サマリー */}
-      {tab === "followed" && (
-        <FollowSummaryPanel companies={sidebarFollows} users={sidebarUserFollows} />
-      )}
-
       {/* 投稿リスト */}
       {tab === "followed" && followedLoading ? (
         <div style={{ textAlign: "center", padding: "48px 0", color: "var(--ink-mute)", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 14 }}>
@@ -2366,6 +2303,7 @@ export default function FeedClient({
         <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
           <FeedSidebar
             follows={sidebarFollows}
+            userFollows={sidebarUserFollows}
             savedJobs={sidebarSavedJobs}
             mentors={sidebarMentors}
             hiddenMembersCount={hiddenMembersCount}

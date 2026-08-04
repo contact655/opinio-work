@@ -21,6 +21,7 @@ import {
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
+import { FollowUserButton } from "./FollowUserButton";
 import { ProfileNavClient } from "@/components/profile/ProfileNavClient";
 import { DMButton } from "@/components/profile/DMButton";
 
@@ -143,6 +144,23 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const coverColor = owUser.cover_color ?? owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
+
+  // フォロー状態。本人・未ログインには問い合わせない（どちらもボタンを出さないか、
+  // 出しても押した時点で /auth に飛ばすため）。
+  let isFollowingUser = false;
+  if (authUser && !viewerIsOwner) {
+    const { data: me } = await adminSupabase
+      .from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle();
+    if (me?.id) {
+      const { data: fol } = await adminSupabase
+        .from("ow_user_follows")
+        .select("id")
+        .eq("follower_user_id", me.id)
+        .eq("target_user_id", owUser.id)
+        .maybeSingle();
+      isFollowingUser = !!fol;
+    }
+  }
 
   // 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
   const age = getUserAge(owUser.birth_date);
@@ -595,6 +613,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     カジュアル面談する
                   </Link>
+                )}
+
+                {/* フォローボタン。オーナー本人には出さない。
+                    未ログインでも押せるが、押すと /auth に飛ばす（企業フォローと同じ挙動） */}
+                {!viewerIsOwner && (
+                  <FollowUserButton
+                    targetUserId={owUser.id}
+                    initialFollowed={isFollowingUser}
+                    isAuthenticated={!!authUser}
+                  />
                 )}
 
                 {/* DMボタン */}
