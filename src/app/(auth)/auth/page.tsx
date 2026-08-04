@@ -57,12 +57,12 @@ function PwStrength({ password }: { password: string }) {
           <span
             key={label}
             style={{
-              fontSize: 10, fontWeight: 600,
+              fontSize: 12, fontWeight: 600,
               color: ok ? "var(--success)" : "var(--ink-mute)",
               display: "flex", alignItems: "center", gap: 3,
             }}
           >
-            <span style={{ fontSize: 11 }}>{ok ? "✓" : "○"}</span> {label}
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{ok ? "✓" : "○"}</span> {label}
           </span>
         ))}
       </div>
@@ -326,7 +326,7 @@ function AuthPageInner() {
                   style={{
                     padding: "2px 8px", borderRadius: 100,
                     background: "var(--royal-50)", color: "var(--royal)",
-                    fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
+                    fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
                     border: "1px solid var(--royal-100)",
                     whiteSpace: "nowrap",
                   }}
@@ -334,14 +334,14 @@ function AuthPageInner() {
                   推奨
                 </span>
               </button>
-              <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", margin: "6px 0 0" }}>
+              <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", margin: "6px 0 0" }}>
                 ワンクリックで完了。パスワード不要。
               </p>
 
               {/* ⑤ ORセパレーター — ピルスタイル */}
               <div style={{ display: "flex", alignItems: "center", margin: "16px 0", gap: 10 }}>
                 <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", padding: "3px 10px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 100 }}>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", padding: "3px 10px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 100 }}>
                   または メールアドレスで登録
                 </span>
                 <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
@@ -401,7 +401,7 @@ function AuthPageInner() {
                 <div style={s.formGroup}>
                   <label style={s.label} htmlFor="signup-name">
                     お名前
-                    <span style={{ fontSize: 10, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>省略可</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>省略可</span>
                   </label>
                   <input
                     id="signup-name"
@@ -425,7 +425,7 @@ function AuthPageInner() {
                   {loading ? "登録中..." : "無料で登録する"}
                 </button>
 
-                <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.8, marginTop: 12 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 12 }}>
                   登録することで{" "}
                   <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>
                     利用規約
@@ -436,7 +436,7 @@ function AuthPageInner() {
                   </a>
                   {" "}に同意したものとみなします。
                 </p>
-                <p style={{ fontSize: 10, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.8, marginTop: 6, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 6, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
                   当社は、お預かりした情報を匿名化・統計化した上で、職種別の待遇水準等として公表することがあります（
                   <a href="/terms#統計的利用" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink-mute)", textDecoration: "underline" }}>
                     利用規約 第13条の4
@@ -481,7 +481,7 @@ function AuthPageInner() {
                   style={{
                     padding: "2px 8px", borderRadius: 100,
                     background: "var(--royal-50)", color: "var(--royal)",
-                    fontSize: 10, fontWeight: 700,
+                    fontSize: 12, fontWeight: 700,
                     border: "1px solid var(--royal-100)",
                     whiteSpace: "nowrap",
                   }}
@@ -493,7 +493,7 @@ function AuthPageInner() {
               {/* ⑤ ORセパレーター — ピルスタイル */}
               <div style={{ display: "flex", alignItems: "center", margin: "16px 0", gap: 10 }}>
                 <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
-                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", padding: "3px 10px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 100 }}>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap", padding: "3px 10px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 100 }}>
                   または メールで続ける
                 </span>
                 <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
@@ -560,7 +560,7 @@ function AuthPageInner() {
 
               {/* マジックリンク */}
               <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--line)", textAlign: "center" }}>
-                <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginBottom: 10 }}>
                   パスワードを設定していない方・お忘れの方
                 </p>
                 <button
@@ -595,7 +595,7 @@ function AuthPageInner() {
         <div style={{ maxWidth: 420, margin: "0 auto", width: "100%", padding: "20px 0 8px" }}>
           <div style={{
             display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap",
-            fontSize: 11, color: "var(--ink-mute)", fontWeight: 600,
+            fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
           }}>
             {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
               <span key={t}>{t}</span>
@@ -604,7 +604,7 @@ function AuthPageInner() {
         </div>
 
         {/* ⑨ Minimal footer — copyright + legal links only */}
-        <div style={{ textAlign: "center", padding: "24px 0 20px", fontSize: 11, color: "var(--ink-mute)" }}>
+        <div style={{ textAlign: "center", padding: "24px 0 20px", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
           <a href="/terms" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>利用規約</a>
           <a href="/privacy" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>プライバシーポリシー</a>
           <span>© 2026 Opinio Inc.</span>
@@ -754,7 +754,7 @@ const s = {
   } as React.CSSProperties,
 
   hint: {
-    fontSize: 11,
+    fontSize: 12,
     color: "var(--ink-mute)",
     marginTop: 5,
     lineHeight: 1.6,

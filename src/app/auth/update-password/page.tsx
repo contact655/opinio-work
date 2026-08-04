@@ -246,7 +246,7 @@ export default function UpdatePasswordPage() {
                     onBlur={(e) => (e.target.style.borderColor = confirmPassword && confirmPassword !== password ? "var(--error)" : "var(--line)")}
                   />
                   {confirmPassword && confirmPassword !== password && (
-                    <p id="update-password-mismatch" role="alert" style={{ fontSize: 11, color: "var(--error)", marginTop: 4 }}>パスワードが一致しません</p>
+                    <p id="update-password-mismatch" role="alert" style={{ fontSize: 12, color: "var(--error)", fontWeight: 600, marginTop: 4 }}>パスワードが一致しません</p>
                   )}
                 </div>
 
