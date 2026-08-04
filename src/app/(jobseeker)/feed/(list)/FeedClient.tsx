@@ -1405,7 +1405,8 @@ function FeedSidebar({
             ))}
           </div>
         )}
-        <Link href="/mentors" style={MORE_LINK_STYLE}>先輩一覧を見る →</Link>
+        {/* /mentors は /people への 308 リダイレクト。行き先に合わせた文言にする（2026-08-04） */}
+        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
       </div>
     </div>
   );
