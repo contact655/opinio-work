@@ -177,7 +177,7 @@ export default function FutureSectionEditor({
               justifyContent: "flex-end",
               marginTop: 4,
               marginBottom: 10,
-              fontSize: 11,
+              fontSize: 12, fontWeight: 600,
               color: overLimit ? "var(--error)" : "var(--ink-mute)",
               fontFamily: "Inter, sans-serif",
             }}
@@ -189,7 +189,7 @@ export default function FutureSectionEditor({
           {errorMsg && (
             <p
               style={{
-                fontSize: 12,
+                fontSize: 12, fontWeight: 600,
                 color: "var(--error)",
                 margin: "0 0 8px",
                 fontFamily: "'Noto Sans JP', sans-serif",

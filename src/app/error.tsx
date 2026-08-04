@@ -53,7 +53,7 @@ export default function GlobalError({
           しばらく時間をおいてから再度お試しください。
         </p>
         {error.digest && (
-          <p style={{ fontSize: 11, color: "#94a3b8", fontFamily: "monospace", margin: "0 0 32px" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "#94a3b8", fontFamily: "monospace", margin: "0 0 32px" }}>
             Error ID: {error.digest}
           </p>
         )}
@@ -92,7 +92,7 @@ export default function GlobalError({
           </Link>
         </div>
 
-        <p style={{ marginTop: 32, fontSize: 12, color: "#94a3b8" }}>
+        <p style={{ marginTop: 32, fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>
           問題が解決しない場合は{" "}
           <a href="mailto:support@opinio.jp" style={{ color: "#3B5FD9" }}>
             support@opinio.jp

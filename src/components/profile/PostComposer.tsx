@@ -94,7 +94,7 @@ export function PostComposer({
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{
-              fontSize: 11,
+              fontSize: 12,
               fontFamily: "Inter, sans-serif",
               color: remaining < 50 ? "var(--error)" : "var(--ink-mute)",
               fontWeight: remaining < 50 ? 700 : 400,
@@ -104,7 +104,7 @@ export function PostComposer({
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {error && (
-                <span style={{ fontSize: 12, color: "var(--error)" }}>{error}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</span>
               )}
               <button
                 type="submit"

@@ -124,7 +124,7 @@ export default function UserProfileCard({
           rel="noopener noreferrer"
           style={{
             display: "flex", alignItems: "center", gap: 4,
-            fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
+            fontSize: 12, fontWeight: 600, color: "var(--ink-mute)",
             textDecoration: "none",
             padding: "5px 10px", borderRadius: 8,
             border: "1px solid var(--line)",
@@ -175,7 +175,7 @@ export default function UserProfileCard({
             </span>
             {isMentor && (
               <span style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
+                fontSize: 12, fontWeight: 700, letterSpacing: "0.08em",
                 color: "var(--royal)", background: "var(--royal-50)",
                 border: "1px solid var(--royal-100)",
                 padding: "2px 8px", borderRadius: 100,
@@ -223,7 +223,7 @@ export default function UserProfileCard({
       {/* ── About Me ─────────────────────────────────────────────────────── */}
       {userAboutMe ? (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
             About Me
           </div>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
@@ -234,7 +234,7 @@ export default function UserProfileCard({
         <div style={{
           marginBottom: 16, padding: "12px 16px", borderRadius: 8,
           background: "var(--bg-tint)", border: "1px dashed var(--line)",
-          fontSize: 12, color: "var(--ink-mute)", textAlign: "center",
+          fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "center",
         }}>
           自己紹介が未設定です。
           <Link href="/profile/edit" style={{ color: "var(--royal)", marginLeft: 6, fontWeight: 600 }}>
@@ -246,7 +246,7 @@ export default function UserProfileCard({
       {/* ── SNS リンク（7種、アイコン横並び） ───────────────────────────── */}
       {activeSocials.length > 0 ? (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
             リンク
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -270,7 +270,7 @@ export default function UserProfileCard({
           </div>
         </div>
       ) : (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
           SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。{" "}
           <Link href="/profile/edit?tab=socials" style={{ color: "var(--royal)", fontWeight: 600 }}>
             追加する →

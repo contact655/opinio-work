@@ -78,7 +78,7 @@ export function LinkPreviewCard({
           <div
             style={{
               fontFamily: "Inter, sans-serif",
-              fontSize: 11,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-mute)",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -112,7 +112,7 @@ export function LinkPreviewCard({
             <div
               style={{
                 fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-                fontSize: 12,
+                fontSize: 12, fontWeight: 500,
                 color: "var(--ink-soft)",
                 lineHeight: 1.5,
                 overflow: "hidden",

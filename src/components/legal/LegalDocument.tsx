@@ -64,7 +64,7 @@ export function LegalDocument({ content, showToc = false }: LegalDocumentProps) 
             borderRadius: 10, padding: "20px 16px",
             fontSize: 12, lineHeight: 1.7,
           }}>
-            <p style={{ fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-mute)", marginBottom: 12 }}>
+            <p style={{ fontWeight: 700, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-mute)", marginBottom: 12 }}>
               目次
             </p>
             <nav>

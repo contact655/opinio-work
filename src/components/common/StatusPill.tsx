@@ -76,7 +76,7 @@ const FALLBACK_STYLE = { bg: "var(--line-soft)", color: "var(--ink-soft)" };
 
 // sm / md 両方とも全丸ピル（business badge との互換性を維持）
 const SIZE_STYLES: Record<StatusSize, React.CSSProperties> = {
-  sm: { padding: "2px 7px",  borderRadius: 100, fontSize: 9,  fontWeight: 700, letterSpacing: "0.05em" },
+  sm: { padding: "2px 7px",  borderRadius: 100, fontSize: 12,  fontWeight: 700, letterSpacing: "0.05em" },
   md: { padding: "3px 10px", borderRadius: 100, fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" },
 };
 

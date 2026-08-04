@@ -158,7 +158,7 @@ export function NotificationBell() {
               borderRadius: 100,
               background: "#DC2626",
               color: "#fff",
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               fontFamily: "Inter, sans-serif",
               display: "flex",
@@ -203,7 +203,7 @@ export function NotificationBell() {
               通知
             </span>
             {loading && (
-              <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>既読にしています…</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>既読にしています…</span>
             )}
           </div>
 
@@ -250,7 +250,7 @@ export function NotificationBell() {
                       <div
                         style={{
                           fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-                          fontSize: 12,
+                          fontSize: 12, fontWeight: 500,
                           color: "var(--ink)",
                           lineHeight: 1.5,
                         }}
@@ -264,7 +264,7 @@ export function NotificationBell() {
                         <div
                           style={{
                             fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-                            fontSize: 11,
+                            fontSize: 12, fontWeight: 500,
                             color: "var(--ink-mute)",
                             marginTop: 2,
                             overflow: "hidden",
@@ -278,7 +278,7 @@ export function NotificationBell() {
                       <div
                         style={{
                           fontFamily: "Inter, sans-serif",
-                          fontSize: 11,
+                          fontSize: 12, fontWeight: 500,
                           color: "var(--ink-mute)",
                           marginTop: 3,
                         }}

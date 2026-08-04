@@ -194,7 +194,7 @@ function OnboardingInner() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>掲載中の企業を見てみる</div>
-                  <div style={{ fontSize: 11, opacity: 0.85 }}>IT/SaaS企業の内側情報を確認する</div>
+                  <div style={{ fontSize: 12, opacity: 0.85 }}>IT/SaaS企業の内側情報を確認する</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", opacity: 0.7, flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
@@ -208,7 +208,7 @@ function OnboardingInner() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>プロフィールを設定する</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>職歴・学歴をあとから追加できます</div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>職歴・学歴をあとから追加できます</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
@@ -291,7 +291,7 @@ function OnboardingInner() {
                     {selectedCompany.name}
                   </div>
                   {selectedCompany.industry && (
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{selectedCompany.industry}</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{selectedCompany.industry}</div>
                   )}
                 </div>
                 <button
@@ -381,7 +381,7 @@ function OnboardingInner() {
                         {c.name}
                       </div>
                       {(c.industry || c.phase) && (
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
                           {[c.industry, c.phase].filter(Boolean).join(" · ")}
                         </div>
                       )}
@@ -415,7 +415,7 @@ function OnboardingInner() {
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
                           「{query.trim()}」で登録する
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
                           OPINIOに未掲載の企業として登録
                         </div>
                       </div>
@@ -428,13 +428,13 @@ function OnboardingInner() {
 
           {/* 選択済みの場合の説明テキスト */}
           {selectedCompany && (
-            <p style={{ fontSize: 12, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
               OPINIOに掲載中の企業と連携します
             </p>
           )}
           {!selectedCompany && query.trim() && !searching && results.length === 0 && (
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8 }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8 }}>
               候補が見つかりません。このまま「登録して始める」をクリックして入力した名前で登録できます。
             </p>
           )}

@@ -92,7 +92,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
           <div
             style={{
               fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-              fontSize: 12,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-soft)",
               marginTop: 4,
               lineHeight: 1.4,
@@ -111,7 +111,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
         <div
           style={{
             fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             color: "var(--ink-mute)",
             letterSpacing: "0.04em",
@@ -151,7 +151,7 @@ export default function FeedProfileCard({ profile }: { profile: FeedProfileData 
             padding: "3px 10px",
           }}
         >
-          <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color }}>
             {cfg.label}
           </span>
         </div>

@@ -126,7 +126,7 @@ export function PostCard({ post }: { post: Post }) {
 
         {/* 投稿時間 */}
         <span style={{
-          fontSize: 11, color: "var(--ink-mute)",
+          fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
           fontFamily: "Inter, sans-serif",
           flex: 1,
         }}>
@@ -140,7 +140,7 @@ export function PostCard({ post }: { post: Post }) {
             disabled={deleting}
             style={{
               background: "none", border: "none", cursor: "pointer",
-              color: "var(--ink-mute)", fontSize: 11, fontWeight: 500,
+              color: "var(--ink-mute)", fontSize: 12, fontWeight: 500,
               padding: "4px 8px", borderRadius: 6,
               fontFamily: "inherit",
               opacity: deleting ? 0.5 : 1,

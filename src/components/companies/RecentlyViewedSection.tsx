@@ -101,7 +101,7 @@ export function RecentlyViewedSection() {
           type="button"
           onClick={clearItems}
           style={{
-            fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none",
+            fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none",
             cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3,
           }}
         >
@@ -173,13 +173,13 @@ export function RecentlyViewedSection() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
                   {stageColor && c.funding_stage && (
                     <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
+                      fontSize: 12, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
                       background: stageColor.bg, color: stageColor.color,
                     }}>{c.funding_stage}</span>
                   )}
                   {c.accepting_casual_meetings && (
                     <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
+                      fontSize: 12, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
                       background: "#FFF7ED", color: "#C2410C",
                       display: "inline-flex", alignItems: "center", gap: 3,
                     }}>
@@ -189,7 +189,7 @@ export function RecentlyViewedSection() {
                   )}
                   {c.job_count != null && c.job_count > 0 && (
                     <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
+                      fontSize: 12, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
                       background: "var(--royal-50)", color: "var(--royal)",
                     }}>求人{c.job_count}</span>
                   )}
