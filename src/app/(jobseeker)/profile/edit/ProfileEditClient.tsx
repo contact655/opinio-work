@@ -349,7 +349,7 @@ function ProfilePhotoUploader({
           </div>
         </div>
         <style>{`.cover-upload-overlay:hover { opacity: 1 !important; }`}</style>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 6 }}>プレビュー（クリックで写真を変更）</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>プレビュー（クリックで写真を変更）</div>
       </div>
 
       {/* Upload controls */}
@@ -476,7 +476,7 @@ function FormGroup({
       )}
       {children}
       {hint && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.6 }}>
           {hint}
         </div>
       )}
@@ -597,7 +597,7 @@ function NotificationSettingsSection() {
           </label>
         ))}
       </div>
-      <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+      <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7 }}>
         💡 メール通知の配信は登録メールアドレスに送られます。迷惑メールフォルダもご確認ください。
       </div>
     </div>
@@ -715,7 +715,7 @@ function SocialLinksEditor({
           );
         })}
 
-        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.7 }}>
           空欄の SNS はプロフィールページに表示されません。
         </div>
       </FormSection>
@@ -870,7 +870,7 @@ function EducationCard({
             </span>
             {edu.is_current && (
               <span style={{
-                fontSize: 10, fontWeight: 700,
+                fontSize: 12, fontWeight: 700,
                 color: "var(--success)", background: "var(--success-soft)",
                 borderRadius: 4, padding: "1px 6px",
                 letterSpacing: "0.04em", flexShrink: 0,
@@ -886,7 +886,7 @@ function EducationCard({
             </div>
           )}
           {/* Period */}
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
             {formatEduPeriod(edu.enrolled_at, edu.graduated_at, edu.is_current)}
           </div>
         </div>
@@ -1176,7 +1176,7 @@ function SchoolRequestBanner({
             style={{
               flexShrink: 0, padding: "3px 10px",
               background: "transparent", border: "1px solid var(--success)",
-              borderRadius: 6, fontSize: 11, color: "var(--success)",
+              borderRadius: 6, fontSize: 12, fontWeight: 500, color: "var(--success)",
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -1212,7 +1212,7 @@ function SchoolRequestBanner({
         </label>
       </div>
       {error && (
-        <div style={{ marginBottom: 8, color: "var(--error)", fontSize: 11 }}>
+        <div style={{ marginBottom: 8, color: "var(--error)", fontSize: 12, fontWeight: 600 }}>
           エラー: {error}
         </div>
       )}
@@ -1239,7 +1239,7 @@ function SchoolRequestBanner({
           style={{
             padding: "5px 14px",
             background: "transparent", border: "1px solid var(--line)",
-            borderRadius: 6, fontSize: 12, color: "var(--ink-mute)",
+            borderRadius: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
             cursor: status === "submitting" ? "not-allowed" : "pointer",
             opacity: status === "submitting" ? 0.6 : 1,
             fontFamily: "inherit",
@@ -1450,7 +1450,7 @@ function EducationEditor({
       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>
         学歴
       </div>
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
         大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。
       </div>
       {/* School request banner（段階6-8 Phase 3）— 教育リストの上に表示 */}
@@ -1495,7 +1495,7 @@ function EducationEditor({
 
       {/* Empty state */}
       {educations.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           学歴はまだ登録されていません
         </div>
       )}
@@ -1727,10 +1727,10 @@ function AchievementCard({
             )}
           </div>
           {period && (
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>{period}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>{period}</div>
           )}
           {item.description && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
@@ -1824,7 +1824,7 @@ function AchievementEditor({
   return (
     <div style={{ marginTop: 0 }}>
       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>数値実績</div>
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
         定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。
       </div>
       {achievements.map((item, idx) => (
@@ -1842,7 +1842,7 @@ function AchievementEditor({
         </div>
       ))}
       {achievements.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           数値実績はまだ登録されていません
         </div>
       )}
@@ -1915,12 +1915,12 @@ function AwardCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{item.title}</div>
           {(item.issuer || item.awarded_at) && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 1 }}>
               {[item.issuer, fmtYM(item.awarded_at)].filter(Boolean).join("　")}
             </div>
           )}
           {item.description && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
@@ -2010,7 +2010,7 @@ function AwardEditor({
   return (
     <div style={{ marginTop: 36 }}>
       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>受賞歴</div>
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
         社内外のアワード・表彰・コンペ入賞などを登録できます。
       </div>
       {awards.map((item, idx) => (
@@ -2028,7 +2028,7 @@ function AwardEditor({
         </div>
       ))}
       {awards.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           受賞歴はまだ登録されていません
         </div>
       )}
@@ -2127,12 +2127,12 @@ function MediaAppearanceCard({
             ) : item.title}
           </div>
           {(item.media_name || item.appeared_at) && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 1 }}>
               {[item.media_name, fmtYM(item.appeared_at)].filter(Boolean).join("　")}
             </div>
           )}
           {item.description && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
@@ -2223,7 +2223,7 @@ function MediaAppearanceEditor({
   return (
     <div style={{ marginTop: 36 }}>
       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>メディア掲載</div>
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
         取材・インタビュー・記事掲載・登壇などを登録できます。
       </div>
       {mediaAppearances.map((item, idx) => (
@@ -2241,7 +2241,7 @@ function MediaAppearanceEditor({
         </div>
       ))}
       {mediaAppearances.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
           メディア掲載はまだ登録されていません
         </div>
       )}
@@ -2803,7 +2803,7 @@ export default function ProfileEditClient({
               <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "#92400E", marginBottom: 4 }}>
                 ようこそ！まずはプロフィールを完成させましょう
               </div>
-              <div style={{ fontSize: 12, color: "#B45309", lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#B45309", lineHeight: 1.7 }}>
                 自己紹介・職歴・スキルを入力すると、企業のカジュアル面談やメンター相談が
                 スムーズになります。<strong>入力内容は自動保存</strong>されます。
               </div>
@@ -3099,7 +3099,7 @@ export default function ProfileEditClient({
               background: "var(--warm-soft)", border: "1px solid #FDE68A",
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "#92400E", lineHeight: 1.6 }}>
                 希望条件を埋めると、条件に合う企業や求人とのマッチング精度が上がります
               </span>
             </div>
@@ -3233,7 +3233,7 @@ export default function ProfileEditClient({
                       max={9999}
                       style={{ ...inputStyle(), width: "100%" }}
                     />
-                    <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                   </div>
                 </FormGroup>
                 <FormGroup label="希望年収（上限）" htmlFor="pe-salary-max">
@@ -3252,12 +3252,12 @@ export default function ProfileEditClient({
                       max={9999}
                       style={{ ...inputStyle(), width: "100%" }}
                     />
-                    <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                   </div>
                 </FormGroup>
               </div>
               {prefSalaryMin && prefSalaryMax && parseInt(prefSalaryMin) > parseInt(prefSalaryMax) && (
-                <div role="alert" style={{ fontSize: 11, color: "var(--error)", marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                <div role="alert" style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>下限が上限を超えています
                 </div>
               )}
@@ -3342,7 +3342,7 @@ export default function ProfileEditClient({
             <div style={{
               padding: "14px 18px", background: "var(--royal-50)",
               border: "1px solid var(--royal-100)", borderRadius: 10,
-              fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
+              fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7,
             }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4, flexShrink: 0 }}>
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -3364,7 +3364,7 @@ export default function ProfileEditClient({
                 background: "var(--royal-50)", border: "1px solid var(--royal-100)",
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span style={{ fontSize: 12, color: "var(--royal)", lineHeight: 1.6 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--royal)", lineHeight: 1.6 }}>
                   埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります
                 </span>
               </div>
@@ -3436,7 +3436,7 @@ export default function ProfileEditClient({
               background: "var(--warm-soft)", border: "1px solid #FDE68A",
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "#92400E", lineHeight: 1.6 }}>
                 note / YouTube を繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります
               </span>
             </div>
@@ -3454,13 +3454,13 @@ export default function ProfileEditClient({
                       border: "1px solid var(--line)", background: "var(--bg-tint)",
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
+                        <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
                           {PLATFORM_OPTIONS.find(p => p.value === link.platform)?.label ?? link.platform ?? "Web"}
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {link.title || link.url}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {link.url}
                         </div>
                       </div>
@@ -3501,13 +3501,13 @@ export default function ProfileEditClient({
                       style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
                     />
                     {ogpFetching && (
-                      <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "4px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "4px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ display: "inline-block", width: 10, height: 10, border: "2px solid var(--ink-mute)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                         ページ情報を取得中...
                       </p>
                     )}
                     {ogpFetched && !ogpFetching && (
-                      <p style={{ fontSize: 11, color: "var(--success)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
                     )}
                   </div>
 
@@ -3549,7 +3549,7 @@ export default function ProfileEditClient({
                   </div>
 
                   {linkError && (
-                    <p style={{ fontSize: 12, color: "var(--error)", margin: 0 }}>{linkError}</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", margin: 0 }}>{linkError}</p>
                   )}
 
                   <button
@@ -3602,7 +3602,7 @@ export default function ProfileEditClient({
                       flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       background: isPrivate ? "var(--error-soft)" : "var(--success-soft)",
-                      color: isPrivate ? "var(--error)" : "var(--success)", fontSize: 10, fontWeight: 700,
+                      color: isPrivate ? "var(--error)" : "var(--success)", fontSize: 12, fontWeight: 700,
                     }}>{isPrivate ? "✗" : "✓"}</span>
                     <span>
                       {/* 現在の挙動をそのまま書く。public と login_only は
@@ -3618,7 +3618,7 @@ export default function ProfileEditClient({
                       flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       background: effectiveScout ? "var(--success-soft)" : "var(--bg-tint)",
-                      color: effectiveScout ? "var(--success)" : "var(--ink-mute)", fontSize: 10, fontWeight: 700,
+                      color: effectiveScout ? "var(--success)" : "var(--ink-mute)", fontSize: 12, fontWeight: 700,
                     }}>{effectiveScout ? "✓" : "✗"}</span>
                     <span style={{ color: effectiveScout ? "var(--ink)" : "var(--ink-soft)" }}>
                       {isPrivate
@@ -3636,11 +3636,11 @@ export default function ProfileEditClient({
                       <span style={{
                         flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "var(--royal-50)", color: "var(--royal)", fontSize: 10, fontWeight: 700,
+                        background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700,
                       }}>✓</span>
                       <span>
                         在籍企業からは自動でブロック中
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)", marginLeft: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>
                           ({currentEmployerNames.join("・")})
                         </span>
                       </span>
@@ -3652,7 +3652,7 @@ export default function ProfileEditClient({
                       flexShrink: 0, width: 18, height: 18, borderRadius: "50%",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       background: settings.isOpenToWork ? "var(--success-soft)" : "var(--bg-tint)",
-                      color: settings.isOpenToWork ? "var(--success)" : "var(--ink-mute)", fontSize: 10, fontWeight: 700,
+                      color: settings.isOpenToWork ? "var(--success)" : "var(--ink-mute)", fontSize: 12, fontWeight: 700,
                     }}>{settings.isOpenToWork ? "✓" : "✗"}</span>
                     <span style={{ color: settings.isOpenToWork ? "var(--ink)" : "var(--ink-soft)" }}>
                       {settings.isOpenToWork ? "「転職検討中」バッジを表示中" : "転職検討中バッジは非表示"}
@@ -3730,7 +3730,7 @@ export default function ProfileEditClient({
                       />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{opt.label}</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{opt.desc}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{opt.desc}</div>
                       </div>
                     </label>
                   ))}
@@ -3761,7 +3761,7 @@ export default function ProfileEditClient({
                     {scoutEnabled === null && (
                       <div style={{
                         background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
-                        padding: "10px 14px", fontSize: 12, color: "#92400E", marginBottom: 12,
+                        padding: "10px 14px", fontSize: 12, fontWeight: 500, color: "#92400E", marginBottom: 12,
                       }}>
                         下記から設定してください。
                       </div>
@@ -3782,12 +3782,12 @@ export default function ProfileEditClient({
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
                           受け取る（推奨）
                           {scoutEnabled === true && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 12, fontWeight: 700, background: "linear-gradient(135deg, var(--royal), #3B5FD9)", color: "#fff" }}>
                               ✓ 設定中
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>条件に合う企業からスカウトが届きやすくなります。</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>条件に合う企業からスカウトが届きやすくなります。</div>
                       </div>
                       <div style={{
                         width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
@@ -3814,12 +3814,12 @@ export default function ProfileEditClient({
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
                           受け取らない
                           {scoutEnabled === false && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 100, fontSize: 12, fontWeight: 700, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>
                               ✓ 設定中
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>企業からは一切見えません</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>企業からは一切見えません</div>
                       </div>
                       <div style={{
                         width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
@@ -3831,7 +3831,7 @@ export default function ProfileEditClient({
                       </div>
                     </div>
                     {(scoutSaving || scoutSaved) && (
-                      <div style={{ fontSize: 12, color: scoutSaved ? "var(--success)" : "var(--ink-mute)", marginTop: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: scoutSaved ? "var(--success)" : "var(--ink-mute)", marginTop: 8 }}>
                         {scoutSaved ? "✓ 保存しました" : "保存中..."}
                       </div>
                     )}
@@ -3847,17 +3847,17 @@ export default function ProfileEditClient({
                         ブロック中の企業
                       </div>
                       {scoutEnabled === false && (
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 8 }}>
                           スカウトを受け取らない設定のため、ブロック設定は使用されません。
                         </div>
                       )}
-                      <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
                         職務経歴に登録した企業からは自動的に見えません。転職活動が今の会社に知られることはありません。
                       </div>
                       {blockedLoading ? (
-                        <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 0" }}>読み込み中…</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", padding: "10px 0" }}>読み込み中…</div>
                       ) : blockedCompanies.length === 0 ? (
-                        <div style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line)" }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line)" }}>
                           ブロック中の企業はありません
                         </div>
                       ) : (
@@ -3871,7 +3871,7 @@ export default function ProfileEditClient({
                               <div>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{b.company_name}</span>
                                 <span style={{
-                                  marginLeft: 8, fontSize: 11, fontWeight: 600,
+                                  marginLeft: 8, fontSize: 12, fontWeight: 600,
                                   padding: "2px 7px", borderRadius: 100,
                                   background: b.block_reason === "experience" ? "var(--royal-50)" : "var(--line-soft)",
                                   color: b.block_reason === "experience" ? "var(--royal)" : "var(--ink-soft)",
@@ -3885,7 +3885,7 @@ export default function ProfileEditClient({
                                   disabled={removingBlockId === b.id}
                                   onClick={() => handleRemoveBlock(b.id!)}
                                   style={{
-                                    fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                    fontSize: 12, fontWeight: 500, padding: "4px 10px", borderRadius: 6,
                                     border: "1px solid var(--line)", background: "#fff",
                                     color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
                                     opacity: removingBlockId === b.id ? 0.5 : 1,
@@ -3899,7 +3899,7 @@ export default function ProfileEditClient({
                         </div>
                       )}
                       <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
                           + 企業を追加でブロック
                         </div>
                         <div style={{ position: "relative" }}>
@@ -3916,7 +3916,7 @@ export default function ProfileEditClient({
                             }}
                           />
                           {blockSearchLoading && (
-                            <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--ink-mute)" }}>検索中…</div>
+                            <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>検索中…</div>
                           )}
                           {blockSearchResults.length > 0 && (
                             <div style={{
@@ -3933,14 +3933,14 @@ export default function ProfileEditClient({
                                   }}>
                                     <span style={{ fontSize: 13, color: "var(--ink)" }}>{c.name}</span>
                                     {alreadyBlocked ? (
-                                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>ブロック済み</span>
+                                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>ブロック済み</span>
                                     ) : (
                                       <button
                                         type="button"
                                         disabled={addingBlockId === c.id}
                                         onClick={() => handleAddBlock(c)}
                                         style={{
-                                          fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                                          fontSize: 12, fontWeight: 500, padding: "4px 10px", borderRadius: 6,
                                           border: "1px solid var(--line)", background: "var(--bg-tint)",
                                           color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit",
                                           opacity: addingBlockId === c.id ? 0.5 : 1,
@@ -3955,7 +3955,7 @@ export default function ProfileEditClient({
                             </div>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4 }}>
                           OPINIOに掲載されている企業のみ検索できます
                         </div>
                       </div>
@@ -3983,7 +3983,7 @@ export default function ProfileEditClient({
                         <span style={{
                           display: "inline-flex", alignItems: "center", gap: 4,
                           padding: "2px 8px", borderRadius: 100,
-                          fontSize: 10, fontWeight: 700,
+                          fontSize: 12, fontWeight: 700,
                           background: "linear-gradient(135deg, var(--success), #10B981)",
                           color: "#fff", fontFamily: "'Inter', sans-serif",
                         }}>
@@ -3991,7 +3991,7 @@ export default function ProfileEditClient({
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                       {settings.isOpenToWork
                         ? "企業側の候補者検索でフィルタリングできます"
                         : "非公開（企業側には表示されません）"}
@@ -4120,7 +4120,7 @@ export default function ProfileEditClient({
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>アカウント削除
               </div>
-              <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 14, lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#991B1B", marginBottom: 14, lineHeight: 1.7 }}>
                 アカウントを削除すると、プロフィール・職歴・記事へのコメントなど、すべてのデータが完全に削除されます。
                 取材済みの記事は掲載を続ける場合があります。この操作は取り消せません。
               </div>

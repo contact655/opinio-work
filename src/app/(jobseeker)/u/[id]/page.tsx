@@ -468,7 +468,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
       {/* Breadcrumb */}
       <div style={{ borderBottom: "1px solid var(--line-soft)", background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto", padding: "8px 20px", fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
+        <div style={{ maxWidth: 1060, margin: "0 auto", padding: "8px 20px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
           <Link href="/" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
           <span>/</span>
           <Link href="/people" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>ユーザー</Link>
@@ -727,7 +727,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   ),
                   label: "カジュアル面談",
                   body: (
-                    <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5 }}>
                       {currentCareer!.company_name}のメンバーと<br/>気軽に話してみませんか
                     </span>
                   ),
@@ -750,7 +750,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   label: meta.label,
                   body: (
                     <span style={{
-                      fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5,
+                      fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5,
                       overflow: "hidden", display: "-webkit-box",
                       WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                     }}>
@@ -906,7 +906,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     数値実績
                   </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     ACHIEVEMENTS
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -941,7 +941,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         {a.title}
                       </div>
                       {(a.period_start || a.period_end) && (
-                        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 5, fontFamily: "Inter, sans-serif", position: "relative" }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5, fontFamily: "Inter, sans-serif", position: "relative" }}>
                           {a.period_start ? a.period_start.slice(0, 7) : ""}
                           {a.period_end ? ` 〜 ${a.period_end.slice(0, 7)}` : a.period_start ? " 〜" : ""}
                         </div>
@@ -977,7 +977,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     受賞・表彰
                   </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     AWARDS
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1008,7 +1008,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                           {award.issuer && (
                             <span style={{
-                              fontSize: 12, color: "var(--ink-soft)",
+                              fontSize: 12, fontWeight: 500, color: "var(--ink-soft)",
                               display: "flex", alignItems: "center", gap: 4,
                             }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -1100,7 +1100,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     アクティビティ
                   </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     ACTIVITY
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1157,7 +1157,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     メディア掲載
                   </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     MEDIA
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1186,14 +1186,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                             {m.media_name && (
                               <span style={{
-                                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                                fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
                                 background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)",
                               }}>
                                 {m.media_name}
                               </span>
                             )}
                             {m.appeared_at && (
-                              <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                                 {m.appeared_at.slice(0, 7)}
                               </span>
                             )}
@@ -1257,7 +1257,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     OPINIO掲載記事
                   </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     FEATURED
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1290,14 +1290,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                           {article.type && ARTICLE_TYPE_LABEL[article.type] && (
                             <span style={{
-                              fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                              fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
                               background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
                             }}>
                               {ARTICLE_TYPE_LABEL[article.type]}
                             </span>
                           )}
                           {article.read_min && (
-                            <span style={{ fontSize: 10, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                               {article.read_min}分で読める
                             </span>
                           )}
@@ -1328,7 +1328,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
                     発信コンテンツ
                   </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     CONTENT
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1351,7 +1351,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                     </svg>
-                    <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 10px" }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 10px" }}>
                       note・Zenn・YouTube等の発信URLを登録しましょう
                     </p>
                     <Link href="/profile/edit" style={{
@@ -1412,7 +1412,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           {/* プラットフォームバッジ */}
                           <span style={{
                             display: "inline-flex", alignItems: "center", gap: 4,
-                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                            fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
                             background: meta.bg, color: meta.color,
                             marginBottom: 5,
                           }}>
@@ -1429,7 +1429,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                           {/* 説明 */}
                           {link.description && (
                             <div style={{
-                              fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.5, marginTop: 3,
+                              fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5, marginTop: 3,
                               overflow: "hidden", display: "-webkit-box",
                               WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
                             }}>
@@ -1489,7 +1489,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       }}>
                         {shortCompanyName(currentCareer.company_name)}
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {currentCareer.role_label}
                       </div>
                     </div>
@@ -1514,7 +1514,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 2 }}>
                         非公開企業
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
                         {currentCareer.role_label}
                       </div>
                     </div>
@@ -1674,7 +1674,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                               width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
                               background: domain ? domain.color : "var(--ink-mute)",
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 10, fontWeight: 700, color: "#fff",
+                              fontSize: 12, fontWeight: 700, color: "#fff",
                               fontFamily: "Inter, sans-serif",
                             }}>
                               {idx + 1}
@@ -1690,7 +1690,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                             {/* ドメインバッジ */}
                             {domain && (
                               <span style={{
-                                fontSize: 10, fontWeight: 600,
+                                fontSize: 12, fontWeight: 600,
                                 color: domain.color,
                                 background: domain.bg,
                                 border: `1px solid ${domain.border}`,
@@ -1823,7 +1823,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
             </>
           )}
-          <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "16px 0 0" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "16px 0 0" }}>
             <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
             {" "}のプロフィールページ
           </p>

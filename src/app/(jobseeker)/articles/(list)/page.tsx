@@ -90,7 +90,7 @@ function ArticleCard({ article }: { article: Article }) {
             display: "inline-flex", alignItems: "center",
             padding: "4px 10px", borderRadius: 100,
             background: badge.bg, color: badge.color,
-            fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em",
+            fontSize: 12, fontWeight: 700, letterSpacing: "0.05em",
             backdropFilter: "blur(4px)",
           }}>
             {badge.label}
@@ -108,11 +108,11 @@ function ArticleCard({ article }: { article: Article }) {
                 width: 20, height: 20, borderRadius: "50%",
                 background: mainSubject.gradient, color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 8, fontWeight: 700, flexShrink: 0,
+                fontSize: 12, fontWeight: 700, flexShrink: 0,
               }}>
                 {mainSubject.initial}
               </div>
-              <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.9)", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.9)", fontWeight: 600, whiteSpace: "nowrap" }}>
                 {mainSubject.name}
               </span>
             </div>
@@ -122,7 +122,7 @@ function ArticleCard({ article }: { article: Article }) {
           {article.read_min && (
             <div style={{
               position: "absolute", bottom: 10, right: 12, zIndex: 2,
-              fontSize: 10, color: "rgba(255,255,255,0.85)",
+              fontSize: 12, color: "rgba(255,255,255,0.85)",
               fontFamily: "Inter, sans-serif", fontWeight: 500,
               display: "flex", alignItems: "center", gap: 3,
             }}>
@@ -139,7 +139,7 @@ function ArticleCard({ article }: { article: Article }) {
           {/* 取材対象者の役職（社員/メンター/CEO記事のみ） */}
           {mainSubject?.role_at_interview && (
             <div style={{
-              fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 600,
+              fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
               marginBottom: 6, lineHeight: 1.4,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               letterSpacing: "0.02em",
@@ -165,7 +165,7 @@ function ArticleCard({ article }: { article: Article }) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
               {article.themes.slice(0, 2).map((t, i) => (
                 <span key={i} style={{
-                  fontSize: 9.5, fontWeight: 600, padding: "2px 7px", borderRadius: 100,
+                  fontSize: 12, fontWeight: 600, padding: "2px 7px", borderRadius: 100,
                   background: "var(--royal-50)", color: "var(--royal)",
                   border: "1px solid var(--royal-100)",
                 }}>
@@ -197,7 +197,7 @@ function ArticleCard({ article }: { article: Article }) {
               width: 22, height: 22, borderRadius: 5,
               background: article.company_gradient,
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 8.5, fontWeight: 700, flexShrink: 0,
+              color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0,
             }}>
               {article.company_initial}
             </div>
@@ -206,7 +206,7 @@ function ArticleCard({ article }: { article: Article }) {
             </span>
 
 
-            <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
               {article.date.replace(/-/g, "/").slice(2)}
             </span>
           </div>
@@ -232,42 +232,49 @@ function ArticleListRow({ article }: { article: Article }) {
         transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
       }} className="article-card article-list-row">
 
-        {/* 上段: バッジ + 会社 + メタ */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        {/* 上段: バッジ + 会社 + メタ
+            ⚠️ flexWrap: "wrap" が要る。12px 化（2026-08-04）で右側の
+               読了時間・日付が広がり、社名の枠が 96px → 74px に縮んで
+               「株式会社Tr…」まで切れるようになった。折り返しを許して
+               社名を切らないほうを優先する。 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, rowGap: 4, flexWrap: "wrap", marginBottom: 6 }}>
           <div style={{
             flexShrink: 0,
             display: "inline-flex", alignItems: "center",
             padding: "3px 9px", borderRadius: 100,
             background: badge.bg, color: badge.color,
-            fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
+            fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
           }}>
             {badge.label}
           </div>
           {/* 会社ロゴ + 名前 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+          {/* ⚠️ minWidth: 0 だと社名がいくらでも縮む。上の行の flexWrap と組で、
+                 縮む代わりに右側（読了時間・日付）を次の行へ落とす。
+                 140 は最長の社名「Archi Village株式会社」(120px) + ロゴ16 + gap4。 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 140 }}>
             <div style={{
               width: 16, height: 16, borderRadius: 3,
               background: article.company_gradient,
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 7, fontWeight: 700, flexShrink: 0,
+              color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0,
             }}>
               {article.company_initial}
             </div>
-            <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {article.company_name}
             </span>
           </div>
           {/* 読了時間 + 日付（右寄せ） */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {article.read_min && (
-              <span style={{ fontSize: 10, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, fontFamily: "Inter, sans-serif" }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
                 {article.read_min}分
               </span>
             )}
-            <span style={{ fontSize: 10, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
               {article.date.replace(/-/g, "/").slice(2)}
             </span>
           </div>
@@ -275,7 +282,7 @@ function ArticleListRow({ article }: { article: Article }) {
 
         {/* 下段: 役職 + タイトル */}
         {mainSubject?.role_at_interview && (
-          <div style={{ fontSize: 10.5, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, marginBottom: 2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {mainSubject.role_at_interview}
           </div>
         )}
@@ -375,7 +382,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                           display: "inline-flex", alignItems: "center",
                           padding: "4px 10px", borderRadius: 100,
                           background: badge.bg, color: badge.color,
-                          fontSize: 10.5, fontWeight: 700,
+                          fontSize: 12, fontWeight: 700,
                         }}>
                           {badge.label}
                         </div>
@@ -383,7 +390,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                           position: "absolute", top: 14, right: 14,
                           background: "rgba(255,255,255,0.9)",
                           borderRadius: 6, padding: "3px 8px",
-                          fontSize: 10, color: "var(--ink-soft)", fontWeight: 600,
+                          fontSize: 12, color: "var(--ink-soft)", fontWeight: 600,
                         }}>
                           FEATURED
                         </div>
@@ -395,7 +402,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                             width: 28, height: 28, borderRadius: 7,
                             background: featured.company_gradient,
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "#fff", fontSize: 10, fontWeight: 700,
+                            color: "#fff", fontSize: 12, fontWeight: 700,
                           }}>
                             {featured.company_initial}
                           </div>
@@ -430,11 +437,11 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                                 width: 24, height: 24, borderRadius: "50%",
                                 background: mainSubject.gradient, color: "#fff",
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                fontSize: 9, fontWeight: 700,
+                                fontSize: 12, fontWeight: 700,
                               }}>
                                 {mainSubject.initial}
                               </div>
-                              <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{mainSubject.name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>{mainSubject.name}</span>
                             </div>
                           )}
                           {featured.read_min && (

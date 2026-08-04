@@ -90,7 +90,7 @@ function ArticleCard({ article }: { article: Article }) {
         </div>
         <div style={{ padding: "14px 16px 18px" }}>
           {/* バッジ */}
-          <span style={{ display: "inline-block", padding: "3px 9px", borderRadius: 100, fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, marginBottom: 8 }}>
+          <span style={{ display: "inline-block", padding: "3px 9px", borderRadius: 100, fontSize: 12, fontWeight: 700, background: badge.bg, color: badge.color, marginBottom: 8 }}>
             {badge.label}
           </span>
           {/* タイトル */}
@@ -102,7 +102,7 @@ function ArticleCard({ article }: { article: Article }) {
             {article.title}
           </div>
           {/* メタ */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--ink-mute)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
             {article.company_name && (
               <span style={{ fontWeight: 600, color: "var(--ink-soft)" }}>{article.company_name}</span>
             )}
@@ -185,7 +185,7 @@ export default async function ArticleTypePage({ params }: { params: { slug: stri
               <Link key={slug} href={`/articles/type/${slug}`} className="at-type-chip">
                 <div style={{ fontSize: 20, marginBottom: 4 }}>{info.icon}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{info.label}</div>
-                <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{info.labelEn}</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{info.labelEn}</div>
               </Link>
             ))}
           </div>

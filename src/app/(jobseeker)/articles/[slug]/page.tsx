@@ -102,7 +102,7 @@ function SubjectCard({ subject }: { subject: ArticleSubject }) {
           </span>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 11.5 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12 }}>
           <div>
             <span style={{ color: INK_MUTE, marginRight: 4 }}>取材時</span>
             <span style={{ color: INK_SOFT, fontWeight: 500 }}>{subject.role_at_interview}</span>
@@ -289,7 +289,7 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
           取材協力
         </h3>
         <span style={{
-          fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+          fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
           color: "var(--purple)", letterSpacing: "0.2em", textTransform: "uppercase",
         }}>
           CONTRIBUTORS
@@ -318,7 +318,7 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: INK, marginBottom: 2 }}>
                 {s.name}
               </div>
-              <div style={{ fontSize: 11, color: INK_SOFT }}>{s.current_status}</div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: INK_SOFT }}>{s.current_status}</div>
             </div>
           </div>
         ))}
@@ -344,7 +344,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
         }}>
           関連記事
           <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+            fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
             color: INK_MUTE, letterSpacing: "0.2em", textTransform: "uppercase",
           }}>
             RELATED ARTICLES
@@ -379,7 +379,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
                     display: "inline-flex", alignItems: "center",
                     padding: "2px 8px", borderRadius: 100,
                     background: badge.bg, color: badge.color,
-                    fontSize: 9.5, fontWeight: 700, marginBottom: 6, alignSelf: "flex-start",
+                    fontSize: 12, fontWeight: 700, marginBottom: 6, alignSelf: "flex-start",
                   }}>
                     {badge.label}
                   </div>
@@ -394,7 +394,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
                   } as React.CSSProperties}>
                     {a.title}
                   </p>
-                  <div style={{ marginTop: "auto", fontSize: 10, color: INK_MUTE }}>
+                  <div style={{ marginTop: "auto", fontSize: 12, fontWeight: 500, color: INK_MUTE }}>
                     {a.company_name} · {a.date.slice(2).replace(/-/g, "/")}
                   </div>
                 </div>
@@ -437,7 +437,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       {/* Breadcrumb */}
       <nav aria-label="パンくずリスト" style={{ background: "var(--bg-tint)", borderBottom: `1px solid ${LINE}`, padding: "var(--space-2) 0" }}>
         <div style={{ maxWidth: "var(--max-w-text)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ fontSize: 12, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: INK_MUTE, display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: INK_MUTE }}>OPINIO</Link>
             <span>/</span>
             <Link href="/articles" style={{ color: INK_MUTE }}>記事</Link>
@@ -465,7 +465,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
               display: "inline-flex", alignItems: "center",
               padding: "var(--space-1) var(--space-3)", borderRadius: 100,
               background: badge.bg, color: badge.color,
-              fontSize: 11, fontWeight: 700, letterSpacing: "0.05em",
+              fontSize: 12, fontWeight: 700, letterSpacing: "0.05em",
             }}>
               {badge.label}
             </div>
@@ -496,7 +496,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 width: 22, height: 22, borderRadius: 6,
                 background: article.company_gradient,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontSize: 8, fontWeight: 700,
+                color: "#fff", fontSize: 12, fontWeight: 700,
               }}>
                 {article.company_initial}
               </div>
@@ -529,7 +529,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 marginBottom: "var(--space-8)",
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S NOTE
@@ -574,7 +574,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 background: "var(--bg-tint)", borderRadius: 12,
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S OUTRO
@@ -600,7 +600,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 marginBottom: "var(--space-8)",
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S NOTE
@@ -621,7 +621,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 background: "var(--bg-tint)", borderRadius: 12,
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S OUTRO

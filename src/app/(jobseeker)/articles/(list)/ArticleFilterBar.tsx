@@ -120,7 +120,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
         {/* ── 行2: 並び順 + 表示切替 + 件数 ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
-          <span style={{ fontSize: 11, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
+          <span style={{ fontSize: 12, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
           {([
             { value: "latest",  label: "新着順" },
             { value: "popular", label: "読了時間順" },
@@ -177,7 +177,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                     color: currentView === mode ? "var(--royal)" : INK_MUTE,
                     cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 4,
-                    fontSize: 11, fontWeight: 600,
+                    fontSize: 12, fontWeight: 600,
                     boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
                     transition: "all 0.12s",
                   }}

@@ -85,7 +85,7 @@ function SectionBlock({
           {title}
           {titleEn && (
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700,
+              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
               color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
             }}>
               {titleEn}
@@ -259,7 +259,7 @@ function AmbassadorWidget({ memberships }: { memberships: AmbassadorMembership[]
             <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>
               {m.company_name}
             </div>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
               {m.role_title ?? "役職未設定"} ·{" "}
               {m.display_consent ? "話せる人として公開中" : "承認待ち（未公開）"}
             </div>
@@ -272,7 +272,7 @@ function AmbassadorWidget({ memberships }: { memberships: AmbassadorMembership[]
               border: "1px solid var(--line)",
               borderRadius: 6,
               padding: "4px 10px",
-              fontSize: 12,
+              fontSize: 12, fontWeight: 500,
               color: "var(--ink-mute)",
               cursor: "pointer",
               flexShrink: 0,
@@ -357,7 +357,7 @@ function DashboardView({
                 <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
                   あなたの母校
                 </span>
-                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
+                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
                   ALUMNI
                 </span>
               </div>
@@ -392,12 +392,12 @@ function DashboardView({
                         {sm.name}
                       </div>
                       {sub && (
-                        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: peerCount > 0 ? 3 : 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: peerCount > 0 ? 3 : 0 }}>
                           {sub}
                         </div>
                       )}
                       {peerCount > 0 && (
-                        <div style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>
                           自分以外の同窓 {peerCount}名
                         </div>
                       )}
@@ -433,7 +433,7 @@ function DashboardView({
                         {sm.name}
                       </span>
                       {peerCount > 0 && (
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                           同窓 {peerCount}名
                         </span>
                       )}
@@ -504,7 +504,7 @@ function CasualMeetingSteps({ status }: { status: string }) {
     return (
       <div style={{
         paddingLeft: 54, paddingTop: 4, paddingBottom: 2,
-        fontSize: 9, color: "var(--ink-mute)",
+        fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
         fontFamily: "Inter, sans-serif",
       }}>
         見送り
@@ -527,7 +527,7 @@ function CasualMeetingSteps({ status }: { status: string }) {
               flexShrink: 0,
             }} />
             <span style={{
-              fontSize: 9, color: i <= activeStep ? "var(--royal)" : "var(--ink-mute)",
+              fontSize: 12, color: i <= activeStep ? "var(--royal)" : "var(--ink-mute)",
               fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
               fontWeight: i === activeStep ? 700 : 400,
             }}>
@@ -566,7 +566,7 @@ function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
       </p>
       <SectionBlock
         title="申込一覧" titleEn="All Applications"
-        right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>全 {casualMeetings.length} 件</span>}
+        right={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>全 {casualMeetings.length} 件</span>}
       >
         {casualMeetings.length === 0 ? (
           <div style={{ padding: "var(--space-2) 0" }}>
@@ -629,7 +629,7 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
             transition: "all 0.2s",
           }} className="bookmark-card-hover">
             <div style={{
-              fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700,
+              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
               color: "var(--ink-mute)", letterSpacing: "0.1em",
               textTransform: "uppercase", marginBottom: 6,
             }}>
@@ -642,7 +642,7 @@ function BookmarkGrid({ items }: { items: Bookmark[] }) {
             } as React.CSSProperties}>
               {bk.title}
             </div>
-            <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.5 }}>{bk.meta}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5 }}>{bk.meta}</div>
           </div>
         </Link>
       ))}
@@ -666,7 +666,7 @@ function BookmarksView({ companyBookmarks, jobBookmarks }: { companyBookmarks: B
       {sections.map((sec) => (
         <SectionBlock
           key={sec.title} title={sec.title} titleEn={sec.titleEn}
-          right={<span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{sec.items.length} 件</span>}
+          right={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{sec.items.length} 件</span>}
         >
           {sec.items.length === 0 ? (
             <EmptyState
@@ -784,7 +784,7 @@ export default function MypageClient({
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
             プロフィールを公開して、企業に見つけてもらいましょう
           </div>
-          <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
             名前・自己紹介・スキルの3つを入力するだけで完了です。
           </div>
           <a href="/profile/start" style={{
@@ -808,7 +808,7 @@ export default function MypageClient({
           <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
             📬 スカウト設定が未完了です
           </div>
-          <div style={{ fontSize: 11, color: "#78350F", lineHeight: 1.6, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#78350F", lineHeight: 1.6, marginBottom: 10 }}>
             企業からのスカウトを受け取るか設定してください。
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -898,8 +898,8 @@ export default function MypageClient({
                 <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
               </svg>
             </div>
-            <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだ申込はありません</div>
-            <Link href="/companies" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだ申込はありません</div>
+            <Link href="/companies" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
               企業を探す →
             </Link>
           </div>
@@ -944,8 +944,8 @@ export default function MypageClient({
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
-            <div style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだブックマークがありません</div>
-            <Link href="/companies" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだブックマークがありません</div>
+            <Link href="/companies" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
               企業を見る →
             </Link>
           </div>
@@ -962,7 +962,7 @@ export default function MypageClient({
                   className="bookmark-card-hover"
                 >
                   <div style={{
-                    fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 700,
+                    fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
                     color: "var(--ink-mute)", letterSpacing: "0.1em",
                     textTransform: "uppercase", marginBottom: 4,
                   }}>
@@ -998,7 +998,7 @@ export default function MypageClient({
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 1 }}>給与データ</div>
-          <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>匿名で給与情報を投稿・確認</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>匿名で給与情報を投稿・確認</div>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </Link>
@@ -1050,7 +1050,7 @@ export default function MypageClient({
               <div style={{ fontSize: 15, fontWeight: 800, color: "#065F46" }}>
                 OPINIOへようこそ！登録が完了しました。
               </div>
-              <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#047857", marginTop: 2 }}>
                 まずは以下の3ステップをやってみましょう
               </div>
             </div>
@@ -1082,7 +1082,7 @@ export default function MypageClient({
                   width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
                   background: "var(--success)", color: "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 800,
+                  fontSize: 12, fontWeight: 800,
                 }}>
                   {step}
                 </div>
@@ -1090,7 +1090,7 @@ export default function MypageClient({
                   {label}
                 </span>
                 <Link href={href} style={{
-                  fontSize: 11, fontWeight: 700, color: "#047857",
+                  fontSize: 12, fontWeight: 700, color: "#047857",
                   background: "#D1FAE5", padding: "4px 10px",
                   borderRadius: 100, textDecoration: "none", flexShrink: 0,
                   border: "1px solid #A7F3D0",
@@ -1120,7 +1120,7 @@ export default function MypageClient({
           </div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>プロフィールを公開しました！</div>
-            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "#047857", marginTop: 2 }}>
               企業やメンターに見つけてもらえる状態になりました。
               <a href="/profile/edit" style={{ color: "#065F46", fontWeight: 700, marginLeft: 6 }}>さらに詳しく編集する →</a>
             </div>
