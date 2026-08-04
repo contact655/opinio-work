@@ -38,7 +38,7 @@ export default function JobseekerError({
           しばらく時間をおいてから再度お試しください。
         </p>
         {error.digest && (
-          <p style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "monospace", margin: "0 0 32px" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "monospace", margin: "0 0 32px" }}>
             Error ID: {error.digest}
           </p>
         )}
@@ -77,7 +77,7 @@ export default function JobseekerError({
           </Link>
         </div>
 
-        <p style={{ marginTop: 32, fontSize: 12, color: "var(--ink-mute)" }}>
+        <p style={{ marginTop: 32, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
           問題が解決しない場合は{" "}
           <a href="mailto:support@opinio.jp" style={{ color: "var(--accent)" }}>
             support@opinio.jp

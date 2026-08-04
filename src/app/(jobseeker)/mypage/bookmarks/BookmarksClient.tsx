@@ -23,13 +23,13 @@ function BookmarkCard({ bk }: { bk: Bookmark }) {
       }} className="bk-card-hover">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{
-            fontSize: 10, fontWeight: 700, color: "var(--royal)",
+            fontSize: 12, fontWeight: 700, color: "var(--royal)",
             background: "var(--royal-50)", border: "1px solid var(--royal-100)",
             padding: "2px 8px", borderRadius: 100,
           }}>{bk.badge_label}</span>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{bk.title}</div>
-        <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{bk.meta}</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{bk.meta}</div>
       </div>
     </Link>
   );

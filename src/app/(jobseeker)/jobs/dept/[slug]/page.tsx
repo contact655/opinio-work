@@ -122,7 +122,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
           <Link href="/jobs" style={{ fontSize: 12, color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }}>
             求人
           </Link>
-          <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>›</span>
+          <span style={{ color: "var(--ink-mute)", fontSize: 12, fontWeight: 500 }}>›</span>
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>{cat.label}</span>
         </div>
         <h1 style={{
@@ -213,7 +213,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                             （例: 営業ページに「セールスエンジニア」） */}
                         {job.roleName && job.roleName !== cat.label && (
                           <span style={{
-                            fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+                            fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
                             background: "var(--bg-tint)", color: "var(--ink-soft)",
                             border: "1px solid var(--line)",
                           }}>
@@ -227,7 +227,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                         )}
                         {job.work_style && (
                           <span style={{
-                            fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+                            fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
                             background: "var(--royal-50)", color: "var(--royal)",
                             border: "1px solid var(--royal-100)",
                           }}>
@@ -235,13 +235,13 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                           </span>
                         )}
                         {job.location && (
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                             📍 {job.location}
                           </span>
                         )}
                         {job.is_new && (
                           <span style={{
-                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
+                            fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
                             background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A",
                           }}>
                             NEW
@@ -251,7 +251,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                       {/* キャッチコピー */}
                       {job.highlight && (
                         <div style={{
-                          fontSize: 12, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.5,
+                          fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.5,
                           overflow: "hidden", display: "-webkit-box",
                           WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                         }}>

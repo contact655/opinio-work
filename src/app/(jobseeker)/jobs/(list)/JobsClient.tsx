@@ -260,7 +260,7 @@ function JobListItem({
               {(company as any).brand_name ?? company.name}
             </span>
             {isApplied && (
-              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", flexShrink: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", flexShrink: 0 }}>
                 ✓ 応募済み
               </span>
             )}
@@ -269,7 +269,7 @@ function JobListItem({
           {/* キャッチコピー1行 — LinkedIn の job summary 相当 */}
           {job.highlight && (
             <div style={{
-              fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5,
+              fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5,
               marginBottom: 5,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
@@ -289,7 +289,7 @@ function JobListItem({
               </span>
             )}
             {job.work_style && job.location && (
-              <span style={{ fontSize: 12, color: "var(--line)", userSelect: "none" }}>·</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             {job.work_style && (
               <span style={{
@@ -313,7 +313,7 @@ function JobListItem({
               </span>
             )}
             {hasSalaryData(job.salary_min, job.salary_max) && (
-              <span style={{ fontSize: 12, color: "var(--line)", userSelect: "none" }}>·</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             <span style={{
               fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
@@ -323,7 +323,7 @@ function JobListItem({
             </span>
             {reviewSummary && reviewSummary.count >= 1 && (
               <>
-                <span style={{ fontSize: 12, color: "var(--line)", userSelect: "none" }}>·</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "#B45309", fontWeight: 600 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" aria-hidden="true">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -522,7 +522,7 @@ function SidebarFilters({
                 >
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.4 }} />
                   <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 12, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
+                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 12, fontWeight: 500, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
                   {isActive && <svg style={{ flexShrink: 0 }} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                 </button>
               );
@@ -647,7 +647,7 @@ function SidebarFilters({
         </button>
         {(hasFilter || q) && (
           <button type="button" onClick={onReset}
-            style={{ display: "block", width: "100%", marginTop: 8, padding: "5px 0", fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit", textAlign: "center" }}
+            style={{ display: "block", width: "100%", marginTop: 8, padding: "5px 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit", textAlign: "center" }}
           >
             検索条件をリセットする
           </button>
@@ -1328,7 +1328,7 @@ export default function JobsClient({
                       </svg>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
-                        {s.sub && <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
+                        {s.sub && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
                       </div>
                     </button>
                   ))}
@@ -1426,7 +1426,7 @@ export default function JobsClient({
 
               {(hasFilter || q) && (
                 <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                  style={{ fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
+                  style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
                 >✕ リセット</button>
               )}
             </div>
@@ -1461,7 +1461,7 @@ export default function JobsClient({
               </span>
               {/* 全語が使えなかったときは「残りの語」が存在しないので出さない */}
               {ignoredTerms.length < q.trim().split(/[\s　]+/).filter(Boolean).length && (
-                <span style={{ fontSize: 12, color: "#92400E", opacity: 0.85 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#92400E", opacity: 0.85 }}>
                   残りの語だけで検索しています
                 </span>
               )}
@@ -1516,7 +1516,7 @@ export default function JobsClient({
                     {groupByCompany ? "✓ " : ""}1社3件まで
                   </button>
                   {groupByCompany && hiddenByGrouping > 0 && (
-                    <span style={{ fontSize: 12, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
                       {hiddenByGrouping}件非表示
                       <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
                     </span>
@@ -1637,7 +1637,7 @@ export default function JobsClient({
                 </button>
               ))}
               <button type="button" onClick={() => { setQ(""); setTechStack([]); router.replace("/jobs"); }} style={{
-                fontSize: 12, color: "var(--ink-mute)", background: "none",
+                fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none",
                 border: "none", cursor: "pointer", padding: "3px 4px",
                 fontFamily: "inherit", textDecoration: "underline",
               }}>
@@ -1736,7 +1736,7 @@ export default function JobsClient({
                           {job.role}
                         </div>
                         {recCompany && (
-                          <div style={{ fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {(recCompany as any).brand_name ?? recCompany.name}
                           </div>
                         )}
@@ -1753,7 +1753,7 @@ export default function JobsClient({
               </div>
               {recommendations.length > 4 && (
                 <div style={{ marginTop: 8, textAlign: "right" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
                 </div>
               )}
             </div>
@@ -1779,7 +1779,7 @@ export default function JobsClient({
                 }}>
                   {userJobType}
                 </span>
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: "auto", fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: "auto", fontFamily: "Inter, sans-serif" }}>
                   {jobTypeMatchedJobs.length}件
                 </span>
               </div>
@@ -1868,7 +1868,7 @@ export default function JobsClient({
               {/* ⑦ プログレスバー + もっと見るボタン */}
               <div style={{ marginTop: 16, marginBottom: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                     <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{paged.length}</strong>
                     {" / "}
                     <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{filteredForDisplay.length}</strong>
@@ -2191,7 +2191,7 @@ export default function JobsClient({
                     {techStack.map((t) => (
                       <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 999, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700 }}>
                         {t}
-                        <button type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, opacity: 0.8 }}>×</button>
+                        <button type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 500, lineHeight: 1, opacity: 0.8 }}>×</button>
                       </span>
                     ))}
                   </div>

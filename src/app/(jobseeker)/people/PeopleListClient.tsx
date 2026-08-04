@@ -85,7 +85,7 @@ function FilterChip({
         {isActive ? (
           <span
             onClick={(e) => { e.stopPropagation(); onSelect(null); }}
-            style={{ fontSize: 10, marginLeft: 1, opacity: 0.75 }}
+            style={{ fontSize: 12, marginLeft: 1, opacity: 0.75 }}
             aria-label="クリア"
           >✕</span>
         ) : (
@@ -285,7 +285,7 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         <span style={{
           position: "absolute", top: 10, right: 10,
           display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 10, fontWeight: 700,
+          fontSize: 12, fontWeight: 700,
           padding: "3px 9px", borderRadius: 100,
           background: "#FFF7ED", color: "#C2410C",
           border: "1px solid #FED7AA", whiteSpace: "nowrap",
@@ -622,7 +622,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
               <FilterChip label="年齢" value={age} options={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setAge(v ?? ""); setOpenChip(null); }} isOpen={openChip === "age"} onToggle={() => toggleChip("age")} />
               {hasFilter && (
-                <button type="button" onClick={clearAll} style={{ fontSize: 12.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
+                <button type="button" onClick={clearAll} style={{ fontSize: 12, fontWeight: 500.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink-mute)"; }}
                 >
@@ -644,7 +644,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
         }}>
           {/* 並び替え */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>並び替え</span>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>並び替え</span>
             <div style={{ width: 1, height: 18, background: "var(--line)" }} />
             <div style={{ display: "flex", gap: 6 }}>
               {SORT_OPTIONS.map((o) => {
@@ -695,7 +695,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
         <div style={{
           marginTop: 24, padding: "14px 18px",
           background: "var(--bg-tint)", border: "1px solid var(--line)",
-          borderRadius: 10, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8,
+          borderRadius: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
           ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>面談可</strong> は、話を聞く相手として登録している方です。無料で相談できます。<br />
           所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。

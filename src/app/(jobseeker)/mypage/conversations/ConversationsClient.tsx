@@ -233,10 +233,10 @@ export default function ConversationsClient({
                         flex: 1,
                       }}>{name}</span>
                       {conv.kind === "direct_message" && (
-                        <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", flexShrink: 0 }}>DM</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", flexShrink: 0 }}>DM</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>
                       {conv.last_message_at ? formatRelativeTime(conv.last_message_at) : "これから対話"}
                     </div>
                   </div>
@@ -269,7 +269,7 @@ export default function ConversationsClient({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{displayName}</p>
                   {selectedConv?.kind === "direct_message" && (
-                    <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: 0 }}>ダイレクトメッセージ</p>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: 0 }}>ダイレクトメッセージ</p>
                   )}
                 </div>
               </div>
@@ -298,7 +298,7 @@ export default function ConversationsClient({
                           {needsSep && (
                             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
                               <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                              <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{formatDateSeparator(msg.sent_at)}</span>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{formatDateSeparator(msg.sent_at)}</span>
                               <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
                             </div>
                           )}
@@ -308,7 +308,7 @@ export default function ConversationsClient({
                             marginTop: grouped ? 2 : 12,
                           }}>
                             {!grouped && (
-                              <span style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 3 }}>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 3 }}>
                                 {isMe ? (myName ?? "自分") : senderName}
                               </span>
                             )}
@@ -330,7 +330,7 @@ export default function ConversationsClient({
                               }}>
                                 {msg.body}
                               </div>
-                              <span style={{ fontSize: 10, color: "var(--ink-mute)", flexShrink: 0 }}>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", flexShrink: 0 }}>
                                 {formatRelativeTime(msg.sent_at, { withTime: true })}
                               </span>
                             </div>
@@ -345,7 +345,7 @@ export default function ConversationsClient({
 
               {/* エラー */}
               {sendError && (
-                <div style={{ padding: "4px 16px", fontSize: 12, color: "var(--error)", background: "#fef2f2" }}>{sendError}</div>
+                <div style={{ padding: "4px 16px", fontSize: 12, fontWeight: 600, color: "var(--error)", background: "#fef2f2" }}>{sendError}</div>
               )}
 
               {/* 入力エリア */}

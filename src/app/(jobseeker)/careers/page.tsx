@@ -105,7 +105,7 @@ export default function CareersPage() {
       {/* ─ ヒーロー ─ */}
       <div style={{ background: "linear-gradient(155deg,#edf0fa 0%,#ece8ff 40%,#f6f0ff 70%,#fff 100%)", padding: "56px 24px 48px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", textTransform: "uppercase", marginBottom: 14 }}>
             Career Guide
           </div>
           <h1 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(26px,4vw,44px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 16px", lineHeight: 1.25 }}>
@@ -139,7 +139,7 @@ export default function CareersPage() {
                   <div style={{ width: 40, height: 40, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                     {s.icon}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: s.color, letterSpacing: "0.08em" }}>STEP {s.step}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: s.color, letterSpacing: "0.08em" }}>STEP {s.step}</div>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.4 }}>{s.title}</div>
                 <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.7 }}>{s.desc}</p>
@@ -161,7 +161,7 @@ export default function CareersPage() {
                 <span style={{ fontSize: 22 }}>{r.icon}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{r.label}</div>
-                  <div style={{ fontSize: 11, color: "var(--success)", fontWeight: 600, fontFamily: "Inter,sans-serif" }}>{r.salaryRange}</div>
+                  <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 600, fontFamily: "Inter,sans-serif" }}>{r.salaryRange}</div>
                 </div>
               </Link>
             ))}

@@ -44,7 +44,7 @@ function CaptionOverlay({ text, category }: { text?: string; category?: string }
     >
       {catLabel && (
         <span style={{
-          fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+          fontSize: 12, fontWeight: 700, letterSpacing: "0.1em",
           textTransform: "uppercase" as const,
           color: "rgba(255,255,255,0.65)",
         }}>
@@ -92,7 +92,7 @@ function UserChip({ user }: { user: { id: string; name: string } }) {
         width: 18, height: 18, borderRadius: 4, flexShrink: 0,
         background: "rgba(255,255,255,0.25)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 9, fontWeight: 800, color: "#fff",
+        fontSize: 12, fontWeight: 800, color: "#fff",
       }}>
         {user.name[0]?.toUpperCase() ?? "?"}
       </div>
@@ -475,7 +475,7 @@ function SamplePhotoGrid() {
           </div>
         ))}
       </div>
-      <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)", textAlign: "right" }}>
+      <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "right" }}>
         ※ 実際の写真は準備中です。上記はイメージ画像です。
       </p>
     </div>

@@ -655,7 +655,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な製品・サービス</h3>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             <style>{`
@@ -717,7 +717,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
             <CustomerCasesClient cases={detail.customer_cases!} defaultCollapsed={detail.customer_cases!.length > 3} />
@@ -1041,7 +1041,7 @@ function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) 
                         {emp.name}
                       </div>
                       {emp.roleTitle && (
-                        <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {emp.roleTitle}
                         </div>
                       )}
@@ -1104,7 +1104,7 @@ function EmployeeCardInner({
             {employee.name}
           </span>
           {age !== null && (
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
               {age}歳
             </span>
           )}
@@ -1112,7 +1112,7 @@ function EmployeeCardInner({
         </div>
         {/* 2行目: 職種のみ（部署階層は表示しない） */}
         {employee.roleTitle && (
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {employee.roleTitle}
           </p>
         )}
@@ -1351,7 +1351,7 @@ function CurrentEmployeesSection({
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 16px" }}>
               {entries.map(([name, count], i) => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ink-soft)" }}>
+                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0, display: "inline-block" }} />
                   {name}
                   <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{count}</span>名
@@ -1558,7 +1558,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
   // 現在の会社名 / 現在の役職のみ（長い組織階層は省略）
   const subInfo = currentDisplayName ? (
-    <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
       {currentDisplayName}{employee.currentRoleTitle ? ` / ${employee.currentRoleTitle}` : ""}
     </p>
   ) : undefined;
@@ -1664,7 +1664,7 @@ function ListingStatusPanel({
         </span>
       </div>
 
-      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.8, color: "var(--ink-soft)" }}>
+      <p style={{ margin: 0, fontSize: 12, fontWeight: 500.5, lineHeight: 1.8, color: "var(--ink-soft)" }}>
         {c.body}
       </p>
 
@@ -1851,7 +1851,7 @@ function JobEmbedCard({
           {/* Catch copy / description fallback */}
           {(job.catchCopy || job.description) && (
             <p style={{
-              margin: "0 0 7px", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.55,
+              margin: "0 0 7px", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.55,
               overflow: "hidden", display: "-webkit-box",
               WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
             }}>
@@ -2164,7 +2164,7 @@ function RecruitersSection({
               </div>
               {/* 2行目: 部門 › 職種 */}
               {(r.department || r.role_title) && (
-                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[r.department, r.role_title].filter(Boolean).join(" › ")}
                 </p>
               )}
@@ -2303,7 +2303,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
                   </p>
                 )}
                 {post.published_at && (
-                  <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
                     {new Date(post.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
                   </span>
                 )}
@@ -2372,7 +2372,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
               <polyline points="14 2 14 8 20 8"/>
             </svg>
             <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>まだ取材記事がありません</div>
-            <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>OPINIO編集部による取材記事が順次公開されます</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>OPINIO編集部による取材記事が順次公開されます</div>
           </div>
         ) : (
           <>
@@ -2442,7 +2442,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{label}</div>
-                            {sub && <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 1 }}>{sub}</div>}
+                            {sub && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{sub}</div>}
                           </div>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
                         </a>
@@ -2476,13 +2476,13 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                           {/* Royal overlay */}
                           <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.18)", mixBlendMode: "multiply" }} />
                           <span style={{ fontSize: 32, opacity: 0.3, position: "relative", zIndex: 1 }}>{icon}</span>
-                          <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 9, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
+                          <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
                             {article.read_min} min
                           </div>
                         </div>
                         <div style={{ padding: "12px 16px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>
                               {badge.label}
                             </span>
                           </div>
@@ -2490,7 +2490,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                             {article.title}
                           </p>
                           {(article.subject?.name ?? (article.subjects && article.subjects[0]?.name)) && (
-                            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>
+                            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                               {article.subject?.name ?? article.subjects?.[0]?.name}
                             </p>
                           )}
@@ -2829,7 +2829,7 @@ function Sidebar({
               {ambassadors.length}名が対応可能
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
             選考なし・完全無料。この会社のことを直接聞けます。<br />転職意欲がなくてもOK。
           </div>
           <a href={`#current-employees`} style={{
@@ -2856,7 +2856,7 @@ function Sidebar({
         >
           <p style={{
             margin: 0,
-            fontSize: 12,
+            fontSize: 12, fontWeight: 500,
             color: "var(--ink-soft)",
             lineHeight: 1.6,
           }}>
@@ -2864,7 +2864,7 @@ function Sidebar({
           </p>
           <p style={{
             margin: "4px 0 0",
-            fontSize: 12,
+            fontSize: 12, fontWeight: 500,
             color: "var(--ink-mute)",
             lineHeight: 1.5,
           }}>
@@ -2982,7 +2982,7 @@ function Sidebar({
                 ) : (
                   <div>
                     <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{value}</span>
-                    {subText && <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>{subText}</p>}
+                    {subText && <p style={{ margin: "3px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6 }}>{subText}</p>}
                   </div>
                 )}
               </div>
@@ -3248,7 +3248,7 @@ export default async function CompanyDetailPage({
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", lineHeight: 1.5 }}>
                     働く環境を読んだら、次は実際の声を聞いてみませんか？
                   </div>
-                  <div style={{ fontSize: 12, color: "#B45309", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#B45309", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
                 </div>
                 <Link href={`/companies/${company.id}/casual-meeting`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
@@ -3350,7 +3350,7 @@ export default async function CompanyDetailPage({
                           {icon}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{dateLabel}</div>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "Inter, sans-serif" }}>{dateLabel}</div>
                           {href ? (
                             <Link href={href} style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, textDecoration: "none", lineHeight: 1.5, display: "block" }}
                               className="hover:underline">
