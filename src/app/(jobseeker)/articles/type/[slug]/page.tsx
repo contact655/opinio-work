@@ -24,8 +24,12 @@ const ARTICLE_TYPE_MAP: Record<string, {
   },
   mentor: {
     type: "mentor",
-    label: "OB・OGの声",
-    labelEn: "Alumni Voices",
+    // ⚠️ 2026-08-04 まで「OB・OGの声 / Alumni Voices」だったが、実態と違うため変更した。
+    //    この type の記事4件はいずれも、取り上げている企業の**現職者**が
+    //    自分のキャリアを語るもの（Sansan の PdM / Ubie の CTO / LayerX のエンジニア）で、
+    //    OB・OG（退職者）ではない。type の値 "mentor" は URL に出るので変えない。
+    label: "キャリアの軌跡",
+    labelEn: "Career Journeys",
     description: "転職経験者・先輩社員が語るキャリアの軌跡。転職の動機から現在の仕事まで、リアルなストーリーをお届けします。",
     icon: "🌟",
   },
