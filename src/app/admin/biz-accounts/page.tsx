@@ -254,7 +254,9 @@ export default async function AdminBizAccountsPage({
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                {["担当者", "所属企業", "権限 / 役職", "最終ログイン", "招待日", "状態", "話せる人", "話せるテーマ"].map((h) => (
+                {/* ⚠️ 列を足し引きしたら td 側も合わせること。2026-08-04 に talk_themes 列の
+                    td を消したときヘッダーだけ残り、8列 vs 7列でずれていた。 */}
+                {["担当者", "所属企業", "権限 / 役職", "最終ログイン", "招待日", "状態", "話せる人"].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "10px 16px",
                     fontSize: 10, fontWeight: 700, color: "#94A3B8",

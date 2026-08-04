@@ -2804,7 +2804,7 @@ export default function ProfileEditClient({
                 ようこそ！まずはプロフィールを完成させましょう
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#B45309", lineHeight: 1.7 }}>
-                自己紹介・職歴・スキルを入力すると、企業のカジュアル面談やメンター相談が
+                自己紹介・職歴・学歴を入力すると、企業のカジュアル面談やメンター相談が
                 スムーズになります。<strong>入力内容は自動保存</strong>されます。
               </div>
               <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 10, flexWrap: "wrap" }}>

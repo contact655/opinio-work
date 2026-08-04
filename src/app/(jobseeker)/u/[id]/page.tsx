@@ -456,8 +456,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
           .profile-name { font-size: 22px !important; }
           .profile-header-body { padding: 0 20px 24px !important; }
           .profile-header-cta { font-size: 12px !important; padding: 8px 14px !important; }
-          .tl-node-label { font-size: 10px !important; }
-          .tl-node-year { font-size: 8px !important; }
         }
         .u-sidebar-link:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important; }
         .u-content-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important; transform: translateY(-2px) !important; }

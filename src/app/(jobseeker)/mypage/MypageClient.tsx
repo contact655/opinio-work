@@ -785,7 +785,7 @@ export default function MypageClient({
             プロフィールを公開して、企業に見つけてもらいましょう
           </div>
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
-            名前・自己紹介・スキルの3つを入力するだけで完了です。
+            名前・自己紹介・職歴の3つを入力するだけで完了です。
           </div>
           <a href="/profile/start" style={{
             display: "inline-block", padding: "8px 16px",

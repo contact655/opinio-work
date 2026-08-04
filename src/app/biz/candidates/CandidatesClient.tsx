@@ -386,7 +386,7 @@ export default function CandidatesClient({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社・スキル"
+            placeholder="名前・職種・会社"
             style={{
               width: "100%", height: 34, padding: "0 28px 0 28px",
               border: "1px solid var(--line)", borderRadius: 8,

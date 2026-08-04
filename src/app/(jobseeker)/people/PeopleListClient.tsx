@@ -507,13 +507,13 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
         }
         .ppl-company-logo-fallback {
           display: flex; align-items: center; justify-content: center;
-          border: none; font-size: 10.5px; font-weight: 800; color: #fff;
+          border: none; font-size: 12px; font-weight: 800; color: #fff;
         }
         /* 職歴がまだ無い人の学校名。企業と取り違えないようアイコンで分ける */
         .ppl-edu-icon { flex-shrink: 0; color: var(--ink-mute); }
         /* 現職が無い人の「元」。社名より弱く出す */
         .ppl-past-mark {
-          flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--ink-mute);
+          flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--ink-mute);
           background: var(--bg-tint); border: 1px solid var(--line-soft);
           border-radius: 4px; padding: 1px 5px; line-height: 1.4;
         }

@@ -441,11 +441,11 @@ export function JobseekerHeader() {
               <input
                 ref={searchInputRef}
                 type="search"
-                aria-label="企業・職種・スキルを検索"
+                aria-label="企業・職種で検索"
                 aria-autocomplete="list"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="企業・職種・スキルを検索..."
+                placeholder="企業・職種で検索..."
                 style={{
                   flex: 1, height: "100%", border: "none", outline: "none",
                   fontSize: 16, color: "var(--ink)",

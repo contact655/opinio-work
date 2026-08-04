@@ -208,7 +208,7 @@ function OnboardingInner() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>プロフィールを設定する</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>職歴・スキルをあとから追加できます</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>職歴・学歴をあとから追加できます</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
