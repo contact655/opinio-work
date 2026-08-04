@@ -176,8 +176,9 @@ function companyInitial(name: string, letter: string | null): string {
  *
  *   verified … ow_company_members 由来。企業ロゴ付き
  *   self     … ow_experiences の現職。ロゴなしのテキストのみ
- *   past     … 現職が無い人の直近の所属。「元 Salesforce」の形
- *   none     … 何も出さない（この人はそもそも一覧に出ない）
+ *   past      … 現職が無い人の直近の所属。「元 Salesforce」の形
+ *   education … 職歴がまだ無い人の最終学歴。学帽アイコン + 学校名
+ *   none      … 何も出さない（この人はそもそも一覧に出ない）
  *
  * ⚠️ verified は「企業が在籍を確認した」という意味ではない。2026-08-04 実測で、
  *    公開中の4件はすべて invited_at / invited_by が空＝運営が直接作った行であり、
@@ -192,6 +193,20 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
   const a = card.affiliation;
 
   if (a.kind === "none") return null;
+
+  if (a.kind === "education") {
+    // 職歴がまだ無い人。学校名を出す。企業と取り違えないよう、
+    // 企業ロゴの位置に学帽アイコンを置いて出どころを分ける。
+    return (
+      <div className="ppl-company ppl-company-self">
+        <svg className="ppl-edu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M22 10 12 5 2 10l10 5 10-5Z" /><path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5" />
+        </svg>
+        <span>{a.schoolName}</span>
+      </div>
+    );
+  }
 
   if (a.kind === "past") {
     return (
@@ -369,8 +384,12 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
       if (!matchRole(a, role, roleSlugToId)) return false;
       if (!matchAge(a, age)) return false;
       if (!q) return true;
-      const company = a.affiliation.kind === "none" ? "" : a.affiliation.companyName;
-      const roleLabel = a.affiliation.kind === "none" ? "" : (a.affiliation.roleTitle ?? "");
+      // 検索対象。学歴の人は学校名で引けるようにする
+      const aff = a.affiliation;
+      const company =
+        aff.kind === "none" ? "" : aff.kind === "education" ? aff.schoolName : aff.companyName;
+      const roleLabel =
+        aff.kind === "none" || aff.kind === "education" ? "" : (aff.roleTitle ?? "");
       return (
         a.name.toLowerCase().includes(q) ||
         company.toLowerCase().includes(q) ||
@@ -490,6 +509,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
           display: flex; align-items: center; justify-content: center;
           border: none; font-size: 10.5px; font-weight: 800; color: #fff;
         }
+        /* 職歴がまだ無い人の学校名。企業と取り違えないようアイコンで分ける */
+        .ppl-edu-icon { flex-shrink: 0; color: var(--ink-mute); }
         /* 現職が無い人の「元」。社名より弱く出す */
         .ppl-past-mark {
           flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--ink-mute);

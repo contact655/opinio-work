@@ -67,6 +67,15 @@ export type Affiliation =
       /** 退職年（YYYY）。取れなければ null */
       endedYear: number | null;
     }
+  /**
+   * 職歴がまったく無い人の受け皿。最終学歴の学校名を出す。
+   *
+   * 想定は「登録直後でまだ職歴を入れていない人」。
+   * 職歴を入れれば past / self / verified のいずれかに変わるので、
+   * 定常的にはほとんど使われない。
+   * ⚠️ 自由記述ではなく ow_user_educations.school を使う。品質が揃うため。
+   */
+  | { kind: "education"; schoolName: string }
   | { kind: "none" };
 
 export type DirectoryPerson = {
@@ -177,7 +186,9 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     db.from("ow_experiences")
       .select(`user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
       .in("user_id", ids),
-    db.from("ow_user_educations").select("user_id").in("user_id", ids),
+    // sort_order 昇順の先頭が最終学歴（/profile/edit の入力順がそうなっている）。
+    // graduated_at は欠けている行があるので並べ替えの主キーにしない。
+    db.from("ow_user_educations").select("user_id, school, sort_order").in("user_id", ids).order("sort_order"),
     db.from("ow_user_content_links").select("user_id").in("user_id", ids),
     // 「実績・受賞」3点。資格は 2026-08-04 に廃止したのでこの3テーブルだけ見る
     db.from("ow_user_achievements").select("user_id").in("user_id", ids),
@@ -208,7 +219,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   };
 
   const exps    = byUser((expRes.data ?? []) as unknown as ExpRow[]);
-  const edus    = byUser((eduRes.data ?? []) as { user_id: string }[]);
+  const edus    = byUser((eduRes.data ?? []) as { user_id: string; school: string | null }[]);
   const links   = byUser((linkRes.data ?? []) as { user_id: string }[]);
   const achieve = byUser([
     ...((achRes.data ?? []) as { user_id: string }[]),
@@ -262,6 +273,12 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
             roleTitle: shortenRoleTitle(past.role_title),
             endedYear: Number.isFinite(y) && y > 1900 ? y : null,
           };
+        } else {
+          // 職歴がまったく無い人。最終学歴で埋める。
+          // 「登録ユーザーの一覧」と名乗る以上、登録しただけの人が消えるのは
+          // 位置づけと合わない。ただし名前だけのカードも出さない。
+          const school = (edus.get(u.id) ?? []).map((e) => e.school?.trim()).find(Boolean);
+          if (school) affiliation = { kind: "education", schoolName: school };
         }
       }
     }
@@ -332,7 +349,8 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   //       所属の無い人には自己紹介の1行を出していた。
   //       自由記述は人によって品質がばらつくため、カードから外した。
   //       条件も所属だけに揃えている（出す情報と出す条件を一致させる）。
-  //       現職が無くても直近の退職済み（kind: "past"）があれば出る。
+  //       現職が無くても直近の退職済み（kind: "past"）や
+  //       最終学歴（kind: "education"）があれば出る。
   const shown = people.filter((p) => p.affiliation.kind !== "none");
 
   // 既定は完成度の高い順。同点は新しい登録順

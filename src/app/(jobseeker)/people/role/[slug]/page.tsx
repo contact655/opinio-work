@@ -209,9 +209,10 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
                           )}
                           {aff.kind !== "none" && (
                             <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
-                              {/* 現職が無い人は「元 ○○」。/people のカードと同じ形 */}
+                              {/* 現職が無い人は「元 ○○」、職歴が無い人は学校名。
+                                  /people のカードと同じ形にする */}
                               {aff.kind === "past" && <span style={{ marginRight: 4 }}>元</span>}
-                              {aff.companyName}
+                              {aff.kind === "education" ? aff.schoolName : aff.companyName}
                             </div>
                           )}
                         </div>
