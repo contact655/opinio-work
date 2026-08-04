@@ -50,6 +50,17 @@ export type Affiliation =
       companyName: string;
       roleTitle: string | null;
     }
+  /**
+   * 現職が無い人の、直近の所属。カードには「元 Salesforce」の形で出す。
+   * OB/OG が増えたときに、所属が空のカードにならないようにするためのもの。
+   */
+  | {
+      kind: "past";
+      companyName: string;
+      roleTitle: string | null;
+      /** 退職年（YYYY）。取れなければ null */
+      endedYear: number | null;
+    }
   | { kind: "none" };
 
 export type DirectoryPerson = {
@@ -67,8 +78,6 @@ export type DirectoryPerson = {
   roleName: string | null;
   /** 職種フィルタ用の9大分類 ID。roleName とは粒度が違う（フィルタは粗く） */
   topRoleId: string | null;
-  /** 所属が無い人のカードに出す自己紹介の抜粋。表示条件と一致するので必ず何か入る */
-  aboutMe: string | null;
   /** ow_users.can_casual_meeting。true で「面談可」バッジ */
   canCasualMeeting: boolean;
   /** 公開項目だけの完成度（81点満点）。既定の並び順に使う */
@@ -211,7 +220,8 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     const myExps    = exps.get(u.id) ?? [];
     const myMembers = members.get(u.id) ?? [];
 
-    // ── 所属。承認済み > 自己申告（現職）> なし ──────────────────────────
+    // ── 所属。企業側の掲載 > 現職 > 直近の退職済み > なし ────────────────
+    //    ⚠️ どの経路でも visibility_company を尊重する。hidden の経歴は社名を出さない。
     let affiliation: Affiliation = { kind: "none" };
 
     const verified = myMembers.find((m) => m.ow_companies?.name || m.ow_companies?.brand_name);
@@ -226,11 +236,27 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
         phase: c.phase,
       };
     } else {
-      // visibility_company を尊重する。hidden の経歴は社名を出さない
       const current = myExps.find((e) => e.is_current);
-      const label = current ? resolveExperienceCompanyLabel(current) : null;
-      if (label) {
-        affiliation = { kind: "self", companyName: label, roleTitle: shortenRoleTitle(current!.role_title) };
+      const currentLabel = current ? resolveExperienceCompanyLabel(current) : null;
+      if (currentLabel) {
+        affiliation = { kind: "self", companyName: currentLabel, roleTitle: shortenRoleTitle(current!.role_title) };
+      } else {
+        // 現職が無い（または hidden）なら直近の退職済みを出す。
+        // ended_at の降順。ended_at が無い行は日付で比べられないので候補から外す。
+        const past = myExps
+          .filter((e) => !e.is_current && e.ended_at)
+          .sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""))
+          .find((e) => resolveExperienceCompanyLabel(e));
+        const pastLabel = past ? resolveExperienceCompanyLabel(past) : null;
+        if (past && pastLabel) {
+          const y = Number((past.ended_at ?? "").slice(0, 4));
+          affiliation = {
+            kind: "past",
+            companyName: pastLabel,
+            roleTitle: shortenRoleTitle(past.role_title),
+            endedYear: Number.isFinite(y) && y > 1900 ? y : null,
+          };
+        }
       }
     }
 
@@ -249,7 +275,11 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     //    ⚠️ カードには「子があれば子」を出す。5名中4名が大分類「営業」で、
     //       大分類だけでは誰が誰だか分からないため。
     //       フィルタ用の topRoleId は逆に大分類（粗いほうが絞り込みには効く）。
+    //    現職 → 無ければ直近（ended_at の新しい順）。所属の解決と同じ順序にする。
     const roleSource = myExps.find((e) => e.is_current && e.role_category_id)
+      ?? [...myExps]
+          .filter((e) => e.role_category_id && e.ended_at)
+          .sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""))[0]
       ?? myExps.find((e) => e.role_category_id);
     const roleNode = roleSource?.role_category_id
       ? roleTree.byId.get(roleSource.role_category_id) ?? null
@@ -280,7 +310,6 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       affiliation,
       roleName: roleNode?.name ?? null,
       topRoleId: topRole?.id ?? null,
-      aboutMe: hasAboutMe ? about.replace(/\s+/g, " ") : null,
       canCasualMeeting: u.can_casual_meeting === true,
       publicScore,
       experienceMonths,
@@ -289,12 +318,16 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     };
   });
 
-  // ── 下限: カードに出せる情報が1つでもあること ────────────────────────────
-  //    名前だけのカードを並べないための線。どちらもカード上に出る情報。
-  //    ⚠️ 2026-08-04 まで「スキル3件以上」も条件に入れていたが、
-  //       スキルタグ機能の廃止に伴い外した。対象者は変わらない
-  //       （唯一スキルで通っていた人も自己紹介を持っていたため）。
-  const shown = people.filter((p) => p.affiliation.kind !== "none" || p.aboutMe !== null);
+  // ── 下限: 所属があること ────────────────────────────────────────────────
+  //    カードは「直近の所属企業 + 職種」に統一したので、所属が無い人は
+  //    名前だけのカードになる。それは出さない。
+  //
+  //    ⚠️ 経緯: 2026-08-04 の途中まで「スキル3件以上」→「自己紹介」も条件に入れ、
+  //       所属の無い人には自己紹介の1行を出していた。
+  //       自由記述は人によって品質がばらつくため、カードから外した。
+  //       条件も所属だけに揃えている（出す情報と出す条件を一致させる）。
+  //       現職が無くても直近の退職済み（kind: "past"）があれば出る。
+  const shown = people.filter((p) => p.affiliation.kind !== "none");
 
   // 既定は完成度の高い順。同点は新しい登録順
   return shown.sort(

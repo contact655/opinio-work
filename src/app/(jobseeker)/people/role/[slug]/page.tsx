@@ -209,13 +209,11 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
                           )}
                           {aff.kind !== "none" && (
                             <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                              {/* 現職が無い人は「元 ○○」。/people のカードと同じ形 */}
+                              {aff.kind === "past" && <span style={{ marginRight: 4 }}>元</span>}
                               {aff.companyName}
-                              {/* 企業の採用担当が在籍を確認済みの所属だけに付く */}
                               {aff.kind === "verified" && <span style={{ color: "var(--royal)", fontWeight: 800 }}> ✓</span>}
                             </div>
-                          )}
-                          {aff.kind === "none" && p.aboutMe && (
-                            <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.aboutMe}</div>
                           )}
                         </div>
                       </div>

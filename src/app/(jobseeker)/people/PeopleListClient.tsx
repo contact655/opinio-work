@@ -174,21 +174,29 @@ function companyInitial(name: string, letter: string | null): string {
 /**
  * 所属の表示。出どころで見た目を変える。
  *
- *   verified … ow_company_members。企業の採用担当が承認した所属。企業ロゴ + ✓
- *   self     … ow_experiences の現職。本人の自己申告。ロゴなしのテキストのみ
- *   none     … スキルタグ
+ *   verified … ow_company_members 由来。企業ロゴ + ✓
+ *   self     … ow_experiences の現職。ロゴなしのテキストのみ
+ *   past     … 現職が無い人の直近の所属。「元 Salesforce」の形
+ *   none     … 何も出さない（この人はそもそも一覧に出ない）
  *
- * ⚠️ 承認済みと自己申告を同じ見た目にしないこと。
- *    ロゴが付いているかどうかが「企業が認めた所属か」の唯一の手がかりになっている。
+ * ⚠️ verified と self を同じ見た目にしないこと。
+ *    ロゴが付いているかどうかが、出どころの唯一の手がかりになっている。
+ *
+ * ⚠️ カードに自由記述（自己紹介 / 役職名）は出さない。人によって品質がばらつき、
+ *    一覧の比較軸が崩れるため。出すのは所属企業と ow_roles の職種だけ。
  */
 function AffiliationBlock({ card }: { card: AmbassadorCard }) {
   const a = card.affiliation;
 
-  if (a.kind === "none") {
-    // 所属が無い人。表示条件が「所属 または 自己紹介」なので、
-    // ここに来る人は必ず自己紹介を持っている（空欄が構造的に発生しない）。
-    if (!card.aboutMe) return null;
-    return <p className="ppl-about">{card.aboutMe}</p>;
+  if (a.kind === "none") return null;
+
+  if (a.kind === "past") {
+    return (
+      <div className="ppl-company ppl-company-self">
+        <span className="ppl-past-mark">元</span>
+        <span>{a.companyName}</span>
+      </div>
+    );
   }
 
   if (a.kind === "self") {
@@ -487,14 +495,11 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
           background: var(--royal-50); color: var(--royal);
           font-size: 9px; font-weight: 800; line-height: 1;
         }
-        /* 所属が無い人。自己紹介の冒頭で埋める。
-           表示条件が「所属 または 自己紹介」なので、ここに来る人は必ず自己紹介を持つ。
-           2026-08-04 まではスキルタグを出していたが、機能ごと廃止した。 */
-        .ppl-about {
-          margin: 0; font-size: 12px; font-weight: 500; color: var(--ink-soft);
-          line-height: 1.6; text-align: left;
-          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
-          overflow: hidden; overflow-wrap: anywhere;
+        /* 現職が無い人の「元」。社名より弱く出す */
+        .ppl-past-mark {
+          flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--ink-mute);
+          background: var(--bg-tint); border: 1px solid var(--line-soft);
+          border-radius: 4px; padding: 1px 5px; line-height: 1.4;
         }
         /* 経験年数。並べ替えの軸をカード上でも見えるようにする */
         .ppl-facts {
