@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      display: "inline-block", fontSize: 11, fontWeight: 700,
+      display: "inline-block", fontSize: 12, fontWeight: 700,
       letterSpacing: "0.1em", textTransform: "uppercase" as const,
       color: "var(--royal)", marginBottom: 16,
     }}>
@@ -143,7 +143,7 @@ export default async function ForCompaniesPage() {
             <div style={{ textAlign: "center", marginBottom: 12 }}>
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                fontSize: 12, fontWeight: 700, color: "var(--ink-mute)",
                 letterSpacing: "0.1em", textTransform: "uppercase" as const,
                 padding: "4px 12px", background: "#fff",
                 border: "1px solid var(--line)", borderRadius: 100,
@@ -172,7 +172,8 @@ export default async function ForCompaniesPage() {
                   <div style={{
                     width: 32, height: 32, borderRadius: 8, background: iconBg,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: initial.length > 1 ? 9 : 13, fontWeight: 800, color: iconColor,
+                    // ⚠️ 12px 未満にしない。3字（SHR）でも Inter 12px で約23px、32px の枠に収まる
+                    fontSize: initial.length > 1 ? 12 : 14, fontWeight: 800, color: iconColor,
                     flexShrink: 0, letterSpacing: "-0.02em",
                   }}>{initial}</div>
                   {name}
@@ -221,23 +222,23 @@ export default async function ForCompaniesPage() {
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                     <span style={{
-                      fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                      fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
                       background: bg, color: color, border: `1px solid ${border}`,
                     }}>{type}</span>
                     <span style={{
-                      fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                      fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
                       background: "var(--success-soft)", color: "var(--success)",
                       border: "1px solid #A7F3D0",
                     }}>✓ 面談済</span>
                   </div>
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>{age} · {experience}</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4 }}>{age} · {experience}</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{career}</div>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
                     {tags.map((t) => (
                       <span key={t} style={{
-                        fontSize: 11, padding: "3px 10px", borderRadius: 100,
+                        fontSize: 12, padding: "3px 10px", borderRadius: 100,
                         background: bg, color: color, fontWeight: 600,
                         border: `1px solid ${border}`,
                       }}>{t}</span>
@@ -246,7 +247,7 @@ export default async function ForCompaniesPage() {
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.6 }}>
               ※ 登録人材の経歴イメージ（代表例）です。実在の特定個人を示すものではありません。
             </p>
           </div>
@@ -309,7 +310,7 @@ export default async function ForCompaniesPage() {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     marginBottom: 16,
                   }}>{icon}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", fontFamily: "Inter,sans-serif", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.08em", fontFamily: "Inter,sans-serif", marginBottom: 8 }}>
                     {num}
                   </div>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 10, lineHeight: 1.4 }}>{title}</h3>
@@ -329,9 +330,9 @@ export default async function ForCompaniesPage() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: "var(--bg-tint)" }}>
-                      <th style={{ padding: "10px 16px", textAlign: "left", fontWeight: 600, color: "var(--ink-soft)", borderBottom: "1px solid var(--line)", fontSize: 11, width: "30%" }}>比較項目</th>
-                      <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", borderBottom: "1px solid var(--line)", fontSize: 11 }}>一般的な候補者DB</th>
-                      <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 700, color: "var(--royal)", borderBottom: "1px solid var(--royal-100)", fontSize: 11, background: "var(--royal-50)" }}>OPINIO</th>
+                      <th style={{ padding: "10px 16px", textAlign: "left", fontWeight: 600, color: "var(--ink-soft)", borderBottom: "1px solid var(--line)", fontSize: 12, width: "30%" }}>比較項目</th>
+                      <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", borderBottom: "1px solid var(--line)", fontSize: 12 }}>一般的な候補者DB</th>
+                      <th style={{ padding: "10px 16px", textAlign: "center", fontWeight: 700, color: "var(--royal)", borderBottom: "1px solid var(--royal-100)", fontSize: 12, background: "var(--royal-50)" }}>OPINIO</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -428,18 +429,18 @@ export default async function ForCompaniesPage() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       color: "var(--royal)", flexShrink: 0,
                     }}>{icon}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", letterSpacing: "0.06em" }}>
                       {String(i + 1).padStart(2, "0")} / {step}
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
                     <div style={{ background: "var(--error-soft)", border: "1px solid #FCA5A5", borderRadius: 8, padding: "10px 14px" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--error)", marginBottom: 4 }}>Before</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--error)", marginBottom: 4 }}>Before</div>
                       <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5 }}>{before}</div>
                     </div>
                     <div style={{ color: "var(--royal)", fontWeight: 700, fontSize: 18, padding: "0 4px", textAlign: "center" }}>→</div>
                     <div style={{ background: "var(--success-soft)", border: "1px solid #A7F3D0", borderRadius: 8, padding: "10px 14px" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>After</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>After</div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5 }}>{after}</div>
                     </div>
                   </div>
@@ -506,7 +507,7 @@ export default async function ForCompaniesPage() {
                     color: color, opacity: 0.2, lineHeight: 1, marginBottom: 12,
                   }}>{num}</div>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.4 }}>{title}</h3>
-                  <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>{body}</p>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7 }}>{body}</p>
                 </div>
               ))}
             </div>
@@ -566,13 +567,13 @@ export default async function ForCompaniesPage() {
                     </div>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{label}</div>
-                      <div style={{ fontSize: 11, color, fontWeight: 600 }}>{stage}</div>
+                      <div style={{ fontSize: 12, color, fontWeight: 600 }}>{stage}</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {points.map((p) => (
                       <div key={p} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                        <span style={{ color, fontWeight: 700, fontSize: 11, flexShrink: 0, marginTop: 2 }}>✓</span>
+                        <span style={{ color, fontWeight: 700, fontSize: 12, flexShrink: 0, marginTop: 2 }}>✓</span>
                         <span style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5 }}>{p}</span>
                       </div>
                     ))}
@@ -596,7 +597,7 @@ export default async function ForCompaniesPage() {
                   "IT/SaaS以外の業界での採用が中心",
                 ].map((item) => <CrossItem key={item}>{item}</CrossItem>)}
               </div>
-              <p style={{ marginTop: 14, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+              <p style={{ marginTop: 14, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
                 ミスマッチを防ぐため、当社の強みを正直にお伝えしています。
               </p>
             </div>
@@ -633,7 +634,7 @@ export default async function ForCompaniesPage() {
                   body: "メールアドレスだけで1分。審査なし、すぐに始められます。",
                   mockup: (
                     <div style={{ background: "var(--royal-50)", borderRadius: 7, padding: "8px 10px", marginTop: 10, border: "1px solid var(--royal-100)" }}>
-                      <div style={{ fontSize: 9, color: "var(--royal)", fontWeight: 700, marginBottom: 4 }}>企業情報を入力</div>
+                      <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 4 }}>企業情報を入力</div>
                       <div style={{ height: 6, background: "var(--royal-100)", borderRadius: 3, width: "70%", marginBottom: 4 }} />
                       <div style={{ height: 6, background: "var(--royal-100)", borderRadius: 3, width: "50%" }} />
                     </div>
@@ -651,10 +652,10 @@ export default async function ForCompaniesPage() {
                   body: "何件でも、何ヶ月でも掲載可能。「公開」ボタンで即反映。",
                   mockup: (
                     <div style={{ background: "var(--royal-50)", borderRadius: 7, padding: "8px 10px", marginTop: 10, border: "1px solid var(--royal-100)" }}>
-                      <div style={{ fontSize: 9, color: "var(--royal)", fontWeight: 700, marginBottom: 4 }}>求人プレビュー</div>
+                      <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 4 }}>求人プレビュー</div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ height: 6, background: "var(--royal-100)", borderRadius: 3, width: "60%" }} />
-                        <div style={{ padding: "2px 7px", background: "var(--royal)", borderRadius: 4, fontSize: 8, color: "#fff", fontWeight: 700 }}>公開</div>
+                        <div style={{ padding: "2px 7px", background: "var(--royal)", borderRadius: 4, fontSize: 12, color: "#fff", fontWeight: 700 }}>公開</div>
                       </div>
                     </div>
                   ),
@@ -670,8 +671,8 @@ export default async function ForCompaniesPage() {
                   body: "応募前メンター面談を経た、本気度の高い候補者から応募が届きます。",
                   mockup: (
                     <div style={{ background: "var(--success-soft)", borderRadius: 7, padding: "8px 10px", marginTop: 10, border: "1px solid #A7F3D0" }}>
-                      <div style={{ fontSize: 9, color: "var(--success)", fontWeight: 700, marginBottom: 3 }}>● 新着応募</div>
-                      <div style={{ fontSize: 9, color: "var(--ink-soft)" }}>山田さん・面談済み✓</div>
+                      <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginBottom: 3 }}>● 新着応募</div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>山田さん・面談済み✓</div>
                     </div>
                   ),
                 },
@@ -686,8 +687,8 @@ export default async function ForCompaniesPage() {
                   body: "採用が決まるまで請求は発生しません。成果報酬制のシンプルな体系です。",
                   mockup: (
                     <div style={{ background: "#F0FDF4", borderRadius: 7, padding: "8px 10px", marginTop: 10, border: "1px solid #BBF7D0" }}>
-                      <div style={{ fontSize: 9, color: "var(--success)", fontWeight: 700, marginBottom: 3 }}>採用確定！</div>
-                      <div style={{ fontSize: 9, color: "var(--ink-soft)" }}>成果報酬制（入社決定時のみ）</div>
+                      <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginBottom: 3 }}>採用確定！</div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>成果報酬制（入社決定時のみ）</div>
                     </div>
                   ),
                 },
@@ -698,14 +699,14 @@ export default async function ForCompaniesPage() {
                     borderRadius: 12, border: "1px solid var(--line)",
                     height: "100%", display: "flex", flexDirection: "column",
                   }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>
                       {step}
                     </div>
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
                       {icon}
                     </div>
                     <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.4 }}>{title}</h3>
-                    <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, flex: 1 }}>{body}</p>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7, flex: 1 }}>{body}</p>
                     {mockup}
                   </div>
                   {i < 3 && (
@@ -797,12 +798,12 @@ export default async function ForCompaniesPage() {
             </Link>
             <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
               {["入社まで費用なし（成果報酬制）", "既存媒体と並行可能"].map((txt) => (
-                <div key={txt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>
+                <div key={txt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {txt}
                 </div>
               ))}
-              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>まず相談する</a>
+              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>まず相談する</a>
             </div>
           </div>
         </section>

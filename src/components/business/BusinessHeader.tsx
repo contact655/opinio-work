@@ -47,7 +47,7 @@ export function BusinessHeader() {
           <span style={{
             fontFamily: "'Inter', sans-serif",
             fontWeight: 700,
-            fontSize: 10,
+            fontSize: 12,
             color: "var(--ink-mute)",
             letterSpacing: "0.1em",
             textTransform: "uppercase" as const,
