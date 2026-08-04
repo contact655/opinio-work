@@ -1,8 +1,40 @@
 import Link from "next/link";
+import Image from "next/image";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { HeroSearch } from "./HeroSearch";
 import { FinalCta } from "./FinalCta";
 import { ProductPreview } from "./ProductPreview";
+
+/**
+ * DATA セクション「経歴が構造化されている」に添える実画面。
+ *
+ * ⚠️ null のあいだはカードが3列グリッドのまま（画面なし）になる。本番の見た目は変わらない。
+ *    掲載許可が取れたら CAREER_SHOT に値を入れるだけで全幅レイアウトに切り替わる。
+ *
+ * ── 出典と切り出し（2026-08-05）──────────────────────────────────────────────
+ * /u/b51fc35e（木村雅樹さん）の職歴タイムライン。ご本人から、検索エンジンに
+ * 載ることを含めて掲載許可を得ている。
+ * ⚠️ 生藤弘樹さんは運営が作ったプレースホルダーなので、許可があっても使わない。
+ *    「実データが構造化されている」証拠にならないため。
+ *
+ * viewport 1440px（デスクトップの実レイアウト）で 700×715px を 2x で切り出したもの。
+ *   ・表示幅584pxに対し縮小率 0.83。現行の ProductPreview（0.81）より緩く、14pxの本文が読める
+ *   ・モバイル幅で撮ると社名が折り返し、下部ナビも写り込むのでデスクトップで撮ること
+ *   ・下端は必ず行の境目に合わせる。実測位置は 職歴見出し top=856 / カード左端 x=210 で
+ *     525=セールスフォース1つ目の説明文の直後 / 715=同社の続きを読むの直後 / 866=みずほ証券の期間の直後
+ *   ・715 を選んだのは、会社の移動（CTC←セールスフォース）と
+ *     同社内の職種変化（インサイドセールス→AE）が両方映り、本文2文の両方を裏付けるため
+ *
+ * ⚠️ 差し替えるときは必ずファイル名の連番を上げること（-v1 → -v2）。
+ *    Next の画像最適化は元パスをキーにするので、同名だと古いバイト列が配信され続ける。
+ *    2026-08-04 に実際に起きた。
+ */
+const CAREER_SHOT: { src: string; w: number; h: number; alt: string } | null = null;
+
+const CAREER_CARD = {
+  title: "経歴が構造化されている",
+  body: "どこから来て、どこへ行ったか。社員のキャリアがデータとして残っているので、企業単位でも職種単位でも辿れます。",
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type LPTotals = { companies: number; jobs: number };
@@ -138,6 +170,16 @@ export default function LandingPage({
 
         .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         .lp-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
+        /* 経歴カードに画面を入れるときだけ、上段を2列にして経歴を全幅の行に出す。
+           3列のまま1枚だけ縦長画像を入れると、そのカードだけ約600pxになり
+           他の2枚（159px）との間に440pxの空白ができる（align-items: start なので
+           カードは引き伸ばされず、下に伸びるだけ）。
+           全幅にしてカード内をテキスト左・画像右に組むと、その空白が消える。 */
+        .lp-trust-2 { grid-template-columns: repeat(2, 1fr); margin-bottom: 18px; }
+        .lp-trust-wide { display: grid; grid-template-columns: 1fr 584px; gap: 32px; align-items: center;
+                         background: #fff; border: 1px solid ${C.line}; border-radius: 12px; padding: 24px; }
+        .lp-trust-wide img { width: 584px; height: auto; display: block;
+                             border: 1px solid ${C.line}; border-radius: 8px; }
         /* .pp-* は globals.css 側にある。
            空文字を指定する content の引用符が、Server Component の style タグでは
            実体参照にエスケープされ、raw text 要素なのでブラウザが復元しないため。
@@ -148,6 +190,12 @@ export default function LandingPage({
           .lp-wrap { padding: 0 18px; }
           .lp-facets { grid-template-columns: repeat(2, 1fr); }
           .lp-cards, .lp-jobs, .lp-steps, .lp-trust { grid-template-columns: 1fr; }
+          /* 狭い画面では経歴カードも縦積みにする。584px の画像は入らないので
+             幅いっぱいに縮める（元が700px幅の切り出しなので、
+             360px 前後まで縮むと本文が読めなくなる点は要確認）。 */
+          .lp-trust-2 { grid-template-columns: 1fr; }
+          .lp-trust-wide { grid-template-columns: 1fr; gap: 20px; }
+          .lp-trust-wide img { width: 100%; }
           /* プレビューは1カラムだと縦に伸びすぎるので6件までに絞る。
              総件数は「N社すべて見る」で示しているので数は隠していない。 */
           /* 子結合子（大なり記号）は使わないこと。Server Component 内の style タグでは
@@ -203,16 +251,14 @@ export default function LandingPage({
               <h2 className="lp-h2">このデータは、どこから来ているか</h2>
             </div>
           </div>
-          <div className="lp-trust">
+          <div className={CAREER_SHOT ? "lp-trust lp-trust-2" : "lp-trust"}>
             {[
-              // ⚠️ ここに実画面を1枚だけ添えていたが 2026-08-04 に外した。理由は3つ。
-              //    ① カード幅342px・画像292pxでは、文字が読める切り出し幅の上限が
-              //       380px しかなく、導入事例1件の左半分（読める数字は1つ）しか入らない
-              //    ② 同じ画面を FV 直下の ProductPreview でも使っており、
-              //       同一ページに2回出ることになる
-              //    ③ 3枚のうち1枚だけ画像がある状態だった。残り2枚は実在の個人が写るため
-              //       本人確認が済むまで追加できず、当面揃わない
-              //    3枚分の素材が揃ってから、まとめて入れ直すこと。
+              // ⚠️ 「企業情報を独自に作成している」に実画面を添えていたが 2026-08-04 に外した。
+              //    カード幅342px・画像292pxでは、文字が読める切り出し幅の上限が380pxしかなく、
+              //    導入事例1件の左半分（読める数字は1つ）しか入らないため。
+              //    2026-08-05 に再検証しても同じで、既存の preview-company-v2.webp は
+              //    518px表示用の切り出しなので295pxでは成果の数字が潰れる。
+              //    ここに画像を戻すなら、もっと寄った別の切り出しが要る。
               {
                 title: "企業情報を独自に作成している",
                 body: "掲載企業の情報は web から自動で集めたものではなく、OPINIO が作成・編集しています。事業内容・組織体制・働き方まで揃えています。",
@@ -224,7 +270,8 @@ export default function LandingPage({
               //    ドメイン認証済みの企業も 85社中0社。所属は自己申告である。
               //    企業側の確認フローが実際に回り始めるまで、認証を主張しないこと。
               { title: "募集を出していない企業も載っている", body: "求人の有無にかかわらず企業ページを作っています。いま募集がない会社も、事業や組織を先に調べておけます。" },
-              { title: "経歴が構造化されている", body: "どこから来て、どこへ行ったか。社員のキャリアがデータとして残っているので、企業単位でも職種単位でも辿れます。" },
+              // CAREER_SHOT が無いあいだは、経歴カードもここに並べて3列に戻す
+              ...(CAREER_SHOT ? [] : [CAREER_CARD]),
             ].map((t) => (
               <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, display: "flex", flexDirection: "column" }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{t.title}</h3>
@@ -232,6 +279,21 @@ export default function LandingPage({
               </div>
             ))}
           </div>
+
+          {/* 経歴カードは画面つきのときだけ全幅の行に分ける（理由は .lp-trust-wide のコメント） */}
+          {CAREER_SHOT && (
+            <div className="lp-trust-wide">
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{CAREER_CARD.title}</h3>
+                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{CAREER_CARD.body}</p>
+                <p style={{ fontSize: 12, color: C.muted, marginTop: 12, marginBottom: 0 }}>
+                  画面は実際のものです。掲載内容は変わることがあります。
+                </p>
+              </div>
+              <Image src={CAREER_SHOT.src} alt={CAREER_SHOT.alt}
+                width={CAREER_SHOT.w} height={CAREER_SHOT.h} sizes="584px" />
+            </div>
+          )}
         </div>
       </section>
 
