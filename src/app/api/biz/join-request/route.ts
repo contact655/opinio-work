@@ -112,6 +112,10 @@ export async function POST(req: Request) {
         user_id: requester.id,
         permission: "admin",
         is_active: true,
+        // ⚠️ 自動承認で作られた行だと分かるようにする。
+        //    2026-08-05 に権限昇格の穴を直したあと「過去に誤承認された行が無いか」を
+        //    調べたが、経路を記録していなかったため行の形からは判別できなかった。
+        created_via: "join_request",
       });
 
     if (insertError) {

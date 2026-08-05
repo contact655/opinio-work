@@ -103,6 +103,9 @@ export async function POST(req: Request) {
            is_active で絞らないこと。絞ると /biz/members から招待が消える。
       */
       is_active: false,
+      // ⚠️ 作成経路を記録する。承諾（accept）では上書きしないこと。
+      //    これは「どう作られたか」であって「いまどの状態か」ではない。
+      created_via: "invite",
       invited_email: email,
       invited_by_user_id: actorOwUserId,
       invitation_token: inviteToken,

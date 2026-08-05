@@ -58,7 +58,8 @@ export async function addExistingUserToCompany(params: {
 
   const { data: newRow, error: insertErr } = await supabase
     .from("ow_company_admins")
-    .insert({ user_id: targetUser.id, company_id: companyId, permission, is_active: true })
+    // ⚠️ created_via は「どう作られたか」。招待を経ずに直接追加した行は admin。
+    .insert({ user_id: targetUser.id, company_id: companyId, permission, is_active: true, created_via: "admin" })
     .select("id")
     .single();
 

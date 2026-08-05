@@ -3062,6 +3062,7 @@ export type Database = {
           agreed_terms_version: string | null
           company_id: string
           created_at: string
+          created_via: string | null
           department: string | null
           id: string
           invitation_token: string | null
@@ -3084,6 +3085,7 @@ export type Database = {
           agreed_terms_version?: string | null
           company_id: string
           created_at?: string
+          created_via?: string | null
           department?: string | null
           id?: string
           invitation_token?: string | null
@@ -3106,6 +3108,7 @@ export type Database = {
           agreed_terms_version?: string | null
           company_id?: string
           created_at?: string
+          created_via?: string | null
           department?: string | null
           id?: string
           invitation_token?: string | null
