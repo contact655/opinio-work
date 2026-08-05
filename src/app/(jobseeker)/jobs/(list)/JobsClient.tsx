@@ -442,7 +442,7 @@ function JobListItem({
 
 /*
   ⚠️ 型には残っているのに分割代入で受け取っていない props がある。
-     salaryMax / bizModel / techStack / onTechStackChange / industries / industryId /
+     bizModel / techStack / onTechStackChange / industries / industryId /
      onCompanyStageChange の7つで、**サイドバーにこれらのUIが無い**ため。
      絞り込みロジック自体は上位（1060行〜）に実装済みで、URLパラメータやモバイルの
      フィルタシートからは効く。サイドバーに足すときはここで受け取ればよい。
@@ -458,15 +458,13 @@ function SidebarFilters({
   industry,
 }: {
   parentRoles: { id: string; name: string }[];
-  category: string; workStyle: string; salary: string; salaryMax: string; empType: string; prefecture: string;
+  category: string; workStyle: string; salary: string; empType: string; prefecture: string;
   bizModel: string; industry: string;
   companyStage: string; onCompanyStageChange: (v: string) => void;
   techStack: string[]; onTechStackChange: (v: string[]) => void;
   availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   hasFilter: boolean; q: string; onReset: () => void;
-  industries: { id: string; parent_id: string | null; name: string; slug: string }[];
-  industryId: string;
   roleCounts?: Map<string, number>;
   toggleParam: (key: string, value: string, current: string) => void;
   toggleStage: (value: string) => void;
@@ -694,17 +692,25 @@ function SidebarFilters({
 
 // ─── モバイル「詳細条件」アコーディオン ────────────────────────────────────────────
 
+/*
+  モバイルのフィルタシート内「詳細条件」アコーディオン。
+  シートの他のセクション（職種 / 勤務形態 / 年収下限 / 業態 / 技術スタック）とは
+  重複しない条件だけを置く。ここが業種・雇用形態・企業ステージの唯一のモバイル導線。
+
+  ⚠️ 業種は industry（INDUSTRY_GROUPS のグループキー）を使うこと。
+     2026-08-06 まで ow_industries マスタの industry_id を使っており、
+     デスクトップのサイドバー（industry）とモバイルで別の業種UIになっていた。
+     選択肢も粒度も違うので、片方で絞ってもう片方を見ると噛み合わない。
+*/
 function MobileDetailSection({
-  industryId, empType, companyStage, industries, setParam, onCompanyStageChange,
+  industry, empType, companyStage, setParam, onCompanyStageChange,
 }: {
-  industryId: string; empType: string; companyStage: string;
-  industries: { id: string; parent_id: string | null; name: string; slug: string }[];
+  industry: string; empType: string; companyStage: string;
   setParam: (key: string, value: string) => void;
   onCompanyStageChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const hasActive = !!industryId || !!empType || !!companyStage;
-  const parentIndustries = industries.filter((i) => !i.parent_id);
+  const hasActive = !!industry || !!empType || !!companyStage;
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${hasActive ? "var(--royal)" : "var(--line)"}`, overflow: "hidden" }}>
       <button type="button" onClick={() => setOpen((v) => !v)}
@@ -719,20 +725,21 @@ function MobileDetailSection({
         </svg>
       </button>
       <div style={{ display: open ? "flex" : "none", flexDirection: "column", gap: 16, padding: "14px 14px" }}>
-        {/* 業種 */}
-        {parentIndustries.length > 0 && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>業種</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-              {parentIndustries.map((ind) => (
-                <button key={ind.id} type="button" onClick={() => setParam("industry_id", industryId === ind.id ? "" : ind.id)}
-                  style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${industryId === ind.id ? "var(--royal)" : "var(--line)"}`, background: industryId === ind.id ? "var(--royal-50)" : "#fff", color: industryId === ind.id ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: industryId === ind.id ? 700 : 400 }}>
-                  {ind.name}
+        {/* 業種 — サイドバーと同じ INDUSTRY_GROUPS / 同じ URL パラメータ */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>業種</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {INDUSTRY_GROUPS.map((g) => {
+              const active = industry === g.key;
+              return (
+                <button key={g.key} type="button" onClick={() => setParam("industry", active ? "" : g.key)}
+                  style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                  {g.label}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
+        </div>
         {/* 雇用形態 */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
@@ -798,9 +805,15 @@ export default function JobsClient({
   const dept = searchParams.get("dept") ?? "";       // 後方互換 (新規 URL では未使用)
   const work_style = searchParams.get("work_style") ?? "";
   const salary = searchParams.get("salary") ?? "";
-  const salaryMax = searchParams.get("salary_max") ?? "";
+  /* ⚠️ 2026-08-06 に salary_max を削除した。指定するUIがサイドバーにもピル行にも
+        フィルタシートにも無く、URLを手で書く以外に到達できなかった。
+        年収は下限指定（salary・8段階）が自然な軸なのでそちらに一本化する。
+        レンジ指定が必要になったら、ピルを「400〜600万」型に作り替えるところから設計すること。 */
   const industry = searchParams.get("industry") ?? "";
-  const industryId = searchParams.get("industry_id") ?? "";
+  /* ⚠️ 2026-08-06 に industry_id を削除した。指定できるのは MobileDetailSection だけで、
+        そこをデスクトップと同じ industry（INDUSTRY_GROUPS のグループキー）に揃えた結果、
+        到達手段が無くなったため。外部から ?industry_id= を作るリンクも存在しない。
+        ow_industries マスタで絞りたくなったら、まず industry との二本立てをどうするか決めること。 */
   const prefecture = searchParams.get("prefecture") ?? "";
   const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター（カンマ区切り複数可）
   const bizModel = searchParams.get("biz_model") ?? ""; // 業態タグフィルター
@@ -865,7 +878,18 @@ export default function JobsClient({
   }
 
   // 技術スタックフィルター（複数選択 AND）
-  const [techStack, setTechStack] = useState<string[]>([]);
+  /*
+    技術スタック（複数選択・AND）。
+    ⚠️ 2026-08-06 に useState から URL パラメータに移した。
+       それまで state だけで持っていたため、リロードでも共有でも消えており、
+       他のフィルタと挙動が違った（絞り込んだ結果のURLを人に送ると別の結果が出る）。
+    ⚠️ 区切りはカンマ。emp_type / work_style / category と同じ形式に揃えている。
+  */
+  const techStack = useMemo(
+    () => (searchParams.get("tech_stack") ?? "").split(",").filter(Boolean),
+    [searchParams],
+  );
+  const setTechStack = (next: string[]) => setParam("tech_stack", next.join(","));
 
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -1082,12 +1106,6 @@ export default function JobsClient({
       }
     }
 
-    if (salaryMax) {
-      const max = parseInt(salaryMax, 10);
-      if (!isNaN(max)) {
-        list = list.filter((j) => (j.salary_min ?? 0) > 0 && (j.salary_min ?? 0) <= max);
-      }
-    }
 
     if (industry) {
       const companyIds = companies
@@ -1096,21 +1114,6 @@ export default function JobsClient({
       list = list.filter((j) => companyIds.includes(j.company_id));
     }
 
-    // industry_id フィルター（ow_industries マスタ使用。親IDを選択した場合は子IDも含む）
-    if (industryId) {
-      const childIds = new Set(
-        industries.filter((i) => i.parent_id === industryId).map((i) => i.id)
-      );
-      const companyIds = new Set(
-        companies
-          .filter((c) => {
-            const cid = (c as { industry_id?: string | null }).industry_id;
-            return cid && (cid === industryId || childIds.has(cid));
-          })
-          .map((c) => c.id)
-      );
-      list = list.filter((j) => companyIds.has(j.company_id));
-    }
 
     // 都道府県フィルタ (job.location から抽出した都道府県と完全一致)
     if (prefecture) {
@@ -1199,7 +1202,7 @@ export default function JobsClient({
     }
 
     return { list, ignoredTerms };
-  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, empTypeSet, companyStage, companyStageSet, techStack, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, bizModel, industry, prefecture, empType, empTypeSet, companyStage, companyStageSet, techStack, sort, companies, companyMap, roleAliases, industries]);
 
   const filtered = searchResult.list;
   const ignoredTerms = searchResult.ignoredTerms;
@@ -1234,7 +1237,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, salaryMax, bizModel, industry, industryId, prefecture, empType, sort, q, bizOnly, companyStage, techStack.join(",")].join("|");
+  const filterKey = [category, dept, work_style, salary, bizModel, industry, prefecture, empType, sort, q, bizOnly, companyStage, techStack.join(",")].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1259,7 +1262,7 @@ export default function JobsClient({
     return () => observer.disconnect();
   }, [hasMore]);
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || industryId || prefecture || empType || companyStage || techStack.length || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || prefecture || empType || companyStage || techStack.length || bizOnly);
 
 
   const roleCounts = useMemo(() => {
@@ -1701,7 +1704,6 @@ export default function JobsClient({
                 category={category}
                 workStyle={work_style}
                 salary={salary}
-                salaryMax={salaryMax}
                 empType={empType}
                 bizModel={bizModel}
                 prefecture={prefecture}
@@ -1714,8 +1716,6 @@ export default function JobsClient({
                 hasFilter={hasFilter}
                 q={q}
                 onReset={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                industries={industries}
-                industryId={industryId}
                 industry={industry}
                 roleCounts={roleCounts}
                 toggleParam={toggleParam}
@@ -2250,8 +2250,8 @@ export default function JobsClient({
 
               {/* 詳細条件アコーディオン */}
               <MobileDetailSection
-                industryId={industryId} empType={empType} companyStage={companyStage}
-                industries={industries} setParam={setParam} onCompanyStageChange={setCompanyStage}
+                industry={industry} empType={empType} companyStage={companyStage}
+                setParam={setParam} onCompanyStageChange={setCompanyStage}
               />
             </div>
 
