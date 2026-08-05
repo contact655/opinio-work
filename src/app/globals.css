@@ -918,13 +918,15 @@ body {
   .ca-steps-grid { grid-template-columns: 1fr !important; }
 }
 
-/* ─── LP プロダクトプレビュー ─────────────────────────────────────────────
+/* ─── プロダクトプレビュー（ProductShot）─────────────────────────────────
+   ⚠️ 2026-08-05 時点、ProductShot の呼び出し元は0件（FV から画像を外したため）。
+      ここを消すと、次に ProductShot を使ったとき3段の画像が縦に3枚並ぶ。
+      コンポーネントを残す判断なので、その素であるこの節も残している。
+
    ⚠️ ここに置いている理由: content: "" の引用符を Server Component の
    style タグに書くと React が実体参照にエスケープし、style は raw text 要素
    なのでブラウザが復元せずルールが壊れる（hydration mismatch も出る）。
    CLAUDE.md「インラインstyle と CSS の優先順位」の隣に同じ話を記録している。 */
-
-.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
 
 .pp-frame {
   display: block; background: #fff; border: 1px solid;
@@ -978,6 +980,3 @@ body {
   .pp-wide { display: block; }
 }
 
-@media (max-width: 900px) {
-  .pp-grid { grid-template-columns: 1fr; gap: 28px; }
-}

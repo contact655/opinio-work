@@ -3,7 +3,6 @@ import Image from "next/image";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { HeroSearch } from "./HeroSearch";
 import { FinalCta } from "./FinalCta";
-import { ProductShot } from "./ProductShot";
 
 /**
  * DATA セクション「経歴が構造化されている」に添える実画面。
@@ -35,44 +34,44 @@ const CAREER_SHOT: {
   alt: string;
 } | null = null;
 
-/**
- * FV の検索窓の直下に置く実画面。1枚だけ。
+/*
+ * ═══ FV のプロダクト画像（2026-08-05 に外した）═══════════════════════════════
  *
- * ⚠️ 表示幅は約1000px（.lp-fv-shot）。v2 の切り出しはそのままでは使えない。
- *    v2 は 640〜660 CSS px 幅の切り出しで、1000px に置くと 1.5倍に引き伸ばされる。
- *    文字が大きくなりすぎるうえ、右端が文の途中で切れているのが露骨に出る
- *    （518px の2列グリッドでは「続きがある」に見えていた）。
- *    そのため 1000px 表示用に v3 を切り直した（2026-08-05）。
+ * 検索窓の直下に実画面を1枚置いていたが、FV は「見出し ＋ 検索窓」だけにする方針に
+ * したため削除した。ProductShot ごと消してはいない（下記「戻すとき」を参照）。
  *
- * ── 3段の切り出し（幅ごとの比率は ProductShot.tsx のコメントに表がある）──────
- *   wide    preview-search-v3.webp     2500×1120  viewport 1250 の全幅を切り出し
+ * ⚠️ 画像ファイルは残してある。参照を外しただけ。切り出し条件は下に記録している。
+ *
+ * ── 募集検索（採用していたほう）──────────────────────────────────────────
+ *   wide    preview-search-v3.webp     2500×1120  viewport 1250 の全幅
+ *                                                （自前のヘッダーは含めない。
+ *                                                  LP の実ヘッダーと二重に見えるため）
  *   mid     preview-search-md-v3.webp  1552×940   viewport 1140 の求人リスト列（776px）
- *   narrow  preview-search-sm-v2.webp   900×376   v2 のまま（450px 相当）
+ *   narrow  preview-search-sm-v2.webp   900×376   450px 相当
+ *   alt     OPINIO の募集検索結果。職種・年収・勤務形態で絞り込め、各募集に年収レンジが表示されている。
+ *   href    /jobs
  *
- *   ⚠️ mid は 2026-08-05 に追加。それまで 621〜1019px の帯では narrow（450px）を
- *      最大 963px まで引き伸ばしていた（768px で 1.62倍）。
- *   ⚠️ narrow を v3 にしていないのは、モバイル実機のレイアウトで撮り直すと
- *      タイトルが省略され年収が2行に折れて、v2（リストの縮小）より読みにくくなるため。
+ * ── 企業ページの導入事例（候補どまり）────────────────────────────────────
+ *   wide    preview-company-v3.webp     1860×1120  企業ページ本文列（930px）
+ *   narrow  preview-company-sm-v2.webp   900×311
+ *   alt     OPINIO の企業ページ。導入事例ごとに活用内容と成果が並んでいる。
+ *   href    /companies
+ *   ⚠️ mid は存在しない。こちらを使うなら先に作ること
+ *      （/companies/[id] の導入事例を viewport 1140 前後で 776px 幅に切り出す）。
  *
+ * ── 戻すとき ──────────────────────────────────────────────────────────────
+ * ① ProductShot に wide / mid / narrow を渡して検索窓の下に置く
+ * ② 表示幅を決める入れ物（旧 .lp-fv-shot = width:100%; max-width:1000px）を作る
+ * ③ 注記「画面は実際のものです。掲載内容は変わることがあります。」を画像の下に置く
+ *
+ * ⚠️ 表示幅を変えるなら切り出しから作り直すこと。切り出し幅 c と表示幅 d は
+ *    0.77 ≦ d/c ≦ 1.3 に収める（根拠と実測値は ProductShot.tsx のコメント）。
+ *    v2（640〜660px）を 1000px で出そうとして 1.5倍に伸び、右端が文の途中で
+ *    切れているのも露骨に出たのが v3 を切り直した理由。
  * ⚠️ 差し替えるときはファイル名の連番を上げること（v3 → v4）。
  *    Next の画像最適化は元パスをキーにするので、同名だと古いバイト列が配信され続ける。
- *
- * ── もう一方の候補（ファイルは残してある）────────────────────────────────
- *   企業ページの導入事例:
- *     wide:   /images/lp/preview-company-v3.webp    1860×1120
- *     narrow: /images/lp/preview-company-sm-v2.webp  900×311
- *     alt:    OPINIO の企業ページ。導入事例ごとに活用内容と成果が並んでいる。
- *     href:   /companies
- *   ⚠️ こちらに切り替えるなら mid を先に作ること（company の mid は存在しない）。
- *      /companies/[id] の導入事例を viewport 1140 前後で 776px 幅に切り出す。
+ * ═══════════════════════════════════════════════════════════════════════════
  */
-const FV_SHOT = {
-  wide:   { src: "/images/lp/preview-search-v3.webp",    w: 2500, h: 1120 },
-  mid:    { src: "/images/lp/preview-search-md-v3.webp", w: 1552, h: 940 },
-  narrow: { src: "/images/lp/preview-search-sm-v2.webp", w: 900,  h: 376 },
-  alt: "OPINIO の募集検索結果。職種・年収・勤務形態で絞り込め、各募集に年収レンジが表示されている。",
-  href: "/jobs",
-};
 
 const CAREER_CARD = {
   title: "経歴が構造化されている",
@@ -210,12 +209,6 @@ export default function LandingPage({
 
         .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
-        /* FV の実画面。検索窓（1000px）と同じ幅に揃える。
-           ⚠️ 高さの上限（.pp-shot の max-height）はここで持たないこと。
-              globals.css 側が幅の段ごとに切り替えており、ここに書くと
-              詳細度（0,2,0）で勝ってメディアクエリを無効にしてしまう。 */
-        .lp-fv-shot { width: 100%; max-width: 1000px; margin-top: 40px; }
-
         .lp-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
         /* 経歴カードに画面を入れるときだけ、上段を2列にして経歴を全幅の行に出す。
            3列のまま1枚だけ縦長画像を入れると、そのカードだけ約600pxになり
@@ -243,7 +236,6 @@ export default function LandingPage({
           .lp-wrap { padding: 0 18px; }
           .lp-facets { grid-template-columns: repeat(2, 1fr); }
           .lp-cards, .lp-jobs, .lp-trust { grid-template-columns: 1fr; }
-          .lp-fv-shot { margin-top: 28px; }
           /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
              620px までは wide の切り出しのまま。ここでは表示幅が 600px 前後あり、
              縮小率 0.85 で本文が読める。 */
@@ -302,20 +294,6 @@ export default function LandingPage({
           </h1>
 
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
-
-          {/*
-            検索窓の直下に実画面を1枚だけ置く。
-            2026-08-05 まで HOW IT WORKS（探して、比べて、決める）に2枚並べていたが、
-            説明が汎用的で OPINIO でなくても書けるため節ごと削除し、画像だけをここに移した。
-            ⚠️ 使わなかったほうの画像（FV_SHOT の下のコメント参照）はファイルを消していない。
-               差し替えは FV_SHOT の定義を入れ替えるだけでよい。
-          */}
-          <div className="lp-fv-shot">
-            <ProductShot wide={FV_SHOT.wide} mid={FV_SHOT.mid} narrow={FV_SHOT.narrow} alt={FV_SHOT.alt} href={FV_SHOT.href} line={C.line} />
-            <p style={{ marginTop: 14, fontSize: 12, color: C.muted }}>
-              画面は実際のものです。掲載内容は変わることがあります。
-            </p>
-          </div>
         </div>
       </section>
 
