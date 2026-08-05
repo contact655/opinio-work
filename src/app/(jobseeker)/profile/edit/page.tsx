@@ -70,7 +70,17 @@ export default async function ProfileEditPage({
           .order("is_current", { ascending: false })
           .order("started_at", { ascending: false })
       : Promise.resolve({ data: [] }),
-    supabase.from("ow_roles").select("id, name, parent_id, display_order").order("display_order"),
+    /*
+      職歴入力の選択肢。
+      ⚠️ is_active = true で絞る（2026-08-06 に追加）。無効化・統合済みの職種を
+         新規入力の候補に出さないため。
+      ⚠️ is_it_saas では絞らない。過去職歴には非IT職が入るため
+         （非IT系の大分類7件は is_it_saas = false で登録してある）。
+      ⚠️ ここで絞った結果、**既に持っている職種が候補から消える**ことがある。
+         そのまま編集画面を開くとセレクトが空になり、保存した瞬間に職種が失われる。
+         下の allRoles で「現在選択中の職種」を必ず足し戻すこと。
+    */
+    supabase.from("ow_roles").select("id, name, parent_id, display_order").eq("is_active", true).order("display_order"),
     owUser
       ? supabase
           .from("ow_user_content_links")
@@ -80,9 +90,47 @@ export default async function ProfileEditPage({
       : Promise.resolve({ data: [] }),
   ]);
 
-  // Build typed roles array for dynamic dropdown (Phase 2-A)
+  /*
+    Build typed roles array for dynamic dropdown (Phase 2-A)
+
+    ⚠️ 既存の職歴が持っている職種は、is_active の条件から外れていても候補に残す。
+       落とすと編集画面でセレクトが空になり、ユーザーが別項目だけ直して保存した瞬間に
+       職種が失われる。統合・無効化を運用で回す以上、必ず起きる。
+       ⚠️ 親も一緒に足すこと。子だけ足しても、親セレクトに親が無ければ子セレクトが開かない。
+  */
+  const activeRoleIds = new Set((allRoles ?? []).map((r) => r.id as string));
+  const selectedRoleIds = Array.from(
+    new Set(
+      ((expRows ?? []) as { role_category_id?: string | null }[])
+        .map((e) => e.role_category_id)
+        .filter((id): id is string => !!id && !activeRoleIds.has(id)),
+    ),
+  );
+
+  let extraRoles: Record<string, unknown>[] = [];
+  if (selectedRoleIds.length > 0) {
+    const { data: missing } = await supabase
+      .from("ow_roles")
+      .select("id, name, parent_id, display_order")
+      .in("id", selectedRoleIds);
+    extraRoles = (missing ?? []) as Record<string, unknown>[];
+
+    // 親が候補に無いと子セレクトに到達できないので、親も足す
+    const parentIds = Array.from(new Set(
+      extraRoles.map((r) => r.parent_id as string | null)
+        .filter((id): id is string => !!id && !activeRoleIds.has(id)),
+    ));
+    if (parentIds.length > 0) {
+      const { data: parents } = await supabase
+        .from("ow_roles")
+        .select("id, name, parent_id, display_order")
+        .in("id", parentIds);
+      extraRoles = [...extraRoles, ...((parents ?? []) as Record<string, unknown>[])];
+    }
+  }
+
   const roles: { id: string; name: string; parent_id: string | null; display_order: number }[] =
-    (allRoles ?? []).map((r) => ({
+    [...(allRoles ?? []), ...extraRoles].map((r) => ({
       id: r.id as string,
       name: r.name as string,
       parent_id: (r.parent_id as string | null) ?? null,

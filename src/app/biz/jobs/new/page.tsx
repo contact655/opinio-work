@@ -24,7 +24,15 @@ export default async function JobNewPage() {
   const adminClient = createAdminClient();
   const [teamMembers, rolesResult, deptsResult] = await Promise.all([
     fetchTeamMembers(supabase, ctx.tenantId),
-    adminClient.from("ow_roles").select("id, parent_id, name, level").eq("is_active", true).order("display_order", { ascending: true }),
+    /*
+      求人フォームの職種候補。
+      ⚠️ is_active = true かつ is_it_saas = true で絞る（is_it_saas は 2026-08-06 に追加）。
+         is_it_saas は「OPINIO の掲載企業（SaaS/IT）の求人で使う職種か」の意味に
+         再定義した。非IT系の大分類7件（医療・建設・製造ほか）は求人には出さない。
+         ⚠️ ユーザーの職歴入力（/profile/edit）ではこのフラグで絞らないこと。
+            過去職歴には非IT職が入る。
+    */
+    adminClient.from("ow_roles").select("id, parent_id, name, level").eq("is_active", true).eq("is_it_saas", true).order("display_order", { ascending: true }),
     supabase.from("ow_company_departments").select("id, parent_id, name, display_order").eq("company_id", ctx.tenantId).is("deleted_at", null).order("display_order").order("name"),
   ]);
 
