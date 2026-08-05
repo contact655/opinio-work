@@ -941,7 +941,8 @@ body {
 .pp-bar i { width: 9px; height: 9px; border-radius: 50%; display: block; }
 
 /* 下端フェード。画像はここで切れているのではなく続いている、と伝える */
-.pp-shot { display: block; position: relative; max-height: 330px; overflow: hidden; }
+/* 高さの上限は下のメディアクエリで段ごとに決める。ここでは持たない */
+.pp-shot { display: block; position: relative; overflow: hidden; }
 .pp-shot::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 88px;
   background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
@@ -950,16 +951,33 @@ body {
 
 /* 差別化カードに添える実画面。上端だけ見せて下をフェードさせる */
 
-/* 広い画面 / 狭い画面で画像そのものを差し替える。
+/* 画面幅で画像そのものを差し替える。3段の切り出し幅と表示幅の対応は
+   ProductShot.tsx のコメントにまとめてある。
    ⚠️ display はここで持つこと。インラインに書くとこのメディアクエリが効かない
-   （CLAUDE.md「インラインstyle と CSS の優先順位」）。 */
-.pp-wide   { display: block; }
-.pp-narrow { display: none; }
+   （CLAUDE.md「インラインstyle と CSS の優先順位」）。
+   ⚠️ min-width で下から積むこと。max-width で書くと3段の打ち消し順が読めなくなる。 */
+.pp-wide   { display: none; }
+.pp-mid    { display: none; }
+.pp-narrow { display: block; }
+
+/* narrow は切り出し済みで元々短いため、高さを抑える必要がない。フェードだけ残す */
+.pp-shot { max-height: none; }
+
+/* 621px 以上: 中間の切り出し（c=776）。768px で 450px を 1.62倍に伸ばしていた穴を埋める */
+@media (min-width: 621px) {
+  .pp-narrow { display: none; }
+  .pp-mid    { display: block; }
+  .pp-shot   { max-height: 420px; }
+}
+
+/* 1020px 以上: 広い切り出し（c=1250）。
+   900px ではなく 1020px なのは、901px で .lp-wrap の padding が 18→28px に変わり
+   表示幅が 864→845px と一度縮むため。964px まで戻ってから渡す */
+@media (min-width: 1020px) {
+  .pp-mid  { display: none; }
+  .pp-wide { display: block; }
+}
 
 @media (max-width: 900px) {
   .pp-grid { grid-template-columns: 1fr; gap: 28px; }
-  .pp-wide   { display: none; }
-  .pp-narrow { display: block; }
-  /* 切り出し済みなので高さを抑える必要がない。フェードだけ残す */
-  .pp-shot { max-height: none; }
 }
