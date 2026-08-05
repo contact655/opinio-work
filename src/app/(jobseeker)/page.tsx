@@ -7,6 +7,7 @@ import LandingPage, {
   type LPTotals,
 } from "./LandingPage";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { pickLpCompanies } from "@/lib/lp/pickCompanies";
 
 /**
  * 掲載数は実データから出す。ハードコードすると外から見える説明文が古いまま腐るため。
@@ -85,12 +86,6 @@ export default async function HomePage() {
     .not("school_id", "is", null);
 
   // ── プレビュー（各12件だけ）──────────────────────────────────────
-  // 中身が入っている企業を優先する。求人・記事を持つ企業IDは
-  // コンテンツ量に比例する小さな集合なので、企業数が増えても取得コストは増えない。
-  const jobCompanyIdsP = db.from("ow_jobs").select("company_id").eq("status", "published");
-  const articleCompanyIdsP = db
-    .from("ow_articles").select("company_id").eq("is_published", true).not("company_id", "is", null);
-
   const jobsP = db
     .from("ow_jobs")
     .select(
@@ -100,39 +95,16 @@ export default async function HomePage() {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(PREVIEW_JOBS);
 
-  const [facetRes, companyCountRes, jobCountRes, jobsRes, schoolRes, jobCoRes, articleCoRes] =
-    await Promise.all([facetRowsP, companyCountP, jobCountP, jobsP, schoolRowsP, jobCompanyIdsP, articleCompanyIdsP]);
+  const [facetRes, companyCountRes, jobCountRes, jobsRes, schoolRes] =
+    await Promise.all([facetRowsP, companyCountP, jobCountP, jobsP, schoolRowsP]);
 
   // ── ピックアップ企業の選定 ──────────────────────────────────────
-  // 記事・求人・社員のいずれかが入っている企業を優先する。
-  // 数を隠す方針ではないので 0 はそのまま表示するが、プレビューに出す顔ぶれは
-  // 中身のあるものを先に見せる。
-  const withContentIds = Array.from(new Set([
-    ...((jobCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
-    ...((articleCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
-  ].filter(Boolean) as string[]));
-
-  const COMPANY_COLS = "id, name, brand_name, industry, phase, logo_url, logo_letter, logo_gradient, url";
-  const pickedP = withContentIds.length > 0
-    ? db.from("ow_companies").select(COMPANY_COLS).eq("is_published", true)
-        .in("id", withContentIds).order("updated_at", { ascending: false }).limit(PREVIEW_COMPANIES)
-    : Promise.resolve({ data: [], error: null });
-  const pickedRes = await pickedP;
-
-  // 中身のある企業だけで枠が埋まらない場合は、更新の新しい企業で補う
-  let companyRowsRaw = (pickedRes.data ?? []) as Record<string, unknown>[];
-  if (companyRowsRaw.length < PREVIEW_COMPANIES) {
-    const exclude = companyRowsRaw.map((c) => c.id as string);
-    let fill = db.from("ow_companies").select(COMPANY_COLS).eq("is_published", true)
-      .order("updated_at", { ascending: false }).limit(PREVIEW_COMPANIES - companyRowsRaw.length);
-    if (exclude.length > 0) fill = fill.not("id", "in", `(${exclude.join(",")})`);
-    const fillRes = await fill;
-    if (fillRes.error) console.error("[HomePage] company fill fetch failed:", fillRes.error.message);
-    companyRowsRaw = [...companyRowsRaw, ...((fillRes.data ?? []) as Record<string, unknown>[])];
-  }
+  // ⚠️ 基準は src/lib/lp/pickCompanies.ts に切り出してある。
+  //    在庫が増えたら「注目順／新着順」に差し替えるのはあちらだけで済む。
+  const companyRowsRaw = await pickLpCompanies(db, PREVIEW_COMPANIES);
 
   for (const [label, res] of Object.entries({
-    facets: facetRes, jobs: jobsRes, schools: schoolRes, picked: pickedRes,
+    facets: facetRes, jobs: jobsRes, schools: schoolRes,
   })) {
     if (res.error) console.error(`[HomePage] ${label} fetch failed:`, res.error.message);
   }

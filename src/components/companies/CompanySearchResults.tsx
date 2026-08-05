@@ -3,6 +3,7 @@
 // キーワード / フィルタが適用されているときのみ表示（カルーセルの代わり）
 
 import Link from "next/link";
+import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { searchCompanies } from "@/lib/search/companies";
 import type { WorkStyleValue } from "@/lib/search/companies";
 import { CompanyCardList } from "./CompanyCardList";
@@ -129,6 +130,31 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
             }}>
               面談受付中の企業を見る
             </Link>
+          </div>
+
+          {/* 業種から辿り直す導線（2026-08-05 追加）。
+              ⚠️ キーワードを変えるか条件を減らすか、の2択で行き止まりにしないため。
+                 URL は LP の業種チップと同じ形式（/companies?industry=<key>）に揃えている。 */}
+          <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 12 }}>
+              業種から探す
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+              {INDUSTRY_GROUPS.map((g) => (
+                <Link
+                  key={g.key}
+                  href={`/companies?industry=${g.key}`}
+                  style={{
+                    padding: "7px 14px", borderRadius: 100,
+                    background: "#fff", border: "1px solid var(--line)",
+                    fontSize: 12.5, fontWeight: 600, color: "var(--ink)", textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {g.label}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       ) : (

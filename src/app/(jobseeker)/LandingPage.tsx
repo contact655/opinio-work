@@ -3,7 +3,7 @@ import Image from "next/image";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { HeroSearch } from "./HeroSearch";
 import { FinalCta } from "./FinalCta";
-import { ProductPreview } from "./ProductPreview";
+import { ProductShot } from "./ProductShot";
 
 /**
  * DATA セクション「経歴が構造化されている」に添える実画面。
@@ -266,73 +266,6 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* ══ プロダクト画面プレビュー（FV の主張の裏付け）════════════════════ */}
-      <ProductPreview line={C.line} navy={C.navy} muted={C.muted} blue={C.blue} />
-
-      {/* ══ データの出どころ ══════════════════════════════════════════════════ */}
-      <section className="lp-section">
-        <div className="lp-wrap">
-          <div className="lp-sec-head">
-            <div>
-              <div className="lp-eyebrow">DATA</div>
-              <h2 className="lp-h2">このデータは、どこから来ているか</h2>
-            </div>
-          </div>
-          <div className={CAREER_SHOT ? "lp-trust lp-trust-2" : "lp-trust"}>
-            {[
-              // ⚠️ 「企業情報を独自に作成している」に実画面を添えていたが 2026-08-04 に外した。
-              //    カード幅342px・画像292pxでは、文字が読める切り出し幅の上限が380pxしかなく、
-              //    導入事例1件の左半分（読める数字は1つ）しか入らないため。
-              //    2026-08-05 に再検証しても同じで、既存の preview-company-v2.webp は
-              //    518px表示用の切り出しなので295pxでは成果の数字が潰れる。
-              //    ここに画像を戻すなら、もっと寄った別の切り出しが要る。
-              {
-                title: "企業情報を独自に作成している",
-                body: "掲載企業の情報は web から自動で集めたものではなく、OPINIO が作成・編集しています。事業内容・組織体制・働き方まで揃えています。",
-              },
-              // ⚠️ 2026-08-04 まで「所属が認証されている / 本人が名乗っているのではなく
-              //    企業側が在籍を確認しています」と書いていたが、事実と正反対だったため差し替えた。
-              //    実測: 公開中の所属4件はすべて invited_at / invited_by が空で、
-              //    企業側の招待フローを通っていない（運営が直接作った行）。
-              //    ドメイン認証済みの企業も 85社中0社。所属は自己申告である。
-              //    企業側の確認フローが実際に回り始めるまで、認証を主張しないこと。
-              { title: "募集を出していない企業も載っている", body: "求人の有無にかかわらず企業ページを作っています。いま募集がない会社も、事業や組織を先に調べておけます。" },
-              // CAREER_SHOT が無いあいだは、経歴カードもここに並べて3列に戻す
-              ...(CAREER_SHOT ? [] : [CAREER_CARD]),
-            ].map((t) => (
-              <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, display: "flex", flexDirection: "column" }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{t.title}</h3>
-                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{t.body}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* 経歴カードは画面つきのときだけ全幅の行に分ける（理由は .lp-trust-wide のコメント） */}
-          {CAREER_SHOT && (
-            <div className="lp-trust-wide">
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{CAREER_CARD.title}</h3>
-                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{CAREER_CARD.body}</p>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 12, marginBottom: 0 }}>
-                  画面は実際のものです。掲載内容は変わることがあります。
-                </p>
-              </div>
-              {/* 画面幅で画像そのものを差し替える。CSS の縮小では読めるようにならない
-                  （理由は CAREER_SHOT のコメントと .lp-career-* を参照） */}
-              <span className="lp-career-wide">
-                <Image src={CAREER_SHOT.wide.src} alt={CAREER_SHOT.alt}
-                  width={CAREER_SHOT.wide.w} height={CAREER_SHOT.wide.h} sizes="584px" />
-              </span>
-              <span className="lp-career-narrow">
-                <Image src={CAREER_SHOT.narrow.src} alt={CAREER_SHOT.alt}
-                  width={CAREER_SHOT.narrow.w} height={CAREER_SHOT.narrow.h} sizes="100vw" />
-              </span>
-            </div>
-          )}
-        </div>
-      </section>
-
-
       {/* ══ ファセット ═══════════════════════════════════════════════════════ */}
       <section className="lp-section" style={{ background: C.paper2 }}>
         <div className="lp-wrap">
@@ -395,20 +328,34 @@ export default function LandingPage({
                     </small>
                   </div>
                 </div>
-                {/* 0 でも欄を出す。件数が増えたときに伸びが見えるようにするため */}
-                {/* ラベルは 600 / 数字は 700 + navy。ウェイトを上げても「数字が主役」の階層は色で保つ */}
-                <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, fontWeight: 600, color: C.muted }}>
-                  {[
+                {/*
+                  ⚠️ 0 の項目は出さない（2026-08-05 変更）。「—」も出さない。
+                     以前は「件数が増えたときに伸びが見える」ことを理由に 0 を出していたが、
+                     実データでは12社中 社員0が11社・求人0が5社・記事0が4社で、
+                     最も目立つ場所に 0 が並ぶ状態になっていた。
+                     値が無いものを出さない、という既存方針に揃える。
+                  ⚠️ 3項目とも 0 なら行ごと出さない。現データでは該当0社だが、
+                     在庫が増えると発生しうるので分岐は残す。
+                  ラベルは 600 / 数字は 700 + navy。
+                */}
+                {(() => {
+                  const facts = [
                     { label: "記事", n: c.articleCount },
                     { label: "求人", n: c.jobCount },
                     { label: "社員", n: c.memberCount },
-                  ].map((m) => (
-                    <span key={m.label}>
-                      {m.label}{" "}
-                      <strong style={{ fontFamily: 'var(--font-inter), sans-serif', fontWeight: 700, color: m.n > 0 ? C.navy : C.muted }}>{m.n}</strong>
-                    </span>
-                  ))}
-                </div>
+                  ].filter((m) => m.n > 0);
+                  if (facts.length === 0) return null;
+                  return (
+                    <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, fontWeight: 600, color: C.muted }}>
+                      {facts.map((m) => (
+                        <span key={m.label}>
+                          {m.label}{" "}
+                          <strong style={{ fontFamily: 'var(--font-inter), sans-serif', fontWeight: 700, color: C.navy }}>{m.n}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
               </Link>
             ))}
           </div>
@@ -511,22 +458,116 @@ export default function LandingPage({
               <h2 className="lp-h2">探して、比べて、決める</h2>
             </div>
           </div>
-          <div className="lp-steps">
+          {/*
+            01 / 02 は実画面つきなので2列。03 は画像が無いのでその下に1枚で置く。
+            ⚠️ 3列にしないこと。表示幅が約294pxになり、画像の13pxの文字が6pxになって読めない。
+               画像は「表示幅 × 1.3」を上限に切り出してある（.pp-grid の518px前提）。
+               2026-08-04 に DATA カードで同じ失敗をして画像を一度外している。
+            ⚠️ ここに置いた画像は、以前 FV 直下にあった独立セクション（ProductPreview）のもの。
+               下の HOW IT WORKS と同じ説明を2回していたので統合した。意匠は .pp-* をそのまま使う。
+          */}
+          <div className="pp-grid" style={{ marginBottom: 18 }}>
             {[
-              { n: "01", title: "探す", body: "業種・フェーズ・勤務形態で絞り込む。登録は要りません。", href: "/companies" },
-              { n: "02", title: "比べる", body: "記事・求人・働く人の経歴を、企業ページで横に並べて見る。", href: "/companies" },
-              // 転職を前提にしない。「今は動かない」も結論として扱う
-              { n: "03", title: "決める", body: "応募する、時期を待つ、今の会社に残る。急かす連絡は届きません。", href: "/jobs" },
+              {
+                n: "01", title: "探す", body: "業種・フェーズ・勤務形態で絞り込む。登録は要りません。", href: "/companies",
+                wide:   { src: "/images/lp/preview-search-v2.webp",    w: 1280, h: 800 },
+                narrow: { src: "/images/lp/preview-search-sm-v2.webp", w: 900,  h: 376 },
+                alt: "OPINIO の募集検索結果。職種・年収・勤務形態で絞り込め、各募集に年収レンジが表示されている。",
+              },
+              {
+                n: "02", title: "比べる", body: "記事・求人・働く人の経歴を、企業ページで横に並べて見る。", href: "/companies",
+                wide:   { src: "/images/lp/preview-company-v2.webp",    w: 1320, h: 620 },
+                narrow: { src: "/images/lp/preview-company-sm-v2.webp", w: 900,  h: 311 },
+                alt: "OPINIO の企業ページ。主な製品・サービスと、導入事例の活用内容・成果が並んでいる。",
+              },
             ].map((s) => (
-              <Link key={s.n} href={s.href} style={{ display: "block", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, textDecoration: "none" }}>
-                <div style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>{s.n}</div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{s.title}</h3>
-                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{s.body}</p>
-              </Link>
+              <div key={s.n}>
+                <div style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 6 }}>{s.n}</div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 6 }}>{s.title}</h3>
+                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: "0 0 14px" }}>{s.body}</p>
+                <ProductShot wide={s.wide} narrow={s.narrow} alt={s.alt} href={s.href} line={C.line} />
+              </div>
             ))}
           </div>
+
+          {/* 03 は対応する画面が無いので画像なし。3枚揃える必要はない
+              （「決める」は画面上の操作ではなく本人の判断なので、そもそも絵にならない） */}
+          <Link href="/jobs" style={{ display: "block", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, textDecoration: "none" }}>
+            <div style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>03</div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>決める</h3>
+            {/* 転職を前提にしない。「今は動かない」も結論として扱う */}
+            <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>応募する、時期を待つ、今の会社に残る。急かす連絡は届きません。</p>
+          </Link>
+
+          <p style={{ marginTop: 18, fontSize: 12, color: C.muted, textAlign: "center" }}>
+            画面は実際のものです。掲載内容は変わることがあります。
+          </p>
         </div>
       </section>
+
+      {/* ══ データの出どころ ══════════════════════════════════════════════════ */}
+      <section className="lp-section">
+        <div className="lp-wrap">
+          <div className="lp-sec-head">
+            <div>
+              <div className="lp-eyebrow">DATA</div>
+              <h2 className="lp-h2">このデータは、どこから来ているか</h2>
+            </div>
+          </div>
+          <div className={CAREER_SHOT ? "lp-trust lp-trust-2" : "lp-trust"}>
+            {[
+              // ⚠️ 「企業情報を独自に作成している」に実画面を添えていたが 2026-08-04 に外した。
+              //    カード幅342px・画像292pxでは、文字が読める切り出し幅の上限が380pxしかなく、
+              //    導入事例1件の左半分（読める数字は1つ）しか入らないため。
+              //    2026-08-05 に再検証しても同じで、既存の preview-company-v2.webp は
+              //    518px表示用の切り出しなので295pxでは成果の数字が潰れる。
+              //    ここに画像を戻すなら、もっと寄った別の切り出しが要る。
+              {
+                title: "企業情報を独自に作成している",
+                body: "掲載企業の情報は web から自動で集めたものではなく、OPINIO が作成・編集しています。事業内容・組織体制・働き方まで揃えています。",
+              },
+              // ⚠️ 2026-08-04 まで「所属が認証されている / 本人が名乗っているのではなく
+              //    企業側が在籍を確認しています」と書いていたが、事実と正反対だったため差し替えた。
+              //    実測: 公開中の所属4件はすべて invited_at / invited_by が空で、
+              //    企業側の招待フローを通っていない（運営が直接作った行）。
+              //    ドメイン認証済みの企業も 85社中0社。所属は自己申告である。
+              //    企業側の確認フローが実際に回り始めるまで、認証を主張しないこと。
+              { title: "募集を出していない企業も載っている", body: "求人の有無にかかわらず企業ページを作っています。いま募集がない会社も、事業や組織を先に調べておけます。" },
+              // CAREER_SHOT が無いあいだは、経歴カードもここに並べて3列に戻す
+              ...(CAREER_SHOT ? [] : [CAREER_CARD]),
+            ].map((t) => (
+              <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, display: "flex", flexDirection: "column" }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{t.title}</h3>
+                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{t.body}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* 経歴カードは画面つきのときだけ全幅の行に分ける（理由は .lp-trust-wide のコメント） */}
+          {CAREER_SHOT && (
+            <div className="lp-trust-wide">
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{CAREER_CARD.title}</h3>
+                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{CAREER_CARD.body}</p>
+                <p style={{ fontSize: 12, color: C.muted, marginTop: 12, marginBottom: 0 }}>
+                  画面は実際のものです。掲載内容は変わることがあります。
+                </p>
+              </div>
+              {/* 画面幅で画像そのものを差し替える。CSS の縮小では読めるようにならない
+                  （理由は CAREER_SHOT のコメントと .lp-career-* を参照） */}
+              <span className="lp-career-wide">
+                <Image src={CAREER_SHOT.wide.src} alt={CAREER_SHOT.alt}
+                  width={CAREER_SHOT.wide.w} height={CAREER_SHOT.wide.h} sizes="584px" />
+              </span>
+              <span className="lp-career-narrow">
+                <Image src={CAREER_SHOT.narrow.src} alt={CAREER_SHOT.alt}
+                  width={CAREER_SHOT.narrow.w} height={CAREER_SHOT.narrow.h} sizes="100vw" />
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+
 
       {/* ══ FAQ ══════════════════════════════════════════════════════════════ */}
       <section className="lp-section" style={{ background: C.paper2 }}>

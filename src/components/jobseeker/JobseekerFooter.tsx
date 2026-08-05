@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 
 export function JobseekerFooter() {
   return (
@@ -108,6 +109,28 @@ export function JobseekerFooter() {
                 </Link>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 業種ディレクトリ ────────────────────────────────────────────────
+          在庫が増えたときにトップページが担うのは「カテゴリページへのハブ」。
+          その器を先に置いている。
+          ⚠️ URL は LP の業種チップと同じ形式（/companies?industry=<key>）。
+             片方だけ変えると同じ場所への入口が2種類できるので、必ず揃えること。
+          ⚠️ 職種軸・勤務地軸はまだ足さない。公開求人18件中17件が営業に偏っており、
+             いま職種で切ると薄さが露出する（2026-08-05 判断）。 */}
+      <div style={{ padding: "0 48px 28px" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: 1200, margin: "0 auto", paddingTop: 28, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+          <h4 style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
+            業種から探す
+          </h4>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px" }}>
+            {INDUSTRY_GROUPS.map((g) => (
+              <Link key={g.key} href={`/companies?industry=${g.key}`} className="footer-link" style={{ fontSize: 13, textDecoration: "none" }}>
+                {g.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
