@@ -43,14 +43,19 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  // 対象投稿の本文冒頭を別途取得
+  // 対象投稿の本文冒頭を別途取得。
+  // ⚠️ ow_posts_visible から引くこと。通知は /feed/[postId] にリンクするが、
+  //    そちらはビューに無い投稿を 404 にするため、ow_posts を引くと
+  //    「押すと 404 になる通知」ができる。ここに載らなかった通知は下で丸ごと落とす。
+  //    通知行そのものは消さない（表示側のフィルタだけ）。
   const postIds = Array.from(new Set((rows ?? []).map((r: { post_id: string }) => r.post_id)));
   const postPreviews = new Map<string, string>();
   if (postIds.length > 0) {
-    const { data: posts } = await adminSupabase
-      .from("ow_posts")
+    const { data: posts, error: postErr } = await adminSupabase
+      .from("ow_posts_visible")
       .select("id, content")
       .in("id", postIds);
+    if (postErr) console.error("[GET /api/jobseeker/notifications] posts", postErr.message);
     for (const p of posts ?? []) {
       postPreviews.set(p.id, p.content.slice(0, 40) + (p.content.length > 40 ? "…" : ""));
     }
@@ -67,7 +72,11 @@ export async function GET() {
     actor: { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[] | null;
   };
 
-  const notifications = (rows ?? []).map((r: RawRow) => {
+  // ⚠️ ビューに無い投稿（参照先が消えたもの）の通知は丸ごと落とす。
+  //    リンク先の /feed/[postId] が 404 になるため。行は消さない。
+  const notifications = (rows ?? [])
+    .filter((r: RawRow) => postPreviews.has(r.post_id))
+    .map((r: RawRow) => {
     const actorRaw = Array.isArray(r.actor) ? r.actor[0] ?? null : r.actor ?? null;
     return {
       id: r.id,

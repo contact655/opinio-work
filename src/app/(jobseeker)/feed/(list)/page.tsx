@@ -16,7 +16,7 @@ export type SidebarJob = { id: string; slug?: string | null; title: string; sala
 export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
-type RefJob = { id: string; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
+type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
 type RawPost = {
@@ -92,7 +92,7 @@ export default async function FeedPage() {
       event_title, event_starts_at, event_location, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url),
-      ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style),
+      ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
       ref_article:ow_articles!ref_article_id(id, slug, title),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)

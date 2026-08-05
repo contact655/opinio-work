@@ -4,7 +4,23 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
+import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
+import { stripActorPrefix } from "@/lib/feed/postContent";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
+
+type ActorCompany = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+
+const ACTOR_SELECT = `
+  ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url),
+  ref_job:ow_jobs!ref_job_id(company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url))
+`;
+
+/** 表示上の主体。一覧側の resolveActor と同じ規則にすること */
+function actorCompany(p: { post_type: string; ref_company: ActorCompany; ref_job: { company: ActorCompany } | null }): ActorCompany {
+  if (p.post_type === "company_joined") return p.ref_company;
+  if (p.post_type === "job_posted") return p.ref_company ?? p.ref_job?.company ?? null;
+  return null;
+}
 
 type RawPost = {
   id: string;
@@ -16,7 +32,10 @@ type RawPost = {
   link_description: string | null;
   link_domain: string | null;
   created_at: string;
+  post_type: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
+  ref_company: ActorCompany;
+  ref_job: { company: ActorCompany } | null;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -29,17 +48,44 @@ export async function generateMetadata({ params }: { params: { postId: string } 
   const adminSupabase = createAdminClient();
   const { data: raw } = await adminSupabase
     .from("ow_posts_visible")
-    .select("content, user:ow_users!user_id(name)")
+    .select(`content, post_type, user:ow_users!user_id(name), ${ACTOR_SELECT}`)
     .eq("id", params.postId)
     .maybeSingle();
 
   if (!raw) notFound();
-  const p = raw as unknown as { content: string; user: { name: string } | null };
-  const excerpt = p.content.slice(0, 50) + (p.content.length > 50 ? "…" : "");
-  const authorName = p.user?.name ?? "ユーザー";
+  const p = raw as unknown as { content: string; post_type: string; user: { name: string } | null; ref_company: ActorCompany; ref_job: { company: ActorCompany } | null };
+  const co = actorCompany(p);
+  // 一覧と同じ関数を通す。actor 行と本文で社名が二重にならないようにする
+  const body = co ? stripActorPrefix(p.content, p.post_type, [co.brand_name ?? co.name, co.name]) : p.content;
+  const excerpt = body.slice(0, 50) + (body.length > 50 ? "…" : "");
+  const authorName = co ? (co.brand_name ?? co.name) : (p.user?.name ?? "ユーザー");
+  // OGP。画像は動的生成（/api/og）に寄せる。
+  // ⚠️ actor 企業のロゴを og:image に使うのは避けている。85社中76社の logo_url が
+  //    死んだ Clearbit を指しており（B-0 参照）、SNS 側は onError で差し替えられないため、
+  //    共有カードが壊れた画像になる。usableLogoUrl が通る9社だけ別扱いにすると
+  //    企業によってカードの見た目が変わるので、生成画像に統一する。
+  const ogImageUrl = `/api/og?type=${co ? "company" : "default"}`
+    + `&name=${encodeURIComponent(excerpt)}`
+    + `&sub=${encodeURIComponent(authorName)}`;
+  const url = `/feed/${params.postId}`;
+
   return {
     title: `${authorName}: ${excerpt} | OPINIO`,
-    description: p.content.slice(0, 120),
+    description: body.slice(0, 120),
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${authorName}: ${excerpt}`,
+      description: body.slice(0, 120),
+      type: "article",
+      url,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${authorName}: ${excerpt}` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${authorName}: ${excerpt}`,
+      description: body.slice(0, 120),
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -60,7 +106,9 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     .from("ow_posts_visible")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
+      post_type,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
+      ${ACTOR_SELECT},
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `)
@@ -81,6 +129,13 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     if (p.user?.visibility === "private") notFound();
     if (p.user?.visibility === "login_only" && !user) notFound();
   }
+
+  const actorCo = actorCompany(p);
+  const actorName = actorCo ? (actorCo.brand_name ?? actorCo.name) : (p.user?.name ?? "不明");
+  // ⚠️ 一覧と同じ関数を通す。DB の content は書き換えない
+  const displayContent = actorCo
+    ? stripActorPrefix(p.content, p.post_type, [actorName, actorCo.name])
+    : p.content;
 
   // 現職情報
   let roleTitle: string | null = null;
@@ -132,41 +187,50 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}
       >
-        {/* ヘッダー */}
+        {/* ヘッダー。actor（表示上の主体）は一覧と同じ規則で決める */}
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
-          <Link href={`/u/${p.user?.id ?? ""}`} style={{ flexShrink: 0 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                background: p.user?.avatar_url ? undefined : avatarColor,
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 16,
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
-              {p.user?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.user.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                (p.user?.name ?? "?")[0]
-              )}
-            </div>
-          </Link>
+          {actorCo ? (
+            <Link href={`/companies/${actorCo.slug ?? actorCo.id}`} style={{ flexShrink: 0 }} aria-label={actorName}>
+              <CompanyLogoImg
+                logoUrl={actorCo.logo_url} logoLetter={actorCo.logo_letter} logoGradient={actorCo.logo_gradient}
+                name={actorName} size={44} borderRadius={10}
+              />
+            </Link>
+          ) : (
+            <Link href={`/u/${p.user?.id ?? ""}`} style={{ flexShrink: 0 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: p.user?.avatar_url ? undefined : avatarColor,
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                {p.user?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.user.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  (p.user?.name ?? "?")[0]
+                )}
+              </div>
+            </Link>
+          )}
           <div>
             <Link
-              href={`/u/${p.user?.id ?? ""}`}
+              href={actorCo ? `/companies/${actorCo.slug ?? actorCo.id}` : `/u/${p.user?.id ?? ""}`}
               style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
             >
-              {p.user?.name ?? "不明"}
+              {actorName}
             </Link>
-            {(roleTitle || company) && (
+            {!actorCo && (roleTitle || company) && (
               <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
                 {[roleTitle, company].filter(Boolean).join(" · ")}
               </div>
@@ -189,7 +253,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
             wordBreak: "break-word",
           }}
         >
-          {p.content}
+          {displayContent}
         </p>
 
         {/* 画像 */}

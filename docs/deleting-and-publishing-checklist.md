@@ -114,6 +114,23 @@
 `security_invoker = true` を付けてある。これが無いとビューがオーナー権限で走り、
 `ow_posts` の RLS を迂回する（`/u/[id]` は anon クライアントで引いているので実害が出る）。
 
+### 変更するときの制約
+
+**単一テーブルの `SELECT *` であることに依存している。**
+ビューには FK が無いため、PostgREST のリソース埋め込み
+（`user:ow_users!user_id(...)` / `ref_company:ow_companies!ref_company_id(...)` /
+`ref_job:ow_jobs!ref_job_id(company:ow_companies!company_id(...))`）は、
+PostgREST がビューの列を元テーブルの列まで辿れることで成立している。
+
+**JOIN・集約・列の加工を足すと埋め込みが壊れる。** 変更するときは、埋め込みを
+使っている全経路（feed の SSR / `api/jobseeker/posts` / `/feed/[postId]` /
+`companies/[id]` / `schools/[id]` / `u/[id]`）を実際に叩いて確認すること。
+型チェックでは落ちない。実行時に空配列や 400 が返る形で出る。
+
+**`security_invoker = true` を外さない。** 外すとビューがオーナー権限で走り、
+`ow_posts` の RLS を迂回する。`/u/[id]` は anon クライアントで引いているので実害が出る。
+migration の事後チェックで `reloptions` を検証している。
+
 ### 部分UNIQUEインデックスは幽霊投稿に効かない
 
 `idx_ow_posts_unique_job` などは `ref_* IS NOT NULL` を条件にしているため、

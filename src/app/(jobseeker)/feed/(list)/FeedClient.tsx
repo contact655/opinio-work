@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
+import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -22,7 +23,7 @@ type PostUser = {
 };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null; // slug already included
-type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null } | null;
+type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
 type LikerUser = { id: string; name: string; avatar_color: string | null; avatar_url: string | null };
@@ -94,6 +95,44 @@ function nameInitial(name: string | null): string {
   if (!name) return "?";
   // 日本語名: 最初の1文字
   return name.charAt(0);
+}
+
+
+// ─── actor（表示上の投稿主体） ────────────────────────────────────────────────
+/**
+ * データ上の作成者（ow_posts.user_id）と、表示上の主体は別物。
+ *
+ * システム投稿は user_id がシステムユーザー（OPINIO）だが、内容は「その企業の話」なので
+ * 表示上は企業を主体にする。2026-08-05 まで is_system だけを見て一律
+ * 「OPINIO ・企業バッジ ・アバター O」を出していたため、どの企業の話か判別できなかった。
+ *
+ *   company_joined    → 対象企業
+ *   job_posted        → 求人の企業
+ *   article_published → OPINIO のまま（記事は運営が出しているもの）
+ *   user_post         → 投稿ユーザー
+ *
+ * ⚠️ ow_posts_visible により ref_* は必ず埋まっているが、job_posted の
+ *    ref_company_id までは保証されない（ビューの条件は ref_job_id のみ）。
+ *    そのため ref_job.company を第2候補にしている。
+ */
+type Actor =
+  | { kind: "company"; id: string; slug: string | null; name: string; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null }
+  | { kind: "system" }
+  | { kind: "user" };
+
+function resolveActor(post: PostItem): Actor {
+  const co =
+    post.post_type === "company_joined" ? post.ref_company :
+    post.post_type === "job_posted" ? (post.ref_company ?? post.ref_job?.company ?? null) :
+    null;
+  if (co) {
+    return {
+      kind: "company", id: co.id, slug: co.slug ?? null,
+      name: co.brand_name ?? co.name,
+      logoUrl: co.logo_url ?? null, logoLetter: co.logo_letter ?? null, logoGradient: co.logo_gradient ?? null,
+    };
+  }
+  return post.user.is_system ? { kind: "system" } : { kind: "user" };
 }
 
 // ─── アバターコンポーネント ────────────────────────────────────────────────────
@@ -1400,6 +1439,15 @@ function PostCard({
 
   const isOwner = myUserId !== null && !post.user.is_system && post.user.id === myUserId;
 
+  // 表示上の主体。データ上の作成者（post.user）とは別（resolveActor のコメント参照）
+  const actor = resolveActor(post);
+  const actorHref = actor.kind === "company" ? `/companies/${actor.slug ?? actor.id}` : null;
+  // actor を企業にすると本文の主語と二重になるので、表示時だけ落とす。
+  // ⚠️ DB の content は書き換えない。完全一致しない場合は何もしない（別の社名を切らないため）
+  const displayContent = actor.kind === "company"
+    ? stripActorPrefix(post.content, post.post_type, [actor.name, post.ref_company?.name, post.ref_job?.company?.name])
+    : post.content;
+
   const handleLike = async () => {
     if (!myUserId) { router.push("/auth?next=/feed"); return; }
     if (liking) return;
@@ -1466,8 +1514,15 @@ function PostCard({
         }}
       >
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          {/* アバター: システム(企業)=角丸正方形, 個人=円形 */}
-          {post.user.is_system ? (
+          {/* アバター: 企業=角丸正方形（ロゴ）, システム=角丸正方形, 個人=円形 */}
+          {actor.kind === "company" ? (
+            <Link href={actorHref!} style={{ flexShrink: 0 }} aria-label={actor.name}>
+              <CompanyLogoImg
+                logoUrl={actor.logoUrl} logoLetter={actor.logoLetter} logoGradient={actor.logoGradient}
+                name={actor.name} size={38} borderRadius={8}
+              />
+            </Link>
+          ) : actor.kind === "system" ? (
             <div
               style={{
                 width: 38, height: 38, borderRadius: 8, flexShrink: 0,
@@ -1478,6 +1533,7 @@ function PostCard({
               }}
             >
               {post.user.avatar_url
+                // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={post.user.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : nameInitial(post.user.name)}
             </div>
@@ -1489,7 +1545,14 @@ function PostCard({
           <div>
             {/* 名前行: 名前 + バッジ + ・日付(インライン) */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-              {post.user.is_system ? (
+              {actor.kind === "company" ? (
+                <Link
+                  href={actorHref!}
+                  style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--ink)", textDecoration: "none" }}
+                >
+                  {actor.name}
+                </Link>
+              ) : actor.kind === "system" ? (
                 <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 15, color: "var(--royal)" }}>
                   {post.user.name}
                 </span>
@@ -1501,8 +1564,8 @@ function PostCard({
                   {post.user.name}
                 </Link>
               )}
-              {/* バッジ */}
-              {post.user.is_system && (
+              {/* バッジ。企業が主体のときもシステム名義のときも「企業」のまま */}
+              {(actor.kind === "company" || actor.kind === "system") && (
                 <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
                   企業
                 </span>
@@ -1518,7 +1581,7 @@ function PostCard({
               </span>
             </div>
             {/* 役職タグライン: roleTitle があれば役職、なければ会社名 */}
-            {!post.user.is_system && (post.user.roleTitle || post.user.company) && (
+            {actor.kind === "user" && (post.user.roleTitle || post.user.company) && (
               <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", marginTop: 1 }}>
                 {post.user.roleTitle ?? post.user.company}
               </div>
@@ -1605,7 +1668,7 @@ function PostCard({
           wordBreak: "break-word",
         }}
       >
-        {post.content}
+        {displayContent}
       </p>
 
       {/* システム投稿: リッチカード */}
