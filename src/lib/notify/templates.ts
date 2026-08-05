@@ -166,6 +166,38 @@ export function applicationAdminTemplate(params: {
   };
 }
 
+// T1 企業宛（ow_companies.notification_emails）
+//
+// ⚠️ applicationAdminTemplate を流用しないこと。あちらは to が ADMIN_EMAIL 固定で、
+//    本文も「{企業名}「{求人}」への応募がありました」と第三者視点で書かれている。
+//    企業本人に自社名を三人称で伝える形になるので、宛先ごと分けている。
+// ⚠️ 応募者のメールアドレスは載せる。企業が連絡を取るために必要で、
+//    /biz/applications でも同じものが見えている。
+export function applicationCompanyTemplate(params: {
+  to: string;
+  jobTitle: string;
+  applicantName: string;
+  applicantEmail: string;
+  message: string | null;
+}) {
+  return {
+    to: params.to,
+    subject: `【新着応募】「${params.jobTitle}」に応募がありました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">応募が届きました</h2>
+      <p style="margin:0 0 20px;color:#475569">「${esc(params.jobTitle)}」に新しい応募がありました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">応募者</td><td style="${TD_VALUE}">${esc(params.applicantName)}（${esc(params.applicantEmail)}）</td></tr>
+        <tr><td style="${TD_LABEL}">志望動機</td><td style="${TD_VALUE}">${esc(params.message) || "（未記入）"}</td></tr>
+      </table>
+      <a href="https://opinio.jp/biz/applications" style="${BTN}">応募管理で確認する →</a>
+      <p style="margin:20px 0 0;font-size:12px;color:#94a3b8">
+        この通知の宛先は、企業情報の「通知メールアドレス」で変更できます。
+      </p>
+    `),
+  };
+}
+
 // T1 応募者宛
 export function applicationUserTemplate(params: {
   to: string;
