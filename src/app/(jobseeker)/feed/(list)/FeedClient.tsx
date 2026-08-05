@@ -2268,8 +2268,44 @@ export default function FeedClient({
           読み込み中…
         </div>
       ) : tab === "followed" && followedPosts !== null && followedPosts.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-mute)", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif' }}>
-          <p style={{ fontSize: 14, margin: 0, color: "var(--ink-soft)" }}>フォロー中の投稿はまだありません</p>
+        /*
+          フォロー中タブの空状態。
+          ⚠️ 当面ほぼ必ずここに来る。user_post が0件（2026-08-05 実測。過去の2件は
+             migration 20260803124115 でテスト投稿として削除済み）で、
+             システム投稿は ref_company_id が埋まっているものしか拾えないため。
+             「投稿がありません」だけだと壊れているように見えるので、
+             次にやることを示す。フォロー数を煽る文言は入れないこと。
+        */
+        <div style={{ textAlign: "center", padding: "48px 20px", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif' }}>
+          <p style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--ink)" }}>
+            フォローするとここに表示されます
+          </p>
+          <p style={{ fontSize: 13, margin: "8px 0 0", color: "var(--ink-soft)", lineHeight: 1.8 }}>
+            気になる企業や人をフォローすると、<br />
+            その動きだけをまとめて追えます。
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 18, flexWrap: "wrap" }}>
+            <Link
+              href="/companies"
+              style={{
+                display: "inline-block", padding: "9px 18px", borderRadius: 100,
+                background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
+                textDecoration: "none", whiteSpace: "nowrap",
+              }}
+            >
+              企業を探す
+            </Link>
+            <Link
+              href="/people"
+              style={{
+                display: "inline-block", padding: "9px 18px", borderRadius: 100,
+                background: "#fff", color: "var(--royal)", fontSize: 13, fontWeight: 700,
+                border: "1.5px solid var(--royal-100)", textDecoration: "none", whiteSpace: "nowrap",
+              }}
+            >
+              人を探す
+            </Link>
+          </div>
         </div>
       ) : activePosts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "var(--ink-mute)", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif' }}>
