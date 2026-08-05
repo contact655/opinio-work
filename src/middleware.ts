@@ -77,6 +77,14 @@ export async function middleware(request: NextRequest) {
     const isBizPath = pathname.startsWith("/biz") && !pathname.startsWith("/biz/auth");
     url.pathname = isBizPath ? "/biz/auth" : "/auth";
     url.searchParams.set("next", pathname);
+    // ⚠️ 申し込み系だけログインタブで着地させる。
+    //    2026-08-05 に認証チェックをここへ移すまでは、ページ側が /auth/login 経由で
+    //    リダイレクトしておりログインタブが開いていた。ステータス是正が目的の変更で
+    //    着地タブまで変わってしまったので戻している。
+    //    /people や /u/[id] は従来どおり mode を付けない（初見の人が多い導線のため）。
+    if (CASUAL_MEETING_RE.test(pathname) || APPLY_RE.test(pathname)) {
+      url.searchParams.set("mode", "login");
+    }
     return NextResponse.redirect(url);
   }
 
