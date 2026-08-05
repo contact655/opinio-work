@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type CompanyResult = {
@@ -16,7 +16,6 @@ type CompanyResult = {
 
 function OnboardingInner() {
   const router = useRouter();
-  const _searchParams = useSearchParams();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CompanyResult[]>([]);

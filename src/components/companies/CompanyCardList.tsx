@@ -7,7 +7,6 @@ import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
-import { getStageCfg } from "@/lib/utils/stageCfg";
 
 /** 法人名サフィックス除去 */
 function cleanEnName(nameEn: string | null | undefined): string | null {
@@ -136,7 +135,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
     }
   };
 
-  const _stageCfg = getStageCfg(company.funding_stage);
   const enName = cleanEnName(company.name_en);
   const displayName = enName ?? stripLegalSuffix(company.name);
   const isEnName = !!enName;

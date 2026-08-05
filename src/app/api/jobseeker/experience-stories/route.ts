@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   }
 
   // ow_experiences の join フィールドを除去して返す
-  const stories = (data ?? []).map(({ ow_experiences: _drop, ...rest }) => rest);
+  const stories = (data ?? []).map(({ ow_experiences: _, ...rest }) => rest);
   return NextResponse.json({ stories });
 }
 

@@ -66,11 +66,6 @@ function getGradient(id: string) {
 }
 
 
-function formatStarted(startedAt: string | null): string | null {
-  if (!startedAt) return null;
-  const d = new Date(startedAt);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月〜`;
-}
 
 // 都道府県を location 文字列から抽出（先頭の都道府県部分）
 function extractPrefecture(location: string | null): string | null {
@@ -742,8 +737,6 @@ export default function CandidatesClient({
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map((c) => {
                 const age = c.birthYear ? (2026 - c.birthYear) : null;
-                const _startedLabel = formatStarted(c.startedAt);
-                const _empLabel = c.employmentType ? (EMPLOYMENT_TYPE_LABELS[c.employmentType] ?? c.employmentType) : null;
                 const grad = getGradient(c.id);
                 return (
                   <div key={c.id}

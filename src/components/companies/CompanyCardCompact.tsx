@@ -89,7 +89,13 @@ function cleanEnName(nameEn: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-export function CompanyCardCompact({ company, compact: _compact, members: _members }: Props) {
+/*
+  ⚠️ 2026-08-06 に compact / members を受け取るのをやめた。どちらも使っていなかった。
+     /companies の一覧は CompanyCardList に移っており、このカードの呼び出し元は
+     GenreCarousel だけ。そこでは members も compact も渡していない。
+     MemberPreview 型はここで export しているので型自体は残す（CompanyCardList が使う）。
+*/
+export function CompanyCardCompact({ company }: Props) {
   // ロゴエリアのグラデーション — DB の logo_gradient を優先使用
   const headerGradient = company.logo_gradient
     ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';

@@ -1519,7 +1519,7 @@ function PasswordToggle({ visible, onToggle }: { visible: boolean; onToggle: () 
 }
 
 // ⑩ Mobile sticky CTA bar
-function MobileStickyBar({ label, formId: _formId }: { label: string; formId?: string }) {
+function MobileStickyBar({ label, formId }: { label: string; formId?: string }) {
   return (
     <div
       className="biz-mobile-cta"
@@ -1535,7 +1535,7 @@ function MobileStickyBar({ label, formId: _formId }: { label: string; formId?: s
     >
       <button
         type="submit"
-        form={_formId}
+        form={formId}
         style={{ ...submitBtnStyle, width: "100%" }}
       >
         {label}

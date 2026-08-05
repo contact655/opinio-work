@@ -107,7 +107,7 @@ function computeMatchReason(
   filters: { category: string; dept: string; salary: string; prefecture: string; q: string },
   parentRoles: { id: string; name: string }[],
 ): string | null {
-  const { category, dept, salary: _salary, prefecture, q } = filters;
+  const { category, dept, prefecture, q } = filters;
   // 職種カテゴリフィルター
   if (category) {
     const roleName = parentRoles.find((r) => r.id === category)?.name;
@@ -440,11 +440,20 @@ function JobListItem({
 
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
+/*
+  ⚠️ 型には残っているのに分割代入で受け取っていない props がある。
+     salaryMax / bizModel / techStack / onTechStackChange / industries / industryId /
+     onCompanyStageChange の7つで、**サイドバーにこれらのUIが無い**ため。
+     絞り込みロジック自体は上位（1060行〜）に実装済みで、URLパラメータやモバイルの
+     フィルタシートからは効く。サイドバーに足すときはここで受け取ればよい。
+  ⚠️ 型からは消さないこと。消すと呼び出し側の受け渡しも消えて、
+     サイドバーに足すときに配線を1から作り直すことになる。
+*/
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, salaryMax: _salaryMax, empType, prefecture, bizModel: _bizModel,
-  companyStage, onCompanyStageChange: _onCompanyStageChange, techStack: _techStack, onTechStackChange: _onTechStackChange,
+  parentRoles, category, workStyle, salary, empType, prefecture,
+  companyStage,
   availablePrefectures, setParam, hasFilter, q, onReset,
-  industries: _industries, industryId: _industryId, roleCounts,
+  roleCounts,
   toggleParam: toggleParamFn, toggleStage,
   industry,
 }: {

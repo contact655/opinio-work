@@ -4,8 +4,7 @@ import { useState, useCallback } from "react";
 import type { Json } from "@/lib/supabase/types";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import MypageLayout, { type MypageActiveKey } from "./_components/MypageLayout";
-import { useMypageMock } from "./_components/MypageMockContext";
+import MypageLayout from "./_components/MypageLayout";
 import UserProfileCard from "@/components/profile/UserProfileCard";
 import MergedTimeline, { type CareerEntry } from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
@@ -752,7 +751,7 @@ export default function MypageClient({
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
   const [scoutBannerSaving, setScoutBannerSaving] = useState(false);
-  const { isMentor: _isMentorMock } = useMypageMock();
+  // ⚠️ モックの isMentor は使わない。実データ（owUser.is_mentor）で判定する
 
   const navigate = useCallback((v: ActiveView) => {
     setActiveView(v);
@@ -1039,8 +1038,6 @@ export default function MypageClient({
   return (
     <MypageLayout
       activeKey={activeView}
-      onNavigate={(key: MypageActiveKey) => navigate(key as ActiveView)}
-      onIsMentorChange={() => {}}
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}

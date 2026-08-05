@@ -353,28 +353,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
     published_at: string | null;
   }>;
 
-  // キャリアサマリー自動計算
-  const _careerSummary = (() => {
-    if (timelineCareers.length === 0) return null;
-    let totalMonths = 0;
-    // 会社カウント: company_id で重複排除 → 名前テキスト → 非公開は各エントリーを1社としてカウント
-    const companySet = new Set<string>();
-    for (const c of timelineCareers) {
-      const start = new Date(c.started_at);
-      const end = c.ended_at ? new Date(c.ended_at) : new Date();
-      totalMonths += Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth());
-      if (c.company_id) {
-        companySet.add(`id:${c.company_id}`);
-      } else if (c.company_name && c.company_name !== "非公開" && c.company_name !== "不明な企業") {
-        companySet.add(`name:${c.company_name}`);
-      } else {
-        // 非公開企業: experience ID で1社としてカウント
-        companySet.add(`anon:${c.id}`);
-      }
-    }
-    const totalYears = Math.max(1, Math.round(totalMonths / 12));
-    return { totalYears, companyCount: companySet.size };
-  })();
+  /* ⚠️ 2026-08-06: キャリアサマリーの自動計算（在籍社数・通算年数）を削除した。
+     計算はしていたが、どこにも表示していなかった。復活させるなら git 履歴から取る。 */
 
   // 在籍期間計算（currentCareer）
   const currentCareerTenure = (() => {

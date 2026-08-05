@@ -48,16 +48,6 @@ type Props = {
   meetingStats?: MeetingStat[];
 };
 
-const _PERM_LABELS: Record<MemberRecord["permission"], string> = {
-  admin: "管理者",
-  member: "人事",
-};
-
-const _PERM_STYLES: Record<MemberRecord["permission"], { bg: string; color: string }> = {
-  admin: { bg: "var(--royal-50)", color: "var(--royal)" },
-  member: { bg: "var(--line-soft)", color: "var(--ink-mute)" },
-};
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" });

@@ -2608,17 +2608,19 @@ function MobileBottomCTA({ company }: { company: Company }) {
   );
 }
 
+/*
+  ⚠️ 2026-08-06 に currentEmployees / allEmployees を削除した。
+     渡してはいたが使っていなかった。社員・OB/OG の表示は本文カラム側の
+     EmployeeVoicesSection / CurrentEmployeesSection / AlumniSection が担当しており、
+     そちらが本来の経路。サイドバーにも出そうとしてやめた名残だった。
+*/
 function Sidebar({
   company,
   detail,
-  currentEmployees: _currentEmployees = [],
-  allEmployees: _allEmployees = [],
   ambassadors = [],
 }: {
   company: Company;
   detail: CompanyDetail;
-  currentEmployees?: CompanyEmployee[];
-  allEmployees?: CompanyEmployee[];
   ambassadors?: PublicAmbassador[];
 }) {
   return (
@@ -3453,7 +3455,7 @@ export default async function CompanyDetailPage({
 
           </main>
 
-          <Sidebar company={company} detail={detail} currentEmployees={visibleCurrentEmps} allEmployees={[...visibleCurrentEmps, ...visibleAlumniEmps]} ambassadors={ambassadors} />
+          <Sidebar company={company} detail={detail} ambassadors={ambassadors} />
         </div>
       </div>
 

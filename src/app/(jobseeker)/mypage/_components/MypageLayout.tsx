@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMypageMock } from "./MypageMockContext";
 
 // ─── SidebarItem ──────────────────────────────────────────────────────────────
 // href を受け取り <Link> でレンダリングすることで Next.js の自動 prefetch を利用する
@@ -107,25 +106,24 @@ export type MypageActiveKey =
   | "settings"
   | "salary";
 
+/*
+  ⚠️ 2026-08-06 に onNavigate / onIsMentorChange を削除した。どちらも受け取るだけで
+     使っていなかった。サイドバーのリンクを SPA 切替にする設計の名残で、
+     いまは通常の遷移になっている。onIsMentorChange は渡し元も () => {} だった。
+*/
 export default function MypageLayout({
   activeKey,
-  onNavigate: _onNavigate,
-  onIsMentorChange: _onIsMentorChange,
   conversationsBadge,
   applicationsBadge,
   children,
   rightColumn,
 }: {
   activeKey: MypageActiveKey;
-  /** SPA ビュー切替ハンドラ。/mypage でのみ使用。サブページでは未指定。 */
-  onNavigate?: (key: MypageActiveKey) => void;
-  onIsMentorChange?: (v: boolean) => void;
   conversationsBadge?: number;
   applicationsBadge?: number;
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
 }) {
-  const { isMentor: _isMentor } = useMypageMock();
   const topOffset = 65;
 
   return (

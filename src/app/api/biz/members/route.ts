@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (!ctx) {
     return NextResponse.json({ error: "Company context not found" }, { status: 403 });
   }
-  const { owUserId: _actorOwUserId, companyId, allMemberships } = ctx;
+  const { companyId, allMemberships } = ctx;
 
   // actorAdmin 確認: allMemberships から直接取得 (追加 DB クエリなし)
   const actorMembership = allMemberships.find((m) => m.companyId === companyId);

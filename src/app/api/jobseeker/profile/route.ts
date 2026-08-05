@@ -67,7 +67,7 @@ export async function PUT(req: Request) {
   if ("is_open_to_work" in body) patch.is_open_to_work = body.is_open_to_work === true;
   if ("profile_setup_at" in body) patch.profile_setup_at = typeof body.profile_setup_at === "string" ? body.profile_setup_at : null;
 
-  const { updated_at: _ua, ...rest } = patch;
+  const { updated_at: _, ...rest } = patch;
   if (Object.keys(rest).length === 0) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });
   }
