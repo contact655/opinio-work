@@ -1125,12 +1125,22 @@ export function CompanyEditClient({
             </SectionCard>
             <SectionCard title="通知設定">
               <FormGroup>
-                <FormLabel>新規カジュアル面談の通知先</FormLabel>
+                {/*
+                  ⚠️ ラベルは「新規カジュアル面談の通知先」だったが 2026-08-05 に改めた。
+                     この宛先は面談だけでなく、応募・参加リクエスト・スカウト返信の
+                     4経路すべてで使われる（lib/notify/recipients.ts）。
+                  ⚠️ 未設定でも通知は止まらない。管理者権限の担当者にフォールバックする。
+                     この値は「既定の宛先の上書き」なので、設定するとフォールバックは効かなくなる。
+                */}
+                <FormLabel>企業への通知先</FormLabel>
                 <EmailTagInput
                   value={form.notificationEmails}
                   onChange={(v) => update("notificationEmails", v)}
                 />
                 <FormHint>Enterまたはカンマで複数のメールアドレスを追加できます</FormHint>
+                {!form.notificationEmails.trim() && (
+                  <FormHint>未設定の場合は、管理者権限の担当者に届きます。</FormHint>
+                )}
               </FormGroup>
             </SectionCard>
           </>

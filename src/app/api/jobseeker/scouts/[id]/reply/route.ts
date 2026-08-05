@@ -102,6 +102,8 @@ export async function POST(
       ⚠️ 宛先は getCompanyNotificationRecipients に集約している。ここで引かないこと。
       ⚠️ 宛名は出さない。上書き先（notification_emails）には氏名が無く、
          「担当者 さん」と書くと誰宛か分からない挨拶になるため。
+      ⚠️ 本文だけ lib/notify/templates.ts に無く、ここにインラインで書かれている。
+         他の通知はすべてテンプレート化されているので、移すかは別途判断する。
     */
     const companyName = (scout.ow_companies as any)?.name ?? "企業";
     const recipients = await getCompanyNotificationRecipients(

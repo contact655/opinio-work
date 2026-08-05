@@ -143,11 +143,29 @@ export default async function CompaniesPage({ searchParams }: Props) {
     needsGrid ? getCompanyReviewSummaries() : Promise.resolve({} as Record<string, { avg: number; count: number }>),
   ]);
 
-  // 在籍メンバー: 表示中の企業IDに絞って取得（全件スキャン防止）
+  /*
+    在籍メンバー: 表示中の企業IDに絞って取得（全件スキャン防止）
+
+    ⚠️ 2026-08-05 まで ow_users(id, name, photo_url, is_test) を select していたが、
+       ow_users.photo_url は**存在しないカラム**（正しくは avatar_url）。
+       クエリがエラーになり experienceResult.data が null → membersByCompany が
+       常に空 → /companies のカードに在籍メンバーが1人も出ていなかった。
+       error を受け取っていなかったため、ログにも何も出ていない。
+    ⚠️ error は必ず見ること。ここは埋め込みも使っているので、
+       カラム名だけでなく関係の曖昧さでも落ちうる。
+  */
   const displayedCompanyIds = allCompaniesResult.companies.map((c) => c.id);
   const experienceResult = needsGrid && displayedCompanyIds.length > 0
-    ? await supabase.from("ow_experiences").select("company_id, user_id, ow_users(id, name, photo_url, is_test)").eq("is_current", true).in("company_id", displayedCompanyIds)
-    : { data: null };
+    ? await supabase
+        .from("ow_experiences")
+        .select("company_id, user_id, ow_users(id, name, avatar_url, is_test)")
+        .eq("is_current", true)
+        .in("company_id", displayedCompanyIds)
+    : { data: null, error: null };
+
+  if (experienceResult.error) {
+    console.error("[companies] 在籍メンバーの取得に失敗:", experienceResult.error.message);
+  }
 
   const companySuggestions: { id: string; name: string }[] =
     (companyNamesResult.data ?? []) as { id: string; name: string }[];
@@ -161,10 +179,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
       if (!pageCompanyIds.has(companyId)) continue;
       if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
       if (membersByCompany[companyId].length < 8) {
-        const user = exp.ow_users as { id: string; name: string; photo_url?: string | null; is_test?: boolean | null } | { id: string; name: string; photo_url?: string | null; is_test?: boolean | null }[] | null;
+        type ExpUser = { id: string; name: string; avatar_url?: string | null; is_test?: boolean | null };
+        const user = exp.ow_users as ExpUser | ExpUser[] | null;
         if (user) {
           const u = Array.isArray(user) ? user[0] : user;
-          if (u && !u.is_test) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.photo_url ?? null });
+          if (u && !u.is_test) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.avatar_url ?? null });
         }
       }
     }
