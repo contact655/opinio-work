@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getRecipientsForCompanies } from "@/lib/notify/recipientsBatch";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -91,6 +92,12 @@ type AssigneeStat = {
 export default async function AdminMeetingsPage() {
   const meetings = await getMeetings();
 
+  // 企業側の宛先。⚠️ 行ごとに引かない（N+1）
+  const recipients = await getRecipientsForCompanies(
+    meetings.map((m) => m.companyId),
+    "admin/meetings",
+  );
+
   const counts = {
     pending: meetings.filter((m) => m.status === "pending").length,
     scheduled: meetings.filter((m) => m.status === "scheduled").length,
@@ -176,7 +183,7 @@ export default async function AdminMeetingsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                {["申込日", "申込ユーザー", "申込先企業", "求人", "意向", "ステータス"].map((h) => (
+                {["申込日", "申込ユーザー", "申込先企業", "求人", "意向", "ステータス", "企業側の宛先"].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "10px 16px",
                     fontSize: 10, fontWeight: 700, color: "#94A3B8",
@@ -247,6 +254,37 @@ export default async function AdminMeetingsPage() {
                       }}>
                         {st.label}
                       </span>
+                    </td>
+
+                    {/*
+                      企業側の宛先。⚠️ 応募管理（/admin/applications）と同じ判定・同じ見た目にすること。
+                         面談申込も同じ通知経路（lib/notify/recipients.ts）を使うので、
+                         宛先ゼロの企業への申込は運営と申込者にしか届いていない。
+                      ⚠️ 行ごとに引かない（N+1）。企業IDでユニーク化して並列に取る。
+                    */}
+                    <td style={{ padding: "12px 16px" }}>
+                      {(() => {
+                        const to = m.companyId ? (recipients.get(m.companyId) ?? []) : [];
+                        return to.length === 0 ? (
+                          <span title="この申込は企業に届いていません"
+                            style={{
+                              fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                              background: "var(--error-soft)", color: "#991B1B", border: "1px solid #FCA5A5",
+                              whiteSpace: "nowrap",
+                            }}>
+                            ⚠ 宛先なし
+                          </span>
+                        ) : (
+                          <span title={to.join(", ")}
+                            style={{
+                              fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                              background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0",
+                              whiteSpace: "nowrap",
+                            }}>
+                            {to.length}件
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );

@@ -762,11 +762,19 @@ export default async function AdminDashboard() {
                 color: "#DC2626",
                 bar: stats.totalApplicationsCount,
                 max: Math.max(stats.usersCount, 1),
+                // 数字だけ出して一覧に飛べない状態だったので導線を足した（2026-08-05）
+                href: "/admin/applications",
               },
-            ].map(({ label, value, color, bar, max }) => (
+            ].map(({ label, value, color, bar, max, href }: { label: string; value: number; color: string; bar: number; max: number; href?: string }) => (
               <div key={label}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{label}</span>
+                  {href ? (
+                    <Link href={href} style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                      {label} →
+                    </Link>
+                  ) : (
+                    <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{label}</span>
+                  )}
                   <span style={{
                     fontFamily: "'Inter', sans-serif",
                     fontSize: 14, fontWeight: 700, color,

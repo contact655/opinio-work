@@ -42,8 +42,17 @@ export async function middleware(request: NextRequest) {
     CASUAL_MEETING_RE.test(pathname) || APPLY_RE.test(pathname);
 
   // Supabase セッションクッキーの有無を確認（sb-<ref>-auth-token）
+  /*
+    ⚠️ 分割されたクッキーも拾うこと。値が約3.2KBを超えると @supabase/ssr は
+       sb-<ref>-auth-token.0 / .1 のように連番で分割する。
+       2026-08-05 まで endsWith("-auth-token") だけを見ていたため、分割された
+       セッションはここで「クッキー無し」と判定され、認証不要ページでは
+       updateSession() がスキップされていた。結果、ログイン済みなのに
+       /companies などの公開ページでは未ログイン扱いになっていた
+       （/admin や /biz は needsAuth=true で必ず updateSession を通るので気づけない）。
+  */
   const hasSessionCookie = request.cookies.getAll().some(
-    (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token")
+    (c) => c.name.startsWith("sb-") && /-auth-token(\.\d+)?$/.test(c.name)
   );
 
   // 認証不要 かつ セッションクッキーなし → updateSession（Supabase外部呼び出し）をスキップ
