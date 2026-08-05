@@ -105,7 +105,7 @@ export default async function MypagePage({
     if (masterCompanyIds.length > 0) {
       const { data: companies } = await supabase
         .from("ow_companies")
-        .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count")
+        .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
         .in("id", masterCompanyIds);
       for (const c of companies ?? []) {
         companyInfoById.set(c.id as string, {
@@ -116,6 +116,10 @@ export default async function MypagePage({
           industry: (c.industry as string | null) ?? null,
           phase: (c.phase as string | null) ?? null,
           employee_count: (c.employee_count as number | null) ?? null,
+          // ⚠️ 非公開企業には企業ページへのリンクを張らない（本番で404になるため）。
+          //    timeline.ts:161 がこれを見て company_id を null に落とす。
+          //    /u/[id] は以前から渡していたが、ここが漏れていた（2026-08-05 修正）。
+          isPublished: (c.is_published as boolean) ?? false,
         });
       }
     }

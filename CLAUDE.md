@@ -106,6 +106,25 @@ migration で talk_themes を更新しても LP に反映されず、原因は�
 
 ---
 
+## 企業ページへのリンクは env に関係なく is_published を見る（2026-08-05 確立）
+
+`queries.ts:682` の `getCompanyBySlugOrId` は `NODE_ENV !== "development"` のときだけ
+`is_published` で絞る。dev で非公開企業のページを確認できるようにするための分岐で、
+**この分岐は変えない**。
+
+ただし**リンクを生成する側は、env に関係なく必ず `is_published` を見ること。**
+dev でリンクが出て本番で 404 になると、開発中には気づけない。
+
+- 記事CTA → `resolvePublishedCompanyHref()`（`queries.ts:716`）。dev でも `is_published` を見る
+- 経歴タイムライン → `CompanyLogoInfo.isPublished` を渡す。
+  `timeline.ts:161` がこれを見て `company_id` を null に落とし、会社名をテキスト表示にする
+
+⚠️ 2026-08-05 時点で `/mypage` だけこの `isPublished` を渡し忘れており、
+非公開企業に在籍する人の職歴が本番で 404 に飛ぶリンクになっていた。
+新しく企業リンクを作るときは、上のどちらかの経路に乗せること。
+
+---
+
 ## データ表示の原則
 
 「値が無い」ことを、「ある値」に置き換えない。
