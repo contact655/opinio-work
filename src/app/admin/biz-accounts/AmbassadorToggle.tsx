@@ -1,8 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { Toggle } from "@/components/ui/Toggle";
 import { toggleAmbassador } from "./actions";
 
+/**
+ * 「話せる人」（ow_company_admins.is_ambassador）の切り替え。
+ * 見た目は共通の Toggle。ロールバックはここで持つ。
+ */
 export function AmbassadorToggle({
   adminId,
   isAmbassador,
@@ -10,45 +15,22 @@ export function AmbassadorToggle({
   adminId: string;
   isAmbassador: boolean;
 }) {
+  const [value, setValue] = useState(isAmbassador);
   const [isPending, startTransition] = useTransition();
 
-  const handleToggle = () => {
-    startTransition(() => {
-      toggleAmbassador(adminId, !isAmbassador);
+  function handleToggle() {
+    if (isPending) return;
+    const next = !value;
+    setValue(next);
+    startTransition(async () => {
+      const res = await toggleAmbassador(adminId, next);
+      // ⚠️ 失敗したら必ず戻す。握り潰すと DB と画面がずれる
+      if (res && res.ok === false) {
+        setValue(!next);
+        console.error("is_ambassador update failed:", res.error);
+      }
     });
-  };
+  }
 
-  return (
-    <button
-      onClick={handleToggle}
-      disabled={isPending}
-      title={isAmbassador ? "「話せる人」から外す" : "「話せる人」に追加"}
-      style={{
-        width: 44,
-        height: 24,
-        borderRadius: 12,
-        border: "none",
-        background: isAmbassador ? "#002366" : "#E2E8F0",
-        cursor: isPending ? "wait" : "pointer",
-        position: "relative",
-        flexShrink: 0,
-        transition: "background 0.2s",
-        opacity: isPending ? 0.6 : 1,
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 3,
-          left: isAmbassador ? 22 : 3,
-          width: 18,
-          height: 18,
-          borderRadius: "50%",
-          background: "#fff",
-          transition: "left 0.2s",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-        }}
-      />
-    </button>
-  );
+  return <Toggle checked={value} onToggle={handleToggle} pending={isPending} label="話せる人" />;
 }

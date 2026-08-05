@@ -32,20 +32,13 @@ export async function bulkSetVisibility(
   return { ok: true };
 }
 
-export async function toggleCanTalkToCandidates(
-  userId: string,
-  value: boolean
-): Promise<{ ok: boolean; error?: string }> {
-  await assertAdmin();
-  const admin = createAdminClient();
-  const { error } = await admin
-    .from("ow_users")
-    .update({ can_talk_to_candidates: value })
-    .eq("id", userId);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/candidates");
-  return { ok: true };
-}
+/*
+  ⚠️ toggleCanTalkToCandidates（ow_users.can_talk_to_candidates）は 2026-08-05 に削除した。
+     本番0件・参照は管理画面の表示だけ・何もゲートしていない、の3つが揃っていたため。
+     「話せるか」の判定は can_casual_meeting が担っている（2026-08-04 に talk_themes の
+     件数から切り替えたときに置き去りになった3つ目の概念だった）。
+     ⚠️ カラムは残してある。復活させるなら、まず can_casual_meeting との違いを定義すること。
+*/
 
 /**
  * can_casual_meeting の切り替え。

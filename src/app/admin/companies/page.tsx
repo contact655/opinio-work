@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Toggle } from "@/components/ui/Toggle";
 import { updateJobsPublic, updateSortOrder, updateIsPublished, updateApproval } from "./actions";
 
 function getCompanyGradient(str: string): string {
@@ -58,6 +59,7 @@ type Company = {
   updated_at: string;
   sort_order: number | null;
   logo_url: string | null;
+  url: string | null;
   job_count?: number;
   admins?: CompanyAdmin[];
 };
@@ -81,7 +83,7 @@ export default function AdminCompaniesPage() {
     const [{ data: companyRows }, { data: jobRows }, { data: adminRows }, { data: userRows }] = await Promise.all([
       supabase
         .from("ow_companies")
-        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url")
+        .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url, url")
         .order("sort_order", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false }),
       supabase
@@ -258,7 +260,7 @@ export default function AdminCompaniesPage() {
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", background: "var(--error)", color: "#fff", padding: "2px 7px", borderRadius: 4 }}>ADMIN</span>
           </div>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
-            企業の掲載ステータス・求人公開許可・契約状態を管理します
+            企業の承認・掲載と、カジュアル面談CTAの出し分けを管理します
           </p>
         </div>
         {/* KPI バッジ */}
@@ -349,7 +351,14 @@ export default function AdminCompaniesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["", "企業名", "ロゴURL", "業界", "担当者", "承認", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {/*
+                  ⚠️ 列を足し引きしたら td 側も colSpan も必ず合わせること。
+                  ⚠️「面談CTA」は jobs_public。2026-08-05 まで「求人・面談公開」と
+                     書いていたが、この列が制御しているのは /jobs/[id] の
+                     カジュアル面談CTAだけで、求人の公開可否（ow_jobs.status）は
+                     まったく制御していない。名前が実態と違うと運用を誤る。
+                */}
+                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "掲載", "企業ステータス", "面談CTA", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -358,7 +367,7 @@ export default function AdminCompaniesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={12} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <tr><td colSpan={13} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>企業が見つかりません
                 </td></tr>
               ) : (
@@ -407,6 +416,18 @@ export default function AdminCompaniesPage() {
                         </Link>
                       </td>
 
+                      {/* HP（ow_companies.url）— 空欄には何も出さない */}
+                      <td style={{ padding: "10px 14px" }}>
+                        {c.url && (
+                          <a href={c.url} target="_blank" rel="noopener noreferrer"
+                            title={c.url}
+                            style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            HP
+                          </a>
+                        )}
+                      </td>
+
                       {/* ロゴURL */}
                       <td style={{ padding: "10px 8px", minWidth: 180 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -435,28 +456,36 @@ export default function AdminCompaniesPage() {
                       {/* 業界 */}
                       <td style={{ padding: "10px 14px", color: "var(--ink-soft)" }}>{c.industry || <span style={{ color: "var(--ink-mute)" }}>—</span>}</td>
 
-                      {/* 担当者 */}
+                      {/*
+                        担当（BIZ担当者の有無）— 名前は出さず有無だけにした（2026-08-05）。
+                        ⚠️ 列は消さないこと。承認は運営・掲載は企業側という運用なので、
+                           担当者がいない企業は自分で公開できない。運営から見て
+                           「その企業が自走できるか」が分かるのはこの列だけ。
+                           名前が要るときは企業名から詳細へ、または BIZ担当者管理を見る。
+                      */}
                       <td style={{ padding: "10px 14px" }}>
-                        {(c.admins ?? []).length === 0 ? (
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>なし</span>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            {(c.admins ?? []).slice(0, 2).map((a, i) => (
-                              <span key={i} style={{
-                                fontSize: 11, fontWeight: 600,
-                                color: a.isActive ? "var(--ink)" : "var(--ink-mute)",
+                        {(() => {
+                          const list = c.admins ?? [];
+                          const active = list.filter((a) => a.isActive).length;
+                          if (list.length === 0) {
+                            return <span title="BIZ担当者なし（企業側で公開できない）"
+                              style={{ fontSize: 13, color: "var(--ink-mute)" }}>—</span>;
+                          }
+                          return (
+                            <span title={list.map((a) => `${a.name}${a.isActive ? "" : "（無効）"}`).join(" / ")}
+                              style={{
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                                background: active > 0 ? "var(--royal-50)" : "var(--line-soft)",
+                                color: active > 0 ? "var(--royal)" : "var(--ink-mute)",
+                                border: `1px solid ${active > 0 ? "var(--royal-100)" : "var(--line)"}`,
+                                fontFamily: "Inter, sans-serif",
                               }}>
-                                {a.name}
-                                {!a.isActive && <span style={{ fontWeight: 400, color: "var(--ink-mute)" }}> (無効)</span>}
-                              </span>
-                            ))}
-                            {(c.admins ?? []).length > 2 && (
-                              <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>
-                                他{(c.admins ?? []).length - 2}名
-                              </span>
-                            )}
-                          </div>
-                        )}
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                              {list.length}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/*
@@ -490,23 +519,13 @@ export default function AdminCompaniesPage() {
                       {/* 掲載トグル */}
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <button
-                            type="button"
-                            onClick={() => handleIsPublishedToggle(c)}
-                            disabled={isLoading}
-                            style={{
-                              position: "relative", width: 36, height: 20, borderRadius: 10, border: "none",
-                              background: c.is_published ? "var(--success)" : "#CBD5E1",
-                              cursor: "pointer", transition: "background 0.15s", flexShrink: 0,
-                              opacity: isLoading ? 0.5 : 1, padding: 0,
-                            }}
-                          >
-                            <span style={{
-                              position: "absolute", top: 2, left: c.is_published ? 16 : 2,
-                              width: 16, height: 16, borderRadius: "50%", background: "#fff",
-                              transition: "left 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
-                            }} />
-                          </button>
+                          <Toggle
+                            checked={c.is_published}
+                            onToggle={() => handleIsPublishedToggle(c)}
+                            pending={isLoading}
+                            label="掲載"
+                            onColor="var(--success)"
+                          />
                           <span style={{ fontSize: 11, fontWeight: 600, color: c.is_published ? "var(--success)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
                             {c.is_published ? "掲載中" : "非掲載"}
                           </span>
@@ -554,16 +573,12 @@ export default function AdminCompaniesPage() {
                            ゲートしていないものをゲートしているように見せていたので鍵表示は削除した。
                       */}
                       <td style={{ padding: "10px 14px" }}>
-                        <button type="button" onClick={() => handleJobsPublicToggle(c)} disabled={isLoading}
-                          style={{
-                            fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
-                            background: c.jobs_public ? "var(--royal)" : "#F1F5F9",
-                            color: c.jobs_public ? "#fff" : "#6b7280",
-                            border: `1px solid ${c.jobs_public ? "var(--royal)" : "#E2E8F0"}`,
-                            opacity: isLoading ? 0.5 : 1,
-                          }}>
-                          {c.jobs_public ? "✓ 公開中" : "非公開"}
-                        </button>
+                        <Toggle
+                          checked={c.jobs_public}
+                          onToggle={() => handleJobsPublicToggle(c)}
+                          pending={isLoading}
+                          label="面談CTA"
+                        />
                       </td>
 
                       {/* 求人数 */}

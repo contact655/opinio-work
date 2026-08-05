@@ -188,16 +188,33 @@ export default function PlacementsClient({ placements: initial, users, companies
                 </select>
               </label>
 
-              {/* 理論年収 */}
+              {/*
+                理論年収（ow_placements.annual_salary）
+                ⚠️ 定義: 税込（額面）・円・単一値。成果報酬の算定基準になるので曖昧にしない。
+                   手取りではない。賞与・インセンティブを含む想定年収を入れる。
+                ⚠️ ow_job_applications.hired_salary に同じ概念の列があるが、
+                   正はこちら（ow_placements）。hired_salary は応募を経由した入社しか
+                   記録できず、直接紹介の入社を取りこぼすため。hired_salary は削除して
+                   いないので、集計するときに二重計上しないこと。
+              */}
               <label style={LABEL_STYLE}>
-                理論年収（円・税別）
+                理論年収（税込・円）
                 <input type="number" min={0} value={form.annual_salary} onChange={e => setForm(f => ({ ...f, annual_salary: e.target.value }))} style={INPUT_STYLE} placeholder="例: 6000000" />
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400 }}>
+                  額面（手取りではない）。賞与・インセンティブ込みの想定年収。
+                </span>
               </label>
 
-              {/* 手数料額 */}
+              {/*
+                手数料額（ow_placements.fee_amount）
+                ⚠️ 自動計算しない。料率は経路や個別契約で変わりうるので手入力のままにする。
+              */}
               <label style={LABEL_STYLE}>
-                手数料額（円・税別）
+                手数料額（消費税別・円）
                 <input type="number" min={0} value={form.fee_amount} onChange={e => setForm(f => ({ ...f, fee_amount: e.target.value }))} style={INPUT_STYLE} placeholder="例: 900000" />
+                <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 400 }}>
+                  自動計算しません。経路の料率（15% / 30〜35%）を見て手入力してください。
+                </span>
               </label>
 
               {/* 退職日 */}
@@ -243,7 +260,7 @@ export default function PlacementsClient({ placements: initial, users, companies
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead style={{ background: "var(--bg-tint)" }}>
             <tr>
-              {["候補者", "企業", "求人", "入社日", "経路", "スカウト禁止残日数", "退職日", "退職事由", "操作"].map(h => (
+              {["候補者", "企業", "求人", "入社日", "経路", "理論年収（税込）", "手数料額", "スカウト禁止残日数", "退職日", "退職事由", "操作"].map(h => (
                 <th key={h} style={{ padding: "12px 14px", textAlign: "left", fontWeight: 600, fontSize: 12, color: "var(--ink)", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
@@ -251,7 +268,7 @@ export default function PlacementsClient({ placements: initial, users, companies
           <tbody>
             {placements.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ padding: "40px", textAlign: "center", color: "var(--ink-mute)" }}>
+                <td colSpan={11} style={{ padding: "40px", textAlign: "center", color: "var(--ink-mute)" }}>
                   就職実績はまだ登録されていません
                 </td>
               </tr>
@@ -262,6 +279,17 @@ export default function PlacementsClient({ placements: initial, users, companies
                 <td style={{ ...TD, color: "var(--ink-mute)" }}>{p.jobTitle}</td>
                 <td style={TD}>{p.joined_at}</td>
                 <td style={TD}>{CHANNEL_LABELS[p.channel] ?? p.channel}</td>
+                {/* 金額は内部データ。求職者側・企業側には出していない（参照は /admin/placements のみ） */}
+                <td style={{ ...TD, fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                  {p.annual_salary != null
+                    ? `${p.annual_salary.toLocaleString("ja-JP")}円`
+                    : <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                </td>
+                <td style={{ ...TD, fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                  {p.fee_amount != null
+                    ? `${p.fee_amount.toLocaleString("ja-JP")}円`
+                    : <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                </td>
                 <td style={TD}>
                   {p.resigned_at ? (
                     <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>退職済み</span>

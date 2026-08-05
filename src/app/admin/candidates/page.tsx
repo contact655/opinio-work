@@ -6,7 +6,8 @@ async function getUsers(query?: string) {
 
   let q = admin
     .from("ow_users")
-    .select("id, auth_id, name, email, is_mentor, can_casual_meeting, can_talk_to_candidates, location, birth_date, visibility, created_at")
+    // ⚠️ can_talk_to_candidates は選ばない（2026-08-05 に一覧から外した。カラムは残存）
+    .select("id, auth_id, name, email, is_mentor, can_casual_meeting, location, birth_date, visibility, created_at")
     .order("created_at", { ascending: false });
 
   if (query) {

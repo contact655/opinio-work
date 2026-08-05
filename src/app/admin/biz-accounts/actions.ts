@@ -12,7 +12,14 @@ async function assertAdmin(): Promise<void> {
   if (!isAdmin) throw new Error("Forbidden");
 }
 
-export async function toggleAmbassador(adminId: string, value: boolean): Promise<void> {
+/**
+ * Server Action の戻り値。他の管理画面（admin/companies・admin/candidates）と揃える。
+ * ⚠️ throw しないこと。呼び出し元はクリックハンドラなので、投げると
+ *    unhandled rejection になって画面にもロールバックにも届かない。
+ */
+export type ActionResult = { ok: true } | { ok: false; error: string };
+
+export async function toggleAmbassador(adminId: string, value: boolean): Promise<ActionResult> {
   await assertAdmin();
   const admin = createAdminClient();
   const { error } = await admin
@@ -22,9 +29,10 @@ export async function toggleAmbassador(adminId: string, value: boolean): Promise
 
   if (error) {
     console.error("[toggleAmbassador]", error.message);
-    throw new Error("更新に失敗しました");
+    return { ok: false, error: error.message };
   }
 
   revalidatePath("/admin/biz-accounts");
   revalidatePath("/people");
+  return { ok: true };
 }

@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { bulkSetVisibility, bulkDeleteUsers } from "./actions";
-import { CanTalkCandidatesToggle } from "./CanTalkCandidatesToggle";
 import { CanCasualMeetingToggle } from "./CanCasualMeetingToggle";
 
 type User = {
@@ -12,7 +11,7 @@ type User = {
   email: string | null;
   is_mentor: boolean | null;
   can_casual_meeting: boolean | null;
-  can_talk_to_candidates: boolean | null;
+  /** 一覧には出さない（2026-08-05）。検索の対象としては使っている */
   location: string | null;
   birth_date: string | null;
   visibility: string | null;
@@ -144,7 +143,14 @@ export function CandidatesClient({ users }: { users: User[] }) {
                   aria-label="全選択"
                 />
               </th>
-              {["名前", "メール", "居住地", "年代", "BIZ", "公開設定", "面談可", "話せる", "最終ログイン", "登録日", "経歴"].map((h) => (
+              {/*
+                ⚠️ 2026-08-05 に2列削除した。td 側も必ず一緒に増減させること。
+                   「居住地」: 一覧で使わない（26名中5名しか埋まっていない）
+                   「話せる」: ow_users.can_talk_to_candidates。本番0件・参照は
+                     この画面の表示だけ・何もゲートしていなかった。カラムは残してある。
+                     「話せるか」の判定は隣の「面談可」（can_casual_meeting）が担う。
+              */}
+              {["名前", "メール", "年代", "BIZ", "公開設定", "面談可", "最終ログイン", "登録日", "経歴"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -162,7 +168,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <td colSpan={10} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>👤</div>
                   ユーザーが見つかりません
                 </td>
@@ -207,10 +213,6 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     </td>
                     {/* メール */}
                     <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontSize: 12 }}>{u.email}</td>
-                    {/* 居住地 */}
-                    <td style={{ padding: "11px 14px", color: "var(--ink-soft)" }}>
-                      {u.location || <span style={{ color: "var(--ink-mute)" }}>—</span>}
-                    </td>
                     {/* 年代 */}
                     <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
                       {u.birth_date ? `${getUserAge(u.birth_date)}歳` : <span style={{ color: "var(--ink-mute)" }}>—</span>}
@@ -243,13 +245,6 @@ export function CandidatesClient({ users }: { users: User[] }) {
                       <CanCasualMeetingToggle
                         userId={u.id}
                         initialValue={u.can_casual_meeting ?? false}
-                      />
-                    </td>
-                    {/* 話せる（can_talk_to_candidates） */}
-                    <td style={{ padding: "11px 14px" }}>
-                      <CanTalkCandidatesToggle
-                        userId={u.id}
-                        initialValue={u.can_talk_to_candidates ?? false}
                       />
                     </td>
                     {/* 最終ログイン */}

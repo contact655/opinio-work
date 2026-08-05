@@ -55,6 +55,7 @@ type BizAccount = {
   userAvatarColor: string | null;
   permission: "admin" | "member";
   roleTitle: string | null;
+  department: string | null;
   isActive: boolean;
   isAmbassador: boolean;
   createdAt: string;
@@ -69,7 +70,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
     await Promise.all([
       admin
         .from("ow_company_admins")
-        .select("id, company_id, user_id, permission, role_title, is_active, is_ambassador, created_at")
+        .select("id, company_id, user_id, permission, department, role_title, is_active, is_ambassador, created_at")
         .order("created_at", { ascending: false }),
       admin.from("ow_users").select("id, auth_id, name, email, avatar_color"),
       admin.from("ow_companies").select("id, name, engagement_status, is_published"),
@@ -116,6 +117,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
       userAvatarColor: user?.avatar_color ?? null,
       permission: (row.permission ?? "member") as "admin" | "member",
       roleTitle: row.role_title as string | null,
+      department: row.department as string | null,
       isActive: row.is_active as boolean,
       isAmbassador: (row.is_ambassador as boolean) ?? false,
       createdAt: row.created_at as string,
@@ -256,7 +258,7 @@ export default async function AdminBizAccountsPage({
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                 {/* ⚠️ 列を足し引きしたら td 側も合わせること。2026-08-04 に talk_themes 列の
                     td を消したときヘッダーだけ残り、8列 vs 7列でずれていた。 */}
-                {["担当者", "所属企業", "権限 / 役職", "最終ログイン", "招待日", "状態", "話せる人"].map((h) => (
+                {["担当者", "所属企業", "権限", "部署", "役職", "最終ログイン", "招待日", "状態", "話せる人"].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "10px 16px",
                     fontSize: 10, fontWeight: 700, color: "#94A3B8",
@@ -317,7 +319,7 @@ export default async function AdminBizAccountsPage({
                       </div>
                     </td>
 
-                    {/* 権限 / 役職 */}
+                    {/* 権限（アプリ内の権限であって職位ではない） */}
                     <td style={{ padding: "12px 16px" }}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
@@ -327,11 +329,22 @@ export default async function AdminBizAccountsPage({
                       }}>
                         {acc.permission === "admin" ? "管理者" : "メンバー"}
                       </span>
-                      {acc.roleTitle && (
-                        <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>
-                          {acc.roleTitle}
-                        </div>
-                      )}
+                    </td>
+
+                    {/*
+                      部署 / 役職 — ow_company_admins.department / role_title。
+                      ⚠️ 2つの列の使い分けが定義されていない。2026-08-05 時点で
+                         10行中2行しか埋まっておらず、その2行は department にも
+                         role_title にも同じ値（「代表取締役」「人事部」）が入っている。
+                         データは直していない。埋める運用を始める前に、
+                         「部署＝所属組織 / 役職＝肩書き」のような定義を決めること。
+                      ⚠️ 空欄には何も出さない（「—」を並べると埋まっているように見えるため）。
+                    */}
+                    <td style={{ padding: "12px 16px", fontSize: 12, color: "var(--ink-soft)" }}>
+                      {acc.department}
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 12, color: "var(--ink-soft)" }}>
+                      {acc.roleTitle}
                     </td>
 
                     {/* 最終ログイン */}
