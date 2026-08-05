@@ -8407,6 +8407,16 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_follows_v: {
+        Row: {
+          created_at: string | null
+          follower_user_id: string | null
+          id: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Relationships: []
+      }
       ow_posts_visible: {
         Row: {
           content: string | null

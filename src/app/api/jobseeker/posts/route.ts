@@ -190,28 +190,42 @@ export async function GET(req: Request) {
     }
 
     // フォロー中企業 ID 一覧
-    const { data: followRows } = await adminSupabase
-      .from("ow_company_follows")
-      .select("company_id")
+    // ⚠️ 企業とユーザーの両方を ow_follows_v から引く。
+    //    テーブルは統合していないので、読むときだけこのビューでまとめる。
+    const { data: followRows, error: followErr } = await adminSupabase
+      .from("ow_follows_v")
+      .select("target_type, target_id")
       .eq("follower_user_id", myOwUserId);
+    if (followErr) {
+      console.error("[GET /api/jobseeker/posts?tab=followed] follows", followErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
 
-    const followedCompanyIds = (followRows ?? []).map((r: { company_id: string }) => r.company_id);
+    const rows = (followRows ?? []) as { target_type: string; target_id: string }[];
+    const followedCompanyIds = rows.filter((r) => r.target_type === "company").map((r) => r.target_id);
+    const followedUserIds = rows.filter((r) => r.target_type === "user").map((r) => r.target_id);
 
-    if (followedCompanyIds.length === 0) {
+    if (followedCompanyIds.length === 0 && followedUserIds.length === 0) {
       return NextResponse.json({ posts: [] });
     }
 
-    // プライバシー同意済みメンバーの user_id 一覧
-    const { data: memberRows } = await adminSupabase
-      .from("ow_company_members")
-      .select("user_id")
-      .in("company_id", followedCompanyIds)
-      .eq("is_public", true)
-      .eq("display_consent", true);
+    // フォロー中企業の、掲載に同意しているメンバーの user_id。
+    // ⚠️ これは「企業をフォローすると、その企業の公開メンバーの個人投稿も流れる」という
+    //    以前からの挙動。ユーザーフォローができた今は重複する面があるが、
+    //    挙動を変えると企業フォロワーの見え方が黙って変わるので今回は維持している。
+    let consentedUserIds: string[] = [];
+    if (followedCompanyIds.length > 0) {
+      const { data: memberRows } = await adminSupabase
+        .from("ow_company_members")
+        .select("user_id")
+        .in("company_id", followedCompanyIds)
+        .eq("is_public", true)
+        .eq("display_consent", true);
+      consentedUserIds = (memberRows ?? []).map((r: { user_id: string }) => r.user_id);
+    }
 
-    const consentedUserIds = (memberRows ?? []).map((r: { user_id: string }) => r.user_id);
-
-    // (a) ref_company_id が followed OR (b) user_id が consented member
+    // (a) ref_company_id が followed企業 OR (b) user_id が followedユーザー
+    // OR (c) user_id がフォロー中企業の公開メンバー
     let followedQuery = adminSupabase
       .from("ow_posts_visible")
       .select(POST_SELECT)
@@ -220,11 +234,10 @@ export async function GET(req: Request) {
 
     if (before) followedQuery = followedQuery.lt("created_at", before);
 
-    // OR フィルタ
-    const orParts: string[] = [`ref_company_id.in.(${followedCompanyIds.join(",")})`];
-    if (consentedUserIds.length > 0) {
-      orParts.push(`user_id.in.(${consentedUserIds.join(",")})`);
-    }
+    const orParts: string[] = [];
+    if (followedCompanyIds.length > 0) orParts.push(`ref_company_id.in.(${followedCompanyIds.join(",")})`);
+    const userIds = Array.from(new Set([...followedUserIds, ...consentedUserIds]));
+    if (userIds.length > 0) orParts.push(`user_id.in.(${userIds.join(",")})`);
     followedQuery = followedQuery.or(orParts.join(","));
 
     const { data: followedData, error: followedError } = await followedQuery;
