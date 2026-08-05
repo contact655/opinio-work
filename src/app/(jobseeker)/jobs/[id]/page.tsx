@@ -262,11 +262,14 @@ function JobEmployeesSection({
   alumni,
   companyId,
   companyName,
+  casualHref,
 }: {
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
   companyId: string;
   companyName: string;
+  /** 非公開企業では null。飛べない導線を置かないため CTA ごと出さない */
+  casualHref: string | null;
 }) {
   if (current.length === 0 && alumni.length === 0) return null;
 
@@ -294,9 +297,10 @@ function JobEmployeesSection({
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
             {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
           </div>
+          {casualHref && (
           <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-4)", borderTop: "1px solid var(--line-soft)" }}>
             <a
-              href={`/companies/${companyId}/casual-meeting`}
+              href={casualHref}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 padding: "10px 20px", borderRadius: 10, width: "100%",
@@ -308,6 +312,7 @@ function JobEmployeesSection({
               {companyName.replace(/^(株式会社|有限会社|合同会社)/, "").replace(/(株式会社|有限会社|合同会社)$/, "")}の社員に話を聞く（無料）
             </a>
           </div>
+          )}
         </section>
       )}
 
@@ -735,7 +740,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* スクロール検知スティッキーCTA — ヒーロー直下にセンチネルを置き、通過後に表示 */}
       <JobMobileStickyBar
-        casualHref={company.jobs_public ? `/companies/${company.slug ?? job.company_id}/casual-meeting?job_id=${job.id}` : undefined}
+        casualHref={companyHref && company.jobs_public ? `${companyHref}/casual-meeting?job_id=${job.id}` : undefined}
         applyHref={`/jobs/${job.id}/apply`}
       />
 
@@ -1521,6 +1526,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 current={jobEmployees.current}
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
+                casualHref={companyHref && company.jobs_public ? `${companyHref}/casual-meeting` : null}
                 companyName={company.name}
               />
 
@@ -1599,8 +1605,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
                 <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {/* ③ Primary: カジュアル面談 — warm orange, OPINIO思想に合わせてトップに */}
-                  {company.jobs_public && (
-                    <Link href={`/companies/${company.slug ?? job.company_id}/casual-meeting?job_id=${job.id}`} style={{
+                  {/* ⚠️ companyHref が null（非公開企業）ならCTAごと出さない */}
+                  {company.jobs_public && companyHref && (
+                    <Link href={`${companyHref}/casual-meeting?job_id=${job.id}`} style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                       width: "100%", padding: "15px var(--space-6)",
                       background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",

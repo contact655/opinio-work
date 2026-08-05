@@ -18,6 +18,10 @@ const BIZ_PUBLIC_PATHS = ["/biz", "/biz/auth", "/biz/auth/signup", "/biz/auth/ac
 // Agent portal: /agent/auth is public; other /agent/* pages handle auth themselves (redirect to /agent/auth)
 const AGENT_PUBLIC_PATHS = ["/agent/auth"];
 
+// 申し込み系。ログイン必須。リダイレクト先は他と同じ /auth?next=...
+const CASUAL_MEETING_RE = /^\/companies\/[^/]+\/casual-meeting\/?$/;
+const APPLY_RE = /^\/jobs\/[^/]+\/apply\/?$/;
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -29,7 +33,13 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/u/") ||
     // ⚠️ 完全一致にしないこと。/people/role/[slug] の7ページも同じ個人情報を出す。
     //    2026-07-13 の 7dd4eff4 では === "/people" だったため子が素通りしていた（2026-08-04 修正）。
-    pathname === "/people" || pathname.startsWith("/people/");
+    pathname === "/people" || pathname.startsWith("/people/") ||
+    // ⚠️ 申し込み系はページ側でも redirect しているが、middleware でも弾く。
+    //    ページ側の redirect() だけだと HTTP は 200 のまま（Suspense 境界の内側で
+    //    起きるため）で、ステータスを見る側からは「誰でも開ける」ように見える。
+    //    2026-08-05 に casual-meeting/apply の loading.tsx を消してソフト200を解消したが、
+    //    認証の判定はここに置いて一元化する。
+    CASUAL_MEETING_RE.test(pathname) || APPLY_RE.test(pathname);
 
   // Supabase セッションクッキーの有無を確認（sb-<ref>-auth-token）
   const hasSessionCookie = request.cookies.getAll().some(

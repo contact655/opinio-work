@@ -369,7 +369,9 @@ function JobListItem({
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
         </a>
 
-        {/* 面談をする（求人がある＝面談受付中） */}
+        {/* 面談をする（求人がある＝面談受付中）
+            ⚠️ 非公開企業には飛ばさない（本番で404）。Company.is_published を見る */}
+        {company.is_published && (
         <a
           href={`/companies/${company.slug ?? company.id}/casual-meeting`}
           style={{
@@ -386,6 +388,7 @@ function JobListItem({
           </svg>
           面談
         </a>
+        )}
 
         {/* 保存をする */}
         <button
