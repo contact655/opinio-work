@@ -209,23 +209,30 @@ export async function GET(req: Request) {
       return NextResponse.json({ posts: [] });
     }
 
-    // フォロー中企業の、掲載に同意しているメンバーの user_id。
-    // ⚠️ これは「企業をフォローすると、その企業の公開メンバーの個人投稿も流れる」という
-    //    以前からの挙動。ユーザーフォローができた今は重複する面があるが、
-    //    挙動を変えると企業フォロワーの見え方が黙って変わるので今回は維持している。
-    let consentedUserIds: string[] = [];
+    // ⚠️ 「フォロー中企業の公開メンバーの個人投稿も流す」条件は 2026-08-05 に外した。
+    //    フォローの意味が1対1に対応しないとボタンの意味を本人に説明できないため
+    //    （企業をフォロー → 企業の更新 / 人をフォロー → その人の投稿）。
+    //    書き手から見ても、企業フォロワー全員に個人投稿が配られるのは
+    //    押した覚えのない拡散になる。
+    //    ow_follows_v が0件のうちに外している。フォローする人が出てからでは
+    //    「見えていたものが消える」変更になり、外せなくなる。
+    //    ここに ow_company_members を戻さないこと。
+
+    // ⚠️ job_posted は ow_posts_visible が ref_job_id しか保証しない（ref_company_id は条件外）。
+    //    2026-08-05 時点でビュー内18件はすべて ref_company_id を持つが、構造的な保証ではないので
+    //    フォロー中企業の求人 ID も引いて ref_job_id 側でも拾う。
+    //    ⚠️ 求人が増えたら in() が長くなる。件数が問題になったら
+    //       ビュー側に company_id を持たせるか、RPC に寄せること。
+    let followedJobIds: string[] = [];
     if (followedCompanyIds.length > 0) {
-      const { data: memberRows } = await adminSupabase
-        .from("ow_company_members")
-        .select("user_id")
-        .in("company_id", followedCompanyIds)
-        .eq("is_public", true)
-        .eq("display_consent", true);
-      consentedUserIds = (memberRows ?? []).map((r: { user_id: string }) => r.user_id);
+      const { data: jobRows } = await adminSupabase
+        .from("ow_jobs")
+        .select("id")
+        .in("company_id", followedCompanyIds);
+      followedJobIds = (jobRows ?? []).map((r: { id: string }) => r.id);
     }
 
-    // (a) ref_company_id が followed企業 OR (b) user_id が followedユーザー
-    // OR (c) user_id がフォロー中企業の公開メンバー
+    // (a) ref_company_id が followed企業 OR (b) その企業の求人 OR (c) user_id が followedユーザー
     let followedQuery = adminSupabase
       .from("ow_posts_visible")
       .select(POST_SELECT)
@@ -236,8 +243,8 @@ export async function GET(req: Request) {
 
     const orParts: string[] = [];
     if (followedCompanyIds.length > 0) orParts.push(`ref_company_id.in.(${followedCompanyIds.join(",")})`);
-    const userIds = Array.from(new Set([...followedUserIds, ...consentedUserIds]));
-    if (userIds.length > 0) orParts.push(`user_id.in.(${userIds.join(",")})`);
+    if (followedJobIds.length > 0) orParts.push(`ref_job_id.in.(${followedJobIds.join(",")})`);
+    if (followedUserIds.length > 0) orParts.push(`user_id.in.(${followedUserIds.join(",")})`);
     followedQuery = followedQuery.or(orParts.join(","));
 
     const { data: followedData, error: followedError } = await followedQuery;

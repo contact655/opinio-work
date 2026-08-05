@@ -131,6 +131,29 @@ PostgREST がビューの列を元テーブルの列まで辿れることで成�
 `ow_posts` の RLS を迂回する。`/u/[id]` は anon クライアントで引いているので実害が出る。
 migration の事後チェックで `reloptions` を検証している。
 
+---
+
+## ow_companies に重複行がある（2026-08-05 記録）
+
+株式会社Opinio がマスタに **2行** 入っている。
+
+| 行 | id | 状態 |
+|---|---|---|
+| `株式会社Opinio` | `cf44d740` | 公開・slug=opinio・url / tagline あり。求人2件 / 記事1件 / 投稿1件 / admin 3件 |
+| `株式会社Third Box` | `81cae8d8` | **非公開**・slug=third-box・中身は空。admin 3件のみ |
+
+Third Box は旧社名（2025年6月に株式会社Opinio へ商号変更済み）。
+ただし**社名が腐っているのではなく、行が2つある**状態。
+`ow_company_tools` の動作確認用スタブとみられる（CLAUDE.md に company_id の記載あり）。
+
+**DELETE も UPDATE もしない。** 非公開かつ中身が空なので実害はゼロ。
+
+⚠️ **この行を公開しないこと。** 公開すると `company_joined` 投稿が生成され、
+**存在しない社名でフィードに流れる**。しかも部分UNIQUEインデックスがあるため、
+あとから社名を直しても投稿は作り直されない（本文は生成時の社名で固定される）。
+
+社員を紐付けるときも `cf44d740` の方を使う。
+
 ### 部分UNIQUEインデックスは幽霊投稿に効かない
 
 `idx_ow_posts_unique_job` などは `ref_* IS NOT NULL` を条件にしているため、
