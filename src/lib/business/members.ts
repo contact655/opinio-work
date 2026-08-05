@@ -48,7 +48,10 @@ export async function fetchPendingInvitesForCompany(
       .from("ow_company_admins")
       .select("id, invited_email, invited_at, permission, invitation_token")
       .eq("company_id", tenantId)
-      .eq("is_active", true)
+      // ⚠️ is_active で絞らないこと（2026-08-05 に条件から外した）。
+      //    招待の作成時に is_active を立てるのをやめたため、絞ると
+      //    /biz/members の「招待中」一覧が空になり、リンクの再取得も
+      //    キャンセルもできなくなる。保留中かどうかは user_id が null かで判定する。
       .is("user_id", null)
       .order("invited_at", { ascending: false });
 

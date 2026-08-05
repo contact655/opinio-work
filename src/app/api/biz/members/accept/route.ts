@@ -92,6 +92,8 @@ export async function POST(req: NextRequest) {
       user_id: owUserId,
       accepted_at: now,
       joined_at: now,
+      // ⚠️ 有効化はここ。招待の作成時ではない（2026-08-05）
+      is_active: true,
       invitation_token: null,
       invited_email: null,
     })

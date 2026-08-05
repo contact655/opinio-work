@@ -91,7 +91,18 @@ export async function POST(req: Request) {
       user_id: null,
       company_id: companyId,
       permission,
-      is_active: true,
+      /*
+        ⚠️ 招待の時点では false（2026-08-05 に true から変更）。
+           true を立てていたため is_active が「有効かどうか」ではなく
+           「招待したかどうか」を意味していた。承諾時（POST /api/biz/members/accept）に
+           user_id / accepted_at / joined_at と同じタイミングで true にする。
+        ⚠️ これはフラグの名前と意味を一致させる変更で、脆弱性の修正ではない。
+           招待だけの行は user_id が null で、getCompanyContext() は user_id 一致も
+           見ているため、以前から /biz にはログインできなかった。
+        ⚠️ 保留中の招待を一覧に出す fetchPendingInvitesForCompany() は
+           is_active で絞らないこと。絞ると /biz/members から招待が消える。
+      */
+      is_active: false,
       invited_email: email,
       invited_by_user_id: actorOwUserId,
       invitation_token: inviteToken,

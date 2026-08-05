@@ -57,6 +57,7 @@ type BizAccount = {
   roleTitle: string | null;
   department: string | null;
   isActive: boolean;
+  acceptedAt: string | null;
   isAmbassador: boolean;
   createdAt: string;
   lastLogin: string | null;
@@ -70,7 +71,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
     await Promise.all([
       admin
         .from("ow_company_admins")
-        .select("id, company_id, user_id, permission, department, role_title, is_active, is_ambassador, created_at")
+        .select("id, company_id, user_id, permission, department, role_title, is_active, is_ambassador, accepted_at, created_at")
         .order("created_at", { ascending: false }),
       admin.from("ow_users").select("id, auth_id, name, email, avatar_color"),
       admin.from("ow_companies").select("id, name, engagement_status, is_published"),
@@ -119,6 +120,7 @@ async function getBizAccounts(): Promise<BizAccount[]> {
       roleTitle: row.role_title as string | null,
       department: row.department as string | null,
       isActive: row.is_active as boolean,
+      acceptedAt: row.accepted_at as string | null,
       isAmbassador: (row.is_ambassador as boolean) ?? false,
       createdAt: row.created_at as string,
       lastLogin,
@@ -258,7 +260,7 @@ export default async function AdminBizAccountsPage({
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                 {/* ⚠️ 列を足し引きしたら td 側も合わせること。2026-08-04 に talk_themes 列の
                     td を消したときヘッダーだけ残り、8列 vs 7列でずれていた。 */}
-                {["担当者", "所属企業", "権限", "部署", "役職", "最終ログイン", "招待日", "状態", "話せる人"].map((h) => (
+                {["担当者", "所属企業", "権限", "部署", "役職", "最終ログイン", "登録日", "状態", "話せる人"].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "10px 16px",
                     fontSize: 10, fontWeight: 700, color: "#94A3B8",
@@ -370,7 +372,13 @@ export default async function AdminBizAccountsPage({
                       )}
                     </td>
 
-                    {/* 招待日 */}
+                    {/*
+                      登録日 — created_at。
+                      ⚠️ 2026-08-05 まで「招待日」という列名だったが、実態と違っていた。
+                         招待フローを通った行（user_id が null の行）でしか招待日を意味せず、
+                         それ以外の9行は運営が直接作った行の作成日。
+                         招待日そのものは invited_at にあり、10行中1行しか入っていない。
+                    */}
                     <td style={{
                       padding: "12px 16px", color: "#94A3B8",
                       fontFamily: "Inter, sans-serif", fontSize: 12,
@@ -378,21 +386,50 @@ export default async function AdminBizAccountsPage({
                       {formatDate(acc.createdAt)}
                     </td>
 
-                    {/* 状態 */}
+                    {/*
+                      状態 — user_id と accepted_at から導出する（2026-08-05）。
+                      ⚠️ 以前は is_active だけを見て「アクティブ / 非アクティブ」と出していたが、
+                         招待作成時に is_active = true を立てていたため、フラグが
+                         「有効かどうか」ではなく「招待したかどうか」を意味していた。
+                         実態は3つある:
+                           user_id あり + accepted_at あり → 承諾済み（招待リンクを踏んだ）
+                           user_id あり + accepted_at なし → 運営が直接登録（招待を通っていない）
+                           user_id なし                    → 招待中（まだ誰にも紐付いていない）
+                      ⚠️ accepted_at を後から埋めないこと。承諾していない人に承諾の記録を
+                         作ることになる（2026-08-05 時点で9行が「運営が直接登録」）。
+                      ⚠️ is_active は別の意味を持つ（無効化されたメンバー）。
+                         3状態と直交するので、false のときだけ併記する。
+                    */}
                     <td style={{ padding: "12px 16px" }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100,
-                        background: acc.isActive ? "#ECFDF5" : "#F1F5F9",
-                        color: acc.isActive ? "var(--success)" : "#94A3B8",
-                        border: `1px solid ${acc.isActive ? "#A7F3D0" : "#E2E8F0"}`,
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                      }}>
-                        <span style={{
-                          width: 5, height: 5, borderRadius: "50%",
-                          background: acc.isActive ? "var(--success)" : "#94A3B8",
-                        }} />
-                        {acc.isActive ? "アクティブ" : "非アクティブ"}
-                      </span>
+                      {(() => {
+                        const state = !acc.userId
+                          ? { label: "招待中", bg: "#FEF3C7", fg: "#B45309", bd: "#FDE68A", dot: "#F59E0B" }
+                          : acc.acceptedAt
+                            ? { label: "承諾済み", bg: "#ECFDF5", fg: "var(--success)", bd: "#A7F3D0", dot: "var(--success)" }
+                            : { label: "運営が直接登録", bg: "#EFF3FC", fg: "var(--royal)", bd: "#DCE5F7", dot: "#3B5FD9" };
+                        return (
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100,
+                              background: state.bg, color: state.fg, border: `1px solid ${state.bd}`,
+                              display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+                            }}>
+                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: state.dot }} />
+                              {state.label}
+                            </span>
+                            {!acc.isActive && (
+                              <span title="このメンバーは無効化されています（/biz にログインできない）"
+                                style={{
+                                  fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+                                  background: "#F1F5F9", color: "#94A3B8", border: "1px solid #E2E8F0",
+                                  whiteSpace: "nowrap",
+                                }}>
+                                無効化
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* 話せる人 ambassador トグル */}

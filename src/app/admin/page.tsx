@@ -18,6 +18,10 @@ async function getStats() {
     supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
     supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    // BIZ担当者数。
+    // ⚠️ 2026-08-05 から、保留中の招待（user_id が null）はここに数えられない。
+    //    招待の作成時に is_active を立てるのをやめ、承諾時に立てるようにしたため。
+    //    「招待した人数」ではなく「実際に使える担当者の数」を出したいので、これが正。
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
     // オンボーディングファネル
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),

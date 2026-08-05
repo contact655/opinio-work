@@ -108,6 +108,9 @@ export default function AdminCompaniesPage() {
     );
     const adminMap = new Map<string, CompanyAdmin[]>();
     for (const row of adminRows ?? []) {
+      // ⚠️ user_id が null の行は「保留中の招待」であって担当者ではない。
+      //    数に入れると、まだ誰も紐付いていない企業が自走できるように見える（2026-08-05）。
+      if (!row.user_id) continue;
       const cid = row.company_id as string;
       if (!adminMap.has(cid)) adminMap.set(cid, []);
       adminMap.get(cid)!.push({
