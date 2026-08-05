@@ -35,6 +35,38 @@ const CAREER_SHOT: {
   alt: string;
 } | null = null;
 
+/**
+ * FV の検索窓の直下に置く実画面。1枚だけ。
+ *
+ * ⚠️ 表示幅は約1000px（.lp-fv-shot）。v2 の切り出しはそのままでは使えない。
+ *    v2 は 640〜660 CSS px 幅の切り出しで、1000px に置くと 1.5倍に引き伸ばされる。
+ *    文字が大きくなりすぎるうえ、右端が文の途中で切れているのが露骨に出る
+ *    （518px の2列グリッドでは「続きがある」に見えていた）。
+ *    そのため 1000px 表示用に v3 を切り直した（2026-08-05）。
+ *      search  : viewport 1250 の全幅（1250 CSS px）。表示すると原寸の 0.80
+ *      company : 企業ページの本文列（930 CSS px）。表示すると原寸の 1.08
+ *    どちらも「表示幅 × 1.3」＝1300px の内側。
+ *
+ * ⚠️ 差し替えるときはファイル名の連番を上げること（v3 → v4）。
+ *    Next の画像最適化は元パスをキーにするので、同名だと古いバイト列が配信され続ける。
+ *
+ * ⚠️ 狭幅用（narrow）は v2 のまま。こちらは元々 450 CSS px 前後の切り出しで、
+ *    モバイルの表示幅（約339px）に対して比率が変わらないため撮り直す必要がない。
+ *
+ * ── もう一方の候補（ファイルは残してある。定義を入れ替えるだけで差し替わる）──
+ *   企業ページの導入事例:
+ *     wide:   /images/lp/preview-company-v3.webp    1860×1120
+ *     narrow: /images/lp/preview-company-sm-v2.webp  900×311
+ *     alt:    OPINIO の企業ページ。導入事例ごとに活用内容と成果が並んでいる。
+ *     href:   /companies
+ */
+const FV_SHOT = {
+  wide:   { src: "/images/lp/preview-search-v3.webp",    w: 2500, h: 1120 },
+  narrow: { src: "/images/lp/preview-search-sm-v2.webp", w: 900,  h: 376 },
+  alt: "OPINIO の募集検索結果。職種・年収・勤務形態で絞り込め、各募集に年収レンジが表示されている。",
+  href: "/jobs",
+};
+
 const CAREER_CARD = {
   title: "経歴が構造化されている",
   body: "どこから来て、どこへ行ったか。社員のキャリアがデータとして残っているので、企業単位でも職種単位でも辿れます。",
@@ -171,7 +203,12 @@ export default function LandingPage({
 
         .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
-        .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        /* FV の実画面。検索窓（1000px）と同じ幅に揃える。
+           ⚠️ .pp-shot の max-height は globals.css で330pxだが、それは518px表示の
+              2列グリッド用の値。1000pxで330pxだと帯のように細くなるので上書きする。 */
+        .lp-fv-shot { width: 100%; max-width: 1000px; margin-top: 40px; }
+        .lp-fv-shot .pp-shot { max-height: 420px; }
+
         .lp-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
         /* 経歴カードに画面を入れるときだけ、上段を2列にして経歴を全幅の行に出す。
            3列のまま1枚だけ縦長画像を入れると、そのカードだけ約600pxになり
@@ -198,7 +235,11 @@ export default function LandingPage({
           .lp-section { padding: 52px 0; }
           .lp-wrap { padding: 0 18px; }
           .lp-facets { grid-template-columns: repeat(2, 1fr); }
-          .lp-cards, .lp-jobs, .lp-steps, .lp-trust { grid-template-columns: 1fr; }
+          .lp-cards, .lp-jobs, .lp-trust { grid-template-columns: 1fr; }
+          /* 狭幅では narrow の切り出しに切り替わる（.pp-narrow）。
+             こちらは既に読める幅で撮ってあるので高さを抑えない。 */
+          .lp-fv-shot { margin-top: 28px; }
+          .lp-fv-shot .pp-shot { max-height: none; }
           /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
              620px までは wide の切り出しのまま。ここでは表示幅が 600px 前後あり、
              縮小率 0.85 で本文が読める。 */
@@ -243,13 +284,34 @@ export default function LandingPage({
                英語に戻すなら上の2点をどう解くかを先に決めること。
 
             和文なので letter-spacing を軽く詰める（英語では詰めていなかった）。
-            文字数が減った分 fontSize を上げている。実機で 375/768/1440px を確認済み。
+
+            ⚠️ 2026-08-05: 上限を 62px から 44px に下げた（約71%）。
+               62px だと見出しの幅が約610pxで、当時700pxだった検索窓とほぼ並び、
+               FV で先に目に入るのが見出しになっていた。検索を主役にするため、
+               見出しを下げ、窓を1000pxに広げて幅の主従を逆転させている。
+               ⚠️ 下限の 34px は動かさないこと。モバイルの見え方を変えないための下限で、
+                  375〜1060px の範囲ではこの値が効いている（3.2vw が 34px を超えるのは
+                  約1063px から）。
           */}
-          <h1 style={{ fontSize: "clamp(34px, 4.6vw, 62px)", fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.02em", color: C.navy, marginBottom: 34 }}>
+          <h1 style={{ fontSize: "clamp(34px, 3.2vw, 44px)", fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.02em", color: C.navy, marginBottom: 30 }}>
             確かめてから、動く。
           </h1>
 
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
+
+          {/*
+            検索窓の直下に実画面を1枚だけ置く。
+            2026-08-05 まで HOW IT WORKS（探して、比べて、決める）に2枚並べていたが、
+            説明が汎用的で OPINIO でなくても書けるため節ごと削除し、画像だけをここに移した。
+            ⚠️ 使わなかったほうの画像（FV_SHOT の下のコメント参照）はファイルを消していない。
+               差し替えは FV_SHOT の定義を入れ替えるだけでよい。
+          */}
+          <div className="lp-fv-shot">
+            <ProductShot wide={FV_SHOT.wide} narrow={FV_SHOT.narrow} alt={FV_SHOT.alt} href={FV_SHOT.href} line={C.line} />
+            <p style={{ marginTop: 14, fontSize: 12, color: C.muted }}>
+              画面は実際のものです。掲載内容は変わることがあります。
+            </p>
+          </div>
         </div>
       </section>
 
@@ -436,61 +498,10 @@ export default function LandingPage({
       </section>
       )}
 
-      {/* ══ 使い方 ═══════════════════════════════════════════════════════════ */}
-      <section className="lp-section" style={{ background: C.paper2 }}>
-        <div className="lp-wrap">
-          <div className="lp-sec-head">
-            <div>
-              <div className="lp-eyebrow">HOW IT WORKS</div>
-              <h2 className="lp-h2">探して、比べて、決める</h2>
-            </div>
-          </div>
-          {/*
-            01 / 02 は実画面つきなので2列。03 は画像が無いのでその下に1枚で置く。
-            ⚠️ 3列にしないこと。表示幅が約294pxになり、画像の13pxの文字が6pxになって読めない。
-               画像は「表示幅 × 1.3」を上限に切り出してある（.pp-grid の518px前提）。
-               2026-08-04 に DATA カードで同じ失敗をして画像を一度外している。
-            ⚠️ ここに置いた画像は、以前 FV 直下にあった独立セクション（ProductPreview）のもの。
-               下の HOW IT WORKS と同じ説明を2回していたので統合した。意匠は .pp-* をそのまま使う。
-          */}
-          <div className="pp-grid" style={{ marginBottom: 18 }}>
-            {[
-              {
-                n: "01", title: "探す", body: "業種・フェーズ・勤務形態で絞り込む。登録は要りません。", href: "/companies",
-                wide:   { src: "/images/lp/preview-search-v2.webp",    w: 1280, h: 800 },
-                narrow: { src: "/images/lp/preview-search-sm-v2.webp", w: 900,  h: 376 },
-                alt: "OPINIO の募集検索結果。職種・年収・勤務形態で絞り込め、各募集に年収レンジが表示されている。",
-              },
-              {
-                n: "02", title: "比べる", body: "記事・求人・働く人の経歴を、企業ページで横に並べて見る。", href: "/companies",
-                wide:   { src: "/images/lp/preview-company-v2.webp",    w: 1320, h: 620 },
-                narrow: { src: "/images/lp/preview-company-sm-v2.webp", w: 900,  h: 311 },
-                alt: "OPINIO の企業ページ。主な製品・サービスと、導入事例の活用内容・成果が並んでいる。",
-              },
-            ].map((s) => (
-              <div key={s.n}>
-                <div style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 6 }}>{s.n}</div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 6 }}>{s.title}</h3>
-                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: "0 0 14px" }}>{s.body}</p>
-                <ProductShot wide={s.wide} narrow={s.narrow} alt={s.alt} href={s.href} line={C.line} />
-              </div>
-            ))}
-          </div>
-
-          {/* 03 は対応する画面が無いので画像なし。3枚揃える必要はない
-              （「決める」は画面上の操作ではなく本人の判断なので、そもそも絵にならない） */}
-          <Link href="/jobs" style={{ display: "block", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, textDecoration: "none" }}>
-            <div style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 8 }}>03</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>決める</h3>
-            {/* 転職を前提にしない。「今は動かない」も結論として扱う */}
-            <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>応募する、時期を待つ、今の会社に残る。急かす連絡は届きません。</p>
-          </Link>
-
-          <p style={{ marginTop: 18, fontSize: 12, color: C.muted, textAlign: "center" }}>
-            画面は実際のものです。掲載内容は変わることがあります。
-          </p>
-        </div>
-      </section>
+      {/* 使い方（HOW IT WORKS / 探して、比べて、決める）は 2026-08-05 に削除した。
+          内容が汎用的で OPINIO でなくても書ける説明だったため。説明を1ブロックに絞るなら、
+          他社が言えない内容を持つ DATA セクションを残すほうが筋が通る。
+          ここにあった実画面2枚のうち1枚は FV の検索窓の直下に移した（FV_SHOT）。 */}
 
       {/* ══ データの出どころ ══════════════════════════════════════════════════ */}
       <section className="lp-section">

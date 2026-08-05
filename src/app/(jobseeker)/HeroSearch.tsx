@@ -45,9 +45,9 @@ export function HeroSearch({ navy, line, muted }: { navy: string; line: string; 
   }
 
   return (
-    // 検索窓は Glassdoor / Indeed と同程度の 700px を上限にする。
-    // 520px だとプレースホルダーの日本語が窮屈で、入力中も語尾が隠れやすかった。
-    <form onSubmit={submit} style={{ width: "100%", maxWidth: 700 }}>
+    // ⚠️ 幅はインラインに書かないこと（CLAUDE.md「インラインstyle と CSS の優先順位」）。
+    //    max-width は .hero-search-form にある。
+    <form onSubmit={submit} className="hero-search-form">
       <div
         style={{
           display: "flex",
@@ -106,6 +106,13 @@ export function HeroSearch({ navy, line, muted }: { navy: string; line: string; 
       </div>
 
       <style>{`
+        /* 検索窓は FV の主役。見出しより幅が広いこと（2026-08-05）。
+           700px のときは見出し（62px × 10文字 ≒ 610px）とほぼ同じ幅で、
+           先に目に入るのが見出しになっていた。見出しを 44px に下げたうえで
+           窓を 1000px にして、幅の主従をはっきりさせている。
+           ⚠️ .lp-wrap の内側は 1064px（1120 − 28×2）なので、これ以上広げると
+              左右の余白が消える。 */
+        .hero-search-form { width: 100%; max-width: 1000px; }
         .hero-search-input { font-size: 16px; padding: 18px 12px; }
         /* プレースホルダーは薄くしすぎると読めない。
            日本語ゴシックは同じ色でも欧文より細く見えるため 500 を当てる。 */
