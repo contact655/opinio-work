@@ -217,7 +217,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("ow_posts")
+      .from("ow_posts_visible")
       .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
       .eq("user_id", owUser.id)
       .order("created_at", { ascending: false })

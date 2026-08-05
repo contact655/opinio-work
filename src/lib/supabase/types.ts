@@ -5857,6 +5857,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ow_notifications_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ow_posts_visible"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ow_notifications_recipient_user_id_fkey"
             columns: ["recipient_user_id"]
             isOneToOne: false
@@ -6091,6 +6098,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ow_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ow_posts_visible"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ow_post_comments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -6197,6 +6211,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "ow_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "ow_posts_visible"
             referencedColumns: ["id"]
           },
           {
@@ -8382,6 +8403,129 @@ export type Database = {
           tenant_id: string | null
         }
         Relationships: []
+      }
+      ow_posts_visible: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          event_location: string | null
+          event_starts_at: string | null
+          event_title: string | null
+          id: string | null
+          image_url: string | null
+          link_description: string | null
+          link_domain: string | null
+          link_image_url: string | null
+          link_title: string | null
+          link_url: string | null
+          post_type: string | null
+          ref_article_id: string | null
+          ref_company_id: string | null
+          ref_job_id: string | null
+          ref_user_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          event_location?: string | null
+          event_starts_at?: string | null
+          event_title?: string | null
+          id?: string | null
+          image_url?: string | null
+          link_description?: string | null
+          link_domain?: string | null
+          link_image_url?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          post_type?: string | null
+          ref_article_id?: string | null
+          ref_company_id?: string | null
+          ref_job_id?: string | null
+          ref_user_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          event_location?: string | null
+          event_starts_at?: string | null
+          event_title?: string | null
+          id?: string | null
+          image_url?: string | null
+          link_description?: string | null
+          link_domain?: string | null
+          link_image_url?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          post_type?: string | null
+          ref_article_id?: string | null
+          ref_company_id?: string | null
+          ref_job_id?: string | null
+          ref_user_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_posts_ref_article_id_fkey"
+            columns: ["ref_article_id"]
+            isOneToOne: false
+            referencedRelation: "ow_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_posts_ref_company_id_fkey"
+            columns: ["ref_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_posts_ref_company_id_fkey"
+            columns: ["ref_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_posts_ref_company_id_fkey"
+            columns: ["ref_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_posts_ref_job_id_fkey"
+            columns: ["ref_job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_job_performance"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "ow_posts_ref_job_id_fkey"
+            columns: ["ref_job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_posts_ref_user_id_fkey"
+            columns: ["ref_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

@@ -162,7 +162,9 @@ async function getSchoolPosts(userIds: string[]): Promise<SchoolPost[]> {
   if (userIds.length === 0) return [];
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("ow_posts")
+  // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
+  //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
+    .from("ow_posts_visible")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       ow_users!user_id(id, name, avatar_color, avatar_url)

@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: { postId: string } 
 
   const adminSupabase = createAdminClient();
   const { data: raw } = await adminSupabase
-    .from("ow_posts")
+    .from("ow_posts_visible")
     .select("content, user:ow_users!user_id(name)")
     .eq("id", params.postId)
     .maybeSingle();
@@ -57,7 +57,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
 
   const adminSupabase = createAdminClient();
   const { data: raw } = await adminSupabase
-    .from("ow_posts")
+    .from("ow_posts_visible")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
@@ -67,6 +67,9 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     .eq("id", params.postId)
     .maybeSingle();
 
+  // ⚠️ ow_posts_visible に無い＝参照先が消えた投稿。ここで 404 になる。
+  //    f34ba43d で is_system の例外を入れた結果いったん 200 になっていたのを、
+  //    ビュー側で塞いでいる（行は消していないので ow_posts には残っている）。
   if (!raw) notFound();
   const p = raw as unknown as RawPost;
   // ⚠️ 一覧側（(list)/page.tsx の visiblePosts と /api/jobseeker/posts の filterVisible）と

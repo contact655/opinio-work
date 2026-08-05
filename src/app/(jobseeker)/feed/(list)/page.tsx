@@ -82,8 +82,10 @@ export default async function FeedPage() {
   }
 
   // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
+  // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
+  //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
   const { data: rawPosts } = await adminSupabase
-    .from("ow_posts")
+    .from("ow_posts_visible")
     .select(`
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
       image_url, link_url, link_title, link_image_url, link_description, link_domain,

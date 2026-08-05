@@ -1,0 +1,122 @@
+# 企業・求人・記事を削除／公開するときのチェックリスト
+
+2026-08-05 作成。migration 238 / 239 の事故を繰り返さないために置いている。
+
+---
+
+## 削除するとき
+
+### まず知っておくこと
+
+**`ow_posts` の `ref_company_id` / `ref_job_id` / `ref_article_id` は `ON DELETE SET NULL`。**
+企業や求人を消しても投稿の行は残り、**参照だけが黙って外れる**。エラーは出ない。
+
+実際に起きたこと:
+
+| migration | 消したもの | 参照が外れた投稿 |
+|---|---|---|
+| `238_delete_medimo.sql` | medimo（企業＋求人25件） | 25 + 1 |
+| `239_delete_archi_freee_layerx.sql` | Archi Village / freee / LayerX | 24 + 3 |
+
+合計60件（`job_posted` 56 / `company_joined` 4）。
+239 は `ow_experiences` を `company_text` へ退避する手当てをしていたのに、
+`ow_posts` は見落としていた。**手当てするテーブルを1つずつ思い出す方式では漏れる。**
+
+参照が外れた投稿は `ow_posts_visible`（後述）から自動的に落ちるので**表示上の実害は無い**が、
+行は残り続ける。
+
+### 手順
+
+1. **削除対象を参照している `ow_posts` を数える**
+
+   ```sql
+   SELECT post_type, count(*)
+     FROM ow_posts
+    WHERE ref_company_id = '<company_id>'
+       OR ref_job_id IN (SELECT id FROM ow_jobs WHERE company_id = '<company_id>')
+    GROUP BY post_type;
+   ```
+
+2. **削除対象テーブルへの FK を全部列挙する。** 「思い出す」のではなく引く。
+
+   ```sql
+   SELECT c.conrelid::regclass AS 参照元, a.attname AS 列, c.confdeltype AS 削除時動作
+     FROM pg_constraint c
+     JOIN unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord) ON true
+     JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
+    WHERE c.contype = 'f' AND c.confrelid = 'ow_companies'::regclass;
+   -- confdeltype: a=NO ACTION  r=RESTRICT  c=CASCADE  n=SET NULL  d=SET DEFAULT
+   ```
+
+   `c`（CASCADE）は黙って関連行を巻き込む。`n`（SET NULL）は黙って参照を外す。
+   **どちらもエラーにならない。** 止まるのは `r`（RESTRICT）だけ。
+
+3. `ow_experiences` は `company_id` を `company_text` へ退避してから消す
+   （`experience_company_xor` 制約に引っかかるため。239 の前例を踏襲する）
+
+4. migration に事前・事後のガードを入れる。想定件数と違ったら `RAISE EXCEPTION` で
+   トランザクションごと落とす
+
+### やらないこと
+
+**参照が外れた投稿を `DELETE` しない。** 消せば消すほど「後から見ると理由が分からない穴」が増える。
+`ow_posts_visible` が表示から落とすので、行は残しておいてよい。
+
+---
+
+## 公開するとき
+
+### 公開には2経路あり、片方しか投稿を作らない
+
+| 経路 | フィード投稿 | `published_at` |
+|---|---|---|
+| `/biz/company` `/biz/jobs/[id]` `/admin/articles` の公開操作 | **作られる** | 入る |
+| migration / SQL で直接 `is_published = true` / `status = 'published'` | **作られない** | NULL のまま |
+
+実運用は後者。このままだと企業は増えるのにフィードだけ止まる。
+
+2026-08-05 時点で `ow_companies.published_at` は **85社すべて NULL**（`is_published = true` の
+76社を含む）。つまりアプリ経由の公開は本番で一度も行われていない。
+
+### 手順
+
+1. 一括投入・一括公開の migration を流す
+2. **突合スクリプトを実行する**
+
+   ```bash
+   node scripts/backfill-feed-posts.mjs            # dry-run（既定）。対象件数だけ出る
+   node scripts/backfill-feed-posts.mjs --apply    # 実際に作る
+   ```
+
+   部分UNIQUEインデックス3本が冪等性を担保するので、何度実行しても重複は作られない。
+
+### 本番で公開トグルを押して検証しない
+
+公開すると本番フィードに投稿が生成され、**取り消せない**。
+非公開に戻しても投稿は残り、消せば幽霊投稿が増える（238/239 と同じ事故）。
+検証はローカルかプレビュー環境で行う。
+
+---
+
+## `ow_posts_visible` について
+
+フィード表示用の読み取り専用ビュー（`20260805035958_create_ow_posts_visible.sql`）。
+
+- `job_posted` → `ref_job_id IS NOT NULL`
+- `company_joined` → `ref_company_id IS NOT NULL`
+- `article_published` → `ref_article_id IS NOT NULL`
+- `user_post` とそれ以外の `post_type` → 素通し
+  （`post_type` に CHECK 制約が無いため、未知の値を黙って消さない）
+
+**読みはこのビューを使う。`ow_posts` を直に引かない。**
+書き込みは従来どおり `ow_posts` に対して行う。
+
+`security_invoker = true` を付けてある。これが無いとビューがオーナー権限で走り、
+`ow_posts` の RLS を迂回する（`/u/[id]` は anon クライアントで引いているので実害が出る）。
+
+### 部分UNIQUEインデックスは幽霊投稿に効かない
+
+`idx_ow_posts_unique_job` などは `ref_* IS NOT NULL` を条件にしているため、
+参照が外れた投稿は重複防止に効かない。
+消した企業を再登録すると新しい投稿が作られ、古い幽霊と2件並ぶ形になる。
+ただしビューが幽霊を落とすので**表示上は問題にならない**。事実として記録しておくだけ。

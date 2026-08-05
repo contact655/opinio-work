@@ -24,7 +24,7 @@ export async function GET(
 
   const adminSupabase = createAdminClient();
   const { data: raw, error } = await adminSupabase
-    .from("ow_posts")
+    .from("ow_posts_visible")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),

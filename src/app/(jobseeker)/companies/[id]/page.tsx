@@ -3142,7 +3142,9 @@ export default async function CompanyDetailPage({
   // Phase 4: activityPosts + bookmark/follow を並行実行
   const [activityPostsRaw, bmarkResult, followResult] = await Promise.all([
     adminSupabase
-      .from("ow_posts")
+  // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
+  //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
+      .from("ow_posts_visible")
       .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
       .or(orParts.join(","))
       .neq("post_type", "company_joined")

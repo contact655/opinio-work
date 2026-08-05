@@ -213,7 +213,7 @@ export async function GET(req: Request) {
 
     // (a) ref_company_id が followed OR (b) user_id が consented member
     let followedQuery = adminSupabase
-      .from("ow_posts")
+      .from("ow_posts_visible")
       .select(POST_SELECT)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -244,7 +244,7 @@ export async function GET(req: Request) {
   // ─────────────────────────────────────────────────────────────────────────
 
   let query = adminSupabase
-    .from("ow_posts")
+    .from("ow_posts_visible")
     .select(POST_SELECT)
     .order("created_at", { ascending: false })
     .limit(limit);
