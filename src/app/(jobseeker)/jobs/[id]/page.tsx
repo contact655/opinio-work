@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getRoleTree, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
 import { createClient } from "@/lib/supabase/server";
@@ -438,6 +438,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   const { job, company, relatedJobs, resolvedId, slug: jobSlug } = result;
 
+  // ⚠️ 企業ページへのリンクは env に関係なく is_published を見る。
+  //    「求人は公開企業にしか紐づかない」は今そうなっているだけで、
+  //    企業を非公開に戻せば崩れる（CLAUDE.md の原則）。null ならテキスト表示にする。
+  const companyHref = await resolvePublishedCompanyHref(company.slug ?? company.id);
+
   // UUID → slug 308 redirect
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
   if (isUUID && jobSlug) { permanentRedirect(`/jobs/${jobSlug}`); }
@@ -628,9 +633,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 6, flexWrap: "wrap" }}>
-                <Link href={`/companies/${company.id}`} style={{ fontSize: "var(--text-base)", color: "var(--royal)", fontWeight: 700 }}>
-                  {company.name}
-                </Link>
+                {companyHref ? (
+                  <Link href={companyHref} style={{ fontSize: "var(--text-base)", color: "var(--royal)", fontWeight: 700 }}>
+                    {company.name}
+                  </Link>
+                ) : (
+                  <span style={{ fontSize: "var(--text-base)", color: "var(--ink)", fontWeight: 700 }}>{company.name}</span>
+                )}
                 <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
                   {company.industry}{company.employee_count != null ? ` · ${company.employee_count.toLocaleString()}名` : ""}
                 </span>
@@ -1018,12 +1027,15 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </div>
                   </div>
                 )}
+                {/* 非公開企業ではCTAごと出さない。飛べないリンクを置かない */}
+                {companyHref && (
                 <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
-                  <Link href={`/companies/${company.id}`} style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Link href={companyHref} style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                     {company.name}の企業詳細を見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </Link>
                 </div>
+                )}
               </section>
               )}
 
@@ -1478,9 +1490,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
                 )}
 
-                {/* ⑥ Prominent CTA to company page */}
+                {/* ⑥ Prominent CTA to company page。非公開企業では出さない */}
+                {companyHref && (
                 <Link
-                  href={`/companies/${company.id}`}
+                  href={companyHref}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                     marginTop: "var(--space-4)", padding: "13px var(--space-6)",
@@ -1495,6 +1508,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </svg>
                   {company.name} の企業ページで詳細を見る →
                 </Link>
+                )}
               </section>
 
               {/* Share — bottom of main content */}

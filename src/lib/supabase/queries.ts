@@ -74,6 +74,9 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     genres,
     is_editors_pick: false,
     is_dimmed: false,
+    // ⚠️ リンク生成の判定用。dev では getCompanies が is_published で絞らないので、
+    //    出す側がこの値を見ること（CLAUDE.md「企業ページへのリンクは env に関係なく…」）
+    is_published: (row.is_published as boolean) ?? false,
     brand_name: (row.brand_name as string | null) ?? null,
     industry_id: (row.industry_id as string | null) ?? null,
     saas_category_id: (row.saas_category_id as string | null) ?? null,

@@ -30,6 +30,9 @@ export type Company = {
   genres: CompanyGenre[]; // ow_company_genres 由来、空配列の可能性あり
   is_editors_pick?: boolean;
   is_dimmed?: boolean; // 非公開・休止中
+  /** ow_companies.is_published。⚠️ 企業ページへのリンクを出すかの判定に使う。
+   *  dev では getCompanies が is_published で絞らないため、リンク側でここを見ること */
+  is_published?: boolean;
   mission?: string | null;
   fit_positives?: string[] | null;
   brand_name?: string | null;

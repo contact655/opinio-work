@@ -251,8 +251,10 @@ function JobListItem({
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
             <span
               role="link" tabIndex={0}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); } }}
+              // ⚠️ 非公開企業には飛ばさない（本番で404）。dev では getCompanies が
+              //    is_published で絞らないので、ここで見る必要がある
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (company.is_published) router.push(`/companies/${company.slug ?? company.id}`); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); if (company.is_published) router.push(`/companies/${company.slug ?? company.id}`); } }}
               className="company-name-link"
               style={{ fontSize: 14, color: "var(--royal)", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
             >
