@@ -209,6 +209,14 @@ export default function LandingPage({
 
         .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
+        /* FV のサブコピー。検索窓（1000px）より内側に収める。
+           ⚠️ fontSize と margin はここで持つこと。インラインに書くと下の
+              メディアクエリが効かなくなる（CLAUDE.md「インラインstyle と CSS の優先順位」）。
+           span を inline-block にしているのは、折り返しを句の境目に固定するため。 */
+        .lp-hero-sub { font-size: 15.5px; line-height: 1.7; color: ${C.muted};
+                       margin: 0 0 26px; max-width: 900px; }
+        .lp-hero-sub span { display: inline-block; }
+
         .lp-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
         /* 経歴カードに画面を入れるときだけ、上段を2列にして経歴を全幅の行に出す。
            3列のまま1枚だけ縦長画像を入れると、そのカードだけ約600pxになり
@@ -266,9 +274,20 @@ export default function LandingPage({
       <section style={{ borderBottom: `1px solid ${C.line}`, padding: "64px 0 56px" }}>
         <div className="lp-wrap" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           {/*
-            FV は 見出し・検索窓の2要素のみ。サブコピー / 注記 / 件数バッジ / アイブロウは置かない。
-            「何のサービスか」は検索窓のプレースホルダーが担う
-            （IT・SaaS という業界の限定はそこにしか書いていないので、短くしないこと）。
+            FV は 見出し・サブコピー・検索窓の3要素。
+            アイブロウ / 注記 / 件数バッジは置かない。
+              ・アイブロウ（旧「IT・SaaS特化」）はサブコピーと内容が重なるので戻さない
+              ・件数は各セクションの「N社すべて見る」で示す（eab6d71d の方針）
+              ・注記はサブコピーと同趣旨になり、52ad822b で重複を理由に消したもの
+
+            ⚠️「IT・SaaS」という対象業界は、いまサブコピーと検索窓のプレースホルダーの
+               2箇所で言っている。
+               2026-08-04 まで「プレースホルダーにしか書いていないので短くしないこと」
+               という制約を置いていたが、これは見出しが英語だった時期（059c964b）の
+               前提であり、日本語見出しに戻し（1e21acb9）サブコピーも戻した
+               2026-08-05 現在は成立しない。
+               ⚠️ ただしプレースホルダーを短くしてよいと決めたわけではない。
+                  変えるかどうかは別途判断する。
 
             ⚠️ 2026-08-04: 英語見出し「The full picture, before you apply.」から戻した。
                ① apply（応募）が転職を前提にしており、「転職を前提にしない」という
@@ -289,9 +308,28 @@ export default function LandingPage({
                   375〜1060px の範囲ではこの値が効いている（3.2vw が 34px を超えるのは
                   約1063px から）。
           */}
-          <h1 style={{ fontSize: "clamp(34px, 3.2vw, 44px)", fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.02em", color: C.navy, marginBottom: 30 }}>
+          <h1 style={{ fontSize: "clamp(34px, 3.2vw, 44px)", fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.02em", color: C.navy, marginBottom: 14 }}>
             確かめてから、動く。
           </h1>
+
+          {/*
+            見出しは「何を確かめるのか」を言っていないので、ここで対象を名指しする。
+            52ad822b で「合意版」として置かれ、9ac31983 で要素数を絞るために
+            消えていた1行を戻したもの（2026-08-05）。文言は変えていない。
+
+            ⚠️ 読点で折らないこと。inline-block の塊にしてあるので、
+               折り返しは必ず「・」ではなく塊の境目で起きる。
+               2文字だけが2行目に落ちる事故（008bd220 の「か。」）を防ぐため。
+
+            ⚠️ 「経歴まで」と書いているが、未ログインで到達できる経歴は現状ゼロ
+               （実ユーザーは全員 ow_users.visibility = login_only）。
+               「〜まで」はデータの範囲を述べていて無料で読めるとは約束していないので
+               嘘ではないが、FV は一番強い場所なので可視性の整理が済んだら見直すこと。
+          */}
+          <p className="lp-hero-sub">
+            <span>IT・SaaS業界の企業・求人・</span>
+            <span>そこで働く人の経歴まで。</span>
+          </p>
 
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} />
         </div>
