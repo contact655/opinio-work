@@ -7,6 +7,7 @@ import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
+import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 export type Conversation = {
   id: string;
@@ -66,9 +67,10 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
       }}>{displayName[0] ?? "?"}</div>
     );
   }
-  if (company?.logo_url) {
+  const logoSrc = usableLogoUrl(company?.logo_url);
+  if (logoSrc) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={company.logo_url} alt={company.name} loading="lazy"
+    return <img src={logoSrc} alt={company?.name ?? ""} loading="lazy"
       style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />;
   }
   return (

@@ -1,3 +1,27 @@
+/**
+ * 死んでいると分かっているロゴ配信元。
+ *
+ * ⚠️ Clearbit の Logo API は終了しており、logo.clearbit.com は名前解決すらしない
+ *    （2026-08-05 実測。同じ環境で example.com は 200）。
+ *    それでも ow_companies.logo_url は 85社中76社がこの形式のまま入っている。
+ *    DB は書き換えない方針なので、表示側で「値が無いのと同じ」として扱う。
+ *
+ * ⚠️ 判定はこの関数1つに集約すること。各コンポーネントで
+ *    includes("clearbit") と書くと、次に別の配信元が死んだとき全部直すことになる。
+ */
+const DEAD_LOGO_HOSTS = ["logo.clearbit.com"];
+
+/** その URL が「死んでいると分かっている」ものか。null / 空文字も true を返す */
+export function isDeadLogoUrl(url: string | null | undefined): boolean {
+  if (!url) return true;
+  return DEAD_LOGO_HOSTS.some((h) => url.includes(h));
+}
+
+/** 表示に使えるロゴ URL。使えないものは null に潰す（呼び出し側は letter フォールバックへ） */
+export function usableLogoUrl(url: string | null | undefined): string | null {
+  return isDeadLogoUrl(url) ? null : (url as string);
+}
+
 const CORP_PREFIX_RE =
   /^(株式会社|有限会社|合同会社|一般社団法人|公益社団法人|合名会社|合資会社|（株）|（有）)\s*/;
 const CORP_SUFFIX_RE = /\s*(株式会社|有限会社|合同会社)$/;

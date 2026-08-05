@@ -1,44 +1,55 @@
 "use client";
 
 /**
- * CompanyLogoImg — MergedTimeline のアイコン円 / カード内小ロゴ用画像コンポーネント
+ * CompanyLogoImg — 一覧カード・フィード・タイムラインなど、小さめの企業ロゴを出す共通部品。
  *
- * onError が Client Component を必要とするため分離（Server Component の MergedTimeline からは
- * FutureSectionEditor と同じパターンで import する）。
+ * ⚠️ 企業ロゴを出す画面はここを通すこと。生の <img src={logo_url}> を各所に書かない。
+ *    2026-08-05 に Clearbit が死んだとき、経路がばらけていたせいで
+ *    「どこが壊れているか数える」ところから始めることになった。判定は1箇所に置く。
  *
- * 3 段階フォールバック（A-1 判断 C/D）:
- *   1. logo_url あり → <img> ロゴ表示
- *   2. logo_url なし または ロード失敗 → logo_letter + logo_gradient 円
- *   3. logo_letter/logo_gradient なし → 呼び出し元の Briefcase アイコン（このコンポーネントは null を返す）
+ * フォールバックは3段階:
+ *   1. 使える logo_url がある      → <img>。読み込み失敗（onError / naturalWidth 0）で 2 へ
+ *   2. logo_letter + logo_gradient → 文字の四角
+ *   3. logo_letter が無い           → name から getLogoLetter で作る
+ *
+ * ⚠️ 死んでいると分かっている URL（isDeadLogoUrl）は **リクエストすら出さない**。
+ *    onError 頼みだと、76社ぶんの必ず失敗するリクエストが毎回飛ぶ。
+ *
+ * 大きいロゴ（企業詳細のヒーロー等）は @/components/common/CompanyLogo を使う。
+ * あちらは Google favicon への切り替えまでやる重い版。
  */
 
 import { useState } from "react";
+import { getLogoLetter, usableLogoUrl } from "@/lib/utils/companyLogo";
 
 type CompanyLogoImgProps = {
-  logoUrl: string;
+  logoUrl: string | null | undefined;
   logoLetter: string | null;
   logoGradient: string | null;
-  /** アイコン円のサイズ（px）。デフォルト 36 */
+  /** logo_letter が無いときに頭文字を作る元。ow_companies.name を渡す */
+  name?: string | null;
+  /** アイコンのサイズ（px）。デフォルト 36 */
   size?: number;
+  /** 角丸。既定は size * 0.2 */
+  borderRadius?: number;
 };
 
 export default function CompanyLogoImg({
   logoUrl,
   logoLetter,
   logoGradient,
+  name,
   size = 36,
+  borderRadius,
 }: CompanyLogoImgProps) {
   const [broken, setBroken] = useState(false);
+  const src = usableLogoUrl(logoUrl);
+  const letter = logoLetter ?? (name ? getLogoLetter(null, name) : null);
+  const radius = borderRadius ?? size * 0.2;
 
-  // ロード失敗 → ステップ 2（letter+gradient 円）へフォールバック
-  if (broken) {
-    return (
-      <LetterCircle
-        letter={logoLetter}
-        gradient={logoGradient}
-        size={size}
-      />
-    );
+  // 使える URL が無い / ロード失敗 → 文字の四角
+  if (!src || broken) {
+    return <LetterCircle letter={letter} gradient={logoGradient} size={size} borderRadius={radius} />;
   }
 
   return (
@@ -46,15 +57,15 @@ export default function CompanyLogoImg({
       style={{
         width: size,
         height: size,
-        borderRadius: size * 0.2,
+        borderRadius: radius,
         overflow: "hidden",
         flexShrink: 0,
         background: logoGradient ?? "var(--ink-mute)",
         position: "relative",
       }}
     >
-      {/* letter circle は img の下に重ねる（img が透過/失敗したときに見える） */}
-      {logoLetter && (
+      {/* letter は img の下に敷く（img が透過・途中失敗しても穴が空かない） */}
+      {letter && (
         <div
           style={{
             position: "absolute",
@@ -67,14 +78,17 @@ export default function CompanyLogoImg({
             fontWeight: 700,
           }}
         >
-          {logoLetter}
+          {letter}
         </div>
       )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={logoUrl}
+        src={src}
         alt=""
         loading="lazy"
         onError={() => setBroken(true)}
+        // 読み込めたのに中身が空（naturalWidth 0）のケースも落とす
+        onLoad={(e) => { if (e.currentTarget.naturalWidth === 0) setBroken(true); }}
         style={{
           position: "absolute",
           inset: 0,
@@ -88,23 +102,25 @@ export default function CompanyLogoImg({
   );
 }
 
-/** ステップ 2: logo_letter + logo_gradient の円（logo_url なし / ロード失敗時） */
+/** logo_url が使えないときの文字の四角 */
 export function LetterCircle({
   letter,
   gradient,
   size = 36,
+  borderRadius,
 }: {
   letter: string | null;
   gradient: string | null;
   size?: number;
+  borderRadius?: number;
 }) {
   return (
     <div
       style={{
         width: size,
         height: size,
-        borderRadius: size * 0.2,
-        background: gradient ?? "var(--ink-mute)",
+        borderRadius: borderRadius ?? size * 0.2,
+        background: gradient ?? "linear-gradient(135deg, #001233, #002366)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -112,6 +128,7 @@ export function LetterCircle({
         color: "#fff",
         fontSize: size * 0.42,
         fontWeight: 700,
+        fontFamily: "Inter, sans-serif",
       }}
     >
       {letter ?? ""}

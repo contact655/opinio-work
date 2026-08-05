@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import { FollowUserButton } from "../../u/[id]/FollowUserButton";
+import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -1211,19 +1212,10 @@ function FeedSidebar({
                 href={`/companies/${co.slug ?? co.id}`}
                 style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
               >
-                <div
-                  style={{
-                    width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                    background: co.logo_gradient ?? "linear-gradient(135deg, #001233, #002366)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Inter, sans-serif",
-                    overflow: "hidden",
-                  }}
-                >
-                  {co.logo_url
-                    ? <img src={co.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : (co.logo_letter ?? (co.brand_name ?? co.name).charAt(0))}
-                </div>
+                <CompanyLogoImg
+                  logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient}
+                  name={co.brand_name ?? co.name} size={32} borderRadius={7}
+                />
                 <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {co.brand_name ?? co.name}
                 </span>
@@ -1632,30 +1624,13 @@ function PostCard({
             textDecoration: "none",
           }}
         >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 8,
-              background: post.ref_company.logo_gradient ?? "linear-gradient(135deg, #001233, #002366)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 16,
-              fontFamily: "Inter, sans-serif",
-              flexShrink: 0,
-              overflow: "hidden",
-            }}
-          >
-            {post.ref_company.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.ref_company.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              (post.ref_company.logo_letter ?? (post.ref_company.brand_name ?? post.ref_company.name).charAt(0))
-            )}
-          </div>
+          <CompanyLogoImg
+            logoUrl={post.ref_company.logo_url}
+            logoLetter={post.ref_company.logo_letter}
+            logoGradient={post.ref_company.logo_gradient}
+            name={post.ref_company.brand_name ?? post.ref_company.name}
+            size={40} borderRadius={8}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--royal)" }}>
               {post.ref_company.brand_name ?? post.ref_company.name}
@@ -1684,18 +1659,13 @@ function PostCard({
         >
           {/* 会社ロゴ / ブリーフケースアイコン */}
           {post.ref_company ? (
-            <div style={{
-              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
-              background: post.ref_company.logo_gradient ?? "linear-gradient(135deg, #001233, #002366)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontWeight: 700, fontSize: 15, fontFamily: "Inter, sans-serif",
-              overflow: "hidden",
-            }}>
-              {post.ref_company.logo_url
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={post.ref_company.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : (post.ref_company.logo_letter ?? post.ref_company.name.charAt(0))}
-            </div>
+            <CompanyLogoImg
+              logoUrl={post.ref_company.logo_url}
+              logoLetter={post.ref_company.logo_letter}
+              logoGradient={post.ref_company.logo_gradient}
+              name={post.ref_company.brand_name ?? post.ref_company.name}
+              size={38} borderRadius={8}
+            />
           ) : (
             <div style={{
               width: 38, height: 38, borderRadius: 8, flexShrink: 0,

@@ -6,6 +6,7 @@ import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
+import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 export type MessageRow = {
   id: string;
@@ -171,8 +172,8 @@ export default function ConversationDetailClient({
             }}>
               {displayName[0] ?? "?"}
             </div>
-          ) : company?.logo_url ? (
-            <img src={company.logo_url} alt={company.name} loading="lazy"
+          ) : usableLogoUrl(company?.logo_url) ? (
+            <img src={usableLogoUrl(company?.logo_url)!} alt={company?.name ?? ""} loading="lazy"
               className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-primary-light flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">

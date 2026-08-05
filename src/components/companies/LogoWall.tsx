@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 export type LogoWallCompany = {
   id: string;
@@ -42,7 +43,7 @@ export function LogoWall({ companies }: Props) {
     <>
       <div className="logo-wall-grid">
         {valid.map((c) => {
-          const showLogo = c.logoUrl && !errors.has(c.id);
+          const showLogo = usableLogoUrl(c.logoUrl) && !errors.has(c.id);
           return (
             <Link
               key={c.id}

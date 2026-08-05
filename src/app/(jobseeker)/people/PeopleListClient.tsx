@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { DirectoryPerson } from "@/lib/people/directory";
 import { FollowUserButton } from "../u/[id]/FollowUserButton";
+import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -230,11 +231,14 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
     );
   }
 
+  // ⚠️ 死んでいると分かっている配信元（Clearbit）は null に潰れる。
+  //    判定は lib/utils/companyLogo の usableLogoUrl 1箇所に集約している。
+  const logoSrc = usableLogoUrl(a.logoUrl);
   return (
     <div className="ppl-company">
-      {a.logoUrl ? (
+      {logoSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={a.logoUrl} alt="" className="ppl-company-logo" />
+        <img src={logoSrc} alt="" className="ppl-company-logo" />
       ) : (
         <span
           className="ppl-company-logo ppl-company-logo-fallback"

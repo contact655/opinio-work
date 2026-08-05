@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
 import { getLogoLetter } from '@/lib/utils/companyLogo';
+import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 // フェーズバッジ設定
 type StageCfgEntry = { label: string; color: string; bg: string; border: string; fontWeight?: number };
@@ -172,7 +173,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
           }}>
             {initial}
           </span>
-          {company.logo_url && !logoError ? (
+          {usableLogoUrl(company.logo_url) && !logoError ? (
             <div style={{
               width: 40, height: 40, borderRadius: 8,
               background: '#fff', border: '1px solid rgba(255,255,255,0.9)',
@@ -181,7 +182,7 @@ export function CompanyCardCompact({ company, compact: _compact, members: _membe
               overflow: 'hidden', position: 'relative', zIndex: 1,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={company.logo_url} alt={`${company.name}のロゴ`}
+              <img src={usableLogoUrl(company.logo_url)!} alt={`${company.name}のロゴ`}
                 style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6, boxSizing: 'border-box' }}
                 onError={() => setLogoError(true)}
               />

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 import type { CompanyForCarousel } from "@/types/genre";
 import type { MemberPreview } from "./CompanyCardCompact";
+import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 // フェーズバッジ色（コンパクト版）
 const STAGE_COLORS: Record<string, { color: string; bg: string }> = {
@@ -135,9 +136,9 @@ export function RecentlyViewedSection() {
                   fontFamily: "Inter, sans-serif", lineHeight: 1,
                   userSelect: "none", pointerEvents: "none",
                 }}>{initial}</span>
-                {c.logo_url ? (
+                {usableLogoUrl(c.logo_url) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.logo_url} alt={c.name}
+                  <img src={usableLogoUrl(c.logo_url)!} alt={c.name}
                     style={{
                       width: 32, height: 32, objectFit: "contain",
                       background: "#fff", borderRadius: 6, padding: 4, boxSizing: "border-box",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getLogoLetter } from "@/lib/utils/companyLogo";
+import { getLogoLetter, usableLogoUrl } from "@/lib/utils/companyLogo";
 
 // ─── Size tokens ──────────────────────────────────────────────────────────────
 type SizeToken = "xs" | "sm" | "md" | "lg" | "xl";
@@ -110,11 +110,13 @@ export function CompanyLogo({
     }
 
     async function resolve() {
-      // 1. logo_url を試す（ただし Clearbit URL は除外）
-      if (logoUrl && !logoUrl.includes("logo.clearbit.com")) {
-        const ok = await tryLoad(logoUrl);
+      // 1. logo_url を試す（死んでいると分かっている配信元は null に潰れる。
+      //    判定は lib/utils/companyLogo の usableLogoUrl 1箇所に集約している）
+      const direct = usableLogoUrl(logoUrl);
+      if (direct) {
+        const ok = await tryLoad(direct);
         if (cancelled) return;
-        if (ok) { setResolvedSrc(logoUrl); return; }
+        if (ok) { setResolvedSrc(direct); return; }
       }
 
       // 2. companyUrl または logoUrl (Clearbit) からドメインを取得して Google favicon
