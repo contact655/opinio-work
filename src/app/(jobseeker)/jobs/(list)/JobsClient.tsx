@@ -132,7 +132,6 @@ function computeMatchReason(
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
   reviewSummary, matchReason: _matchReason,
-  showMeetingCta: _showMeetingCta = true,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
@@ -140,7 +139,6 @@ function JobListItem({
   isApplied?: boolean;
   reviewSummary?: CompanyReviewSummary;
   matchReason?: string | null;
-  showMeetingCta?: boolean;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -369,11 +367,35 @@ function JobListItem({
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
         </a>
 
-        {/* 面談をする（求人がある＝面談受付中）
-            ⚠️ 非公開企業には飛ばさない（本番で404）。Company.is_published を見る */}
-        {company.is_published && (
+        {/*
+          応募する。
+          ⚠️ 2026-08-05 に、ここにあった面談ボタンと入れ替えた。位置と意匠は引き継いでいる。
+
+          ── なぜ一覧に応募を置くか ────────────────────────────────────────
+          OPINIO は「転職を前提にしない / 応募する前に調べる」を掲げているので、
+          一覧をスキャンした段階で応募を促すのは姿勢と少しずれる。
+          それでも置くのは、求人があるのに応募できないほうが不親切だからで、
+          「調べてから決める」は応募を隠すことではなく急かさないこと、と整理した。
+          詳細ページ（/jobs/[id]）は面談を主・応募を従のままにしてある。
+          一覧＝行動 / 詳細＝検討 で住み分ける。
+
+          ── なぜ面談を外したか ────────────────────────────────────────────
+          ① 4つ縦積みにすると 104px のパネルが +38px 伸び、カードの主役が
+             ボタンになる（18件で +684px）
+          ② ここの面談ボタンは company.is_published しか見ておらず、
+             accepting_casual_meetings = false の企業でも表示していた。
+             押すと申込ページで「現在受付していません」に着地する
+             （2026-08-05 時点で該当0社だが、企業が1社でも false にした瞬間に破綻する）
+          面談の導線は /jobs/[id] と /companies/[id] に残してある。
+
+          ⚠️ 企業側のフラグで出し分けないこと。この一覧に出ている求人は
+             status = 'published' だけなので、応募先は必ず存在する。
+          ⚠️ 応募済みかどうかでも出し分けない。一覧で引くとクエリが重くなる。
+             既に応募していれば、押した先で「すでに応募しています」が出る
+             （API が 409 を返し、ApplicationForm が文言を出す）。
+        */}
         <a
-          href={`/companies/${company.slug ?? company.id}/casual-meeting`}
+          href={`/jobs/${job.slug ?? job.id}/apply`}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,
@@ -383,12 +405,11 @@ function JobListItem({
             whiteSpace: "nowrap",
           }}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
           </svg>
-          面談
+          応募
         </a>
-        )}
 
         {/* 保存をする */}
         <button
@@ -1854,7 +1875,6 @@ export default function JobsClient({
               <div className="jobs-list-desktop">
                 {(() => {
                   return paged.map((job) => {
-                    const co = companyMap.get(job.company_id);
                     return (
                       <JobListItem
                         key={job.id}
@@ -1864,7 +1884,6 @@ export default function JobsClient({
                         isApplied={appliedJobIds.has(job.id)}
                         reviewSummary={reviewSummaries?.[job.company_id]}
                         matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
-                        showMeetingCta={!!co?.accepting_casual_meetings}
                       />
                     );
                   });
