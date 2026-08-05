@@ -16,7 +16,7 @@ type RawPost = {
   link_description: string | null;
   link_domain: string | null;
   created_at: string;
-  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null } | null;
+  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -60,7 +60,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     .from("ow_posts")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility),
+      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `)
@@ -69,8 +69,15 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
 
   if (!raw) notFound();
   const p = raw as unknown as RawPost;
-  if (p.user?.visibility === "private") notFound();
-  if (p.user?.visibility === "login_only" && !user) notFound();
+  // ⚠️ 一覧側（(list)/page.tsx の visiblePosts と /api/jobseeker/posts の filterVisible）と
+  //    同じ判定順序にすること。is_system を先に通す。
+  //    システムユーザー（00000000-…-0001 / OPINIO）は visibility='private' なので、
+  //    この例外が無いとシステム投稿170件すべてのパーマリンクが 404 になる。
+  //    一覧には出ているのにシェアURLだけ 404 という状態だった（2026-08-05 修正）。
+  if (!p.user?.is_system) {
+    if (p.user?.visibility === "private") notFound();
+    if (p.user?.visibility === "login_only" && !user) notFound();
+  }
 
   // 現職情報
   let roleTitle: string | null = null;
