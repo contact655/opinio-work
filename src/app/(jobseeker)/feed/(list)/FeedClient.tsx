@@ -22,7 +22,7 @@ type PostUser = {
   company?: string | null;
 };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null; // slug already included
+type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; location?: string | null; founded_year?: number | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
@@ -1672,38 +1672,48 @@ function PostCard({
       </p>
 
       {/* システム投稿: リッチカード */}
-      {post.post_type === "company_joined" && post.ref_company && (
-        <Link
-          href={`/companies/${post.ref_company.slug ?? post.ref_company.id}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)",
-            borderRadius: 10,
-            padding: "12px 14px",
-            marginBottom: 12,
-            textDecoration: "none",
-          }}
-        >
-          <CompanyLogoImg
-            logoUrl={post.ref_company.logo_url}
-            logoLetter={post.ref_company.logo_letter}
-            logoGradient={post.ref_company.logo_gradient}
-            name={post.ref_company.brand_name ?? post.ref_company.name}
-            size={40} borderRadius={8}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--royal)" }}>
-              {post.ref_company.brand_name ?? post.ref_company.name}
-            </div>
-            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
-              企業ページを見る →
-            </div>
+      {/*
+        company_joined の埋め込み。
+        ⚠️ ロゴ・社名・「企業ページを見る →」は置かない。2026-08-05 に actor を企業にしたので
+           ヘッダーと完全に重複する（ヘッダーのロゴと社名が既に企業ページへのリンク）。
+        出すのは ow_companies に実データがある項目だけ。2026-08-05 実測で、
+        業種・従業員数・所在地・設立年はこのカードが指す76社すべてに入っている。
+        remote_work_status(2/76) と avg_age(1/76) は薄すぎるので出さない。
+        tagline は本文の末尾に既に入っているので重複させない。
+        ⚠️ NULL の項目は出さない。1つも無ければカードごと出さない。
+      */}
+      {post.post_type === "company_joined" && post.ref_company && (() => {
+        const co = post.ref_company;
+        const facts = [
+          co.industry?.trim() ? { k: "業種", v: co.industry.trim() } : null,
+          co.employee_count != null && String(co.employee_count).trim()
+            ? { k: "従業員数", v: String(co.employee_count).includes("名") ? String(co.employee_count) : `${co.employee_count}名` }
+            : null,
+          co.location?.trim() ? { k: "所在地", v: co.location.trim() } : null,
+          co.founded_year ? { k: "設立", v: `${co.founded_year}年` } : null,
+        ].filter(Boolean) as { k: string; v: string }[];
+        if (facts.length === 0) return null;
+        return (
+          <div
+            style={{
+              display: "flex", flexWrap: "wrap", gap: "6px 18px",
+              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+              borderRadius: 10, padding: "11px 14px", marginBottom: 12,
+            }}
+          >
+            {facts.map((f) => (
+              <span key={f.k} style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
+                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", flexShrink: 0 }}>
+                  {f.k}
+                </span>
+                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {f.v}
+                </span>
+              </span>
+            ))}
           </div>
-        </Link>
-      )}
+        );
+      })()}
 
       {post.post_type === "job_posted" && post.ref_job && (
         <Link

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
@@ -7,7 +8,6 @@ import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import type { BizCompany } from "@/lib/business/mockCompany";
 
-const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 // PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
 export async function PUT(req: Request) {
@@ -221,14 +221,10 @@ export async function PATCH(req: Request) {
       const adminSupabase = createAdminClient();
       const { data: co } = await adminSupabase.from("ow_companies").select("name, brand_name, tagline").eq("id", companyId).maybeSingle();
       if (co) {
-        const coName = co.brand_name ?? co.name ?? "";
-        const taglinePart = co.tagline ? ` ${co.tagline}` : "";
-        const { error: feedErr } = await adminSupabase.from("ow_posts").insert({
-          user_id: SYSTEM_USER_ID,
-          post_type: "company_joined",
-          ref_company_id: companyId,
-          content: `${coName}がOPINIOに掲載されました。${taglinePart}`,
-        });
+        // ⚠️ 本文と ref_* の埋め方は lib/feed/systemPosts に集約している。ここで組み立てない。
+        const { error: feedErr } = await adminSupabase.from("ow_posts").insert(
+          buildCompanyJoinedRow(companyId, co),
+        );
         if (feedErr && feedErr.code !== "23505") {
           console.error("[feed company_joined]", feedErr.message);
         }
