@@ -78,6 +78,22 @@
 2026-08-05 時点で `ow_companies.published_at` は **85社すべて NULL**（`is_published = true` の
 76社を含む）。つまりアプリ経由の公開は本番で一度も行われていない。
 
+### ⚠️ 公開には承認が要る（DB制約）
+
+```sql
+check_published_requires_approval  CHECK (is_published = false OR is_approved = true)
+```
+
+2026-08-05 に追加（`20260805101231_require_approval_before_publish.sql`）。
+**`is_approved = true` でない企業を `is_published = true` にすると 23514 で弾かれる。**
+
+それ以前は、この判定を持っていたのは `PATCH /api/biz/company` の1箇所だけで、
+migration や SQL からは承認を飛ばして公開できた。実運用の公開は migration 経由が
+主なので、**通っている経路の側にだけガードが無い**状態だった。
+
+企業を公開する migration を書くときは、`is_approved` も同時に立てるか、
+先に承認を済ませること。制約を外して公開しないこと。
+
 ### 手順
 
 1. 一括投入・一括公開の migration を流す
