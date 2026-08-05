@@ -126,7 +126,10 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     // 写真は /biz/company/page.tsx で fetchOfficePhotosForCompany により別途取得。このフィールドは使用されない。
     photos: [],
     isPublished: row.is_published ?? false,
-    acceptingCasualMeetings: row.accepting_casual_meetings ?? true,
+    /* ⚠️ ?? true は書かない。accepting_casual_meetings は NOT NULL DEFAULT true なので
+          null になりえず、既定値の判断は DB 側にある。ここで true に寄せると、
+          将来 nullable にしたときに「未設定」を「受け付ける」と読み替えてしまう。 */
+    acceptingCasualMeetings: row.accepting_casual_meetings === true,
     notificationEmails: Array.isArray(row.notification_emails)
       ? row.notification_emails.join(", ")
       : "",

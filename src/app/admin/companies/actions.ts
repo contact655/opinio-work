@@ -69,17 +69,28 @@ export async function updateEngagementStatus(
   return { ok: true };
 }
 
-/** 求人・面談CTAの表示可否。/jobs/[id] のカジュアル面談CTAを実際にゲートしている */
-export async function updateJobsPublic(companyId: string, newValue: boolean): Promise<ActionResult> {
+/**
+ * カジュアル面談を受け付けるか（ow_companies.accepting_casual_meetings）。
+ *
+ * ⚠️ 2026-08-06 に jobs_public から差し替えた。面談の可否は3つのフラグに分かれており、
+ *    申込ページ本体（casual-meeting/page.tsx）と API（/api/casual-meetings）は
+ *    accepting_casual_meetings しか見ていない。jobs_public は /jobs/[id] の
+ *    CTA表示しか決めておらず、2つがずれると
+ *      ・ボタンは出るが押すと「現在受付していません」
+ *      ・面談できるのにボタンが出ない
+ *    が起きる。実際に非掲載企業で1社ずつ起きていた。
+ * ⚠️ jobs_public カラムは残してあるが、参照はゼロ。新しい判定に使わないこと。
+ */
+export async function updateAcceptingMeetings(companyId: string, newValue: boolean): Promise<ActionResult> {
   if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
   await assertAdmin();
   const admin = createAdminClient();
   const { error } = await admin
     .from("ow_companies")
-    .update({ jobs_public: newValue, updated_at: new Date().toISOString() })
+    .update({ accepting_casual_meetings: newValue, updated_at: new Date().toISOString() })
     .eq("id", companyId);
   if (error) {
-    console.error("[updateJobsPublic]", error.message);
+    console.error("[updateAcceptingMeetings]", error.message);
     return { ok: false, error: toMessage(error) };
   }
   revalidatePath("/admin/companies");

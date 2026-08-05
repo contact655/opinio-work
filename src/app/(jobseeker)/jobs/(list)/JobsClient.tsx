@@ -1226,14 +1226,6 @@ export default function JobsClient({
     // ソート
     if (sort === "salary") {
       list = [...list].sort((a, b) => (b.salary_max ?? 0) - (a.salary_max ?? 0));
-    } else if (sort === "meeting") {
-      // 面談受付中優先、次に更新日
-      list = [...list].sort((a, b) => {
-        const aM = companyMap.get(a.company_id)?.accepting_casual_meetings ? 0 : 1;
-        const bM = companyMap.get(b.company_id)?.accepting_casual_meetings ? 0 : 1;
-        if (aM !== bM) return aM - bM;
-        return a.updated_days_ago - b.updated_days_ago;
-      });
     } else if (sort === "employees") {
       // 社員数順（多い企業の求人が上位）
       list = [...list].sort((a, b) => {
@@ -1513,15 +1505,14 @@ export default function JobsClient({
                 外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, marginLeft: 3 }}>✕</span>}
               </button>
 
-              {/* 面談受付中 トグルピル */}
-              <button type="button"
-                className={`jobs-pill-hiring${sort === "meeting" ? " active" : ""}`}
-                onClick={() => setSort(sort === "meeting" ? "updated" : "meeting")}
-                style={{ flexShrink: 0 }}
-              >
-                <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: sort === "meeting" ? "#fff" : "var(--warm)", marginRight: 5, verticalAlign: "middle", flexShrink: 0 }} />
-                面談受付中
-              </button>
+              {/*
+                ⚠️ 2026-08-06 に「面談受付中」ピルを削除した。
+                   フィルタピルと並んでいたが実体は並び替え（sort="meeting"）で、
+                   面談を受け付ける企業を上に寄せるだけ。掲載中76社が全て
+                   accepting_casual_meetings = true なので1件も順番が変わらず、
+                   押しても何も起きないのに絞り込めるように見えていた。
+                   面談の可否で絞りたくなったら、sort ではなくフィルタとして作ること。
+              */}
 
               {(hasFilter || q) && (
                 <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
@@ -2063,19 +2054,6 @@ export default function JobsClient({
         .jobs-sort-btn.active {
           background: var(--royal); border-color: var(--royal); color: #fff;
           font-weight: 700; box-shadow: 0 3px 12px rgba(0,35,102,0.35); transform: scale(1.03);
-        }
-        /* 面談受付中トグルピル */
-        .jobs-pill-hiring {
-          display: inline-flex; align-items: center;
-          padding: 7px 14px;
-          border-radius: 999px; font-size: 13px; font-weight: 500;
-          border: 1.5px solid #e2e8f0; background: #fff; color: var(--ink-soft);
-          cursor: pointer; white-space: nowrap; font-family: inherit;
-          transition: border-color 0.12s, background 0.12s, color 0.12s;
-        }
-        .jobs-pill-hiring:hover { border-color: var(--warm); color: var(--warm); }
-        .jobs-pill-hiring.active {
-          border-color: var(--warm); background: var(--warm); color: #fff; font-weight: 700;
         }
 
         /* ── Job card hover ── */

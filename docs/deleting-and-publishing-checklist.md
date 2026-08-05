@@ -101,9 +101,12 @@ migration や SQL からは承認を飛ばして公開できた。実運用の�
 | `ow_companies.status` | どこの分岐にも使われていない。`pending` 80社の中に公開中の企業も承認待ちの企業も混在している。編集UIは同日に撤去し、書き込みは企業作成時の `'draft'` 固定のみ |
 | `ow_companies.listing_status` | **型定義以外に参照が1件も無い。** UIも無い。全85社が `listed`。新しいコードで参照しないこと |
 | `ow_companies.engagement_status` | 求職者側・biz側から一切参照されていない。全85社が `none` で `verified_at` / `contracted_at` は全社 NULL。編集UIは同日に撤去（`verified` / `none` にすると `jobs_public` を false に落とす副作用だけがあったため） |
+| `ow_companies.jobs_public` | **2026-08-06 に参照ゼロになった。** それまで `/jobs/[id]` の面談CTAの表示だけを決めていたが、申込ページ本体と API は `accepting_casual_meetings` しか見ておらず、2つがずれると「ボタンは出るが受け付けない」「受け付けるのにボタンが出ない」が起きていた（非掲載企業で1社ずつ実在）。面談の可否は `accepting_casual_meetings` に一本化した |
 
 掲載の可否を見るときは **`is_approved` と `is_published`** だけを読むこと。
-求人・面談CTAの出し分けは **`jobs_public`**（`/jobs/[id]` のみ）。
+**カジュアル面談の可否は `accepting_casual_meetings` ただ1つ**（申込ページ・API・
+企業ページのCTA・`/jobs/[id]` のCTA・管理画面の「面談受付」トグル、すべてこれを見る）。
+⚠️ `ow_users.can_casual_meeting` は**個人**が面談を受けるかで、企業の可否とは別軸。混同しないこと。
 
 ### 公開する前に埋めておくもの
 

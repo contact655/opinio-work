@@ -739,8 +739,15 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       </div>
 
       {/* スクロール検知スティッキーCTA — ヒーロー直下にセンチネルを置き、通過後に表示 */}
+      {/*
+        ⚠️ 面談の可否は accepting_casual_meetings で判定すること（2026-08-06 に統一）。
+           それまで jobs_public を見ていたが、申込ページ本体（casual-meeting/page.tsx）と
+           API（/api/casual-meetings）は accepting_casual_meetings しか見ていないため、
+           2つがずれると「ボタンは出るが押すと受付していません」「面談できるのに
+           ボタンが出ない」が起きる。実際に非掲載企業で1社ずつ起きていた。
+      */}
       <JobMobileStickyBar
-        casualHref={companyHref && company.jobs_public ? `${companyHref}/casual-meeting?job_id=${job.id}` : undefined}
+        casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting?job_id=${job.id}` : undefined}
         applyHref={`/jobs/${job.id}/apply`}
       />
 
@@ -1526,7 +1533,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 current={jobEmployees.current}
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
-                casualHref={companyHref && company.jobs_public ? `${companyHref}/casual-meeting` : null}
+                casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
                 companyName={company.name}
               />
 
@@ -1606,7 +1613,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {/* ③ Primary: カジュアル面談 — warm orange, OPINIO思想に合わせてトップに */}
                   {/* ⚠️ companyHref が null（非公開企業）ならCTAごと出さない */}
-                  {company.jobs_public && companyHref && (
+                  {company.accepting_casual_meetings && companyHref && (
                     <Link href={`${companyHref}/casual-meeting?job_id=${job.id}`} style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                       width: "100%", padding: "15px var(--space-6)",
@@ -1625,16 +1632,16 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {/* ③ Secondary: 応募する */}
                   <Link href={`/jobs/${job.id}/apply`} style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                    width: "100%", padding: company.jobs_public ? "12px var(--space-6)" : "15px var(--space-6)",
-                    background: company.jobs_public
+                    width: "100%", padding: company.accepting_casual_meetings ? "12px var(--space-6)" : "15px var(--space-6)",
+                    background: company.accepting_casual_meetings
                       ? "rgba(0,35,102,0.06)"
                       : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-                    color: company.jobs_public ? "var(--royal)" : "#fff",
-                    border: company.jobs_public ? "1.5px solid var(--royal-100)" : "none",
+                    color: company.accepting_casual_meetings ? "var(--royal)" : "#fff",
+                    border: company.accepting_casual_meetings ? "1.5px solid var(--royal-100)" : "none",
                     borderRadius: 10,
-                    fontSize: company.jobs_public ? "var(--text-sm)" : "var(--text-base)",
+                    fontSize: company.accepting_casual_meetings ? "var(--text-sm)" : "var(--text-base)",
                     fontWeight: 700, textDecoration: "none", textAlign: "center",
-                    boxShadow: company.jobs_public ? "none" : "0 4px 16px rgba(0,35,102,0.28)",
+                    boxShadow: company.accepting_casual_meetings ? "none" : "0 4px 16px rgba(0,35,102,0.28)",
                   }}>
                     この募集に応募する
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>

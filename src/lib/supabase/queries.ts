@@ -59,10 +59,11 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     current_mentors: 0,
     alumni_mentors: 0,
     accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
-    // jobs_public が null（Migration未適用）は accepting_casual_meetings で代替
-    jobs_public: row.jobs_public != null
-      ? (row.jobs_public as boolean)
-      : (row.accepting_casual_meetings as boolean) ?? false,
+    /* ⚠️ 2026-08-06: null フォールバックを削除した。jobs_public は NOT NULL DEFAULT false
+          なので null になりえず、分岐は発火しなかった。
+       ⚠️ jobs_public 自体の参照は同日にゼロになっている（面談CTAは
+          accepting_casual_meetings に統一）。この値を新しい判定に使わないこと。 */
+    jobs_public: (row.jobs_public as boolean) ?? false,
     updated_days_ago: daysSince(row.updated_at as string),
     gradient: (row.logo_gradient as string) ?? FALLBACK_GRADIENT,
     logo_url: (row.logo_url as string | null) ?? null,
@@ -503,10 +504,11 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
     remote_work_status: (row.remote_work_status as string) ?? null,
     is_published: (row.is_published as boolean) ?? false,
-    // jobs_public: null の場合（Migrationが未適用の開発環境など）は accepting_casual_meetings で代替
-    jobs_public: row.jobs_public != null
-      ? (row.jobs_public as boolean)
-      : (row.accepting_casual_meetings as boolean) ?? false,
+    /* ⚠️ 2026-08-06: null フォールバックを削除した。jobs_public は NOT NULL DEFAULT false
+          なので null になりえず、分岐は発火しなかった。
+       ⚠️ jobs_public 自体の参照は同日にゼロになっている（面談CTAは
+          accepting_casual_meetings に統一）。この値を新しい判定に使わないこと。 */
+    jobs_public: (row.jobs_public as boolean) ?? false,
     updated_at: (row.updated_at as string) ?? "",
     job_count: jobCountMap.get(row.id as string) ?? 0,
     cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,

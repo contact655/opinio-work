@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Toggle } from "@/components/ui/Toggle";
-import { updateJobsPublic, updateSortOrder, updateIsPublished, updateApproval } from "./actions";
+import { updateAcceptingMeetings, updateSortOrder, updateIsPublished, updateApproval } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -151,11 +151,11 @@ export default function AdminCompaniesPage() {
     setActionLoading(null);
   }
 
-  // 求人・面談公開（jobs_public）。/jobs/[id] の面談CTAを実際にゲートしている
-  function handleJobsPublicToggle(company: Company) {
-    const newValue = !company.jobs_public;
-    return run(company.id, () => updateJobsPublic(company.id, newValue),
-      (c) => ({ ...c, jobs_public: newValue }));
+  // 面談受付（accepting_casual_meetings）。申込ページ・API・企業ページが見る唯一のフラグ
+  function handleAcceptingToggle(company: Company) {
+    const newValue = !company.accepting_casual_meetings;
+    return run(company.id, () => updateAcceptingMeetings(company.id, newValue),
+      (c) => ({ ...c, accepting_casual_meetings: newValue }));
   }
 
   // 掲載（is_published）。未承認だと CHECK 制約で 23514 になり errorMsg に出る
@@ -291,7 +291,7 @@ export default function AdminCompaniesPage() {
         <strong style={{ color: "var(--ink)" }}>掲載の順序:</strong>{" "}
         <strong>承認</strong>（運営が掲載を許可）→ <strong>掲載</strong>（企業ページを公開）。
         承認していない企業は掲載できません（DB制約）。掲載すると求職者向けのフィードに投稿が1件作られます。
-        <strong>求人・面談公開</strong>は <code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>/jobs/[id]</code> のカジュアル面談CTAの出し分けです。
+        <strong>面談受付</strong>は、求職者がカジュアル面談を申し込めるかどうかです。
       </div>
 
       {/* Server Action の失敗をここに出す */}
@@ -356,12 +356,13 @@ export default function AdminCompaniesPage() {
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
                 {/*
                   ⚠️ 列を足し引きしたら td 側も colSpan も必ず合わせること。
-                  ⚠️「面談CTA」は jobs_public。2026-08-05 まで「求人・面談公開」と
-                     書いていたが、この列が制御しているのは /jobs/[id] の
-                     カジュアル面談CTAだけで、求人の公開可否（ow_jobs.status）は
-                     まったく制御していない。名前が実態と違うと運用を誤る。
+                  ⚠️「面談受付」は accepting_casual_meetings。
+                     2026-08-06 まで jobs_public を操作していたが、申込ページ本体と
+                     API はこちらしか見ておらず、2つがずれると「ボタンは出るが
+                     受け付けない」「受け付けるのにボタンが出ない」が起きていた。
+                     求人の公開可否（ow_jobs.status）とは無関係。
                 */}
-                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "掲載", "企業ステータス", "面談CTA", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "掲載", "企業ステータス", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -569,18 +570,17 @@ export default function AdminCompaniesPage() {
                       </td>
 
                       {/*
-                        求人・面談公開 (jobs_public) — /jobs/[id] のカジュアル面談CTAを実際にゲートする。
-                        ⚠️ 2026-08-05 まで engagement_status = contracted のときしかトグルを出さず、
-                           本番は全85社が none だったため「🔒 要認証」しか出ていなかった。
-                           一方 DB では77社が true で CTA は本番で出ていた。
-                           ゲートしていないものをゲートしているように見せていたので鍵表示は削除した。
+                        面談受付 (accepting_casual_meetings) — 面談の可否を決める唯一のフラグ。
+                        申込ページ（/companies/[id]/casual-meeting）・API（/api/casual-meetings）・
+                        企業ページのCTA・/jobs/[id] のCTA、すべてこの値を見る。
+                        ⚠️ jobs_public を操作しないこと（2026-08-06 に参照ゼロにした）。
                       */}
                       <td style={{ padding: "10px 14px" }}>
                         <Toggle
-                          checked={c.jobs_public}
-                          onToggle={() => handleJobsPublicToggle(c)}
+                          checked={c.accepting_casual_meetings}
+                          onToggle={() => handleAcceptingToggle(c)}
                           pending={isLoading}
-                          label="面談CTA"
+                          label="面談受付"
                         />
                       </td>
 

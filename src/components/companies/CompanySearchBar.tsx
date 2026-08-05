@@ -368,7 +368,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
   if (currentHiring) {
     activeFilters.push({
       key: "hiring",
-      label: "🟠 面談受付中",
+      label: "🟠 求人あり",
       onRemove: () => updateParam("hiring", null),
     });
   }
@@ -790,7 +790,13 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
             外資系{currentForeign && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
           </button>
 
-          {/* 面談受付中 */}
+          {/*
+            ⚠️ ラベルは「求人あり」。2026-08-06 まで「面談受付中」と書いていたが、
+               ?hiring=1 が絞っているのは ow_jobs に公開求人があるかどうか
+               （lib/search/companies.ts で hiringSet を作る）で、
+               面談の可否（accepting_casual_meetings）ではない。
+               クエリパラメータ名 hiring と絞り込みロジックは変えていない。
+          */}
           <label className={`csb-hiring${currentHiring ? " active" : ""}`}>
             <input
               type="checkbox"
@@ -804,9 +810,9 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               display: "inline-block",
             }} />
             {currentHiring ? (
-              <>面談受付中 <span style={{ fontSize: 12, opacity: 0.85 }}>✕</span></>
+              <>求人あり <span style={{ fontSize: 12, opacity: 0.85 }}>✕</span></>
             ) : (
-              <>面談受付中</>
+              <>求人あり</>
             )}
           </label>
 
