@@ -65,7 +65,7 @@ type FormData = {
   remote_work_status: string;
   logo_url: string;
   is_published: boolean;
-  status: string;
+  // ⚠️ status は持たない。編集UIを撤去したので送らない（2026-08-05）
   // 基本情報タブ追加フィールド
   mission: string;
   tagline: string;
@@ -113,7 +113,6 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
     remote_work_status: company.remote_work_status ?? '',
     logo_url: company.logo_url ?? '',
     is_published: company.is_published ?? false,
-    status: company.status ?? 'pending',
     // 基本情報追加
     mission: company.mission ?? '',
     tagline: company.tagline ?? '',
@@ -914,28 +913,38 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               </p>
             )}
 
+            {/*
+              ⚠️ 2026-08-05: ow_companies.status の select を編集不可にした。
+                 選択肢に「active（承認済み）」があり、企業審査の一覧に実装した
+                 「承認」列（is_approved）と紛らわしかった。status は掲載・面談の可否を
+                 何もゲートしていないので、これを active にしても承認されない。
+                 「承認したつもりで承認されていない」状態を作れてしまう。
+                 承認は /admin/companies の「承認」列の「承認する」で行う（is_approved）。
+
+              ⚠️ カラムは削除しない。値の分布は pending 80 / draft 2 / active 3
+                 （2026-08-05 実測）で、is_approved / is_published とは無関係。
+                 選択肢に無い draft が3件あることからも、UI と実データが噛み合っていない。
+              ⚠️ この select が唯一の書き込み経路だったので、撤去後 status を更新する
+                 画面は無い（POST /api/biz/companies の新規作成時に 'draft' が入るのみ）。
+            */}
             <div>
-              <label className={labelCls}>審査ステータス</label>
-              <select
-                value={formData.status}
-                onChange={(e) => update('status', e.target.value)}
-                aria-label="審査ステータス"
-                className={inputCls}
-              >
-                <option value="pending">pending（審査中）</option>
-                <option value="active">active（承認済み）</option>
-                <option value="rejected">rejected（却下）</option>
-                <option value="suspended">suspended（停止）</option>
-              </select>
+              <label className={labelCls}>
+                審査ステータス（status）
+                <span className="ml-2 font-normal text-gray-400">表示のみ・掲載の可否には関係しません</span>
+              </label>
+              <span className="inline-block px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-mono">
+                {company.status ?? '—'}
+              </span>
             </div>
 
             <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 space-y-1">
               <p>
-                <span className="font-medium">公開フラグ:</span>{' '}
-                {formData.is_published ? '✅ 公開中' : '⚫ 非公開'}
+                <span className="font-medium">承認:</span>{' '}
+                {company.is_approved ? '✅ 承認済み' : '⚫ 未承認'}
               </p>
               <p>
-                <span className="font-medium">ステータス:</span> {formData.status}
+                <span className="font-medium">掲載フラグ:</span>{' '}
+                {formData.is_published ? '✅ 掲載中' : '⚫ 非掲載'}
               </p>
             </div>
           </div>

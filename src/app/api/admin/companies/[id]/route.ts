@@ -37,7 +37,10 @@ export async function PUT(
     'remote_work_status',
     'logo_url',
     'is_published',
-    'status',
+    // ⚠️ 'status' は受け付けない（2026-08-05 に削除）。
+    //    ow_companies.status は is_approved / is_published と無関係で、掲載の可否を
+    //    何もゲートしていない。唯一の編集UI（企業詳細の公開設定タブ）を撤去したので、
+    //    ここも閉じて書き込み経路を無くした。承認は is_approved（企業審査の一覧）。
     // 基本情報追加フィールド
     'mission',
     'tagline',
@@ -70,7 +73,6 @@ export async function PUT(
   const URL_FIELDS = new Set(["url", "logo_url", "recruiter_avatar_url", "casual_interview_url"]);
 
   const ENUM_FIELDS: Record<string, Set<string>> = {
-    status: new Set(["active", "inactive", "pending", "suspended"]),
     remote_work_status: new Set(["full_remote", "hybrid", "on_site", "other"]),
   };
 

@@ -94,9 +94,16 @@ migration や SQL からは承認を飛ばして公開できた。実運用の�
 企業を公開する migration を書くときは、`is_approved` も同時に立てるか、
 先に承認を済ませること。制約を外して公開しないこと。
 
-`ow_companies.status` は**この判定と無関係**で、どこの分岐にも使われていない。
-`pending` 80社の中に公開中の企業も承認待ちの企業も混在している（2026-08-05 実測）。
-掲載の可否を見るときは `is_approved` と `is_published` だけを読み、`status` は参照しないこと。
+### 掲載の可否に関係しないカラム（参照しないこと）
+
+| カラム | 実態（2026-08-05 実測） |
+|---|---|
+| `ow_companies.status` | どこの分岐にも使われていない。`pending` 80社の中に公開中の企業も承認待ちの企業も混在している。編集UIは同日に撤去し、書き込みは企業作成時の `'draft'` 固定のみ |
+| `ow_companies.listing_status` | **型定義以外に参照が1件も無い。** UIも無い。全85社が `listed`。新しいコードで参照しないこと |
+| `ow_companies.engagement_status` | 求職者側・biz側から一切参照されていない。全85社が `none` で `verified_at` / `contracted_at` は全社 NULL。編集UIは同日に撤去（`verified` / `none` にすると `jobs_public` を false に落とす副作用だけがあったため） |
+
+掲載の可否を見るときは **`is_approved` と `is_published`** だけを読むこと。
+求人・面談CTAの出し分けは **`jobs_public`**（`/jobs/[id]` のみ）。
 
 ### 公開する前に埋めておくもの
 
