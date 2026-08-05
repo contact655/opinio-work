@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
+import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
 import {
   casualMeetingAdminTemplate,
   casualMeetingUserTemplate,
   casualMeetingCompanyAdminTemplate,
 } from "@/lib/notify/templates";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { insertActivity } from "@/lib/business/activities";
 
 export const dynamic = "force-dynamic";
@@ -167,20 +167,19 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // 企業管理者（admin権限）への通知
-    const adminSupabase = createAdminClient();
-    const { data: companyAdmins } = await adminSupabase
-      .from("ow_company_admins")
-      .select("user_id, ow_users!user_id(email)")
-      .eq("company_id", company_id as string)
-      .eq("permission", "admin")
-      .eq("is_active", true)
-      .not("user_id", "is", null);
-
-    type AdminRow = { user_id: string; ow_users: { email: string | null } | null };
-    for (const row of (companyAdmins ?? []) as unknown as AdminRow[]) {
-      const email = row.ow_users?.email;
-      if (!email) continue;
+    /*
+      企業への通知。
+      ⚠️ 宛先は getCompanyNotificationRecipients に集約している。ここで引かないこと。
+         2026-08-05 まで ow_company_admins を直接引いており、応募・スカウトと
+         宛先の取り方が3通りに割れていた。
+      ⚠️ notification_emails が設定されていればそちらが優先される（上書き）。
+         全85社が null の現時点では、従来どおり企業の管理者に届く。
+    */
+    const companyEmails = await getCompanyNotificationRecipients(
+      company_id as string,
+      "casual-meetings",
+    );
+    for (const email of companyEmails) {
       await notify(
         casualMeetingCompanyAdminTemplate({
           to: email,

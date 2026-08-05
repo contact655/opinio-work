@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
 import { joinRequestTemplate } from "@/lib/notify/templates";
+import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
 
 /**
  * POST /api/biz/join-request
@@ -67,13 +68,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "すでにこの企業のメンバーです" }, { status: 409 });
   }
 
-  // 対象企業のアクティブAdmin一覧を取得
-  const { data: adminMembers } = await admin
+  /*
+    対象企業のアクティブ Admin 一覧。
+    ⚠️ この件数が0だと下で**即時承認して admin に追加する**。判定を間違えると
+       誰でも他社の管理者になれるので、失敗したら承認せず落とすこと（fail closed）。
+
+    ⚠️ 2026-08-05 に埋め込みの書き方を修正した。ow_users を関係名だけで埋め込むと
+         Could not embed because more than one relationship was found
+           for 'ow_company_admins' and 'ow_users'
+       になる。ow_company_admins には ow_users への外部キーが2本あるため
+       （user_id と invited_by_user_id）、どちらを辿るか明示しないと曖昧になる。
+       それまでこのクエリは常にエラーで adminMembers が null になり、
+         ・既存 admin にメールが1通も飛ばない
+         ・adminList が空 → **管理者がいる企業でも即時承認が走る**
+       という状態だった。error を受け取っていなかったため無言で落ちていた。
+  */
+  const { data: adminMembers, error: adminMembersErr } = await admin
     .from("ow_company_admins")
-    .select("user_id, ow_users(name, email)")
+    .select("user_id, ow_users!user_id(name, email)")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .eq("permission", "admin");
+
+  if (adminMembersErr) {
+    console.error("[join-request] admin list fetch failed", adminMembersErr.message);
+    return NextResponse.json(
+      { error: "参加リクエストを処理できませんでした。時間をおいて再度お試しください。" },
+      { status: 500 },
+    );
+  }
 
   const adminList = (adminMembers ?? []).flatMap((m) => {
     const u = (m.ow_users as unknown) as { name: string; email: string } | null;
@@ -107,13 +130,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, auto_approved: true });
   }
 
-  // ── 管理者あり → 既存 admin にメール通知 ──────────────────────────────────
+  /*
+    ── 管理者あり → メール通知 ────────────────────────────────────────────
+    ⚠️ 宛先は getCompanyNotificationRecipients に集約している。ここで引かないこと。
+    ⚠️ 上の adminList は消さない。あちらは「管理者が1人もいなければ自動承認する」
+       という分岐の判定に使っており、宛先の話とは別。
+       notification_emails が設定されていても、管理者ゼロなら自動承認は起きる。
+    ⚠️ 宛名は adminList から引ける場合だけ使う。notification_emails で
+       上書きされた宛先には対応する氏名が無いので「ご担当者」にする。
+  */
+  const nameByEmail = new Map(adminList.map((a) => [a.email.trim().toLowerCase(), a.name]));
+  const recipients = await getCompanyNotificationRecipients(companyId, "join-request");
+
   const results = await Promise.allSettled(
-    adminList.map((a) =>
+    recipients.map((to) =>
       sendEmail(
         joinRequestTemplate({
-          to: a.email,
-          adminName: a.name,
+          to,
+          adminName: nameByEmail.get(to.toLowerCase()) ?? "ご担当者",
           companyName: company.name,
           companyId: company.id,
           requesterName: requester.name ?? user.email ?? "不明",
@@ -124,7 +158,7 @@ export async function POST(req: Request) {
   );
 
   const sent = results.filter((r) => r.status === "fulfilled").length;
-  console.info(`[join-request] sent=${sent}/${adminList.length} for company=${company.id}`);
+  console.info(`[join-request] sent=${sent}/${recipients.length} for company=${company.id}`);
 
   return NextResponse.json({ success: true, notified: sent });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notify/email";
+import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
 
 export const dynamic = "force-dynamic";
 
@@ -90,21 +91,29 @@ export async function POST(
       }
     }
 
-    // Notify company by email (best-effort)
-    const companyName = (scout.ow_companies as any)?.name ?? "企業";
-    const { data: companyAdmins } = await admin
-      .from("ow_company_admins")
-      .select("ow_users(name, notify_email)")
-      .eq("company_id", scout.company_id);
+    /*
+      企業への通知（best-effort）。
 
-    for (const row of companyAdmins ?? []) {
-      const adminUser = (row as any).ow_users;
-      if (!adminUser?.notify_email) continue;
+      ⚠️ 2026-08-05 まで、この通知は**一度も誰にも届いていなかった**。
+         ow_users(name, notify_email) を select していたが ow_users.notify_email は
+         存在しないカラムで、クエリがエラーになり companyAdmins が null、
+         その下のループが1回も回らなかった。error を受け取っていなかったため
+         ログにも何も出ず、無言で落ちていた。
+      ⚠️ 宛先は getCompanyNotificationRecipients に集約している。ここで引かないこと。
+      ⚠️ 宛名は出さない。上書き先（notification_emails）には氏名が無く、
+         「担当者 さん」と書くと誰宛か分からない挨拶になるため。
+    */
+    const companyName = (scout.ow_companies as any)?.name ?? "企業";
+    const recipients = await getCompanyNotificationRecipients(
+      scout.company_id as string,
+      "scout-reply",
+    );
+
+    for (const to of recipients) {
       await notify({
-        to: adminUser.notify_email,
+        to,
         subject: `【OPINIO】${owMe.name} さんがスカウトに興味を示しました`,
         html: `
-          <p>${adminUser.name ?? "担当者"} さん</p>
           <p>${owMe.name} さんが <strong>${companyName}</strong> からのスカウトに「話を聞きたい」と回答しました。</p>
           <p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.jp"}/biz/conversations">OPINIOで会話を確認する →</a></p>
           <hr style="margin:24px 0; border:none; border-top:1px solid #eee" />

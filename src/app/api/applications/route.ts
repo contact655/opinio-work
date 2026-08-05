@@ -8,6 +8,7 @@ import {
   applicationUserTemplate,
   applicationCompanyTemplate,
 } from "@/lib/notify/templates";
+import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
 import { insertActivity } from "@/lib/business/activities";
 import { checkRateLimit } from "@/lib/rateLimit";
 
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
   // ── Notify (best-effort, T1) ──────────────────────────────────────────────
   const { data: jobForNotify } = await supabase
     .from("ow_jobs")
-    .select("title, company_id, ow_companies!inner(name, notification_emails)")
+    .select("title, company_id, ow_companies!inner(name)")
     .eq("id", job_id as string)
     .maybeSingle();
 
@@ -169,25 +170,16 @@ export async function POST(req: NextRequest) {
     }
 
     /*
-      ③ 企業宛（ow_companies.notification_emails）
+      ③ 企業宛。
       ⚠️ 2026-08-05 に追加。それまで応募の通知は運営と応募者の2通だけで、
-         企業には何も届いていなかった。notification_emails は /biz/company で
-         入力・保存できるのに、送信処理から一度も読まれていなかった。
-      ⚠️ 空（null / 空配列）なら送らない。エラーにもしない。
-         2026-08-05 時点で全85社が null なので、この経路は繋がっているが宛先が無い。
-         企業が /biz/company で設定するまで届かない。宛先を勝手に補完しないこと
-         （ow_company_admins のメールに落とすと、本人が受け取ると決めていない宛先に送る）。
+         企業には何も届いていなかった。
+      ⚠️ 宛先の解決は getCompanyNotificationRecipients に集約している。ここで引かない。
+         空配列なら送らない（エラーにしない）。
       ⚠️ notify() は失敗を飲み込むので、1件失敗しても残りと応募処理は止まらない。
     */
-    const rawEmails = (jobForNotify.ow_companies as unknown as { notification_emails?: string[] | null } | null)?.notification_emails;
-    const companyEmails = Array.from(new Set(
-      (Array.isArray(rawEmails) ? rawEmails : [])
-        .map((e) => (typeof e === "string" ? e.trim() : ""))
-        .filter((e) => e.includes("@")),
-    ));
-    if (companyEmails.length === 0) {
-      console.info("[applications] notification_emails is empty; company not notified", jobForNotify.company_id);
-    }
+    const companyEmails = jobForNotify.company_id
+      ? await getCompanyNotificationRecipients(jobForNotify.company_id, "applications")
+      : [];
     for (const to of companyEmails) {
       await notify(
         applicationCompanyTemplate({
