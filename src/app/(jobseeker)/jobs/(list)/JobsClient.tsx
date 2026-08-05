@@ -451,7 +451,7 @@ function JobListItem({
 */
 function SidebarFilters({
   parentRoles, category, workStyle, salary, empType, prefecture,
-  companyStage,
+  companyStage, bizModel, techStack, onTechStackChange,
   availablePrefectures, setParam, hasFilter, q, onReset,
   roleCounts,
   toggleParam: toggleParamFn, toggleStage,
@@ -469,7 +469,7 @@ function SidebarFilters({
   toggleParam: (key: string, value: string, current: string) => void;
   toggleStage: (value: string) => void;
 }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "prefecture", "salary", "kodawari", "emptype", "stage"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "prefecture", "salary", "kodawari", "emptype", "stage", "bizmodel", "tech"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
   const workStyleSet = useMemo(() => new Set(workStyle ? workStyle.split(",") : []), [workStyle]);
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
@@ -663,6 +663,39 @@ function SidebarFilters({
         )}
       </div>
 
+      {/* ── 8. 業態 ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="業態" sectionKey="bizmodel" hasActive={!!bizModel} />
+        {!collapsed.has("bizmodel") && (
+          <div style={{ paddingBottom: 8 }}>
+            {BUSINESS_MODELS.map((m) => (
+              <CheckItem key={m.key} label={m.label} active={bizModel === m.key}
+                onClick={() => setParam("biz_model", bizModel === m.key ? "" : m.key)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── 9. 技術スタック（複数選択・AND） ── */}
+      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
+        <SectionHeader label="技術スタック" sectionKey="tech" hasActive={techStack.length > 0} />
+        {!collapsed.has("tech") && (
+          <div style={{ paddingBottom: 8 }}>
+            {TECH_STACK_CATEGORIES.map((cat) => (
+              <div key={cat.label}>
+                <div style={{ padding: "6px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>{cat.label}</div>
+                {cat.items.map((tech) => (
+                  <CheckItem key={tech} label={tech} active={techStack.includes(tech)}
+                    onClick={() => onTechStackChange(
+                      techStack.includes(tech) ? techStack.filter((t) => t !== tech) : [...techStack, tech]
+                    )} />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── フッター: 検索する ── */}
       <div style={{ padding: "12px 14px", background: "#fff" }}>
         <button
@@ -703,14 +736,15 @@ function SidebarFilters({
      選択肢も粒度も違うので、片方で絞ってもう片方を見ると噛み合わない。
 */
 function MobileDetailSection({
-  industry, empType, companyStage, setParam, onCompanyStageChange,
+  industry, prefecture, empType, companyStage, availablePrefectures, setParam, onCompanyStageChange,
 }: {
-  industry: string; empType: string; companyStage: string;
+  industry: string; prefecture: string; empType: string; companyStage: string;
+  availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   onCompanyStageChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const hasActive = !!industry || !!empType || !!companyStage;
+  const hasActive = !!industry || !!prefecture || !!empType || !!companyStage;
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${hasActive ? "var(--royal)" : "var(--line)"}`, overflow: "hidden" }}>
       <button type="button" onClick={() => setOpen((v) => !v)}
@@ -740,6 +774,33 @@ function MobileDetailSection({
             })}
           </div>
         </div>
+        {/*
+          都道府県 — ⚠️ 2026-08-06 に追加。
+          それまでモバイルではピル行の横スクロールでしか到達できず、375px では
+          「フェーズ / 業種 / 都道府県 / 勤務形...」まで見えて残りが隠れていた。
+          ピル行は残してある（そちらで選んでも同じ prefecture を書く）。
+          ⚠️ 選択肢は実データにある都道府県だけ（availablePrefectures）。
+             出す条件も 1件超のときだけ、とサイドバー（勤務地セクション）に揃えている。
+             1県しか無いときに1択のフィルタを出しても選ぶ意味がないため。
+             2026-08-06 時点は全18件が東京都なので、デスクトップ・モバイルとも出ない。
+        */}
+        {availablePrefectures.length > 1 && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>勤務地</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {availablePrefectures.map((p) => {
+                const active = prefecture === p;
+                return (
+                  <button key={p} type="button" onClick={() => setParam("prefecture", active ? "" : p)}
+                    style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* 雇用形態 */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
@@ -2250,7 +2311,8 @@ export default function JobsClient({
 
               {/* 詳細条件アコーディオン */}
               <MobileDetailSection
-                industry={industry} empType={empType} companyStage={companyStage}
+                industry={industry} prefecture={prefecture} empType={empType} companyStage={companyStage}
+                availablePrefectures={availablePrefectures}
                 setParam={setParam} onCompanyStageChange={setCompanyStage}
               />
             </div>
