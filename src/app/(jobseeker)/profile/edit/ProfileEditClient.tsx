@@ -2281,6 +2281,7 @@ export default function ProfileEditClient({
   initialExperiences,
   initialContentLinks,
   roles,
+  roleAliases = {},
   initialTab,
   isWelcome = false,
   initialScoutEnabled = null,
@@ -2296,6 +2297,8 @@ export default function ProfileEditClient({
   initialExperiences: Stint[];
   initialContentLinks: ContentLink[];
   roles: RoleItem[];
+  /** role_id → 別名[]。職種の検索セレクトでヒットさせる（ow_role_aliases） */
+  roleAliases?: Record<string, string[]>;
   /** `?tab=` の値。不正な値は無視して既定タブを開く */
   initialTab?: string;
   isWelcome?: boolean;
@@ -3080,7 +3083,7 @@ export default function ProfileEditClient({
         {activeTab === "career" && (
           <div style={{ maxWidth: 680 }}>
 
-            <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} birthDate={owUser?.birth_date} />
+            <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} />
             <EducationEditor
               educations={educations}
               setEducations={setEducations}

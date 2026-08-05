@@ -22,7 +22,7 @@ export default async function JobNewPage() {
   if (!ctx) return <BizNoTenantPage userName={userName} />;
 
   const adminClient = createAdminClient();
-  const [teamMembers, rolesResult, deptsResult] = await Promise.all([
+  const [teamMembers, rolesResult, aliasResult, deptsResult] = await Promise.all([
     fetchTeamMembers(supabase, ctx.tenantId),
     /*
       求人フォームの職種候補。
@@ -33,6 +33,12 @@ export default async function JobNewPage() {
             過去職歴には非IT職が入る。
     */
     adminClient.from("ow_roles").select("id, parent_id, name, level").eq("is_active", true).eq("is_it_saas", true).order("display_order", { ascending: true }),
+    /*
+      職種の別名（ow_role_aliases・120件）。検索でヒットさせるために全件渡す。
+      ⚠️「法人営業」でフィールドセールスに当たらないと、標準職種の名前を知らない人が
+         辿り着けない。ow_roles 99 + 別名 120 = 219件なので全件クライアント渡しでよい。
+    */
+    adminClient.from("ow_role_aliases").select("role_id, alias"),
     supabase.from("ow_company_departments").select("id, parent_id, name, display_order").eq("company_id", ctx.tenantId).is("deleted_at", null).order("display_order").order("name"),
   ]);
 
@@ -54,8 +60,19 @@ export default async function JobNewPage() {
         companyId={ctx.tenantId}
         teamMembers={teamMembers}
         roles={roles}
+        roleAliases={toAliasMap(aliasResult.data as { role_id: string; alias: string }[] | null)}
         departments={departments}
       />
     </BusinessLayout>
   );
+}
+
+/** role_id → 別名[] に畳む。RoleSearchSelect にそのまま渡せる形 */
+function toAliasMap(rows: { role_id: string; alias: string }[] | null): Record<string, string[]> {
+  const m: Record<string, string[]> = {};
+  for (const r of rows ?? []) {
+    if (!m[r.role_id]) m[r.role_id] = [];
+    m[r.role_id].push(r.alias);
+  }
+  return m;
 }

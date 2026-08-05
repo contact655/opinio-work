@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
@@ -592,6 +593,7 @@ function StintForm({
   onSave,
   onCancel,
   roles,
+  roleAliases,
   companyLocked = false,
 }: {
   draft: StintDraft;
@@ -601,6 +603,8 @@ function StintForm({
   onSave: () => void;
   onCancel: () => void;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  /** role_id → 別名。検索でヒットさせるために使う（ow_role_aliases） */
+  roleAliases?: Record<string, string[]>;
   companyLocked?: boolean;
 }) {
   const set = useCallback(
@@ -610,27 +614,9 @@ function StintForm({
   );
 
   // 職種カテゴリー（親）ローカル state — StintDraft には保存しない
-  const [parentId, setParentId] = useState(() => {
-    if (!draft.roleCategoryId) return "";
-    const role = roles.find((r) => r.id === draft.roleCategoryId);
-    if (!role) return "";
-    return role.parent_id ?? role.id;
-  });
-
-  // 外部から draft.roleCategoryId が変わったとき（編集開始・キャンセル後）に同期
-  useEffect(() => {
-    if (!draft.roleCategoryId) { setParentId(""); return; }
-    const role = roles.find((r) => r.id === draft.roleCategoryId);
-    if (role) setParentId(role.parent_id ?? role.id);
-  }, [draft.roleCategoryId, roles]);
-
-  const handleParentChange = useCallback((newParentId: string) => {
-    setParentId(newParentId);
-    if (!newParentId) { onDraftChange({ ...draft, roleCategoryId: "" }); return; }
-    const children = roles.filter((r) => r.parent_id === newParentId);
-    // 子なし → 親自体を roleCategoryId として保存
-    onDraftChange({ ...draft, roleCategoryId: children.length === 0 ? newParentId : "" });
-  }, [draft, onDraftChange, roles]);
+  /* ⚠️ 親セレクト用の parentId / handleParentChange は 2026-08-06 に削除した。
+        検索セレクトが親も子もフラットに出すので、親を別 state で持つ必要がなくなった。
+        draft.roleCategoryId が唯一の状態。 */
 
   const descLen = draft.description.length;
   const descOver = descLen > 500;
@@ -683,47 +669,29 @@ function StintForm({
         )}
       </div>
 
-      {/* 職種カテゴリー（親） */}
+      {/*
+        職種
+        ⚠️ 2026-08-06 に親→子の2段セレクトから検索セレクトに置き換えた。
+           105件を目視で探させるUIが機能していなかった。
+        ⚠️ selectableParent は true。大分類そのものも選べる。
+           過去の非IT職は「営業」「販売・サービス」で十分なことが多く、
+           子まで選ばせると入力が止まる（求人側は false のままで、こちらだけ許す）。
+        ⚠️ 渡す roles は profile/edit/page.tsx で is_active=true に絞ったうえで
+           「現在選択中の職種＋その親」を足し戻したもの。ここでは絞らない。
+      */}
       <div>
-        <label style={labelStyle()}>職種カテゴリー<RequiredMark /></label>
-        <select
-          aria-label="職種カテゴリー"
-          value={parentId}
-          onChange={(e) => handleParentChange(e.target.value)}
+        <label style={labelStyle()}>職種<RequiredMark /></label>
+        <RoleSearchSelect
+          roles={roles}
+          aliases={roleAliases}
+          value={draft.roleCategoryId}
+          onSelect={(id) => set("roleCategoryId", id)}
+          selectableParent
           disabled={isSaving}
-          style={fieldStyle()}
-        >
-          <option value="">選択してください</option>
-          {roles
-            .filter((r) => r.parent_id === null)
-            .sort((a, b) => a.display_order - b.display_order)
-            .map((parent) => (
-              <option key={parent.id} value={parent.id}>{parent.name}</option>
-            ))}
-        </select>
+          ariaLabel="職種"
+        />
       </div>
 
-      {/* 職種（子カテゴリー）— 親に子がある場合のみ表示 */}
-      {parentId && roles.filter((r) => r.parent_id === parentId).length > 0 && (
-        <div>
-          <label style={labelStyle()}>職種<RequiredMark /></label>
-          <select
-            aria-label="職種"
-            value={draft.roleCategoryId}
-            onChange={(e) => set("roleCategoryId", e.target.value)}
-            disabled={isSaving}
-            style={fieldStyle()}
-          >
-            <option value="">選択してください</option>
-            {roles
-              .filter((r) => r.parent_id === parentId)
-              .sort((a, b) => a.display_order - b.display_order)
-              .map((child) => (
-                <option key={child.id} value={child.id}>{child.name}</option>
-              ))}
-          </select>
-        </div>
-      )}
 
       {/* 役職 */}
       <div>
@@ -1204,10 +1172,12 @@ function StintCard({
 export default function CareerHistoryEditor({
   initialExperiences = [],
   roles = [],
+  roleAliases = {},
   birthDate,
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  roleAliases?: Record<string, string[]>;
   birthDate?: string | null;
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
@@ -1757,6 +1727,7 @@ export default function CareerHistoryEditor({
                   onSave={() => { void saveEdit(); }}
                   onCancel={cancelEdit}
                   roles={roles}
+                  roleAliases={roleAliases}
                 />
               ) : (
                 <StintForm
@@ -1767,6 +1738,7 @@ export default function CareerHistoryEditor({
                   onSave={() => { void saveAdd(); }}
                   onCancel={cancelAdd}
                   roles={roles}
+                  roleAliases={roleAliases}
                   companyLocked={addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
                 />
               )}

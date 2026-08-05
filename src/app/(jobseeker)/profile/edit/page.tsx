@@ -32,6 +32,7 @@ export default async function ProfileEditPage({
     { data: mediaAppearancesRaw },
     { data: expRows },
     { data: allRoles },
+    { data: roleAliasRows },
     { data: contentLinksRaw },
   ] = await Promise.all([
     owUser
@@ -81,6 +82,12 @@ export default async function ProfileEditPage({
          下の allRoles で「現在選択中の職種」を必ず足し戻すこと。
     */
     supabase.from("ow_roles").select("id, name, parent_id, display_order").eq("is_active", true).order("display_order"),
+    /*
+      職種の別名（ow_role_aliases・120件）。検索でヒットさせるために全件渡す。
+      ⚠️「法人営業」でフィールドセールスに当たらないと、標準職種の名前を知らない人が
+         辿り着けない。ow_roles 99 + 別名 120 = 219件なので全件クライアント渡しでよい。
+    */
+    supabase.from("ow_role_aliases").select("role_id, alias"),
     owUser
       ? supabase
           .from("ow_user_content_links")
@@ -127,6 +134,13 @@ export default async function ProfileEditPage({
         .in("id", parentIds);
       extraRoles = [...extraRoles, ...((parents ?? []) as Record<string, unknown>[])];
     }
+  }
+
+  /** role_id → 別名[]。RoleSearchSelect の検索対象にする */
+  const roleAliasMap: Record<string, string[]> = {};
+  for (const r of (roleAliasRows ?? []) as { role_id: string; alias: string }[]) {
+    if (!roleAliasMap[r.role_id]) roleAliasMap[r.role_id] = [];
+    roleAliasMap[r.role_id].push(r.alias);
   }
 
   const roles: { id: string; name: string; parent_id: string | null; display_order: number }[] =
@@ -240,6 +254,7 @@ export default async function ProfileEditPage({
       initialExperiences={initialExperiences}
       initialContentLinks={contentLinksRaw ?? []}
       roles={roles}
+      roleAliases={roleAliasMap}
       initialTab={searchParams.tab}
       isWelcome={isWelcome}
       initialScoutEnabled={profilePrefs?.scout_enabled ?? null}

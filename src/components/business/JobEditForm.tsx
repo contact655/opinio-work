@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { useAutoSave } from "@/hooks/useAutoSave";
@@ -243,6 +244,8 @@ function Hint({ children }: { children: React.ReactNode }) {
 // ─── メインコンポーネント ────────────────────────────────────────────────────
 
 export type RoleItem = { id: string; parent_id: string | null; name: string; level: number };
+/** role_id → 別名。検索でヒットさせるために使う（ow_role_aliases） */
+export type RoleAliasMap = Record<string, string[]>;
 type SelectedRole = { roleId: string; isPrimary: boolean };
 
 export type DeptItem = { id: string; parent_id: string | null; name: string };
@@ -255,6 +258,8 @@ type Props = {
   companyId?: string;
   teamMembers?: TeamMember[];
   roles?: RoleItem[];
+  /** 検索でヒットさせる別名。role_id → alias[] */
+  roleAliases?: RoleAliasMap;
   departments?: DeptItem[];
   initialDepartmentId?: string | null;
 };
@@ -267,6 +272,7 @@ export function JobEditForm({
   companyId,
   teamMembers,
   roles = [],
+  roleAliases = {},
   departments = [],
   initialDepartmentId = null,
 }: Props) {
@@ -285,11 +291,10 @@ export function JobEditForm({
   // 初期値は initialJob?.id（編集モード）または null（新規モード）
   const [currentJobId, setCurrentJobId] = useState<string | null>(initialJob?.id ?? null);
   const [selectedRoles, setSelectedRoles] = useState<SelectedRole[]>(initialJobRoles);
-  const [roleParentId, setRoleParentId] = useState("");
-  const [roleChildId, setRoleChildId] = useState("");
+  /* ⚠️ 2段セレクト用の roleParentId / roleChildId / childRoles / addRole は
+        2026-08-06 に検索セレクトへ置き換えたので削除した。追加は addRoleById 一本。 */
 
   const parentRoles = useMemo(() => roles.filter((r) => r.parent_id === null), [roles]);
-  const childRoles = useMemo(() => roleParentId ? roles.filter((r) => r.parent_id === roleParentId) : [], [roleParentId, roles]);
 
   // セールス専用ブロック（OTE・担当セグメント）の出し分け。
   // 旧実装は job_category のフリーテキストを見ていたが、その入力欄を廃止したため
@@ -312,12 +317,14 @@ export function JobEditForm({
     });
   }, [roles, parentRoles, selectedRoles]);
 
-  const addRole = () => {
-    const targetId = childRoles.length > 0 ? roleChildId : roleParentId;
+  /*
+    検索セレクトから直接 id を受けて追加する。
+    ⚠️ 重複は足さない。最初の1件が代表（isPrimary）になる。
+       ここは唯一の追加経路なので、代表の決まり方を分岐させないこと。
+  */
+  const addRoleById = (targetId: string) => {
     if (!targetId || selectedRoles.some((r) => r.roleId === targetId)) return;
-    const isPrimary = selectedRoles.length === 0;
-    setSelectedRoles((prev) => [...prev, { roleId: targetId, isPrimary }]);
-    setRoleChildId("");
+    setSelectedRoles((prev) => [...prev, { roleId: targetId, isPrimary: prev.length === 0 }]);
   };
 
   const removeRole = (roleId: string) => {
@@ -574,33 +581,28 @@ export function JobEditForm({
               {roles.length > 0 && (
                 <FormGroup>
                   <FormLabel optional>職種（マスタ紐づけ）</FormLabel>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                    <select
-                      value={roleParentId}
-                      onChange={(e) => { setRoleParentId(e.target.value); setRoleChildId(""); }}
-                      style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, background: "#fff" }}
-                    >
-                      <option value="">大分類を選ぶ</option>
-                      {parentRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                    </select>
-                    {childRoles.length > 0 && (
-                      <select
-                        value={roleChildId}
-                        onChange={(e) => setRoleChildId(e.target.value)}
-                        style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, background: "#fff" }}
-                      >
-                        <option value="">小分類を選ぶ</option>
-                        {childRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                      </select>
-                    )}
-                    <button
-                      type="button"
-                      onClick={addRole}
-                      disabled={!(childRoles.length > 0 ? roleChildId : roleParentId)}
-                      style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid var(--royal)", background: "var(--royal-50)", color: "var(--royal)", fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
-                    >
-                      ＋ 追加
-                    </button>
+                  {/*
+                    ⚠️ 2026-08-06 に2段セレクトから検索セレクトに置き換えた。
+                       105件を目視で探させるUIが機能しておらず、求人20件が
+                       大分類11件と孫7件に偏り、中間の子職種が1件も使われていなかった。
+                    ⚠️ selectableParent={false} は2段セレクト時代の制約をそのまま維持している。
+                       旧UIは「子があるカテゴリでは親を選べない」形だった
+                       （targetId = childRoles.length > 0 ? roleChildId : roleParentId）。
+                       子を持たない大分類は従来どおり選べる。
+                    ⚠️ 選択済みタグ・代表切替・解除には手を触れていない。
+                       addRole を呼ぶ手段を差し替えただけ。
+                  */}
+                  <div style={{ marginBottom: 8 }}>
+                    <RoleSearchSelect
+                      roles={roles}
+                      aliases={roleAliases}
+                      value=""
+                      clearOnSelect
+                      selectableParent={false}
+                      onSelect={(id) => addRoleById(id)}
+                      ariaLabel="職種を検索して追加"
+                      placeholder="職種名で検索して追加（例: 法人営業、AE）"
+                    />
                   </div>
                   {selectedRoles.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
