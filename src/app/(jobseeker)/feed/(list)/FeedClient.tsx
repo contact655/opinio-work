@@ -1238,6 +1238,37 @@ function FeedSidebar({
 
   return (
     <div style={{ width: 340, flexShrink: 0 }}>
+      {/*
+        未ログイン時は「フォロー中」2枚を出さない（2026-08-05）。
+        ⚠️ 「まだ空」ではなく構造上必ず空。未ログインではフォローできないので、
+           ログインしても埋まらない箱を並べることになる。代わりに登録訴求を1枚置く。
+      */}
+      {myUserId === null ? (
+        <div style={PANEL_STYLE}>
+          {/* 文言は LP の最終CTA（LandingPage.tsx の h2 と FinalCta のゲスト用本文）と
+              /auth のトラスト行から流用している。ここで新しいコピーを作らないこと。 */}
+          <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
+          <p style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
+            登録すると、気になる企業を保存して比べられます。新しい求人が出たときの通知も受け取れます。
+          </p>
+          <a
+            href="/auth"
+            style={{
+              display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 8,
+              background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            メールアドレスで無料登録
+          </a>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", justifyContent: "center", marginTop: 10 }}>
+            {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
+              <span key={t} style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      ) : (
+      <>
       {/* (a) フォロー中の企業 */}
       <div style={PANEL_STYLE}>
         <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中の企業</p>
@@ -1307,6 +1338,9 @@ function FeedSidebar({
         )}
         <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
       </div>
+
+      </>
+      )}
 
       {/* (b) 気になる求人 */}
       <div style={PANEL_STYLE}>
