@@ -8629,6 +8629,10 @@ export type Database = {
         Args: { p_candidate_id: string }
         Returns: boolean
       }
+      merge_role: {
+        Args: { from_role_id: string; to_role_id: string }
+        Returns: Json
+      }
       normalize_company_name: { Args: { p_name: string }; Returns: string }
       purge_old_page_views: { Args: never; Returns: undefined }
       reject_school_request: {

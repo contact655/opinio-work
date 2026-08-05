@@ -75,13 +75,28 @@ export async function PATCH(req: Request) {
   if (action === "merge") {
     const mergeIntoId = body.mergeIntoId as string;
     if (!mergeIntoId) return NextResponse.json({ error: "mergeIntoId required" }, { status: 400 });
-    // merged_into_id を設定し、is_active = false に
-    const { error } = await admin
-      .from("ow_roles")
-      .update({ merged_into_id: mergeIntoId, is_active: false })
-      .eq("id", roleId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true });
+
+    /*
+      ⚠️ ここで ow_roles を直接 UPDATE しないこと（2026-08-06 に RPC へ移した）。
+         それまでは merged_into_id と is_active=false を立てるだけで、
+         ow_experiences / ow_jobs / ow_job_roles などの**参照を一切触っていなかった**。
+         統合された職種を指したままの行が残り、無効な職種が表示され続ける。
+      ⚠️ 付け替えは1トランザクションでなければならない。途中で失敗すると
+         一部だけ移った状態になり、どこまで進んだか後から分からなくなる。
+         そのため Postgres 関数（merge_role）に寄せている。
+      ⚠️ merge_role は service_role にしか EXECUTE を与えていない。
+         createAdminClient() から呼ぶこと。
+    */
+    const { data, error } = await admin.rpc("merge_role", {
+      from_role_id: roleId,
+      to_role_id: mergeIntoId,
+    });
+    if (error) {
+      console.error("[admin/roles merge]", error.message);
+      // 子職種がある / 統合先が無効 などは関数側が日本語で理由を返す
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, result: data });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
