@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCompanyById } from "@/lib/supabase/queries";
+import { getCompanyBySlugOrId } from "@/lib/supabase/queries";
 import CasualMeetingForm from "./CasualMeetingForm";
 
 export const revalidate = 60;
@@ -20,7 +20,12 @@ export default async function CasualMeetingPage({
     redirect(`/auth/login?next=/companies/${params.id}/casual-meeting`);
   }
 
-  const result = await getCompanyById(params.id);
+  // ⚠️ getCompanyById は UUID しか受けない。親の /companies/[id] は slug でも開けるので、
+  //    ここも同じ getCompanyBySlugOrId を使う。
+  //    2026-08-05 まで slug の URL は常に notFound() を投げていたが、
+  //    このセグメントの loading.tsx が Suspense 境界を作っていたため
+  //    HTTP 200 のまま「見つかりません」が出るだけで、誰も気づけなかった。
+  const result = await getCompanyBySlugOrId(params.id);
   if (!result) return notFound();
 
   const { company } = result;
