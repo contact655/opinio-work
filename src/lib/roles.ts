@@ -86,7 +86,10 @@ export async function getUserRolesWithData(supabase: SupabaseClient) {
   const [roles, profileResult, companiesResult] = await Promise.all([
     getUserRoles(supabase),
     supabase.from("ow_profiles").select("id, name").eq("user_id", user.id).maybeSingle(),
-    supabase.from("ow_companies").select("id, name, status").eq("user_id", user.id),
+    // ⚠️ status は選ばない。ow_companies.status は is_approved / is_published と
+    //    連動しておらず、判定に使われていない（2026-08-05 調査）。
+    //    掲載の可否を見るなら is_approved と is_published を読むこと。
+    supabase.from("ow_companies").select("id, name").eq("user_id", user.id),
   ]);
 
   return {

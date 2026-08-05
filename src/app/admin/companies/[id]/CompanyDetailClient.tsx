@@ -362,15 +362,24 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
           <h1 className="text-2xl font-bold mb-1">{company.name}</h1>
           <p className="text-xs text-gray-400 font-mono">
             ID: {company.id}
-            {company.status && (
-              <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium ${
-                company.status === 'active' ? 'bg-green-100 text-green-800' :
-                company.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {company.status}
-              </span>
-            )}
+            {/*
+              ⚠️ ここは以前 ow_companies.status を出していたが 2026-08-05 に差し替えた。
+                 status は is_approved / is_published と連動しておらず、
+                 status='pending' の80社の中に公開中の企業も承認待ちの企業も混在している。
+                 「pending」バッジを見た運営が承認待ちと誤読する状態は、何も出さないより悪い。
+                 掲載の可否を決めているのは is_approved と is_published の2つだけ。
+            */}
+            <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium ${
+              !company.is_approved ? 'bg-amber-100 text-amber-800' :
+              !company.is_published ? 'bg-gray-100 text-gray-700' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {!company.is_approved
+                ? '承認待ち'
+                : !company.is_published
+                  ? '承認済み・非公開'
+                  : '公開中'}
+            </span>
           </p>
         </div>
         <Link
@@ -869,10 +878,20 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
           <h2 className="text-base font-semibold mb-4">公開設定</h2>
 
           <div className="space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            {/*
+              ⚠️ 未承認の企業は公開できない。DB制約 check_published_requires_approval
+                 （CHECK (is_published = false OR is_approved = true)）で弾かれ、
+                 保存が 23514 で失敗する。ここで止めないと運営には理由が分からない。
+                 承認は /admin/companies の承認ボタン（updateApproval）で行う。
+                 このタブからは is_approved を触らない。
+            */}
+            <label className={`flex items-center gap-3 p-4 border border-gray-200 rounded-lg ${
+              company.is_approved ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed bg-gray-50 opacity-60'
+            }`}>
               <input
                 type="checkbox"
                 checked={formData.is_published}
+                disabled={!company.is_approved}
                 onChange={(e) => update('is_published', e.target.checked)}
                 className="w-4 h-4"
               />
@@ -881,6 +900,18 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                 <p className="text-xs text-gray-500">求職者画面（/companies）に表示されます</p>
               </div>
             </label>
+
+            {!company.is_approved && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                この企業はまだ承認されていません。承認前に公開することはできません（DB制約）。
+                <br />
+                承認は{' '}
+                <Link href="/admin/companies" className="underline font-medium">
+                  企業審査
+                </Link>
+                {' '}の承認ボタンから行ってください。承認すると同時に公開されます。
+              </p>
+            )}
 
             <div>
               <label className={labelCls}>審査ステータス</label>
