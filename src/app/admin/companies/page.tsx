@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { updateEngagementStatus, updateJobsPublic, updateSortOrder, updateIsPublished } from "./actions";
+import { updateJobsPublic, updateSortOrder, updateIsPublished, updateApproval } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -69,6 +69,9 @@ export default function AdminCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  /* Server Action の失敗をここに出す。握り潰すと「効いたように見えて DB は変わっていない」
+     状態になる（2026-08-05 まで全アクションがそうだった） */
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const draggedIdRef = useRef<string | null>(null);
 
@@ -123,39 +126,44 @@ export default function AdminCompaniesPage() {
 
   useEffect(() => { loadCompanies(); }, [loadCompanies]);
 
-  // engagement_status 変更
-  async function handleEngagementChange(company: Company, newStatus: EngagementStatus) {
-    setActionLoading(company.id);
-    const now = new Date().toISOString();
-    await updateEngagementStatus(company.id, newStatus, company.verified_at, company.contracted_at);
-    setCompanies((prev) => prev.map((c) => c.id === company.id
-      ? { ...c, engagement_status: newStatus,
-          jobs_public: newStatus === "contracted" ? c.jobs_public : false,
-          verified_at:  (newStatus === "verified"   && !c.verified_at)   ? now : c.verified_at,
-          contracted_at: (newStatus === "contracted" && !c.contracted_at) ? now : c.contracted_at }
-      : c
-    ));
+  /*
+    ⚠️ 楽観更新をしないこと。成功を確認してから state を書き換える。
+       2026-08-05 まで結果を見ずに先に画面を更新していたため、
+       CHECK 制約で弾かれても「掲載中」と表示され、リロードすると戻る状態だった。
+       この画面は useEffect の初回1回しかフェッチしないので、
+       revalidatePath でも直らない（サーバー側の再検証は届かない）。
+  */
+  async function run(companyId: string, fn: () => Promise<{ ok: true } | { ok: false; error: string }>,
+                    onSuccess: (c: Company) => Company) {
+    setActionLoading(companyId);
+    setErrorMsg(null);
+    const res = await fn();
+    if (res.ok) {
+      setCompanies((prev) => prev.map((c) => c.id === companyId ? onSuccess(c) : c));
+    } else {
+      setErrorMsg(res.error);
+    }
     setActionLoading(null);
   }
 
-  // jobs_public トグル（engagement_status が contracted のときのみ操作可）
-  async function handleJobsPublicToggle(company: Company) {
-    const es = company.engagement_status ?? "none";
-    if (es !== "contracted") return; // contracted のみ可
+  // 求人・面談公開（jobs_public）。/jobs/[id] の面談CTAを実際にゲートしている
+  function handleJobsPublicToggle(company: Company) {
     const newValue = !company.jobs_public;
-    setActionLoading(company.id);
-    await updateJobsPublic(company.id, newValue);
-    setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, jobs_public: newValue } : c));
-    setActionLoading(null);
+    return run(company.id, () => updateJobsPublic(company.id, newValue),
+      (c) => ({ ...c, jobs_public: newValue }));
   }
 
-  // 企業一覧掲載トグル（is_published 単独）
-  async function handleIsPublishedToggle(company: Company) {
+  // 掲載（is_published）。未承認だと CHECK 制約で 23514 になり errorMsg に出る
+  function handleIsPublishedToggle(company: Company) {
     const newValue = !company.is_published;
-    setActionLoading(company.id);
-    await updateIsPublished(company.id, newValue);
-    setCompanies((prev) => prev.map((c) => c.id === company.id ? { ...c, is_published: newValue } : c));
-    setActionLoading(null);
+    return run(company.id, () => updateIsPublished(company.id, newValue),
+      (c) => ({ ...c, is_published: newValue }));
+  }
+
+  // 承認（is_approved）。掲載は別操作なので is_published は動かさない。取り消しは無し
+  function handleApprove(company: Company) {
+    return run(company.id, () => updateApproval(company.id),
+      (c) => ({ ...c, is_approved: true }));
   }
 
   // ── ドラッグ&ドロップ並び替え（「すべて」タブ + 検索なしのときのみ有効） ──
@@ -198,7 +206,8 @@ export default function AdminCompaniesPage() {
 
     // Supabase に一括保存
     setIsSavingOrder(true);
-    await updateSortOrder(updated.map((c) => ({ id: c.id, sort_order: c.sort_order ?? 0 })));
+    const res = await updateSortOrder(updated.map((c) => ({ id: c.id, sort_order: c.sort_order ?? 0 })));
+    if (!res.ok) setErrorMsg(res.error);
     setIsSavingOrder(false);
   }
 
@@ -267,12 +276,30 @@ export default function AdminCompaniesPage() {
         </div>
       </div>
 
-      {/* 法的整理コール */}
+      {/*
+        ⚠️ 2026-08-05 まで「設計原則: ドメイン認証(verified)で企業情報の編集が可能。
+           規約同意(contracted)のみ求人・面談OK公開・成果報酬請求可」と書いていたが、
+           どちらも実装されていなかったため削除した。engagement_status は
+           何もゲートしていない。実装済みと誤読させる説明を置かないこと。
+      */}
       <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)" }}>設計原則:</strong> 企業概要は広く掲載可（ディレクトリ）。
-        ドメイン認証（<code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>verified</code>）で企業情報の編集が可能。
-        規約同意（<code style={{ background: "#ECFDF5", color: "var(--success)", padding: "1px 5px", borderRadius: 4 }}>contracted</code>）のみ求人・面談OK公開・成果報酬請求可。
+        <strong style={{ color: "var(--ink)" }}>掲載の順序:</strong>{" "}
+        <strong>承認</strong>（運営が掲載を許可）→ <strong>掲載</strong>（企業ページを公開）。
+        承認していない企業は掲載できません（DB制約）。掲載すると求職者向けのフィードに投稿が1件作られます。
+        <strong>求人・面談公開</strong>は <code style={{ background: "#EFF3FC", color: "var(--royal)", padding: "1px 5px", borderRadius: 4 }}>/jobs/[id]</code> のカジュアル面談CTAの出し分けです。
       </div>
+
+      {/* Server Action の失敗をここに出す */}
+      {errorMsg && (
+        <div role="alert" style={{ background: "var(--error-soft)", border: "1px solid #FCA5A5", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12.5, color: "#991B1B", lineHeight: 1.7, display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>失敗しました</span>
+          <span style={{ flex: 1 }}>{errorMsg}</span>
+          <button type="button" onClick={() => setErrorMsg(null)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#991B1B", fontSize: 14, lineHeight: 1, padding: 2 }}>
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div style={{ position: "relative", marginBottom: 16 }}>
@@ -322,7 +349,7 @@ export default function AdminCompaniesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
             <thead>
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
-                {["", "企業名", "ロゴURL", "業界", "担当者", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "ロゴURL", "業界", "担当者", "承認", "掲載", "企業ステータス", "求人・面談公開", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -331,7 +358,7 @@ export default function AdminCompaniesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={11} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
+                <tr><td colSpan={12} style={{ textAlign: "center", padding: "56px 0", color: "var(--ink-mute)", fontSize: 14 }}>
                   <div style={{ marginBottom: 8, fontSize: 28 }}>🏢</div>企業が見つかりません
                 </td></tr>
               ) : (
@@ -432,6 +459,34 @@ export default function AdminCompaniesPage() {
                         )}
                       </td>
 
+                      {/*
+                        承認 (is_approved) — 運営が掲載を許すかどうか。
+                        ⚠️ 2026-08-05 に追加。それまで is_approved を変える UI が
+                           アプリ全体に1つも無く（updateApproval は呼び出し元ゼロ）、
+                           承認待ちの企業を承認する手段が migration しかなかった。
+                        ⚠️ 取り消しは出さない。is_published = true の企業を未承認に戻すと
+                           CHECK 制約に違反する行が残る（制約は更新時にしか効かない）。
+                        ⚠️ 掲載（is_published）は別操作。承認しても自動では掲載されない。
+                      */}
+                      <td style={{ padding: "10px 14px" }}>
+                        {c.is_approved ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
+                                         background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
+                            ✓ 承認済み
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => handleApprove(c)} disabled={isLoading}
+                            title="運営として掲載を承認します。取り消しはできません（掲載は別操作）"
+                            style={{
+                              fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
+                              background: "var(--warm)", color: "#fff", border: "none", whiteSpace: "nowrap",
+                              opacity: isLoading ? 0.5 : 1,
+                            }}>
+                            承認する
+                          </button>
+                        )}
+                      </td>
+
                       {/* 掲載トグル */}
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -458,23 +513,27 @@ export default function AdminCompaniesPage() {
                         </div>
                       </td>
 
-                      {/* 企業ステータス（engagement_status） */}
+                      {/*
+                        企業ステータス（engagement_status）— 表示のみ。
+                        ⚠️ 2026-08-05 に編集を止めた。この値は求職者側・biz側のどこからも
+                           参照されておらず、掲載や面談の可否を一切ゲートしていない。
+                           それでいて verified / none に変えると jobs_public を false に
+                           落とす副作用だけがあり、効かないものが害だけ持っている状態だった。
+                           （本番は85社すべて none。verified_at / contracted_at は全社 NULL）
+                        ⚠️ カラムは残してある。この概念を実装するなら、まず何をゲートするかを
+                           決めてから編集UIを戻すこと。
+                      */}
                       <td style={{ padding: "10px 14px" }}>
-                        <select
-                          value={es}
-                          disabled={isLoading}
-                          onChange={(e) => handleEngagementChange(c, e.target.value as EngagementStatus)}
+                        <span
+                          title="表示のみ。この値は掲載・面談の可否をゲートしていません"
                           style={{
+                            display: "inline-block",
                             fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 6,
                             background: esCfg.bg, color: esCfg.color, border: `1px solid ${esCfg.border}`,
-                            cursor: "pointer", outline: "none", fontFamily: "inherit",
-                            opacity: isLoading ? 0.5 : 1,
                           }}
                         >
-                          <option value="none">未認証</option>
-                          <option value="verified">ドメイン認証済</option>
-                          <option value="contracted">契約済み</option>
-                        </select>
+                          {esCfg.label}
+                        </span>
                         {es === "verified" && c.verified_at && (
                           <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif" }}>
                             認証: {new Date(c.verified_at).toLocaleDateString("ja-JP")}
@@ -487,22 +546,24 @@ export default function AdminCompaniesPage() {
                         )}
                       </td>
 
-                      {/* 求人・面談公開 (jobs_public) */}
+                      {/*
+                        求人・面談公開 (jobs_public) — /jobs/[id] のカジュアル面談CTAを実際にゲートする。
+                        ⚠️ 2026-08-05 まで engagement_status = contracted のときしかトグルを出さず、
+                           本番は全85社が none だったため「🔒 要認証」しか出ていなかった。
+                           一方 DB では77社が true で CTA は本番で出ていた。
+                           ゲートしていないものをゲートしているように見せていたので鍵表示は削除した。
+                      */}
                       <td style={{ padding: "10px 14px" }}>
-                        {es !== "contracted" ? (
-                          <span style={{ fontSize: 11, color: "var(--ink-mute)" }} title="契約済みのみ有効">🔒 {es === "verified" ? "要規約同意" : "要認証"}</span>
-                        ) : (
-                          <button type="button" onClick={() => handleJobsPublicToggle(c)} disabled={isLoading}
-                            style={{
-                              fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
-                              background: c.jobs_public ? "var(--royal)" : "#F1F5F9",
-                              color: c.jobs_public ? "#fff" : "#6b7280",
-                              border: `1px solid ${c.jobs_public ? "var(--royal)" : "#E2E8F0"}`,
-                              opacity: isLoading ? 0.5 : 1,
-                            }}>
-                            {c.jobs_public ? "✓ 公開中" : "非公開"}
-                          </button>
-                        )}
+                        <button type="button" onClick={() => handleJobsPublicToggle(c)} disabled={isLoading}
+                          style={{
+                            fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
+                            background: c.jobs_public ? "var(--royal)" : "#F1F5F9",
+                            color: c.jobs_public ? "#fff" : "#6b7280",
+                            border: `1px solid ${c.jobs_public ? "var(--royal)" : "#E2E8F0"}`,
+                            opacity: isLoading ? 0.5 : 1,
+                          }}>
+                          {c.jobs_public ? "✓ 公開中" : "非公開"}
+                        </button>
                       </td>
 
                       {/* 求人数 */}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
 
 // PUT /api/admin/companies/[id] — 企業情報全フィールド更新
@@ -97,6 +98,20 @@ export async function PUT(
 
   // service_role で RLS バイパス
   const supabase = createAdminClient();
+
+  /*
+    公開に切り替えるときは published_at も埋める。
+    ⚠️ published_at は「最初に公開した日時」。非掲載に戻しても消さない
+       （フィード投稿は残るので、公開した事実の記録を消すと突合できなくなる）。
+  */
+  const nowIso = new Date().toISOString();
+  const turningPublic = updates.is_published === true;
+  if (turningPublic) {
+    const { data: cur } = await supabase
+      .from('ow_companies').select('published_at').eq('id', params.id).maybeSingle();
+    if (!cur?.published_at) updates.published_at = nowIso;
+  }
+
   const { data, error } = await supabase
     .from('ow_companies')
     .update(updates)
@@ -106,7 +121,34 @@ export async function PUT(
 
   if (error) {
     console.error('[PUT /api/admin/companies/[id]]', error.message);
+    // 未承認のまま公開しようとした場合はここに来る（check_published_requires_approval）
+    if (error.code === '23514' && error.message.includes('check_published_requires_approval')) {
+      return NextResponse.json(
+        { error: '運営の承認が済んでいないため掲載できません。企業審査の一覧で「承認する」を押してください。' },
+        { status: 409 },
+      );
+    }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+  /*
+    Feed: company_joined（公開時のみ、best-effort）
+    ⚠️ 2026-08-05 まで PATCH /api/biz/company の1箇所にしか無く、
+       admin から公開してもフィードに何も出なかった。
+    ⚠️ 本文と ref_* の埋め方は lib/feed/systemPosts に集約している。ここで組み立てない。
+    ⚠️ 部分UNIQUEインデックス（idx_ow_posts_unique_company）があるので、
+       非掲載に戻して再度公開しても投稿は作り直されない。23505 は「既にある」ので無視する。
+       つまり本文は最初に公開した瞬間の brand_name / tagline で固定される。
+  */
+  if (turningPublic && data) {
+    try {
+      const { error: feedErr } = await supabase.from('ow_posts').insert(
+        buildCompanyJoinedRow(params.id, data as { name?: string | null; brand_name?: string | null; tagline?: string | null }),
+      );
+      if (feedErr && feedErr.code !== '23505') console.error('[feed company_joined]', feedErr.message);
+    } catch (feedErr) {
+      console.error('[feed company_joined]', feedErr);
+    }
   }
 
   return NextResponse.json({ company: data });

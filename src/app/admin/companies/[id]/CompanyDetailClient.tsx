@@ -882,8 +882,8 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               ⚠️ 未承認の企業は公開できない。DB制約 check_published_requires_approval
                  （CHECK (is_published = false OR is_approved = true)）で弾かれ、
                  保存が 23514 で失敗する。ここで止めないと運営には理由が分からない。
-                 承認は /admin/companies の承認ボタン（updateApproval）で行う。
-                 このタブからは is_approved を触らない。
+                 承認は企業審査の一覧（/admin/companies）の「承認」列にある
+                 「承認する」ボタンで行う（updateApproval）。このタブからは is_approved を触らない。
             */}
             <label className={`flex items-center gap-3 p-4 border border-gray-200 rounded-lg ${
               company.is_approved ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed bg-gray-50 opacity-60'
@@ -905,11 +905,12 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
               <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
                 この企業はまだ承認されていません。承認前に公開することはできません（DB制約）。
                 <br />
-                承認は{' '}
                 <Link href="/admin/companies" className="underline font-medium">
                   企業審査
                 </Link>
-                {' '}の承認ボタンから行ってください。承認すると同時に公開されます。
+                {' '}の一覧で、この企業の行の「承認」列にある「承認する」を押してください。
+                <br />
+                承認しても掲載はされません。掲載は承認後に、同じ一覧の「掲載」トグルか、このタブから行います。
               </p>
             )}
 
