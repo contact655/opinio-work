@@ -152,10 +152,11 @@ export default async function HomePage() {
     return map;
   };
 
-  const [articleByCompany, jobByCompany, memberByCompany] = await Promise.all([
+  // ⚠️ ow_company_members は数えていない。2026-08-05 にカードから「社員」を外したため。
+  //    理由は src/lib/lp/pickCompanies.ts のコメントを参照。
+  const [articleByCompany, jobByCompany] = await Promise.all([
     tally("ow_articles", "company_id", ["is_published", "true"]),
     tally("ow_jobs", "company_id", ["status", "published"]),
-    tally("ow_company_members", "company_id", ["is_public", "true"]),
   ]);
 
   const companies: LPCompanyCard[] = companyRows.map((c) => ({
@@ -170,7 +171,6 @@ export default async function HomePage() {
     // 0 でもそのまま出す
     articleCount: articleByCompany.get(c.id) ?? 0,
     jobCount: jobByCompany.get(c.id) ?? 0,
-    memberCount: memberByCompany.get(c.id) ?? 0,
   }));
 
   // ── 求人カード ──────────────────────────────────────────────────

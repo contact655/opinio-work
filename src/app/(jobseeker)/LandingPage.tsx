@@ -67,7 +67,6 @@ export type LPCompanyCard = {
   companyUrl: string | null;
   articleCount: number;
   jobCount: number;
-  memberCount: number;
 };
 
 export type LPJobCard = {
@@ -331,18 +330,18 @@ export default function LandingPage({
                 {/*
                   ⚠️ 0 の項目は出さない（2026-08-05 変更）。「—」も出さない。
                      以前は「件数が増えたときに伸びが見える」ことを理由に 0 を出していたが、
-                     実データでは12社中 社員0が11社・求人0が5社・記事0が4社で、
+                     実データでは12社中 求人0が5社・記事0が4社で、
                      最も目立つ場所に 0 が並ぶ状態になっていた。
                      値が無いものを出さない、という既存方針に揃える。
-                  ⚠️ 3項目とも 0 なら行ごと出さない。現データでは該当0社だが、
+                  ⚠️ 2項目とも 0 なら行ごと出さない。現データでは該当0社だが、
                      在庫が増えると発生しうるので分岐は残す。
+                  ⚠️ 「社員」は 2026-08-05 に外した。理由は pickCompanies.ts のコメント参照。
                   ラベルは 600 / 数字は 700 + navy。
                 */}
                 {(() => {
                   const facts = [
                     { label: "記事", n: c.articleCount },
                     { label: "求人", n: c.jobCount },
-                    { label: "社員", n: c.memberCount },
                   ].filter((m) => m.n > 0);
                   if (facts.length === 0) return null;
                   return (
