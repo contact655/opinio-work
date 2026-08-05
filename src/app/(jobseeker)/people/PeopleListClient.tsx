@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { DirectoryPerson } from "@/lib/people/directory";
+import { FollowUserButton } from "../u/[id]/FollowUserButton";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -17,6 +18,10 @@ type Props = {
   ambassadors: AmbassadorCard[];
   /** ow_roles の slug → id。フィルタの照合に使う。page 側で解決して渡す */
   roleSlugToId: Record<string, string>;
+  /** 閲覧者の ow_users.id。自分のカードにフォローボタンを出さないために使う */
+  myUserId: string | null;
+  /** 閲覧者が既にフォローしている ow_users.id */
+  followedUserIds: string[];
 };
 
 // ── フィルタ・ソート定数 ────────────────────────────────────────────
@@ -261,7 +266,9 @@ function CardFacts({ card }: { card: AmbassadorCard }) {
 }
 
 // ── グリッドカード ────────────────────────────────────────────────────
-function GridCard({ card }: { card: AmbassadorCard }) {
+function GridCard({ card, myUserId, followedUserIds }: {
+  card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+}) {
   const router = useRouter();
   // ⚠️ ow_company_members.role_title（自由記述）ではなく ow_roles の職種名を出す。
   //    自由記述は「営業」「Enterprise Account Executive」「セールス（デジタルセールス）」
@@ -331,6 +338,23 @@ function GridCard({ card }: { card: AmbassadorCard }) {
         >
           プロフィールを見る
         </Link>
+        {/* ⚠️ 横並びにしないこと。5列時のカード内寸は約196pxで、
+               「プロフィールを見る」(約136px) と並べると溢れる。縦に積む。
+            ⚠️ onClick の伝播を止める。カード全体が router.push を持っているため、
+               止めないとフォローと同時にプロフィールへ遷移する。 */}
+        {myUserId !== null && card.userId !== myUserId && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", justifyContent: "center", marginTop: 8 }}
+          >
+            <FollowUserButton
+              targetUserId={card.userId}
+              initialFollowed={followedUserIds.includes(card.userId)}
+              isAuthenticated
+              compact
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -353,7 +377,7 @@ function matchAge(card: AmbassadorCard, v: string): boolean {
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followedUserIds }: Props) {
   const [role, setRole] = useState("");
 
   const [age, setAge] = useState("");
@@ -688,7 +712,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId }: Props) {
           </div>
         ) : (
           <div className="ppl-grid">
-            {sorted.map((card) => <GridCard key={card.userId} card={card} />)}
+            {sorted.map((card) => (
+              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
+            ))}
           </div>
         )}
 

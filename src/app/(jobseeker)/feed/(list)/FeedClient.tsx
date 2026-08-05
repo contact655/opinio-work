@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
+import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -70,6 +71,8 @@ type Props = {
   sidebarSavedJobs: SidebarJob[];
   sidebarMentors: SidebarMentor[];
   hiddenMembersCount: number;
+  /** 閲覧者が既にフォローしている ow_users.id。右レールのフォローボタンの初期状態に使う */
+  followedUserIds: string[];
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1172,12 +1175,18 @@ function FeedSidebar({
   savedJobs,
   mentors,
   hiddenMembersCount,
+  myUserId,
+  followedUserIds,
 }: {
   follows: SidebarFollow[];
   userFollows: SidebarUserFollow[];
   savedJobs: SidebarJob[];
   mentors: SidebarMentor[];
   hiddenMembersCount: number;
+  /** ow_users.id。未ログインは null */
+  myUserId: string | null;
+  /** 閲覧者が既にフォローしている ow_users.id */
+  followedUserIds: string[];
 }) {
   const EMPTY_STYLE: React.CSSProperties = {
     fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
@@ -1321,29 +1330,45 @@ function FeedSidebar({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {mentors.map((m) => (
-              <Link
-                key={m.id}
-                href={`/mentors/${m.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-              >
-                {m.photo_url ? (
-                  <img src={m.photo_url} alt={m.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: m.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "Inter, sans-serif", flexShrink: 0 }}>
-                    {(m.name ?? "?").charAt(0)}
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {m.name}
-                  </div>
-                  {(m.current_role || m.current_company) && (
-                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {[m.current_role, m.current_company].filter(Boolean).join(" · ")}
+              // ⚠️ 行全体を Link で包まないこと。中にフォローボタン（button）を置くため。
+              //    a の中に button を入れると不正な HTML になり、クリックが両方に飛ぶ。
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* ⚠️ 遷移先は /u/[id]。2026-08-05 まで /mentors/{id} を指していたが、
+                    /mentors は next.config.mjs で /people へ 301 されるため、
+                    誰を押しても一覧に飛んで個人に辿り着けなかった。 */}
+                <Link
+                  href={`/u/${m.id}`}
+                  style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flex: 1, minWidth: 0 }}
+                >
+                  {m.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.photo_url} alt={m.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: m.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "Inter, sans-serif", flexShrink: 0 }}>
+                      {(m.name ?? "?").charAt(0)}
                     </div>
                   )}
-                </div>
-              </Link>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {m.name}
+                    </div>
+                    {(m.current_role || m.current_company) && (
+                      <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {[m.current_role, m.current_company].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+                {/* 自分自身には出さない（API も 400 で弾くが、押せるボタンを出さないのが先） */}
+                {m.id !== myUserId && (
+                  <FollowUserButton
+                    targetUserId={m.id}
+                    initialFollowed={followedUserIds.includes(m.id)}
+                    isAuthenticated={myUserId !== null}
+                    compact
+                  />
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -2019,6 +2044,7 @@ export default function FeedClient({
   sidebarSavedJobs,
   sidebarMentors,
   hiddenMembersCount,
+  followedUserIds,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
   // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
@@ -2307,6 +2333,8 @@ export default function FeedClient({
             savedJobs={sidebarSavedJobs}
             mentors={sidebarMentors}
             hiddenMembersCount={hiddenMembersCount}
+            myUserId={myUserId}
+            followedUserIds={followedUserIds}
           />
         </div>
       )}

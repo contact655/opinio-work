@@ -231,6 +231,19 @@ export default async function FeedPage() {
     .map((r: Record<string, unknown>) => r["ow_companies"])
     .filter(Boolean) as SidebarFollow[];
 
+  // 右レール「面談OKな人」のフォローボタンの初期状態。
+  // ⚠️ (a2) の userFollowResult は ow_users を JOIN した行なので、ここでは ID だけを別に取る。
+  //    JOIN 結果から拾うと、対象ユーザーが消えていた場合に ID を落としてしまう。
+  let followedUserIds: string[] = [];
+  if (myOwUserId) {
+    const { data: fRows, error: fErr } = await adminSupabase
+      .from("ow_user_follows")
+      .select("target_user_id")
+      .eq("follower_user_id", myOwUserId);
+    if (fErr) console.error("[feed followedUserIds]", fErr.message);
+    followedUserIds = (fRows ?? []).map((r: { target_user_id: string }) => r.target_user_id);
+  }
+
   const sidebarUserFollows: SidebarUserFollow[] = (userFollowResult.data ?? [])
     .map((r: Record<string, unknown>) => {
       const user = r["ow_users"] as { id: string; name: string; avatar_color: string | null; avatar_url: string | null } | null;
@@ -317,6 +330,7 @@ export default async function FeedPage() {
       sidebarSavedJobs={sidebarSavedJobs}
       sidebarMentors={sidebarMentors}
       hiddenMembersCount={hiddenMembersCount}
+      followedUserIds={followedUserIds}
     />
   );
 }

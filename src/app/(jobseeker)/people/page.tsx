@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -33,6 +34,25 @@ export default async function PeoplePage() {
     getRoleTree(),
   ]);
 
+  // フォローボタンの初期状態。
+  // ⚠️ middleware でログイン必須なので user は基本 null にならないが、
+  //    ここで null を前提にしないこと（ゲート漏れが起きても壊れないようにする）。
+  let myUserId: string | null = null;
+  let followedUserIds: string[] = [];
+  if (user) {
+    const admin = createAdminClient();
+    const { data: me } = await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+    myUserId = me?.id ?? null;
+    if (myUserId) {
+      const { data: fRows, error } = await admin
+        .from("ow_user_follows")
+        .select("target_user_id")
+        .eq("follower_user_id", myUserId);
+      if (error) console.error("[people followedUserIds]", error.message);
+      followedUserIds = (fRows ?? []).map((r: { target_user_id: string }) => r.target_user_id);
+    }
+  }
+
   // 職種フィルタは slug で持ち、ここで id に解決する。
   // クライアント側に ow_roles を渡さずに済ませるため。
   const roleSlugToId: Record<string, string> = {};
@@ -40,7 +60,7 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={people} roleSlugToId={roleSlugToId} />
+      <PeopleListClient ambassadors={people} roleSlugToId={roleSlugToId} myUserId={myUserId} followedUserIds={followedUserIds} />
     </div>
   );
 }
