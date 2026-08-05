@@ -755,11 +755,23 @@ function StintForm({
         </select>
       </div>
 
-      {/* 職種名 */}
+      {/*
+        社内での呼び方（ow_experiences.role_title）
+
+        ⚠️ 2026-08-06 に定義を「社内での呼び方」に一本化した。
+           それまでの説明文は「M2、シニアアソシエイトなど社内で規定されているグレード・等級名」で、
+           等級を入れさせる文面だった。等級は隣の役職セレクト（rank）の守備範囲であり、
+           2つの軸が1つの欄に混ざっていた。実データでも部署名が混入している
+           （例:「金融営業本部 営業第1部 / 法人営業（アカウント営業）」）。
+        ⚠️ 保存先カラム（role_title）は変えていない。既存データの移行もしていない。
+           定義を先に正して、これから入る値をきれいにするのが目的。
+        ⚠️ この欄はフェーズ2で「会社独自の呼称」を集める入口になる。
+           ow_company_job_roles（company_id + name + standard_role_id）が受け皿。
+      */}
       <div>
-        <label style={labelStyle()}>職種名（任意）</label>
+        <label style={labelStyle()}>社内での呼び方（任意）</label>
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
-          社内職名・グレード（例: M2、シニアアソシエイト、プロデューサーなど社内で規定されているグレード・等級名を入力してください）
+          社内で使われている呼称を入力してください（例: アカウントエグゼクティブ、CXデザイナー）
         </div>
         <input
           type="text"

@@ -16,6 +16,10 @@ type Role = {
   merged_into_id: string | null;
   merged_into_name?: string | null;
   alias_count?: number;
+  /** 使用数。統合・無効化の判断材料（2026-08-06 追加） */
+  experience_count?: number;
+  /** 求人の使用数。ow_jobs.role_category_id と ow_job_roles.role_id を job_id で重複除去した数 */
+  job_count?: number;
 };
 
 export default function AdminRolesPage() {
@@ -134,7 +138,16 @@ export default function AdminRolesPage() {
               <tr style={{ background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
                 <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>職種名</th>
                 <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>スラグ</th>
-                <th style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>IT/SaaS</th>
+                {/*
+                  ⚠️ 見出しは「求人で使う」。カラム名は is_it_saas のままだが、
+                     2026-08-06 に意味を「OPINIO の掲載企業（SaaS/IT）の求人で使う職種か」に
+                     再定義した。旧「IT/SaaS」だと業界特有かどうかに読めて実態と合わない。
+                */}
+                <th title="企業の求人フォームの選択肢に出すか（ow_roles.is_it_saas）。ユーザーの職歴入力では絞っていません"
+                    style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>求人で使う</th>
+                {/* 使用数 — 統合・無効化の判断材料。0件が一目で分かればよい */}
+                <th title="この職種を指している職歴と求人の件数。求人は ow_jobs と ow_job_roles を重複なく数えています"
+                    style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>使用数</th>
                 <th style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>状態</th>
                 <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>統合先</th>
                 <th style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--ink-mute)", fontSize: 11 }}>操作</th>
@@ -157,6 +170,15 @@ export default function AdminRolesPage() {
                   <td style={{ padding: "9px 12px", color: "var(--ink-mute)", fontFamily: "monospace", fontSize: 11 }}>{role.slug}</td>
                   <td style={{ padding: "9px 12px", textAlign: "center" }}>
                     {role.is_it_saas && <span style={{ fontSize: 12 }}>✓</span>}
+                  </td>
+                  <td style={{ padding: "9px 12px", textAlign: "center", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif", fontSize: 11 }}>
+                    {(role.experience_count ?? 0) + (role.job_count ?? 0) === 0 ? (
+                      <span style={{ color: "var(--ink-mute)" }}>—</span>
+                    ) : (
+                      <span style={{ color: "var(--ink)" }}>
+                        職歴{role.experience_count ?? 0} / 求人{role.job_count ?? 0}
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: "9px 12px", textAlign: "center" }}>
                     <button
@@ -190,7 +212,7 @@ export default function AdminRolesPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
+                  <td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
                     該当する職種がありません
                   </td>
                 </tr>

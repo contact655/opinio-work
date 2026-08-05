@@ -19,15 +19,48 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  const [rolesRes, aliasesRes, mergedRes] = await Promise.all([
+  /*
+    ⚠️ 105件を1行ずつ問い合わせない（N+1）。参照側を全件1回ずつ引いて、
+       メモリ上で集計する。行数はいずれも数十件規模なので取り切って問題ない。
+    ⚠️ 求人は ow_jobs.role_category_id と ow_job_roles.role_id の両方に入っている。
+       同じ求人を2回数えないよう、job_id の集合で重複を除いてから数えること。
+  */
+  const [rolesRes, aliasesRes, mergedRes, expRes, jobsRes, jobRolesRes] = await Promise.all([
     admin.from("ow_roles").select("id, name, slug, parent_id, level, is_active, is_it_saas, merged_into_id").order("level").order("name"),
     admin.from("ow_role_aliases").select("role_id"),
     admin.from("ow_roles").select("id, name").eq("is_active", true),
+    admin.from("ow_experiences").select("id, role_category_id").not("role_category_id", "is", null),
+    admin.from("ow_jobs").select("id, role_category_id").not("role_category_id", "is", null),
+    admin.from("ow_job_roles").select("job_id, role_id"),
   ]);
+
+  for (const [label, res] of [
+    ["ow_roles", rolesRes], ["ow_role_aliases", aliasesRes],
+    ["ow_experiences", expRes], ["ow_jobs", jobsRes], ["ow_job_roles", jobRolesRes],
+  ] as const) {
+    if (res.error) console.error(`[admin/roles GET] ${label}`, res.error.message);
+  }
 
   const roles = rolesRes.data ?? [];
   const aliases = aliasesRes.data ?? [];
   const allRoles = mergedRes.data ?? [];
+
+  // 職歴の使用数
+  const expCountMap = new Map<string, number>();
+  for (const e of expRes.data ?? []) {
+    const rid = e.role_category_id as string;
+    expCountMap.set(rid, (expCountMap.get(rid) ?? 0) + 1);
+  }
+
+  // 求人の使用数。⚠️ job_id の集合を持って重複を除く
+  const jobSetMap = new Map<string, Set<string>>();
+  const addJob = (roleId: string | null, jobId: string) => {
+    if (!roleId) return;
+    if (!jobSetMap.has(roleId)) jobSetMap.set(roleId, new Set());
+    jobSetMap.get(roleId)!.add(jobId);
+  };
+  for (const j of jobsRes.data ?? []) addJob(j.role_category_id as string | null, j.id as string);
+  for (const jr of jobRolesRes.data ?? []) addJob(jr.role_id as string | null, jr.job_id as string);
 
   // エイリアス数を集計
   const aliasCountMap = new Map<string, number>();
@@ -42,6 +75,8 @@ export async function GET() {
     ...r,
     alias_count: aliasCountMap.get(r.id as string) ?? 0,
     merged_into_name: r.merged_into_id ? (roleNameMap.get(r.merged_into_id as string) ?? null) : null,
+    experience_count: expCountMap.get(r.id as string) ?? 0,
+    job_count: jobSetMap.get(r.id as string)?.size ?? 0,
   }));
 
   return NextResponse.json({ roles: enriched });
