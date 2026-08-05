@@ -6250,6 +6250,7 @@ export type Database = {
           ref_user_id: string | null
           updated_at: string
           user_id: string
+          visibility: string
         }
         Insert: {
           content: string
@@ -6271,6 +6272,7 @@ export type Database = {
           ref_user_id?: string | null
           updated_at?: string
           user_id: string
+          visibility?: string
         }
         Update: {
           content?: string
@@ -6292,6 +6294,7 @@ export type Database = {
           ref_user_id?: string | null
           updated_at?: string
           user_id?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -8425,6 +8428,7 @@ export type Database = {
           ref_user_id: string | null
           updated_at: string | null
           user_id: string | null
+          visibility: string | null
         }
         Insert: {
           content?: string | null
@@ -8446,6 +8450,7 @@ export type Database = {
           ref_user_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          visibility?: string | null
         }
         Update: {
           content?: string | null
@@ -8467,6 +8472,7 @@ export type Database = {
           ref_user_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          visibility?: string | null
         }
         Relationships: [
           {

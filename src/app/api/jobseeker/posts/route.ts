@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
+import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { canUserPost } from "@/lib/feed/canPost";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,7 @@ type RawPost = {
   event_starts_at: string | null;
   event_location: string | null;
   created_at: string;
+  visibility: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   ref_company: RefCompany;
   ref_job: RefJob;
@@ -79,14 +82,11 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
   return map;
 }
 
+// ⚠️ 判定は lib/feed/visibility に集約している。ここに if を増やさない
 function filterVisible(posts: RawPost[], myOwUserId: string | null): RawPost[] {
-  return posts.filter((p) => {
-    if (p.user?.is_system) return true;
-    const v = p.user?.visibility;
-    if (v === "private") return false;
-    if (v === "login_only" && !myOwUserId) return false;
-    return true;
-  });
+  return posts.filter((p) =>
+    isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId),
+  );
 }
 
 async function getTopLikers(
@@ -149,7 +149,7 @@ function formatPosts(
 const POST_SELECT = `
   id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
   image_url, link_url, link_title, link_image_url, link_description, link_domain,
-  event_title, event_starts_at, event_location, created_at,
+  event_title, event_starts_at, event_location, created_at, visibility,
   user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, location, founded_year),
   ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
@@ -281,6 +281,15 @@ export async function POST(req: NextRequest) {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  // ⚠️ 投稿できるのは is_public な ow_company_members のみ（2026-08-05）。
+  //    RLS（posts_insert_own）でも同じ条件を掛けているが、ここで早く弾いて
+  //    本文の検証やリンクプレビューの処理に入らないようにする。
+  //    条件は lib/feed/canPost に集約している。
+  const adminForGate = createAdminClient();
+  if (!(await canUserPost(adminForGate, owUserId))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let body: {
     content?: unknown;
     image_url?: unknown;
@@ -289,6 +298,7 @@ export async function POST(req: NextRequest) {
     link_image_url?: unknown;
     link_description?: unknown;
     link_domain?: unknown;
+    visibility?: unknown;
   };
   try {
     body = await req.json();
@@ -334,11 +344,15 @@ export async function POST(req: NextRequest) {
     ? body.link_domain.slice(0, 253)
     : null;
 
+  // 公開範囲。⚠️ 既定は login_only。不正値は既定に落とす（黙って public にしない）。
+  //    判定の優先順位は lib/feed/visibility を参照。
+  const visibility = body.visibility === "public" ? "public" : "login_only";
+
   const { data: inserted, error } = await supabase
     .from("ow_posts")
-    .insert({ user_id: owUserId, content, image_url, link_url, link_title, link_image_url, link_description, link_domain })
+    .insert({ user_id: owUserId, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, visibility })
     .select(`
-      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
+      id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url)
     `)
     .single();

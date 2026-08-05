@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
+import { isPostVisibleTo } from "@/lib/feed/visibility";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 type ActorCompany = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
@@ -33,6 +34,7 @@ type RawPost = {
   link_domain: string | null;
   created_at: string;
   post_type: string;
+  visibility: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   ref_company: ActorCompany;
   ref_job: { company: ActorCompany } | null;
@@ -106,7 +108,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     .from("ow_posts_visible")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
-      post_type,
+      post_type, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ${ACTOR_SELECT},
       likes:ow_post_likes(count),
@@ -125,10 +127,8 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   //    システムユーザー（00000000-…-0001 / OPINIO）は visibility='private' なので、
   //    この例外が無いとシステム投稿170件すべてのパーマリンクが 404 になる。
   //    一覧には出ているのにシェアURLだけ 404 という状態だった（2026-08-05 修正）。
-  if (!p.user?.is_system) {
-    if (p.user?.visibility === "private") notFound();
-    if (p.user?.visibility === "login_only" && !user) notFound();
-  }
+  // ⚠️ 判定は lib/feed/visibility に集約している。一覧と食い違わせない
+  if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user)) notFound();
 
   const actorCo = actorCompany(p);
   const actorName = actorCo ? (actorCo.brand_name ?? actorCo.name) : (p.user?.name ?? "不明");

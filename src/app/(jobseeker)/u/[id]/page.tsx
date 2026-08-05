@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
+import { canUserPost } from "@/lib/feed/canPost";
 import { PostCard } from "@/components/profile/PostCard";
 import {
   buildTimelineCareerEntriesFromRaw,
@@ -146,6 +147,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const coverColor = owUser.cover_color ?? owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
+  // 投稿できる人か。オーナー本人のときだけ問い合わせる（他人には出さないので不要）
+  const viewerCanPost = viewerIsOwner ? await canUserPost(adminSupabase, owUser.id) : false;
 
   // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
   const followCounts = await getFollowCounts(owUser.id);
@@ -399,7 +402,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     timelineEdus.length > 0 ? { id: "education", label: "学歴" } : null,
     (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
     contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
-    (viewerIsOwner || recentPostsTyped.length > 0) ? { id: "activity", label: "投稿" } : null,
+    ((viewerIsOwner && viewerCanPost) || recentPostsTyped.length > 0) ? { id: "activity", label: "投稿" } : null,
   ].filter(Boolean) as { id: string; label: string }[];
 
   // キャリアパスノード用 年表示
@@ -1109,8 +1112,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   )}
                 </div>
 
-                {/* 投稿フォーム（オーナーのみ） */}
-                {viewerIsOwner && (
+                {/* 投稿フォーム（オーナーかつ投稿権限がある人のみ）。
+                    ⚠️ 権限が無い人には「投稿できません」を出さず、静かに出さないだけにする */}
+                {viewerIsOwner && viewerCanPost && (
                   <PostComposer
                     avatarColor={avatarColor}
                     initial={initial}

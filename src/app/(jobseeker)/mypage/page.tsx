@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getFollowCounts } from "@/lib/people/followCounts";
+import { canUserPost } from "@/lib/feed/canPost";
 import { createAdminClient } from "@/lib/supabase/admin";
 import MypageClient from "./MypageClient";
 import type {
@@ -351,5 +352,9 @@ export default async function MypagePage({
   const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
-  return <MypageClient owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  // 投稿できる人か。できないなら「アクティビティ」セクションごと畳む
+  //（コンポーザーがセクションの中身そのものなので、消すと空欄になる）
+  const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
+
+  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }

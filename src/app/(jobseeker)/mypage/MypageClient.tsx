@@ -294,7 +294,10 @@ function DashboardView({
   userEducations, timelineCareers,
   ambassadorMemberships = [],
   schoolPeerCounts = {},
+  canPost,
 }: {
+  /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
+  canPost: boolean;
   userId: string;
   userName: string; userInitial: string; userAvatar: string;
   currentRole?: string | null;
@@ -461,7 +464,11 @@ function DashboardView({
         </SectionBlock>
       )}
 
-      {/* ── アクティビティ投稿フォーム ── */}
+      {/* ── アクティビティ投稿フォーム ──
+          ⚠️ 投稿できない人にはセクションごと出さない（2026-08-05）。
+             コンポーザーがセクションの中身そのものなので、コンポーザーだけ消すと
+             見出しだけが残って空欄になる。 */}
+      {canPost && (
       <SectionBlock title="アクティビティ" titleEn="ACTIVITY">
         <PostComposer
           avatarColor={userAvatar ?? "linear-gradient(135deg, var(--royal), #3B5FD9)"}
@@ -477,6 +484,7 @@ function DashboardView({
           </Link>
         </div>
       </SectionBlock>
+      )}
 
       {/* 面談対応者の設定（登録がある場合のみ表示） */}
       <AmbassadorWidget memberships={ambassadorMemberships} />
@@ -687,6 +695,7 @@ function BookmarksView({ companyBookmarks, jobBookmarks }: { companyBookmarks: B
 type AmbassadorMembership = { id: string; company_id: string; company_name: string; role_title: string | null; display_consent: boolean };
 
 export default function MypageClient({
+  canPost,
   owUser,
   followCounts,
   educations = [],
@@ -704,6 +713,8 @@ export default function MypageClient({
   showScoutBanner = false,
   schoolPeerCounts = {},
 }: {
+  /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
+  canPost: boolean;
   owUser: OwUser;
   /** フォロワー数 / フォロー中の数。0 の項目は出ない */
   followCounts?: { followers: number; following: number };
@@ -1143,6 +1154,7 @@ export default function MypageClient({
           followCounts={followCounts}
           userEducations={educations}
           timelineCareers={timelineCareers}
+          canPost={canPost}
           ambassadorMemberships={ambassadorMemberships}
           schoolPeerCounts={schoolPeerCounts}
         />

@@ -32,6 +32,8 @@ type PostItem = {
   id: string;
   content: string;
   post_type: string;
+  /** ow_posts.visibility。'public' | 'login_only'（既定 login_only） */
+  visibility?: string | null;
   image_url: string | null;
   created_at: string;
   user: PostUser;
@@ -75,6 +77,8 @@ type Props = {
   hiddenMembersCount: number;
   /** 閲覧者が既にフォローしている ow_users.id。右レールのフォローボタンの初期状態に使う */
   followedUserIds: string[];
+  /** 投稿してよい人か。false ならコンポーザーを出さない（lib/feed/canPost） */
+  canPost: boolean;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -255,6 +259,9 @@ function PostComposer({
   type OgpPreview = { linkUrl: string; linkTitle: string | null; linkImageUrl: string | null; linkDescription: string | null; linkDomain: string | null };
   const [ogpPreview, setOgpPreview] = useState<OgpPreview | null>(null);
   const [ogpFetching, setOgpFetching] = useState(false);
+  // 公開範囲。⚠️ 既定は login_only。ここを public にすると、
+  //    本人が選んでいないのに未ログインへ開くことになる。
+  const [visibility, setVisibility] = useState<"public" | "login_only">("login_only");
   const ogpFetchedUrl = useRef<string | null>(null);
 
   // 本文からhttpsのURLを1つ抽出
@@ -366,7 +373,7 @@ function PostComposer({
       const res = await fetch("/api/jobseeker/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: content.trim(), image_url: imageUrl, ...linkPayload }),
+        body: JSON.stringify({ content: content.trim(), image_url: imageUrl, visibility, ...linkPayload }),
       });
       if (!res.ok) {
         const j = await res.json();
@@ -375,6 +382,7 @@ function PostComposer({
       const { post } = await res.json();
       onPostCreated({
         ...post,
+        visibility,
         user: { id: myUserId, name: myName ?? "自分", avatar_color: myAvatarColor, avatar_url: myAvatarUrl },
         like_count: 0,
         comment_count: 0,
@@ -644,6 +652,32 @@ function PostComposer({
               gap: 8,
             }}
           >
+            {/* 公開範囲。⚠️ 既定は「ログインした人だけ」。
+                「全体公開」を選んだときに何が起きるかを事実として1行で出す（煽らない）。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: "auto" }}>
+              <label htmlFor="post-visibility" style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                公開範囲
+              </label>
+              <select
+                id="post-visibility"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value === "public" ? "public" : "login_only")}
+                style={{
+                  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                  fontSize: 13, fontWeight: 600, color: "var(--ink)",
+                  border: "1px solid var(--line)", borderRadius: 8,
+                  padding: "5px 8px", background: "#fff", cursor: "pointer",
+                }}
+              >
+                <option value="login_only">ログインした人だけ</option>
+                <option value="public">全体公開</option>
+              </select>
+              {visibility === "public" && (
+                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, color: "var(--ink-soft)" }}>
+                  ログインしていない人にも表示されます
+                </span>
+              )}
+            </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {/* 文字数カウンター: 円形プログレスリング */}
@@ -896,7 +930,8 @@ function CommentSection({
         </p>
       )}
 
-      {/* コメント入力欄（ログイン済みのみ） */}
+      {/* コメント入力欄（ログイン済みのみ）。
+          ⚠️ 投稿権限（canPost）とは別。コメントは全ログインユーザーに開けている */}
       {myUserId ? (
         <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
           <Avatar
@@ -1239,9 +1274,11 @@ function FeedSidebar({
   return (
     <div style={{ width: 340, flexShrink: 0 }}>
       {/*
-        未ログイン時は「フォロー中」2枚を出さない（2026-08-05）。
-        ⚠️ 「まだ空」ではなく構造上必ず空。未ログインではフォローできないので、
-           ログインしても埋まらない箱を並べることになる。代わりに登録訴求を1枚置く。
+        未ログイン時は「フォロー中の企業」「フォロー中のユーザー」「気になる募集」を出さない（2026-08-05）。
+        ⚠️ 「まだ空」ではなく構造上必ず空。3枚とも ow_company_follows / ow_user_follows /
+           ow_saved_jobs を引くもので、未ログインではそもそも登録できない。
+           ログインしても埋まらない箱を並べることになるので、代わりに登録訴求を1枚置く。
+           「面談OKな人」だけは残す（ログインすれば4名が見えるので、空箱ではない）。
       */}
       {myUserId === null ? (
         <div style={PANEL_STYLE}>
@@ -1339,9 +1376,6 @@ function FeedSidebar({
         <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
       </div>
 
-      </>
-      )}
-
       {/* (b) 気になる求人 */}
       <div style={PANEL_STYLE}>
         <p style={PANEL_TITLE_STYLE}>気になる募集</p>
@@ -1374,6 +1408,9 @@ function FeedSidebar({
         )}
         <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
       </div>
+
+      </>
+      )}
 
       {/* (c) 面談OKな人 */}
       <div style={PANEL_STYLE}>
@@ -1613,6 +1650,16 @@ function PostCard({
               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                 · {relativeTime(post.created_at)}
               </span>
+              {/* 公開範囲。⚠️ 本人にだけ出す。他人に「この人は限定公開にしている」と
+                  伝える必要は無いし、伝えると設定を詮索されるため。 */}
+              {isOwner && (
+                <span
+                  title={post.visibility === "public" ? "全体公開" : "ログインした人だけに表示"}
+                  style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}
+                >
+                  · {post.visibility === "public" ? "全体公開" : "ログイン限定"}
+                </span>
+              )}
             </div>
             {/* 役職タグライン: roleTitle があれば役職、なければ会社名 */}
             {actor.kind === "user" && (post.user.roleTitle || post.user.company) && (
@@ -2122,6 +2169,7 @@ export default function FeedClient({
   sidebarMentors,
   hiddenMembersCount,
   followedUserIds,
+  canPost,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
   // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
@@ -2297,8 +2345,10 @@ export default function FeedClient({
         })}
       </div>
 
-      {/* 投稿コンポーザー */}
-      {myUserId && (
+      {/* 投稿コンポーザー。
+          ⚠️ 投稿できない人には入力欄を出さない（2026-08-05）。
+             「投稿できません」等の表示は出さず、静かに出さないだけにする。 */}
+      {myUserId && canPost && (
         <PostComposer
           myUserId={myUserId}
           myName={myName}

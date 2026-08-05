@@ -46,7 +46,8 @@ export function PostCard({ post }: { post: Post }) {
     setLiked((v) => !v);
     setLikeCount((c) => liked ? c - 1 : c + 1);
 
-    const res = await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+    // ⚠️ /api/posts/[id]/like ではなく /api/jobseeker/posts/[id]/likes を使う（口の統一）
+    const res = await fetch(`/api/jobseeker/posts/${post.id}/likes`, { method: liked ? "DELETE" : "POST" });
     if (!res.ok) {
       // Revert on error
       setLiked((v) => !v);
@@ -58,7 +59,7 @@ export function PostCard({ post }: { post: Post }) {
   async function handleDelete() {
     if (!confirm("この投稿を削除しますか？")) return;
     setDeleting(true);
-    await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
+    await fetch(`/api/jobseeker/posts/${post.id}`, { method: "DELETE" });
     setDeleting(false);
     router.refresh();
   }

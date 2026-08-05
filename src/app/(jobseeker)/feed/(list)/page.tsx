@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
+import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { canUserPost } from "@/lib/feed/canPost";
 
 export const metadata: Metadata = {
   title: "投稿 | OPINIO",
@@ -36,6 +38,7 @@ type RawPost = {
   event_starts_at: string | null;
   event_location: string | null;
   created_at: string;
+  visibility: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   ref_company: RefCompany;
   ref_job: RefJob;
@@ -89,7 +92,7 @@ export default async function FeedPage() {
     .select(`
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
       image_url, link_url, link_title, link_image_url, link_description, link_domain,
-      event_title, event_starts_at, event_location, created_at,
+      event_title, event_starts_at, event_location, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, location, founded_year),
       ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
@@ -114,14 +117,11 @@ export default async function FeedPage() {
     likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
   }
 
-  // visibility フィルター（is_system=true のシステム投稿は visibility に関わらず表示）
-  const visiblePosts = posts.filter((p) => {
-    if (p.user?.is_system) return true;
-    const v = p.user?.visibility;
-    if (v === "private") return false;
-    if (v === "login_only" && !user) return false;
-    return true;
-  });
+  // 可視判定。⚠️ ここに if を増やさない。判定は lib/feed/visibility に集約している
+  //    （3箇所に散っていた結果、パーマリンクだけ is_system の例外が抜けていた）
+  const visiblePosts = posts.filter((p) =>
+    isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user),
+  );
 
   // 現職情報を別クエリで取得
   const userIds = Array.from(new Set(visiblePosts.map((p) => p.user?.id).filter(Boolean) as string[]));
@@ -237,6 +237,8 @@ export default async function FeedPage() {
   // ⚠️ (a2) の userFollowResult は ow_users を JOIN した行なので、ここでは ID だけを別に取る。
   //    JOIN 結果から拾うと、対象ユーザーが消えていた場合に ID を落としてしまう。
   let followedUserIds: string[] = [];
+  // 投稿できる人だけにコンポーザーを出す。条件は lib/feed/canPost に集約している
+  let canPost = false;
   if (myOwUserId) {
     const { data: fRows, error: fErr } = await adminSupabase
       .from("ow_user_follows")
@@ -244,6 +246,7 @@ export default async function FeedPage() {
       .eq("follower_user_id", myOwUserId);
     if (fErr) console.error("[feed followedUserIds]", fErr.message);
     followedUserIds = (fRows ?? []).map((r: { target_user_id: string }) => r.target_user_id);
+    canPost = await canUserPost(adminSupabase, myOwUserId);
   }
 
   const sidebarUserFollows: SidebarUserFollow[] = (userFollowResult.data ?? [])
@@ -333,6 +336,7 @@ export default async function FeedPage() {
       sidebarMentors={sidebarMentors}
       hiddenMembersCount={hiddenMembersCount}
       followedUserIds={followedUserIds}
+      canPost={canPost}
     />
   );
 }

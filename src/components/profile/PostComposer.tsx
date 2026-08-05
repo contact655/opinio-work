@@ -26,7 +26,11 @@ export function PostComposer({
     if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
-    const res = await fetch("/api/posts", {
+    // ⚠️ 投稿の作成口は /api/jobseeker/posts に一本化してある（2026-08-05）。
+    //    以前ここだけ /api/posts を叩いており、rate limit も文字数チェックも無かった。
+    //    ルート名が jobseeker 配下なのは、company_members だけが投稿できる現状と
+    //    合っていない。リネームは影響範囲が読めないので今回は据え置き。
+    const res = await fetch("/api/jobseeker/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
