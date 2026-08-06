@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
+import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 
@@ -126,6 +127,15 @@ export async function PUT(
       await syncJobCategoryFromRoles(supabase, jobId, jobRoles);
     }
   } catch { /* best-effort */ }
+
+  // 「自社での呼び方」を ow_company_job_roles に溜めて ow_jobs から指す
+  // ⚠️ 表示専用。検索・フィルタは標準職種（ow_job_roles）のまま
+  await syncCompanyJobRole(supabase, {
+    jobId,
+    companyId: ctx0.companyId,
+    rawName: body.companyRoleName,
+    jobRoles,
+  });
 
   // Activity: job_updated (best-effort) — ctx0 を再利用
   const jobRow = await supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle();

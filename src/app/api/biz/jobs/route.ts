@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
+import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
@@ -194,6 +195,15 @@ export async function POST(req: Request) {
       await syncJobCategoryFromRoles(supabase, newJob.id, jobRoles);
     } catch { /* best-effort */ }
   }
+
+  // 「自社での呼び方」を ow_company_job_roles に溜めて ow_jobs から指す
+  // ⚠️ 表示専用。検索・フィルタは標準職種（ow_job_roles）のまま
+  await syncCompanyJobRole(supabase, {
+    jobId: newJob.id,
+    companyId: ctx.companyId,
+    rawName: body.companyRoleName,
+    jobRoles,
+  });
 
   return NextResponse.json({ id: newJob.id });
 }

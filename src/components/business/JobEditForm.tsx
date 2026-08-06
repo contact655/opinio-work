@@ -73,6 +73,8 @@ type FormState = {
   incentiveNote: string;
   // 技術スタック (Migration 245)
   techStack: string[];
+  /** 自社での呼び方。ow_company_job_roles に溜まる（表示専用。検索は標準職種のまま） */
+  companyRoleName: string;
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -85,7 +87,7 @@ function jobToForm(job: BizJob | null): FormState {
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
     whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
     oteMin: "", oteMax: "", salesSegment: [], salesHunterFarmer: "", incentiveNote: "",
-    techStack: [],
+    techStack: [], companyRoleName: "",
   };
   return {
     title: job.title,
@@ -118,6 +120,8 @@ function jobToForm(job: BizJob | null): FormState {
     salesHunterFarmer: job.salesHunterFarmer ?? "",
     incentiveNote: job.incentiveNote ?? "",
     techStack: job.techStack ?? [],
+    // ⚠️ 呼称は BizJob に載っていない。ページ側から initialCompanyRoleName で入れる
+    companyRoleName: "",
   };
 }
 
@@ -133,10 +137,11 @@ function FormLabel({ children, required, optional, htmlFor }: { children: React.
   );
 }
 
-function FormInput({ value, onChange, placeholder, type = "text", id, required }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; id?: string; required?: boolean }) {
+function FormInput({ value, onChange, placeholder, type = "text", id, required, list }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; id?: string; required?: boolean; list?: string }) {
   return (
     <input
       id={id}
+      list={list}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -262,6 +267,8 @@ type Props = {
   roleAliases?: RoleAliasMap;
   departments?: DeptItem[];
   initialDepartmentId?: string | null;
+  /** 自社での呼び方の初期値。編集画面でページ側が解決して渡す */
+  initialCompanyRoleName?: string;
 };
 
 export function JobEditForm({
@@ -275,10 +282,11 @@ export function JobEditForm({
   roleAliases = {},
   departments = [],
   initialDepartmentId = null,
+  initialCompanyRoleName = "",
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
-    const base = jobToForm(initialJob);
+    const base = { ...jobToForm(initialJob), companyRoleName: initialCompanyRoleName };
     if (initialAssigneeIds?.length) return { ...base, assigneeIds: initialAssigneeIds };
     return base;
   });
@@ -385,6 +393,23 @@ export function JobEditForm({
       triggerAutosave();
     }
   }
+
+  /*
+    自社での呼び方のサジェスト。既存 GET /api/biz/job-roles をそのまま使う。
+    ⚠️ 新しい API は作らない。/biz/organization の登録UIと同じ受け皿を共有する。
+  */
+  const [companyRoleSuggestions, setCompanyRoleSuggestions] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/biz/job-roles")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive || !d?.jobRoles) return;
+        setCompanyRoleSuggestions((d.jobRoles as { name: string }[]).map((x) => x.name));
+      })
+      .catch((e) => console.error("[JobEditForm] job-roles fetch", e));
+    return () => { alive = false; };
+  }, []);
 
   // selectedRoles が変わるたびに自動保存トリガー
   useEffect(() => {
@@ -623,6 +648,32 @@ export function JobEditForm({
                   )}
                   <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>
                     複数選択可。ラジオボタンで代表職種を1つ指定してください。
+                  </p>
+                </FormGroup>
+              )}
+              {/*
+                自社での呼び方。表示は自社呼称・検索は標準職種、の入力側。
+                ⚠️ 代表職種が決まっていないと紐づけ先（standard_role_id）が無いので出さない。
+                ⚠️ 代表職種を切り替えてもこの値は保持する。紐づけ先が変わるだけ。
+              */}
+              {roles.length > 0 && selectedRoles.some((r) => r.isPrimary) && (
+                <FormGroup>
+                  <FormLabel optional htmlFor="jef-company-role-name">自社での呼び方</FormLabel>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
+                    社内やスカウトで使っている呼称があれば入力してください（例: CXデザイナー）
+                  </p>
+                  <FormInput
+                    id="jef-company-role-name"
+                    list="jef-company-role-suggestions"
+                    value={form.companyRoleName}
+                    onChange={(v) => updateForm("companyRoleName", v)}
+                    placeholder="例：CXデザイナー"
+                  />
+                  <datalist id="jef-company-role-suggestions">
+                    {companyRoleSuggestions.map((n) => <option key={n} value={n} />)}
+                  </datalist>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>
+                    求人ページにはこの呼び方が出ます。検索や絞り込みは上で選んだ標準職種のままです。
                   </p>
                 </FormGroup>
               )}

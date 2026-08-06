@@ -87,6 +87,23 @@ export default async function JobEditPage({ params }: { params: { id: string } }
   const departments: DeptItem[] = (deptsResult.data ?? []) as DeptItem[];
   const initialDepartmentId = (jobData.job as unknown as { department_id?: string | null }).department_id ?? null;
 
+  /*
+    自社での呼び方の初期値。
+    ⚠️ 論理削除済み（deleted_at あり）でも入力欄には出す。企業が自分で入れた値なので、
+       編集画面で黙って消すと「保存したら消えた」になる。表示側でのフォールバックとは別の話。
+  */
+  /* ⚠️ fetchJobById の SELECT に company_job_role_id は入っていないので、ここで別途引く。
+        fetchJobById 側に足すと、この列を必要としない一覧側まで巻き込む。 */
+  let initialCompanyRoleName = "";
+  const { data: jobLink, error: jobLinkErr } = await supabase
+    .from("ow_jobs")
+    .select("company_job_role_id, ow_company_job_roles!company_job_role_id(name)")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (jobLinkErr) console.error("[JobEditPage] company job role", jobLinkErr.message);
+  initialCompanyRoleName =
+    (jobLink?.ow_company_job_roles as unknown as { name: string } | null)?.name ?? "";
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -108,6 +125,7 @@ export default async function JobEditPage({ params }: { params: { id: string } }
         roleAliases={toAliasMap(aliasResult.data as { role_id: string; alias: string }[] | null)}
         departments={departments}
         initialDepartmentId={initialDepartmentId}
+        initialCompanyRoleName={initialCompanyRoleName}
       />
     </BusinessLayout>
   );
