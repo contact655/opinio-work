@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -47,8 +48,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "メンバー追加は管理者のみ可能です" }, { status: 403 });
   }
 
-  // Case 1: ow_users にすでに存在するユーザー → 直接追加（M-3 と同じパス）
-  const { data: targetUser } = await supabase
+  /* Case 1: ow_users にすでに存在するユーザー → 直接追加（M-3 と同じパス）
+     ⚠️ admin クライアントで引く。2026-08-06 に authenticated から
+        ow_users.email の SELECT 権限を剥がしたため、session では読めない。 */
+  const { data: targetUser } = await createAdminClient()
     .from("ow_users")
     .select("id, name, email")
     .eq("email", email)

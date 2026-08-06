@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -40,7 +41,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "メンバー追加は管理者のみ可能です" }, { status: 403 });
   }
 
-  const { data: targetUser } = await supabase
+  /* ⚠️ admin クライアントで引く。2026-08-06 に authenticated から
+        ow_users.email の SELECT 権限を剥がしたため、session では読めない。
+        ここは「招待したい相手が既に登録済みか」を email で照合する処理で、
+        自分以外の行を引く必要がある。 */
+  const { data: targetUser } = await createAdminClient()
     .from("ow_users")
     .select("id, name, email")
     .eq("email", email)

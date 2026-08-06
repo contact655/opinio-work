@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toggleArticlePublished, linkArticleUser, linkArticleCompany } from "./actions";
 
@@ -23,7 +23,9 @@ type Article = {
 type OWUser = {
   id: string;
   name: string | null;
-  email: string | null;
+  /* ⚠️ email は持たない。2026-08-06 に authenticated から ow_users.email の
+        SELECT 権限を剥がしたため、このブラウザクライアントでは読めない。
+        同名ユーザーの区別は id の先頭で行う（下の dupNames を参照）。 */
 };
 
 type OWCompany = {
@@ -46,6 +48,13 @@ const TYPE_LABELS: Record<string, string> = {
 export default function AdminArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [users, setUsers] = useState<OWUser[]>([]);
+  /* 同名のユーザーだけ id の先頭4桁を添える。以前は email のローカル部を出していたが、
+     ここはブラウザクライアントで、email は authenticated から読めなくなった */
+  const dupNames = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const u of users) { const n = u.name ?? ""; count.set(n, (count.get(n) ?? 0) + 1); }
+    return new Set(Array.from(count.entries()).filter(([, n]) => n > 1).map(([n]) => n));
+  }, [users]);
   const [companies, setCompanies] = useState<OWCompany[]>([]);
   // company_id → Set<user_id> (ow_experiences + ow_company_admins から構築)
   const [companyUserMap, setCompanyUserMap] = useState<Map<string, Set<string>>>(new Map());
@@ -71,7 +80,7 @@ export default function AdminArticlesPage() {
         .order("created_at", { ascending: false }),
       supabase
         .from("ow_users")
-        .select("id, name, email")
+        .select("id, name")
         .order("name", { ascending: true }),
       supabase
         .from("ow_companies")
@@ -372,7 +381,7 @@ export default function AdminArticlesPage() {
                           </option>
                           {filtered.map((u) => (
                             <option key={u.id} value={u.id}>
-                              {u.name}{u.email ? ` (${u.email.split("@")[0]})` : ""}
+                              {u.name}{dupNames.has(u.name ?? "") ? ` (#${u.id.slice(0, 4)})` : ""}
                             </option>
                           ))}
                         </select>

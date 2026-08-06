@@ -35,13 +35,11 @@ export async function isAdmin(): Promise<boolean> {
     process.env.ADMIN_EMAILS?.split(",").map((e) => e.trim()).filter(Boolean) ?? [];
   if (adminEmails.length === 0) return false;
 
-  const { data: userRecord } = await supabase
-    .from("ow_users")
-    .select("email")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+  /* ⚠️ ow_users.email ではなく auth セッションの email を使う。
+        2026-08-06 に authenticated から ow_users.email の SELECT 権限を剥がしたため。
+        どちらもログイン本人のアドレスで、auth 側が正（ow_users.email はそこからの写し）。 */
+  const email = user.email;
+  if (!email) return false;
 
-  if (!userRecord?.email) return false;
-
-  return adminEmails.includes(userRecord.email);
+  return adminEmails.includes(email);
 }

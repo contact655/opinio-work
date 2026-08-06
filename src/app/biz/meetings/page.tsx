@@ -1,4 +1,5 @@
 import { PipelineClient } from "./PipelineClient";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -22,7 +23,11 @@ export default async function BizMeetingsPage({
 
   const supabase = createClient();
   const [meetings, applications] = await Promise.all([
-    fetchMeetingsForCompany(supabase, ctx.tenantId),
+    /* ⚠️ admin クライアントを渡す。応募者の birth_date（年齢表示）を読むが、
+          2026-08-06 に authenticated から ow_users.birth_date の SELECT 権限を剥がした。
+          自社の面談だけに絞る条件（company_id = ctx.tenantId）は関数側にあり、
+          その会社の担当者であることは getTenantContext で確認済み。 */
+    fetchMeetingsForCompany(createAdminClient(), ctx.tenantId),
     fetchApplicationsForCompany(supabase, ctx.tenantId),
   ]);
 

@@ -2,7 +2,6 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
 
@@ -111,13 +110,14 @@ export default async function MembersPage() {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
-  const supabase = createClient();
-
   const adminSupabase = createAdminClient();
 
   const [members, pendingInvites, ambassadors] = await Promise.all([
-    fetchMembersForCompany(supabase, ctx.tenantId),
-    fetchPendingInvitesForCompany(supabase, ctx.tenantId),
+    /* ⚠️ admin クライアントを渡す。担当者一覧は他メンバーの email を表示するが、
+          2026-08-06 に authenticated から ow_users.email の SELECT 権限を剥がした。
+          会社の管理者であることは上の getTenantContext で確認済み。 */
+    fetchMembersForCompany(adminSupabase, ctx.tenantId),
+    fetchPendingInvitesForCompany(adminSupabase, ctx.tenantId),
     fetchAmbassadors(ctx.tenantId),
   ]);
 

@@ -58,7 +58,6 @@ type OwUser = {
   cover_color: string | null;
   cover_photo_url: string | null;
   about_me: string | null;
-  birth_date: string | null;
   location: string | null;
   social_links: SocialLinks | null;
   future_aspirations: string | null;
@@ -129,9 +128,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
     { data: user },
   ] = await Promise.all([
     supabase.auth.getUser(),
+    /*
+      ⚠️ ここは **session クライアントのまま**にする。
+         visibility='login_only' / 'private' を RLS で弾いて 404 にする判定が
+         この1本に乗っており、admin に変えると非公開プロフィールが誰でも開ける。
+      ⚠️ ただし birth_date は authenticated から読めなくなったので、
+         この select からは外し、年齢だけ下で admin から取り直す。
+    */
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, birth_date, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
+      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
       .eq("id", resolvedId)
       .maybeSingle(),
   ]);
@@ -170,8 +176,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
     }
   }
 
-  // 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
-  const age = getUserAge(owUser.birth_date);
+  /* 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
+     ⚠️ birth_date は admin で取り直す。authenticated から SELECT 権限を剥がしたため。
+        上の RLS 判定（404 になるかどうか）は既に通過しているので、
+        ここで admin を使っても見せる範囲は広がらない。 */
+  const { data: birthRow, error: birthErr } = await adminSupabase
+    .from("ow_users").select("birth_date").eq("id", resolvedId).maybeSingle();
+  if (birthErr) console.error("[u/[id]] birth_date", birthErr.message);
+  const birthDate = (birthRow?.birth_date as string | null) ?? null;
+  const age = getUserAge(birthDate);
   const ageDisplay = age !== null ? `${age}歳` : null;
 
   const socialLinks = owUser.social_links ?? {};
@@ -187,7 +200,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
     { data: recentPostsRaw },
   ] = await Promise.all([
-    supabase
+    /*
+      ⚠️ 職歴は adminSupabase で引く。join_reason は 2026-08-06 に
+         authenticated から SELECT 権限を剥がしたため、session では読めない。
+      ⚠️ visibility_reason の判定は下（:292 付近）にそのまま残してある。
+         「公開したい人の入社理由は出す」を成立させるには、
+         列を読める権限と、公開/非公開の判定の両方が要る。
+         RLS は行しか見られないので、判定はアプリ側に置くしかない。
+    */
+    adminSupabase
       .from("ow_experiences")
       .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
       .eq("user_id", owUser.id)
@@ -1051,7 +1072,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   future={null}
                   viewerIsOwner={viewerIsOwner}
                   collapseAfter={4}
-                  birthDate={owUser.birth_date}
+                  birthDate={birthDate}
                 />
               </section>
             )}
@@ -1074,7 +1095,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   educations={timelineEdus}
                   future={null}
                   viewerIsOwner={viewerIsOwner}
-                  birthDate={owUser.birth_date}
+                  birthDate={birthDate}
                 />
               </section>
             )}
