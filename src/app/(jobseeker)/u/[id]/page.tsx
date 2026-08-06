@@ -194,7 +194,17 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
     supabase.from("ow_roles").select("id, name, parent_id"),
-    supabase
+    /*
+      ⚠️ 学歴は adminSupabase で引く。2026-08-06 に anon から
+         ow_user_educations の SELECT 権限を剥がしたため、
+         session クライアントのままだと**未ログイン閲覧で学歴が丸ごと消える**。
+         このページに到達している時点で ow_users の RLS を通過しており
+         （login_only / private は上で notFound）、対象は owUser.id に固定なので
+         admin で引いても見せる範囲は変わらない。
+      ⚠️ 現時点で visibility='public' のユーザーは0名なので未ログイン閲覧は起きないが、
+         1人でも public にした瞬間に露見する類の壊れ方なので先に寄せておく。
+    */
+    adminSupabase
       .from("ow_user_educations")
       .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
       .eq("user_id", owUser.id)
