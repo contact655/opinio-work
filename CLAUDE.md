@@ -207,6 +207,22 @@ await fetch(`${url}/rest/v1/ow_users?select=email`, {
 await pub.auth.signOut();
 ```
 
+### 画面ごと確かめたいとき（ブラウザにセッションを入れる）
+
+PostgREST を直接叩くだけでなく、**実際の画面**を非admin で見たいときは
+上で得た `data.session` をクッキーに入れる。
+
+⚠️ **`base64url` でエンコードすること。** 標準 base64 だと `+` や `/` が混ざり、
+`@supabase/ssr` が `Invalid Base64-URL character "+"` を投げて**そのページが 500 になる**。
+
+```js
+const ref = new URL(url).hostname.split(".")[0];
+const value = "base64-" + Buffer.from(JSON.stringify(data.session), "utf8").toString("base64url");
+//                                                                              ^^^^^^^^^ ここ
+// 3180文字を超えるときは sb-<ref>-auth-token.0 / .1 … に分割する
+const cookieName = `sb-${ref}-auth-token`;
+```
+
 ### 原則
 
 - **RLS ポリシーか GRANT を変えたら、最低3者で実測する**：anon / 非admin / admin
@@ -215,6 +231,48 @@ await pub.auth.signOut();
   （年収・学歴・email・入社理由。いずれも画面側は visibility を正しく見ていた）
 - 検証対象のアカウントが admin かどうかを**先に確認**する
   （`ow_user_roles` を **auth_id** で引く）
+
+---
+
+## 列単位 GRANT を剥がすときのチェックリスト（2026-08-06 確立）
+
+**PostgREST は列単位で落とさない。剥奪列が select に1つでも入っていると、
+そのクエリを丸ごと 403 にする。** 本人の行でも取れなくなる。
+
+しかも Next のページは **HTTP 200 のまま**で、中身だけが静かに空になる。
+2026-08-06 に `ow_users.email` / `birth_date` / `ow_experiences.join_reason` を剥がしたとき、
+session クライアントのまま select していた **6箇所**を巻き添えにした。
+`/mypage` はダッシュボードが丸ごと空になり、ユーザー名まで「ユーザー」に化けていたが、
+HTTP 200 だったので気づけなかった。
+
+### 剥がす前に洗うもの
+
+1. **剥奪列の名前で grep** し、1件ずつクライアントを判定する
+   （`createAdminClient` なら影響なし / session なら 403）
+2. **`select("*")` を探す。** 列名の grep では絶対に引っかからないのに同じ 403 になる
+3. **`.select(COLS)` のような定数・変数渡し**を追う（`JOB_LIST_COLS` など）
+4. **埋め込み（`ow_users!user_id(...)`）の中身**も見る。親テーブルの select 文字列に
+   紛れているので、単純な grep では見落としやすい
+5. **ブラウザクライアント（`@/lib/supabase/client`）を使う画面**を特に見る。
+   サーバー側は admin に寄せられるが、ブラウザからは admin を使えないので
+   「列ごと表示をやめる」か「API を1本作る」しかない
+
+### 剥がしたあとの確認
+
+⚠️ **HTTP 200 を確認としない。画面の中身の値まで見る。**
+
+| 画面 | 見るもの |
+|---|---|
+| `/mypage` | 名前・プロフィール完成度・経歴が出るか（完成度 0% は赤信号） |
+| `/profile/edit` | 基本情報 / 職歴・学歴の各タブに中身があるか |
+| `/u/[id]` | 年齢・職歴・学歴 |
+| `/people` `/schools/[id]` | 一覧に人が出るか |
+| `/biz/members` `/biz/meetings` `/biz/candidates` | 行が出るか |
+| `/admin` | 最近の登録ユーザーに行が出るか |
+
+**「0件」を見たら、正常な0件かリグレッションかを必ず切り分ける。**
+DB を数えて期待値を出してから画面と突き合わせる
+（例: `/biz/candidates` の1件は `scout_enabled=true` の絞り込みによる正常な1件だった）。
 
 ---
 
