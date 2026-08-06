@@ -165,6 +165,59 @@ dev サーバーを再起動して `.next/cache/fetch-cache` を消すまで直�
 
 ---
 
+## RLS / GRANT を変えたら、非admin の実セッションで実測する（2026-08-06 確立）
+
+**admin のセッションで測っても、権限の検証にはならない。**
+2026-08-06 に「一般ユーザーでも他人の年収・プロフィールが読める」と報告したが、
+検証に使っていたアカウントが DB 上の admin で、**admin ポリシーで通っていただけ**だった。
+`ow_profiles` と `ow_terms_agreements` は実際には漏れていなかった。
+
+### なぜ間違えたか
+
+`ow_user_roles.user_id` は **`auth.uid()` 空間**（`ow_users.id` ではない）。
+`ow_users.id` で照合して「admin ロール無し」と判断していた。
+
+⚠️ **user_id 系の列がどちらの空間かは、テーブルごとに違う。**
+ポリシーを書く前に必ず実測すること。判断材料は2つ。
+
+| 判定材料 | 見方 |
+|---|---|
+| FK の参照先 | `REFERENCES auth.users(id)` なら auth 空間 / `REFERENCES public.ow_users(id)` なら ow_users 空間 |
+| 実データ | `ow_users.id` と `ow_users.auth_id` のどちらに一致するか数える |
+
+同じ「user_id」でも `ow_profiles` は auth 空間、`ow_experiences` は ow_users 空間。
+
+### 非admin のセッションを取る手順
+
+**service role で `generateLink` → `verifyOtp`。メールは飛ばず、新規ユーザーも作らない。**
+（`generateLink` はリンクを返すだけで送信しない。CLAUDE.md の
+「本番で検証用アカウントを作らない」に抵触しない）
+
+```js
+const admin = createClient(url, SERVICE_ROLE_KEY);
+// 既存の is_test アカウントを使う。新規作成はしない
+const { data: link } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+const pub = createClient(url, ANON_KEY);
+const { data } = await pub.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: "magiclink" });
+const token = data.session.access_token;
+// あとは PostgREST を直接叩く
+await fetch(`${url}/rest/v1/ow_users?select=email`, {
+  headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+});
+await pub.auth.signOut();
+```
+
+### 原則
+
+- **RLS ポリシーか GRANT を変えたら、最低3者で実測する**：anon / 非admin / admin
+- 「画面が動いている」は検証にならない。**画面は正しく作られていても、
+  PostgREST を直接叩く経路だけが漏れている**のが 2026-08-06 に見つかった穴の共通形
+  （年収・学歴・email・入社理由。いずれも画面側は visibility を正しく見ていた）
+- 検証対象のアカウントが admin かどうかを**先に確認**する
+  （`ow_user_roles` を **auth_id** で引く）
+
+---
+
 ## 本番で検証用アカウントを作らない（2026-08-05 確立）
 
 **検証のために本番の auth ユーザーを新規作成しないこと。** 作って消す前提の操作をしない。
