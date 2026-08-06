@@ -284,6 +284,29 @@ HTTP 200 だったので気づけなかった。
    サーバー側は admin に寄せられるが、ブラウザからは admin を使えないので
    「列ごと表示をやめる」か「API を1本作る」しかない
 
+### ⚠️ 書き込み経路も洗う — PostgREST は「返す列」にも権限を要求する
+
+`Prefer: return=representation`（supabase-js の `.insert().select()` /
+`.update().select()` / `.upsert().select()`）で更新後の行を返すとき、
+**返す列にも SELECT 権限が要る。** 剥奪列が返却対象に入っていると
+`permission denied for table ...` になる。
+
+⚠️ **`.select()` を引数なしで呼ぶと全列を返す。** これが一番危ない。
+   `.select("id")` のように列を絞っていれば安全。
+
+⚠️ 閲覧より目立つ壊れ方をする。「保存ボタンを押したら失敗する」になる。
+
+2026-08-06 に `ow_career_profiles` を `Prefer: return=representation` 付きで
+UPDATE したところ、`gender` / `birth_year` で 403 になった。
+RLS の拒否と区別がつかず、原因の特定に時間を取られた。
+
+洗う対象:
+
+```
+grep -rn "\.insert(\|\.update(\|\.upsert(" src   # 剥奪列を持つテーブルへの書き込み
+grep -rn "\.select()" src                          # 引数なし = 全列返却
+```
+
 ### 剥がしたあとの確認
 
 ⚠️ **HTTP 200 を確認としない。画面の中身の値まで見る。**
