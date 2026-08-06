@@ -31,6 +31,16 @@
 --
 -- ⚠️ role_category_id はこの migration では削除しない。
 --    参照箇所のコード移行が済むまで残す。
+--
+-- ── 2026-08-06 追記: 「biz UI は一切更新しない」は解消した ──────────────────
+--   上の (2) について「biz UI は一切更新しない（古い値が残る）」と書いたが、
+--   2026-08-06 に保存パスで主ロールと同期するようにした。
+--     ・企業側: syncJobCategoryFromRoles()（POST /api/biz/jobs と PUT /api/biz/jobs/[id]）
+--     ・運営側: updateJobRoles()（/admin/jobs/[id] の職種編集）
+--   どちらも ow_job_roles の主ロールで job_category と role_category_id を揃える。
+--   同日時点で全20件、主ロールと role_category_id が一致している。
+--   ⚠️ 正は引き続き ow_job_roles。role_category_id はそこから派生する値であって、
+--      第二の正ではない。読み側の移行が済んだら列ごと落とす。
 -- ═══════════════════════════════════════════════════════════════════════════
 
 BEGIN;

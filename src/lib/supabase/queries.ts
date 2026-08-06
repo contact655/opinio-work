@@ -1921,38 +1921,36 @@ const getRoleAliasRows = unstable_cache(
 );
 
 /**
- * 検索用のエイリアス。`roleIds` には「そのエイリアスが指す職種 ＋ その祖先」が入る。
+ * 検索用の職種辞書。**職種名（ow_roles.name）と別名（ow_role_aliases.alias）の両方**を返す。
+ * `roleIds` にはその語が指す職種そのものだけを入れる（祖先も子孫も入れない）。
  *
- * ── 祖先まで広げる理由（2026-08-03）────────────────────────────────────────
- * ow_role_aliases 117件は細かい職種53種（バックエンド / SDR / CSM …）に付いているが、
- * 求人がタグ付けされている職種は 7種しかない。両者が一度も交差しないため、
- * エイリアス検索は **構造的に必ず0件** になっていた。
- * 実測: 117件中トップレベル職種に付いているもの 0 件 /
- *       求人が実際に使う職種を指すもの 0 件。
+ * ── 子孫まで届く仕組み（2026-08-06 にここへ移した）────────────────────────
+ * 求人側の `job.roleIds` に「紐づく職種 ＋ その祖先」が入っている（getJobs 参照）。
+ * だから辞書側は職種そのものだけを持てばよく、
+ *   ・「営業」で引く → 営業 が roleIds に入っている求人＝営業配下すべてに当たる
+ *   ・「エンタープライズセールス」で引く → その職種の求人だけに当たる（兄弟は出ない）
+ * が同じ1本の判定で成立する。
  *
- * 「サーバーサイド」→ バックエンド → 親のエンジニア まで広げると、
- * エンジニアとしてタグ付けされた求人に届く。
+ * ⚠️ 辞書側を祖先方向に広げてはいけない。2026-08-06 まではそうしており、
+ *    「法人営業」→ フィールドセールス → 親の営業 まで広がって、
+ *    フィールドセールスの求人が0件でも営業配下14件を返していた。
+ *    「子職種で検索したのに祖先の兄弟まで出る」状態になる。
  *
- * ⚠️ 副作用として再現率に寄る。「サーバーサイド」でフロントエンドの求人も
- *    ヒットしうる（どちらも親がエンジニアのため）。
- *    これは求人のタグ付けが粗いことの裏返しで、企業が細かい職種を選ぶほど
- *    自動的に精度が上がる。0件を返し続けるよりは広く拾うほうを選んだ。
+ * ⚠️ 職種名そのものを辞書に入れているのが要。別名（ow_role_aliases）には
+ *    大分類を指すものが1件も無く（「営業」を含む別名10件はすべて子職種行き）、
+ *    別名だけを見ていた頃は「営業」で検索しても大分類に当たらなかった。
+ *    ここを別名テーブルに大分類を足して解決してはいけない。
+ *    別名は「その職種の別の呼び方」であって、上位概念を入れると意味が壊れる。
  */
 export type SearchAlias = { alias: string; roleIds: string[] };
 
 export const getRoleAliases = cache(async function getRoleAliases(): Promise<SearchAlias[]> {
   const [rows, tree] = await Promise.all([getRoleAliasRows(), getRoleTree()]);
-  return rows.map((r) => {
-    const ids = new Set<string>([r.roleId]);
-    let node = tree.byId.get(r.roleId) ?? null;
-    const seen = new Set<string>();
-    while (node?.parentId && !seen.has(node.id)) {
-      seen.add(node.id);
-      ids.add(node.parentId);
-      node = tree.byId.get(node.parentId) ?? null;
-    }
-    return { alias: r.alias, roleIds: Array.from(ids) };
-  });
+  const out: SearchAlias[] = rows.map((r) => ({ alias: r.alias, roleIds: [r.roleId] }));
+  for (const node of Array.from(tree.byId.values())) {
+    out.push({ alias: node.name, roleIds: [node.id] });
+  }
+  return out;
 });
 
 // ─── Company Tools ────────────────────────────────────────────────────────────

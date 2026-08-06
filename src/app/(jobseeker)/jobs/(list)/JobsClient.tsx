@@ -854,7 +854,8 @@ export default function JobsClient({
   parentRoles: { id: string; name: string }[];
   recommendations?: RecommendedJob[];
   reviewSummaries?: Record<string, CompanyReviewSummary>;
-  /** ow_role_aliases。roleIds には祖先まで展開済み（queries.ts の getRoleAliases 参照） */
+  /** 検索用の職種辞書（職種名＋別名）。roleIds はその語が指す職種そのものだけ
+   *  （祖先は求人側の roleIds に入っている。queries.ts の getRoleAliases 参照） */
   roleAliases?: { alias: string; roleIds: string[] }[];
   industries?: { id: string; parent_id: string | null; name: string; slug: string }[];
 }) {
@@ -1091,29 +1092,25 @@ export default function JobsClient({
       };
 
       /*
-        辞書は2段階で当てる。roleIds[0] がエイリアスの指す職種そのもの、
-        以降が祖先（queries.ts の getRoleAliases で展開済み）。
+        辞書（職種名 ＋ 別名。queries.ts の getRoleAliases）で当てる。1段だけ。
 
-        第1段: 職種そのもので当てる。
-        第2段: 第1段が全滅したときだけ祖先まで広げる。
+        ⚠️ 段階分けはしない。2026-08-06 まで「第1段=職種そのもの / 第2段=祖先まで」の
+           2段構えで、第1段が当たると第2段に落ちない作りだった。
+           求人に具体職種を付けた瞬間、「営業」で検索しても営業配下が出なくなった
+           （14件 → 8件）。逆に「法人営業」は第1段が0件なので祖先に落ちて営業配下14件を返し、
+           子職種で検索したのに祖先の兄弟まで出ていた。どちらの向きにも壊れていた。
 
-        いきなり祖先まで広げると精度が落ちる。たとえば「エンジニア」は
-        エイリアス「セールスエンジニア」経由で 営業 まで遡れてしまい、
-        純粋な AE 求人まで巻き込む（ow_roles 上プリセールスは営業配下のため）。
-        求人が具体職種でタグ付けされていれば第1段で足り、
-        粗くしかタグ付けされていない場合だけ祖先に頼る、という順序にする。
+        いまは辞書側が職種そのものだけを指し、求人側の roleIds に祖先が入っている。
+        「営業」→ 営業 を roleIds に持つ求人＝営業配下すべて。
+        「エンタープライズセールス」→ その職種の求人だけ。
+        1本の判定で両方成立する。
       */
       const matchByAlias = (w: string, pool: typeof list) => {
         const hits = roleAliases.filter((a) => a.alias.toLowerCase().includes(w));
         if (hits.length === 0) return null;
-
-        const own = new Set(hits.map((a) => a.roleIds[0]).filter(Boolean));
-        const exact = pool.filter((j) => jobRoleIds(j).some((id) => own.has(id)));
-        if (exact.length > 0) return exact;
-
-        const withAncestors = new Set(hits.flatMap((a) => a.roleIds));
-        const loose = pool.filter((j) => jobRoleIds(j).some((id) => withAncestors.has(id)));
-        return loose.length > 0 ? loose : null;
+        const ids = new Set(hits.flatMap((a) => a.roleIds).filter(Boolean));
+        const matched = pool.filter((j) => jobRoleIds(j).some((id) => ids.has(id)));
+        return matched.length > 0 ? matched : null;
       };
 
       const ignored: string[] = [];

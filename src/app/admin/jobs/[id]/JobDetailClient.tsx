@@ -525,7 +525,10 @@ export default function JobDetailClient({
                 職種タグの編集。運営が直せる唯一の導線。
                 ⚠️ 会社呼称（company_job_role_id）はここでは編集しない。
                    呼称は企業のものなので、運営が代わりに付けると出どころが分からなくなる。
-                ⚠️ 子を持つ大分類は選べない（selectableParent={false}）。求人フォームと同じ制約。
+                ⚠️ 大分類も選べる（selectableParent）。企業向けの JobEditForm は false のまま。
+                   運営用の画面なので、外した大分類を戻せる必要がある。
+                   2026-08-06 に false で運用してみたところ、検証で外した大分類を
+                   画面から戻せず DB から復元する羽目になった。
               */}
               <div style={{ padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>
@@ -539,7 +542,7 @@ export default function JobDetailClient({
                         aliases={roleAliases}
                         value=""
                         clearOnSelect
-                        selectableParent={false}
+                        selectableParent
                         onSelect={addRole}
                         ariaLabel="職種を検索して追加"
                         placeholder="職種名で検索して追加（例: 法人営業、AE）"
