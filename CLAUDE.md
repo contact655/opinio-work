@@ -234,6 +234,33 @@ const cookieName = `sb-${ref}-auth-token`;
 
 ---
 
+## user_id は2つの空間がある（2026-08-06 確立）
+
+`auth.uid()` が返すのは **auth.users.id** で、`ow_users.id` とは別物。
+**どちらの空間かはテーブルごとに違う。** 同じ「user_id」でも
+`ow_profiles` は auth 空間、`ow_experiences` は ow_users 空間。
+
+**ポリシーを書く前に [docs/user-id-spaces.md](docs/user-id-spaces.md) の表を見ること。**
+`ow_*` の全テーブルを FK の参照先から機械判定した一覧がある。
+
+| 空間 | 書き方 |
+|---|---|
+| auth 空間 | `user_id = auth.uid()` |
+| ow_users 空間 | `user_id = public.auth_ow_user_id()` |
+| 会社の管理者か | `public.auth_is_company_admin(company_id)`（permission と is_active まで見る） |
+| 運営か | `public.auth_is_admin()` |
+
+⚠️ 自前で `ow_users` を JOIN して書かない。ヘルパーに寄せる。
+
+2026-08-06 に踏んだ事故:
+- 検証アカウントが admin かを `ow_users.id` で調べて「非admin」と誤判定し、
+  漏洩調査の結論を1度誤って報告した（`ow_user_roles.user_id` は auth 空間）
+- `ow_company_members` の6本と `ow_career_profiles` の1本が空間取り違えで**常に false**。
+  拒否側なので事故は起きなかったが、その機能を作った瞬間に「admin なのに操作できない」
+  として現れる状態だった
+
+---
+
 ## 列単位 GRANT を剥がすときのチェックリスト（2026-08-06 確立）
 
 **PostgREST は列単位で落とさない。剥奪列が select に1つでも入っていると、
