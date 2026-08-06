@@ -1,6 +1,7 @@
 "use client";
 
 import type { CompanySectionId } from "@/lib/business/mockCompany";
+import { DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
 
 export type CompanySubNavSection = {
   id: CompanySectionId;
@@ -277,10 +278,10 @@ export function CompanyEditSubNav({
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
               <span>取材・投稿で埋まる項目</span>
-              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / 55</span>
+              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / {DISCLOSURE_INTERVIEW_MAX}</span>
             </div>
             <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.round(interviewScore / 55 * 100)}%`, background: "var(--ink-mute)", borderRadius: 100, transition: "width 0.3s ease" }} />
+              <div style={{ height: "100%", width: `${Math.round(interviewScore / DISCLOSURE_INTERVIEW_MAX * 100)}%`, background: "var(--ink-mute)", borderRadius: 100, transition: "width 0.3s ease" }} />
             </div>
           </div>
         </div>

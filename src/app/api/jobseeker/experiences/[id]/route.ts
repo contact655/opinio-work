@@ -61,6 +61,22 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return typeof v === "string" ? v.slice(0, max) || null : null;
   }
 
+  /*
+    ⚠️ 年収系（salary_base / salary_bonus / salary_stock / salary_man / visibility_salary）は
+       **body にキーが来たときだけ**更新する。
+       2026-08-06 に職歴の年収入力UIを外したので、クライアントはこれらを送らなくなった。
+       無条件に safeSalary(undefined) を書くと null で潰れ、既存の年収が黙って消える
+       （実データ3件はいずれも salary_man だけに値があり、内訳は null なので確実に消える）。
+    ⚠️ 列とデータは残す方針。UI を外しただけで、保存経路が値を壊してはいけない。
+  */
+  const salaryPatch: Record<string, unknown> = {};
+  for (const k of ["salary_base", "salary_bonus", "salary_stock", "salary_man"] as const) {
+    if (k in body) salaryPatch[k] = safeSalary(body[k]);
+  }
+  if ("visibility_salary" in body) {
+    salaryPatch.visibility_salary = (body.visibility_salary as boolean | undefined) ?? false;
+  }
+
   const { data: updated, error } = await supabase
     .from("ow_experiences")
     .update({
@@ -71,21 +87,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       role_title: s(body.role_title, 100),
       department: s(body.department, 100),
       rank: s(body.rank, 100),
-      salary_base: safeSalary(body.salary_base),
-      salary_bonus: safeSalary(body.salary_bonus),
-      salary_stock: safeSalary(body.salary_stock),
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: s(body.description, 5000),
       join_reason: s(body.join_reason, 2000),
       employment_type: VALID_EMPLOYMENT.has(body.employment_type as string) ? (body.employment_type as string) : null,
-      salary_man: safeSalary(body.salary_man),
       visibility_company: VALID_VISIBILITY.has(body.visibility_company as string) ? (body.visibility_company as string) : "real",
       visibility_company_profile: VALID_VISIBILITY.has(body.visibility_company_profile as string) ? (body.visibility_company_profile as string) : "real",
-      visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
       updated_at: new Date().toISOString(),
+      ...salaryPatch,
     })
     .eq("id", params.id)
     .eq("user_id", owUser.id)

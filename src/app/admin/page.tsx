@@ -10,7 +10,7 @@ async function getStats() {
     users, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
     onboardingCompleted, profileFilled, appliedOrMet,
-    pendingReviews, pendingSalaryReports,
+    pendingReviews,
   ] = await Promise.all([
     supabase.from("ow_users").select("id", { count: "exact", head: true }),
     supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
@@ -27,9 +27,8 @@ async function getStats() {
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).not("job_type", "is", null),
     admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
-    // 口コミ・給与審査待ち
+    // 口コミ審査待ち
     admin.from("ow_company_reviews").select("id", { count: "exact", head: true }).eq("is_approved", false),
-    admin.from("ow_salary_reports").select("id", { count: "exact", head: true }).eq("is_approved", false),
   ]);
 
   // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
@@ -90,7 +89,6 @@ async function getStats() {
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: 0,
     pendingReviewsCount: pendingReviews.count ?? 0,
-    pendingSalaryReportsCount: pendingSalaryReports.count ?? 0,
     bizAdminsCount: bizAdmins.count ?? 0,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
@@ -113,7 +111,7 @@ const AVATAR_GRADIENTS = [
 export default async function AdminDashboard() {
   const stats = await getStats();
   const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount
-    + stats.pendingReviewsCount + stats.pendingSalaryReportsCount
+    + stats.pendingReviewsCount
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0);
 
   const kpis = [
@@ -497,35 +495,6 @@ export default async function AdminDashboard() {
                     <p style={{ fontSize: 11, color: "#EA580C", margin: 0 }}>{stats.pendingReviewsCount}件のレビューを確認してください</p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </Link>
-            )}
-
-            {stats.pendingSalaryReportsCount > 0 && (
-              <Link href="/admin/salary-reports" style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: 10,
-                  background: "#ECFDF5", border: "1px solid #A7F3D0",
-                  cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#D1FAE5", color: "#059669",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#065F46", margin: 0, marginBottom: 2 }}>給与レポート 承認待ち</p>
-                    <p style={{ fontSize: 11, color: "#059669", margin: 0 }}>{stats.pendingSalaryReportsCount}件の給与データを確認してください</p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>

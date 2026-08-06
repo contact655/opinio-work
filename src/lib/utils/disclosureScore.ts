@@ -1,14 +1,27 @@
-// 開示充実度スコア（100pt満点）
+// 開示充実度スコア（95pt満点）
 //
 // 第1区分「企業が入力できる項目」: 45pt
 //   tagline(5) + description(15) + 写真(10) + 福利厚生(5) + 求人あり(5) + 企業ストーリー(5)
 //
-// 第2区分「取材・投稿で埋まる項目」: 55pt
+// 第2区分「取材で埋まる項目」: 50pt
 //   culture_description(10) + customer_cases(10) + market_customer_size(10)
-//   + capital_type(5) + branch_locations等(5) + org_teams(5)
-//   + ツール登録(5) + 給与データ3件以上(5)
+//   + capital_type(5) + branch_locations等(5) + org_teams(5) + ツール登録(5)
+//
+// ⚠️ 2026-08-06 に「給与データ3件以上(5pt)」を削除し、満点を 100 → 95 に下げた。
+//    ユーザー投稿の給与レポート（ow_salary_reports）を畳んだため。
+//    削除時点で 85社中 **0社** がこの5点を取っていた（投稿が全社合計1件で、
+//    条件の3件に届いていなかった）ので、各社の点数は1点も動いていない。
+//    B案（5点を他項目に振り替え）は1社しか動かず説明がつかないため、
+//    満点を正直に下げるほうを選んだ。
+//
+// ⚠️ ラベルの閾値（scoreLabel の 80/50/20）は絶対値なので据え置き。
+//    分母が 100 → 95 になるぶん、割合表示だけ上がる。
 
-import { SALARY_STATS_MIN } from "@/lib/constants/salary";
+/** 満点。表示側でハードコードしないこと（2026-08-06 に 100 → 95 に下げたとき、
+ *  ダッシュボードの「/ 55」と円グラフの角度計算が取り残された） */
+export const DISCLOSURE_BIZ_MAX = 45;
+export const DISCLOSURE_INTERVIEW_MAX = 50;
+export const DISCLOSURE_MAX = DISCLOSURE_BIZ_MAX + DISCLOSURE_INTERVIEW_MAX;
 
 export type ScoreInput = {
   // 第1区分: 企業が入力できる項目 (45pt)
@@ -26,13 +39,12 @@ export type ScoreInput = {
   branchLocations?: string[] | null;
   orgTeams?: unknown[] | null;
   toolCount?: number;
-  salaryReportCount?: number;
 };
 
 export type ScoreBreakdown = {
   total: number;
   biz: number;       // /45
-  interview: number; // /55
+  interview: number; // /50
 };
 
 export function calcDisclosureScore(input: ScoreInput): ScoreBreakdown {
@@ -53,8 +65,7 @@ export function calcDisclosureScore(input: ScoreInput): ScoreBreakdown {
     (input.capitalType ? 5 : 0) +
     (input.branchLocations && input.branchLocations.length > 0 ? 5 : 0) +
     (input.orgTeams && input.orgTeams.length > 0 ? 5 : 0) +
-    (input.toolCount && input.toolCount >= 1 ? 5 : 0) +
-    (input.salaryReportCount && input.salaryReportCount >= SALARY_STATS_MIN ? 5 : 0);
+    (input.toolCount && input.toolCount >= 1 ? 5 : 0);
 
   return { total: biz + interview, biz, interview };
 }

@@ -993,25 +993,6 @@ export default function MypageClient({
         )}
       </div>
 
-      {/* 給与データ */}
-      <Link
-        href="/mypage/salary"
-        style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "12px 16px", borderRadius: 10,
-          background: "var(--bg-tint)", border: "1px solid var(--line)",
-          textDecoration: "none",
-        }}
-      >
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--success-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "var(--success)" }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 1 }}>給与データ</div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>匿名で給与情報を投稿・確認</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </Link>
 
       {/* 採用担当者・企業の方向け導線 */}
       <a

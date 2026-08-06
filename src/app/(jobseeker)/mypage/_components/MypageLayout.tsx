@@ -142,7 +142,6 @@ export default function MypageLayout({
             { key: "applications",   label: "応募管理",      href: "/mypage/applications" },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations" },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks" },
-            { key: "salary",         label: "給与データ",    href: "/mypage/salary" },
             { key: "profile",        label: "プロフィール",  href: "/profile/edit" },
           ].map((item) => {
             const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
@@ -197,7 +196,6 @@ export default function MypageLayout({
             <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
-            <SidebarItem icon={Icons.salary}      label="給与データ"    active={activeKey === "salary"}         href="/mypage/salary" />
           </nav>
 
 

@@ -69,10 +69,8 @@ export default async function BizCompanyPage() {
 
   // 取材項目スコアを計算（サーバー側で完結させる）
   const iFields = interviewScoreData.data;
-  const [{ count: toolCount }, { count: salaryCount }] = await Promise.all([
-    adminClient.from("ow_company_tools").select("*", { count: "exact", head: true }).eq("company_id", ctx.tenantId),
-    adminClient.from("ow_salary_reports").select("*", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("is_approved", true),
-  ]);
+  const { count: toolCount } = await adminClient
+    .from("ow_company_tools").select("*", { count: "exact", head: true }).eq("company_id", ctx.tenantId);
   const interviewScore = calcDisclosureScore({
     cultureDescription: iFields?.culture_description ?? null,
     customerCases: Array.isArray(iFields?.customer_cases) ? iFields.customer_cases : null,
@@ -81,7 +79,6 @@ export default async function BizCompanyPage() {
     branchLocations: iFields?.branch_locations as string[] | null ?? null,
     orgTeams: Array.isArray(iFields?.org_teams) ? iFields.org_teams : null,
     toolCount: toolCount ?? 0,
-    salaryReportCount: salaryCount ?? 0,
   }).interview;
 
   // 公開済みジャンルの slug 配列（draft_data.genres がない企業の初期値として使用）

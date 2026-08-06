@@ -9,7 +9,7 @@ import {
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
 import { fetchCompanyForTenant } from "@/lib/business/company";
-import { calcDisclosureScore, scoreLabel, scoreColor } from "@/lib/utils/disclosureScore";
+import { calcDisclosureScore, scoreLabel, scoreColor, DISCLOSURE_MAX, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -81,21 +81,19 @@ export default async function BizDashboardPage({
     // スコア計算に必要な取材側フィールド（複数テーブル集計）
     (async () => {
       const tid = ctx.tenantId;
-      const [companyFields, photoCnt, storyCnt, toolCnt, salaryCnt] = await Promise.all([
+      const [companyFields, photoCnt, storyCnt, toolCnt] = await Promise.all([
         adminSupabase.from("ow_companies").select(
           "description, culture_description, customer_cases, market_customer_size, capital_type, branch_locations, org_teams"
         ).eq("id", tid).maybeSingle(),
         adminSupabase.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", tid),
         adminSupabase.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_published", true),
         adminSupabase.from("ow_company_tools").select("id", { count: "exact", head: true }).eq("company_id", tid),
-        adminSupabase.from("ow_salary_reports").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_approved", true),
       ]);
       return {
         fields: companyFields.data,
         photoCount: photoCnt.count ?? 0,
         storyCount: storyCnt.count ?? 0,
         toolCount: toolCnt.count ?? 0,
-        salaryCount: salaryCnt.count ?? 0,
       };
     })(),
   ]);
@@ -114,7 +112,6 @@ export default async function BizDashboardPage({
     branchLocations: scoreData.fields?.branch_locations as string[] | null ?? null,
     orgTeams: Array.isArray(scoreData.fields?.org_teams) ? scoreData.fields.org_teams : null,
     toolCount: scoreData.toolCount,
-    salaryReportCount: scoreData.salaryCount,
   }) : null;
 
   return (
@@ -257,7 +254,7 @@ export default async function BizDashboardPage({
           <div style={{ flex: "0 0 auto" }}>
             <div style={{
               width: 64, height: 64, borderRadius: "50%",
-              background: `conic-gradient(${scoreColor(disclosureScore.total)} ${disclosureScore.total * 3.6}deg, var(--line) 0deg)`,
+              background: `conic-gradient(${scoreColor(disclosureScore.total)} ${disclosureScore.total * (360 / DISCLOSURE_MAX)}deg, var(--line) 0deg)`,
               display: "flex", alignItems: "center", justifyContent: "center",
               position: "relative",
             }}>
@@ -276,8 +273,8 @@ export default async function BizDashboardPage({
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "var(--ink-soft)" }}>
-              <span>あなたが入力できる項目　{disclosureScore.biz} / 45</span>
-              <span>取材・投稿で埋まる項目　{disclosureScore.interview} / 55</span>
+              <span>あなたが入力できる項目　{disclosureScore.biz} / {DISCLOSURE_BIZ_MAX}</span>
+              <span>取材で埋まる項目　{disclosureScore.interview} / {DISCLOSURE_INTERVIEW_MAX}</span>
             </div>
           </div>
           <Link href="/biz/company" style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>

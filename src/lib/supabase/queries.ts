@@ -854,6 +854,7 @@ const JOB_DETAIL_COLS = [
 export const getJobs = unstable_cache(
   async (): Promise<{ jobs: Job[]; companies: Company[] }> => {
     const supabase = createPublicClient();
+    const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let jobQuery: any = supabase
@@ -864,15 +865,21 @@ export const getJobs = unstable_cache(
       jobQuery = jobQuery.in("status", ["active", "published"]);
     }
 
-    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree, cjrMap] = await Promise.all([
+    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree, { data: cjrRows }] = await Promise.all([
       jobQuery,
       supabase.from("ow_companies").select(COMPANY_LIST_COLS),
-      // ow_job_roles: 全求人の職種紐づけを一括取得（RLS バイパス）
-      // ⚠️ no-store。付け替えが unstable_cache の期限後も反映されないのを防ぐ
-      createNoStoreAdminClient().from("ow_job_roles").select("job_id, role_id, is_primary"),
+      /*
+        ow_job_roles と会社呼称（RLS バイパス）。
+        ⚠️ ここは **no-store を使わない**。この関数は unstable_cache の中にあり、
+           no-store の fetch を混ぜると `/jobs/dept/[slug]` のような
+           プリレンダリング対象のページで DynamicServerError になり、
+           **エラーを握って空の結果を返してしまう**（2026-08-06 のビルドで実測）。
+           鮮度はこの unstable_cache（revalidate 300）と、
+           更新側の revalidatePath("/jobs") が担保する。
+      */
+      admin.from("ow_job_roles").select("job_id, role_id, is_primary"),
       getRoleTree(),
-      // 会社独自呼称。表示にだけ使う（src/lib/jobs/roleLabel.ts）
-      fetchCompanyRoleMap(),
+      admin.from("ow_company_job_roles").select("id, name, deleted_at"),
     ]);
 
     if (jobErr) console.error("[getJobs]", jobErr.message);
@@ -884,6 +891,10 @@ export const getJobs = unstable_cache(
       if (!jobRoleMap.has(jid)) jobRoleMap.set(jid, []);
       jobRoleMap.get(jid)!.push({ id: r.role_id as string, primary: (r.is_primary as boolean) === true });
     }
+
+    const cjrMap = new Map(
+      (cjrRows ?? []).map((r) => [r.id as string, { name: r.name as string, deleted_at: r.deleted_at as string | null }])
+    );
 
     const companies = (compRows ?? []).map((row) => mapCompany(row));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

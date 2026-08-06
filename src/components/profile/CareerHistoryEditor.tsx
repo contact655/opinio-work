@@ -870,84 +870,15 @@ function StintForm({
         </div>
       </div>
 
-      {/* 年収（内訳） */}
-      {(() => {
-        const base = draft.salaryBase ? parseInt(draft.salaryBase, 10) : 0;
-        const bonus = draft.salaryBonus ? parseInt(draft.salaryBonus, 10) : 0;
-        const stock = draft.salaryStock ? parseInt(draft.salaryStock, 10) : 0;
-        const total = base + bonus + stock;
-        return (
-          <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>年収（任意）</div>
-
-            {/* 3カラム横並び */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-              {/* ベースの給与 */}
-              <div>
-                <label style={{ ...labelStyle(), fontSize: 12 }}>ベースの給与</label>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>基本給＋残業代</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <input
-                    type="number"
-                    value={draft.salaryBase}
-                    onChange={(e) => set("salaryBase", e.target.value)}
-                    placeholder="500"
-                    disabled={isSaving}
-                    min={0} max={10000}
-                    style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
-                  />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
-                </div>
-              </div>
-
-              {/* 賞与・インセンティブ */}
-              <div>
-                <label style={{ ...labelStyle(), fontSize: 12 }}>賞与・インセンティブ</label>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>年間合計（なし=0）</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <input
-                    type="number"
-                    value={draft.salaryBonus}
-                    onChange={(e) => set("salaryBonus", e.target.value)}
-                    placeholder="80"
-                    disabled={isSaving}
-                    min={0} max={10000}
-                    style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
-                  />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
-                </div>
-              </div>
-
-              {/* 株式報酬 */}
-              <div>
-                <label style={{ ...labelStyle(), fontSize: 12 }}>株式報酬（任意）</label>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 4, lineHeight: 1.3 }}>RSU/SO 年間換算</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <input
-                    type="number"
-                    value={draft.salaryStock}
-                    onChange={(e) => set("salaryStock", e.target.value)}
-                    placeholder="100"
-                    disabled={isSaving}
-                    min={0} max={10000}
-                    style={{ ...fieldStyle(), minWidth: 0, width: "100%" }}
-                  />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", flexShrink: 0 }}>万円</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 合計表示 */}
-            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 8, textAlign: "right" }}>
-              <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>年収 </span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: total > 0 ? "var(--success)" : "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                {total.toLocaleString()}
-              </span>
-              <span style={{ fontSize: 13, color: "var(--ink-soft)" }}> 万円</span>
-            </div>
-          </div>
-        );
-      })()}
+      {/*
+        年収（内訳）の入力欄は 2026-08-06 に外した。
+        ユーザー投稿の給与データを畳む方針（ow_salary_reports の削除）に合わせ、
+        公開プロフィールに年収を載せない。
+        ⚠️ salary_man / visibility_salary の**列とデータは残してある**。
+           既存3件（うち公開設定 true が2件）はそのまま。
+           get_public_career_steps() や anon への列単位 GRANT にも手を付けていない。
+           入力欄が無いので、保存時は既存値がそのまま送られる（下の toMan 参照）。
+      */}
 
       {/* 公開設定 */}
       <div style={{
@@ -1000,26 +931,6 @@ function StintForm({
           「実名で表示する」を選ぶと、その企業の紹介ページ（現役社員 / OB・OG セクション）に
           あなたのお名前が掲載されます。「含めない」を選ぶと、どちらのページにも掲載されません。
         </p>
-
-        {/* 年収を公開するか */}
-        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-          <div
-            onClick={() => set("visibilitySalary", !draft.visibilitySalary)}
-            style={{
-              width: 36, height: 20, borderRadius: 10, flexShrink: 0,
-              background: draft.visibilitySalary ? "var(--royal)" : "var(--line)",
-              position: "relative", cursor: "pointer", transition: "background 0.2s",
-            }}
-          >
-            <div style={{
-              position: "absolute", top: 2, left: draft.visibilitySalary ? 18 : 2,
-              width: 16, height: 16, borderRadius: "50%",
-              background: "#fff", transition: "left 0.2s",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-            }} />
-          </div>
-          <span style={{ fontSize: 13, color: "var(--ink)" }}>年収を公開する</span>
-        </label>
 
         {/* 入社理由を公開するか */}
         <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
@@ -1202,8 +1113,6 @@ export default function CareerHistoryEditor({
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
 
-  // Salary prompt — shown after a career entry is added for a master company
-  const [salaryPrompt, setSalaryPrompt] = useState<{ companyId: string; companyName: string } | null>(null);
 
 
   // ── Toast helper ────────────────────────────────────────────────────────────
@@ -1290,21 +1199,13 @@ export default function CareerHistoryEditor({
         description: editDraft.description || undefined,
         join_reason: editDraft.joinReason || undefined,
         employment_type: editDraft.employmentType || undefined,
-        salary_base: editDraft.salaryBase ? parseInt(editDraft.salaryBase, 10) : null,
-        salary_bonus: editDraft.salaryBonus ? parseInt(editDraft.salaryBonus, 10) : null,
-        salary_stock: editDraft.salaryStock ? parseInt(editDraft.salaryStock, 10) : null,
-        salary_man: (() => {
-          const b = editDraft.salaryBase ? parseInt(editDraft.salaryBase, 10) : 0;
-          const bo = editDraft.salaryBonus ? parseInt(editDraft.salaryBonus, 10) : 0;
-          const st = editDraft.salaryStock ? parseInt(editDraft.salaryStock, 10) : 0;
-          const total = b + bo + st;
-          return total > 0 ? total : null;
-        })(),
+        /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
+              送ると API 側で null に潰れ、既存の salary_man が消える。
+              API は body にキーが無ければその列を更新しない作りにしてある。 */
         department: editDraft.department || null,
         rank: editDraft.rank || null,
         visibility_company: editDraft.visibilityCompany,
         visibility_company_profile: editDraft.visibilityCompanyProfile,
-        visibility_salary: editDraft.visibilitySalary,
         visibility_reason: editDraft.visibilityReason,
       };
       Object.assign(body, buildCompanyBody(editDraft));
@@ -1332,15 +1233,10 @@ export default function CareerHistoryEditor({
                 description: editDraft.description || undefined,
                 joinReason: editDraft.joinReason || undefined,
                 employmentType: editDraft.employmentType || undefined,
-                salaryBase: editDraft.salaryBase ? parseInt(editDraft.salaryBase, 10) : null,
-                salaryBonus: editDraft.salaryBonus ? parseInt(editDraft.salaryBonus, 10) : null,
-                salaryStock: editDraft.salaryStock ? parseInt(editDraft.salaryStock, 10) : null,
-                salaryMan: (() => { const t = (editDraft.salaryBase ? parseInt(editDraft.salaryBase,10):0)+(editDraft.salaryBonus ? parseInt(editDraft.salaryBonus,10):0)+(editDraft.salaryStock ? parseInt(editDraft.salaryStock,10):0); return t>0?t:null; })(),
                 department: editDraft.department || undefined,
                 rank: (editDraft.rank || null) as Stint["rank"],
                 visibilityCompany: editDraft.visibilityCompany,
                 visibilityCompanyProfile: editDraft.visibilityCompanyProfile,
-                visibilitySalary: editDraft.visibilitySalary,
                 visibilityReason: editDraft.visibilityReason,
               }
             : s
@@ -1377,21 +1273,13 @@ export default function CareerHistoryEditor({
         join_reason: addDraft.joinReason || undefined,
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
-        salary_base: addDraft.salaryBase ? parseInt(addDraft.salaryBase, 10) : null,
-        salary_bonus: addDraft.salaryBonus ? parseInt(addDraft.salaryBonus, 10) : null,
-        salary_stock: addDraft.salaryStock ? parseInt(addDraft.salaryStock, 10) : null,
-        salary_man: (() => {
-          const b = addDraft.salaryBase ? parseInt(addDraft.salaryBase, 10) : 0;
-          const bo = addDraft.salaryBonus ? parseInt(addDraft.salaryBonus, 10) : 0;
-          const st = addDraft.salaryStock ? parseInt(addDraft.salaryStock, 10) : 0;
-          const total = b + bo + st;
-          return total > 0 ? total : null;
-        })(),
+        /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
+              送ると API 側で null に潰れ、既存の salary_man が消える。
+              API は body にキーが無ければその列を更新しない作りにしてある。 */
         department: addDraft.department || null,
         rank: addDraft.rank || null,
         visibility_company: addDraft.visibilityCompany,
         visibility_company_profile: addDraft.visibilityCompanyProfile,
-        visibility_salary: addDraft.visibilitySalary,
         visibility_reason: addDraft.visibilityReason,
       };
       Object.assign(body, buildCompanyBody(addDraft));
@@ -1416,24 +1304,15 @@ export default function CareerHistoryEditor({
         description: addDraft.description || undefined,
         joinReason: addDraft.joinReason || undefined,
         employmentType: addDraft.employmentType || undefined,
-        salaryBase: addDraft.salaryBase ? parseInt(addDraft.salaryBase, 10) : null,
-        salaryBonus: addDraft.salaryBonus ? parseInt(addDraft.salaryBonus, 10) : null,
-        salaryStock: addDraft.salaryStock ? parseInt(addDraft.salaryStock, 10) : null,
-        salaryMan: (() => { const t = (addDraft.salaryBase ? parseInt(addDraft.salaryBase,10):0)+(addDraft.salaryBonus ? parseInt(addDraft.salaryBonus,10):0)+(addDraft.salaryStock ? parseInt(addDraft.salaryStock,10):0); return t>0?t:null; })(),
         visibilityCompany: addDraft.visibilityCompany,
         department: addDraft.department || undefined,
         rank: (addDraft.rank || null) as Stint["rank"],
         visibilityCompanyProfile: addDraft.visibilityCompanyProfile,
-        visibilitySalary: addDraft.visibilitySalary,
         visibilityReason: addDraft.visibilityReason,
       };
 
       setStints((prev) => sortStints([...prev, newStint]));
       showToast("職歴を追加しました");
-      // Prompt salary submission only when a master company was selected (companyId != null)
-      if (addDraft.companyId) {
-        setSalaryPrompt({ companyId: addDraft.companyId, companyName: addDraft.companyName });
-      }
       setAddJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
       cancelAdd();
@@ -1768,48 +1647,6 @@ export default function CareerHistoryEditor({
         <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />
       )}
 
-      {/* Salary prompt — shown after adding a career entry for a master company */}
-      {salaryPrompt && (
-        <div style={{
-          position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
-          zIndex: 1200, width: "min(480px, calc(100vw - 32px)",
-          background: "#fff", border: "2px solid #A7F3D0", borderRadius: 14,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)", padding: "18px 20px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-              💡 {salaryPrompt.companyName} の給与データを登録しませんか？
-            </span>
-            <button
-              onClick={() => setSalaryPrompt(null)}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "var(--ink-mute)", padding: "0 0 0 8px", lineHeight: 1 }}
-            >×</button>
-          </div>
-          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.6 }}>
-            実際の年収を匿名で投稿して、同じ職種を目指す人の参考に。運営が確認後に公開されます。
-          </p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <a
-              href={`/mypage/salary/new?company_id=${salaryPrompt.companyId}&company_name=${encodeURIComponent(salaryPrompt.companyName)}`}
-              style={{
-                padding: "8px 18px", background: "var(--success)", color: "#fff",
-                borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13,
-              }}
-            >
-              ¥ 給与を登録する
-            </a>
-            <button
-              onClick={() => setSalaryPrompt(null)}
-              style={{
-                padding: "8px 14px", background: "none", border: "1px solid var(--line)",
-                borderRadius: 8, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer",
-              }}
-            >
-              後で
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

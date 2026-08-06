@@ -17,7 +17,6 @@ import type { CompanyTool } from "@/lib/supabase/queries";
 import { InfoCard } from "./InfoCard";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SALARY_STATS_MIN } from "@/lib/constants/salary";
 import { getStageCfg } from "@/lib/utils/stageCfg";
 import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
@@ -29,7 +28,6 @@ import { PhotoCarousel } from "./PhotoCarousel";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
-import SalaryDataSection from "./SalaryData";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
@@ -3025,7 +3023,7 @@ export default async function CompanyDetailPage({
   // Phase 2: 残りのデータを companyId（UUID）で並列取得
   const companyId = resolvedId;
 
-  const [photos, recruiters, companyArticles, employees, companyPosts, salaryCountResult, ambassadorsResult, companyTools] = await Promise.all([
+  const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     getArticlesByCompany(companyId),
@@ -3038,11 +3036,6 @@ export default async function CompanyDetailPage({
       .order("published_at", { ascending: false })
       .then((r: { data: CompanyPost[] | null }) => r.data ?? []),
     adminSupabase
-      .from("ow_salary_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("is_approved", true),
-    adminSupabase
       .from("ow_company_members")
       .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url)")
       .eq("company_id", companyId)
@@ -3051,8 +3044,6 @@ export default async function CompanyDetailPage({
       .then((r) => r.data ?? []),
     getCompanyTools(companyId),
   ]);
-
-  const hasSalarySection = (salaryCountResult.count ?? 0) >= SALARY_STATS_MIN;
 
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
 
@@ -3212,7 +3203,7 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about", label: "企業概要" },
           ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
-          ...(company.job_count > 0 || hasSalarySection ? [{ id: "jobs", label: "求人" }] : []),
+          ...(company.job_count > 0 ? [{ id: "jobs", label: "求人" }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
           ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 || visibleCurrentEmps.some(e => e.catchphrase) ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
           ...(companyPosts.length > 0 || companyArticles.length > 0 || activityPosts.length > 0 ? [{ id: "articles", label: "記事・更新情報" }] : []),
@@ -3235,7 +3226,6 @@ export default async function CompanyDetailPage({
 
             {/* 3. 求人 → 給与データ */}
             <JobsSection company={company} detail={detail} />
-            {hasSalarySection && <SalaryDataSection companyId={company.id} />}
 
             {/* 4. 働く環境（benefits → org-teams） */}
             <BenefitsSection detail={detail} />
@@ -3430,19 +3420,6 @@ export default async function CompanyDetailPage({
                   >
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
                     話を聞く（カジュアル面談）
-                  </Link>
-                </div>
-                <div style={{ paddingTop: 12, borderTop: "1px solid #FDE68A" }}>
-                  <Link
-                    href={`/mypage/salary/new?company_id=${company.id}&company_name=${encodeURIComponent(company.name)}`}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      fontSize: 12, fontWeight: 600, color: "#B45309",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                    この企業の給与データを投稿する
                   </Link>
                 </div>
               </div>
