@@ -12,6 +12,7 @@ import { createClient } from "./server";
 import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
 import { buildRoleTree, type RoleTree, type RoleNode } from "@/lib/roles/jobRoles";
+import { pickRoleLabel, fetchCompanyRoleMap } from "@/lib/jobs/roleLabel";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
@@ -820,6 +821,8 @@ export async function getJobRoleMap(jobIds?: string[]): Promise<Map<string, stri
 
 const JOB_LIST_COLS = [
   "id", "slug", "company_id", "title", "job_category", "role_category_id", "employment_type",
+  // 会社独自呼称（表示専用。検索・絞り込みには使わない）
+  "company_job_role_id",
   "location", "work_style", "salary_min", "salary_max",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
   "business_model",
@@ -855,12 +858,14 @@ export const getJobs = unstable_cache(
       jobQuery = jobQuery.in("status", ["active", "published"]);
     }
 
-    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree] = await Promise.all([
+    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree, cjrMap] = await Promise.all([
       jobQuery,
       supabase.from("ow_companies").select(COMPANY_LIST_COLS),
       // ow_job_roles: 全求人の職種紐づけを一括取得（admin: RLS バイパス）
       admin.from("ow_job_roles").select("job_id, role_id, is_primary"),
       getRoleTree(),
+      // 会社独自呼称。表示にだけ使う（src/lib/jobs/roleLabel.ts）
+      fetchCompanyRoleMap(),
     ]);
 
     if (jobErr) console.error("[getJobs]", jobErr.message);
@@ -897,9 +902,15 @@ export const getJobs = unstable_cache(
           }
         }
         job.roleIds = Array.from(expanded);
-        // 表示用は primary の具体職種名（祖先ではなく、選ばれたそのもの）
+        // 標準職種名は primary の具体職種名（祖先ではなく、選ばれたそのもの）
         job.roleName = roleTree.byId.get(own[0])?.name ?? null;
       }
+      // 求職者に見せる職種名。会社呼称 ?? 標準職種名
+      const cjr = row.company_job_role_id ? cjrMap.get(row.company_job_role_id as string) : null;
+      job.companyRoleName = cjr?.deleted_at ? null : cjr?.name ?? null;
+      job.roleLabel = pickRoleLabel({
+        companyRoleName: cjr?.name, companyRoleDeletedAt: cjr?.deleted_at, standardRoleName: job.roleName,
+      });
       return job;
     });
 
@@ -1047,6 +1058,17 @@ export const getJobById = cache(async function getJobById(
     }
     job.roleIds = Array.from(expanded);
     job.roleName = roleTree.byId.get(own[0])?.name ?? null;
+  }
+
+  // 求職者に見せる職種名。会社呼称 ?? 標準職種名
+  if (jobRow.company_job_role_id) {
+    const cjr = (await fetchCompanyRoleMap()).get(jobRow.company_job_role_id as string);
+    job.companyRoleName = cjr?.deleted_at ? null : cjr?.name ?? null;
+    job.roleLabel = pickRoleLabel({
+      companyRoleName: cjr?.name, companyRoleDeletedAt: cjr?.deleted_at, standardRoleName: job.roleName,
+    });
+  } else {
+    job.roleLabel = pickRoleLabel({ standardRoleName: job.roleName });
   }
 
   return {

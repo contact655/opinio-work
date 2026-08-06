@@ -10,6 +10,8 @@ export type BizJob = {
   departmentId?: string;
   departmentName?: string;
   jobRoleNames?: string[];
+  /** 自社での呼び方。論理削除済みなら undefined。標準職種名と併記する */
+  companyRoleName?: string;
   salaryMin?: number;
   salaryMax?: number;
   salaryNote?: string;

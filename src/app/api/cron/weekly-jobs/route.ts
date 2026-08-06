@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,13 @@ export async function GET(request: Request) {
       .eq("status", "published")
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false });
+
+    /* 職種の表示は会社呼称 ?? 標準職種名。job_category は使わない。
+       supabase は service role なので ow_company_job_roles の RLS を通る */
+    const roleLabels = await fetchJobRoleLabels((recentJobs ?? []).map((j) => j.id as string));
+    for (const j of recentJobs ?? []) {
+      (j as Record<string, unknown>).roleLabel = roleLabels.get(j.id as string)?.label ?? null;
+    }
 
     if (!recentJobs || recentJobs.length === 0) {
       return NextResponse.json({
@@ -155,7 +163,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
     .map((j) => {
       const company = j.ow_companies;
       const salary = formatSalary(j.salary_min, j.salary_max);
-      const meta = [j.job_category, salary, j.location]
+      const meta = [j.roleLabel, salary, j.location]
         .filter(Boolean)
         .map(escapeHtml)
         .join(" &middot; ");

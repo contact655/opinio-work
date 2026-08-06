@@ -264,12 +264,28 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
             {job.title}
           </div>
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-            {job.jobRoleNames && job.jobRoleNames.length > 0 ? (
+            {/*
+              自社での呼び方を主に出し、標準職種名を併記する。
+              ⚠️ 併記するのは、呼称の付け間違いに気づけるようにするため。
+                 どの標準職種に紐づいているかが見えないと、検索にどう出るか分からない。
+              ⚠️ 呼称が無ければ標準職種名だけ。空の括弧を残さない。
+              ⚠️ job_category にはフォールバックしない（職種の正は ow_job_roles）。
+            */}
+            {job.companyRoleName && (
+              <span style={{ color: "var(--royal)", fontWeight: 700, background: "var(--royal-50)", padding: "1px 7px", borderRadius: 4, fontSize: 12 }}>
+                {job.companyRoleName}
+              </span>
+            )}
+            {job.jobRoleNames && job.jobRoleNames.length > 0 && (
               job.jobRoleNames.map((name) => (
-                <span key={name} style={{ color: "var(--royal)", fontWeight: 600, background: "var(--royal-50)", padding: "1px 7px", borderRadius: 4, fontSize: 12 }}>{name}</span>
+                <span key={name} style={{
+                  color: job.companyRoleName ? "var(--ink-mute)" : "var(--royal)",
+                  fontWeight: job.companyRoleName ? 500 : 600,
+                  background: job.companyRoleName ? "transparent" : "var(--royal-50)",
+                  padding: job.companyRoleName ? 0 : "1px 7px",
+                  borderRadius: 4, fontSize: 12,
+                }}>{job.companyRoleName ? `（${name}）` : name}</span>
               ))
-            ) : (
-              job.jobCategory && <span style={{ color: "var(--royal)", fontWeight: 600 }}>{job.jobCategory}</span>
             )}
             {(job.departmentName ?? job.department) && (
               <span style={{ color: "var(--ink-mute)" }}>· {job.departmentName ?? job.department}</span>

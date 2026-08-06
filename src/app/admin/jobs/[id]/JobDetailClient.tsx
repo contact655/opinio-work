@@ -18,6 +18,9 @@ type Job = {
   id: string;
   title: string | null;
   job_category: string | null;
+  /** ⚠️ 運営面の職種表示はこちら（標準職種名）。会社呼称は使わない。
+   *  ⚠️ ow_roles は多対一なので実行時はオブジェクトだが、生成型では配列になる。両方受ける */
+  ow_job_roles?: { is_primary: boolean; ow_roles: { name: string } | { name: string }[] | null }[] | null;
   employment_type: string | null;
   department: string | null;
   salary_min: number | null;
@@ -475,7 +478,14 @@ export default function JobDetailClient({ job }: { job: Job }) {
             </Section>
 
             <Section title="求人基本情報">
-              <Field label="職種カテゴリ" value={job.job_category} />
+              <Field label="職種" value={
+                (() => {
+                  const rows = job.ow_job_roles ?? [];
+                  const primary = rows.find((r) => r.is_primary) ?? rows[0];
+                  const role = Array.isArray(primary?.ow_roles) ? primary?.ow_roles[0] : primary?.ow_roles;
+                  return role?.name ?? null;
+                })()
+              } />
               <Field label="雇用形態" value={job.employment_type} />
               <Field label="部署" value={job.department} />
               <Field label="勤務地" value={job.location} />

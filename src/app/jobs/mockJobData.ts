@@ -37,8 +37,14 @@ export type Job = {
    * 9大分類でも子階層でも `roleIds.includes(id)` の同じ判定で絞り込める。
    */
   roleIds?: string[];
-  /** 表示用の職種名。ow_job_roles の primary（具体職種）の名前。無ければ null */
+  /** 標準職種名。ow_job_roles の primary（具体職種）の名前。無ければ null。
+   *  ⚠️ 運営面（ADMIN）と、会社呼称との併記に使う。求職者面の表示は roleLabel を使うこと */
   roleName?: string | null;
+  /** 求職者に見せる職種名。会社呼称 ?? 標準職種名（src/lib/jobs/roleLabel.ts）。
+   *  ⚠️ 絞り込みには使わない。検索は roleIds のまま */
+  roleLabel?: string | null;
+  /** 会社呼称。論理削除済みなら null。roleName と併記したいときだけ使う */
+  companyRoleName?: string | null;
   employment_type: string;
   location: string;
   work_style: string;

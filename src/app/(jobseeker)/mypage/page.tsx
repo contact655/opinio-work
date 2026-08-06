@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { canUserPost } from "@/lib/feed/canPost";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import MypageClient from "./MypageClient";
 import type {
   Bookmark,
@@ -208,6 +209,10 @@ export default async function MypagePage({
           .select("id, title, job_category, company_id")
           .in("id", jobIds);
         if (jobs) {
+          /* 職種の表示は会社呼称 ?? 標準職種名。
+             ⚠️ ow_company_job_roles の RLS は「その会社の管理者だけ」なので、
+                ここのユーザーセッションのクライアントでは引けない。admin を使う。 */
+          const roleLabels = await fetchJobRoleLabels(jobs.map((j) => j.id as string));
           // Also fetch company names for context
           const jobCompanyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
           const { data: companies } = await supabase
@@ -224,8 +229,8 @@ export default async function MypagePage({
               return {
                 id: b.id as string, type: "job",
                 title: j.title as string,
-                meta: [companyName, j.job_category as string].filter(Boolean).join(" / "),
-                badge_label: (j.job_category as string) ?? "求人",
+                meta: [companyName, roleLabels.get(j.id as string)?.label].filter(Boolean).join(" / "),
+                badge_label: roleLabels.get(j.id as string)?.label ?? "求人",
                 href: `/jobs/${j.id}`,
               };
             })

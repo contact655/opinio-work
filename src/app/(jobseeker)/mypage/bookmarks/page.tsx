@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import BookmarksClient, { type Bookmark } from "./BookmarksClient";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,8 @@ export default async function BookmarksPage() {
         const { data: jobs } = await admin
           .from("ow_jobs").select("id, title, job_category, company_id").in("id", ids);
         if (jobs) {
+          // 職種の表示は会社呼称 ?? 標準職種名。job_category は使わない
+          const roleLabels = await fetchJobRoleLabels(jobs.map((j) => j.id as string));
           const companyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
           const { data: companies } = await admin
             .from("ow_companies").select("id, name").in("id", companyIds);
@@ -66,8 +69,8 @@ export default async function BookmarksPage() {
             return [{
               id: b.id as string, type: "job" as const,
               title: j.title as string,
-              meta: [cMap.get(j.company_id as string), j.job_category as string].filter(Boolean).join(" / "),
-              badge_label: (j.job_category as string) ?? "求人",
+              meta: [cMap.get(j.company_id as string), roleLabels.get(j.id as string)?.label].filter(Boolean).join(" / "),
+              badge_label: roleLabels.get(j.id as string)?.label ?? "求人",
               href: `/jobs/${j.id}`,
             }];
           });

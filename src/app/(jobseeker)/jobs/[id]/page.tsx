@@ -44,13 +44,15 @@ export async function generateMetadata({
     "IT/SaaS業界の求人はOPINIOで。",
   ].filter(Boolean).join("｜");
 
-  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.roleName ?? job.dept ?? "")}`;
+  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.roleLabel ?? "")}`;
 
   return {
     title: { absolute: `${job.role} — ${company.name} | OPINIO` },
     description,
     alternates: { canonical: `/jobs/${canonicalId}` },
-    keywords: [job.role, company.name, job.roleName ?? job.dept ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),
+    /* ⚠️ 会社呼称と標準職種名の両方を入れる。呼称だけにすると
+          「エンジニア」のような標準職種名でのSEO流入を落とす */
+    keywords: [job.role, company.name, job.companyRoleName ?? "", job.roleName ?? "", "IT転職", "SaaS転職", salaryText].filter(Boolean),
     openGraph: {
       title: `${job.role} — ${company.name} | OPINIO`,
       description,
@@ -979,7 +981,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                   )}
                   {/* 職種 */}
-                  {(job.roleName ?? job.dept) && (
+                  {job.roleLabel && (
                   <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
@@ -987,7 +989,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </svg>
                       <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>職種</span>
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.roleName ?? job.dept}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.roleLabel}</span>
                   </div>
                   )}
                 </div>
@@ -1685,7 +1687,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </div>
                 )}
                 {[
-                  { key: "職種", value: job.roleName ?? job.dept },
+                  { key: "職種", value: job.roleLabel },
                   { key: "雇用形態", value: job.employment_type },
                   { key: "勤務地", value: job.location },
                   { key: "働き方", value: job.work_style },

@@ -26,6 +26,8 @@ type Job = {
   title: string | null;
   status: string | null;
   job_category: string | null;
+  /** ⚠️ ow_roles は多対一なので実行時はオブジェクトだが、生成型では配列になる。両方受ける */
+  ow_job_roles?: { is_primary: boolean; ow_roles: { name: string } | { name: string }[] | null }[] | null;
   salary_min: number | null;
   salary_max: number | null;
   location: string | null;
@@ -48,6 +50,14 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   private:        { label: "非公開",     cls: "bg-slate-100 text-slate-500 border border-slate-200" },
 };
 
+/** 標準職種名。主ロール優先、無ければ先頭 */
+function standardRoleName(j: Job): string | null {
+  const rows = j.ow_job_roles ?? [];
+  const primary = rows.find((r) => r.is_primary) ?? rows[0];
+  const role = Array.isArray(primary?.ow_roles) ? primary?.ow_roles[0] : primary?.ow_roles;
+  return role?.name ?? null;
+}
+
 export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeTab, setActiveTab] = useState("all");
@@ -64,7 +74,10 @@ export default function AdminJobsPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from("ow_jobs")
-      .select("id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name)")
+      /* ⚠️ 職種の表示は標準職種名（ow_job_roles の主ロール）。運営面では会社呼称を使わない。
+            会社ごとに違う名前で並ぶと、職種を横断して見られなくなる。
+         ⚠️ job_category は下のキーワード検索が使っているので SELECT からは外さない。 */
+      .select("id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))")
       .order("updated_at", { ascending: false });
     setJobs((data as unknown as Job[]) || []);
     setLoading(false);
@@ -313,7 +326,7 @@ export default function AdminJobsPage() {
                     </td>
                     {/* 職種 */}
                     <td style={{ padding: "12px 14px", color: "#475569", whiteSpace: "nowrap" }}>
-                      {j.job_category || "—"}
+                      {standardRoleName(j) || "—"}
                     </td>
                     {/* 年収 */}
                     <td style={{ padding: "12px 14px", color: "#475569", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>

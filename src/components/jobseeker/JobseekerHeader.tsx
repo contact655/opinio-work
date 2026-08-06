@@ -18,7 +18,8 @@ const NAV_LINKS = [
 
 type SuggestResult = {
   companies: { id: string; slug?: string | null; name: string; industry: string | null; logo_letter: string | null; logo_gradient: string | null }[];
-  jobs: { id: string; title: string; job_category: string | null }[];
+  /** roleLabel は会社呼称 ?? 標準職種名。job_category は表示に使わない */
+  jobs: { id: string; title: string; roleLabel: string | null }[];
 };
 
 const POPULAR_QUERIES = ["プロダクトマネージャー", "エンジニア", "カスタマーサクセス", "営業", "フルリモート", "外資系"];
@@ -539,7 +540,7 @@ export function JobseekerHeader() {
                           </div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{j.title}</div>
-                            {j.job_category && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{j.job_category}</div>}
+                            {j.roleLabel && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{j.roleLabel}</div>}
                           </div>
                         </a>
                       ))}

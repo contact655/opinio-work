@@ -14,6 +14,7 @@ export default async function AdminJobDetailPage({ params }: Props) {
     .from("ow_jobs")
     .select(`
       id, title, job_category, employment_type, department,
+      ow_job_roles!job_id(is_primary, ow_roles!role_id(name)),
       salary_min, salary_max, salary_note,
       location, remote_work_status, work_style,
       description_markdown, description,

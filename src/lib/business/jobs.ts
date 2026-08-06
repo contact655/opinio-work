@@ -167,7 +167,7 @@ export async function fetchJobsForCompany(
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name))"
+      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)"
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
@@ -206,6 +206,7 @@ export async function fetchJobsForCompany(
       department_id?: string | null;
       ow_company_departments?: { name: string } | null;
       ow_job_roles?: { role_id: string; ow_roles?: { name: string } | null }[] | null;
+      ow_company_job_roles?: { name: string; deleted_at: string | null } | null;
     };
     const job = transformJob(r, meetingCounts[row.id] ?? 0, applicationCounts[row.id] ?? 0);
     job.departmentId = r.department_id ?? undefined;
@@ -213,6 +214,8 @@ export async function fetchJobsForCompany(
     job.jobRoleNames = (r.ow_job_roles ?? [])
       .map((jr) => jr.ow_roles?.name)
       .filter((n): n is string => !!n);
+    // 自社での呼び方。論理削除済みは出さない（会社が「もう使っていない」と言っている名前）
+    job.companyRoleName = r.ow_company_job_roles?.deleted_at ? undefined : r.ow_company_job_roles?.name;
     return job;
   });
 }
