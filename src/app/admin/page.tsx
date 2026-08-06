@@ -67,7 +67,8 @@ async function getStats() {
   }
 
   // Recent users
-  const { data: recentUsers } = await supabase
+  /* ⚠️ email は authenticated から SELECT 権限を剥がしたので admin で引く（2026-08-06） */
+  const { data: recentUsers } = await admin
     .from("ow_users")
     .select("id, name, email, is_mentor, location, created_at")
     .order("created_at", { ascending: false })

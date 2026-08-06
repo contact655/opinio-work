@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import ProfileEditClient from "./ProfileEditClient";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
@@ -18,7 +19,14 @@ export default async function ProfileEditPage({
     redirect("/auth?next=/profile/edit");
   }
 
-  const { data: owUser } = await supabase
+  /*
+    ⚠️ birth_date / join_reason は 2026-08-06 に authenticated から SELECT 権限を剥がした。
+       session クライアントの select に含めると **PostgREST がクエリごと 403 にする**ので、
+       本人の行であっても丸ごと取れなくなる（画面は 200 のまま空になる）。
+       ここは本人の行だけを扱う画面なので、admin クライアントで引く。
+  */
+  const adminSupabase = createAdminClient();
+  const { data: owUser } = await adminSupabase
     .from("ow_users")
     .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, is_open_to_work, social_links")
     .eq("auth_id", user.id)
@@ -64,7 +72,7 @@ export default async function ProfileEditPage({
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
     owUser
-      ? supabase
+      ? adminSupabase   // ⚠️ join_reason を含むので admin。対象は owUser.id に固定
           .from("ow_experiences")
           .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type")
           .eq("user_id", owUser.id)

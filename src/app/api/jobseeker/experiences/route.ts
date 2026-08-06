@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,10 @@ export async function GET() {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ experiences: [] });
 
-  const { data: rows, error: rowsErr } = await supabase
+  /* ⚠️ join_reason を含むので admin で引く。2026-08-06 に authenticated から
+        権限を剥がしており、session だとクエリごと 403 になって一覧が空になる。
+        対象は owUserId に固定（本人の行のみ）。 */
+  const { data: rows, error: rowsErr } = await createAdminClient()
     .from("ow_experiences")
     /* ⚠️ 年収4列（salary_base / salary_bonus / salary_stock / salary_man）は SELECT しない。
           2026-08-06 に authenticated から SELECT 権限を剥奪したので、含めると

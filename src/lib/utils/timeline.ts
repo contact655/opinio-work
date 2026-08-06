@@ -119,7 +119,9 @@ export type RawExperienceRow = {
   ended_at: string | null;
   is_current: boolean;
   description: string | null;
-  join_reason: string | null;
+  /** ⚠️ 任意。2026-08-06 に authenticated から SELECT 権限を剥がしたので、
+   *  session クライアントで引く画面（/mypage）は SELECT に含めていない。 */
+  join_reason?: string | null;
   employment_type: string | null;
   /** プロフィールページでの企業名表示制御 */
   visibility_company_profile?: "real" | "masked" | "hidden" | null;
@@ -227,7 +229,7 @@ export function buildTimelineCareerEntriesFromRaw(
       ended_at:        r.ended_at,
       is_current:      r.is_current,
       description:     r.description,
-      join_reason:     r.join_reason,
+      join_reason:     r.join_reason ?? null,
       employment_type: r.employment_type,
     };
   });

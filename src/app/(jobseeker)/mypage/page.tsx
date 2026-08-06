@@ -31,7 +31,11 @@ export default async function MypagePage({
     redirect("/auth?next=/mypage");
   }
 
-  const { data: owUser } = await supabase
+  /* ⚠️ birth_date は 2026-08-06 に authenticated から SELECT 権限を剥がした。
+        session クライアントの select に含めると PostgREST がクエリごと 403 にし、
+        owUser が null になってダッシュボードが丸ごと空になる（画面は 200 のまま）。
+        本人の行だけを扱うので admin で引く。 */
+  const { data: owUser } = await createAdminClient()
     .from("ow_users")
     .select("id, name, avatar_color, avatar_url, cover_color, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
     .eq("auth_id", user.id)
@@ -64,7 +68,10 @@ export default async function MypagePage({
         /* ⚠️ salary_man は SELECT しない。2026-08-06 に authenticated から
               年収4列の SELECT 権限を剥奪したので、含めると全体が
               permission denied になり職歴が丸ごと消える。表示にも使っていない。 */
-        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
+        /* ⚠️ join_reason は SELECT しない。2026-08-06 に authenticated から権限を剥がしたので、
+              含めるとクエリごと 403 になり職歴が丸ごと消える（画面は 200 のまま空になる）。
+              MergedTimeline は join_reason を描画していないので、表示にも影響しない。 */
+        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, employment_type, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
         .eq("user_id", owUser.id)
         .order("is_current", { ascending: false })
         .order("started_at", { ascending: false }),
