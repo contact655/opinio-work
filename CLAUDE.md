@@ -119,6 +119,33 @@ dev サーバーを再起動して `.next/cache/fetch-cache` を消すまで直�
 ⚠️ `unstable_cache`（`getJobs` は revalidate 300 / `jobs/[id]` は 60）は**別の層で、こちらは残す**。
 意図した鮮度契約なので消さない。切りたいのは二重にかかっている fetch キャッシュだけ。
 
+#### ⚠️ `unstable_cache` の中で no-store を使わない（2026-08-06 追記）
+
+**`unstable_cache` の中で `cache: "no-store"` の fetch を呼ぶと、
+静的プリレンダリング時に `DynamicServerError` になる。**
+
+ビルド中にこう出る:
+
+```
+[fetchCompanyRoleMap] Error: Dynamic server usage: no-store fetch
+  https://….supabase.co/rest/v1/ow_company_job_roles?select=… /jobs/dept/exec
+```
+
+⚠️ **ビルドは失敗しない。** supabase-js は例外を投げずに `{ error }` を返すので、
+呼び出し側が握って空の結果を返し、**その項目だけ黙って消えた状態でページが生成される**。
+2026-08-06 に `/jobs/dept/[slug]`（`generateStaticParams` あり）で実際に起き、
+会社呼称が空のままプリレンダリングされていた。
+
+原則:
+
+- **`unstable_cache` の中は通常のクライアント**（`createAdminClient()`）を使う。
+  鮮度は `unstable_cache` の `revalidate` と、更新側の `revalidatePath()` に任せる
+- **no-store のクライアントは `unstable_cache` の外でだけ使う**
+  （ルートハンドラ、Server Action、`force-dynamic` のページ）
+
+⚠️ `generateStaticParams` を持つ動的ルートは全部プリレンダリング対象。
+新しく付けるときは、そのページから no-store の読み取りに到達しないか確認すること。
+
 ⚠️ 症状は「DBを直したのに画面が古い」で上の静的化と同じ。
 **切り分け方**: コードを変えずに dev を再起動して直れば fetch キャッシュ、
 再デプロイしないと直らなければ静的レンダリング。

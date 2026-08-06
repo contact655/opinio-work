@@ -57,8 +57,10 @@ export async function fetchJobRoleLabels(
     admin.from("ow_job_roles").select("job_id, role_id, is_primary").in("job_id", ids),
   ]);
 
-  if (jobsRes.error) console.error("[fetchJobRoleLabels] jobs", jobsRes.error.message);
-  if (rolesRes.error) console.error("[fetchJobRoleLabels] job_roles", rolesRes.error.message);
+  /* ⚠️ どちらが落ちても out は不完全なまま返る（呼び出し側は label が null になるだけ）。
+        黙って劣化するので必ずログを出すこと。 */
+  if (jobsRes.error) console.error("[fetchJobRoleLabels] jobs が引けず呼称が落ちる:", jobsRes.error.message);
+  if (rolesRes.error) console.error("[fetchJobRoleLabels] job_roles が引けず標準職種名が落ちる:", rolesRes.error.message);
 
   // job_id → 主ロールの role_id（is_primary が無ければ先頭）
   const primaryRoleId = new Map<string, string>();
@@ -71,7 +73,7 @@ export async function fetchJobRoleLabels(
   const roleNames = new Map<string, string>();
   if (roleIds.length > 0) {
     const { data, error } = await admin.from("ow_roles").select("id, name").in("id", roleIds);
-    if (error) console.error("[fetchJobRoleLabels] roles", error.message);
+    if (error) console.error("[fetchJobRoleLabels] roles が引けず標準職種名が落ちる:", error.message);
     for (const r of data ?? []) roleNames.set(r.id as string, r.name as string);
   }
 
@@ -100,7 +102,11 @@ export async function fetchCompanyRoleMap(): Promise<Map<string, { name: string;
   const { data, error } = await createNoStoreAdminClient()
     .from("ow_company_job_roles")
     .select("id, name, deleted_at");
-  if (error) console.error("[fetchCompanyRoleMap]", error.message);
+  /* ⚠️ ここで error を握って空の Map を返すと、呼び出し側は
+        「呼称が無い」と区別がつかず、黙って標準職種名にフォールバックする。
+        2026-08-06 に unstable_cache の中で no-store を使い DynamicServerError になり、
+        まさにこれが起きた（ビルドは通り、呼称だけ消えたページが生成された）。 */
+  if (error) console.error("[fetchCompanyRoleMap] 空を返す:", error.message);
   return new Map(
     (data ?? []).map((r) => [r.id as string, { name: r.name as string, deleted_at: r.deleted_at as string | null }])
   );

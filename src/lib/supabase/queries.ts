@@ -865,7 +865,7 @@ export const getJobs = unstable_cache(
       jobQuery = jobQuery.in("status", ["active", "published"]);
     }
 
-    const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree, { data: cjrRows }] = await Promise.all([
+    const [{ data: jobRows, error: jobErr }, { data: compRows, error: compErr }, { data: jobRoleRows, error: jobRoleErr }, roleTree, { data: cjrRows, error: cjrErr }] = await Promise.all([
       jobQuery,
       supabase.from("ow_companies").select(COMPANY_LIST_COLS),
       /*
@@ -882,7 +882,14 @@ export const getJobs = unstable_cache(
       admin.from("ow_company_job_roles").select("id, name, deleted_at"),
     ]);
 
-    if (jobErr) console.error("[getJobs]", jobErr.message);
+    /* ⚠️ error を握らない。supabase-js は例外を投げず { error } を返すので、
+          data だけ見ていると「0件」と区別がつかない。
+          2026-08-06 に会社呼称が DynamicServerError で空になっていたのを
+          ログでしか気づけなかったため、全クエリで出す。 */
+    if (jobErr) console.error("[getJobs] jobs", jobErr.message);
+    if (compErr) console.error("[getJobs] companies", compErr.message);
+    if (jobRoleErr) console.error("[getJobs] job_roles", jobRoleErr.message);
+    if (cjrErr) console.error("[getJobs] company_job_roles", cjrErr.message);
 
     // job_id → role_id[]（is_primary を先頭に）
     const jobRoleMap = new Map<string, { id: string; primary: boolean }[]>();
@@ -1080,7 +1087,15 @@ export const getJobById = cache(async function getJobById(
 
   // 求職者に見せる職種名。会社呼称 ?? 標準職種名
   if (jobRow.company_job_role_id) {
-    const cjr = (await fetchCompanyRoleMap()).get(jobRow.company_job_role_id as string);
+    /* ⚠️ 呼称が引けなかった場合、fetchCompanyRoleMap が空の Map を返すので
+          ここは黙って標準職種名にフォールバックする。
+          「呼称を消した」のか「引けなかった」のか区別できないため、
+          引けなかったことが分かるようにログを出す。 */
+    const map = await fetchCompanyRoleMap();
+    if (map.size === 0) {
+      console.error("[getJobById] 会社呼称を1件も引けなかった。job:", jobRow.id, "cjr:", jobRow.company_job_role_id);
+    }
+    const cjr = map.get(jobRow.company_job_role_id as string);
     job.companyRoleName = cjr?.deleted_at ? null : cjr?.name ?? null;
     job.roleLabel = pickRoleLabel({
       companyRoleName: cjr?.name, companyRoleDeletedAt: cjr?.deleted_at, standardRoleName: job.roleName,
