@@ -60,7 +60,9 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Grad
       )
     `)
     .eq("school_id", schoolId)
-    .order("graduated_at", { ascending: false });
+    /* ⚠️ nullsFirst: false。既定では NULL が先頭に来るため、
+       卒業年が未入力の人が一覧の最上位に出ていた */
+    .order("graduated_at", { ascending: false, nullsFirst: false });
 
   if (error) {
     console.error("[schools] fetch graduates error:", error.message);

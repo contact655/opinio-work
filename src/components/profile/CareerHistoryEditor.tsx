@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -227,14 +228,12 @@ const RANK_OPTIONS = [
   { value: "executive", label: "役員クラス" },
 ];
 
+/* ⚠️ 選択肢は src/lib/constants/careerOptions.ts と共有する。
+      ここに直書きすると API 側の許容値とずれる（2026-07-01 に実際にずれ、
+      「派遣社員」「アルバイト・パート」が保存されずに消えていた）。 */
 const EMPLOYMENT_TYPE_OPTIONS = [
   { value: "", label: "選択してください" },
-  { value: "正社員", label: "正社員" },
-  { value: "契約社員", label: "契約社員" },
-  { value: "派遣社員", label: "派遣社員" },
-  { value: "業務委託", label: "業務委託" },
-  { value: "アルバイト・パート", label: "アルバイト・パート" },
-  { value: "その他", label: "その他" },
+  ...EMPLOYMENT_TYPES.map((v) => ({ value: v, label: v })),
 ];
 
 const EMPTY_DRAFT: StintDraft = {

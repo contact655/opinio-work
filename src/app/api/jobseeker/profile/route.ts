@@ -48,7 +48,13 @@ export async function PUT(req: Request) {
     if (typeof body.about_me === "string" && body.about_me.length > 2000) return NextResponse.json({ error: "about_me は2000字以内で入力してください" }, { status: 400 });
     patch.about_me = typeof body.about_me === "string" ? body.about_me : null;
   }
-  if ("birth_date" in body) patch.birth_date = typeof body.birth_date === "string" && BIRTH_RE.test(body.birth_date) ? body.birth_date : null;
+  /* ⚠️ 不正値は 400。黙って null にすると「入力したのに消えた」になる（学歴で実際に1ヶ月起きた） */
+  if ("birth_date" in body) {
+    const bd = body.birth_date;
+    if (bd === null || bd === "") patch.birth_date = null;
+    else if (typeof bd === "string" && BIRTH_RE.test(bd)) patch.birth_date = bd;
+    else return NextResponse.json({ error: "INVALID_BIRTH_DATE", message: "生年月日の形式が正しくありません。" }, { status: 400 });
+  }
   if ("location" in body) {
     if (typeof body.location === "string" && body.location.length > 100) return NextResponse.json({ error: "location は100字以内で入力してください" }, { status: 400 });
     patch.location = typeof body.location === "string" ? body.location : null;
@@ -61,7 +67,11 @@ export async function PUT(req: Request) {
     if (JSON.stringify(body.social_links).length > 2000) return NextResponse.json({ error: "social_links が大きすぎます" }, { status: 400 });
     patch.social_links = body.social_links as Json | null;
   }
-  if ("visibility" in body && typeof body.visibility === "string" && VALID_VISIBILITY.has(body.visibility)) {
+  /* ⚠️ 公開設定は黙って捨てない。捨てると「非公開にしたのに公開のまま」になる */
+  if ("visibility" in body) {
+    if (typeof body.visibility !== "string" || !VALID_VISIBILITY.has(body.visibility)) {
+      return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開範囲の値が不正です。" }, { status: 400 });
+    }
     patch.visibility = body.visibility;
   }
   if ("is_open_to_work" in body) patch.is_open_to_work = body.is_open_to_work === true;

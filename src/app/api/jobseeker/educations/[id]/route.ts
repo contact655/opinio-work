@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { normalizeYm } from "@/lib/utils/ym";
+import { normalizeYm, isBlankYm } from "@/lib/utils/ym";
+import { DEGREES } from "@/lib/constants/careerOptions";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -45,10 +46,11 @@ export async function PUT(
   }
 
   // バリデーション 3: degree enum
-  const VALID_DEGREES = ["小学校卒", "中学校卒", "高校卒", "専門卒", "短大卒", "学士", "修士", "博士", "その他"] as const;
-  const degree = typeof body.degree === "string" && (VALID_DEGREES as readonly string[]).includes(body.degree)
-    ? body.degree
-    : null;
+  /* ⚠️ 許容値は careerOptions.ts の1箇所に置く。不正値は 400（黙って null にしない） */
+  if (!isBlankYm(body.degree) && !(DEGREES as readonly string[]).includes(body.degree as string)) {
+    return NextResponse.json({ error: "INVALID_DEGREE", message: "学位の値が不正です。" }, { status: 400 });
+  }
+  const degree = isBlankYm(body.degree) ? null : (body.degree as string);
 
   /* ⚠️ 空と不正を区別する。空は null（任意項目）、不正は 400。
         黙って null にすると「入力させたのに保存しない」に戻る。

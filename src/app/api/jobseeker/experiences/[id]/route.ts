@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { normalizeYm } from "@/lib/utils/ym";
+import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   const VALID_VISIBILITY = new Set(["real", "masked", "hidden"]);
-  const VALID_EMPLOYMENT = new Set(["正社員", "契約社員", "業務委託", "アルバイト", "インターン", "その他"]);
+  /* ⚠️ 許容値は src/lib/constants/careerOptions.ts の1箇所に置く。
+        ここに Set を直書きすると UI の選択肢とずれる（2026-07-01 に実際にずれ、
+        「派遣社員」「アルバイト・パート」が黙って null に落ちていた）。 */
+  const VALID_EMPLOYMENT = new Set<string>(EMPLOYMENT_TYPES);
   function safeSalary(v: unknown): number | null {
     if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100000) return null;
     return Math.floor(v);
@@ -72,6 +76,21 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   */
   /* ⚠️ 年月は正規化してから入れる。以前は無検証で `-01` を足しており、
         形式が違うと date のパースエラーで 500 になっていた（educations と同じ形）。 */
+  /* ⚠️ 不正値は 400 で返す。黙って null や "real" に落とさない。
+        特に visibility_company を既定の "real"（実名公開）に倒すのは、
+        本人が選んでいない公開設定を勝手に付けることになる。 */
+  if (!isBlank(body.employment_type) && !VALID_EMPLOYMENT.has(body.employment_type as string)) {
+    return NextResponse.json({ error: "INVALID_EMPLOYMENT_TYPE", message: "雇用形態の値が不正です。" }, { status: 400 });
+  }
+  const employmentType = isBlank(body.employment_type) ? null : (body.employment_type as string);
+  for (const k of ["visibility_company", "visibility_company_profile"] as const) {
+    if (!isBlank(body[k]) && !VALID_VISIBILITY.has(body[k] as string)) {
+      return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
+    }
+  }
+  const visibilityCompany = isBlank(body.visibility_company) ? "real" : (body.visibility_company as string);
+  const visibilityCompanyProfile = isBlank(body.visibility_company_profile) ? "real" : (body.visibility_company_profile as string);
+
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);
   if (startedAt === undefined || endedAt === undefined) {
@@ -104,9 +123,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: s(body.description, 5000),
       join_reason: s(body.join_reason, 2000),
-      employment_type: VALID_EMPLOYMENT.has(body.employment_type as string) ? (body.employment_type as string) : null,
-      visibility_company: VALID_VISIBILITY.has(body.visibility_company as string) ? (body.visibility_company as string) : "real",
-      visibility_company_profile: VALID_VISIBILITY.has(body.visibility_company_profile as string) ? (body.visibility_company_profile as string) : "real",
+      employment_type: employmentType,
+      visibility_company: visibilityCompany,
+      visibility_company_profile: visibilityCompanyProfile,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
       updated_at: new Date().toISOString(),
       ...salaryPatch,

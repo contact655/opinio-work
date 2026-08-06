@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { normalizeYm } from "@/lib/utils/ym";
+import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -119,7 +120,10 @@ export async function POST(req: Request) {
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   const VALID_VISIBILITY = new Set(["real", "masked", "hidden"]);
-  const VALID_EMPLOYMENT = new Set(["正社員", "契約社員", "業務委託", "アルバイト", "インターン", "その他"]);
+  /* ⚠️ 許容値は src/lib/constants/careerOptions.ts の1箇所に置く。
+        ここに Set を直書きすると UI の選択肢とずれる（2026-07-01 に実際にずれ、
+        「派遣社員」「アルバイト・パート」が黙って null に落ちていた）。 */
+  const VALID_EMPLOYMENT = new Set<string>(EMPLOYMENT_TYPES);
   const hasCompanyId = !!body.company_id;
   const hasCompanyText = !!body.company_text;
   const hasCompanyAnon = !!body.company_anonymized;
@@ -159,6 +163,21 @@ export async function POST(req: Request) {
 
   /* ⚠️ 年月は正規化してから入れる。以前は無検証で `-01` を足しており、
         形式が違うと date のパースエラーで 500 になっていた（educations と同じ形）。 */
+  /* ⚠️ 不正値は 400 で返す。黙って null や "real" に落とさない。
+        特に visibility_company を既定の "real"（実名公開）に倒すのは、
+        本人が選んでいない公開設定を勝手に付けることになる。 */
+  if (!isBlank(body.employment_type) && !VALID_EMPLOYMENT.has(body.employment_type as string)) {
+    return NextResponse.json({ error: "INVALID_EMPLOYMENT_TYPE", message: "雇用形態の値が不正です。" }, { status: 400 });
+  }
+  const employmentType = isBlank(body.employment_type) ? null : (body.employment_type as string);
+  for (const k of ["visibility_company", "visibility_company_profile"] as const) {
+    if (!isBlank(body[k]) && !VALID_VISIBILITY.has(body[k] as string)) {
+      return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
+    }
+  }
+  const visibilityCompany = isBlank(body.visibility_company) ? "real" : (body.visibility_company as string);
+  const visibilityCompanyProfile = isBlank(body.visibility_company_profile) ? "real" : (body.visibility_company_profile as string);
+
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);
   if (startedAt === undefined || endedAt === undefined) {
@@ -184,12 +203,12 @@ export async function POST(req: Request) {
       is_current: (body.is_current as boolean | undefined) ?? false,
       description,
       join_reason: joinReason,
-      employment_type: VALID_EMPLOYMENT.has(body.employment_type as string) ? (body.employment_type as string) : null,
+      employment_type: employmentType,
       display_order: (body.display_order as number | undefined) ?? 0,
       /* ⚠️ 年収は新規作成時も書かない。入力UIが無いので常に null になるが、
             「送られてきたら書く」形を残すと、権限を剥奪した意図と食い違う */
-      visibility_company: VALID_VISIBILITY.has(body.visibility_company as string) ? (body.visibility_company as string) : "real",
-      visibility_company_profile: VALID_VISIBILITY.has(body.visibility_company_profile as string) ? (body.visibility_company_profile as string) : "real",
+      visibility_company: visibilityCompany,
+      visibility_company_profile: visibilityCompanyProfile,
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
     })
