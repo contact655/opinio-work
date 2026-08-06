@@ -13,6 +13,7 @@ import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
 import { buildRoleTree, type RoleTree, type RoleNode } from "@/lib/roles/jobRoles";
 import { pickRoleLabel, fetchCompanyRoleMap } from "@/lib/jobs/roleLabel";
+import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
@@ -795,9 +796,15 @@ export const getRoleTree = cache(async function getRoleTree(): Promise<RoleTree>
   return buildRoleTree(await getRoleRows());
 });
 
-/** job_id → ow_job_roles の role_id[]（is_primary が先頭）。RLS バイパス */
+/**
+ * job_id → ow_job_roles の role_id[]（is_primary が先頭）。RLS バイパス。
+ *
+ * ⚠️ no-store クライアントで引く。ADMIN で職種タグを付け替えたとき、
+ *    fetch キャッシュに載っていると `unstable_cache` の期限が切れた後も
+ *    古いタグを返し続ける（createNoStoreAdminClient のコメント参照）。
+ */
 export async function getJobRoleMap(jobIds?: string[]): Promise<Map<string, string[]>> {
-  const admin = createAdminClient();
+  const admin = createNoStoreAdminClient();
   let q = admin.from("ow_job_roles").select("job_id, role_id, is_primary");
   if (jobIds && jobIds.length > 0) q = q.in("job_id", jobIds);
   const { data, error } = await q;
@@ -847,7 +854,6 @@ const JOB_DETAIL_COLS = [
 export const getJobs = unstable_cache(
   async (): Promise<{ jobs: Job[]; companies: Company[] }> => {
     const supabase = createPublicClient();
-    const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let jobQuery: any = supabase
@@ -861,8 +867,9 @@ export const getJobs = unstable_cache(
     const [{ data: jobRows, error: jobErr }, { data: compRows }, { data: jobRoleRows }, roleTree, cjrMap] = await Promise.all([
       jobQuery,
       supabase.from("ow_companies").select(COMPANY_LIST_COLS),
-      // ow_job_roles: 全求人の職種紐づけを一括取得（admin: RLS バイパス）
-      admin.from("ow_job_roles").select("job_id, role_id, is_primary"),
+      // ow_job_roles: 全求人の職種紐づけを一括取得（RLS バイパス）
+      // ⚠️ no-store。付け替えが unstable_cache の期限後も反映されないのを防ぐ
+      createNoStoreAdminClient().from("ow_job_roles").select("job_id, role_id, is_primary"),
       getRoleTree(),
       // 会社独自呼称。表示にだけ使う（src/lib/jobs/roleLabel.ts）
       fetchCompanyRoleMap(),

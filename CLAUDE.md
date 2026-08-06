@@ -91,6 +91,38 @@ migration で talk_themes を更新しても LP に反映されず、原因は�
 `export const revalidate = 300` を追加して解消。同日の全ルート監査では他に該当なし
 （86ページ中、DB利用70ページ・GETルートハンドラ全件を確認）。
 
+### ⚠️ もう1層ある：supabase-js の fetch キャッシュ（2026-08-06 追記）
+
+**`force-dynamic` を書いても、supabase-js の読み取りは Next の fetch キャッシュに載る。**
+
+supabase-js は内部で `fetch` を使う。Next はその `fetch` をパッチして結果を
+メモリと `.next/cache/fetch-cache` に保存するため、
+`createAdminClient()` / `createClient()` の SELECT が**黙ってキャッシュされる**。
+
+上の「ルートキャッシュ」（静的レンダリング）とは**別の層**であり、
+`export const dynamic = "force-dynamic"` でも `export const revalidate = 0` でも止まらない。
+
+2026-08-06 の事例: 会社呼称（`ow_company_job_roles`）を論理削除しても
+`deleted_at` が null のまま返り続けた。ルートは `force-dynamic` で、
+dev サーバーを再起動して `.next/cache/fetch-cache` を消すまで直らなかった。
+
+#### 対処
+
+**即時反映が要る読み取りは `createNoStoreAdminClient()`（`lib/supabase/noStore.ts`）を使う。**
+`global.fetch` で `cache: "no-store"` を強制する管理クライアント。
+
+| 用途 | クライアント |
+|---|---|
+| 運営・企業の操作がすぐ画面に出てほしい読み取り（職種タグ・会社呼称） | `createNoStoreAdminClient()` |
+| それ以外 | `createAdminClient()` |
+
+⚠️ `unstable_cache`（`getJobs` は revalidate 300 / `jobs/[id]` は 60）は**別の層で、こちらは残す**。
+意図した鮮度契約なので消さない。切りたいのは二重にかかっている fetch キャッシュだけ。
+
+⚠️ 症状は「DBを直したのに画面が古い」で上の静的化と同じ。
+**切り分け方**: コードを変えずに dev を再起動して直れば fetch キャッシュ、
+再デプロイしないと直らなければ静的レンダリング。
+
 ### 現在の鮮度設定
 
 | 間隔 | ルート |

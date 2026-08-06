@@ -100,7 +100,18 @@ export const SALARY_SLUG_MAP: Record<string, {
 };
 
 // DB の job_category → slug への変換マップ
+//
+// ⚠️ job_category は ow_job_roles の主ロール名から派生する値（deriveJobCategory.ts）。
+//    職種タグを付け替えると job_category も変わるので、**このマップも追随させること**。
+//    2026-08-06 に既存11件の職種タグを大分類から子職種に付け替えたところ、
+//    新しい職種名がここに無く、11件すべてが "other"（その他）に落ちた。
+// ⚠️ そもそも /salary が廃止予定のフリーテキスト列を集計キーにしているのが元の問題。
+//    ow_job_roles を直接見る形に作り替えるのが本筋（別タスク）。
 export const CATEGORY_TO_SLUG: Record<string, string> = {
+  // ── 2026-08-06 の付け替えで生まれた標準職種名 ──
+  "エンタープライズセールス": "enterprise-sales",
+  "カスタマーサクセスマネージャー（CSM）": "customer-success",
+  "バックエンド": "backend-engineer",
   "エンタープライズ営業": "enterprise-sales",
   "カスタマーサクセス": "customer-success",
   "セールスエンジニア": "sales-engineer",

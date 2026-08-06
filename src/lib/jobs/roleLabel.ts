@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 
 /**
  * 求人の職種を「表示用にどう出すか」を決める唯一の場所。
@@ -36,27 +36,6 @@ export type JobRoleLabel = {
 };
 
 /**
- * 表示用の職種名を引くための専用クライアント。
- *
- * ⚠️ service role で作ること。ow_company_job_roles の RLS は「その会社の管理者だけ」で、
- *    求職者セッションのクライアントで引くと**エラーも出さず null が返る**。
- * ⚠️ `cache: "no-store"` を明示すること。Next は fetch をパッチして結果を
- *    メモリ＋ .next/cache/fetch-cache に保存するため、これが無いと
- *    **呼称を消しても古い呼称を出し続ける**（2026-08-06 に実際に踏んだ。
- *    ルートに force-dynamic を書いてもこの層は止まらず、dev サーバーを
- *    再起動してキャッシュを消すまで deleted_at が null のまま返り続けた）。
- */
-function createNoStoreClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: "no-store" }) },
-  });
-}
-
-/**
  * 求人 id の配列から表示用の職種名をまとめて引く。
  *
  * ⚠️ ow_job_roles の主ロールを標準職種名にする。role_category_id は
@@ -65,7 +44,7 @@ function createNoStoreClient() {
 export async function fetchJobRoleLabels(
   jobIds: string[]
 ): Promise<Map<string, JobRoleLabel>> {
-  const admin = createNoStoreClient();
+  const admin = createNoStoreAdminClient();
   const out = new Map<string, JobRoleLabel>();
   const ids = Array.from(new Set(jobIds.filter(Boolean)));
   if (ids.length === 0) return out;
@@ -115,10 +94,10 @@ export async function fetchJobRoleLabels(
  *
  * ⚠️ 全件取る。2026-08-06 時点で 1 行しかなく、求人ごとに引くと N+1 になる。
  *    数百行を超えたら company_id で絞ること。
- * ⚠️ no-store クライアントを使う理由は createNoStoreClient のコメントを参照。
+ * ⚠️ no-store クライアントを使う理由は createNoStoreAdminClient のコメントを参照。
  */
 export async function fetchCompanyRoleMap(): Promise<Map<string, { name: string; deleted_at: string | null }>> {
-  const { data, error } = await createNoStoreClient()
+  const { data, error } = await createNoStoreAdminClient()
     .from("ow_company_job_roles")
     .select("id, name, deleted_at");
   if (error) console.error("[fetchCompanyRoleMap]", error.message);

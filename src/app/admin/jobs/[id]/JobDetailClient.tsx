@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
+import type { RoleItem } from "@/components/business/JobEditForm";
+import { updateJobRoles } from "../actions";
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -142,8 +145,48 @@ function TagList({ items }: { items: string[] }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function JobDetailClient({ job }: { job: Job }) {
+export default function JobDetailClient({
+  job, roles = [], roleAliases = {}, initialJobRoles = [],
+}: {
+  job: Job;
+  roles?: RoleItem[];
+  roleAliases?: Record<string, string[]>;
+  initialJobRoles?: { roleId: string; isPrimary: boolean }[];
+}) {
   const [status, setStatus] = useState(job.status);
+  // 職種タグの編集
+  const [jobRoles, setJobRoles] = useState(initialJobRoles);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleMsg, setRoleMsg] = useState<string | null>(null);
+  const roleDirty =
+    jobRoles.length !== initialJobRoles.length ||
+    jobRoles.some((r) => {
+      const o = initialJobRoles.find((x) => x.roleId === r.roleId);
+      return !o || o.isPrimary !== r.isPrimary;
+    });
+
+  const addRole = (id: string) => {
+    if (!id || jobRoles.some((r) => r.roleId === id)) return;
+    setJobRoles((prev) => [...prev, { roleId: id, isPrimary: prev.length === 0 }]);
+  };
+  const removeRole = (id: string) => {
+    setJobRoles((prev) => {
+      const next = prev.filter((r) => r.roleId !== id);
+      if (next.length > 0 && !next.some((r) => r.isPrimary)) next[0] = { ...next[0], isPrimary: true };
+      return next;
+    });
+  };
+  const setPrimary = (id: string) =>
+    setJobRoles((prev) => prev.map((r) => ({ ...r, isPrimary: r.roleId === id })));
+
+  const saveRoles = async () => {
+    setRoleSaving(true);
+    setRoleMsg(null);
+    const res = await updateJobRoles(job.id, jobRoles);
+    setRoleSaving(false);
+    setRoleMsg(res.ok ? "保存しました" : `保存できませんでした: ${res.error}`);
+    if (res.ok) setTimeout(() => window.location.reload(), 600);
+  };
   const [actionLoading, setActionLoading] = useState(false);
 
   // 差し戻しモーダル
@@ -478,14 +521,71 @@ export default function JobDetailClient({ job }: { job: Job }) {
             </Section>
 
             <Section title="求人基本情報">
-              <Field label="職種" value={
-                (() => {
-                  const rows = job.ow_job_roles ?? [];
-                  const primary = rows.find((r) => r.is_primary) ?? rows[0];
-                  const role = Array.isArray(primary?.ow_roles) ? primary?.ow_roles[0] : primary?.ow_roles;
-                  return role?.name ?? null;
-                })()
-              } />
+              {/*
+                職種タグの編集。運営が直せる唯一の導線。
+                ⚠️ 会社呼称（company_job_role_id）はここでは編集しない。
+                   呼称は企業のものなので、運営が代わりに付けると出どころが分からなくなる。
+                ⚠️ 子を持つ大分類は選べない（selectableParent={false}）。求人フォームと同じ制約。
+              */}
+              <div style={{ padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>
+                  職種（求職者に出る職種名の元）
+                </div>
+                {roles.length > 0 ? (
+                  <>
+                    <div style={{ maxWidth: 440, marginBottom: 8 }}>
+                      <RoleSearchSelect
+                        roles={roles}
+                        aliases={roleAliases}
+                        value=""
+                        clearOnSelect
+                        selectableParent={false}
+                        onSelect={addRole}
+                        ariaLabel="職種を検索して追加"
+                        placeholder="職種名で検索して追加（例: 法人営業、AE）"
+                      />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 440 }}>
+                      {jobRoles.map((r) => {
+                        const role = roles.find((x) => x.id === r.roleId);
+                        return (
+                          <div key={r.roleId} style={{
+                            display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8,
+                            background: r.isPrimary ? "#eff3fc" : "#f8fafc",
+                            border: `1px solid ${r.isPrimary ? "#dce5f7" : "#e2e8f0"}`,
+                          }}>
+                            <input type="radio" name="admin-primary-role" checked={r.isPrimary}
+                              onChange={() => setPrimary(r.roleId)} style={{ accentColor: "#002366", cursor: "pointer" }} />
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: r.isPrimary ? 700 : 400, color: r.isPrimary ? "#002366" : "#0f172a" }}>
+                              {role?.name ?? r.roleId}
+                              {r.isPrimary && <span style={{ marginLeft: 6, fontSize: 12, color: "#94a3b8", fontWeight: 400 }}>（代表）</span>}
+                            </span>
+                            <button type="button" onClick={() => removeRole(r.roleId)}
+                              style={{ fontSize: 12, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>解除</button>
+                          </div>
+                        );
+                      })}
+                      {jobRoles.length === 0 && (
+                        <div style={{ fontSize: 13, color: "#94a3b8" }}>職種が設定されていません</div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                      <button type="button" onClick={saveRoles} disabled={!roleDirty || roleSaving || jobRoles.length === 0}
+                        style={{
+                          fontSize: 13, fontWeight: 700, padding: "7px 18px", borderRadius: 8, border: "none",
+                          cursor: !roleDirty || roleSaving || jobRoles.length === 0 ? "default" : "pointer",
+                          background: !roleDirty || roleSaving || jobRoles.length === 0 ? "#e2e8f0" : "#002366",
+                          color: !roleDirty || roleSaving || jobRoles.length === 0 ? "#94a3b8" : "#fff",
+                        }}>
+                        {roleSaving ? "保存中..." : "職種を保存"}
+                      </button>
+                      {roleMsg && <span style={{ fontSize: 12, color: roleMsg.startsWith("保存しました") ? "#059669" : "#dc2626" }}>{roleMsg}</span>}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 13, color: "#94a3b8" }}>職種マスタを読み込めませんでした</div>
+                )}
+              </div>
               <Field label="雇用形態" value={job.employment_type} />
               <Field label="部署" value={job.department} />
               <Field label="勤務地" value={job.location} />
