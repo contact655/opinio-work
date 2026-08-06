@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeYm } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +70,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
        （実データ3件はいずれも salary_man だけに値があり、内訳は null なので確実に消える）。
     ⚠️ 列とデータは残す方針。UI を外しただけで、保存経路が値を壊してはいけない。
   */
+  /* ⚠️ 年月は正規化してから入れる。以前は無検証で `-01` を足しており、
+        形式が違うと date のパースエラーで 500 になっていた（educations と同じ形）。 */
+  const startedAt = normalizeYm(body.started_at);
+  const endedAt = normalizeYm(body.ended_at);
+  if (startedAt === undefined || endedAt === undefined) {
+    return NextResponse.json({ error: "INVALID_PERIOD", message: "在籍期間の形式が正しくありません。" }, { status: 400 });
+  }
+  if (!startedAt) {
+    return NextResponse.json({ error: "started_at required" }, { status: 400 });
+  }
+
   const salaryPatch: Record<string, unknown> = {};
   for (const k of ["salary_base", "salary_bonus", "salary_stock", "salary_man"] as const) {
     if (k in body) salaryPatch[k] = safeSalary(body[k]);
@@ -87,8 +99,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       role_title: s(body.role_title, 100),
       department: s(body.department, 100),
       rank: s(body.rank, 100),
-      started_at: `${body.started_at}-01`,
-      ended_at: body.ended_at ? `${body.ended_at}-01` : null,
+      started_at: startedAt,
+      ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: s(body.description, 5000),
       join_reason: s(body.join_reason, 2000),

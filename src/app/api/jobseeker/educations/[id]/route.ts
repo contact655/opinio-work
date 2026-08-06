@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeYm } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -49,10 +50,20 @@ export async function PUT(
     ? body.degree
     : null;
 
-  const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-  const enrolled_at = typeof body.enrolled_at === "string" && DATE_RE.test(body.enrolled_at) ? body.enrolled_at : null;
+  /* ⚠️ 空と不正を区別する。空は null（任意項目）、不正は 400。
+        黙って null にすると「入力させたのに保存しない」に戻る。
+        クライアントは YYYY-MM-DD を送るが、以前の正規表現は YYYY-MM しか通さず
+        入学年月・卒業年月が丸ごと捨てられていた（2026-08-07 に判明）。 */
+  const enrolled_at = normalizeYm(body.enrolled_at);
+  if (enrolled_at === undefined) {
+    return NextResponse.json({ error: "INVALID_ENROLLED_AT", message: "入学年月の形式が正しくありません。" }, { status: 400 });
+  }
   const is_current = body.is_current === true;
-  const graduated_at = is_current ? null : (typeof body.graduated_at === "string" && DATE_RE.test(body.graduated_at) ? body.graduated_at : null);
+  const graduatedRaw = is_current ? null : normalizeYm(body.graduated_at);
+  if (graduatedRaw === undefined) {
+    return NextResponse.json({ error: "INVALID_GRADUATED_AT", message: "卒業年月の形式が正しくありません。" }, { status: 400 });
+  }
+  const graduated_at = graduatedRaw;
 
   // school_id: body に明示的に含まれる場合のみ更新(undefined = 変更なし、null = クリア、UUID string = セット)
   const updatePayload: {

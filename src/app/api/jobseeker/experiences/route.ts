@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeYm } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -156,6 +157,17 @@ export async function POST(req: Request) {
   const description = typeof body.description === "string" ? body.description.slice(0, 5000) : null;
   const joinReason  = typeof body.join_reason  === "string" ? body.join_reason.slice(0, 5000)  : null;
 
+  /* ⚠️ 年月は正規化してから入れる。以前は無検証で `-01` を足しており、
+        形式が違うと date のパースエラーで 500 になっていた（educations と同じ形）。 */
+  const startedAt = normalizeYm(body.started_at);
+  const endedAt = normalizeYm(body.ended_at);
+  if (startedAt === undefined || endedAt === undefined) {
+    return NextResponse.json({ error: "INVALID_PERIOD", message: "在籍期間の形式が正しくありません。" }, { status: 400 });
+  }
+  if (!startedAt) {
+    return NextResponse.json({ error: "started_at required" }, { status: 400 });
+  }
+
   const { data: inserted, error } = await supabase
     .from("ow_experiences")
     .insert({
@@ -167,8 +179,8 @@ export async function POST(req: Request) {
       role_title: roleTitle,
       department,
       rank: typeof body.rank === "string" ? body.rank.slice(0, 50) : null,
-      started_at: `${body.started_at}-01`,
-      ended_at: body.ended_at ? `${body.ended_at}-01` : null,
+      started_at: startedAt,
+      ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description,
       join_reason: joinReason,
