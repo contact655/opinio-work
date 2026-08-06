@@ -8457,13 +8457,11 @@ export type Database = {
           join_reason: string
           role_category_id: string
           role_title: string
-          salary_man: number
           started_at: string
           updated_at: string
           user_id: string
           visibility_company: string
           visibility_reason: boolean
-          visibility_salary: boolean
         }[]
       }
       get_tenant_id: { Args: never; Returns: string }

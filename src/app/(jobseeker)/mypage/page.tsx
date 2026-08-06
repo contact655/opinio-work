@@ -61,7 +61,10 @@ export default async function MypagePage({
         .order("sort_order", { ascending: true }),
       supabase
         .from("ow_experiences")
-        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, salary_man, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
+        /* ⚠️ salary_man は SELECT しない。2026-08-06 に authenticated から
+              年収4列の SELECT 権限を剥奪したので、含めると全体が
+              permission denied になり職歴が丸ごと消える。表示にも使っていない。 */
+        .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
         .eq("user_id", owUser.id)
         .order("is_current", { ascending: false })
         .order("started_at", { ascending: false }),

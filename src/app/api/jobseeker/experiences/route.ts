@@ -28,7 +28,10 @@ export async function GET() {
 
   const { data: rows, error: rowsErr } = await supabase
     .from("ow_experiences")
-    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, salary_base, salary_bonus, salary_stock, salary_man, visibility_company, visibility_company_profile, visibility_salary, visibility_reason")
+    /* ⚠️ 年収4列（salary_base / salary_bonus / salary_stock / salary_man）は SELECT しない。
+          2026-08-06 に authenticated から SELECT 権限を剥奪したので、含めると
+          permission denied で職歴一覧が丸ごと空になる。入力UIも既に無い。 */
+    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_company_profile, visibility_salary, visibility_reason")
     .eq("user_id", owUserId)
     .order("is_current", { ascending: false })
     .order("started_at", { ascending: false });
@@ -79,9 +82,7 @@ export async function GET() {
       roleTitle: r.role_title as string | undefined || undefined,
       department: (r.department as string | null) ?? undefined,
       rank: (r.rank as string | null) ?? null,
-      salaryBase: (r.salary_base as number | null) ?? null,
-      salaryBonus: (r.salary_bonus as number | null) ?? null,
-      salaryStock: (r.salary_stock as number | null) ?? null,
+      /* 年収は返さない（SELECT していない）。入力UIも権限も無い */
       startedAt: (r.started_at as string).slice(0, 7),
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
       isCurrent: r.is_current as boolean,
@@ -89,7 +90,6 @@ export async function GET() {
       joinReason: r.join_reason as string | undefined || undefined,
       employmentType: r.employment_type as string | undefined || undefined,
       displayOrder: (r.display_order as number) ?? 0,
-      salaryMan: r.salary_man as number | null ?? null,
       visibilityCompany: (r.visibility_company as "real" | "masked" | "hidden" | undefined) ?? "real",
       visibilityCompanyProfile: (r.visibility_company_profile as "real" | "masked" | "hidden" | undefined) ?? "real",
       visibilitySalary: (r.visibility_salary as boolean | undefined) ?? false,
@@ -115,11 +115,6 @@ export async function POST(req: Request) {
 
   const VALID_VISIBILITY = new Set(["real", "masked", "hidden"]);
   const VALID_EMPLOYMENT = new Set(["正社員", "契約社員", "業務委託", "アルバイト", "インターン", "その他"]);
-  function safeSalary(v: unknown): number | null {
-    if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100000) return null;
-    return Math.floor(v);
-  }
-
   const hasCompanyId = !!body.company_id;
   const hasCompanyText = !!body.company_text;
   const hasCompanyAnon = !!body.company_anonymized;
@@ -168,9 +163,6 @@ export async function POST(req: Request) {
       role_title: roleTitle,
       department,
       rank: typeof body.rank === "string" ? body.rank.slice(0, 50) : null,
-      salary_base: safeSalary(body.salary_base),
-      salary_bonus: safeSalary(body.salary_bonus),
-      salary_stock: safeSalary(body.salary_stock),
       started_at: `${body.started_at}-01`,
       ended_at: body.ended_at ? `${body.ended_at}-01` : null,
       is_current: (body.is_current as boolean | undefined) ?? false,
@@ -178,7 +170,8 @@ export async function POST(req: Request) {
       join_reason: joinReason,
       employment_type: VALID_EMPLOYMENT.has(body.employment_type as string) ? (body.employment_type as string) : null,
       display_order: (body.display_order as number | undefined) ?? 0,
-      salary_man: safeSalary(body.salary_man),
+      /* ⚠️ 年収は新規作成時も書かない。入力UIが無いので常に null になるが、
+            「送られてきたら書く」形を残すと、権限を剥奪した意図と食い違う */
       visibility_company: VALID_VISIBILITY.has(body.visibility_company as string) ? (body.visibility_company as string) : "real",
       visibility_company_profile: VALID_VISIBILITY.has(body.visibility_company_profile as string) ? (body.visibility_company_profile as string) : "real",
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
