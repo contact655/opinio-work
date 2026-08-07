@@ -2775,9 +2775,35 @@ export default function ProfileEditClient({
     completed: tabCompletion[tab.key as ProfileTab],
   }));
 
+  // ── プロフィール完成度 ───────────────────────────────────────────────────
+  // 本文の先頭に置いていたが、タブと入力欄がその分だけ下に押し出されて
+  // スクロールしないと見えなかったため、左サイドバーへ移した（2026-08-07）。
+  // ⚠️ サイドバーは 767px 以下で消えるので、モバイル用の控えを本文にも置く。
+  const completionData: CompletionInput = {
+    hasName:               !!basicInfo.name && basicInfo.name.trim() !== "" && basicInfo.name !== "ユーザー",
+    hasAboutMe:            !!basicInfo.aboutMe && basicInfo.aboutMe.trim().length > 0,
+    hasLocation:           !!basicInfo.location && basicInfo.location.trim().length > 0,
+    hasBirthDate:          !!birthYear && !!birthMonth && !!birthDay,
+    hasAvatar:             !!owUser?.avatar_url,
+    experienceCount:       initialExperiences.length,
+    educationCount:        educations.length,
+    hasPreferences:        !!(prefJobType || prefWorkStyle || prefTiming),
+    certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
+    socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
+  };
+
   return (
     <MypageMockProvider>
-      <MypageLayout activeKey="profile">
+      <MypageLayout
+        activeKey="profile"
+        sidebarExtra={
+          <ProfileCompletionBar
+            data={completionData}
+            mode="sidebar"
+            onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
+          />
+        }
+      >
 
         {/* ── ウェルカムバナー（新規登録後 ?welcome=1 のみ表示） ─────────────── */}
         {isWelcome && !welcomeDismissed && (
@@ -2898,28 +2924,14 @@ export default function ProfileEditClient({
           </div>
         </div>
 
-        {/* ── プロフィール完成度バー ────────────────────────────────────────── */}
-        {(() => {
-          const completionData: CompletionInput = {
-            hasName:               !!basicInfo.name && basicInfo.name.trim() !== "" && basicInfo.name !== "ユーザー",
-            hasAboutMe:            !!basicInfo.aboutMe && basicInfo.aboutMe.trim().length > 0,
-            hasLocation:           !!basicInfo.location && basicInfo.location.trim().length > 0,
-            hasBirthDate:          !!birthYear && !!birthMonth && !!birthDay,
-            hasAvatar:             !!owUser?.avatar_url,
-            experienceCount:       initialExperiences.length,
-            educationCount:        educations.length,
-            hasPreferences:        !!(prefJobType || prefWorkStyle || prefTiming),
-            certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
-            socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
-          };
-          return (
-            <ProfileCompletionBar
-              data={completionData}
-              mode="edit"
-              onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
-            />
-          );
-        })()}
+        {/* ── プロフィール完成度（モバイルのみ。デスクトップはサイドバー） ────── */}
+        <div className="mypage-mobile-only">
+          <ProfileCompletionBar
+            data={completionData}
+            mode="edit"
+            onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
+          />
+        </div>
 
         {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
         <Tabs

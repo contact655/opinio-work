@@ -24,10 +24,12 @@ export function ProfileCompletionBar({
 }: {
   data: CompletionInputT;
   onTabChange?: (tab: string) => void;
-  mode?: "edit" | "mypage";
+  /** sidebar は 260px の左サイドバー用。余白を詰め、次アクション行を折り返す。 */
+  mode?: "edit" | "mypage" | "sidebar";
 }) {
   const { score, items } = calcCompletionImpl(data);
   const next = nextAction(items);
+  const compact = mode === "sidebar";
 
   const color =
     score >= 80 ? "var(--success)" :
@@ -39,7 +41,7 @@ export function ProfileCompletionBar({
       background: "var(--bg-tint)",
       border: "1px solid var(--line-soft)",
       borderRadius: 12,
-      padding: "14px 18px",
+      padding: compact ? "12px 14px" : "14px 18px",
       marginBottom: mode === "edit" ? 16 : 0,
     }}>
       {/* Header */}
@@ -71,8 +73,14 @@ export function ProfileCompletionBar({
 
       {/* Next action hint */}
       {next && (
-        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+        <div style={{
+          marginTop: 10, display: "flex", gap: 6,
+          // 260px のサイドバーでは1行に収まらないヒントがあるため折り返す
+          alignItems: compact ? "flex-start" : "center",
+          flexWrap: "wrap",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"
+               style={{ flexShrink: 0, marginTop: compact ? 3 : 0 }}>
             <polyline points="9 18 15 12 9 6" />
           </svg>
           <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>次: </span>

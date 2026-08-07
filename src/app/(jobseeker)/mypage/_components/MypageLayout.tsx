@@ -117,12 +117,19 @@ export default function MypageLayout({
   applicationsBadge,
   children,
   rightColumn,
+  sidebarExtra,
 }: {
   activeKey: MypageActiveKey;
   conversationsBadge?: number;
   applicationsBadge?: number;
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
+  /**
+   * 左サイドバーの末尾に置く要素（プロフィール完成度など）。
+   * ⚠️ サイドバーは 767px 以下で display:none になる。
+   *    モバイルでも出したいものは、本文側にも `.mypage-mobile-only` で置くこと。
+   */
+  sidebarExtra?: React.ReactNode;
 }) {
   const topOffset = 65;
 
@@ -209,6 +216,12 @@ export default function MypageLayout({
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} href="/profile/edit" />
           </nav>
+
+          {sidebarExtra && (
+            <div style={{ padding: "20px 16px 0" }}>
+              {sidebarExtra}
+            </div>
+          )}
         </aside>
 
         {/* メインコンテンツ */}
@@ -232,12 +245,17 @@ export default function MypageLayout({
       <style>{`
         .mypage-nav-item:hover { background: var(--bg-tint) !important; color: var(--ink) !important; }
 
+        /* sidebarExtra はサイドバーにしか出ないため、モバイル用の控えを本文側に置く。
+           ⚠️ ブレークポイントを増やさないよう、下の 767px と同じ場所で定義する。 */
+        .mypage-mobile-only { display: none; }
+
         /* Mobile: show tab bar, hide sidebar grid */
         @media (max-width: 767px) {
           .mypage-mobile-tabbar { display: block !important; }
           .mypage-desktop-grid  { display: block !important; grid-template-columns: none !important; }
           .mypage-desktop-grid > aside { display: none !important; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
+          .mypage-mobile-only   { display: block; }
         }
       `}</style>
     </>
