@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 type Props = {
   tenantId: string;
@@ -59,7 +60,7 @@ export function CompanyCard({
         <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
           {[
             industry,
-            employeeCount ? <><strong style={{ color: "var(--ink)" }}>{employeeCount.toLocaleString()}名</strong></> : null,
+            employeeCount ? <><strong style={{ color: "var(--ink)" }}>{formatEmployeeCount(employeeCount)}</strong></> : null,
             memberCount ? <>担当者<strong style={{ color: "var(--ink)" }}>{memberCount}名</strong></> : null,
           ]
             .filter(Boolean)

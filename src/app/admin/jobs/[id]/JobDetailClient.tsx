@@ -8,6 +8,7 @@ import type { RoleItem } from "@/components/business/JobEditForm";
 import { updateJobRoles } from "../actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { fmtMan } from "@/lib/utils/salary";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -505,7 +506,7 @@ export default function JobDetailClient({
                 ) : "—"
               } />
               <Field label="業界" value={company?.industry} />
-              <Field label="従業員数" value={company?.employee_count} />
+              <Field label="従業員数" value={formatEmployeeCount(company?.employee_count)} />
               <Field label="公開状態" value={
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,

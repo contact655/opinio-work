@@ -7,6 +7,7 @@ import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 /** 法人名サフィックス除去 */
 function cleanEnName(nameEn: string | null | undefined): string | null {
@@ -277,7 +278,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 </span>
               )}
               {company.employee_count && (
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>· {company.employee_count}</span>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>· {formatEmployeeCount(company.employee_count)}</span>
               )}
             </div>
 
@@ -423,11 +424,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                {(() => {
-                  const raw = String(company.employee_count);
-                  if (raw.includes("名")) return raw;
-                  return `約${raw}名`;
-                })()}
+                {/* ⚠️ 「名」の付与とカンマは formatEmployeeCount に集約（2026-08-08）。
+                       ここで `約` を足さない。入っていない値に推測を足すことになる。 */}
+                {formatEmployeeCount(company.employee_count)}
               </span>
             )}
             {company.job_count > 0 && (

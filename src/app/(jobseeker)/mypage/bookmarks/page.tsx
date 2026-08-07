@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import BookmarksClient, { type Bookmark } from "./BookmarksClient";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function BookmarksPage() {
             return [{
               id: b.id as string, type: "company" as const,
               title: c.name as string,
-              meta: [c.industry, c.employee_count ? `${c.employee_count}名` : null].filter(Boolean).join(" / "),
+              meta: [c.industry, formatEmployeeCount(c.employee_count)].filter(Boolean).join(" / "),
               badge_label: (c.industry as string) ?? "企業",
               href: `/companies/${c.id}`,
             }];

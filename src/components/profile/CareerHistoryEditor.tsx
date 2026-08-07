@@ -7,6 +7,7 @@ import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import StoryAccordion from "./StoryAccordion";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -545,7 +546,7 @@ function CompanySearch({
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
                   {(c.industry || c.employee_count) && (
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                      {[c.industry, c.employee_count ? `${c.employee_count}名` : null].filter(Boolean).join(" · ")}
+                      {[c.industry, formatEmployeeCount(c.employee_count)].filter(Boolean).join(" · ")}
                     </div>
                   )}
                 </div>

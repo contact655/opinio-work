@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { describeFreshness, STALE_AFTER_MONTHS } from "@/lib/profile/freshness";
+import { DESIRED_WORK_STYLE_LABELS } from "@/lib/constants/careerPreferences";
 
 type Candidate = {
   id: string;
@@ -32,13 +33,6 @@ type Candidate = {
   onboardingCompleted: boolean;
   alreadyScouted: boolean;
   createdAt: string;
-};
-
-const WORK_STYLE_LABELS: Record<string, string> = {
-  full_remote: "フルリモート",
-  hybrid: "ハイブリッド",
-  on_site: "出社希望",
-  flexible: "柔軟に対応",
 };
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
@@ -501,7 +495,9 @@ export default function CandidatesClient({
         <SidebarLabel>勤務スタイル</SidebarLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
           <Pill active={workStyle === ""} onClick={() => setWorkStyle("")}>全て</Pill>
-          {Object.entries(WORK_STYLE_LABELS).map(([v, l]) => (
+          {/* ⚠️ ラベルは careerPreferences.ts の1箇所で決める。ここに直書きしない。
+              求人の勤務形態（workStyle.ts）とは意味が違うので混ぜない。 */}
+          {Object.entries(DESIRED_WORK_STYLE_LABELS).map(([v, l]) => (
             <Pill key={v} active={workStyle === v} onClick={() => setWorkStyle(workStyle === v ? "" : v)}>{l}</Pill>
           ))}
         </div>

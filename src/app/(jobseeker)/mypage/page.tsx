@@ -17,6 +17,7 @@ import {
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 import { hasCareerPreferences } from "@/lib/profile/completion";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -199,7 +200,7 @@ export default async function MypagePage({
             .map((b): Bookmark | null => {
               const c = companyMap.get(b.target_id as string);
               if (!c) return null;
-              const meta = [c.industry, c.employee_count ? `${c.employee_count}名` : null]
+              const meta = [c.industry, formatEmployeeCount(c.employee_count)]
                 .filter(Boolean).join(" / ");
               return {
                 id: b.id as string, type: "company",

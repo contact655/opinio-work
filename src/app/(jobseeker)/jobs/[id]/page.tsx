@@ -17,6 +17,7 @@ import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/sale
 import { isBusinessRole } from "@/lib/roles/jobRoles";
 import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
 import { fmtMan } from "@/lib/utils/salary";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -668,7 +669,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   <span style={{ fontSize: "var(--text-base)", color: "var(--ink)", fontWeight: 700 }}>{company.name}</span>
                 )}
                 <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
-                  {company.industry}{company.employee_count != null ? ` · ${company.employee_count.toLocaleString()}名` : ""}
+                  {company.industry}{formatEmployeeCount(company.employee_count) ? ` · ${formatEmployeeCount(company.employee_count)}` : ""}
                 </span>
               </div>
 
@@ -1493,7 +1494,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </div>
                     <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, flexWrap: "wrap" }}>
                       <span>業種 <strong style={{ color: "var(--ink)" }}>{company.industry}</strong></span>
-                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{company.employee_count?.toLocaleString() ?? "—"}</strong>名</span>
+                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{formatEmployeeCount(company.employee_count) ?? "—"}</strong></span>
                     </div>
                   </div>
                 </div>

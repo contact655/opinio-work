@@ -34,6 +34,24 @@ export const DESIRED_WORK_STYLES = [
  */
 export const DESIRED_WORK_STYLES_LEGACY = ["flexible"] as const;
 
+/**
+ * 値 → 表示ラベル。**DB に入りうる値をすべて含む**（選択肢から外した legacy も）。
+ *
+ * ⚠️ 選択肢（DESIRED_WORK_STYLES）は「本人がこれから選ぶもの」で3つだけ。
+ *    こちらは「既に入っている値を表示する」ための対応表なので legacy も要る。
+ *    企業側の候補者検索（/biz/candidates）が legacy 値の人を
+ *    絞り込めなくならないように、ラベルは残す（2026-08-08 時点で flexible が1名）。
+ *
+ * ⚠️ 求人・企業の**勤務形態**（workStyle.ts）とは別物。混ぜないこと。
+ *    あちらは「その会社/求人がどうであるか」、こちらは「本人がどうしたいか」。
+ */
+export const DESIRED_WORK_STYLE_LABELS: Record<string, string> = {
+  full_remote: "フルリモート希望",
+  hybrid: "ハイブリッド（週1〜3出社）",
+  on_site: "出社中心",
+  flexible: "柔軟に対応",
+};
+
 export const TRANSFER_TIMINGS = [
   { value: "即時",         label: "すぐにでも（即時）" },
   { value: "1〜3ヶ月以内",  label: "1〜3ヶ月以内" },

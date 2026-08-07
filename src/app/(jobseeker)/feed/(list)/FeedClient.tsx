@@ -10,6 +10,7 @@ import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
 import { fmtMan } from "@/lib/utils/salary";
+import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -1771,7 +1772,7 @@ function PostCard({
         const facts = [
           co.industry?.trim() ? { k: "業種", v: co.industry.trim() } : null,
           co.employee_count != null && String(co.employee_count).trim()
-            ? { k: "従業員数", v: String(co.employee_count).includes("名") ? String(co.employee_count) : `${co.employee_count}名` }
+            ? { k: "従業員数", v: formatEmployeeCount(co.employee_count) ?? "" }
             : null,
           co.location?.trim() ? { k: "所在地", v: co.location.trim() } : null,
           co.founded_year ? { k: "設立", v: `${co.founded_year}年` } : null,
