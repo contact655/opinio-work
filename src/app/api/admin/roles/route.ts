@@ -26,7 +26,9 @@ export async function GET() {
        同じ求人を2回数えないよう、job_id の集合で重複を除いてから数えること。
   */
   const [rolesRes, aliasesRes, mergedRes, expRes, jobsRes, jobRolesRes] = await Promise.all([
-    admin.from("ow_roles").select("id, name, slug, parent_id, level, is_active, is_it_saas, merged_into_id").order("level").order("name"),
+    /* ⚠️ display_order を返すこと。/admin/roles は大分類ごとのセクション表示で、
+       並び順は display_order を正にしている（五十音順にしない）。 */
+    admin.from("ow_roles").select("id, name, slug, parent_id, level, is_active, is_it_saas, merged_into_id, display_order").order("level").order("display_order", { nullsFirst: false }).order("name"),
     admin.from("ow_role_aliases").select("role_id"),
     admin.from("ow_roles").select("id, name").eq("is_active", true),
     admin.from("ow_experiences").select("id, role_category_id").not("role_category_id", "is", null),
