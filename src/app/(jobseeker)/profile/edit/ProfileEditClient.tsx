@@ -2875,10 +2875,9 @@ export default function ProfileEditClient({
 
         {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: -16, marginBottom: "var(--space-3)" }}>
-          <h1 style={{
-            fontFamily: '"Noto Serif JP", serif', fontSize: "var(--text-xl)", fontWeight: 700,
-            color: "var(--ink)", margin: 0,
-          }}>プロフィール</h1>
+          {/* サイドバーで現在地が分かるため、見出しは画面に出さない（2026-08-07）。
+              ただし h1 が1つも無いページにしないよう sr-only で残す。 */}
+          <h1 className="sr-only">プロフィール</h1>
 
           {/* グローバル保存ステータスインジケーター */}
           {globalSaveStatus !== "idle" && (
