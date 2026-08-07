@@ -816,54 +816,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
               );
             })()}
 
-            {/* ── プロフィール完成度ガイド (owners only) ── */}
-            {viewerIsOwner && (() => {
-              const items = [
-                { label: "自己紹介", done: !!owUser.about_me, tab: "basic", icon: "✍️" },
-                { label: "職歴", done: timelineCareers.length > 0, tab: "career", icon: "🏢" },
-                { label: "目指していること", done: !!owUser.future_aspirations, tab: "basic", icon: "🎯" },
-                { label: "数値実績", done: achievements.length > 0, tab: "career", icon: "📊" },
-                { label: "受賞・表彰", done: awards.length > 0, tab: "career", icon: "🏆" },
-                { label: "発信コンテンツ", done: contentLinks.length > 0, tab: "content", icon: "📝" },
-              ];
-              const completedCount = items.filter((i) => i.done).length;
-              const percentage = Math.round((completedCount / items.length) * 100);
-              if (percentage === 100) return null;
-              return (
-                <section style={{
-                  background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
-                  border: "1px solid #fde68a", borderRadius: 14,
-                  padding: "18px 22px", marginBottom: 20,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-2)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round">
-                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-                      </svg>
-                      <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#92400E" }}>
-                        プロフィール完成度 {percentage}%
-                      </span>
-                    </div>
-                    {/* Progress bar */}
-                    <div style={{ flex: 1, minWidth: 120, height: 6, background: "#FDE68A", borderRadius: 100, overflow: "hidden" }}>
-                      <div style={{ width: `${percentage}%`, height: "100%", background: "#D97706", borderRadius: 100, transition: "width 0.4s ease" }} />
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {items.filter((i) => !i.done).map((item) => (
-                      <Link key={item.tab + item.label} href={`/profile/edit?tab=${item.tab}`} style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        padding: "5px 12px", borderRadius: 100,
-                        background: "#fff", border: "1px solid #FDE68A",
-                        fontSize: 12, color: "#92400E", fontWeight: 600, textDecoration: "none",
-                      }}>
-                        <span>{item.icon}</span> {item.label}を追加
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              );
-            })()}
+            {/* ⚠️ ここにあった「プロフィール完成度」バナー（本人にだけ出る
+                   黄色のプログレスバー＋未完了項目のチップ）は 2026-08-07 に削除した。
+                   /u/[id] は**他人に見せるためのページ**で、本人が来るのは
+                   見え方を確認するときなので、編集の督促を出す場所ではない。
+                   完成度は /profile/edit（右カラム）と /mypage に出ている。
+                ⚠️ 各セクションの「まだ書かれていません」の空状態は残す。
+                   そこは「この欄が空である」という事実の表示であって督促ではない。 */}
 
             {/* About Me */}
             {owUser.about_me ? (
