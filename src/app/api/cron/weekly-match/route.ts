@@ -11,7 +11,50 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
+/*
+  ⚠️⚠️ 週次メールは停止中（2026-08-07）。**このガードを外す前に下を読むこと。**
+
+  止めた理由（いずれも「送ると嘘をつく」たぐいのもの）:
+
+  ① マッチ度「75%」に根拠が無い。
+     このルートが読む ow_match_scores は0件で、しかも**書き込むコードが
+     src にも migration にも存在しない**（読んでいるのはこのファイル1箇所だけ）。
+     スコアが無いと下の補完経路に落ち、matchScore: 75 が**ハードコードで**入る。
+     つまり永久に全員・全求人が 75%。本文の「プロフィールに基づいて」も嘘で、
+     実際にはプロフィールを1列も読んでいない。
+
+  ② 配信停止が機能していない。
+     ow_profiles / ow_users に opt-out の列が無い。/profile/edit の
+     「メール通知設定」は localStorage にしか保存せず、cron は読まない。
+     メール末尾の「配信停止はマイページから設定できます」も事実と違う。
+
+  ③ 宛先が実ユーザー3人 / 39人。うち example.com が20件で必ずバウンスする。
+     抽出条件が「ow_profiles 全件」で、is_test もシステムユーザーも除外していない。
+
+  再開に必要なこと（両方やらないと動かない。**片方だけ戻さないこと**）:
+    1. Vercel の環境変数に WEEKLY_EMAIL_ENABLED=true を入れる
+    2. vercel.json の crons に "/api/cron/weekly-match" を戻す
+
+  ⚠️ ①②③ を直さずに再開しないこと。特に②は opt-out が無い状態での配信になる。
+     宛先の絞り込みと配信停止フラグの DB 化が先。
+     マッチングは ow_match_scores を作り直すのではなく、
+     希望条件（ow_profile_desired_roles / ow_profiles.desired_*）と
+     lib/matching/scoreJob.ts でその場で出す形が使える。
+*/
+function isDisabled(): boolean {
+  return process.env.WEEKLY_EMAIL_ENABLED !== "true";
+}
+
 export async function GET(request: Request) {
+  // ⚠️ 認証より前に置く。認証が通っても送信経路に入らないための保険
+  if (isDisabled()) {
+    return NextResponse.json({
+      success: true,
+      sent: 0,
+      reason: "disabled: weekly-match は停止中（ow_match_scores に書き込む主体が無く 75% がハードコード / 配信停止が未実装）。再開は WEEKLY_EMAIL_ENABLED=true と vercel.json の crons の両方",
+    });
+  }
+
   // Fail fast if CRON_SECRET is not configured
   if (!process.env.CRON_SECRET) {
     return new Response("CRON_SECRET not configured", { status: 500 });

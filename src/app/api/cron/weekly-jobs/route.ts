@@ -12,7 +12,49 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
+/*
+  ⚠️⚠️ 週次メールは停止中（2026-08-07）。**このガードを外す前に下を読むこと。**
+
+  weekly-match（架空の 75% を送っていた）と揃えて止めた。
+  こちらの本文自体は健全で、職種名も roleLabel を使っている。
+  それでも止めたのは、**宛先と配信停止が weekly-match と同じ穴**だから:
+
+  ① 配信停止が機能していない。
+     ow_profiles / ow_users に opt-out の列が無い。/profile/edit の
+     「メール通知設定」は localStorage 保存で、cron は読まない。
+     メール末尾の「配信停止はマイページから設定できます」も事実と違う。
+
+  ② 宛先が実ユーザー3人 / 39人。うち example.com が20件で必ずバウンスする。
+     抽出条件が「ow_profiles 全件」で、is_test もシステムユーザーも除外していない。
+
+  ⚠️ 「今は0通だから無害」ではない。過去7日の新着が0件で止まっているだけで、
+     求人を1件公開した翌週から39人全員に送られ始める**時限式**だった。
+
+  再開に必要なこと（両方やらないと動かない。**片方だけ戻さないこと**）:
+    1. Vercel の環境変数に WEEKLY_EMAIL_ENABLED=true を入れる
+    2. vercel.json の crons に "/api/cron/weekly-jobs" を戻す
+
+  ⚠️ 下の期限切れ遷移（DRY RUN）もこのガードで動かなくなる。
+     ただし実 UPDATE は元からコメントアウトされており、
+     2026-08-07 時点で ow_jobs 20件の expires_at は全件 NULL のため
+     該当は0件。止めてもログが1行出なくなるだけで、状態は変わらない。
+     ⚠️ 期限切れ遷移を本当に有効化するときは、このルートに相乗りさせず
+        別の cron に切り出すこと。メール停止と寿命は別の関心事。
+*/
+function isDisabled(): boolean {
+  return process.env.WEEKLY_EMAIL_ENABLED !== "true";
+}
+
 export async function GET(request: Request) {
+  // ⚠️ 認証より前に置く。認証が通っても送信経路に入らないための保険
+  if (isDisabled()) {
+    return NextResponse.json({
+      success: true,
+      sent: 0,
+      reason: "disabled: weekly-jobs は停止中（配信停止が未実装 / 宛先に is_test と example.com が混ざる）。再開は WEEKLY_EMAIL_ENABLED=true と vercel.json の crons の両方",
+    });
+  }
+
   // Fail fast if CRON_SECRET is not configured
   if (!process.env.CRON_SECRET) {
     return new Response("CRON_SECRET not configured", { status: 500 });

@@ -822,6 +822,53 @@ where to_regclass('public.'||obj) is null
 
 ---
 
+## ⚠️ 週次メールは停止中（2026-08-07 決定）
+
+**`/api/cron/weekly-match` と `/api/cron/weekly-jobs` は止めてある。勝手に戻さないこと。**
+
+止め方は二重。**両方戻さないと動かない**（片方だけ戻しても送信されない）。
+
+| # | 場所 | 状態 |
+|---|---|---|
+| 1 | `vercel.json` の `crons` | **空**（`{}`）。JSON にコメントが書けないので理由はここと各ルートに書いた |
+| 2 | 各ルート冒頭の `isDisabled()` | `WEEKLY_EMAIL_ENABLED !== "true"` なら**認証より前に** return |
+
+### なぜ止めたか
+
+| # | 事実（2026-08-07 実測） |
+|---|---|
+| ① | weekly-match の「マッチ度 **75%**」に根拠が無い。`ow_match_scores` は0件で、**書き込むコードが src にも migration にも存在しない**（読んでいるのは weekly-match の1箇所だけ）。スコアが無いと補完経路に落ち `matchScore: 75` が**ハードコード**で入る。本文の「プロフィールに基づいて」も嘘で、プロフィールを1列も読んでいない |
+| ② | **配信停止が機能していない。** `ow_profiles` / `ow_users` に opt-out の列が無い（`notify_email` `email_opt_out` `notification_settings` `unsubscribed_at` いずれも**存在しない**）。`/profile/edit` の「メール通知設定」は **localStorage 保存**で cron は読まない。本文末尾の「配信停止はマイページから設定できます」も事実と違う（設定 UI は `/mypage` に無い） |
+| ③ | 宛先が **39人中 実ユーザー3人**。抽出条件が「`ow_profiles` 全件」で `is_test` もシステムユーザーも除外していない。内訳は example.com 20 / opinio.co.jp 15(全て is_test) / gmail 3 / icloud 1。**example.com の20件は必ずハードバウンスする** |
+| ④ | weekly-jobs は当時0通だったが、それは過去7日の新着が0件だっただけ。**求人を1件公開した翌週から39人全員に送られ始める時限式**だった |
+
+### 再開する前に必ず直すこと
+
+- **②が最優先。** opt-out の列を DB に作り、localStorage から移す。cron がそれを読む
+- 宛先から `is_test` / システムユーザー / `ow_users` に対応の無い行を除外する
+- weekly-match の「75%」と「プロフィールに基づいて」を消す
+
+⚠️ **`ow_match_scores` を作り直す必要は無い。** 希望条件
+（`ow_profile_desired_roles` と `ow_profiles.desired_*`）と
+[src/lib/matching/scoreJob.ts](src/lib/matching/scoreJob.ts) でその場で出せる。
+事前計算テーブルは「書き込む主体が最初から存在しない」まま残っているだけ。
+
+⚠️ ただし **2026-08-07 時点で希望条件が入っているのは39人中6人**
+（職種6 / 勤務スタイル2 / 年収3 / フェーズ3 / 転職時期2）。
+「スコアリングに繋げば良くなる」ではなく、**希望条件が空の人に何を送るか**を決めるのが本体。
+今のコードはそこを「75%」で埋めて誤魔化していた。
+
+⚠️ 期限切れ遷移（`status` を expired に）が weekly-jobs に同居しているが、
+**実 UPDATE は元からコメントアウト**されており、`ow_jobs` 20件の `expires_at` は
+**全件 NULL**（migration 257）なので該当0件。停止の影響は無い。
+有効化するときは weekly-jobs に相乗りさせず**別の cron に切り出すこと**。
+メールの停止と求人の寿命は別の関心事で、片方を止めるともう片方も止まる形にしない。
+
+⚠️ **`RESEND_API_KEY` を消してメールを止めない。** `lib/notify/email.ts` 経由の
+応募・面談・招待・スカウト返信（13ファイルから参照）が全部死ぬ。
+
+---
+
 ## ⚠️ 未実装課題メモ
 
 ### カジュアル面談の個人指名機能が未実装
