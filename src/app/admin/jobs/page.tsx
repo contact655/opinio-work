@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { approveJob, rejectJob, privateJob, republishJob } from "./actions";
+import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 
 // DB status values (migration 113 適用前は "active"、適用後は "published")
 const STATUS_TABS = [
@@ -15,11 +16,6 @@ const STATUS_TABS = [
   { key: "private",        label: "非公開" },
 ];
 
-const WORK_STYLE_LABELS: Record<string, string> = {
-  full_remote: "フルリモート可",
-  hybrid:      "ハイブリッド",
-  on_site:     "原則出社",
-};
 
 type Job = {
   id: string;

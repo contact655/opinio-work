@@ -52,25 +52,7 @@ export const JOB_EMPLOYMENT_TYPES = [
 
 export type JobEmploymentType = (typeof JOB_EMPLOYMENT_TYPES)[number];
 
-/**
- * 求人の勤務形態。**値は DB に入れる英語、label は画面に出す日本語。**
- *
- * ⚠️ 2026-08-07 以前は JobEditForm が日本語ラベルをそのまま送っていた。
- *    ow_jobs.remote_work_status の CHECK は full_remote / hybrid / on_site なので、
- *    **求人フォームで勤務形態を選ぶと保存が 23514 で落ちていた**
- *    （選ばなければ通るので気づきにくかった）。
- *    ラベルを送らない。value を送る。
- */
-export const REMOTE_WORK_STATUSES = [
-  { value: "full_remote", label: "フルリモート可" },
-  { value: "hybrid",      label: "ハイブリッド（週2-3日出社）" },
-  { value: "on_site",     label: "原則出社" },
-] as const;
-
 export const VALID_JOB_EMPLOYMENT_TYPES = new Set<string>(JOB_EMPLOYMENT_TYPES);
-export const VALID_REMOTE_WORK_STATUSES = new Set<string>(
-  REMOTE_WORK_STATUSES.map((o) => o.value),
-);
 
 /** 学位。UI のセレクトと API の検証が共有する */
 export const DEGREES = [

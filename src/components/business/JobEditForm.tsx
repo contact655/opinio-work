@@ -13,7 +13,8 @@ import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
-import { JOB_EMPLOYMENT_TYPES, REMOTE_WORK_STATUSES } from "@/lib/constants/careerOptions";
+import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 

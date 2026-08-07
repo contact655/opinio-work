@@ -6,6 +6,7 @@ import { VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
 import { notify } from "@/lib/notify/email";
 import { applicationStatusTemplate } from "@/lib/notify/templates";
 import { insertActivity } from "@/lib/business/activities";
+import { fmtMan } from "@/lib/utils/salary";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -160,9 +161,9 @@ export async function PATCH(
     <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">採用者メール</td>
         <td style="padding:10px 14px;border:1px solid #e2e8f0"><a href="mailto:${appForNotify.email}" style="color:#3B5FD9">${appForNotify.email ?? "—"}</a></td></tr>
     <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">想定年収</td>
-        <td style="padding:10px 14px;border:1px solid #e2e8f0">${hiredSalary ? `${hiredSalary}万円` : "未入力"}</td></tr>
+        <td style="padding:10px 14px;border:1px solid #e2e8f0">${hiredSalary ? `${fmtMan(Number(hiredSalary))}万円` : "未入力"}</td></tr>
     <tr style="background:#D1FAE5"><td style="padding:10px 14px;background:#6EE7B7;border:1px solid #6EE7B7;font-weight:800;color:#065F46">請求額（目安）</td>
-        <td style="padding:10px 14px;border:1px solid #6EE7B7;font-weight:800;font-size:16px;color:#065F46">${fee ? `${fee}万円（年収の10%・税抜）` : "年収 × 10%（税抜）"}</td></tr>
+        <td style="padding:10px 14px;border:1px solid #6EE7B7;font-weight:800;font-size:16px;color:#065F46">${fee ? `${fmtMan(fee)}万円（年収の10%・税抜）` : "年収 × 10%（税抜）"}</td></tr>
     <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">申込ID</td>
         <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:12px;color:#475569;font-family:monospace">${appId}</td></tr>
   </table>

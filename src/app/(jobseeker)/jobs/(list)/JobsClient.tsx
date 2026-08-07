@@ -59,6 +59,7 @@ const SALARY_PILL_TIERS = [
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
+import { fmtMan } from "@/lib/utils/salary";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -69,10 +70,10 @@ const PER_PAGE = 15;
 
 function formatSalary(min: number | null, max: number | null): string {
   if (!min && !max) return "給与非公開";
-  const fmt = (v: number) => v.toLocaleString("ja-JP");
-  if (min && max) return `年収${fmt(min)}万円〜${fmt(max)}万円`;
-  if (max) return `年収〜${fmt(max)}万円`;
-  return `年収${fmt(min!)}万円〜`;
+  /* ⚠️ カンマ区切りは fmtMan に寄せる。toLocaleString を直書きしない（2026-08-08） */
+  if (min && max) return `年収${fmtMan(min)}万円〜${fmtMan(max)}万円`;
+  if (max) return `年収〜${fmtMan(max)}万円`;
+  return `年収${fmtMan(min)}万円〜`;
 }
 function hasSalaryData(min: number | null, max: number | null): boolean {
   return !!(min || max);
@@ -1542,8 +1543,8 @@ export default function JobsClient({
                         )}
                         {(job.salary_min ?? 0) > 0 && (
                           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
-                            {job.salary_min}
-                            {job.salary_max && job.salary_max > job.salary_min! ? `〜${job.salary_max}` : ""}万円
+                            {fmtMan(job.salary_min)}
+                            {job.salary_max && job.salary_max > job.salary_min! ? `〜${fmtMan(job.salary_max)}` : ""}万円
                           </div>
                         )}
                       </div>

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { HeroSearch } from "./HeroSearch";
 import { FinalCta } from "./FinalCta";
+import { fmtMan } from "@/lib/utils/salary";
 
 /**
  * DATA セクション「経歴が構造化されている」に添える実画面。
@@ -163,9 +164,9 @@ function phaseText(phase: string | null): string | null {
 }
 
 function salaryText(min: number | null, max: number | null): string | null {
-  if (min && max) return `${min.toLocaleString("ja-JP")}〜${max.toLocaleString("ja-JP")}万円`;
-  if (min) return `${min.toLocaleString("ja-JP")}万円〜`;
-  if (max) return `〜${max.toLocaleString("ja-JP")}万円`;
+  if (min && max) return `${fmtMan(min)}〜${fmtMan(max)}万円`;
+  if (min) return `${fmtMan(min)}万円〜`;
+  if (max) return `〜${fmtMan(max)}万円`;
   return null;
 }
 

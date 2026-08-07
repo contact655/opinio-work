@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobs } from "@/lib/supabase/queries";
 import { SALARY_SLUG_MAP, buildSalaryStats, getJobsForSlug } from "../salaryData";
+import { fmtMan } from "@/lib/utils/salary";
 
 export const revalidate = 3600;
 
@@ -86,7 +87,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
               {/* 大きな年収表示 */}
               <div style={{ marginBottom: 20 }}>
                 <span style={{ fontSize: "clamp(28px,5vw,48px)", fontWeight: 900, color: "var(--success)", fontFamily: "Inter,sans-serif", lineHeight: 1 }}>
-                  {myStat.avgMin}〜{myStat.avgMax}
+                  {fmtMan(myStat.avgMin)}〜{fmtMan(myStat.avgMax)}
                 </span>
                 <span style={{ fontSize: 16, color: "var(--ink-soft)", marginLeft: 8 }}>万円</span>
               </div>
@@ -116,17 +117,17 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                   <span>0</span>
-                  <span>{Math.round(barMax / 2)}万</span>
-                  <span>{barMax}万円</span>
+                  <span>{fmtMan(Math.round(barMax / 2))}万</span>
+                  <span>{fmtMan(barMax)}万円</span>
                 </div>
               </div>
 
               {/* ミニ統計 */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
                 {[
-                  { label: "最低", val: `${myStat.minSalary.toLocaleString("ja-JP")}万円` },
-                  { label: "平均レンジ", val: `${myStat.avgMin.toLocaleString("ja-JP")}〜${myStat.avgMax.toLocaleString("ja-JP")}万円`, highlight: true },
-                  { label: "最高", val: `${myStat.maxSalary.toLocaleString("ja-JP")}万円` },
+                  { label: "最低", val: `${fmtMan(myStat.minSalary)}万円` },
+                  { label: "平均レンジ", val: `${fmtMan(myStat.avgMin)}〜${fmtMan(myStat.avgMax)}万円`, highlight: true },
+                  { label: "最高", val: `${fmtMan(myStat.maxSalary)}万円` },
                 ].map(({ label, val, highlight }) => (
                   <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: highlight ? "var(--royal-50)" : "var(--bg-tint)", borderRadius: 10, border: `1px solid ${highlight ? "var(--royal-100)" : "var(--line)"}` }}>
                     <div style={{ fontSize: 12, color: highlight ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, marginBottom: 4 }}>{label}</div>
@@ -180,8 +181,8 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                           {(job.salaryMin > 0 || job.salaryMax > 0) && (
                             <span style={{ fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>
                               {job.salaryMin > 0 && job.salaryMax > 0
-                                ? `${job.salaryMin.toLocaleString("ja-JP")}〜${job.salaryMax.toLocaleString("ja-JP")}万円`
-                                : job.salaryMin > 0 ? `${job.salaryMin.toLocaleString("ja-JP")}万円〜` : `〜${job.salaryMax.toLocaleString("ja-JP")}万円`}
+                                ? `${fmtMan(job.salaryMin)}〜${fmtMan(job.salaryMax)}万円`
+                                : job.salaryMin > 0 ? `${fmtMan(job.salaryMin)}万円〜` : `〜${fmtMan(job.salaryMax)}万円`}
                             </span>
                           )}
                           {job.workStyle && (

@@ -12,15 +12,23 @@ type InfoCardProps = {
   border: string;
 };
 
+/**
+ * ⚠️ 2026-08-08 に縦積み → 横並びにした。
+ *    アイコン(30px) をラベルの上に積んでいたため、ツール1件のカードが
+ *    **107px（補足なしで85px）**もあり、9件並ぶと縦に伸びていた。
+ *    横並びなら 60px 前後で、情報量は変わらない。
+ * ⚠️ 福利厚生セクションと共有している。片方だけ別の形にしないこと
+ *    （同じ企業ページの中で、同じ見た目のカードが2種類あることになる）。
+ */
 export function InfoCard({ icon, label, sublabel, color, bg, border }: InfoCardProps) {
   return (
     <div
       style={{
         display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 8,
-        padding: "14px 14px",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
         background: bg,
         border: `1px solid ${border}`,
         borderRadius: 12,
@@ -42,7 +50,7 @@ export function InfoCard({ icon, label, sublabel, color, bg, border }: InfoCardP
       >
         {icon}
       </div>
-      <div>
+      <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12, color, fontWeight: 700, lineHeight: 1.4 }}>
           {label}
         </div>

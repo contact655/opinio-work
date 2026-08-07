@@ -30,16 +30,12 @@ import type {
   Chapter,
 } from "@/app/articles/mockArticleData";
 import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
+import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
-const WORK_STYLE_LABELS: Record<string, string> = {
-  full_remote: "フルリモート可",
-  hybrid: "ハイブリッド",
-  on_site: "原則出社",
-};
 
 function daysSince(iso: string | null | undefined): number {
   if (!iso) return 999;

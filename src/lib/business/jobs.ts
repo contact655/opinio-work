@@ -1,11 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizJob, JobStatus } from "./mockJobs";
-import {
-  VALID_JOB_EMPLOYMENT_TYPES,
-  VALID_REMOTE_WORK_STATUSES,
-  JOB_EMPLOYMENT_TYPES,
-  REMOTE_WORK_STATUSES,
-} from "@/lib/constants/careerOptions";
+import { VALID_JOB_EMPLOYMENT_TYPES, JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { VALID_REMOTE_WORK_STATUSES, REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 
 /**
  * 求人の「選択肢が決まっている項目」を検証する。**作成と更新の両方から呼ぶ。**

@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
+import { fmtMan } from "@/lib/utils/salary";
 
 export const dynamic = "force-dynamic";
 
@@ -193,10 +194,10 @@ function escapeHtml(str: string): string {
 }
 
 function formatSalary(min: number | null, max: number | null): string {
-  const fmt = (v: number) => v.toLocaleString("ja-JP");
-  if (min && max) return `${fmt(min)}〜${fmt(max)}万円`;
-  if (min) return `${fmt(min)}万円〜`;
-  if (max) return `〜${fmt(max)}万円`;
+  /* ⚠️ カンマ区切りは fmtMan に寄せる（2026-08-08）。「応相談」だけここ固有 */
+  if (min && max) return `${fmtMan(min)}〜${fmtMan(max)}万円`;
+  if (min) return `${fmtMan(min)}万円〜`;
+  if (max) return `〜${fmtMan(max)}万円`;
   return "応相談";
 }
 

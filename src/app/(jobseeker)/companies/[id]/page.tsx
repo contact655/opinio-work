@@ -34,6 +34,7 @@ import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 import { ShowMoreButton } from "./ShowMoreButton";
+import { fmtMan } from "@/lib/utils/salary";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -1758,8 +1759,8 @@ function JobEmbedCard({
   const hasSalary = (job.salaryMin && job.salaryMin > 0) || (job.salaryMax && job.salaryMax > 0);
   const salaryDisplay = hasSalary
     ? (job.salaryMin && job.salaryMax
-      ? `${job.salaryMin}〜${job.salaryMax}万円`
-      : job.salaryMin ? `${job.salaryMin}万円〜` : `〜${job.salaryMax}万円`)
+      ? `${fmtMan(job.salaryMin)}〜${fmtMan(job.salaryMax)}万円`
+      : job.salaryMin ? `${fmtMan(job.salaryMin)}万円〜` : `〜${fmtMan(job.salaryMax)}万円`)
     : "応相談";
 
   // Location: hide if same city as company HQ

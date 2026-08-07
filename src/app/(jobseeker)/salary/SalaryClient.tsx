@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import type { SalaryStats } from "./salaryData";
+import { fmtMan } from "@/lib/utils/salary";
 
 // ── フィルターグループ ────────────────────────────────
 const FILTER_GROUPS: { label: string; slugs: string[] }[] = [
@@ -311,7 +312,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                       <span style={{ fontSize: 20, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
-                        {s.avgMin}〜{s.avgMax}
+                        {fmtMan(s.avgMin)}〜{fmtMan(s.avgMax)}
                       </span>
                       <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>万円（求人票平均レンジ）</span>
                     </div>
@@ -319,15 +320,15 @@ export function SalaryClient({ stats, maxBar }: Props) {
                       <div style={{ height: 8, borderRadius: 100, background: "linear-gradient(90deg,#d97706,#f59e0b)", width: `${barPct}%` }} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter,sans-serif" }}>
-                      <span>下限 {s.avgMin}万</span>
+                      <span>下限 {fmtMan(s.avgMin)}万</span>
                       <span>中央 {Math.round((s.avgMin + s.avgMax) / 2)}万</span>
-                      <span>上限 {s.avgMax}万</span>
+                      <span>上限 {fmtMan(s.avgMax)}万</span>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 2 }}>求人票最高</div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
-                      {s.maxSalary}<span style={{ fontSize: 12, fontWeight: 500 }}>万円</span>
+                      {fmtMan(s.maxSalary)}<span style={{ fontSize: 12, fontWeight: 500 }}>万円</span>
                     </div>
                     <div style={{ marginTop: 6, fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
                       求人を見る →

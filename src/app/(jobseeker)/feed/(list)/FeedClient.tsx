@@ -9,6 +9,7 @@ import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
+import { fmtMan } from "@/lib/utils/salary";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -1039,7 +1040,7 @@ const MORE_LINK_STYLE: React.CSSProperties = {
 function formatSalary(min: number | null, max: number | null): string {
   const hasMn = min != null && min > 0;
   const hasMx = max != null && max > 0;
-  const fmt = (v: number) => v.toLocaleString("ja-JP");
+  const fmt = fmtMan;
   if (!hasMn && !hasMx) return "応相談";
   if (hasMn && hasMx) return `${fmt(min!)}〜${fmt(max!)}万円`;
   if (hasMn) return `${fmt(min!)}万円〜`;
@@ -1843,7 +1844,7 @@ function PostCard({
               const hasMx = mx != null && mx > 0;
               return hasMn || hasMx ? (
                 <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
-                  {hasMn && hasMx ? `${mn}〜${mx}万円` : hasMn ? `${mn}万円〜` : `〜${mx}万円`}
+                  {hasMn && hasMx ? `${fmtMan(mn)}〜${fmtMan(mx)}万円` : hasMn ? `${fmtMan(mn)}万円〜` : `〜${fmtMan(mx)}万円`}
                 </div>
               ) : (
                 <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 3 }}>応相談</div>

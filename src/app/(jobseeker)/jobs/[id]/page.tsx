@@ -733,9 +733,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     fontFamily: "Inter, sans-serif",
                   }}>
                     OTE&nbsp;{job.ote_min && job.ote_max
-                      ? `${job.ote_min}〜${job.ote_max}万円`
-                      : job.ote_min ? `${job.ote_min}万円〜`
-                      : `〜${job.ote_max}万円`}
+                      ? `${fmtMan(job.ote_min)}〜${fmtMan(job.ote_max)}万円`
+                      : job.ote_min ? `${fmtMan(job.ote_min)}万円〜`
+                      : `〜${fmtMan(job.ote_max)}万円`}
                   </span>
                 )}
                 </div>

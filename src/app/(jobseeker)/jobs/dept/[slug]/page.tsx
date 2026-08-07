@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobs, getRoleTree } from "@/lib/supabase/queries";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
+import { fmtMan } from "@/lib/utils/salary";
 
 // 求人の掲載状態（published / closed）がここに出るため、鮮度は求人詳細に合わせて60秒。
 // 1時間だと求人を閉じた後も最大1時間このページから流入し続ける。
@@ -74,7 +75,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatSalary(min: number, max: number): string {
-  const fmt = (v: number) => v.toLocaleString("ja-JP");
+  const fmt = fmtMan;
   if (min && max) return `${fmt(min)}〜${fmt(max)}万円`;
   if (min) return `${fmt(min)}万円〜`;
   if (max) return `〜${fmt(max)}万円`;

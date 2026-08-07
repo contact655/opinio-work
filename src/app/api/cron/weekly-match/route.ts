@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
+import { fmtMan } from "@/lib/utils/salary";
 
 export const dynamic = "force-dynamic";
 
@@ -207,7 +208,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
       const company = j.ow_companies;
       const salary =
         j.salary_min && j.salary_max
-          ? `${j.salary_min}〜${j.salary_max}万円`
+          ? `${fmtMan(j.salary_min)}〜${fmtMan(j.salary_max)}万円`
           : "応相談";
       return `
       <div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px">

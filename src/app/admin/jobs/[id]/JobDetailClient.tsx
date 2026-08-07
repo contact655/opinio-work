@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import type { RoleItem } from "@/components/business/JobEditForm";
 import { updateJobRoles } from "../actions";
+import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { fmtMan } from "@/lib/utils/salary";
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -60,11 +62,6 @@ type Job = {
 
 // ─── 定数 ────────────────────────────────────────────────────────────────────
 
-const WORK_STYLE_LABELS: Record<string, string> = {
-  full_remote: "フルリモート可",
-  hybrid: "ハイブリッド",
-  on_site: "原則出社",
-};
 
 const STATUS_BADGE: Record<string, { label: string; color: string; bg: string; border: string }> = {
   pending_review: { label: "審査待ち",   color: "#92400E", bg: "#FEF3C7", border: "#FDE68A" },
@@ -266,7 +263,7 @@ export default function JobDetailClient({
   const selectionSteps = job.selection_steps?.length ? job.selection_steps : [];
   const salary =
     job.salary_min != null && job.salary_max != null
-      ? `¥${job.salary_min}〜${job.salary_max}万円${job.salary_note ? ` (${job.salary_note})` : ""}`
+      ? `¥${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円${job.salary_note ? ` (${job.salary_note})` : ""}`
       : job.salary_note || "—";
 
   return (

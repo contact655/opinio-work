@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
+import { fmtMan } from "@/lib/utils/salary";
 
 
 
@@ -368,7 +370,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
   if (currentHiring) {
     activeFilters.push({
       key: "hiring",
-      label: "🟠 求人あり",
+      label: "募集あり",
       onRemove: () => updateParam("hiring", null),
     });
   }
@@ -380,17 +382,16 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
     });
   }
   if (currentWorkStyle) {
-    const wsLabels: Record<string, string> = { full_remote: "🏡 フルリモート", hybrid: "🔀 ハイブリッド", on_site: "🏢 出社のみ" };
     activeFilters.push({
       key: "workStyle",
-      label: wsLabels[currentWorkStyle] ?? currentWorkStyle,
+      label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle,
       onRemove: () => updateParam("workStyle", null),
     });
   }
   if (currentSalaryMin) {
     activeFilters.push({
       key: "salaryMin",
-      label: `💴 ${currentSalaryMin}万円以上`,
+      label: `${fmtMan(Number(currentSalaryMin))}万円以上`,
       onRemove: () => updateParam("salaryMin", null),
     });
   }
@@ -734,24 +735,19 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               className={`csb-filter-pill${currentWorkStyle ? " active" : ""}`}
               onClick={() => currentWorkStyle ? updateParam("workStyle", null) : toggleChip("workStyle")}
             >
-              {currentWorkStyle ? (
-                currentWorkStyle === "full_remote" ? "フルリモート" :
-                currentWorkStyle === "hybrid" ? "ハイブリッド" : "出社のみ"
-              ) : "勤務形態"}
+              {currentWorkStyle ? (WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle) : "勤務形態"}
               {currentWorkStyle
                 ? <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>
                 : <span style={{ fontSize: 12, marginLeft: 2 }}>▾</span>}
             </button>
             {openChip === "workStyle" && (
               <div className="csb-filter-pill-menu">
-                {[
-                  { v: "full_remote", l: "🏡 フルリモート" },
-                  { v: "hybrid",      l: "🔀 ハイブリッド" },
-                  { v: "on_site",     l: "🏢 出社のみ" },
-                ].map(({ v, l }) => (
-                  <button key={v} type="button" className={`csb-filter-pill-item${currentWorkStyle === v ? " selected" : ""}`}
-                    onClick={() => { updateParam("workStyle", v); setOpenChip(null); }}
-                  >{l}</button>
+                {/* ⚠️ ラベルは workStyle.ts の1箇所で決める。ここに直書きしない。
+                       アイコンは 2026-08-08 に削除（ラベルだけで意味は通る）。 */}
+                {WORK_STYLE_OPTIONS.map(({ value, label }) => (
+                  <button key={value} type="button" className={`csb-filter-pill-item${currentWorkStyle === value ? " selected" : ""}`}
+                    onClick={() => { updateParam("workStyle", value); setOpenChip(null); }}
+                  >{label}</button>
                 ))}
               </div>
             )}
@@ -764,7 +760,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               className={`csb-filter-pill${currentSalaryMin ? " active" : ""}`}
               onClick={() => currentSalaryMin ? updateParam("salaryMin", null) : toggleChip("salaryMin")}
             >
-              {currentSalaryMin ? `${currentSalaryMin}万円以上` : "年収"}
+              {currentSalaryMin ? `${fmtMan(Number(currentSalaryMin))}万円以上` : "年収"}
               {currentSalaryMin
                 ? <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>
                 : <span style={{ fontSize: 12, marginLeft: 2 }}>▾</span>}
@@ -774,7 +770,7 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
                 {["400", "500", "600", "700", "800", "900", "1000"].map((v) => (
                   <button key={v} type="button" className={`csb-filter-pill-item${currentSalaryMin === v ? " selected" : ""}`}
                     onClick={() => { updateParam("salaryMin", v); setOpenChip(null); }}
-                  >{v}万円以上</button>
+                  >{fmtMan(Number(v))}万円以上</button>
                 ))}
               </div>
             )}
@@ -791,7 +787,8 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
           </button>
 
           {/*
-            ⚠️ ラベルは「求人あり」。2026-08-06 まで「面談受付中」と書いていたが、
+            ⚠️ ラベルは「募集あり」。2026-08-06 まで「面談受付中」と書いていたが、
+                 2026-08-08 に「求人あり」→「募集あり」（ナビの「募集」に用語を揃えた）。
                ?hiring=1 が絞っているのは ow_jobs に公開求人があるかどうか
                （lib/search/companies.ts で hiringSet を作る）で、
                面談の可否（accepting_casual_meetings）ではない。
@@ -810,9 +807,9 @@ export function CompanySearchBar({ locations, companySuggestions = [] }: Props) 
               display: "inline-block",
             }} />
             {currentHiring ? (
-              <>求人あり <span style={{ fontSize: 12, opacity: 0.85 }}>✕</span></>
+              <>募集あり <span style={{ fontSize: 12, opacity: 0.85 }}>✕</span></>
             ) : (
-              <>求人あり</>
+              <>募集あり</>
             )}
           </label>
 
