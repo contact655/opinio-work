@@ -1422,6 +1422,130 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </section>
             )}
 
+
+          {/* Footer CTA — パーソナライズ
+              ⚠️ 2026-08-08 まで .profile-grid の**外**にあり、常に 1020px
+                 （コンテナ全幅）だった。サイドバーが出るページでは職歴・学歴カードが
+                 728px なのに CTA だけ 1020px で、同じページの中で幅が食い違っていた。
+              ⚠️ 本文カラムの中に入れたので、サイドバーの有無に自動で追従する。
+                 グリッドの外に戻さないこと。
+              ⚠️ 中の分岐は2つ（在籍企業が分かっていて求人がある版 / 汎用版）。
+                 どちらもこの1つの div の中にある。 */}
+          <div style={{
+            background: "#fff", border: "1px solid var(--line)",
+            borderRadius: 14, padding: "28px 32px", marginTop: 20,
+            textAlign: "center",
+            boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+          }}>
+            {isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
+              <>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px", lineHeight: 1.5 }}>
+                  {shortCompanyName(currentCareer!.company_name)}への転職に興味はありますか？
+                </p>
+                <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                  {owUser.name}さんのように活躍できる求人を見てみましょう
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "10px 22px", borderRadius: 8,
+                    background: "var(--royal)", color: "#fff",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    企業ページを見る
+                  </Link>
+                  {owUser.can_casual_meeting ? (
+                    <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "10px 22px", borderRadius: 8,
+                      border: "1.5px solid #FCD34D", background: "#FFFBEB",
+                      color: "#92400E", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      カジュアル面談する
+                    </Link>
+                  ) : (
+                    <Link href="/companies" style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "10px 22px", borderRadius: 8,
+                      border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                      color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    }}>
+                      企業を探す
+                    </Link>
+                  )}
+                </div>
+              </>
+            ) : isCurrentCompanyKnown ? (
+              <>
+                <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                  {shortCompanyName(currentCareer!.company_name)}についてもっと詳しく知りたい方はこちら
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 20px", borderRadius: 8,
+                    background: "var(--royal)", color: "#fff",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    企業ページを見る
+                  </Link>
+                  <Link href="/feed" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 20px", borderRadius: 8,
+                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                    color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    フィードを見る
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                  IT業界で働く人のリアルなキャリアが集まっています
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Link href="/jobs" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 20px", borderRadius: 8,
+                    background: "var(--royal)", color: "#fff",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    IT 求人を見る
+                  </Link>
+                  <Link href="/companies" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "9px 20px", borderRadius: 8,
+                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
+                    color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    企業を見る
+                  </Link>
+                </div>
+              </>
+            )}
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "16px 0 0" }}>
+              <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
+              {" "}のプロフィールページ
+            </p>
+          </div>
+
           </div>{/* /main column */}
 
           {/* ── Sidebar ─────────────────────────────────────────────── */}
@@ -1684,122 +1808,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
           </aside>
 
         </div>{/* /profile-grid */}
-
-        {/* Footer CTA — パーソナライズ */}
-        <div style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "28px 32px", marginTop: 20,
-          textAlign: "center",
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
-          {isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
-            <>
-              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px", lineHeight: 1.5 }}>
-                {shortCompanyName(currentCareer!.company_name)}への転職に興味はありますか？
-              </p>
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                {owUser.name}さんのように活躍できる求人を見てみましょう
-              </p>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "10px 22px", borderRadius: 8,
-                  background: "var(--royal)", color: "#fff",
-                  fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                  </svg>
-                  企業ページを見る
-                </Link>
-                {owUser.can_casual_meeting ? (
-                  <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "10px 22px", borderRadius: 8,
-                    border: "1.5px solid #FCD34D", background: "#FFFBEB",
-                    color: "#92400E", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    カジュアル面談する
-                  </Link>
-                ) : (
-                  <Link href="/companies" style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "10px 22px", borderRadius: 8,
-                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                    color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  }}>
-                    企業を探す
-                  </Link>
-                )}
-              </div>
-            </>
-          ) : isCurrentCompanyKnown ? (
-            <>
-              <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                {shortCompanyName(currentCareer!.company_name)}についてもっと詳しく知りたい方はこちら
-              </p>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "9px 20px", borderRadius: 8,
-                  background: "var(--royal)", color: "#fff",
-                  fontSize: 13, fontWeight: 700, textDecoration: "none",
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                  </svg>
-                  企業ページを見る
-                </Link>
-                <Link href="/feed" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "9px 20px", borderRadius: 8,
-                  border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                  color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                }}>
-                  フィードを見る
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                IT業界で働く人のリアルなキャリアが集まっています
-              </p>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <Link href="/jobs" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "9px 20px", borderRadius: 8,
-                  background: "var(--royal)", color: "#fff",
-                  fontSize: 13, fontWeight: 700, textDecoration: "none",
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                  </svg>
-                  IT 求人を見る
-                </Link>
-                <Link href="/companies" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "9px 20px", borderRadius: 8,
-                  border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                  color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                  </svg>
-                  企業を見る
-                </Link>
-              </div>
-            </>
-          )}
-          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "16px 0 0" }}>
-            <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
-            {" "}のプロフィールページ
-          </p>
-        </div>
 
       </div>
     </div>
