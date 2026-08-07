@@ -87,8 +87,13 @@ export async function PUT(
         // skip invalid enum values
       } else if (typeof val === "string" && FIELD_LIMITS[key]) {
         const sliced = val.slice(0, FIELD_LIMITS[key]);
+        /* ⚠️ 黙って捨てているところにログを出す（挙動は変えない）。
+              切り詰めも URL の除外も、運営には成功に見えるので気づけない。 */
+        if (val.length > FIELD_LIMITS[key]) {
+          console.warn(`[admin/companies] ${key} を ${val.length} → ${FIELD_LIMITS[key]} 字に切り詰めました`);
+        }
         if (URL_FIELDS.has(key) && sliced && !/^https:\/\//i.test(sliced)) {
-          // skip invalid URL
+          console.warn(`[admin/companies] ${key} は https:// で始まらないため保存しませんでした`);
         } else {
           updates[key] = sliced;
         }

@@ -67,7 +67,7 @@
 | `ow_job_assignees` | `user_id` | `ow_users.id` | `public.ow_users` |
 | `ow_job_favorites` | `user_id` | `auth.uid()` | `auth.users` |
 | `ow_job_views` | `user_id` | `auth.uid()` | `auth.users` |
-| `ow_match_scores` | `user_id` | **不明** | `（FKなし）` |
+| `ow_match_scores` | `user_id` | `auth.uid()` | `auth.users` |
 | `ow_matches` | `user_id` | `ow_users.id` | `public.ow_users` |
 | `ow_meeting_feedbacks` | `user_id` | **不明** | `（FKなし）` |
 | `ow_mentor_reservations` | `ambassador_user_id` | `ow_users.id` | `public.ow_users` |
@@ -102,6 +102,11 @@
 | `ow_user_roles` | `user_id` | `auth.uid()` | `auth.users` |
 | `ow_user_skill_tags` | `user_id` | `ow_users.id` | `public.ow_users` |
 | `ow_user_socials` | `user_id` | `ow_users.id` | `public.ow_users` |
+
+⚠️ 2026-08-07 に `ow_match_scores.user_id` の空間を確定させた。
+   唯一の読み手である cron（weekly-match）が `ow_profiles.user_id`（auth 空間）で
+   引いていたため、`auth.users` を参照する FK を張った
+   （`migrations/20260807010000_fix_overclosed_policies.sql`）。
 
 ⚠️ **不明** は FK が無い列。使う前に実データで確かめること
 （`ow_users.id` と `ow_users.auth_id` のどちらに一致するか数える）。
