@@ -6358,6 +6358,38 @@ export type Database = {
           },
         ]
       }
+      ow_profile_desired_roles: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_profile_desired_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ow_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_profiles: {
         Row: {
           bio: string | null
@@ -6366,6 +6398,7 @@ export type Database = {
           desired_salary_max: number | null
           desired_salary_min: number | null
           desired_work_style: string | null
+          desired_work_styles: string[] | null
           experience_years: string | null
           id: string
           job_type: string | null
@@ -6390,6 +6423,7 @@ export type Database = {
           desired_salary_max?: number | null
           desired_salary_min?: number | null
           desired_work_style?: string | null
+          desired_work_styles?: string[] | null
           experience_years?: string | null
           id?: string
           job_type?: string | null
@@ -6414,6 +6448,7 @@ export type Database = {
           desired_salary_max?: number | null
           desired_salary_min?: number | null
           desired_work_style?: string | null
+          desired_work_styles?: string[] | null
           experience_years?: string | null
           id?: string
           job_type?: string | null

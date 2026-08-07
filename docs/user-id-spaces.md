@@ -80,6 +80,7 @@
 | `ow_post_likes` | `user_id` | `ow_users.id` | `public.ow_users` |
 | `ow_posts` | `ref_user_id` | `ow_users.id` | `public.ow_users` |
 | `ow_posts` | `user_id` | `ow_users.id` | `public.ow_users` |
+| `ow_profile_desired_roles` | `user_id` | `auth.uid()` | `auth.users` |
 | `ow_profiles` | `user_id` | `auth.uid()` | `auth.users` |
 | `ow_salary_reports` | `user_id` | `ow_users.id` | `public.ow_users` |
 | `ow_salary_reports_archive_20260714` | `user_id` | **不明** | `（FKなし）` |
