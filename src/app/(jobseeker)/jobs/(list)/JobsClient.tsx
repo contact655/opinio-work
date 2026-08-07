@@ -9,10 +9,30 @@ import { showToast } from "@/lib/toast";
 import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
-import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
-import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+/**
+ * 勤務形態フィルタの語。**DB の値ではなく「表示ラベルへの部分一致で使う語」。**
+ * 求人側のラベルは フルリモート可 / ハイブリッド / 原則出社 の3種で、
+ * `t.includes(語)` で当てている（絞り込みは下の workStyleSet のところ）。
+ *
+ * ⚠️ 2026-08-08 に「リモート可」を落とした。
+ *    「フルリモート可」にしか当たらず、「フルリモート」と**絞れる集合が完全に同じ**で、
+ *    選択肢が2つある意味が無かった。
+ * ⚠️ デスクトップのピルとモバイルのシートが同じこの定数を見る。片方に直書きしない。
+ */
+const WORK_STYLE_FILTERS = ["フルリモート", "ハイブリッド", "出社"] as const;
+
+/**
+ * 複数選択ピルのラベル。選択が無ければ項目名、1つなら値、複数なら「値 +N」。
+ * ⚠️ 新しい意匠を作らないため、既存のピルと同じ1行テキストに収める。
+ */
+function pillLabel(selected: Set<string>, fallback: string): string {
+  if (selected.size === 0) return fallback;
+  const [first] = Array.from(selected);
+  return selected.size === 1 ? first : `${first} +${selected.size - 1}`;
+}
+
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -401,39 +421,39 @@ function JobListItem({
 // ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
 
 /*
-  ⚠️ 型には残っているのに分割代入で受け取っていない props がある。
-     bizModel / techStack / onTechStackChange / industries / industryId /
-     onCompanyStageChange の7つで、**サイドバーにこれらのUIが無い**ため。
-     絞り込みロジック自体は上位（1060行〜）に実装済みで、URLパラメータやモバイルの
-     フィルタシートからは効く。サイドバーに足すときはここで受け取ればよい。
-  ⚠️ 型からは消さないこと。消すと呼び出し側の受け渡しも消えて、
-     サイドバーに足すときに配線を1から作り直すことになる。
+  デスクトップのサイドバー。**上部のピル行と重複しない条件だけを置く。**
+
+  ── 2026-08-08 に6項目を削除した ────────────────────────────────────────────
+  業種 / 年収 / こだわり条件 / 企業ステージ / 業態 / 技術スタック を消し、
+  雇用形態は上部のピル行へ移した。理由は2つ。
+
+  ① 上部と二重になっていた。業種・年収・企業ステージは選択肢も URL パラメータも
+     上部と同一で、同じものが画面に2つある状態だった。
+     「こだわり条件」だけは上部の勤務形態と**値域が違い**（リモート可 が上部に無く、
+     上部の 出社 がこちらに無い。単一選択 vs 複数選択）、
+     単純な重複ではなかったので上部側を複数選択に変えてから消した。
+  ② 業態と技術スタックは**1件も絞れないフィルタ**だった
+     （2026-08-07 実測: business_model は product 18件のみ、tech_stack 非空 0件）。
+     絞り込みロジックごと消したので、URL パラメータでも到達できない。
+
+  ⚠️ ここに条件を足す前に、**上部のピル行に同じものが無いか**を必ず見ること。
 */
 function SidebarFilters({
-  parentRoles, category, workStyle, salary, empType, prefecture,
-  companyStage, bizModel, techStack, onTechStackChange,
+  parentRoles, category, prefecture,
   availablePrefectures, setParam, hasFilter, q, onReset,
   roleCounts,
-  toggleParam: toggleParamFn, toggleStage,
-  industry,
+  toggleParam: toggleParamFn,
 }: {
   parentRoles: { id: string; name: string }[];
-  category: string; workStyle: string; salary: string; empType: string; prefecture: string;
-  bizModel: string; industry: string;
-  companyStage: string; onCompanyStageChange: (v: string) => void;
-  techStack: string[]; onTechStackChange: (v: string[]) => void;
+  category: string; prefecture: string;
   availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   hasFilter: boolean; q: string; onReset: () => void;
   roleCounts?: Map<string, number>;
   toggleParam: (key: string, value: string, current: string) => void;
-  toggleStage: (value: string) => void;
 }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["industry", "prefecture", "salary", "kodawari", "emptype", "stage", "bizmodel", "tech"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
-  const workStyleSet = useMemo(() => new Set(workStyle ? workStyle.split(",") : []), [workStyle]);
-  const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
-  const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
 
   function toggleSection(key: string) {
     setCollapsed(prev => {
@@ -524,20 +544,7 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* ── 2. 業種 ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="業種" sectionKey="industry" hasActive={!!industry} />
-        {!collapsed.has("industry") && (
-          <div style={{ paddingBottom: 8 }}>
-            {INDUSTRY_GROUPS.map((g) => (
-              <CheckItem key={g.key} label={g.label} active={industry === g.key}
-                onClick={() => setParam("industry", industry === g.key ? "" : g.key)} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── 3. 勤務地 ── */}
+      {/* ── 2. 勤務地（実データに2県以上あるときだけ出す） ── */}
       {availablePrefectures.length > 1 && (
         <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
           <SectionHeader label="勤務地" sectionKey="prefecture" hasActive={!!prefecture} />
@@ -551,110 +558,6 @@ function SidebarFilters({
           )}
         </div>
       )}
-
-      {/* ── 4. 年収 ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="年収" sectionKey="salary" hasActive={!!salary} />
-        {!collapsed.has("salary") && (
-          <div style={{ padding: "4px 14px 12px" }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6 }}>下限年収</div>
-            <select value={salary} onChange={(e) => setParam("salary", e.target.value)}
-              style={{ width: "100%", height: 36, padding: "0 10px", border: `1.5px solid ${salary ? "var(--royal)" : "var(--line)"}`, borderRadius: 8, fontSize: 13, background: "#fff", color: salary ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", outline: "none" }}
-            >
-              <option value="">指定なし</option>
-              {SALARY_PILL_TIERS.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* ── 5. こだわり条件 ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="こだわり条件" sectionKey="kodawari"
-          hasActive={workStyleSet.size > 0 || companyStageSet.has("foreign")} />
-        {!collapsed.has("kodawari") && (
-          <div style={{ paddingBottom: 10 }}>
-            <div style={{ padding: "6px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>働き方</div>
-            {[
-              { value: "フルリモート", label: "フルリモート" },
-              { value: "リモート可", label: "リモート可" },
-              { value: "ハイブリッド", label: "ハイブリッド" },
-            ].map(({ value, label }) => (
-              <CheckItem key={value} label={label} active={workStyleSet.has(value)}
-                onClick={() => toggleParamFn("work_style", value, workStyle)} />
-            ))}
-            <div style={{ padding: "8px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>企業特性</div>
-            <CheckItem label="外資系" active={companyStageSet.has("foreign")}
-              onClick={() => toggleStage("foreign")} />
-          </div>
-        )}
-      </div>
-
-      {/* ── 6. 雇用形態 ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="雇用形態" sectionKey="emptype" hasActive={empTypeSet.size > 0} />
-        {!collapsed.has("emptype") && (
-          <div style={{ paddingBottom: 8 }}>
-            {JOB_EMPLOYMENT_TYPES.map((v) => (
-              <CheckItem key={v} label={v} active={empTypeSet.has(v)}
-                onClick={() => toggleParamFn("emp_type", v, empType)} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── 7. 企業ステージ ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="企業ステージ" sectionKey="stage"
-          hasActive={companyStageSet.has("listed") || companyStageSet.has("unicorn") || companyStageSet.has("startup")} />
-        {!collapsed.has("stage") && (
-          <div style={{ paddingBottom: 8 }}>
-            {[
-              { key: "listed",  label: "上場企業" },
-              { key: "unicorn", label: "🦄 ユニコーン" },
-              { key: "startup", label: "スタートアップ" },
-            ].map(({ key, label }) => (
-              <CheckItem key={key} label={label} active={companyStageSet.has(key)}
-                onClick={() => toggleStage(key)} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── 8. 業態 ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="業態" sectionKey="bizmodel" hasActive={!!bizModel} />
-        {!collapsed.has("bizmodel") && (
-          <div style={{ paddingBottom: 8 }}>
-            {BUSINESS_MODELS.map((m) => (
-              <CheckItem key={m.key} label={m.label} active={bizModel === m.key}
-                onClick={() => setParam("biz_model", bizModel === m.key ? "" : m.key)} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── 9. 技術スタック（複数選択・AND） ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="技術スタック" sectionKey="tech" hasActive={techStack.length > 0} />
-        {!collapsed.has("tech") && (
-          <div style={{ paddingBottom: 8 }}>
-            {TECH_STACK_CATEGORIES.map((cat) => (
-              <div key={cat.label}>
-                <div style={{ padding: "6px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.04em" }}>{cat.label}</div>
-                {cat.items.map((tech) => (
-                  <CheckItem key={tech} label={tech} active={techStack.includes(tech)}
-                    onClick={() => onTechStackChange(
-                      techStack.includes(tech) ? techStack.filter((t) => t !== tech) : [...techStack, tech]
-                    )} />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* ── フッター: 検索する ── */}
       <div style={{ padding: "12px 14px", background: "#fff" }}>
@@ -687,7 +590,7 @@ function SidebarFilters({
 
 /*
   モバイルのフィルタシート内「詳細条件」アコーディオン。
-  シートの他のセクション（職種 / 勤務形態 / 年収下限 / 業態 / 技術スタック）とは
+  シートの他のセクション（職種 / 勤務形態 / 年収下限）とは
   重複しない条件だけを置く。ここが業種・雇用形態・企業ステージの唯一のモバイル導線。
 
   ⚠️ 業種は industry（INDUSTRY_GROUPS のグループキー）を使うこと。
@@ -696,14 +599,17 @@ function SidebarFilters({
      選択肢も粒度も違うので、片方で絞ってもう片方を見ると噛み合わない。
 */
 function MobileDetailSection({
-  industry, prefecture, empType, companyStage, availablePrefectures, setParam, onCompanyStageChange,
+  industry, prefecture, empType, companyStage, availablePrefectures, setParam, toggleParam, toggleStage,
 }: {
   industry: string; prefecture: string; empType: string; companyStage: string;
   availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
-  onCompanyStageChange: (v: string) => void;
+  toggleParam: (key: string, value: string, current: string) => void;
+  toggleStage: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
+  const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
   const hasActive = !!industry || !!prefecture || !!empType || !!companyStage;
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${hasActive ? "var(--royal)" : "var(--line)"}`, overflow: "hidden" }}>
@@ -761,16 +667,19 @@ function MobileDetailSection({
           </div>
         )}
 
-        {/* 雇用形態 */}
+        {/* 雇用形態 ⚠️ デスクトップのピルと同じ複数選択（2026-08-08） */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {JOB_EMPLOYMENT_TYPES.map(v => (
-              <button key={v} type="button" onClick={() => setParam("emp_type", empType === v ? "" : v)}
-                style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${empType === v ? "var(--royal)" : "var(--line)"}`, background: empType === v ? "var(--royal-50)" : "#fff", color: empType === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: empType === v ? 700 : 400 }}>
-                {v}
-              </button>
-            ))}
+            {JOB_EMPLOYMENT_TYPES.map(v => {
+              const active = empTypeSet.has(v);
+              return (
+                <button key={v} type="button" onClick={() => toggleParam("emp_type", v, empType)}
+                  style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                  {v}
+                </button>
+              );
+            })}
           </div>
         </div>
         {/* 企業ステージ */}
@@ -783,9 +692,9 @@ function MobileDetailSection({
               { key: "startup", label: "スタートアップ", color: "var(--royal)",    bg: "var(--royal-50)" },
               { key: "foreign", label: "外資系",           color: "#1D4ED8",         bg: "#EFF6FF" },
             ] as { key: string; label: string; color: string; bg: string }[]).map(({ key, label, color, bg }) => {
-              const active = companyStage === key;
+              const active = companyStageSet.has(key);
               return (
-                <button key={key} type="button" onClick={() => onCompanyStageChange(active ? "" : key)}
+                <button key={key} type="button" onClick={() => toggleStage(key)}
                   style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: active ? 700 : 400, border: `1.5px solid ${active ? color : "var(--line)"}`, background: active ? bg : "#fff", color: active ? color : "var(--ink-soft)", cursor: "pointer" }}>
                   {label}
                 </button>
@@ -836,7 +745,6 @@ export default function JobsClient({
         ow_industries マスタで絞りたくなったら、まず industry との二本立てをどうするか決めること。 */
   const prefecture = searchParams.get("prefecture") ?? "";
   const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター（カンマ区切り複数可）
-  const bizModel = searchParams.get("biz_model") ?? ""; // 業態タグフィルター
 
   // 複数選択用: カンマ区切り文字列 → Set
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
@@ -896,20 +804,6 @@ export default function JobsClient({
     if (set.has(value)) set.delete(value); else set.add(value);
     setCompanyStage(Array.from(set).join(","));
   }
-
-  // 技術スタックフィルター（複数選択 AND）
-  /*
-    技術スタック（複数選択・AND）。
-    ⚠️ 2026-08-06 に useState から URL パラメータに移した。
-       それまで state だけで持っていたため、リロードでも共有でも消えており、
-       他のフィルタと挙動が違った（絞り込んだ結果のURLを人に送ると別の結果が出る）。
-    ⚠️ 区切りはカンマ。emp_type / work_style / category と同じ形式に揃えている。
-  */
-  const techStack = useMemo(
-    () => (searchParams.get("tech_stack") ?? "").split(",").filter(Boolean),
-    [searchParams],
-  );
-  const setTechStack = (next: string[]) => setParam("tech_stack", next.join(","));
 
   // モバイルフィルターボトムシート
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -1140,11 +1034,6 @@ export default function JobsClient({
       list = list.filter((j) => !!j.employment_type && empTypeSet.has(j.employment_type));
     }
 
-    // 業態タグフィルタ
-    if (bizModel) {
-      list = list.filter((j) => j.business_model === bizModel);
-    }
-
     // 企業ステージフィルタ（複数選択対応）
     if (companyStageSet.size > 0) {
       list = list.filter((j) => {
@@ -1168,14 +1057,6 @@ export default function JobsClient({
       });
     }
 
-    // 技術スタックフィルタ（AND: 選択タグをすべて含む求人のみ）
-    if (techStack.length > 0) {
-      list = list.filter((j) => {
-        const ts = j.tech_stack;
-        if (!ts || ts.length === 0) return false;
-        return techStack.every((t) => ts.includes(t));
-      });
-    }
 
     // ソート
     if (sort === "salary") {
@@ -1209,7 +1090,7 @@ export default function JobsClient({
     }
 
     return { list, ignoredTerms };
-  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, bizModel, industry, prefecture, empType, empTypeSet, companyStage, companyStageSet, techStack, sort, companies, companyMap, roleAliases, industries]);
+  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, industry, prefecture, empType, empTypeSet, companyStage, companyStageSet, sort, companies, companyMap, roleAliases, industries]);
 
   const filtered = searchResult.list;
   const ignoredTerms = searchResult.ignoredTerms;
@@ -1244,7 +1125,7 @@ export default function JobsClient({
 
   // ⑤ reset when filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const filterKey = [category, dept, work_style, salary, bizModel, industry, prefecture, empType, sort, q, bizOnly, companyStage, techStack.join(",")].join("|");
+  const filterKey = [category, dept, work_style, salary, industry, prefecture, empType, sort, q, bizOnly, companyStage].join("|");
   useEffect(() => {
     setDisplayCount(PER_PAGE);
     // Clear ?show from URL when filters change
@@ -1269,7 +1150,7 @@ export default function JobsClient({
     return () => observer.disconnect();
   }, [hasMore]);
 
-  const hasFilter = !!(category || dept || work_style || salary || bizModel || industry || prefecture || empType || companyStage || techStack.length || bizOnly);
+  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType || companyStage || bizOnly);
 
 
   const roleCounts = useMemo(() => {
@@ -1414,8 +1295,16 @@ export default function JobsClient({
                 {prefecture || "都道府県"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
-              {/* 勤務形態 ピル */}
-              <button type="button" className={`jobs-pill${work_style ? " active" : ""}`} style={{ flexShrink: 0 }}
+              {/*
+                勤務形態 ピル（複数選択）
+                ⚠️ 2026-08-08 に単一選択から複数選択へ変えた。
+                   絞り込みロジックは元からカンマ区切りの OR に対応していたが、
+                   それを使えるのはサイドバーの「こだわり条件」だけだった。
+                   サイドバーを消すにあたり、上部で同じことができるようにした
+                   （単一選択のまま消すと「フルリモート または ハイブリッド」が
+                    URL 手打ちでしか指定できない死んだフィルタになる）。
+              */}
+              <button type="button" className={`jobs-pill${workStyleSet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
                 onClick={(e) => {
                   const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                   if (openFilter === "work_style") { setOpenFilter(null); return; }
@@ -1423,7 +1312,23 @@ export default function JobsClient({
                   setOpenFilter("work_style");
                 }}
               >
-                {work_style || "勤務形態"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {pillLabel(workStyleSet, "勤務形態")} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
+
+              {/*
+                雇用形態 ピル（複数選択）
+                ⚠️ 2026-08-08 にサイドバーから移してきた。選択肢は careerOptions.ts の
+                   JOB_EMPLOYMENT_TYPES。ここに直書きしないこと（DB の CHECK と揃えてある）。
+              */}
+              <button type="button" className={`jobs-pill${empTypeSet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "empType") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("empType");
+                }}
+              >
+                {pillLabel(empTypeSet, "雇用形態")} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 年収 ピル */}
@@ -1461,7 +1366,7 @@ export default function JobsClient({
               */}
 
               {(hasFilter || q) && (
-                <button type="button" onClick={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
+                <button type="button" onClick={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); }}
                   style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
                 >✕ リセット</button>
               )}
@@ -1661,18 +1566,7 @@ export default function JobsClient({
                   地域: {prefecture} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                 </button>
               )}
-              {techStack.map((t) => (
-                <button key={`ts-${t}`} type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  {t} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
-                </button>
-              ))}
-              <button type="button" onClick={() => { setQ(""); setTechStack([]); router.replace("/jobs"); }} style={{
+              <button type="button" onClick={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); }} style={{
                 fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none",
                 border: "none", cursor: "pointer", padding: "3px 4px",
                 fontFamily: "inherit", textDecoration: "underline",
@@ -1700,24 +1594,14 @@ export default function JobsClient({
               <SidebarFilters
                 parentRoles={parentRoles}
                 category={category}
-                workStyle={work_style}
-                salary={salary}
-                empType={empType}
-                bizModel={bizModel}
                 prefecture={prefecture}
-                companyStage={companyStage}
-                onCompanyStageChange={setCompanyStage}
-                techStack={techStack}
-                onTechStackChange={setTechStack}
                 availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 hasFilter={hasFilter}
                 q={q}
-                onReset={() => { setQ(""); setCompanyStage(""); setTechStack([]); router.replace("/jobs"); }}
-                industry={industry}
+                onReset={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); }}
                 roleCounts={roleCounts}
                 toggleParam={toggleParam}
-                toggleStage={toggleStage}
               />
             </aside>
 
@@ -2122,10 +2006,11 @@ export default function JobsClient({
               {/* 勤務形態 */}
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>勤務形態</div>
+                {/* ⚠️ デスクトップのピルと同じ複数選択・同じ定数（2026-08-08） */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {["フルリモート", "ハイブリッド", "出社"].map(v => (
-                    <button key={v} onClick={() => setParam("work_style", work_style === v ? "" : v)}
-                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${work_style === v ? "var(--royal)" : "var(--line)"}`, background: work_style === v ? "var(--royal-50)" : "#fff", color: work_style === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: work_style === v ? 700 : 400 }}>
+                  {WORK_STYLE_FILTERS.map(v => (
+                    <button key={v} onClick={() => toggleParam("work_style", v, work_style)}
+                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${workStyleSet.has(v) ? "var(--royal)" : "var(--line)"}`, background: workStyleSet.has(v) ? "var(--royal-50)" : "#fff", color: workStyleSet.has(v) ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: workStyleSet.has(v) ? 700 : 400 }}>
                       {v}
                     </button>
                   ))}
@@ -2145,63 +2030,18 @@ export default function JobsClient({
                 </div>
               </div>
 
-              {/* 業態 */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>業態</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {BUSINESS_MODELS.map(m => (
-                    <button key={m.key} onClick={() => setParam("biz_model", bizModel === m.key ? "" : m.key)}
-                      style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, border: `1.5px solid ${bizModel === m.key ? "var(--purple)" : "var(--line)"}`, background: bizModel === m.key ? "var(--purple-soft)" : "#fff", color: bizModel === m.key ? "var(--purple)" : "var(--ink-soft)", cursor: "pointer", fontWeight: bizModel === m.key ? 700 : 400 }}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 技術スタック */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>技術スタック</div>
-                {techStack.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-                    {techStack.map((t) => (
-                      <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 999, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700 }}>
-                        {t}
-                        <button type="button" onClick={() => setTechStack(techStack.filter((x) => x !== t))} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 500, lineHeight: 1, opacity: 0.8 }}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {TECH_STACK_CATEGORIES.map((cat) => (
-                  <div key={cat.label} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{cat.label}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                      {cat.items.map((tech) => {
-                        const active = techStack.includes(tech);
-                        return (
-                          <button key={tech} type="button"
-                            onClick={() => setTechStack(active ? techStack.filter((t) => t !== tech) : [...techStack, tech])}
-                            style={{ padding: "5px 10px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`, background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: active ? 700 : 400 }}>
-                            {tech}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
               {/* 詳細条件アコーディオン */}
               <MobileDetailSection
                 industry={industry} prefecture={prefecture} empType={empType} companyStage={companyStage}
                 availablePrefectures={availablePrefectures}
-                setParam={setParam} onCompanyStageChange={setCompanyStage}
+                setParam={setParam} toggleParam={toggleParam} toggleStage={toggleStage}
               />
             </div>
 
             {/* フッターボタン */}
             <div style={{ padding: "12px 20px 24px", borderTop: "1px solid var(--line)", display: "flex", gap: 10 }}>
               <button
-                onClick={() => { setTechStack([]); setCompanyStage(""); router.replace("/jobs"); setFilterSheetOpen(false); }}
+                onClick={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); setFilterSheetOpen(false); }}
                 style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer" }}
               >
                 リセット
@@ -2261,10 +2101,13 @@ export default function JobsClient({
           )}
           {openFilter === "work_style" && (
             <>
-              {(["", "フルリモート", "ハイブリッド", "出社"] as const).map((v) => (
-                <button key={v} className={`jobs-pill-item${work_style === v ? " selected" : ""}`}
-                  onClick={() => { setParam("work_style", v); setOpenFilter(null); }}
-                >{v || "すべて"}</button>
+              {/* ⚠️ 複数選択。フェーズピルと同じく**選んでも閉じない** */}
+              <button className={`jobs-pill-item${workStyleSet.size === 0 ? " selected" : ""}`}
+                onClick={() => { setParam("work_style", ""); }}>すべて</button>
+              {WORK_STYLE_FILTERS.map((v) => (
+                <button key={v} className={`jobs-pill-item${workStyleSet.has(v) ? " selected" : ""}`}
+                  onClick={() => toggleParam("work_style", v, work_style)}
+                >{v}</button>
               ))}
             </>
           )}
@@ -2280,10 +2123,13 @@ export default function JobsClient({
           )}
           {openFilter === "empType" && (
             <>
-              {(["", ...JOB_EMPLOYMENT_TYPES] as const).map((v) => (
-                <button key={v} className={`jobs-pill-item${empType === v ? " selected" : ""}`}
-                  onClick={() => { setParam("emp_type", v); setOpenFilter(null); }}
-                >{v || "すべて"}</button>
+              {/* ⚠️ 複数選択。選んでも閉じない */}
+              <button className={`jobs-pill-item${empTypeSet.size === 0 ? " selected" : ""}`}
+                onClick={() => { setParam("emp_type", ""); }}>すべて</button>
+              {JOB_EMPLOYMENT_TYPES.map((v) => (
+                <button key={v} className={`jobs-pill-item${empTypeSet.has(v) ? " selected" : ""}`}
+                  onClick={() => toggleParam("emp_type", v, empType)}
+                >{v}</button>
               ))}
             </>
           )}
