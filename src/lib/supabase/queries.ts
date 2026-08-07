@@ -1991,19 +1991,3 @@ export async function getCompanyTools(companyId: string): Promise<CompanyTool[]>
   });
 }
 
-// ─── Industries (for search filter) ──────────────────────────────────────────
-export type IndustryForFilter = { id: string; parent_id: string | null; name: string; slug: string };
-
-export const getIndustriesForFilter = unstable_cache(
-  async (): Promise<IndustryForFilter[]> => {
-    const admin = createAdminClient();
-    const { data } = await admin
-      .from("ow_industries")
-      .select("id, parent_id, name, slug")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-    return (data ?? []) as IndustryForFilter[];
-  },
-  ["industries-filter"],
-  { revalidate: 3600 }
-);
