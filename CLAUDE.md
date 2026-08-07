@@ -256,11 +256,29 @@ RLS を評価する前に止まる。** RLS ポリシーを1本書き間違え�
 
 `20260807050000_default_acl_revoke_anon.sql` で既定を直した。
 
-| ロール | 対象 | 変更前 | 変更後 |
+| ロール | 対象 | 変更前 | 変更後（2本適用後） |
 |---|---|---|---|
-| `postgres` | テーブル・ビュー | `anon=arwdDxtm` あり | **anon なし**（authenticated / service_role は残す） |
-| `postgres` | シーケンス | `anon=rwU` あり | **anon なし** |
-| `postgres` | 関数 | `anon=X` あり | **anon なし** |
+| `postgres` | テーブル・ビュー | `postgres, anon, authenticated, service_role` | **`postgres, service_role` のみ** |
+| `postgres` | シーケンス | 同上 | **`postgres, service_role` のみ** |
+| `postgres` | 関数 | 同上 | **`postgres, service_role` のみ** |
+
+`20260807050000`（anon）と `20260807060000`（authenticated）の2本に分けて適用した。
+
+### 新しいテーブルには GRANT を必ず書く
+
+**anon も authenticated も既定では権限が1つも付かない。**
+書き忘れると PostgREST が `401 permission denied for table` を返す
+（黙って空になる形ではなく、はっきり落ちる）。
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.<新テーブル> TO authenticated;
+GRANT ALL ON TABLE public.<新テーブル> TO service_role;
+-- 未ログインにも読ませる公開テーブルのときだけ
+GRANT SELECT ON TABLE public.<新テーブル> TO anon;
+```
+
+⚠️ 手間が増えたのではなく、**権限設計が migration に必ず残るようになった**。
+以前は「書いていない = 全権限」で、migration を読んでも権限が分からなかった。
 
 ⚠️ `ALTER DEFAULT PRIVILEGES` は**実行したロールごと**に効く。
 このプロジェクトでテーブルを作るのは `postgres`（migration も SQL Editor も）。
