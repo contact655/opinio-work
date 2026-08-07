@@ -25,6 +25,7 @@ import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
@@ -93,35 +94,6 @@ export async function generateMetadata({
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function Breadcrumb({ company }: { company: Company }) {
-  return (
-    <nav
-      aria-label="パンくずリスト"
-      style={{
-        background: "var(--bg-tint)",
-        borderBottom: "1px solid var(--line)",
-        fontSize: "var(--text-xs)",
-        color: "var(--ink-mute)",
-      }}
-    >
-      <div
-        style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-        className="px-5 py-3 md:px-12"
-      >
-        <Link href="/" style={{ color: "var(--ink-mute)" }}>
-          OPINIO
-        </Link>
-        <span style={{ margin: "0 6px" }}>/</span>
-        <Link href="/companies" style={{ color: "var(--ink-mute)" }}>
-          企業
-        </Link>
-        <span style={{ margin: "0 6px" }}>/</span>
-        <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{company.name}</span>
-      </div>
-    </nav>
-  );
-}
 
 function Hero({
   company,
@@ -3196,7 +3168,7 @@ export default async function CompanyDetailPage({
         }}
       />
       <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
-      <Breadcrumb company={company} />
+      <Breadcrumb items={[{ label: "OPINIO", href: "/" }, { label: "企業", href: "/companies" }, { label: company.name }]} />
       <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} initialFollowed={initialFollowed} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>

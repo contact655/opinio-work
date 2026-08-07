@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Breadcrumb, type Crumb } from "@/components/ui/Breadcrumb";
 
 // ─── SidebarItem ──────────────────────────────────────────────────────────────
 // href を受け取り <Link> でレンダリングすることで Next.js の自動 prefetch を利用する
@@ -118,6 +119,7 @@ export default function MypageLayout({
   children,
   rightColumn,
   rightColumnCollapse = "stack",
+  breadcrumb,
 }: {
   activeKey: MypageActiveKey;
   conversationsBadge?: number;
@@ -131,11 +133,15 @@ export default function MypageLayout({
    * ⚠️ 767px 以下では左右どちらの aside も display:none になる。
    */
   rightColumnCollapse?: "stack" | "hide";
+  /** ヘッダー直下に全幅で敷くパンくず。渡さなければ出さない */
+  breadcrumb?: Crumb[];
 }) {
   const topOffset = 65;
 
   return (
     <>
+      {/* ⚠️ グリッドより前に置く。全幅で敷きたいので、サイドバーの外側になる */}
+      {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} />}
 
       {/* モバイル: 横スクロールタブバー */}
       <nav aria-label="マイページナビゲーション" className="mypage-mobile-tabbar" style={{
@@ -188,7 +194,7 @@ export default function MypageLayout({
       <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px minmax(0, 1fr) 320px" : "260px minmax(0, 1fr)", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
 
         {/* 左サイドバー（デスクトップのみ） */}
-        <aside style={{
+        <aside className="mypage-left-aside" style={{
           background: "#fff", borderRight: "1px solid var(--line)",
           padding: "var(--space-6) 0",
           position: "sticky", top: topOffset, alignSelf: "start",
@@ -239,11 +245,20 @@ export default function MypageLayout({
         )}
       </div>
 
+      {/*
+        ⚠️ この CSS には `>` と `"` を書かない（2026-08-07）。
+        JSX の `<style>{`…`}</style>` は、その2文字を
+        **サーバー側だけが `&gt;` / `&quot;` にエスケープする**。
+        結果、毎リクエスト hydration mismatch になり
+        「Text content does not match server-rendered HTML」で
+        ツリーごとクライアント再描画に落ちていた（/mypage と /profile/edit）。
+        子孫セレクタは `>` を使わずクラスを足して書くこと。
+      */}
       <style>{`
         .mypage-nav-item:hover { background: var(--bg-tint) !important; color: var(--ink) !important; }
 
         /* 右カラムが畳まれる幅で、本文側に置いた控えと入れ替える。
-           .mypage-narrow-only は rightColumnCollapse="hide" とセットで使う。 */
+           .mypage-narrow-only は rightColumnCollapse に hide を渡すのとセットで使う。 */
         .mypage-narrow-only { display: none; }
 
         /* 3カラムを維持できない幅。1100px 未満だと本文の内側が 424px を切り、
@@ -263,7 +278,7 @@ export default function MypageLayout({
         @media (max-width: 767px) {
           .mypage-mobile-tabbar { display: block !important; }
           .mypage-desktop-grid  { display: block !important; grid-template-columns: none !important; }
-          .mypage-desktop-grid > aside { display: none !important; }
+          .mypage-left-aside, .mypage-right-aside { display: none !important; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
         }
       `}</style>

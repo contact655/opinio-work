@@ -6,7 +6,6 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
-import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
@@ -2857,6 +2856,11 @@ export default function ProfileEditClient({
       <MypageLayout
         activeKey="profile"
         rightColumnCollapse="hide"
+        breadcrumb={[
+          { label: "OPINIO", href: "/" },
+          { label: "マイページ", href: "/mypage" },
+          { label: "プロフィール" },
+        ]}
         rightColumn={
           <ProfileCompletionBar
             data={completionData}
@@ -2934,13 +2938,16 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* ── ヘッダー行: タイトル + 保存状態 + ← マイページ ───────────────── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: -16, marginBottom: "var(--space-3)" }}>
-          {/* サイドバーで現在地が分かるため、見出しは画面に出さない（2026-08-07）。
-              ただし h1 が1つも無いページにしないよう sr-only で残す。 */}
-          <h1 className="sr-only">プロフィール</h1>
+        {/* ── ヘッダー行: 保存状態 ─────────────────────────────────────────
+            「← マイページ」ボタンはページ上部のパンくずに移した（2026-08-07）。
+            戻り先は パンくずの「マイページ」リンクが担う。 */}
+        {/* パンくずで現在地が分かるため、見出しは画面に出さない（2026-08-07）。
+            ただし h1 が1つも無いページにしないよう sr-only で残す。 */}
+        <h1 className="sr-only">プロフィール</h1>
 
-          {/* グローバル保存ステータスインジケーター */}
+        {/* グローバル保存ステータスインジケーター。
+            ⚠️ idle のときは行ごと出さない。空の行が余白だけ残るのを避ける */}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: -16, marginBottom: globalSaveStatus === "idle" ? 0 : "var(--space-3)" }}>
           {globalSaveStatus !== "idle" && (
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 5,
@@ -2965,23 +2972,6 @@ export default function ProfileEditClient({
             </div>
           )}
 
-          <div style={{ marginLeft: "auto" }}>
-            <Link
-              href="/mypage"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "var(--space-2) var(--space-4)", fontSize: "var(--text-sm)", fontWeight: 600,
-                border: "1px solid var(--line)", borderRadius: 8,
-                background: "#fff", color: "var(--ink-soft)",
-                textDecoration: "none",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              マイページ
-            </Link>
-          </div>
         </div>
 
         {/* ── プロフィール完成度（1100px 未満のみ。それ以上は右カラム） ────── */}
