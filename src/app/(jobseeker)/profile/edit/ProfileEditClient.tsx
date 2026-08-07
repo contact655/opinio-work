@@ -2777,8 +2777,9 @@ export default function ProfileEditClient({
 
   // ── プロフィール完成度 ───────────────────────────────────────────────────
   // 本文の先頭に置いていたが、タブと入力欄がその分だけ下に押し出されて
-  // スクロールしないと見えなかったため、左サイドバーへ移した（2026-08-07）。
-  // ⚠️ サイドバーは 767px 以下で消えるので、モバイル用の控えを本文にも置く。
+  // スクロールしないと見えなかったため、右カラムへ移した（2026-08-07）。
+  // ⚠️ 右カラムは 1100px 未満で消える（rightColumnCollapse="hide"）。
+  //    その幅では本文側の `.mypage-narrow-only` の控えが出る。
   const completionData: CompletionInput = {
     hasName:               !!basicInfo.name && basicInfo.name.trim() !== "" && basicInfo.name !== "ユーザー",
     hasAboutMe:            !!basicInfo.aboutMe && basicInfo.aboutMe.trim().length > 0,
@@ -2796,7 +2797,8 @@ export default function ProfileEditClient({
     <MypageMockProvider>
       <MypageLayout
         activeKey="profile"
-        sidebarExtra={
+        rightColumnCollapse="hide"
+        rightColumn={
           <ProfileCompletionBar
             data={completionData}
             mode="sidebar"
@@ -2923,8 +2925,8 @@ export default function ProfileEditClient({
           </div>
         </div>
 
-        {/* ── プロフィール完成度（モバイルのみ。デスクトップはサイドバー） ────── */}
-        <div className="mypage-mobile-only">
+        {/* ── プロフィール完成度（1100px 未満のみ。それ以上は右カラム） ────── */}
+        <div className="mypage-narrow-only">
           <ProfileCompletionBar
             data={completionData}
             mode="edit"

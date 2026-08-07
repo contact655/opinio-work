@@ -117,7 +117,7 @@ export default function MypageLayout({
   applicationsBadge,
   children,
   rightColumn,
-  sidebarExtra,
+  rightColumnCollapse = "stack",
 }: {
   activeKey: MypageActiveKey;
   conversationsBadge?: number;
@@ -125,11 +125,12 @@ export default function MypageLayout({
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
   /**
-   * 左サイドバーの末尾に置く要素（プロフィール完成度など）。
-   * ⚠️ サイドバーは 767px 以下で display:none になる。
-   *    モバイルでも出したいものは、本文側にも `.mypage-mobile-only` で置くこと。
+   * 1100px 未満で右カラムをどう畳むか。
+   *   stack … 本文の下に回す（既定。/mypage のバナーのように消すと情報が失われるもの）
+   *   hide  … 消す（本文側に `.mypage-narrow-only` で控えを置いてあるもの）
+   * ⚠️ 767px 以下では左右どちらの aside も display:none になる。
    */
-  sidebarExtra?: React.ReactNode;
+  rightColumnCollapse?: "stack" | "hide";
 }) {
   const topOffset = 65;
 
@@ -182,7 +183,9 @@ export default function MypageLayout({
       </nav>
 
       {/* デスクトップ: グリッドレイアウト */}
-      <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px 1fr 320px" : "260px 1fr", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
+      {/* ⚠️ minmax(0, 1fr) にすること。1fr のままだと中身の最小幅で本文が押し広げられ、
+             右カラムがあるときに横スクロールが出る（1100px 未満で実際に出ていた）。 */}
+      <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px minmax(0, 1fr) 320px" : "260px minmax(0, 1fr)", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
 
         {/* 左サイドバー（デスクトップのみ） */}
         <aside style={{
@@ -216,12 +219,6 @@ export default function MypageLayout({
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} href="/profile/edit" />
           </nav>
-
-          {sidebarExtra && (
-            <div style={{ padding: "20px 16px 0" }}>
-              {sidebarExtra}
-            </div>
-          )}
         </aside>
 
         {/* メインコンテンツ */}
@@ -231,7 +228,7 @@ export default function MypageLayout({
 
         {/* 右サイドバー（rightColumn がある場合のみ描画） */}
         {rightColumn && (
-          <aside style={{
+          <aside className={`mypage-right-aside${rightColumnCollapse === "hide" ? " mypage-right-hide" : ""}`} style={{
             padding: "36px 24px 60px",
             position: "sticky", top: topOffset, alignSelf: "start",
             height: `calc(100vh - ${topOffset}px)`, overflowY: "auto",
@@ -245,9 +242,22 @@ export default function MypageLayout({
       <style>{`
         .mypage-nav-item:hover { background: var(--bg-tint) !important; color: var(--ink) !important; }
 
-        /* sidebarExtra はサイドバーにしか出ないため、モバイル用の控えを本文側に置く。
-           ⚠️ ブレークポイントを増やさないよう、下の 767px と同じ場所で定義する。 */
-        .mypage-mobile-only { display: none; }
+        /* 右カラムが畳まれる幅で、本文側に置いた控えと入れ替える。
+           .mypage-narrow-only は rightColumnCollapse="hide" とセットで使う。 */
+        .mypage-narrow-only { display: none; }
+
+        /* 3カラムを維持できない幅。1100px 未満だと本文の内側が 424px を切り、
+           入力欄が並ばなくなる（/mypage は 800px で横スクロールまで出ていた）。 */
+        @media (max-width: 1099px) {
+          .mypage-desktop-grid { grid-template-columns: 260px minmax(0, 1fr) !important; }
+          .mypage-right-aside {
+            grid-column: 2 / -1;
+            position: static !important; height: auto !important; overflow: visible !important;
+            border-left: none !important; padding: 0 40px 60px !important;
+          }
+          .mypage-right-hide  { display: none !important; }
+          .mypage-narrow-only { display: block; }
+        }
 
         /* Mobile: show tab bar, hide sidebar grid */
         @media (max-width: 767px) {
@@ -255,7 +265,6 @@ export default function MypageLayout({
           .mypage-desktop-grid  { display: block !important; grid-template-columns: none !important; }
           .mypage-desktop-grid > aside { display: none !important; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
-          .mypage-mobile-only   { display: block; }
         }
       `}</style>
     </>

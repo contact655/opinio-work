@@ -24,12 +24,14 @@ export default function Tabs({
     <div
       role="tablist"
       aria-label="プロフィール編集セクション"
+      className="profile-tabs"
       style={{
         display: "flex",
         gap: 0,
         borderBottom: "2px solid var(--line)",
         marginBottom: 28,
-        overflowX: "auto",
+        // ⚠️ overflowX / flexWrap をインラインに書かないこと。
+        //    幅で切り替えたい値なので、下のメディアクエリが効かなくなる。
       }}
     >
       {tabs.map((tab) => {
@@ -80,8 +82,16 @@ export default function Tabs({
         );
       })}
       <style>{`
-        /* スクロールバー非表示 */
+        /* モバイル: 横スクロール（縦に積むと入力欄が遠くなるため） */
+        .profile-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .profile-tabs::-webkit-scrollbar { display: none; }
+
+        /* デスクトップ: 折り返す。
+           7タブで 719px 必要だが、本文が 719px を超えるのは 1400px 以上のときだけ。
+           横スクロールのままだと「アカウント」が見切れて気づかれない。 */
+        @media (min-width: 768px) {
+          .profile-tabs { flex-wrap: wrap; overflow-x: visible; }
+        }
       `}</style>
     </div>
   );
