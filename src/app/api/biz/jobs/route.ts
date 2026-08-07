@@ -5,6 +5,7 @@ import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
+import { validateJobOptionFields } from "@/lib/business/jobs";
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
@@ -149,6 +150,10 @@ export async function POST(req: Request) {
   }
 
   try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
+
+  // 選択肢が決まっている項目は 400 で弾く。黙って既定値に倒さない
+  const optionErr = validateJobOptionFields(body);
+  if (optionErr) return NextResponse.json(optionErr, { status: 400 });
 
   const salaryResult = parseSalary(body);
   if ("error" in salaryResult) {

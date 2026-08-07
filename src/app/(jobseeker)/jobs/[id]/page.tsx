@@ -21,6 +21,20 @@ import { fmtMan } from "@/lib/utils/salary";
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
 
+/**
+ * JSON-LD（JobPosting）の employmentType に出す schema.org の語彙。
+ * DB の値は日本語（careerOptions.ts の JOB_EMPLOYMENT_TYPES）なので、
+ * ここで写せるものだけ写す。**写せない値・未設定は項目ごと出さない。**
+ * ⚠️ JOB_EMPLOYMENT_TYPES を増やしたら、ここも足すこと。
+ */
+const SCHEMA_EMPLOYMENT_TYPE: Record<string, string | undefined> = {
+  "正社員": "FULL_TIME",
+  "契約社員": "CONTRACTOR",
+  "業務委託": "CONTRACTOR",
+  "インターン": "INTERN",
+  "アルバイト・パート": "PART_TIME",
+};
+
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
@@ -599,7 +613,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           } : undefined,
           datePosted: job.published_at,
           ...(job.expires_at ? { validThrough: job.expires_at } : {}),
-          employmentType: job.employment_type ?? "FULL_TIME",
+          /* ⚠️ 不明を FULL_TIME に倒さない（2026-08-07）。
+             schema.org の employmentType は決まった英語の語彙で、
+             日本語の「正社員」を入れても解釈されない。
+             写せない値・未設定のときは**項目ごと出さない**。 */
+          ...(SCHEMA_EMPLOYMENT_TYPE[job.employment_type ?? ""]
+            ? { employmentType: SCHEMA_EMPLOYMENT_TYPE[job.employment_type ?? ""] }
+            : {}),
           description,
           url: `https://opinio.jp/jobs/${jobSlug ?? jobId}`,
         };
@@ -1686,13 +1706,15 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </span>
                 </div>
                 )}
+                {/* ⚠️ 値が無い行は出さない（2026-08-07）。
+                    空の値セルを並べるより、項目ごと消すほうが原則に合う。 */}
                 {[
                   { key: "職種", value: job.roleLabel },
                   { key: "雇用形態", value: job.employment_type },
                   { key: "勤務地", value: job.location },
                   { key: "働き方", value: job.work_style },
                   { key: "経験", value: job.experience },
-                ].map(({ key, value }) => (
+                ].filter(({ value }) => !!value).map(({ key, value }) => (
                   <div key={key} style={{
                     display: "flex", justifyContent: "space-between", alignItems: "flex-start",
                     padding: "var(--space-2) 0", borderBottom: "1px solid var(--line-soft, #F1F5F9)", gap: "var(--space-2)",

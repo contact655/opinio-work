@@ -45,9 +45,18 @@ export async function PUT(
     return NextResponse.json({ error: "INVALID_URL", message: "有効なURLを入力してください" }, { status: 400 });
   }
 
+  /* ⚠️ POST 側（../route.ts）と同じ扱い。不正値は 400。黙って "other" に倒さない */
   const VALID_PLATFORMS = ["youtube", "note", "zenn", "speakerdeck", "podcast", "github", "other"] as const;
-  const platform = typeof body.platform === "string" && (VALID_PLATFORMS as readonly string[]).includes(body.platform)
-    ? body.platform : "other";
+  let platform = "other";
+  if (body.platform !== undefined && body.platform !== null && body.platform !== "") {
+    if (typeof body.platform !== "string" || !(VALID_PLATFORMS as readonly string[]).includes(body.platform)) {
+      return NextResponse.json(
+        { error: "INVALID_PLATFORM", message: `platform は次のいずれかです: ${VALID_PLATFORMS.join(" / ")}` },
+        { status: 400 }
+      );
+    }
+    platform = body.platform;
+  }
 
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 200) : null;
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 500) : null;

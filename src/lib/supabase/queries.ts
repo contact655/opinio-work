@@ -149,7 +149,11 @@ function mapJob(row: Record<string, any>): Job {
     dept: (row.job_category as string) ?? "",
     // ⚠️ role_category_id は migration の一括投入のまま。biz UI が更新しないため廃止予定。
     role_category_id: (row.role_category_id as string) ?? undefined,
-    employment_type: (row.employment_type as string) ?? "正社員",
+    /* ⚠️ 未設定を「正社員」に倒さない（2026-08-07）。
+       以前は `?? "正社員"` で、雇用形態が入っていない求人が
+       「正社員」と名乗り、「正社員」フィルタにもヒットしていた。
+       表示側は falsy を落とす作りにしてあるので、null なら項目ごと消える。 */
+    employment_type: (row.employment_type as string | null) ?? null,
     location: (row.location as string) ?? "",
     work_style: (() => { const raw = (row.work_style ?? row.remote_work_status) as string | null; return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : ""; })(),
     salary_min: salaryMin,

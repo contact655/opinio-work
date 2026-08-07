@@ -13,13 +13,13 @@ import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
+import { JOB_EMPLOYMENT_TYPES, REMOTE_WORK_STATUSES } from "@/lib/constants/careerOptions";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
-const EMPLOYMENT_TYPES = ["正社員", "業務委託", "契約社員", "インターン", "アルバイト・パート"];
-const REMOTE_OPTIONS = ["フルリモート可", "ハイブリッド（週2-3日出社）", "原則出社"];
+// ⚠️ 雇用形態はここに直書きしない。API の検証と DB の CHECK と同じ定数を見る
 const DURATION_OPTIONS = ["応相談", "1ヶ月以内", "3ヶ月以内", "半年以内"];
 
 const MOCK_TEAM = [
@@ -159,7 +159,9 @@ function FormInput({ value, onChange, placeholder, type = "text", id, required, 
   );
 }
 
-function FormSelect({ value, onChange, options, id }: { value: string; onChange: (v: string) => void; options: string[]; id?: string }) {
+/** options は文字列（value=label）でも {value,label} でも渡せる。
+    ⚠️ DB の値と表示ラベルが違う項目は必ず {value,label} で渡すこと。 */
+function FormSelect({ value, onChange, options, id }: { value: string; onChange: (v: string) => void; options: readonly (string | { value: string; label: string })[]; id?: string }) {
   return (
     <select
       id={id}
@@ -178,7 +180,11 @@ function FormSelect({ value, onChange, options, id }: { value: string; onChange:
       onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
     >
       <option value="">選択してください</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o) => {
+        const v = typeof o === "string" ? o : o.value;
+        const l = typeof o === "string" ? o : o.label;
+        return <option key={v} value={v}>{l}</option>;
+      })}
     </select>
   );
 }
@@ -525,7 +531,7 @@ export function JobEditForm({
               <FormGroup>
                 <FormLabel required>雇用形態</FormLabel>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {EMPLOYMENT_TYPES.map((type) => (
+                  {JOB_EMPLOYMENT_TYPES.map((type) => (
                     <button
                       key={type}
                       type="button"
@@ -914,7 +920,7 @@ export function JobEditForm({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup style={{ margin: 0 }}>
                   <FormLabel required htmlFor="jef-remote">リモートワーク</FormLabel>
-                  <FormSelect id="jef-remote" value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_OPTIONS} />
+                  <FormSelect id="jef-remote" value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_WORK_STATUSES} />
                 </FormGroup>
                 <FormGroup style={{ margin: 0 }}>
                   <FormLabel optional htmlFor="jef-probation">試用期間</FormLabel>

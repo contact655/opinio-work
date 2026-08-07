@@ -8,13 +8,16 @@ import { insertActivity } from "@/lib/business/activities";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { validateJobOptionFields, toUrgency, SETTABLE_JOB_STATUSES } from "@/lib/business/jobs";
 
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
 }
 
-const VALID_STATUSES = new Set(["draft", "pending_review", "published", "rejected", "private"]);
+/* ⚠️ status の許容値はここに直書きしない。
+   DB の CHECK は `active` を含む6値（旧データの温存）、
+   API から設定できるのはそれを除く5値。lib/business/jobs.ts に並べてある。 */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -47,6 +50,11 @@ export async function PUT(
   if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin) {
     return NextResponse.json({ error: "最高給与は最低給与以上に設定してください" }, { status: 422 });
   }
+
+  // 選択肢が決まっている項目は 400 で弾く。黙って既定値に倒さない
+  const optionErr = validateJobOptionFields(body);
+  if (optionErr) return NextResponse.json(optionErr, { status: 400 });
+
   const now = new Date().toISOString();
 
   const { error: updateErr } = await supabase
@@ -71,7 +79,7 @@ export async function PUT(
       selection_steps: Array.isArray(body.selectionSteps) ? body.selectionSteps.filter((x: unknown): x is string => typeof x === "string").slice(0, 20).map((s: string) => s.slice(0, 200)) : [],
       selection_duration: str(body.selectionDuration, 100),
       start_date_preference: str(body.startDatePreference, 100),
-      urgency: (body.urgency === "hot") ? "hot" : "open",
+      urgency: toUrgency(body.urgency),
       why_hire: str(body.whyHire, 5000),
       team_composition: str(body.teamComposition, 5000),
       first_90_days: str(body.first90Days, 5000),
@@ -182,7 +190,7 @@ export async function PATCH(
   try { requireAdmin(ctx1.allMemberships, ctx1.companyId); } catch { return permissionDeniedResponse(); }
 
   const newStatus = body.value ?? "";
-  if (!VALID_STATUSES.has(newStatus)) {
+  if (!SETTABLE_JOB_STATUSES.has(newStatus)) {
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
   }
 

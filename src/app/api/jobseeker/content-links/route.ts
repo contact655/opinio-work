@@ -62,9 +62,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "有効なURLを入力してください" }, { status: 400 });
   }
 
+  /* ⚠️ 不正値を黙って "other" に倒さない（2026-08-07）。
+     倒すと、クライアントの綴りが変わっても誰も気づかないまま
+     全部 other になる。空・未指定だけ "other" を既定として使い、
+     **入っていて不正なものは 400 で返す。** */
   const VALID_PLATFORMS = ["youtube", "note", "zenn", "speakerdeck", "podcast", "github", "other"] as const;
-  const platform = typeof body.platform === "string" && (VALID_PLATFORMS as readonly string[]).includes(body.platform)
-    ? body.platform : "other";
+  let platform = "other";
+  if (body.platform !== undefined && body.platform !== null && body.platform !== "") {
+    if (typeof body.platform !== "string" || !(VALID_PLATFORMS as readonly string[]).includes(body.platform)) {
+      return NextResponse.json(
+        { error: "INVALID_PLATFORM", message: `platform は次のいずれかです: ${VALID_PLATFORMS.join(" / ")}` },
+        { status: 400 }
+      );
+    }
+    platform = body.platform;
+  }
 
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 200) : null;
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 500) : null;

@@ -45,7 +45,8 @@ export type Job = {
   roleLabel?: string | null;
   /** 会社呼称。論理削除済みなら null。roleName と併記したいときだけ使う */
   companyRoleName?: string | null;
-  employment_type: string;
+  /** 未設定は null。**「正社員」に倒さない**（2026-08-07。値が無いことを、ある値に置き換えない） */
+  employment_type: string | null;
   location: string;
   work_style: string;
   salary_min: number;

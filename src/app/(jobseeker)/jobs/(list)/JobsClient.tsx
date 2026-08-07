@@ -12,6 +12,7 @@ import { getVisibleRoles } from "@/lib/constants/roleTracks";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
   { value: "500",  label: "500万〜" },
@@ -596,7 +597,7 @@ function SidebarFilters({
         <SectionHeader label="雇用形態" sectionKey="emptype" hasActive={empTypeSet.size > 0} />
         {!collapsed.has("emptype") && (
           <div style={{ paddingBottom: 8 }}>
-            {["正社員", "業務委託", "副業"].map((v) => (
+            {JOB_EMPLOYMENT_TYPES.map((v) => (
               <CheckItem key={v} label={v} active={empTypeSet.has(v)}
                 onClick={() => toggleParamFn("emp_type", v, empType)} />
             ))}
@@ -764,7 +765,7 @@ function MobileDetailSection({
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>雇用形態</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {["正社員", "業務委託", "副業"].map(v => (
+            {JOB_EMPLOYMENT_TYPES.map(v => (
               <button key={v} type="button" onClick={() => setParam("emp_type", empType === v ? "" : v)}
                 style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12, border: `1.5px solid ${empType === v ? "var(--royal)" : "var(--line)"}`, background: empType === v ? "var(--royal-50)" : "#fff", color: empType === v ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer", fontWeight: empType === v ? 700 : 400 }}>
                 {v}
@@ -1132,8 +1133,11 @@ export default function JobsClient({
     }
 
     // 雇用形態フィルタ（複数選択対応）
+    // ⚠️ 未設定（null）は**どの雇用形態にも一致させない**（2026-08-07）。
+    //    以前は queries.ts が null を "正社員" に倒しており、
+    //    雇用形態が入っていない求人が「正社員」で絞ると出てきていた。
     if (empTypeSet.size > 0) {
-      list = list.filter((j) => empTypeSet.has(j.employment_type));
+      list = list.filter((j) => !!j.employment_type && empTypeSet.has(j.employment_type));
     }
 
     // 業態タグフィルタ
@@ -2276,7 +2280,7 @@ export default function JobsClient({
           )}
           {openFilter === "empType" && (
             <>
-              {(["", "正社員", "業務委託", "副業"] as const).map((v) => (
+              {(["", ...JOB_EMPLOYMENT_TYPES] as const).map((v) => (
                 <button key={v} className={`jobs-pill-item${empType === v ? " selected" : ""}`}
                   onClick={() => { setParam("emp_type", v); setOpenFilter(null); }}
                 >{v || "すべて"}</button>

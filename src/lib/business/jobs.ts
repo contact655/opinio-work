@@ -1,5 +1,56 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizJob, JobStatus } from "./mockJobs";
+import {
+  VALID_JOB_EMPLOYMENT_TYPES,
+  VALID_REMOTE_WORK_STATUSES,
+  JOB_EMPLOYMENT_TYPES,
+  REMOTE_WORK_STATUSES,
+} from "@/lib/constants/careerOptions";
+
+/**
+ * 求人の「選択肢が決まっている項目」を検証する。**作成と更新の両方から呼ぶ。**
+ *
+ * ── なぜ（2026-08-07）──────────────────────────────────────────────────────
+ * employment_type / remote_work_status / urgency はどれも
+ * **API 側に検証が無く**、`str(v, 50)` で任意の文字列が通っていた。
+ *   ・employment_type は DB の CHECK も無く、綴りがずれると
+ *     エラーも出ずに保存され、一覧のフィルタから静かに消えた
+ *   ・remote_work_status は CHECK があるので 23514 で落ちるが、
+ *     フォームが日本語ラベルを送っていたため**選ぶと必ず保存に失敗**していた
+ *   ・urgency は `=== "hot" ? "hot" : "open"` で、**不正値を黙って open に倒して**いた
+ *
+ * ⚠️ 空文字・未指定は「未入力」として通す。**不正値だけ 400 で返す。**
+ *    黙って null や既定値に落とさない。
+ *
+ * @returns 問題があればエラー内容、無ければ null
+ */
+export function validateJobOptionFields(
+  body: Record<string, unknown>,
+): { error: string; message: string } | null {
+  const blank = (v: unknown) => v === undefined || v === null || v === "";
+
+  if (!blank(body.employmentType) && !VALID_JOB_EMPLOYMENT_TYPES.has(String(body.employmentType))) {
+    return {
+      error: "INVALID_EMPLOYMENT_TYPE",
+      message: `雇用形態は次のいずれかです: ${JOB_EMPLOYMENT_TYPES.join(" / ")}`,
+    };
+  }
+  if (!blank(body.remoteWorkStatus) && !VALID_REMOTE_WORK_STATUSES.has(String(body.remoteWorkStatus))) {
+    return {
+      error: "INVALID_REMOTE_WORK_STATUS",
+      message: `勤務形態は次のいずれかです: ${REMOTE_WORK_STATUSES.map((o) => o.value).join(" / ")}`,
+    };
+  }
+  if (!blank(body.urgency) && body.urgency !== "open" && body.urgency !== "hot") {
+    return { error: "INVALID_URGENCY", message: "急募設定は open / hot のいずれかです。" };
+  }
+  return null;
+}
+
+/** urgency の保存値。空は既定の open、不正値は事前に 400 で弾いてある */
+export function toUrgency(v: unknown): "open" | "hot" {
+  return v === "hot" ? "hot" : "open";
+}
 
 // ─── Public types ──────────────────────────────────────
 
@@ -86,7 +137,24 @@ type DbJob = {
 
 // ─── Helpers ───────────────────────────────────────────
 
+/**
+ * DB から**読める** status。`active` は migration 113 以前の旧値で、
+ * 実データは0件だが読み取り側12箇所が今も `.in(["published","active"])` で拾う。
+ * DB の CHECK（ow_jobs_status_check）はこの6値。
+ */
 const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", "active", "rejected", "private"]);
+
+/**
+ * API から**新しく設定できる** status。`active` を含まない。
+ *
+ * ⚠️ 読める語彙と設定できる語彙をわざと分けている（2026-08-07）。
+ *    旧値は温存しつつ、これ以上増やさないため。
+ *    ⚠️ ここに値を足すときは DB の CHECK と `VALID_STATUSES`（＝表示側）も同時に足す。
+ *       片方だけ足すと「DB には入るが画面で draft に化ける」状態になる。
+ */
+export const SETTABLE_JOB_STATUSES = new Set<string>([
+  "draft", "pending_review", "published", "rejected", "private",
+]);
 
 function toJobStatus(s: string | null): JobStatus {
   if (!s) return "draft";
