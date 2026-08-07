@@ -70,3 +70,10 @@ export const VALID_WORRIES = new Set<string>(WORRIES);
 
 /** 希望年収（万円）の上限。UI の max と API の検証が共有する */
 export const SALARY_MAX_MAN = 9999;
+
+/**
+ * 希望職種の上限件数。
+ * ⚠️ 幅を表現させるのが目的なので緩めにする。
+ *    上限そのものは「配列に何千件も投げられる」ことへの歯止め。
+ */
+export const MAX_DESIRED_ROLES = 10;

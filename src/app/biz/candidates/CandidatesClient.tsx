@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { JOB_TYPE_DISPLAY_LABELS, getVisibleCategories } from "@/lib/constants/jobTypes";
 
 type Candidate = {
   id: string;
@@ -18,8 +17,11 @@ type Candidate = {
   roleName: string | null;
   /** ow_roles の9大分類名 */
   topRoleName: string | null;
-  jobType: string | null;
-  workStyle: string | null;
+  /** 希望職種。**祖先まで展開済み**の role_id（絞り込み用） */
+  desiredRoleIds: string[];
+  /** 表示用。本人が選んだ職種名（展開前） */
+  desiredRoleNames: string[];
+  workStyles: string[] | null;
   desiredPhase: string[] | null;
   transferTiming: string | null;
   desiredSalaryMin: number | null;
@@ -44,11 +46,6 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   intern: "インターン",
 };
 
-const LEGACY_CATEGORY_MAP: Record<string, string> = {
-  "インサイドセールス": "sales",
-  "エンジニア":        "engineering",
-  "事業開発・BizDev":  "management",
-};
 
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, var(--royal), #3B5FD9)",
@@ -142,10 +139,13 @@ export default function CandidatesClient({
   candidates,
   scoutQuota,
   jobOptions = [],
+  roleFilterTree = [],
 }: {
   candidates: Candidate[];
   scoutQuota?: ScoutQuota;
   jobOptions?: JobOption[];
+  /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
+  roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
 }) {
   // ── フリーワード ────────────────────────────────────────────────────
   const [q, setQ] = useState("");
@@ -153,8 +153,8 @@ export default function CandidatesClient({
   const [companyQuery, setCompanyQuery] = useState("");
 
   // ── 経歴・雇用形態 ──────────────────────────────────────────────────
-  const [jobCategoryKey, setJobCategoryKey] = useState<string | null>(null);
-  const [selectedJobType, setSelectedJobType] = useState<string | null>(null);
+  const [topRoleId, setTopRoleId] = useState<string | null>(null);
+  const [childRoleId, setChildRoleId] = useState<string | null>(null);
   const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
 
   // ── 希望条件 ────────────────────────────────────────────────────────
@@ -216,9 +216,9 @@ export default function CandidatesClient({
     }
   }
 
-  function selectCategory(key: string | null) {
-    setJobCategoryKey(key);
-    setSelectedJobType(null);
+  function selectTopRole(id: string | null) {
+    setTopRoleId(id);
+    setChildRoleId(null);
   }
 
   // ── 都道府県・スキルタグを candidates から動的生成 ───────────────────
@@ -271,20 +271,12 @@ export default function CandidatesClient({
       list = list.filter((c) => c.employmentType && selectedEmploymentTypes.includes(c.employmentType));
     }
 
-    if (workStyle) list = list.filter((c) => c.workStyle === workStyle);
+    // 勤務スタイル: 複数希望のうち1つでも一致すれば残す
+    if (workStyle) list = list.filter((c) => (c.workStyles ?? []).includes(workStyle));
 
-    if (selectedJobType) {
-      list = list.filter((c) => c.jobType === selectedJobType);
-    } else if (jobCategoryKey) {
-      const cat = getVisibleCategories().find((c) => c.key === jobCategoryKey);
-      const types = (cat?.types ?? []) as readonly string[];
-      const legacyForCat = Object.entries(LEGACY_CATEGORY_MAP)
-        .filter(([, catKey]) => catKey === jobCategoryKey)
-        .map(([jt]) => jt);
-      list = list.filter(
-        (c) => c.jobType && (types.includes(c.jobType) || legacyForCat.includes(c.jobType))
-      );
-    }
+    /* 職種: 候補者側が祖先まで展開済みなので、大分類でも子でも includes() で当たる */
+    const wantRole = childRoleId ?? topRoleId;
+    if (wantRole) list = list.filter((c) => c.desiredRoleIds.includes(wantRole));
 
     if (phase) list = list.filter((c) => c.desiredPhase?.includes(phase));
 
@@ -318,13 +310,13 @@ export default function CandidatesClient({
 
     return list;
   }, [
-    candidates, q, roleQuery, companyQuery, workStyle, jobCategoryKey, selectedJobType,
+    candidates, q, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
     phase, hideAlreadyScouted,
     ageMin, ageMax, selectedPrefectures,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
 
-  const jobTypeFilterActive = jobCategoryKey !== null;
+  const jobTypeFilterActive = topRoleId !== null;
   const activeFilterCount = [
     q.trim() ? "x" : "",
     roleQuery.trim() ? "x" : "",
@@ -345,8 +337,8 @@ export default function CandidatesClient({
     setRoleQuery("");
     setCompanyQuery("");
     setWorkStyle("");
-    setJobCategoryKey(null);
-    setSelectedJobType(null);
+    setTopRoleId(null);
+    setChildRoleId(null);
     setPhase("");
     setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
@@ -361,7 +353,7 @@ export default function CandidatesClient({
     return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
   }
 
-  const selectedCat = getVisibleCategories().find((c) => c.key === jobCategoryKey);
+  const selectedTop = roleFilterTree.find((t) => t.id === topRoleId);
   const alreadyScoutedCount = candidates.filter((c) => c.alreadyScouted).length;
   const showQuota = scoutQuota && scoutQuota.usedThisMonth > 0;
 
@@ -445,45 +437,45 @@ export default function CandidatesClient({
 
         <SidebarLabel>職種カテゴリ</SidebarLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
-          {getVisibleCategories().map((cat) => (
-            <button key={cat.key} type="button"
-              aria-pressed={jobCategoryKey === cat.key}
-              onClick={() => selectCategory(jobCategoryKey === cat.key ? null : cat.key)}
+          {roleFilterTree.map((top) => (
+            <button key={top.id} type="button"
+              aria-pressed={topRoleId === top.id}
+              onClick={() => selectTopRole(topRoleId === top.id ? null : top.id)}
               style={{
                 padding: "4px 9px", borderRadius: 999, fontSize: 11, cursor: "pointer",
                 fontFamily: "inherit", whiteSpace: "nowrap" as const,
-                fontWeight: jobCategoryKey === cat.key ? 700 : 400,
-                border: jobCategoryKey === cat.key ? "1.5px solid var(--royal)" : "1px solid var(--line)",
-                background: jobCategoryKey === cat.key ? "var(--royal-50)" : "#fff",
-                color: jobCategoryKey === cat.key ? "var(--royal)" : "var(--ink-soft)",
+                fontWeight: topRoleId === top.id ? 700 : 400,
+                border: topRoleId === top.id ? "1.5px solid var(--royal)" : "1px solid var(--line)",
+                background: topRoleId === top.id ? "var(--royal-50)" : "#fff",
+                color: topRoleId === top.id ? "var(--royal)" : "var(--ink-soft)",
               }}>
-              {cat.emoji} {cat.label}
+              {top.name}
             </button>
           ))}
         </div>
-        {selectedCat && (
+        {selectedTop && selectedTop.children.length > 0 && (
           <div style={{ padding: "8px 10px", background: "var(--royal-50)", borderRadius: 8, border: "1px solid var(--royal-100)", marginBottom: 8 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)", marginBottom: 6 }}>
-              {selectedCat.emoji} {selectedCat.label} の職種
+              {selectedTop.name} の職種
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {selectedCat.types.map((jt) => (
-                <button key={jt} type="button"
-                  aria-pressed={selectedJobType === jt}
-                  onClick={() => setSelectedJobType(selectedJobType === jt ? null : jt)}
+              {selectedTop.children.map((child) => (
+                <button key={child.id} type="button"
+                  aria-pressed={childRoleId === child.id}
+                  onClick={() => setChildRoleId(childRoleId === child.id ? null : child.id)}
                   style={{
                     padding: "3px 8px", borderRadius: 999, fontSize: 10, cursor: "pointer",
                     fontFamily: "inherit",
-                    fontWeight: selectedJobType === jt ? 700 : 400,
-                    border: selectedJobType === jt ? "1.5px solid var(--accent)" : "1px solid var(--line)",
-                    background: selectedJobType === jt ? "#fff" : "var(--bg-tint)",
-                    color: selectedJobType === jt ? "var(--accent)" : "var(--ink-soft)",
+                    fontWeight: childRoleId === child.id ? 700 : 400,
+                    border: childRoleId === child.id ? "1.5px solid var(--accent)" : "1px solid var(--line)",
+                    background: childRoleId === child.id ? "#fff" : "var(--bg-tint)",
+                    color: childRoleId === child.id ? "var(--accent)" : "var(--ink-soft)",
                   }}>
-                  {JOB_TYPE_DISPLAY_LABELS[jt] ?? jt}
+                  {child.name}
                 </button>
               ))}
             </div>
-            <button type="button" onClick={() => selectCategory(null)}
+            <button type="button" onClick={() => selectTopRole(null)}
               style={{ marginTop: 6, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
               ✕ カテゴリを解除
             </button>
@@ -783,13 +775,16 @@ export default function CandidatesClient({
                         </div>
 
                         {/* 職種 · 会社名 */}
-                        {(c.currentRole || c.currentCompany || c.jobType) && (
+                        {(c.currentRole || c.currentCompany || c.desiredRoleNames.length > 0) && (
                           <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.4 }}>
                             {c.currentRole && <span style={{ fontWeight: 600, color: "var(--ink)" }}>{c.currentRole}</span>}
                             {c.currentRole && c.currentCompany && <span style={{ color: "var(--ink-mute)" }}> · </span>}
                             {c.currentCompany && <span>{c.currentCompany}</span>}
-                            {!c.currentRole && !c.currentCompany && c.jobType && (
-                              <span style={{ color: "var(--ink-mute)" }}>{JOB_TYPE_DISPLAY_LABELS[c.jobType] ?? c.jobType}</span>
+                            {/* 現職が分からないときだけ希望職種を出す。複数あれば並べる */}
+                            {!c.currentRole && !c.currentCompany && c.desiredRoleNames.length > 0 && (
+                              <span style={{ color: "var(--ink-mute)" }}>
+                                希望: {c.desiredRoleNames.join("・")}
+                              </span>
                             )}
                           </div>
                         )}

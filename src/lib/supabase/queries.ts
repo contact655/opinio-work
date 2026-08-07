@@ -11,7 +11,7 @@ import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
 import { createPublicClient } from "./public";
-import { buildRoleTree, type RoleTree, type RoleNode } from "@/lib/roles/jobRoles";
+import { buildRoleTree, expandWithAncestors, type RoleTree, type RoleNode } from "@/lib/roles/jobRoles";
 import { pickRoleLabel, fetchCompanyRoleMap } from "@/lib/jobs/roleLabel";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
@@ -916,17 +916,7 @@ export const getJobs = unstable_cache(
         // ow_job_roles にはピッカーで選ばれた具体職種（例: セールスエンジニア）が
         // 入るため、9大分類（例: 営業）で絞り込むフィルタは祖先まで展開しないと
         // ヒットしない。祖先を含めておけば、大分類でも子階層でも同じ判定で通る。
-        const expanded = new Set(own);
-        for (const id of own) {
-          let node = roleTree.byId.get(id) ?? null;
-          const seen = new Set<string>();
-          while (node?.parentId && !seen.has(node.id)) {
-            seen.add(node.id);
-            expanded.add(node.parentId);
-            node = roleTree.byId.get(node.parentId) ?? null;
-          }
-        }
-        job.roleIds = Array.from(expanded);
+        job.roleIds = expandWithAncestors(roleTree, own);
         // 標準職種名は primary の具体職種名（祖先ではなく、選ばれたそのもの）
         job.roleName = roleTree.byId.get(own[0])?.name ?? null;
       }

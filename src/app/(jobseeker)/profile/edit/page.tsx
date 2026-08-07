@@ -113,12 +113,25 @@ export default async function ProfileEditPage({
        職種が失われる。統合・無効化を運用で回す以上、必ず起きる。
        ⚠️ 親も一緒に足すこと。子だけ足しても、親セレクトに親が無ければ子セレクトが開かない。
   */
+  /* 希望職種（ow_profile_desired_roles）。⚠️ user_id は **auth.users.id**。
+     ⚠️ roles の足し戻しで使うので、ここで先に引いておく。 */
+  const { data: desiredRoleRows, error: desiredRoleError } = await supabase
+    .from("ow_profile_desired_roles")
+    .select("role_id")
+    .eq("user_id", user.id);
+  if (desiredRoleError) console.error("[profile/edit] desired_roles fetch error:", desiredRoleError.message);
+  const desiredRoleIds: string[] = (desiredRoleRows ?? []).map((r) => r.role_id as string);
+
   const activeRoleIds = new Set((allRoles ?? []).map((r) => r.id as string));
+  /* ⚠️ 職歴の職種に加えて**希望職種も足し戻す**。
+        無効化された職種を希望に入れている人が編集画面を開いたとき、
+        チップが「（不明な職種）」になり、別項目を保存した拍子に消える。 */
   const selectedRoleIds = Array.from(
     new Set(
-      ((expRows ?? []) as { role_category_id?: string | null }[])
-        .map((e) => e.role_category_id)
-        .filter((id): id is string => !!id && !activeRoleIds.has(id)),
+      [
+        ...((expRows ?? []) as { role_category_id?: string | null }[]).map((e) => e.role_category_id),
+        ...desiredRoleIds,
+      ].filter((id): id is string => !!id && !activeRoleIds.has(id)),
     ),
   );
 
@@ -161,8 +174,7 @@ export default async function ProfileEditPage({
 
   // ow_profiles — 希望条件 + スカウト設定
   let profilePrefs: {
-    job_type: string | null;
-    desired_work_style: string | null;
+    desired_work_styles: string[] | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
     transfer_timing: string | null;
@@ -179,12 +191,13 @@ export default async function ProfileEditPage({
        ⚠️ experience_years は引かない。職歴から自動計算する表示専用になった。 */
     const { data, error } = await supabase
       .from("ow_profiles")
-      .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
+      .select("desired_work_styles, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
     if (error) console.error("[profile/edit] ow_profiles fetch error:", error.message);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (data) profilePrefs = data as any;
+
   }
 
   // Build UUID → name map from ow_roles
@@ -259,6 +272,7 @@ export default async function ProfileEditPage({
       initialTab={searchParams.tab}
       isWelcome={isWelcome}
       initialScoutEnabled={profilePrefs?.scout_enabled ?? null}
+      initialDesiredRoleIds={desiredRoleIds}
       initialProfilePrefs={profilePrefs}
     />
   );

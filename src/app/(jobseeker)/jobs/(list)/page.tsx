@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getJobs, getParentRoles, getCompanyReviewSummaries, getRoleAliases, getIndustriesForFilter } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getDesiredRoles } from "@/lib/profile/desiredRoles";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
 import JobsClient from "./JobsClient";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
@@ -46,20 +47,25 @@ async function fetchUserRecommendations(
     const adminSupabase = createAdminClient();
 
     // ow_profiles.user_id = auth.users.id（直接 auth UUID）
-    const { data: profile } = await adminSupabase
-      .from("ow_profiles")
-      .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, desired_phase")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [{ data: profile }, desired] = await Promise.all([
+      adminSupabase
+        .from("ow_profiles")
+        .select("desired_work_styles, desired_salary_min, desired_salary_max, desired_phase")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      getDesiredRoles(user.id),
+    ]);
 
-    if (!profile) return [];
+    if (!profile && desired.ids.length === 0) return [];
 
     const scoringProfile = {
-      job_type: profile.job_type ?? null,
-      desired_work_style: profile.desired_work_style ?? null,
-      desired_salary_min: profile.desired_salary_min ? Number(profile.desired_salary_min) : null,
-      desired_salary_max: profile.desired_salary_max ? Number(profile.desired_salary_max) : null,
-      desired_phase: (profile.desired_phase as string[] | null) ?? null,
+      // ⚠️ 突き合わせは展開後（祖先込み）。表示は展開前の名前
+      desired_role_ids:   desired.expandedIds,
+      desired_role_names: desired.names,
+      desired_work_styles: (profile?.desired_work_styles as string[] | null) ?? null,
+      desired_salary_min: profile?.desired_salary_min ? Number(profile.desired_salary_min) : null,
+      desired_salary_max: profile?.desired_salary_max ? Number(profile.desired_salary_max) : null,
+      desired_phase: (profile?.desired_phase as string[] | null) ?? null,
     };
 
     // company_id → phase マップを構築
@@ -86,6 +92,18 @@ export default async function JobsPage() {
 
   const recommendations = await fetchUserRecommendations(jobs, companies);
 
+  /* 「あなたの希望職種にマッチ」セクション用。
+     ⚠️ 以前はクライアント側で ow_profiles を引いていたが、
+        ow_users.id で引いており**常に0件**でセクションが一度も出ていなかった。
+        サーバーで解決して渡す（空間を取り違えようがない形にする）。 */
+  const desiredForSection = await (async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ids: [] as string[], names: [] as string[] };
+    const d = await getDesiredRoles(user.id);
+    return { ids: d.expandedIds, names: d.names };
+  })();
+
   return (
     <Suspense
       fallback={
@@ -100,7 +118,7 @@ export default async function JobsPage() {
         </div>
       }
     >
-      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} recommendations={recommendations} reviewSummaries={reviewSummaries} roleAliases={roleAliases} industries={industries} />
+      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} recommendations={recommendations} reviewSummaries={reviewSummaries} roleAliases={roleAliases} industries={industries} desiredRoleIds={desiredForSection.ids} desiredRoleNames={desiredForSection.names} />
     </Suspense>
   );
 }

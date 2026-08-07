@@ -25,7 +25,8 @@ async function getStats() {
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
     // オンボーディングファネル
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
-    admin.from("ow_profiles").select("id", { count: "exact", head: true }).not("job_type", "is", null),
+    // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
+    admin.from("ow_profile_desired_roles").select("user_id"),
     admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
     // 口コミ審査待ち
     admin.from("ow_company_reviews").select("id", { count: "exact", head: true }).eq("is_approved", false),
@@ -96,7 +97,8 @@ async function getStats() {
     recentCompanies: recentCompanies ?? [],
     // ファネル
     onboardingCompletedCount: onboardingCompleted.count ?? 0,
-    profileFilledCount: profileFilled.count ?? 0,
+    // 希望職種を1件以上入れている**人数**（行数ではない。複数選択できるため）
+    profileFilledCount: new Set(((profileFilled.data ?? []) as { user_id: string }[]).map((r) => r.user_id)).size,
     appliedOrMetCount: appliedOrMet.count ?? 0,
   };
 }

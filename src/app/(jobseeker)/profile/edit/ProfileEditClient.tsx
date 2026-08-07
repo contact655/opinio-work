@@ -12,14 +12,16 @@ import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageM
 import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
-import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS, getVisibleCategories } from "@/lib/constants/jobTypes";
 import {
   DESIRED_WORK_STYLES,
   TRANSFER_TIMINGS,
   DESIRED_PHASES,
   WORRIES,
   SALARY_MAX_MAN,
+  MAX_DESIRED_ROLES,
 } from "@/lib/constants/careerPreferences";
+import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
+import { CheckPillGroup, type CheckPillOption } from "@/components/ui/CheckPillGroup";
 import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
 import { hasCareerPreferences } from "@/lib/profile/completion";
 import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
@@ -2294,6 +2296,7 @@ export default function ProfileEditClient({
   initialTab,
   isWelcome = false,
   initialScoutEnabled = null,
+  initialDesiredRoleIds = [],
   initialProfilePrefs = null,
 }: {
   owUser: OwUser;
@@ -2312,11 +2315,13 @@ export default function ProfileEditClient({
   initialTab?: string;
   isWelcome?: boolean;
   initialScoutEnabled?: boolean | null;
+  /** 希望職種（ow_profile_desired_roles）。本人が選んだ role_id（展開前） */
+  initialDesiredRoleIds?: string[];
   initialProfilePrefs?: {
-    job_type: string | null;
-    // ⚠️ experience_years は受け取らない。職歴から自動計算する（2026-08-07）。
-    //    列は ow_profiles に残っているが、画面もAPIも読み書きしない。
-    desired_work_style: string | null;
+    // ⚠️ job_type / desired_work_style / experience_years は受け取らない。
+    //    希望職種は ow_profile_desired_roles、勤務スタイルは desired_work_styles、
+    //    経験年数は職歴から自動計算に移った（2026-08-07）。列は残置。
+    desired_work_styles: string[] | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
     transfer_timing: string | null;
@@ -2334,8 +2339,8 @@ export default function ProfileEditClient({
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   // ── 希望条件 (ow_profiles) state ─────────────────────────────────────────────
-  const [prefJobType, setPrefJobType] = useState(initialProfilePrefs?.job_type ?? "");
-  const [prefWorkStyle, setPrefWorkStyle] = useState(initialProfilePrefs?.desired_work_style ?? "");
+  const [prefRoleIds, setPrefRoleIds] = useState<string[]>(initialDesiredRoleIds);
+  const [prefWorkStyles, setPrefWorkStyles] = useState<string[]>(initialProfilePrefs?.desired_work_styles ?? []);
   const [prefSalaryMin, setPrefSalaryMin] = useState(initialProfilePrefs?.desired_salary_min?.toString() ?? "");
   const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
   const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
@@ -2344,6 +2349,35 @@ export default function ProfileEditClient({
   const [prefSaving, setPrefSaving] = useState(false);
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* 希望条件が1つでも入っているか。**判定は completion.ts の1本に寄せる。**
+     こことタブ完了ドットと /mypage で式が分かれると完成度がずれる（2026-08-07）。 */
+  const hasPrefs = hasCareerPreferences({
+    desiredRoleCount:    prefRoleIds.length,
+    desired_work_styles: prefWorkStyles,
+    desired_salary_min:  prefSalaryMin ? Number(prefSalaryMin) : null,
+    desired_salary_max:  prefSalaryMax ? Number(prefSalaryMax) : null,
+    transfer_timing:     prefTiming || null,
+    desired_phase:       prefPhase,
+    worry:               prefWorry || null,
+  });
+
+  /** role_id → 職種名。希望職種チップの表示に使う */
+  const roleNameById = useMemo(
+    () => new Map(roles.map((r) => [r.id, r.name])),
+    [roles]
+  );
+
+  /* ⚠️ 選択肢から外した値（"flexible"）を今持っている人には足し戻す。
+        出さないと画面から消えたまま保存され続け、別項目を保存した拍子に失われる。 */
+  const workStyleOptions = useMemo<CheckPillOption[]>(() => {
+    const base: CheckPillOption[] = DESIRED_WORK_STYLES.map((o) => ({ value: o.value, label: o.label }));
+    const known = new Set(base.map((o) => o.value));
+    const extra = prefWorkStyles
+      .filter((v) => !known.has(v))
+      .map((v) => ({ value: v, label: v, legacy: true }));
+    return [...base, ...extra];
+  }, [prefWorkStyles]);
 
   // ── 社会人経験年数（職歴から自動計算・表示のみ）──────────────────────────
   // ⚠️ 職歴が0件なら null。呼び出し側は項目ごと非表示にする（「0年」と出さない）。
@@ -2785,7 +2819,7 @@ export default function ProfileEditClient({
   const tabCompletion: Record<ProfileTab, boolean> = {
     basic:             !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
     career:            initialExperiences.length > 0 || educations.length > 0,
-    preferences:       !!(prefJobType || prefWorkStyle || prefSalaryMin || prefSalaryMax || prefTiming),
+    preferences:       hasPrefs,
     certs_achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
     socials_content:   Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
     privacy:           true,
@@ -2810,15 +2844,7 @@ export default function ProfileEditClient({
     hasAvatar:             !!owUser?.avatar_url,
     experienceCount:       initialExperiences.length,
     educationCount:        educations.length,
-    hasPreferences:        hasCareerPreferences({
-      job_type:           prefJobType || null,
-      desired_work_style: prefWorkStyle || null,
-      desired_salary_min: prefSalaryMin ? Number(prefSalaryMin) : null,
-      desired_salary_max: prefSalaryMax ? Number(prefSalaryMax) : null,
-      transfer_timing:    prefTiming || null,
-      desired_phase:      prefPhase,
-      worry:              prefWorry || null,
-    }),
+    hasPreferences:        hasPrefs,
     certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
     socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
   };
@@ -3167,37 +3193,75 @@ export default function ProfileEditClient({
               </div>
             )}
 
+            {/* ── 希望職種（複数選択）────────────────────────────────────────
+                職歴からは「やってきたこと」しか分からない。**キャリアチェンジ希望は
+                ここにしか出ない**ので、希望条件の中で最も重要な項目。
+                ⚠️ selectableParent は true。求職者は「営業」のような粗い希望も出したい
+                   （求人フォームは false。あちらは求人の職種を1つに定める用途）。 */}
             <FormSection
               title="希望職種"
-              desc="企業側の候補者サーチに表示されます。カジュアル面談の申込をもらいやすくなります。"
+              desc="複数選べます。企業側の候補者サーチと、あなたへの求人おすすめに使われます。"
             >
-              <FormGroup label="希望職種" htmlFor="pe-job-type">
-                <select
-                  id="pe-job-type"
-                  value={prefJobType}
-                  onChange={async (e) => {
-                    setPrefJobType(e.target.value);
-                    await savePreferences({ job_type: e.target.value || null });
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <RoleSearchSelect
+                  roles={roles}
+                  aliases={roleAliases}
+                  value=""
+                  onSelect={async (roleId) => {
+                    if (prefRoleIds.includes(roleId)) return;
+                    if (prefRoleIds.length >= MAX_DESIRED_ROLES) return;
+                    const next = [...prefRoleIds, roleId];
+                    setPrefRoleIds(next);
+                    await savePreferences({ desired_role_ids: next });
                   }}
-                  style={selectStyle()}
-                >
-                  <option value="">未設定</option>
-                  {/* legacy値保持ユーザー向けフォールバック: カテゴリに含まれない値を今持っている場合のみ先頭に表示 */}
-                  {prefJobType !== "" &&
-                    !JOB_TYPE_CATEGORIES.some((cat) => (cat.types as readonly string[]).includes(prefJobType)) && (
-                    <option value={prefJobType}>{prefJobType}</option>
-                  )}
-                  {getVisibleCategories().map((cat) => (
-                    <optgroup key={cat.key} label={`${cat.emoji} ${cat.label}`}>
-                      {cat.types.map((jt) => (
-                        <option key={jt} value={jt}>
-                          {JOB_TYPE_DISPLAY_LABELS[jt] ?? jt}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </FormGroup>
+                  selectableParent
+                  clearOnSelect
+                  disabled={prefRoleIds.length >= MAX_DESIRED_ROLES}
+                  placeholder={
+                    prefRoleIds.length >= MAX_DESIRED_ROLES
+                      ? `希望職種は ${MAX_DESIRED_ROLES} 件までです`
+                      : "職種名で検索（例: 法人営業、AE、営業）"
+                  }
+                  ariaLabel="希望職種を検索して追加"
+                />
+
+                {prefRoleIds.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0 }}>
+                    まだ選ばれていません。
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {prefRoleIds.map((id) => (
+                      <span
+                        key={id}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "6px 8px 6px 12px", borderRadius: 100,
+                          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                          color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 600,
+                        }}
+                      >
+                        {roleNameById.get(id) ?? "（不明な職種）"}
+                        <button
+                          type="button"
+                          aria-label={`${roleNameById.get(id) ?? "この職種"} を外す`}
+                          onClick={async () => {
+                            const next = prefRoleIds.filter((r) => r !== id);
+                            setPrefRoleIds(next);
+                            await savePreferences({ desired_role_ids: next });
+                          }}
+                          style={{
+                            border: "none", background: "none", cursor: "pointer",
+                            color: "var(--royal)", fontSize: 15, lineHeight: 1, padding: "0 2px",
+                          }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </FormSection>
 
             {/* ── 社会人経験年数（自動計算・表示のみ）────────────────────────
@@ -3233,26 +3297,18 @@ export default function ProfileEditClient({
               title="勤務スタイル・転職時期"
               desc="希望する働き方と転職のタイミングを教えてください。"
             >
-              <FormGroup label="希望勤務スタイル" htmlFor="pe-work-style">
-                <select
-                  id="pe-work-style"
-                  value={prefWorkStyle}
-                  onChange={async (e) => {
-                    setPrefWorkStyle(e.target.value);
-                    await savePreferences({ desired_work_style: e.target.value || null });
+              <FormGroup label="希望勤務スタイル">
+                {/* ⚠️ 複数選べる。「フルリモート希望」と「週2出社まで可」を
+                       並べられないと幅が表現できない、というのが作り直しの理由。 */}
+                <CheckPillGroup
+                  ariaLabel="希望勤務スタイル"
+                  value={prefWorkStyles}
+                  options={workStyleOptions}
+                  onChange={async (next) => {
+                    setPrefWorkStyles(next);
+                    await savePreferences({ desired_work_styles: next });
                   }}
-                  style={selectStyle()}
-                >
-                  <option value="">未設定</option>
-                  {/* 選択肢から外れた値（"flexible" 等）を今持っている場合だけ先頭に出す。
-                      出さないと select が空表示になり、他を保存した拍子に消える。 */}
-                  {prefWorkStyle !== "" && !DESIRED_WORK_STYLES.some((o) => o.value === prefWorkStyle) && (
-                    <option value={prefWorkStyle}>{prefWorkStyle}（現在の設定）</option>
-                  )}
-                  {DESIRED_WORK_STYLES.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                />
               </FormGroup>
               <FormGroup label="転職検討時期" htmlFor="pe-timing">
                 <select
@@ -3327,51 +3383,15 @@ export default function ProfileEditClient({
               title="興味のある企業フェーズ"
               desc="どのステージの企業に関心がありますか？複数選択できます。"
             >
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {DESIRED_PHASES.map((phase) => {
-                  const checked = prefPhase.includes(phase);
-                  return (
-                    <label
-                      key={phase}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 7, cursor: "pointer",
-                        padding: "7px var(--space-3)", borderRadius: 8,
-                        background: checked ? "var(--royal-50)" : "var(--bg-tint)",
-                        border: `1.5px solid ${checked ? "var(--accent)" : "var(--line)"}`,
-                        color: checked ? "var(--royal)" : "var(--ink-soft)",
-                        fontSize: "var(--text-sm)", fontWeight: checked ? 600 : 400,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        style={{ display: "none" }}
-                        onChange={async () => {
-                          const next = checked
-                            ? prefPhase.filter((p) => p !== phase)
-                            : [...prefPhase, phase];
-                          setPrefPhase(next);
-                          await savePreferences({ desired_phase: next.length > 0 ? next : null });
-                        }}
-                      />
-                      <span style={{
-                        width: 14, height: 14, borderRadius: 4, flexShrink: 0,
-                        border: `2px solid ${checked ? "var(--accent)" : "var(--line)"}`,
-                        background: checked ? "var(--accent)" : "#fff",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {checked && (
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round">
-                            <path d="M20 6L9 17l-5-5"/>
-                          </svg>
-                        )}
-                      </span>
-                      {phase}
-                    </label>
-                  );
-                })}
-              </div>
+              <CheckPillGroup
+                ariaLabel="興味のある企業フェーズ"
+                value={prefPhase}
+                options={DESIRED_PHASES.map((p) => ({ value: p, label: p }))}
+                onChange={async (next) => {
+                  setPrefPhase(next);
+                  await savePreferences({ desired_phase: next.length > 0 ? next : null });
+                }}
+              />
             </FormSection>
 
             <FormSection

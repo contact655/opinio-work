@@ -1,17 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import {
   VALID_DESIRED_WORK_STYLES,
   VALID_TRANSFER_TIMINGS,
   VALID_DESIRED_PHASES,
   VALID_WORRIES,
   SALARY_MAX_MAN,
+  MAX_DESIRED_ROLES,
 } from "@/lib/constants/careerPreferences";
 
 export const dynamic = "force-dynamic";
-
-const VALID_JOB_TYPES = new Set<string>(JOB_TYPES);
 
 /**
  * PUT /api/jobseeker/career-preferences — 求職者の希望条件を ow_profiles に保存
@@ -28,6 +27,10 @@ const VALID_JOB_TYPES = new Set<string>(JOB_TYPES);
  *    列とデータは残す（後で判断）。
  * ③ transfer_timing が**実際に変わったときだけ** transfer_timing_updated_at を更新する。
  *    同じ値を選び直しても新しくしない。
+ * ④ 希望職種を ow_profile_desired_roles（複数可）に、
+ *    希望勤務スタイルを desired_work_styles（text[]）に移した。
+ *    旧列 job_type / desired_work_style は**受け付けない**（400）。
+ *    列は残置しているが、読む側もすべて新しい形に移したので更新しない。
  */
 export async function PUT(req: Request) {
   const supabase = createClient();
@@ -45,8 +48,7 @@ export async function PUT(req: Request) {
   }
 
   const patch: {
-    job_type?: string | null;
-    desired_work_style?: string | null;
+    desired_work_styles?: string[] | null;
     desired_salary_min?: number | null;
     desired_salary_max?: number | null;
     transfer_timing?: string | null;
@@ -55,6 +57,17 @@ export async function PUT(req: Request) {
     worry?: string | null;
     updated_at?: string | null;
   } = {};
+
+  // 旧・単数の項目は受け付けない。黙って無視すると
+  //「保存したのに反映されない」になるので 400 で落とす。
+  for (const gone of ["job_type", "desired_work_style", "experience_years"] as const) {
+    if (gone in body) {
+      return NextResponse.json(
+        { error: `${gone} は廃止されました（希望職種は desired_role_ids、勤務スタイルは desired_work_styles、経験年数は職歴から自動計算）` },
+        { status: 400 }
+      );
+    }
+  }
 
   /** null / "" は「未設定」。それ以外は許容値に無ければ 400。 */
   function readEnum(key: string, allowed: Set<string>): string | null | NextResponse {
@@ -83,9 +96,21 @@ export async function PUT(req: Request) {
     return Math.floor(n);
   }
 
+  /** 文字列配列。許容値に無いものが1つでもあれば 400。空配列は null（未設定）。 */
+  function readEnumArray(key: string, allowed: Set<string>): string[] | null | NextResponse {
+    const v = body[key];
+    if (v === null || v === undefined) return null;
+    if (!Array.isArray(v)) {
+      return NextResponse.json({ error: `${key} は配列で指定してください` }, { status: 400 });
+    }
+    if (v.some((x) => typeof x !== "string" || !allowed.has(x))) {
+      return NextResponse.json({ error: `${key} に不正な値が含まれています` }, { status: 400 });
+    }
+    const uniq = Array.from(new Set(v as string[]));
+    return uniq.length > 0 ? uniq : null;
+  }
+
   for (const [key, allowed] of [
-    ["job_type", VALID_JOB_TYPES],
-    ["desired_work_style", VALID_DESIRED_WORK_STYLES],
     ["transfer_timing", VALID_TRANSFER_TIMINGS],
     ["worry", VALID_WORRIES],
   ] as const) {
@@ -93,6 +118,12 @@ export async function PUT(req: Request) {
     const v = readEnum(key, allowed);
     if (v instanceof NextResponse) return v;
     patch[key] = v;
+  }
+
+  if ("desired_work_styles" in body) {
+    const v = readEnumArray("desired_work_styles", VALID_DESIRED_WORK_STYLES);
+    if (v instanceof NextResponse) return v;
+    patch.desired_work_styles = v;
   }
 
   for (const key of ["desired_salary_min", "desired_salary_max"] as const) {
@@ -118,16 +149,46 @@ export async function PUT(req: Request) {
     }
   }
 
-  // ⚠️ experience_years は受け付けない。職歴（ow_experiences.started_at）から
-  //    自動計算する表示専用の値になった。列とデータは残っている。
-  if ("experience_years" in body) {
-    return NextResponse.json(
-      { error: "experience_years は職歴から自動計算されるため保存できません" },
-      { status: 400 }
-    );
+  // ── 希望職種（ow_profile_desired_roles）─────────────────────────────────
+  // ⚠️ role_id が ow_roles に実在するかまで確かめる。存在しない UUID を投げられると
+  //    FK 違反で 500 になり、原因が分かりにくい。ここで 400 にして理由を返す。
+  let desiredRoleIds: string[] | null = null;
+  if ("desired_role_ids" in body) {
+    const v = body.desired_role_ids;
+    if (v === null || v === undefined) {
+      desiredRoleIds = [];
+    } else if (!Array.isArray(v)) {
+      return NextResponse.json({ error: "desired_role_ids は配列で指定してください" }, { status: 400 });
+    } else if (v.some((x) => typeof x !== "string")) {
+      return NextResponse.json({ error: "desired_role_ids に不正な値が含まれています" }, { status: 400 });
+    } else {
+      const uniq = Array.from(new Set(v as string[]));
+      if (uniq.length > MAX_DESIRED_ROLES) {
+        return NextResponse.json(
+          { error: `希望職種は ${MAX_DESIRED_ROLES} 件までです` },
+          { status: 400 }
+        );
+      }
+      if (uniq.length > 0) {
+        const admin = createAdminClient();
+        const { data: found, error: roleError } = await admin
+          .from("ow_roles").select("id").in("id", uniq);
+        if (roleError) {
+          console.error("[PUT /api/jobseeker/career-preferences] ow_roles", roleError.message);
+          return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        }
+        if ((found ?? []).length !== uniq.length) {
+          return NextResponse.json(
+            { error: "desired_role_ids に存在しない職種が含まれています" },
+            { status: 400 }
+          );
+        }
+      }
+      desiredRoleIds = uniq;
+    }
   }
 
-  if (Object.keys(patch).length === 0) {
+  if (Object.keys(patch).length === 0 && desiredRoleIds === null) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });
   }
 
@@ -170,6 +231,30 @@ export async function PUT(req: Request) {
     if (error) {
       console.error("[PUT /api/jobseeker/career-preferences] insert", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+  }
+
+  // ── 希望職種は「全消し → 入れ直し」。差分を取らない ────────────────────────
+  // ⚠️ session クライアントで書く。RLS の own ポリシーが auth.uid() で効くので、
+  //    他人の行には触れない。admin に寄せると RLS を素通りしてしまう。
+  if (desiredRoleIds !== null) {
+    const { error: delError } = await supabase
+      .from("ow_profile_desired_roles")
+      .delete()
+      .eq("user_id", user.id);
+    if (delError) {
+      console.error("[PUT /api/jobseeker/career-preferences] desired_roles delete", delError.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+
+    if (desiredRoleIds.length > 0) {
+      const { error: insError } = await supabase
+        .from("ow_profile_desired_roles")
+        .insert(desiredRoleIds.map((role_id) => ({ user_id: user.id, role_id })));
+      if (insError) {
+        console.error("[PUT /api/jobseeker/career-preferences] desired_roles insert", insError.message);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      }
     }
   }
 

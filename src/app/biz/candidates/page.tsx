@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import CandidatesClient from "./CandidatesClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
+import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,7 @@ export default async function CandidatesPage() {
   const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_style, job_type, desired_phase, transfer_timing, scout_enabled, desired_salary_min, desired_salary_max")
+      .select("user_id, onboarding_completed, desired_work_styles, desired_phase, transfer_timing, scout_enabled, desired_salary_min, desired_salary_max")
       .eq("scout_enabled", true)
       .then(r => r.data ?? []),
     adminClient
@@ -123,8 +124,7 @@ export default async function CandidatesPage() {
   // auth_id → profile マップ
   const profilesByAuthId = new Map<string, {
     onboarding_completed: boolean;
-    desired_work_style: string | null;
-    job_type: string | null;
+    desired_work_styles: string[] | null;
     desired_phase: string[] | null;
     transfer_timing: string | null;
     scout_enabled: boolean | null;
@@ -195,6 +195,11 @@ export default async function CandidatesPage() {
   //    子階層があれば子（フィールドセールス）、無ければ大分類（営業）を出す。
   const roleTree = await getRoleTree();
 
+  // 希望職種（ow_profile_desired_roles）。auth.users.id 引き
+  const desiredByAuthId = await getDesiredRolesFor(
+    eligibleUsers.map((u: any) => u.auth_id as string | null).filter((id: string | null): id is string => !!id)
+  );
+
   // 自社求人一覧
   const { data: companyJobs } = await adminClient
     .from("ow_jobs")
@@ -229,8 +234,12 @@ export default async function CandidatesPage() {
           const top = resolveTopRole(roleTree, currentExp?.role_category_id);
           return top?.name ?? null;
         })(),
-        jobType: profile?.job_type || null,
-        workStyle: profile?.desired_work_style || null,
+        /* 希望職種は ow_profile_desired_roles（複数可）。
+           ⚠️ 絞り込みは expandedIds（職種＋祖先）、表示は names（選ばれたものだけ）。
+              展開後の名前を出すと、選んでいない「営業」まで出て嘘になる。 */
+        desiredRoleIds: authId ? (desiredByAuthId.get(authId)?.expandedIds ?? []) : [],
+        desiredRoleNames: authId ? (desiredByAuthId.get(authId)?.names ?? []) : [],
+        workStyles: (profile?.desired_work_styles as string[] | null) || null,
         desiredPhase: profile?.desired_phase || null,
         transferTiming: profile?.transfer_timing || null,
         desiredSalaryMin: profile?.desired_salary_min ?? null,
@@ -240,6 +249,26 @@ export default async function CandidatesPage() {
         createdAt: u.created_at as string,
       };
     });
+
+  /* 職種フィルタ用の階層。ow_roles を正にする（JOB_TYPES の自由文字列は廃止）。
+     ⚠️ 大分類を選んだら配下の子も当たるよう、候補者側は祖先まで展開済みの
+        desiredRoleIds を持たせてある。クライアントは includes() で判定するだけ。
+     ⚠️ is_it_saas = true の10件に絞る。非IT系の大分類7件（医療・介護・福祉 等）は
+        **過去の職歴を書くために用意した葉**で子を持たず、
+        IT/SaaS の候補者サーチで「希望職種」として出しても選ばれない。 */
+  const { data: itSaasTopRows } = await adminClient
+    .from("ow_roles").select("id").is("parent_id", null).eq("is_active", true).eq("is_it_saas", true);
+  const itSaasTopIds = new Set((itSaasTopRows ?? []).map((r) => r.id as string));
+  const roleFilterTree = roleTree.topLevel
+    .filter((top) => itSaasTopIds.has(top.id))
+    .map((top) => ({
+      id: top.id,
+      name: top.name,
+      children: Array.from(roleTree.byId.values())
+        .filter((r) => r.parentId === top.id)
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map((r) => ({ id: r.id, name: r.name })),
+    }));
 
   const layoutProps = {
     userName: ctx.userName,
@@ -255,7 +284,7 @@ export default async function CandidatesPage() {
 
   return (
     <BusinessLayout {...layoutProps}>
-      <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} />
+      <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} roleFilterTree={roleFilterTree} />
     </BusinessLayout>
   );
 }

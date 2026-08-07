@@ -312,13 +312,20 @@ export default async function MypagePage({
   let hasPrefs = false;
   let showScoutBanner = false;
   if (owUser) {
-    const { data: profile, error: profileError } = await supabase
-      .from("ow_profiles")
-      .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, onboarding_completed, scout_enabled")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [{ data: profile, error: profileError }, { count: desiredRoleCount, error: drError }] = await Promise.all([
+      supabase
+        .from("ow_profiles")
+        .select("desired_work_styles, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, onboarding_completed, scout_enabled")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("ow_profile_desired_roles")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id),
+    ]);
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
-    hasPrefs = profile ? hasCareerPreferences(profile) : false;
+    if (drError) console.error("[mypage] desired_roles count error:", drError.message);
+    hasPrefs = hasCareerPreferences({ ...(profile ?? {}), desiredRoleCount: desiredRoleCount ?? 0 });
     // オンボーディング完了済みだがscout_enabled未設定の場合バナー表示
     showScoutBanner = profile?.onboarding_completed === true && profile?.scout_enabled == null;
   }

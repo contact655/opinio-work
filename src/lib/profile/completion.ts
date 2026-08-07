@@ -54,10 +54,13 @@ export type CompletionInput = {
  *    列を1つずつ書き並べる形だと、項目が増減するたび2箇所を直す必要が戻る。
  *    experience_years は 2026-08-07 に希望条件から外れた（職歴から自動計算）ので
  *    含めない。
+ *
+ * ⚠️ 希望職種は ow_profile_desired_roles（別テーブル）に移ったので、
+ *    件数を desiredRoleCount で渡す。旧 job_type 列は見ない。
  */
 export function hasCareerPreferences(p: {
-  job_type?: string | null;
-  desired_work_style?: string | null;
+  desiredRoleCount?: number;
+  desired_work_styles?: string[] | null;
   desired_salary_min?: number | null;
   desired_salary_max?: number | null;
   transfer_timing?: string | null;
@@ -65,8 +68,8 @@ export function hasCareerPreferences(p: {
   worry?: string | null;
 }): boolean {
   return Boolean(
-    p.job_type ||
-    p.desired_work_style ||
+    (p.desiredRoleCount ?? 0) > 0 ||
+    (p.desired_work_styles && p.desired_work_styles.length > 0) ||
     p.desired_salary_min != null ||
     p.desired_salary_max != null ||
     p.transfer_timing ||

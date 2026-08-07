@@ -9,8 +9,7 @@ import { showToast } from "@/lib/toast";
 import type { CompanyReviewSummary } from "@/lib/supabase/queries";
 import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
-import { createClient } from "@/lib/supabase/client";
-import { getVisibleRoles } from "@/lib/constants/jobTypes";
+import { getVisibleRoles } from "@/lib/constants/roleTracks";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
@@ -47,32 +46,6 @@ function hasSalaryData(min: number | null, max: number | null): boolean {
 
 
 
-// ow_profiles.job_type → ow_roles.name のマッピング（パーソナライズ用）
-const JOB_TYPE_TO_ROLE_NAME: Record<string, string> = {
-  "フィールドセールス":    "営業",
-  "SDR":                  "営業",
-  "BDR":                  "営業",
-  "インサイドセールス":    "営業",
-  "カスタマーサクセス":    "カスタマーサクセス",
-  "カスタマーサポート":    "カスタマーサクセス",
-  "マーケティング":        "マーケティング",
-  "プロダクトマーケティング": "マーケティング",
-  "バックエンド":          "エンジニア",
-  "フロントエンド":        "エンジニア",
-  "フルスタック":          "エンジニア",
-  "SRE/インフラ":          "エンジニア",
-  "iOS/Android":           "エンジニア",
-  "エンジニア":            "エンジニア",
-  "データサイエンティスト": "エンジニア",
-  "プロダクトマネージャー": "プロダクト",
-  "デザイナー":            "デザイナー",
-  "コーポレート":          "コーポレート",
-  "HR・人事":              "コーポレート",
-  "財務・経理":            "コーポレート",
-  "経営・CxO":             "事業開発",
-  "事業開発":              "事業開発",
-  "事業開発・BizDev":      "事業開発",
-};
 
 
 
@@ -844,6 +817,8 @@ export default function JobsClient({
   jobs: allJobs,
   companies,
   parentRoles,
+  desiredRoleIds,
+  desiredRoleNames,
   recommendations = [],
   reviewSummaries = {},
   roleAliases = [],
@@ -852,6 +827,10 @@ export default function JobsClient({
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
+  /** 希望職種（祖先まで展開済みの role_id）。サーバーで解決して渡す */
+  desiredRoleIds?: string[];
+  /** 表示用。本人が選んだ職種名（展開前） */
+  desiredRoleNames?: string[];
   recommendations?: RecommendedJob[];
   reviewSummaries?: Record<string, CompanyReviewSummary>;
   /** 検索用の職種辞書（職種名＋別名）。roleIds はその語が指す職種そのものだけ
@@ -971,25 +950,17 @@ export default function JobsClient({
   // Bookmarks + applied jobs: load in parallel on mount
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
-  const [userJobType, setUserJobType] = useState<string | null>(null);
+  /* ⚠️ 希望職種はサーバーから props で受け取る（desiredRoleIds）。
+        ここでクライアントから ow_profiles を引いていたが、**ow_users.id で引いており
+        常に0件**で、「あなたの希望職種にマッチ」が一度も出ていなかった（2026-08-07 修正）。
+        サーバーで解決すれば空間を取り違えようがない。auth.getUser() もここでは不要になった。 */
   useEffect(() => {
-    const supabase = createClient();
     Promise.all([
       fetch("/api/bookmarks?target_type=job").then((r) => r.ok ? r.json() : { ids: [] }).catch(() => ({ ids: [] })),
       fetch("/api/user/applied-jobs").then((r) => r.ok ? r.json() : { ids: [] }).catch(() => ({ ids: [] })),
-      supabase.auth.getUser(),
-    ]).then(async ([bookmarkData, appliedData, { data: { user } }]) => {
+    ]).then(([bookmarkData, appliedData]) => {
       if ((bookmarkData as { ids?: string[] }).ids) setBookmarkedIds(new Set((bookmarkData as { ids: string[] }).ids));
       if ((appliedData as { ids?: string[] }).ids) setAppliedJobIds(new Set((appliedData as { ids: string[] }).ids));
-      if (!user) return;
-      /* ⚠️ ow_profiles.user_id は **auth.users.id**（ow_users.id ではない）。
-            2026-08-07 まで ow_users.id で引いていたため常に0件で、
-            「あなたの希望職種にマッチ」セクションが一度も出ていなかった。
-            空間の一覧は docs/user-id-spaces.md を参照。 */
-      const { data: profile, error } = await supabase
-        .from("ow_profiles").select("job_type").eq("user_id", user.id).maybeSingle();
-      if (error) { console.error("[JobsClient] ow_profiles fetch error:", error.message); return; }
-      if (profile?.job_type) setUserJobType(profile.job_type as string);
     }).catch(() => {});
   }, []);
 
@@ -1328,25 +1299,20 @@ export default function JobsClient({
     return map;
   }, [allJobs]);
 
-  // 希望職種マッチ求人（パーソナライズセクション用）
+  /* 希望職種マッチ求人（パーソナライズセクション用）
+     ⚠️ 両側とも「職種＋祖先」に展開済みの role_id で突き合わせる。
+        role_category_id との直接比較にしないこと。2026-08-06 の職種タグ付け替え後、
+        掲載中の求人は全部が子職種で、大分類そのものを持つ求人は0件になった。 */
   const jobTypeMatchedJobs = useMemo(() => {
-    if (!userJobType) return [];
-    const roleName = JOB_TYPE_TO_ROLE_NAME[userJobType];
-    if (!roleName) return [];
-    const role = parentRoles.find((r) => r.name === roleName);
-    if (!role) return [];
-    /* ⚠️ role_category_id との直接比較にしないこと。
-          2026-08-06 の職種タグ付け替え後、掲載中18件は**全部が子職種**で、
-          大分類そのものを role_category_id に持つ求人は0件になった。
-          j.roleIds は「その職種＋祖先」なので、大分類を含むかで見る。
-          カテゴリフィルタ（:1325）が既に同じ形。 */
+    const want = desiredRoleIds ?? [];
+    if (want.length === 0) return [];
     return allJobs
       .filter((j) => {
         const ids = (j as { roleIds?: string[] }).roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
-        return ids.includes(role.id);
+        return ids.some((id) => want.includes(id));
       })
       .slice(0, 5);
-  }, [allJobs, userJobType, parentRoles]);
+  }, [allJobs, desiredRoleIds]);
 
   return (
     <>
@@ -1875,7 +1841,7 @@ export default function JobsClient({
                   background: "var(--royal-50)", color: "var(--royal)",
                   fontWeight: 700, border: "1px solid var(--royal-100)",
                 }}>
-                  {userJobType}
+                  {(desiredRoleNames ?? []).slice(0, 2).join("・")}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: "auto", fontFamily: "Inter, sans-serif" }}>
                   {jobTypeMatchedJobs.length}件

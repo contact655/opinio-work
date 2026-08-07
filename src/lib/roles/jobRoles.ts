@@ -63,6 +63,31 @@ export function resolveTopRole(tree: RoleTree, roleId: string | null | undefined
   return node;
 }
 
+/**
+ * ロール ID の集合を「自分＋祖先」に展開する。
+ *
+ * ⚠️ 大分類でも子階層でも `includes(id)` の同じ判定で絞り込めるようにするためのもの。
+ *    求人側（queries.ts の job.roleIds）と求職者側（希望職種）で
+ *    同じ展開をしないと、片方だけ大分類で当たらない。2026-08-07 に共通化した。
+ *
+ * 循環があっても無限ループしないよう訪問済みを持つ。
+ */
+export function expandWithAncestors(tree: RoleTree, roleIds: string[] | null | undefined): string[] {
+  const out = new Set<string>();
+  for (const id of roleIds ?? []) {
+    if (!tree.byId.has(id)) continue;
+    out.add(id);
+    let node = tree.byId.get(id) ?? null;
+    const seen = new Set<string>();
+    while (node?.parentId && !seen.has(node.id)) {
+      seen.add(node.id);
+      out.add(node.parentId);
+      node = tree.byId.get(node.parentId) ?? null;
+    }
+  }
+  return Array.from(out);
+}
+
 /** 求人が持つ全ロール ID → 所属する9大分類の集合（重複排除） */
 export function resolveTopRoleIds(tree: RoleTree, roleIds: string[] | null | undefined): Set<string> {
   const out = new Set<string>();

@@ -2,11 +2,15 @@ import type { Job } from "@/app/jobs/mockJobData";
 
 // ─── ユーザープロフィール（ow_profiles）──────────────────────────────────
 export type ScoringProfile = {
-  job_type: string | null;           // 希望職種
+  /** 希望職種（ow_profile_desired_roles）。**祖先まで展開済み**の role_id 配列 */
+  desired_role_ids: string[] | null;
+  /** 表示用。理由文に出す職種名（展開前の、本人が選んだものだけ） */
+  desired_role_names?: string[] | null;
   desired_salary_min: number | null; // 万円
   desired_salary_max: number | null;
   desired_phase: string[] | null;    // 希望企業フェーズ（例: ["シリーズA","上場"]）
-  desired_work_style: string | null; // "full_remote" | "hybrid" | "on_site" | Japanese
+  /** 希望勤務スタイル（複数可）。"full_remote" | "hybrid" | "on_site" */
+  desired_work_styles: string[] | null;
 };
 
 // ─── 出力型 ──────────────────────────────────────────────────────────────
@@ -15,54 +19,6 @@ export type RecommendedJob = {
   score: number;
   reasonText: string; // 日本語で1〜2行の根拠説明
 };
-
-// ─── 希望職種 → ow_jobs.job_category マッピング ──────────────────────────
-// ow_profiles.job_type（オンボーディングで入力される細かい分類）と
-// ow_jobs.job_category（求人側の粗い分類）の粒度差・揺れを吸収する。
-// DB の実 job_category 値（SELECT job_category, COUNT(*) FROM ow_jobs GROUP BY job_category）
-// を確認済みで網羅している。
-export const JOB_TYPE_CATEGORY_MAP: Record<string, string[]> = {
-  // ── セールス系 ──
-  "フィールドセールス":    ["セールス", "営業", "エンタープライズ営業", "SMB営業", "フィールドセールス"],
-  "インサイドセールス":    ["セールス", "営業", "インサイドセールス"],
-  "SDR/BDR":              ["セールス", "営業", "インサイドセールス", "SDR", "BDR"],
-  "SDR":                  ["セールス", "営業", "インサイドセールス"],
-  "BDR":                  ["セールス", "営業"],
-  // ── CS / サポート ──
-  "カスタマーサクセス":    ["カスタマーサクセス", "CS", "テクニカルサポート", "ビジネスオペレーション"],
-  "カスタマーサポート":    ["カスタマーサクセス", "テクニカルサポート"],
-  // ── マーケティング ──
-  "マーケティング":        ["マーケティング", "プロダクトマーケティング", "マーケ"],
-  "プロダクトマーケティング": ["マーケティング", "プロダクトマーケティング"],
-  // ── エンジニア系 ──
-  "バックエンド":          ["エンジニアリング", "バックエンドエンジニア", "ソフトウェアエンジニア", "リサーチエンジニア"],
-  "フロントエンド":        ["エンジニアリング", "ソフトウェアエンジニア"],
-  "フルスタック":          ["エンジニアリング", "ソフトウェアエンジニア", "バックエンドエンジニア"],
-  "SRE/インフラ":          ["エンジニアリング", "ソフトウェアエンジニア"],
-  "iOS/Android":           ["エンジニアリング", "ソフトウェアエンジニア"],
-  "エンジニア":            ["エンジニアリング", "バックエンドエンジニア", "ソフトウェアエンジニア"],
-  "データサイエンティスト": ["データ・アナリスト", "リサーチエンジニア", "AI・Agentforce", "エンジニアリング"],
-  // ── プロダクト ──
-  "プロダクトマネージャー": ["プロダクトマネージャー", "プロダクト"],
-  // ── デザイン ──
-  "デザイナー":            ["プロダクトデザイナー", "デザイン", "デザイナー"],
-  // ── コーポレート ──
-  "コーポレート":          ["コーポレート", "人事・HR", "ビジネスオペレーション", "オペレーション"],
-  "HR・人事":              ["人事・HR", "コーポレート"],
-  "財務・経理":            ["コーポレート", "ビジネスオペレーション"],
-  // ── 事業開発 / 経営 ──
-  "事業開発・BizDev":      ["事業開発", "事業戦略・開発", "アライアンス・パートナー", "コンサルタント"],
-  "事業開発":              ["事業開発", "事業戦略・開発", "アライアンス・パートナー"],
-  "経営・CxO":             ["事業開発", "事業戦略・開発", "コンサルタント", "セールス戦略・オペレーション"],
-};
-
-// Fix 2: 希望職種がマッピング先の job_category に含まれるか判定
-function matchesJobCategory(profileJobType: string, jobCategory: string): boolean {
-  const mapped = JOB_TYPE_CATEGORY_MAP[profileJobType];
-  if (mapped) return mapped.includes(jobCategory);
-  // マップ未定義の場合は完全一致フォールバック
-  return profileJobType === jobCategory;
-}
 
 // ─── 設定定数 ─────────────────────────────────────────────────────────────
 /**
@@ -120,11 +76,23 @@ export function scoreJob(
   let score = 0;
   const reasonParts: string[] = [];
 
-  // 1. 職種マッチ（Fix 2: マッピング経由で粒度差・表記揺れを吸収）
-  if (profile.job_type && job.dept) {
-    if (matchesJobCategory(profile.job_type, job.dept)) {
+  /* 1. 職種マッチ
+     ⚠️ **1つでも一致すれば満点**。按分にしない。
+        希望を広く出した人ほど1件あたりのスコアが下がるのは、
+        「幅を表現できるようにする」という今回の目的と逆行する。
+        希望フェーズ（下の 3）が元からこの形なので揃えた。
+     ⚠️ 両側とも祖先まで展開済みの role_id で突き合わせる。
+        job.roleIds は queries.ts、希望職種は expandWithAncestors() で展開している。
+        大分類（営業）でも子階層（エンタープライズセールス）でも同じ判定で当たる。 */
+  const wantIds = profile.desired_role_ids;
+  if (wantIds?.length && job.roleIds?.length) {
+    const hit = job.roleIds.some((id) => wantIds.includes(id));
+    if (hit) {
       score += WEIGHTS.JOB_TYPE;
-      reasonParts.push(`希望職種「${profile.job_type}」に合致`);
+      const label = profile.desired_role_names?.length
+        ? profile.desired_role_names.slice(0, 2).join("・")
+        : null;
+      reasonParts.push(label ? `希望職種「${label}」に合致` : "希望職種に合致");
     }
   }
 
@@ -162,9 +130,10 @@ export function scoreJob(
     }
   }
 
-  // 4. 勤務スタイル
-  if (profile.desired_work_style && job.work_style) {
-    if (normWorkStyle(profile.desired_work_style) === normWorkStyle(job.work_style)) {
+  // 4. 勤務スタイル。職種と同じく「1つでも一致なら満点」
+  if (profile.desired_work_styles?.length && job.work_style) {
+    const jw = normWorkStyle(job.work_style);
+    if (profile.desired_work_styles.some((w) => normWorkStyle(w) === jw)) {
       score += WEIGHTS.WORK_STYLE;
       reasonParts.push(`勤務形態（${job.work_style}）が希望と一致`);
     }
