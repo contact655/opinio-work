@@ -687,6 +687,79 @@ phase は「企業グループとしてのステージ」を表す。
 
 ---
 
+## ⚠️ テーブル・カラム・関数を DROP するときのチェックリスト（2026-08-07 確立）
+
+**FK を見ただけでは足りない。**
+
+### なぜ
+
+**PL/pgSQL の本体は Postgres が依存として追跡しない。**
+関数の中で `UPDATE ow_xxx` と書いてあっても、`DROP TABLE ow_xxx` は**成功する**。
+壊れたことは**その関数を実際に呼ぶまで分からない**。
+
+2026-08-06 の salary-remove で `ow_salary_reports` を DROP したとき、
+`merge_role()` の中に `UPDATE ow_salary_reports` が残り、
+**全職種の統合が約1日壊れていた**。気づけたのは、翌日たまたま統合を試したから。
+
+⚠️ **「DROP して `npm run build` が通った」は確認にならない。**
+   ビルドは DB を見ない。**その関数を実際に呼んで確かめること。**
+
+### DROP する前に洗う場所
+
+```sql
+-- 関数（PL/pgSQL・SQL 関数とも）／ビュー／マテビュー／RLS ポリシーの全文を検索する
+select '関数' k, p.proname, p.prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+ where n.nspname='public' and p.prosrc like '%<消す名前>%'
+union all select 'ビュー', v.viewname, v.definition from pg_views v
+ where v.schemaname='public' and v.definition like '%<消す名前>%'
+union all select 'マテビュー', m.matviewname, m.definition from pg_matviews m
+ where m.schemaname='public' and m.definition like '%<消す名前>%'
+union all select 'ポリシー', pol.tablename||' / '||pol.policyname,
+       coalesce(pol.qual,'')||' '||coalesce(pol.with_check,'')
+ from pg_policies pol where pol.schemaname='public'
+   and (coalesce(pol.qual,'') like '%<消す名前>%' or coalesce(pol.with_check,'') like '%<消す名前>%');
+```
+
+⚠️ **カラムを消すときも同じ。** 列名で全文検索する。
+
+⚠️ トリガー関数は `pg_trigger` から辿るのではなく、**関数の本体で探す**。
+   関数がどのトリガーに紐づいているかとは別に、本体が消えたテーブルを触っていることがある。
+
+### 定期的に「参照先が実在するか」を突き合わせる
+
+DROP のたびに洗うだけでは、**最初から存在しないものを参照しているコード**は見つからない。
+2026-08-07 に洗ったところ、`ow_company_reviews` が
+**baseline にも無く、どの migration でも作られていない**のに、
+アプリの2箇所（`getCompanyReviewSummaries()` と admin の口コミ審査待ちKPI）が
+読みに行っていた。`const { data } = await ...` で **error を見ずに** `if (!data) return {}`
+していたため、`/jobs` と `/companies` の全レンダリングで**静かに空を返し続けていた**。
+
+**DB 側（関数・ビュー・ポリシー）:**
+
+```sql
+select k as 種別, nm as 名前, obj as 存在しない参照先 from (
+  select distinct k, nm, m[1] as obj from (
+    select '関数' k, p.proname nm, p.prosrc body from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosrc is not null
+    union all select 'ビュー', v.viewname, v.definition from pg_views v where v.schemaname='public'
+    union all select 'ポリシー', pol.tablename||' / '||pol.policyname,
+           coalesce(pol.qual,'')||' '||coalesce(pol.with_check,'')
+      from pg_policies pol where pol.schemaname='public'
+  ) s, lateral regexp_matches(s.body, '\mow_[a-z0-9_]+\M', 'g') m
+) t
+where to_regclass('public.'||obj) is null
+  and not exists (select 1 from information_schema.columns
+                   where table_schema='public' and column_name = t.obj);
+```
+
+**アプリ側:** `grep -rhoE '\.from\("(ow_[a-z0-9_]+)"' src` で全テーブル名を出し、
+`to_regclass` で1つずつ突き合わせる。2026-08-07 時点で **65テーブル中1つ**が該当した。
+
+⚠️ この検査は `20260807070000_fix_merge_role_drop_review_fns.sql` の事後チェックに
+   組み込んである。**新しい migration でも同じ検査を回すと、DROP の取りこぼしを毎回拾える。**
+
+---
+
 ## Migration 運用ルール（2026-07-27 確立）
 
 ### 基本原則

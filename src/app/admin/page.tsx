@@ -10,7 +10,6 @@ async function getStats() {
     users, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
     onboardingCompleted, profileFilled, appliedOrMet,
-    pendingReviews,
   ] = await Promise.all([
     supabase.from("ow_users").select("id", { count: "exact", head: true }),
     supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
@@ -28,8 +27,6 @@ async function getStats() {
     // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
     admin.from("ow_profile_desired_roles").select("user_id"),
     admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
-    // 口コミ審査待ち
-    admin.from("ow_company_reviews").select("id", { count: "exact", head: true }).eq("is_approved", false),
   ]);
 
   // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
@@ -90,7 +87,6 @@ async function getStats() {
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: 0,
-    pendingReviewsCount: pendingReviews.count ?? 0,
     bizAdminsCount: bizAdmins.count ?? 0,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
@@ -113,8 +109,9 @@ const AVATAR_GRADIENTS = [
 
 export default async function AdminDashboard() {
   const stats = await getStats();
+  /* ⚠️ 口コミ承認待ちは 2026-08-07 に外した。参照していた ow_company_reviews が
+        このプロジェクトに存在せず、常に0件を足していただけだったため。 */
   const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount
-    + stats.pendingReviewsCount
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0);
 
   const kpis = [
@@ -475,34 +472,6 @@ export default async function AdminDashboard() {
               </Link>
             )}
 
-            {stats.pendingReviewsCount > 0 && (
-              <Link href="/admin/reviews" style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: 10,
-                  background: "#FFF7ED", border: "1px solid #FED7AA",
-                  cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#FFEDD5", color: "#EA580C",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#C2410C", margin: 0, marginBottom: 2 }}>口コミ 承認待ち</p>
-                    <p style={{ fontSize: 11, color: "#EA580C", margin: 0 }}>{stats.pendingReviewsCount}件のレビューを確認してください</p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EA580C" strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </Link>
-            )}
 
             {stats.neverLoggedInBizCount > 0 && (
               <Link href="/admin/biz-accounts?filter=never_login" style={{ textDecoration: "none" }}>

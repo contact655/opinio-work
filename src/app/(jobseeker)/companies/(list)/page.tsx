@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
 import { createPublicClient } from "@/lib/supabase/public";
-import { getCompanyReviewSummaries } from "@/lib/supabase/queries";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
@@ -126,7 +125,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   // ── 全クエリを並列実行（experiences は企業IDが確定してから絞り込み） ──────────
   const supabase = createPublicClient();
 
-  const [locations, companyNamesResult, allCompaniesResult, reviewSummaries] = await Promise.all([
+  const [locations, companyNamesResult, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
     // 検索サジェスト用企業名リスト
@@ -140,7 +139,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
         })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
     // 口コミ平均スコア
-    needsGrid ? getCompanyReviewSummaries() : Promise.resolve({} as Record<string, { avg: number; count: number }>),
   ]);
 
   /*
@@ -246,8 +244,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     // "jobs" のみアプリ側で補完（job_count は集計値のため DB ソート不可）
                     const paged = allCompaniesResult.companies.map(c => ({
                       ...c,
-                      review_avg: reviewSummaries[c.id]?.avg ?? null,
-                      review_count: reviewSummaries[c.id]?.count ?? null,
                     }));
                     if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
                     if (sort === "disclosure") {

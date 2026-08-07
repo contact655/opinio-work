@@ -55,8 +55,9 @@ export type CompanyForCarousel = {
   // 14項目改善で追加
   company_features?: string[] | null;  // #3 カルチャー・特徴タグ
   top_job_titles?: string[] | null;    // #2 求人ポジション名（最大2件）
-  review_avg?: number | null;          // 口コミ平均評価（承認済みのみ）
-  review_count?: number | null;        // 口コミ件数
+  /* ⚠️ review_avg / review_count は 2026-08-07 に削除した。
+     参照元の ow_company_reviews がこのプロジェクトに存在せず、
+     常に null で「表示されないUI」が残っていたため。 */
 };
 
 export type GenreWithCompanies = Genre & {

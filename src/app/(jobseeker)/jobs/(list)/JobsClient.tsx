@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
-import type { CompanyReviewSummary } from "@/lib/supabase/queries";
 import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
@@ -104,13 +103,12 @@ function computeMatchReason(
 
 function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
-  reviewSummary, matchReason: _matchReason,
+  matchReason: _matchReason,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
   initialBookmarked?: boolean;
   isApplied?: boolean;
-  reviewSummary?: CompanyReviewSummary;
   matchReason?: string | null;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
@@ -294,18 +292,6 @@ function JobListItem({
             }}>
               {formatSalary(job.salary_min, job.salary_max)}
             </span>
-            {reviewSummary && reviewSummary.count >= 1 && (
-              <>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "#B45309", fontWeight: 600 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B" aria-hidden="true">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                  {reviewSummary.avg.toFixed(1)}
-                  <span style={{ color: "var(--ink-mute)", fontWeight: 400 }}>({reviewSummary.count}件)</span>
-                </span>
-              </>
-            )}
           </div>
         </div>
 
@@ -818,7 +804,6 @@ export default function JobsClient({
   companies,
   parentRoles,
   recommendations = [],
-  reviewSummaries = {},
   roleAliases = [],
   industries = [],
 }: {
@@ -826,7 +811,6 @@ export default function JobsClient({
   companies: Company[];
   parentRoles: { id: string; name: string }[];
   recommendations?: RecommendedJob[];
-  reviewSummaries?: Record<string, CompanyReviewSummary>;
   /** 検索用の職種辞書（職種名＋別名）。roleIds はその語が指す職種そのものだけ
    *  （祖先は求人側の roleIds に入っている。queries.ts の getRoleAliases 参照） */
   roleAliases?: { alias: string; roleIds: string[] }[];
@@ -1859,7 +1843,6 @@ export default function JobsClient({
                         companyMap={companyMap}
                         initialBookmarked={bookmarkedIds.has(job.id)}
                         isApplied={appliedJobIds.has(job.id)}
-                        reviewSummary={reviewSummaries?.[job.company_id]}
                         matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
                       />
                     );

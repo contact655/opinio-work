@@ -1892,36 +1892,15 @@ export async function getJobAlumniMap(
   return result;
 }
 
-// ─── Company Review Summaries ──────────────────────────────────────────────────
-
-export type CompanyReviewSummary = {
-  avg: number;
-  count: number;
-};
-
-export async function getCompanyReviewSummaries(): Promise<Record<string, CompanyReviewSummary>> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("ow_company_reviews")
-    .select("company_id, rating_overall")
-    .eq("is_approved", true);
-
-  if (!data || data.length === 0) return {};
-
-  const map: Record<string, { sum: number; count: number }> = {};
-  for (const row of data) {
-    if (!row.company_id || !row.rating_overall) continue;
-    if (!map[row.company_id]) map[row.company_id] = { sum: 0, count: 0 };
-    map[row.company_id].sum += row.rating_overall;
-    map[row.company_id].count += 1;
-  }
-
-  const result: Record<string, CompanyReviewSummary> = {};
-  for (const [cid, { sum, count }] of Object.entries(map)) {
-    result[cid] = { avg: Math.round((sum / count) * 10) / 10, count };
-  }
-  return result;
-}
+/*
+  ⚠️ getCompanyReviewSummaries() はここにあったが 2026-08-07 に削除した。
+     参照していた ow_company_reviews は **baseline にも無く、どの migration でも
+     作られていない**（このプロジェクトに一度も存在しないテーブル）。
+     `const { data } = await ...` で error を見ずに `if (!data) return {}` していたため、
+     /jobs と /companies の全レンダリングで**静かに空を返し続けていた**。
+     口コミ機能をやると決めたときに、テーブルの設計から改めて作る。
+     過去データは ow_company_reviews_archive_20260714（29件）に残っている。
+*/
 
 // ─── Role alias map (alias → role_id) ────────────────────────────────────────
 export type RoleAlias = { alias: string; roleId: string };
