@@ -72,7 +72,7 @@ export default async function CandidatesPage() {
   const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_styles, desired_phase, transfer_timing, scout_enabled, desired_salary_min, desired_salary_max")
+      .select("user_id, onboarding_completed, desired_work_styles, desired_phase, transfer_timing, transfer_timing_updated_at, scout_enabled, desired_salary_min, desired_salary_max")
       .eq("scout_enabled", true)
       .then(r => r.data ?? []),
     adminClient
@@ -127,6 +127,7 @@ export default async function CandidatesPage() {
     desired_work_styles: string[] | null;
     desired_phase: string[] | null;
     transfer_timing: string | null;
+    transfer_timing_updated_at: string | null;
     scout_enabled: boolean | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
@@ -242,6 +243,8 @@ export default async function CandidatesPage() {
         workStyles: (profile?.desired_work_styles as string[] | null) || null,
         desiredPhase: profile?.desired_phase || null,
         transferTiming: profile?.transfer_timing || null,
+        /* ⚠️ NULL のときは鮮度を出さない。「不明」とも書かない（既存39件は全て NULL） */
+        transferTimingUpdatedAt: profile?.transfer_timing_updated_at || null,
         desiredSalaryMin: profile?.desired_salary_min ?? null,
         desiredSalaryMax: profile?.desired_salary_max ?? null,
         onboardingCompleted: profile?.onboarding_completed || false,

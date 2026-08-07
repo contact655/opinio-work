@@ -172,6 +172,31 @@ export default async function ProfileEditPage({
       display_order: (r.display_order as number) ?? 0,
     }));
 
+  /*
+    希望職種のピッカー用の候補。**職歴とは母集団を分ける。**
+
+    ⚠️ 職歴（roles）は is_it_saas で絞らない。過去の職歴には非IT職が入るため
+       （非IT系の大分類7件は is_it_saas = false で登録してある）。
+    ⚠️ 希望職種は IT/SaaS のプラットフォーム上の希望なので is_it_saas = true に絞る。
+       /biz/candidates の職種カテゴリも同じ10件に絞ってあり、母集団を揃えている。
+       絞らないと「医療・介護・福祉」を希望に入れられるが、企業側のフィルタからは
+       永久に辿り着けない。
+    ⚠️ **既に選んでいる希望職種は、絞り込みから外れていても必ず足し戻す。**
+       落とすとチップが「（不明な職種）」になり、別項目を保存した拍子に消える。
+       親も一緒に足す（RoleSearchSelect のグループ見出しに要る）。
+  */
+  const { data: itSaasRows } = await supabase
+    .from("ow_roles").select("id").eq("is_active", true).eq("is_it_saas", true);
+  const itSaasIds = new Set((itSaasRows ?? []).map((r) => r.id as string));
+  const keepForDesired = new Set<string>(desiredRoleIds);
+  for (const id of desiredRoleIds) {
+    const parent = roles.find((r) => r.id === id)?.parent_id;
+    if (parent) keepForDesired.add(parent);
+  }
+  const desiredRoleOptions = roles.filter(
+    (r) => itSaasIds.has(r.id) || keepForDesired.has(r.id)
+  );
+
   // ow_profiles — 希望条件 + スカウト設定
   let profilePrefs: {
     desired_work_styles: string[] | null;
@@ -272,6 +297,7 @@ export default async function ProfileEditPage({
       initialTab={searchParams.tab}
       isWelcome={isWelcome}
       initialScoutEnabled={profilePrefs?.scout_enabled ?? null}
+      desiredRoleOptions={desiredRoleOptions}
       initialDesiredRoleIds={desiredRoleIds}
       initialProfilePrefs={profilePrefs}
     />

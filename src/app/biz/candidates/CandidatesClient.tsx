@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { describeFreshness, STALE_AFTER_MONTHS } from "@/lib/profile/freshness";
 
 type Candidate = {
   id: string;
@@ -24,6 +25,8 @@ type Candidate = {
   workStyles: string[] | null;
   desiredPhase: string[] | null;
   transferTiming: string | null;
+  /** transfer_timing を最後に「変更」した日時。NULL なら鮮度を出さない */
+  transferTimingUpdatedAt: string | null;
   desiredSalaryMin: number | null;
   desiredSalaryMax: number | null;
   onboardingCompleted: boolean;
@@ -788,6 +791,42 @@ export default function CandidatesClient({
                             )}
                           </div>
                         )}
+
+                        {/* 転職検討時期（鮮度つき）。絞り込みには使わず表示だけ。
+                            ⚠️ 更新日が NULL のときは鮮度を出さない。「不明」とも書かない
+                               （値が無いことをある値に置き換えない）。
+                            ⚠️ しきい値を過ぎたものは淡色＋注記。STALE_AFTER_MONTHS は
+                               選択肢の最短単位「1〜3ヶ月以内」と揃えてある。 */}
+                        {c.transferTiming && (() => {
+                          const fresh = describeFreshness(c.transferTimingUpdatedAt);
+                          const stale = fresh?.isStale ?? false;
+                          return (
+                            <div style={{
+                              display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap",
+                              fontSize: 12, marginBottom: 6,
+                              color: stale ? "var(--ink-mute)" : "var(--ink-soft)",
+                            }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                              </svg>
+                              <span style={{ fontWeight: stale ? 500 : 700, color: stale ? "var(--ink-mute)" : "var(--ink)" }}>
+                                転職時期: {c.transferTiming}
+                              </span>
+                              {fresh && <span style={{ color: "var(--ink-mute)" }}>（{fresh.label}）</span>}
+                              {stale && (
+                                <span
+                                  title={`${STALE_AFTER_MONTHS}ヶ月以上更新されていません`}
+                                  style={{
+                                    fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
+                                    background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)",
+                                  }}
+                                >
+                                  情報が古い可能性
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* タグ行: 職種・居住地。
                             職種は ow_roles 由来（2026-08-04）。

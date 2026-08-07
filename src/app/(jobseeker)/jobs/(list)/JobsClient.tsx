@@ -817,8 +817,6 @@ export default function JobsClient({
   jobs: allJobs,
   companies,
   parentRoles,
-  desiredRoleIds,
-  desiredRoleNames,
   recommendations = [],
   reviewSummaries = {},
   roleAliases = [],
@@ -827,10 +825,6 @@ export default function JobsClient({
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
-  /** 希望職種（祖先まで展開済みの role_id）。サーバーで解決して渡す */
-  desiredRoleIds?: string[];
-  /** 表示用。本人が選んだ職種名（展開前） */
-  desiredRoleNames?: string[];
   recommendations?: RecommendedJob[];
   reviewSummaries?: Record<string, CompanyReviewSummary>;
   /** 検索用の職種辞書（職種名＋別名）。roleIds はその語が指す職種そのものだけ
@@ -1299,20 +1293,7 @@ export default function JobsClient({
     return map;
   }, [allJobs]);
 
-  /* 希望職種マッチ求人（パーソナライズセクション用）
-     ⚠️ 両側とも「職種＋祖先」に展開済みの role_id で突き合わせる。
-        role_category_id との直接比較にしないこと。2026-08-06 の職種タグ付け替え後、
-        掲載中の求人は全部が子職種で、大分類そのものを持つ求人は0件になった。 */
-  const jobTypeMatchedJobs = useMemo(() => {
-    const want = desiredRoleIds ?? [];
-    if (want.length === 0) return [];
-    return allJobs
-      .filter((j) => {
-        const ids = (j as { roleIds?: string[] }).roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
-        return ids.some((id) => want.includes(id));
-      })
-      .slice(0, 5);
-  }, [allJobs, desiredRoleIds]);
+
 
   return (
     <>
@@ -1823,54 +1804,12 @@ export default function JobsClient({
             </div>
           )}
 
-          {/* フォールバック: おすすめなし・希望職種マッチのみ（ログイン済みでプロフィール未設定の場合） */}
-          {!hasFilter && !q && recommendations.length === 0 && jobTypeMatchedJobs.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-                paddingBottom: 10, borderBottom: "2px solid var(--royal-100)",
-              }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                  あなたの希望職種にマッチ
-                </span>
-                <span style={{
-                  fontSize: 12, padding: "2px 9px", borderRadius: 100,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  fontWeight: 700, border: "1px solid var(--royal-100)",
-                }}>
-                  {(desiredRoleNames ?? []).slice(0, 2).join("・")}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: "auto", fontFamily: "Inter, sans-serif" }}>
-                  {jobTypeMatchedJobs.length}件
-                </span>
-              </div>
-              <div className="jobs-list-desktop">
-                {jobTypeMatchedJobs.map((job) => (
-                  <JobListItem
-                    key={job.id}
-                    job={job}
-                    companyMap={companyMap}
-                    initialBookmarked={bookmarkedIds.has(job.id)}
-                    isApplied={appliedJobIds.has(job.id)}
-                    reviewSummary={reviewSummaries?.[job.company_id]}
-                    matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
-                  />
-                ))}
-              </div>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10, marginTop: 20,
-              }}>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                  すべての募集
-                </span>
-                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-              </div>
-            </div>
-          )}
+          {/* ⚠️ ここにあった「あなたの希望職種にマッチ」セクションは 2026-08-07 に削除した。
+                 recommendations.length === 0 のときだけ出るフォールバックだったが、
+                 希望職種が1つでも当たれば scoreJob の職種48点だけで MIN_SCORE(30) を
+                 超えるため、**「マッチ求人がある＝おすすめも必ずある」**になり
+                 条件が永久に成立しなくなった（希望職種の中間テーブル化で scoreJob が
+                 正しく動き出したことによる）。復活させるなら、おすすめとは別の切り口で。 */}
 
           {paged.length === 0 ? (
             <div style={{

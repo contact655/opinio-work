@@ -92,18 +92,6 @@ export default async function JobsPage() {
 
   const recommendations = await fetchUserRecommendations(jobs, companies);
 
-  /* 「あなたの希望職種にマッチ」セクション用。
-     ⚠️ 以前はクライアント側で ow_profiles を引いていたが、
-        ow_users.id で引いており**常に0件**でセクションが一度も出ていなかった。
-        サーバーで解決して渡す（空間を取り違えようがない形にする）。 */
-  const desiredForSection = await (async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { ids: [] as string[], names: [] as string[] };
-    const d = await getDesiredRoles(user.id);
-    return { ids: d.expandedIds, names: d.names };
-  })();
-
   return (
     <Suspense
       fallback={
@@ -118,7 +106,7 @@ export default async function JobsPage() {
         </div>
       }
     >
-      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} recommendations={recommendations} reviewSummaries={reviewSummaries} roleAliases={roleAliases} industries={industries} desiredRoleIds={desiredForSection.ids} desiredRoleNames={desiredForSection.names} />
+      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} recommendations={recommendations} reviewSummaries={reviewSummaries} roleAliases={roleAliases} industries={industries} />
     </Suspense>
   );
 }

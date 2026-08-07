@@ -2297,6 +2297,7 @@ export default function ProfileEditClient({
   isWelcome = false,
   initialScoutEnabled = null,
   initialDesiredRoleIds = [],
+  desiredRoleOptions,
   initialProfilePrefs = null,
 }: {
   owUser: OwUser;
@@ -2317,6 +2318,8 @@ export default function ProfileEditClient({
   initialScoutEnabled?: boolean | null;
   /** 希望職種（ow_profile_desired_roles）。本人が選んだ role_id（展開前） */
   initialDesiredRoleIds?: string[];
+  /** 希望職種ピッカーの候補。**職歴の roles とは母集団が違う**（is_it_saas で絞る） */
+  desiredRoleOptions?: RoleItem[];
   initialProfilePrefs?: {
     // ⚠️ job_type / desired_work_style / experience_years は受け取らない。
     //    希望職種は ow_profile_desired_roles、勤務スタイルは desired_work_styles、
@@ -3204,7 +3207,7 @@ export default function ProfileEditClient({
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <RoleSearchSelect
-                  roles={roles}
+                  roles={desiredRoleOptions ?? roles}
                   aliases={roleAliases}
                   value=""
                   onSelect={async (roleId) => {
