@@ -58,7 +58,9 @@ const AGE_OPTIONS = [
 const SORT_OPTIONS = [
   { value: "profile", label: "プロフィール順" },
   { value: "newest",  label: "新着順" },
-  { value: "exp",     label: "経験年数順" },
+  /* ⚠️ カードに年数を出さなくなったので（2026-08-08）、ラベルで並び順の意味を示す。
+        値 "exp" は URL などに出ないローカル state なので変えていない。 */
+  { value: "exp",     label: "経験が長い順" },
 ];
 
 // ── FilterChip ────────────────────────────────────────────────────────
@@ -253,20 +255,21 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
 }
 
 /**
- * 経験年数。
+ * 年齢。
  *
- * 「経験年数順」で並べ替えられるのにカードに年数が出ておらず、
- * 並べ替えた結果を利用者が確認できなかったため出している。
+ * ⚠️ 2026-08-08 に経験年数の表示から置き換えた。
+ *    経験年数は「経験が長い順」の並べ替えとして残っている（カードには出さない）。
  *
- * 職種は役職行（上）に出すのでここには入れない。両方に出すと
- * 同じことを2回違う言葉で言うことになる。
+ * 表記は /u/[id] に揃える（`32歳`）。値は directory.ts が
+ * ow_users.birth_date から getUserAge() で出したものをそのまま使う。
  *
- * ⚠️ 値が無ければ行ごと出さない。「—」や「0年」に置き換えない。
+ * ⚠️ 値が無ければ**行ごと出さない**。「—」も「非公開」も出さない。
+ *    ⚠️ 高さを minHeight で確保しないこと。年齢は任意入力で欠けるほうが普通なので、
+ *       空行のぶんだけカードが伸びる（役職のように全員に必ずあるものとは違う）。
  */
 function CardFacts({ card }: { card: AmbassadorCard }) {
-  if (card.experienceMonths == null) return null;
-  const years = Math.floor(card.experienceMonths / 12);
-  return <div className="ppl-facts">{years >= 1 ? `経験 ${years}年` : "経験 1年未満"}</div>;
+  if (card.age == null) return null;
+  return <div className="ppl-facts">{card.age}歳</div>;
 }
 
 // ── グリッドカード ────────────────────────────────────────────────────
@@ -325,31 +328,38 @@ function GridCard({ card, myUserId, followedUserIds }: {
         <CardFacts card={card} />
       </div>
 
-      {/* CTAボタン */}
-      <div style={{ marginTop: "auto", width: "100%" }}>
+      {/* CTAボタン
+          ⚠️ 2026-08-08 に横並びにした。それまで「横並びにしないこと」と書いてあったのは
+             ラベルが「プロフィールを見る」(約136px) で、5列時のカード内寸に
+             フォローと並べると溢れたため。ラベルを「プロフィール」に短くして解消した。
+             ⚠️ ラベルを長い文言に戻すときは、5列（1440px 以上）で実測してから戻すこと。
+          ⚠️ 意匠は白のまま。navy 塗り＝主導線 / オレンジ＝人に届く の慣習に照らすと、
+             どちらも「見るだけ」「自分用」で、カード自体が既に /u/[id] への導線なので
+             ここを塗ると一覧が主導線だらけになる。
+          ⚠️ onClick の伝播を止める。カード全体が router.push を持っているため、
+             止めないとフォローと同時にプロフィールへ遷移する。 */}
+      <div style={{ marginTop: "auto", width: "100%", display: "flex", gap: 6, alignItems: "stretch" }}>
         <Link
           href={`/u/${card.userId}`}
           target="_blank"
           onClick={(e) => e.stopPropagation()}
           style={{
-            display: "block", textAlign: "center",
-            padding: "8px 14px",
+            flex: 1, minWidth: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "8px 10px",
             background: "#fff",
             color: "var(--royal)", borderRadius: 9,
             fontSize: 12, fontWeight: 600, textDecoration: "none",
             border: "1.5px solid var(--royal-100)",
+            whiteSpace: "nowrap",
           }}
         >
-          プロフィールを見る
+          プロフィール
         </Link>
-        {/* ⚠️ 横並びにしないこと。5列時のカード内寸は約196pxで、
-               「プロフィールを見る」(約136px) と並べると溢れる。縦に積む。
-            ⚠️ onClick の伝播を止める。カード全体が router.push を持っているため、
-               止めないとフォローと同時にプロフィールへ遷移する。 */}
         {myUserId !== null && card.userId !== myUserId && (
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ display: "flex", justifyContent: "center", marginTop: 8 }}
+            style={{ display: "flex", flexShrink: 0 }}
           >
             <FollowUserButton
               targetUserId={card.userId}
@@ -374,10 +384,13 @@ function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string,
 }
 function matchAge(card: AmbassadorCard, v: string): boolean {
   if (!v) return true;
-  if (card.birthYear == null) return false;
-  const age = 2026 - card.birthYear;
+  /* ⚠️ 年齢の元は ow_users.birth_date ひとつ（directory.ts で getUserAge 済み）。
+        カードの表示と同じ値を見る。2026-08-08 まで表示は無く、ここだけが
+        ow_career_profiles.birth_year を見ていた（対象5人中1人にしか入っていなかった）。
+     ⚠️ 年を引き算しないこと。誕生日前かどうかで1歳ずれる。 */
+  if (card.age == null) return false;
   const opt = AGE_OPTIONS.find((o) => o.value === v);
-  return opt ? age >= opt.min && age <= opt.max : true;
+  return opt ? card.age >= opt.min && card.age <= opt.max : true;
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────

@@ -3031,7 +3031,7 @@ export default function ProfileEditClient({
 
               <FormGroup
                 label="生年月日"
-                hint="生年月日を入力すると年齢が自動で計算されます。入力しない場合は年齢非公開となります。"
+                hint="生年月日を入力すると年齢が自動で計算され、プロフィールページと登録ユーザー一覧に表示されます。入力しない場合は年齢非公開となります。"
               >
                 <div style={{ display: "flex", gap: "var(--space-2)" }}>
                   {/* 年 */}

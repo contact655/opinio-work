@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getUserAge } from "@/lib/age";
 import { calcPublicScore } from "@/lib/profile/completion";
 import {
   resolveExperienceCompanyLabel,
@@ -99,7 +100,16 @@ export type DirectoryPerson = {
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
   experienceMonths: number | null;
-  birthYear: number | null;
+  /**
+   * 年齢。**ow_users.birth_date から /u/[id] と同じ getUserAge() で出す。**
+   * 未入力なら null（＝本人が年齢を出していない。呼び出し側は行ごと消すこと）。
+   *
+   * ⚠️ 2026-08-08 まで ow_career_profiles.birth_year を見ていたが、そちらは
+   *    **アプリから書く経路が存在せず**、対象5人中1人にしか入っていなかった。
+   *    本人が /profile/edit で入力できるのは birth_date のほうで、そちらは4人に入っている。
+   *    年齢の元は1つに保つこと（表示とフィルタで別のソースを見ない）。
+   */
+  age: number | null;
   createdAt: string | null;
 };
 
@@ -153,7 +163,9 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
 
   const { data: userRows, error } = await db
     .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, about_me, location, social_links, created_at, can_casual_meeting");
+    /* ⚠️ birth_date は authenticated から SELECT 権限を剥がしてあるので admin で引く。
+       ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
+    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, about_me, location, social_links, created_at, can_casual_meeting, birth_date");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -165,7 +177,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
     about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
-    can_casual_meeting: boolean | null;
+    can_casual_meeting: boolean | null; birth_date: string | null;
   };
 
   const visible = ((userRows ?? []) as UserRow[]).filter((u) => {
@@ -182,7 +194,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   // 完成度と所属の材料をまとめて引く。
   // ⚠️ 希望条件（ow_profiles）は引かない。公開されない情報を並び順に混ぜないため
   //    （src/lib/profile/completion.ts の PUBLIC_KEYS を参照）。
-  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, memberRes, careerRes, roleTree] = await Promise.all([
+  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, memberRes, roleTree] = await Promise.all([
     db.from("ow_experiences")
       .select(`user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
       .in("user_id", ids),
@@ -197,14 +209,13 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     db.from("ow_company_members")
       .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)")
       .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
-    db.from("ow_career_profiles").select("user_id, birth_year").in("user_id", ids),
     getRoleTree(),
   ]);
 
   for (const [label, res] of Object.entries({
     experiences: expRes, educations: eduRes, links: linkRes,
     achievements: achRes, awards: awdRes, media: medRes,
-    members: memberRes, career: careerRes,
+    members: memberRes,
   })) {
     if (res.error) console.error(`[people] ${label} fetch error:`, res.error.message);
   }
@@ -227,9 +238,6 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     ...((medRes.data ?? []) as { user_id: string }[]),
   ]);
   const members = byUser((memberRes.data ?? []) as unknown as MemberRow[]);
-  const birthYear = new Map<string, number | null>(
-    ((careerRes.data ?? []) as { user_id: string; birth_year: number | null }[]).map((c) => [c.user_id, c.birth_year])
-  );
 
   const now = new Date();
 
@@ -336,7 +344,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       canCasualMeeting: u.can_casual_meeting === true,
       publicScore,
       experienceMonths,
-      birthYear: birthYear.get(u.id) ?? null,
+      age: getUserAge(u.birth_date),
       createdAt: u.created_at,
     };
   });
