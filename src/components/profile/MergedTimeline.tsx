@@ -6,6 +6,7 @@ import { Briefcase } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
+import { formatDuration } from "@/lib/profile/tenure";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
 function shortCompanyName(name: string): string {
@@ -156,27 +157,8 @@ function formatYM(dateStr: string): string {
   return `${parts[0]}年${month}月`;
 }
 
-/** 期間文字列を生成: "2年3ヶ月" */
-function formatDuration(start: string, end: string | null): string {
-  const startDate = new Date(start);
-  // "YYYY-MM" 形式の終了日は月末まで在籍を意味するため +1ヶ月して計算
-  // 例: 2013-04 〜 2017-03 → 4年ちょうど（47ヶ月+1=48ヶ月）
-  const endDate = end ? new Date(end) : new Date();
-  const endAdjusted = end ? new Date(endDate.getFullYear(), endDate.getMonth() + 1, 1) : endDate;
-
-  const totalMonths =
-    (endAdjusted.getFullYear() - startDate.getFullYear()) * 12 +
-    (endAdjusted.getMonth() - startDate.getMonth());
-
-  if (totalMonths <= 0) return "";
-
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-
-  if (years === 0) return `${months}ヶ月`;
-  if (months === 0) return `${years}年`;
-  return `${years}年${months}ヶ月`;
-}
+// 期間文字列（"2年3ヶ月"）の計算は lib/profile/tenure.ts に移した（2026-08-07）。
+// 社会人経験年数の自動計算が同じ式を使うため、2箇所に書き写さない。
 
 /** 同一開始月の職歴 ID を収集して Set で返す */
 function buildParallelMap(careers: CareerEntry[]): Set<string> {

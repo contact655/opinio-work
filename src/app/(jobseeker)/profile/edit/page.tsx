@@ -162,7 +162,6 @@ export default async function ProfileEditPage({
   // ow_profiles — 希望条件 + スカウト設定
   let profilePrefs: {
     job_type: string | null;
-    experience_years: string | null;
     desired_work_style: string | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
@@ -173,25 +172,19 @@ export default async function ProfileEditPage({
   } | null = null;
 
   if (owUser) {
-    // onboarding は auth.users.id を user_id として保存する場合がある
-    const { data: p1 } = await supabase
+    /* ⚠️ ow_profiles.user_id は **auth.users.id**（FK は auth.users を指す）。
+          ow_users.id での再試行が書かれていたが、実データ39件すべてが auth 空間で、
+          この経路は**必ず0件**だった。2026-08-07 に削除。
+          空間の一覧は docs/user-id-spaces.md を参照。
+       ⚠️ experience_years は引かない。職歴から自動計算する表示専用になった。 */
+    const { data, error } = await supabase
       .from("ow_profiles")
-      .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
+      .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
-
-    if (p1) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      profilePrefs = p1 as any;
-    } else {
-      const { data: p2 } = await supabase
-        .from("ow_profiles")
-        .select("job_type, experience_years, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
-        .eq("user_id", owUser.id)
-        .maybeSingle();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (p2) profilePrefs = p2 as any;
-    }
+    if (error) console.error("[profile/edit] ow_profiles fetch error:", error.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (data) profilePrefs = data as any;
   }
 
   // Build UUID → name map from ow_roles

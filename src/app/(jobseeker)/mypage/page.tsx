@@ -16,6 +16,7 @@ import {
   type RawExperienceRow,
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
+import { hasCareerPreferences } from "@/lib/profile/completion";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -306,20 +307,18 @@ export default async function MypagePage({
   }
 
   // Fetch ow_profiles career preferences (user_id = auth.users.id)
-  let hasCareerPreferences = false;
+  // ⚠️ 判定は lib/profile/completion.ts の hasCareerPreferences() に寄せる。
+  //    ここに条件を書き足すと /profile/edit と食い違って完成度が15点ずれる（2026-08-07）。
+  let hasPrefs = false;
   let showScoutBanner = false;
   if (owUser) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
-      .select("job_type, desired_work_style, desired_salary_min, transfer_timing, onboarding_completed, scout_enabled")
+      .select("job_type, desired_work_style, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, onboarding_completed, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
-    hasCareerPreferences = !!(
-      profile?.job_type ||
-      profile?.desired_work_style ||
-      profile?.desired_salary_min ||
-      profile?.transfer_timing
-    );
+    if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
+    hasPrefs = profile ? hasCareerPreferences(profile) : false;
     // オンボーディング完了済みだがscout_enabled未設定の場合バナー表示
     showScoutBanner = profile?.onboarding_completed === true && profile?.scout_enabled == null;
   }
@@ -375,5 +374,5 @@ export default async function MypagePage({
   //（コンポーザーがセクションの中身そのものなので、消すと空欄になる）
   const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
 
-  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasCareerPreferences} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasPrefs} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }

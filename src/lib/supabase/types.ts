@@ -6378,6 +6378,7 @@ export type Database = {
           skills: string[] | null
           tools: string[] | null
           transfer_timing: string | null
+          transfer_timing_updated_at: string | null
           updated_at: string | null
           user_id: string | null
           worry: string | null
@@ -6401,6 +6402,7 @@ export type Database = {
           skills?: string[] | null
           tools?: string[] | null
           transfer_timing?: string | null
+          transfer_timing_updated_at?: string | null
           updated_at?: string | null
           user_id?: string | null
           worry?: string | null
@@ -6424,6 +6426,7 @@ export type Database = {
           skills?: string[] | null
           tools?: string[] | null
           transfer_timing?: string | null
+          transfer_timing_updated_at?: string | null
           updated_at?: string | null
           user_id?: string | null
           worry?: string | null
@@ -8416,6 +8419,7 @@ export type Database = {
         Args: { target_company_id: string }
         Returns: boolean
       }
+      auth_ow_user_id: { Args: never; Returns: string }
       can_send_scout: {
         Args: { p_candidate_id: string; p_company_id: string }
         Returns: boolean

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { Json } from "@/lib/supabase/types";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +13,15 @@ import Tabs, { type TabItem } from "./Tabs";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import { JOB_TYPE_CATEGORIES, JOB_TYPE_DISPLAY_LABELS, getVisibleCategories } from "@/lib/constants/jobTypes";
+import {
+  DESIRED_WORK_STYLES,
+  TRANSFER_TIMINGS,
+  DESIRED_PHASES,
+  WORRIES,
+  SALARY_MAX_MAN,
+} from "@/lib/constants/careerPreferences";
+import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
+import { hasCareerPreferences } from "@/lib/profile/completion";
 import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 import {
   SocialIcon,
@@ -2305,7 +2314,8 @@ export default function ProfileEditClient({
   initialScoutEnabled?: boolean | null;
   initialProfilePrefs?: {
     job_type: string | null;
-    experience_years: string | null;
+    // ⚠️ experience_years は受け取らない。職歴から自動計算する（2026-08-07）。
+    //    列は ow_profiles に残っているが、画面もAPIも読み書きしない。
     desired_work_style: string | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
@@ -2325,7 +2335,6 @@ export default function ProfileEditClient({
 
   // ── 希望条件 (ow_profiles) state ─────────────────────────────────────────────
   const [prefJobType, setPrefJobType] = useState(initialProfilePrefs?.job_type ?? "");
-  const [prefExpYears, setPrefExpYears] = useState(initialProfilePrefs?.experience_years ?? "");
   const [prefWorkStyle, setPrefWorkStyle] = useState(initialProfilePrefs?.desired_work_style ?? "");
   const [prefSalaryMin, setPrefSalaryMin] = useState(initialProfilePrefs?.desired_salary_min?.toString() ?? "");
   const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
@@ -2335,6 +2344,19 @@ export default function ProfileEditClient({
   const [prefSaving, setPrefSaving] = useState(false);
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── 社会人経験年数（職歴から自動計算・表示のみ）──────────────────────────
+  // ⚠️ 職歴が0件なら null。呼び出し側は項目ごと非表示にする（「0年」と出さない）。
+  // ⚠️ initialExperiences は SSR 時点のスナップショット。職歴タブで追加した直後は
+  //    再読み込みまで反映されない。CareerHistoryEditor が router.refresh() する。
+  const oldestCareerStart = useMemo(() => {
+    const starts = initialExperiences.map((e) => e.startedAt).filter(Boolean);
+    return starts.length > 0 ? starts.reduce((a, b) => (a < b ? a : b)) : null;
+  }, [initialExperiences]);
+  const totalExperience = useMemo(
+    () => calcTotalExperience(initialExperiences.map((e) => e.startedAt)),
+    [initialExperiences]
+  );
 
   // ── 発信コンテンツリンク state ──────────────────────────────────────────────
   const [contentLinks, setContentLinks] = useState<ContentLink[]>(initialContentLinks);
@@ -2788,7 +2810,15 @@ export default function ProfileEditClient({
     hasAvatar:             !!owUser?.avatar_url,
     experienceCount:       initialExperiences.length,
     educationCount:        educations.length,
-    hasPreferences:        !!(prefJobType || prefWorkStyle || prefTiming),
+    hasPreferences:        hasCareerPreferences({
+      job_type:           prefJobType || null,
+      desired_work_style: prefWorkStyle || null,
+      desired_salary_min: prefSalaryMin ? Number(prefSalaryMin) : null,
+      desired_salary_max: prefSalaryMax ? Number(prefSalaryMax) : null,
+      transfer_timing:    prefTiming || null,
+      desired_phase:      prefPhase,
+      worry:              prefWorry || null,
+    }),
     certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
     socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
   };
@@ -3138,7 +3168,7 @@ export default function ProfileEditClient({
             )}
 
             <FormSection
-              title="希望職種・経験年数"
+              title="希望職種"
               desc="企業側の候補者サーチに表示されます。カジュアル面談の申込をもらいやすくなります。"
             >
               <FormGroup label="希望職種" htmlFor="pe-job-type">
@@ -3168,24 +3198,36 @@ export default function ProfileEditClient({
                   ))}
                 </select>
               </FormGroup>
-              <FormGroup label="社会人経験年数" htmlFor="pe-exp-years">
-                <select
-                  id="pe-exp-years"
-                  value={prefExpYears}
-                  onChange={async (e) => {
-                    setPrefExpYears(e.target.value);
-                    await savePreferences({ experience_years: e.target.value || null });
-                  }}
-                  style={selectStyle()}
-                >
-                  <option value="">未設定</option>
-                  <option value="1〜2年">1〜2年</option>
-                  <option value="3〜5年">3〜5年</option>
-                  <option value="6〜10年">6〜10年</option>
-                  <option value="11年以上">11年以上</option>
-                </select>
-              </FormGroup>
             </FormSection>
+
+            {/* ── 社会人経験年数（自動計算・表示のみ）────────────────────────
+                入力欄は 2026-08-07 に廃止した。理由は2つ:
+                ① API が parseNum() に通していたため "3〜5年" が必ず null に落ち、
+                   **選んでも保存されていなかった**
+                ② 職歴を入れた人には二重入力になり、食い違ったときどちらが正か決められない
+                ⚠️ 職歴が0件なら項目ごと出さない。「0年」と出さないこと。 */}
+            {totalExperience && (
+              <FormSection
+                title="社会人経験年数"
+                desc="職歴の最も古い開始日から自動で計算しています。直すには「職歴・学歴」タブの職歴を編集してください。"
+              >
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "12px 16px", borderRadius: 10,
+                  background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
+                }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
+                    {totalExperience.label}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+                    （{formatYmLabel(oldestCareerStart)} から）
+                  </span>
+                </div>
+              </FormSection>
+            )}
 
             <FormSection
               title="勤務スタイル・転職時期"
@@ -3202,10 +3244,14 @@ export default function ProfileEditClient({
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
-                  <option value="full_remote">フルリモート希望</option>
-                  <option value="hybrid">ハイブリッド（週1〜3出社）</option>
-                  <option value="on_site">出社中心</option>
-                  <option value="flexible">柔軟に対応できる</option>
+                  {/* 選択肢から外れた値（"flexible" 等）を今持っている場合だけ先頭に出す。
+                      出さないと select が空表示になり、他を保存した拍子に消える。 */}
+                  {prefWorkStyle !== "" && !DESIRED_WORK_STYLES.some((o) => o.value === prefWorkStyle) && (
+                    <option value={prefWorkStyle}>{prefWorkStyle}（現在の設定）</option>
+                  )}
+                  {DESIRED_WORK_STYLES.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </FormGroup>
               <FormGroup label="転職検討時期" htmlFor="pe-timing">
@@ -3219,11 +3265,9 @@ export default function ProfileEditClient({
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
-                  <option value="即時">すぐにでも（即時）</option>
-                  <option value="1〜3ヶ月以内">1〜3ヶ月以内</option>
-                  <option value="半年以内">半年以内</option>
-                  <option value="1年以内">1年以内</option>
-                  <option value="情報収集中">まだ情報収集段階</option>
+                  {TRANSFER_TIMINGS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </FormGroup>
             </FormSection>
@@ -3246,7 +3290,7 @@ export default function ProfileEditClient({
                       }}
                       placeholder="例: 600"
                       min={0}
-                      max={9999}
+                      max={SALARY_MAX_MAN}
                       style={{ ...inputStyle(), width: "100%" }}
                     />
                     <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
@@ -3265,7 +3309,7 @@ export default function ProfileEditClient({
                       }}
                       placeholder="例: 900"
                       min={0}
-                      max={9999}
+                      max={SALARY_MAX_MAN}
                       style={{ ...inputStyle(), width: "100%" }}
                     />
                     <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
@@ -3284,7 +3328,7 @@ export default function ProfileEditClient({
               desc="どのステージの企業に関心がありますか？複数選択できます。"
             >
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {["シリーズA", "シリーズB", "シリーズC", "上場"].map((phase) => {
+                {DESIRED_PHASES.map((phase) => {
                   const checked = prefPhase.includes(phase);
                   return (
                     <label
@@ -3345,12 +3389,9 @@ export default function ProfileEditClient({
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
-                  <option value="転職すべきか迷っている">転職すべきか迷っている</option>
-                  <option value="年収を大幅に上げたい">年収を大幅に上げたい</option>
-                  <option value="外資・グローバル企業に行きたい">外資・グローバル企業に行きたい</option>
-                  <option value="キャリアチェンジを考えている">キャリアチェンジを考えている</option>
-                  <option value="スタートアップに興味がある">スタートアップに興味がある</option>
-                  <option value="まず話を聞いてみたい">まず話を聞いてみたい</option>
+                  {WORRIES.map((w) => (
+                    <option key={w} value={w}>{w}</option>
+                  ))}
                 </select>
               </FormGroup>
             </FormSection>

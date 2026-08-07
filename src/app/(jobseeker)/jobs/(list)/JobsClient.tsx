@@ -982,9 +982,13 @@ export default function JobsClient({
       if ((bookmarkData as { ids?: string[] }).ids) setBookmarkedIds(new Set((bookmarkData as { ids: string[] }).ids));
       if ((appliedData as { ids?: string[] }).ids) setAppliedJobIds(new Set((appliedData as { ids: string[] }).ids));
       if (!user) return;
-      const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).single();
-      if (!owUser?.id) return;
-      const { data: profile } = await supabase.from("ow_profiles").select("job_type").eq("user_id", owUser.id).single();
+      /* ⚠️ ow_profiles.user_id は **auth.users.id**（ow_users.id ではない）。
+            2026-08-07 まで ow_users.id で引いていたため常に0件で、
+            「あなたの希望職種にマッチ」セクションが一度も出ていなかった。
+            空間の一覧は docs/user-id-spaces.md を参照。 */
+      const { data: profile, error } = await supabase
+        .from("ow_profiles").select("job_type").eq("user_id", user.id).maybeSingle();
+      if (error) { console.error("[JobsClient] ow_profiles fetch error:", error.message); return; }
       if (profile?.job_type) setUserJobType(profile.job_type as string);
     }).catch(() => {});
   }, []);
@@ -1331,7 +1335,17 @@ export default function JobsClient({
     if (!roleName) return [];
     const role = parentRoles.find((r) => r.name === roleName);
     if (!role) return [];
-    return allJobs.filter((j) => j.role_category_id === role.id).slice(0, 5);
+    /* ⚠️ role_category_id との直接比較にしないこと。
+          2026-08-06 の職種タグ付け替え後、掲載中18件は**全部が子職種**で、
+          大分類そのものを role_category_id に持つ求人は0件になった。
+          j.roleIds は「その職種＋祖先」なので、大分類を含むかで見る。
+          カテゴリフィルタ（:1325）が既に同じ形。 */
+    return allJobs
+      .filter((j) => {
+        const ids = (j as { roleIds?: string[] }).roleIds ?? (j.role_category_id ? [j.role_category_id] : []);
+        return ids.includes(role.id);
+      })
+      .slice(0, 5);
   }, [allJobs, userJobType, parentRoles]);
 
   return (

@@ -33,11 +33,47 @@ export type CompletionInput = {
   hasAvatar: boolean;
   experienceCount: number;
   educationCount: number;
-  hasPreferences: boolean; // job_type OR work_style OR timing
+  /** 希望条件が1つでも入っているか。**必ず hasCareerPreferences() で作ること** */
+  hasPreferences: boolean;
   /** 実績・受賞・メディア掲載の合計。資格は 2026-08-04 に廃止 */
   certOrAchievementCount: number;
   socialOrContentCount: number;
 };
+
+/**
+ * 希望条件が1つでも入っているか。**判定はここ1本に寄せる。**
+ *
+ * ── なぜ関数にしたか（2026-08-07）────────────────────────────────────────────
+ * 同じ「希望条件」15点の判定が2箇所にあり、条件が食い違っていた。
+ *   ProfileEditClient : job_type || work_style || timing
+ *   mypage/page.tsx   : job_type || work_style || **salary_min** || timing
+ * 希望年収だけを入れた人は /mypage で 15点、/profile/edit で 0点になり、
+ * 同じユーザーの完成度が画面によって 15点ずれていた。
+ *
+ * ⚠️ 採った形は「**希望条件のうち1つでも入っていれば達成**」。
+ *    列を1つずつ書き並べる形だと、項目が増減するたび2箇所を直す必要が戻る。
+ *    experience_years は 2026-08-07 に希望条件から外れた（職歴から自動計算）ので
+ *    含めない。
+ */
+export function hasCareerPreferences(p: {
+  job_type?: string | null;
+  desired_work_style?: string | null;
+  desired_salary_min?: number | null;
+  desired_salary_max?: number | null;
+  transfer_timing?: string | null;
+  desired_phase?: string[] | null;
+  worry?: string | null;
+}): boolean {
+  return Boolean(
+    p.job_type ||
+    p.desired_work_style ||
+    p.desired_salary_min != null ||
+    p.desired_salary_max != null ||
+    p.transfer_timing ||
+    (p.desired_phase && p.desired_phase.length > 0) ||
+    p.worry
+  );
+}
 
 export type ScoreItem = {
   key: keyof CompletionInput | string;
