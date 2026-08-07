@@ -8504,7 +8504,6 @@ export type Database = {
         }[]
       }
       get_tenant_id: { Args: never; Returns: string }
-      has_review_access: { Args: { p_user_id: string }; Returns: boolean }
       has_worked_at_company: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
