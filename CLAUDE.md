@@ -232,6 +232,61 @@ const cookieName = `sb-${ref}-auth-token`;
 - 検証対象のアカウントが admin かどうかを**先に確認**する
   （`ow_user_roles` を **auth_id** で引く）
 
+### GRANT と RLS は二層で持つ（2026-08-07 確立）
+
+**anon に GRANT が無いと、PostgREST は `401 permission denied for table` を返し、
+RLS を評価する前に止まる。** RLS ポリシーを1本書き間違えても漏れない。
+逆に GRANT があると、RLS だけが最後の砦になる。**層は2つ持つこと。**
+
+実測（`ow_profile_desired_roles`）:
+
+| セッション | 状態 | 読めた行 | 止まった層 |
+|---|---|---|---|
+| anon | **401** | — | **GRANT**（RLS に到達しない） |
+| 本人 | 200 | 自分の1行だけ | RLS |
+| 第三者 | 200 | 0行 | RLS |
+| admin | 200 | 全6行 | — |
+
+### ⚠️ 新しいテーブルを作ったら GRANT を実測する。既定に任せない（2026-08-07 確立）
+
+**このプロジェクトの `public` スキーマは、既定ACL が `anon` に全権限を付ける設定だった。**
+`CREATE TABLE` しただけで**未ログインから読み書きできるテーブルが増える**状態で、
+2026-08-06 に anon の書き込みを94テーブルから剥がしても、
+作るたびに再生産されていた（`ow_profile_desired_roles` で実際に踏んだ）。
+
+`20260807050000_default_acl_revoke_anon.sql` で既定を直した。
+
+| ロール | 対象 | 変更前 | 変更後 |
+|---|---|---|---|
+| `postgres` | テーブル・ビュー | `anon=arwdDxtm` あり | **anon なし**（authenticated / service_role は残す） |
+| `postgres` | シーケンス | `anon=rwU` あり | **anon なし** |
+| `postgres` | 関数 | `anon=X` あり | **anon なし** |
+
+⚠️ `ALTER DEFAULT PRIVILEGES` は**実行したロールごと**に効く。
+このプロジェクトでテーブルを作るのは `postgres`（migration も SQL Editor も）。
+`supabase_admin` の既定も別に存在するが、`postgres` はそのメンバーではないため
+変更できない（Supabase 内部が作るオブジェクト用なので触らない）。
+
+⚠️ **既定を直しても、新しいテーブルの GRANT は毎回実測すること。**
+既定は「これから作るもの」にしか効かず、
+`GRANT` を書いた migration 自体が間違っている可能性は消えない。
+
+```sql
+select grantee, string_agg(privilege_type, ', ' order by privilege_type)
+from information_schema.role_table_grants
+where table_schema='public' and table_name='<新テーブル>' group by grantee;
+```
+
+⚠️ **踏みやすい罠：RLS ポリシーが呼ぶ関数には anon にも EXECUTE が要る。**
+`TO` 句の無いポリシーは anon でも評価されるため、EXECUTE が無いと
+**クエリ自体がエラーになる**（`auth_ow_user_id()` で経験済み）。
+関数の既定からも anon を落としたので、今後ポリシーから呼ぶ関数を作るときは
+明示すること。
+
+```sql
+GRANT EXECUTE ON FUNCTION public.<関数名>() TO anon, authenticated, service_role;
+```
+
 ### ⚠️ 検証を自社だけで完結させない — 他社を混ぜて交差確認する（2026-08-07 追記）
 
 **自社（株式会社Opinio）1社だけで測ると、「たまたま動く条件」を引いて
