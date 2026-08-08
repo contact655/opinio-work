@@ -122,6 +122,34 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
   const hiddenTeamCount = allDivisions.slice(INITIAL_DIVISIONS).reduce((sum, div) => sum + (grouped.get(div)?.length ?? 0), 0);
 
   return (
+    <>
+      {/*
+        チーム行のレイアウト。
+        ⚠️ この CSS に `>` と `"` を書かない。JSX の style タグはその2文字を
+           サーバ側だけがエスケープし、毎リクエスト hydration mismatch になる
+           （2026-08-07 に MypageLayout で踏んだ）。
+      */}
+      <style>{`
+        .org-team-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .org-team-mission { flex: 1 1 0%; min-width: 0; }
+        .org-team-chevron { flex-shrink: 0; margin-left: auto; }
+
+        /* 狭い画面ではミッションを2行目に送る（2026-08-08）。
+           1行目 = チーム名 + 英語名 + chevron / 2行目 = ミッション。
+           それまでは チーム名(min 140px) + 英語名バッジ(flex-shrink:0) だけで
+           275px の枠が埋まり、flex:1 のミッションが幅0まで縮んで**消えていた**。
+           閉じているときのプレビューは行を開く判断材料なので、消してはいけない。
+           ブレークポイントは企業詳細ページで既に使っている 767px に揃える。 */
+        @media (max-width: 767px) {
+          .org-team-row { flex-wrap: wrap; }
+          .org-team-chevron { order: 1; }
+          .org-team-mission { order: 2; flex-basis: 100%; margin-top: 4px; }
+        }
+      `}</style>
     <section
       id="org-teams"
       style={{
@@ -208,12 +236,10 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                     >
                       {/* Collapsed row — always visible */}
                       <button
+                        className="org-team-row"
                         onClick={() => toggle(key)}
                         style={{
                           width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
                           padding: "11px 14px",
                           background: "transparent",
                           border: "none",
@@ -242,22 +268,26 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                           {team.en_name}
                         </span>
 
-                        {/* Mission — truncated preview */}
-                        {/* ⚠️ `minWidth: 0` が要る（2026-08-08）。flex item の既定は
-                               `min-width: auto` で、`overflow: hidden` と
-                               `text-overflow: ellipsis` を書いても**縮まない**。
-                               このミッション文が min-content を押し上げ、
-                               375px でカードが 473px まで伸びていた。 */}
-                        <span title={team.mission ?? undefined} style={{
-                          flex: 1, minWidth: 0, fontSize: 12, color: "var(--ink-soft)",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          display: isOpen ? "none" : "block",
-                        }}>
+                        {/* Mission — truncated preview
+                            ⚠️ flex / min-width / order は**クラス側**に置く。
+                               インラインに書くとメディアクエリが効かず、
+                               狭い画面で次行に送れない（CLAUDE.md の優先順位の項）。
+                            ⚠️ min-width: 0 が要る。flex item の既定は min-width: auto で、
+                               overflow: hidden と text-overflow: ellipsis を書いても縮まない。 */}
+                        <span
+                          className="org-team-mission"
+                          title={team.mission ?? undefined}
+                          style={{
+                            fontSize: 12, color: "var(--ink-soft)",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            display: isOpen ? "none" : "block",
+                          }}
+                        >
                           {team.mission}
                         </span>
 
                         {/* Chevron */}
-                        <span style={{ color: "var(--ink-mute)", marginLeft: "auto", flexShrink: 0 }}>
+                        <span className="org-team-chevron" style={{ color: "var(--ink-mute)" }}>
                           <Chevron open={isOpen} />
                         </span>
                       </button>
@@ -383,5 +413,6 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
         <div style={{ paddingBottom: 28 }} />
       )}
     </section>
+    </>
   );
 }
