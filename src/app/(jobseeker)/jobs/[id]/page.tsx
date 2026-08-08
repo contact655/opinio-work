@@ -278,13 +278,11 @@ function JobEmployeesSection({
   current,
   alumni,
   companyId,
-  companyName,
   casualHref,
 }: {
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
   companyId: string;
-  companyName: string;
   /** 非公開企業では null。飛べない導線を置かないため CTA ごと出さない */
   casualHref: string | null;
 }) {
@@ -326,7 +324,7 @@ function JobEmployeesSection({
               }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              {companyName.replace(/^(株式会社|有限会社|合同会社)/, "").replace(/(株式会社|有限会社|合同会社)$/, "")}の社員に話を聞く（無料）
+              <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
             </a>
           </div>
           )}
@@ -1557,7 +1555,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
-                companyName={company.name}
               />
 
               {/* Position members — role-matched alumni/current employees */}
@@ -1648,7 +1645,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                       </svg>
-                      まず社員に話を聞く（無料）
+                      <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                     </Link>
                   )}
 

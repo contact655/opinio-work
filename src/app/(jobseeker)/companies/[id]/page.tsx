@@ -306,7 +306,7 @@ function Hero({
                       boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
                     }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
-                    話を聞く（無料）
+                    <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                   </Link>
                 )}
                 <BookmarkButton
@@ -1543,25 +1543,37 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
 
   const tenure = calcTenure(employee.startedAt, employee.endedAt);
 
-  const badge = (
-    <>
-      {tenure && (
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
-          {tenure}
-        </span>
-      )}
-      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", background: "var(--bg-tint)", padding: "1px 6px", borderRadius: 100, border: "1px solid var(--line)", flexShrink: 0 }}>
-        💬 DM可
-      </span>
-    </>
-  );
+  /* ⚠️ 「💬 DM可」バッジは 2026-08-08 に削除した。
+        条件なしで全員に出ており、情報量が無かった（誰に出しても同じ）。 */
+  const badge = tenure ? (
+    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
+      {tenure}
+    </span>
+  ) : null;
 
   const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
-  // 現在の会社名 / 現在の役職のみ（長い組織階層は省略）
-  const subInfo = currentDisplayName ? (
-    <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-      {currentDisplayName}{employee.currentRoleTitle ? ` / ${employee.currentRoleTitle}` : ""}
-    </p>
+  /* 2行目に現在の会社名、3行目に職種を分けて出す（2026-08-08）。
+     それまで「CTC / 金融営業本部 営業第1部 / 法人営業（アカウント営業）」のように
+     1行に詰めており、狭い画面で会社名まで省略記号に飲まれていた。
+     ⚠️ 値そのものは変えていない（会社名は brand_name ?? name、職種は自己申告の役職名）。
+     ⚠️ 省略記号を効かせるには minWidth: 0 が要る（親は flex item）。 */
+  const line = {
+    margin: "2px 0 0", fontSize: 12, fontWeight: 500,
+    minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  } as const;
+  const subInfo = (currentDisplayName || employee.currentRoleTitle) ? (
+    <>
+      {currentDisplayName && (
+        <p title={currentDisplayName} style={{ ...line, color: "var(--ink-mute)" }}>
+          {currentDisplayName}
+        </p>
+      )}
+      {employee.currentRoleTitle && (
+        <p title={employee.currentRoleTitle} style={{ ...line, color: "var(--ink-mute)" }}>
+          {employee.currentRoleTitle}
+        </p>
+      )}
+    </>
   ) : undefined;
 
   // AlumniCard は roleTitle（在籍時の部署階層）を非表示にするため空の employee を渡す
@@ -2582,7 +2594,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
               animation: "cta-pulse 1.8s ease-in-out infinite",
             }}
           />
-          話を聞く（カジュアル面談）
+          <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
         </Link>
       )}
       {hasJobs && (
@@ -2713,7 +2725,7 @@ function Sidebar({
                       animation: "cta-pulse 1.8s ease-in-out infinite",
                     }}
                   />
-                  話を聞く（カジュアル面談）
+                  <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                 </Link>
                 {/* 補足テキスト: Primary ボタン直下、Primary 表示時のみ */}
                 <p
@@ -3422,7 +3434,7 @@ export default async function CompanyDetailPage({
                     }}
                   >
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
-                    話を聞く（カジュアル面談）
+                    <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                   </Link>
                 </div>
               </div>

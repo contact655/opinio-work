@@ -86,7 +86,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          まず社員に話を聞く（無料）
+          <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
         </Link>
         ) : null}
         {/* 副CTA（面談あり）または 主CTA（面談なし）: 応募する */}
