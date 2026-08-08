@@ -33,7 +33,6 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
-import { ShowMoreButton } from "./ShowMoreButton";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
@@ -811,9 +810,13 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         }
         const BENEFIT_CATEGORIES = [
           { key: "work_style", label: "働き方", keywords: ["リモート", "在宅", "テレワーク", "フルリモート", "フレックス", "時差", "副業", "兼業"] },
-          { key: "rewards",    label: "報酬・株式", keywords: ["ストックオプション", "SO", "持株", "確定拠出", "退職金", "給与", "賞与", "インセンティブ"] },
+          /* ⚠️ 「株式」を足した（2026-08-08）。ラベルが「報酬・株式」なのに
+                キーワードに無く、「RSU（譲渡制限付き株式）」がその他に落ちていた。 */
+          { key: "rewards",    label: "報酬・株式", keywords: ["ストックオプション", "SO", "持株", "株式", "確定拠出", "退職金", "給与", "賞与", "インセンティブ"] },
           { key: "growth",     label: "学習・成長", keywords: ["書籍", "学習", "研修", "勉強会", "資格", "セミナー"] },
-          { key: "family",     label: "育児・家族", keywords: ["育休", "産休", "子育て", "保育"] },
+          /* ⚠️ 「育児」「介護」を足した（2026-08-08）。ラベルが「育児・家族」なのに
+                キーワードは「育休」だけで、「育児・介護休暇制度」がその他に落ちていた。 */
+          { key: "family",     label: "育児・家族", keywords: ["育休", "産休", "育児", "介護", "子育て", "保育"] },
           { key: "health",     label: "食事・健康", keywords: ["食事", "ランチ", "社食", "健康", "医療", "保険"] },
         ];
         function categorize(b: string) {
@@ -833,20 +836,41 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         return (
       <div>
         {detail.benefits && detail.benefits.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-            {detail.benefits.map((b) => {
-              const def = getBenefitIconDef(b);
-              return (
-                <InfoCard
-                  key={b}
-                  icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
-                  label={b}
-                  color={def.color}
-                  bg={def.bg}
-                  border={def.border}
-                />
-              );
-            })}
+          /* ⚠️ カテゴリごとに見出しを付ける（2026-08-08）。
+                categorize() と grouped は前から計算されていたのに使われておらず、
+                全件を平坦に並べていた。
+             ⚠️ **1件も欠けさせない。** どのキーワードにも当たらない値は
+                categorize() が "other" を返すので、必ず最後に「その他」として出す
+                （カテゴリ定義だけを回すと、その値が画面から消える）。
+             ⚠️ 1件も無いカテゴリは見出しごと出さない。 */
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {[...BENEFIT_CATEGORIES, { key: "other", label: "その他", keywords: [] }]
+              .filter((cat) => (grouped.get(cat.key)?.length ?? 0) > 0)
+              .map((cat) => (
+                <div key={cat.key}>
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+                    letterSpacing: "0.04em", marginBottom: 8,
+                  }}>
+                    {cat.label}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+                    {(grouped.get(cat.key) ?? []).map((b) => {
+                      const def = getBenefitIconDef(b);
+                      return (
+                        <InfoCard
+                          key={b}
+                          icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
+                          label={b}
+                          color={def.color}
+                          bg={def.bg}
+                          border={def.border}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
           </div>
         ) : (
           <div style={{
@@ -2037,13 +2061,13 @@ function JobsSection({
           </div>
         ))}
 
-        {/* Consolidated CTA */}
-        <ShowMoreButton
-          variant="navigate"
-          label={`${company.job_count}件すべての求人を見る`}
-          href={`/companies/${company.id}/jobs`}
-          wrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
-        />
+        {/* ⚠️ ここにあった「N件すべての求人を見る」は 2026-08-08 に削除した。
+               リンク先の /companies/[id]/jobs は 2026-07-01（ca81d23a）に
+               「orphan page」として**ルートごと削除**されており、404 だった。
+               このセクションの上に求人が全件並んでいるので、リンク先を作り直すより
+               既にある導線に寄せる（記事CTA で /jobs?company= をやめたのと同じ判断）。
+            ⚠️ 求人が増えて一覧が必要になったら、`/jobs?company=` を実装するのが筋。
+               消えたルートを復活させると企業ページの求人セクションと内容が重複する。 */}
       </div>
     </section>
     </>

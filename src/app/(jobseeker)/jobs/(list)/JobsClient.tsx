@@ -11,6 +11,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { availablePhaseOptions, phaseMatches } from "@/lib/constants/phase";
 /**
  * 勤務形態フィルタの語。**DB の値ではなく「表示ラベルへの部分一致で使う語」。**
  * 求人側のラベルは フルリモート可 / ハイブリッド / 原則出社 の3種で、
@@ -40,12 +41,6 @@ function pillLabel(selected: Set<string>, fallback: string, labels?: Record<stri
   return selected.size === 1 ? first : `${first} +${selected.size - 1}`;
 }
 
-/** フェーズピルの値 → 表示名。ドロップダウンの選択肢と同じ順・同じ文言に揃える */
-const PHASE_PILL_LABELS: Record<string, string> = {
-  listed: "上場",
-  unicorn: "🦄 ユニコーン",
-  startup: "スタートアップ",
-};
 
 const SALARY_PILL_TIERS = [
   { value: "400",  label: "400万〜" },
@@ -687,13 +682,6 @@ export default function JobsClient({
   // 企業ステージフィルター
   const [companyStage, setCompanyStage] = useState(""); // カンマ区切り複数選択
   const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
-  /* フェーズピルが扱う値だけを抜いた集合。companyStage には外資系（foreign）も
-     入っているが、それは別のトグルピルなのでフェーズの表示・判定から外す */
-  const phaseSet = useMemo(
-    () => new Set(Object.keys(PHASE_PILL_LABELS).filter((k) => companyStageSet.has(k))),
-    [companyStageSet],
-  );
-
   function toggleParam(key: string, value: string, current: string) {
     const set = new Set(current ? current.split(",") : []);
     if (set.has(value)) set.delete(value); else set.add(value);
@@ -733,6 +721,25 @@ export default function JobsClient({
   const companyMap = useMemo(
     () => new Map(companies.map((c) => [c.id, c])),
     [companies]
+  );
+
+  /* ⚠️ フェーズの選択肢は**実データから作る**（2026-08-08）。
+        固定の3段（listed/unicorn/startup）を出していたが、
+        公開求人が付いている企業は listed と unicorn だけで、
+        「スタートアップ」は必ず0件だった。逆に non_listed は選択肢が無く絞れなかった。 */
+  const phaseOptions = useMemo(
+    () => availablePhaseOptions(allJobs.map((j) => companyMap.get(j.company_id)?.phase ?? null)),
+    [allJobs, companyMap],
+  );
+  const phaseKeys = useMemo(() => phaseOptions.map((o) => o.value), [phaseOptions]);
+  const phaseLabels = useMemo(
+    () => Object.fromEntries(phaseOptions.map((o) => [o.value, o.label])),
+    [phaseOptions],
+  );
+  /* companyStage には外資系（foreign）も入っている。フェーズの表示・判定からは外す */
+  const phaseSet = useMemo(
+    () => new Set(phaseKeys.filter((k) => companyStageSet.has(k))),
+    [companyStageSet, phaseKeys],
   );
 
   // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
@@ -925,12 +932,12 @@ export default function JobsClient({
     // 企業ステージフィルタ（複数選択対応）
     if (companyStageSet.size > 0) {
       list = list.filter((j) => {
-        const phase = (companyMap.get(j.company_id)?.phase ?? "").toLowerCase();
         const co = companyMap.get(j.company_id);
+        const rawPhase = co?.phase ?? null;
         const matchesStage = (s: string) => {
-          if (s === "unicorn") return /unicorn|ユニコーン/.test(phase);
-          if (s === "listed")  return /上場|listed|nasdaq|nyse|グロース|プライム/.test(phase);
-          if (s === "startup") return /seed|シード|series|シリーズ/.test(phase);
+          /* ⚠️ 正規表現をやめて写像に寄せた（2026-08-08）。/companies と同じ
+                PHASE_FILTER_MAP を見る。旧実装が拾っていた nasdaq|nyse|グロース|プライム は
+                実データに0件だったので、失うものは無い（実測済み）。 */
           if (s === "foreign") {
             const nm = co?.name ?? "";
             const url = (co?.url ?? "").toLowerCase();
@@ -939,7 +946,7 @@ export default function JobsClient({
             if (/^[゠-ヿ]/.test(nm)) return true;
             return false;
           }
-          return false;
+          return phaseMatches(rawPhase, s);
         };
         return Array.from(companyStageSet).some(matchesStage);
       });
@@ -1156,7 +1163,7 @@ export default function JobsClient({
                   setOpenFilter("phase");
                 }}
               >
-                {pillLabel(phaseSet, "フェーズ", PHASE_PILL_LABELS)} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {pillLabel(phaseSet, "フェーズ", phaseLabels)} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 業種 ピル */}
@@ -1878,10 +1885,10 @@ export default function JobsClient({
                   /* ⚠️ toggleStage を forEach で回さないこと。companyStage を
                      クロージャから読むので、2つ以上選んでいると最後の1回しか効かない。 */
                   const set = new Set(companyStage ? companyStage.split(",") : []);
-                  Object.keys(PHASE_PILL_LABELS).forEach((k) => set.delete(k));
+                  phaseKeys.forEach((k) => set.delete(k));
                   setCompanyStage(Array.from(set).join(","));
                 }}>すべて</button>
-              {Object.entries(PHASE_PILL_LABELS).map(([key, label]) => (
+              {phaseOptions.map(({ value: key, label }) => (
                 <button key={key} className={`jobs-pill-item${companyStageSet.has(key) ? " selected" : ""}`}
                   onClick={() => toggleStage(key)}>{label}</button>
               ))}

@@ -19,6 +19,7 @@ import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel } from "@/types/genre";
+import { PHASE_FILTER_MAP, availablePhaseOptions, type PhaseOption } from "@/lib/constants/phase";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
@@ -46,19 +47,6 @@ export type CompanySearchResult = {
 };
 
 // ── フェーズフィルター: 日本語 UI 値 → DB 値（英語/日本語混在）のマッピング ───
-const PHASE_FILTER_MAP: Record<string, string[]> = {
-  "成長ステージ":    ["シード", "seed", "シリーズA", "series-a", "series_a", "シリーズB", "series-b", "series_b", "シリーズC", "series-c", "series_c"],
-  "プレシード":      ["プレシード", "pre-seed", "preseed", "pre_seed"],
-  "ブートストラップ": ["ブートストラップ", "bootstrap"],
-  "シード":          ["シード", "seed"],
-  "シリーズA":       ["シリーズA", "series-a", "series_a"],
-  "シリーズB":       ["シリーズB", "series-b", "series_b"],
-  "シリーズC":       ["シリーズC", "series-c", "series_c"],
-  "シリーズD以降":   ["シリーズD以降", "シリーズD", "series-d", "series_d"],
-  "IPO準備中":       ["IPO準備中", "ipo"],
-  "上場":            ["上場", "listed"],
-  "ユニコーン":      ["ユニコーン", "unicorn"],
-};
 
 // ── メイン検索関数（将来の差し替えポイント）────────────────────────────────────
 
@@ -365,6 +353,30 @@ function normalizePrefecture(loc: string): string {
   const m = loc.match(/^(東京都|大阪府|京都府|北海道|.+?[都道府県])/);
   return m ? m[1] : loc;
 }
+
+/**
+ * 公開企業に**実在する** phase から、出してよいフェーズ選択肢を返す — 5分間キャッシュ。
+ *
+ * ⚠️ 0件の選択肢を出さないため（2026-08-08）。以前は11段を固定で出しており、
+ *    実データに1社も無い「プレシード」「ブートストラップ」「IPO準備中」等も並んでいた。
+ *    逆に non_listed（4社）は選択肢が無く絞れなかった。
+ */
+export const fetchAvailablePhases = unstable_cache(
+  async (): Promise<PhaseOption[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("ow_companies")
+      .select("phase")
+      .eq("is_published", true);
+    if (error) {
+      console.error("[fetchAvailablePhases]", error.message);
+      return [];
+    }
+    return availablePhaseOptions((data ?? []).map((r) => r.phase as string | null));
+  },
+  ["available-phases"],
+  { revalidate: 300 }
+);
 
 /** 公開企業の distinct location リスト（北から南順、branch_locations も含む） — 5分間キャッシュ */
 export const fetchDistinctLocations = unstable_cache(
