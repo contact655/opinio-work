@@ -2545,6 +2545,79 @@ dev が消えた先を参照し続けて同じ症状が残る）。
 ESLint も `npx next lint --dir src` は `.next` を書き換えない。
 `npm run build` が要るのは本番ビルドの通過確認だけ。
 
+### ⚠️ 横はみ出しは「ページのスクロール幅」で測らない（2026-08-08 確立）
+
+**`document.documentElement.scrollWidth > innerWidth` で測ると見逃す。**
+途中の要素に `overflow: hidden` があると、内側がどれだけはみ出していても
+ページ全体のスクロール幅は増えないため。
+
+2026-08-08 に `/companies/[id]` を「375px で横スクロールなし」と**何度も報告した**が、
+実際には `<main>` が **835px**（親は375px）で、400px を超える要素が202個あった。
+ページがスクロールしないので気づけなかった。
+
+#### 測り方
+
+**各要素が親の `clientWidth` を超えていないか**で見る。
+親に `overflow-x: auto|scroll` があるものは、横スクロールを意図した行なので除外する。
+
+```js
+// DevTools のコンソールに貼る
+(()=>{const out=[];
+  (function walk(e){const p=e.parentElement;
+    // ⚠️ offsetWidth で測る。getBoundingClientRect は transform: scale を含むので、
+    //    拡大したアイコンが偽陽性になる（実際に踏んだ）
+    if(p && e.offsetWidth!==undefined && p.clientWidth>0){
+      const ox=getComputedStyle(p).overflowX;
+      if(e.offsetWidth>p.clientWidth+1 && ox!=="auto" && ox!=="scroll"){
+        out.push({tag:e.tagName,cls:String(e.className).slice(0,40),
+                  幅:e.offsetWidth,親:p.clientWidth,
+                  抜粋:(e.textContent||"").trim().slice(0,30)});
+        return; /* ⚠️ 最も外側だけ報告し、その配下は辿らない */}}
+    for(const c of e.children) walk(c);})(document.body);
+  return {幅:innerWidth,件数:out.length,犯人:out.slice(0,5)};})()
+```
+
+⚠️ **配下を辿らないのが肝。** はみ出しは連鎖するので、全部出すと数百件になり原因が埋もれる。
+   **最も外側の1つ**を直せば、その配下は連鎖的に収まることが多い
+   （実際 `/companies/[id]` は grid 2箇所を直しただけで 202件 → 0件になった）。
+
+⚠️ `offsetWidth` は HTMLElement にしか無い（SVG には無い）。上の判定はそれを利用して
+   SVG の中身を自動的に除外している。
+
+#### よくある原因（この順で疑う）
+
+| # | 原因 | 直し方 |
+|---|---|---|
+| 1 | **grid トラックが `1fr`**（`minmax(0, 1fr)` でない） | `minmax(0, 1fr)` にする |
+| 2 | **`flex: 1` の item に `min-width: 0` が無い** | `minWidth: 0` を足す |
+| 3 | `white-space: nowrap` の可変長テキスト | `minWidth: 0` ＋ `overflow: hidden` ＋ `textOverflow: ellipsis` |
+| 4 | `flex-shrink: 0` を付けた可変長テキスト | 外す。固定してよいのはアイコンとバッジだけ |
+
+**1 と 2 は同じ理屈**。grid item も flex item も既定が `min-width: auto` で、
+**中身の min-content より小さくならない**。これが親を押し広げる。
+
+⚠️ **`overflow: hidden` と `text-overflow: ellipsis` を書いても、`min-width: 0` が無いと効かない。**
+   「省略記号を書いたのに切れて出る」はこれ。
+
+⚠️ **`overflow: hidden` で蓋をしない。** 見えなくなるだけで中身は切れたまま出る。
+   上の1〜4の原因側を直すこと。
+
+⚠️ 省略記号で切るときは **`title` 属性で全文を読めるように**する。
+
+#### 2026-08-08 時点の残存（参考）
+
+`1fr`（`minmax(0,` 無し）は全体で **150箇所**、`flex: 1` で `minWidth: 0` が無いものは **209箇所**ある。
+**すべてが問題なわけではない**（中身が短ければ膨らまない）。上の測り方で
+**実際にはみ出しているものだけ**直すこと。予防的に全部書き換える必要は無い。
+
+ただし **`textOverflow: ellipsis` を書いているのに `minWidth: 0` が無いファイル**は
+省略が効いていない可能性が高い。2026-08-08 時点で6ファイル:
+`articles/(list)/page.tsx` / `companies/[id]/OrgTeamsSectionClient.tsx`（修正済み） /
+`feed/(list)/FeedClient.tsx` / `mypage/conversations/ConversationsClient.tsx` /
+`biz/members/MembersClient.tsx` / `components/business/OfficePhotoSection.tsx`
+
+---
+
 ### ⚠️ インラインstyle と CSS の優先順位（2026-08-04 確立）
 
 このプロジェクトは「インライン style + CSS 変数」を正式採用しているため、

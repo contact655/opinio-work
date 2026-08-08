@@ -243,8 +243,13 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                         </span>
 
                         {/* Mission — truncated preview */}
-                        <span style={{
-                          flex: 1, fontSize: 12, color: "var(--ink-soft)",
+                        {/* ⚠️ `minWidth: 0` が要る（2026-08-08）。flex item の既定は
+                               `min-width: auto` で、`overflow: hidden` と
+                               `text-overflow: ellipsis` を書いても**縮まない**。
+                               このミッション文が min-content を押し上げ、
+                               375px でカードが 473px まで伸びていた。 */}
+                        <span title={team.mission ?? undefined} style={{
+                          flex: 1, minWidth: 0, fontSize: 12, color: "var(--ink-soft)",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                           display: isOpen ? "none" : "block",
                         }}>

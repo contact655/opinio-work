@@ -1185,35 +1185,40 @@ function EmployeeCard({
 
 // person-card-grid: 全人物カードセクション共通（面談OK/現役社員/OBOG）
 const EMPLOYEE_GRID_CSS = `
+  /* 人物カードのグリッドは 1fr ではなく minmax(0, 1fr) を使う（2026-08-08）。
+     grid item は既定が min-width: auto なので、1fr だと中身の min-content まで
+     トラックが膨らむ。375px で 285px の枠に 380px のカードが出ていた
+     （役職名「CTC / 金融営業本部 営業第1部 / 法人営業（アカウント営業）」が原因）。
+     ⚠️ ここはテンプレートリテラルの中。コメントにバッククォートを書かないこと。 */
   .person-card-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
   @media (max-width: 767px) {
-    .person-card-grid { grid-template-columns: 1fr; }
+    .person-card-grid { grid-template-columns: minmax(0, 1fr); }
   }
   .employee-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
   @media (max-width: 1023px) {
-    .employee-grid { grid-template-columns: repeat(2, 1fr); }
+    .employee-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 767px) {
-    .employee-grid { grid-template-columns: 1fr; }
+    .employee-grid { grid-template-columns: minmax(0, 1fr); }
   }
   .alumni-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
   @media (max-width: 1023px) {
-    .alumni-grid { grid-template-columns: repeat(2, 1fr); }
+    .alumni-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 767px) {
-    .alumni-grid { grid-template-columns: 1fr; }
+    .alumni-grid { grid-template-columns: minmax(0, 1fr); }
   }
 `;
 
@@ -3208,7 +3213,7 @@ export default async function CompanyDetailPage({
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-          className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:1fr] lg:[grid-template-columns:1fr_320px]"
+          className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]"
         >
           {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
           <main className="pb-36 md:pb-0">

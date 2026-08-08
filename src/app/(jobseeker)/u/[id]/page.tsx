@@ -617,7 +617,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
 
               {/* Main action CTA (right-side) */}
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", paddingTop: 4 }}>
+              {/* ⚠️ minWidth: 0 が要る（2026-08-08）。この行は親（flex row）の item で、
+                     既定の min-width: auto だと中身（社名入りの「〇〇 の企業ページ」）の
+                     min-content まで広がり、375px で親を 14px はみ出していた。 */}
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", paddingTop: 4, minWidth: 0 }}>
                 {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー かつ企業が判明） */}
                 {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
@@ -686,12 +689,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     padding: "9px 18px", borderRadius: 8,
                     border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
                     color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-                    flexShrink: 0,
+                    /* ⚠️ flexShrink: 0 を外した（2026-08-08）。社名が入る可変長ボタンで、
+                          375px で親（293px）を 307px ではみ出していた。
+                          社名側を minWidth: 0 で縮め、省略記号で収める。 */
+                    minWidth: 0, maxWidth: "100%",
                   }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                       <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
-                    {shortCompanyName(currentCareer!.company_name)} の企業ページ
+                    <span
+                      title={`${currentCareer!.company_name} の企業ページ`}
+                      style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
+                      {shortCompanyName(currentCareer!.company_name)} の企業ページ
+                    </span>
                   </Link>
                 ) : (
                   <Link href="/jobs" style={{

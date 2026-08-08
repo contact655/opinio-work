@@ -256,7 +256,15 @@ function JobListItem({
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (company.is_published) router.push(`/companies/${company.slug ?? company.id}`); }}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); if (company.is_published) router.push(`/companies/${company.slug ?? company.id}`); } }}
               className="company-name-link"
-              style={{ fontSize: 14, color: "var(--royal)", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+              /* ⚠️ flexShrink: 0 を外した（2026-08-08）。企業名は可変長で、
+                    「Notion Labs Japan合同会社」等が 375px で親（120px）を
+                    はみ出して切れていた。固定幅にしてよいのはアイコンやバッジだけ。
+                    ⚠️ ellipsis を効かせるには minWidth: 0 が要る（既定の auto では縮まない）。 */
+              title={(company as any).brand_name ?? company.name}
+              style={{
+                fontSize: 14, color: "var(--royal)", fontWeight: 700, cursor: "pointer",
+                minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}
             >
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(company as any).brand_name ?? company.name}
