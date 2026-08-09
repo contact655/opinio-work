@@ -1495,7 +1495,6 @@ function PostCard({
   myAvatarUrl,
   onDelete,
   onLikeToggle,
-  showDivider = false,
 }: {
   post: PostItem;
   myUserId: string | null;
@@ -1504,7 +1503,6 @@ function PostCard({
   myAvatarUrl: string | null;
   onDelete: (id: string) => void;
   onLikeToggle: (id: string, liked: boolean, delta: number) => void;
-  showDivider?: boolean;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
@@ -1567,8 +1565,10 @@ function PostCard({
     <div
       style={{
         padding: "18px 20px",
-        borderBottom: showDivider ? "1px solid var(--line-soft, #f1f5f9)" : "none",
         background: isSystemPost ? "#f7f9ff" : "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 12,
+        overflow: "hidden",
         transition: "background 0.12s",
         cursor: "default",
       }}
@@ -2449,16 +2449,15 @@ export default function FeedClient({
           )}
         </div>
       ) : (
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid var(--line)",
-            borderRadius: 12,
-            overflow: "hidden",
-            marginBottom: 8,
-          }}
-        >
-          {activePosts.map((post, index) => (
+        /* ⚠️ 投稿ごとに独立したカードにする（2026-08-08）。
+              以前は1枚の白いカードの中に区切り線で並べていたが、
+              システム投稿（企業の掲載通知）の背景 #f7f9ff と
+              区切り線 #f1f5f9 の差がほぼ無く、**投稿の切れ目が見えなかった**。
+              1件だけ見ると分かるが、同じ種類の投稿が続くと1つの塊に見える。
+           ⚠️ カードを分けるのはサイトの慣習に合わせたもの（/u/[id] の投稿一覧、
+              /people のユーザーカード、企業ページのツール等はすべて独立カード）。 */
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
+          {activePosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -2468,7 +2467,6 @@ export default function FeedClient({
               myAvatarUrl={myAvatarUrl}
               onDelete={handleDelete}
               onLikeToggle={handleLikeToggle}
-              showDivider={index < activePosts.length - 1}
             />
           ))}
         </div>
