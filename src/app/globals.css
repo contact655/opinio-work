@@ -9,6 +9,24 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
+  /* ═══ 和文の本文フォント（Webフォントを読まない）═══════════════════════════
+     2026-08-09 に Noto Sans JP の Webフォントをやめ、OS標準の和文ゴシックにした。
+     初回訪問で 34ファイル・635KB を落としていたのをゼロにするため（詳細は layout.tsx）。
+
+     ⚠️ `--font-noto` は次の2つの理由でこの名前のまま残している。
+        ① 100箇所が `var(--font-noto)` を参照しており、消すと全部書き換えになる
+        ② next/font が同名の変数を作らなくなっただけで、意味（本文の和文）は同じ
+
+     ⚠️ `--font-noto-sans` は **32箇所で使われているのに、どこにも定義が無かった**
+        （2026-08-09 発見）。未定義の var() は宣言ごと無効になるため、
+        それらの `font-family` は**何も効いておらず** body から継承していた。
+        実害は無かった（継承先が同じ和文フォントだったため）が、
+        意図を明示するためここで別名として定義しておく。
+        ⚠️ 新しく書くときは `--font-noto` を使うこと。 */
+  --font-noto: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+               "Yu Gothic", "YuGothic", "Meiryo", "Noto Sans JP", sans-serif;
+  --font-noto-sans: var(--font-noto);
+
   /* === Brand Colors === */
   --royal:      #002366;    /* メインカラー: ヘッダー・CTA・アクティブ */
   --royal-deep: #001A4D;    /* ホバー・ダークバリアント */
@@ -119,17 +137,17 @@ body {
   color: #0f172a;
   background: var(--background);
 
-  /* 欧文・数字は Inter、和文は Noto Sans JP。
+  /* 欧文・数字は Inter、和文は --font-noto（＝OS標準の和文ゴシック）。
      Inter に和文グリフが無いので、この順で書くと自動的に使い分けられる。
      ⚠️ next/font が生成する実際のファミリ名はビルドごとに変わる
-     （例: __Noto_Sans_JP_4f418b）ため、必ず CSS 変数で参照すること。
+     （例: __Noto_Serif_JP_4f418b）ため、必ず CSS 変数で参照すること。
      リテラル名で書いても next/font のフォントには当たらず、
      OS のフォールバックに落ちる。2026-08-03 まで全ページがその状態だった。 */
-  font-family: var(--font-inter), var(--font-noto), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-inter), var(--font-noto);
 
   /* 和文の既定を 500 にする。400 だと画数の多い漢字が細って見える。
-     Noto Sans JP は 400/500/600/700/800 を実ファイルで持っているので、
-     500 を指定しても合成にはならない。 */
+     ⚠️ システムフォントに切り替えた後もこの指定は残す。ヒラギノも游ゴシックも
+     複数ウェイトを持つため合成太字にはならない。 */
   font-weight: 500;
 
   /* 偽ボールド・偽イタリックを禁止する。

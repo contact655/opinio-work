@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import { Inter, Noto_Serif_JP } from "next/font/google";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
@@ -10,11 +10,24 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const notoSansJP = Noto_Sans_JP({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-noto",
-});
+/*
+ * ⚠️ 本文の和文（Noto Sans JP）は Webフォントを**やめた**（2026-08-09）。
+ *    `--font-noto` は globals.css の :root でシステムフォントとして定義している。
+ *
+ * ── なぜやめたか ─────────────────────────────────────────────────────────
+ * 初回訪問で **34ファイル・635KB** を落としていた。ページ全体のリクエスト58本の
+ * うち35本がフォントで、JS(308KB)の2倍という最大の項目だった。
+ *
+ * ⚠️ **ウェイトを減らしても1バイトも減らない。** 可変フォントなので、
+ *    400〜800 の5ウェイトは**同じ124ファイルを共有している**（実測）。
+ *    「5ウェイトも要らないから減らそう」は効果ゼロ。確かめ方は CLAUDE.md 参照。
+ *    重さの正体はウェイト数ではなく、和文が124個の unicode-range サブセットに
+ *    分かれていて、そのうち34個が必要になること。ここは制御できない。
+ *
+ * ⚠️ 見出しの Noto Serif JP は**残す**。見出しは使う文字数が少ないため
+ *    サブセット1個・33KB しか落ちず、ブランドの印象を担っている割に安い。
+ *    数字・欧文の Inter も同じ理由で残す（1ファイル・48KB）。
+ */
 
 const notoSerifJP = Noto_Serif_JP({
   subsets: ["latin"],
@@ -154,7 +167,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${notoSerifJP.variable}`}>
+    <html lang="ja" className={`${inter.variable} ${notoSerifJP.variable}`}>
       <head>
         {/* PWA */}
         <meta name="theme-color" content="var(--royal)" />

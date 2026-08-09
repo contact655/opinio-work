@@ -2545,6 +2545,79 @@ dev が消えた先を参照し続けて同じ症状が残る）。
 ESLint も `npx next lint --dir src` は `.next` を書き換えない。
 `npm run build` が要るのは本番ビルドの通過確認だけ。
 
+### ⚠️ フォントは「ウェイトを減らせば軽くなる」が成り立たない（2026-08-09 確立）
+
+**next/font の Google Fonts は可変フォント（variable font）で配信される。
+`weight: ["400","500","600","700","800"]` の5ウェイトは、
+すべて同じ実ファイルを共有している。ウェイトを削っても1バイトも減らない。**
+
+2026-08-09 に「和文5ウェイトは多すぎる。3つに減らせば250KB落ちる」と提案し、
+実装直前に測って**効果ゼロ**と判明した。
+
+実測（`.next/static/css` の `@font-face` を全部突き合わせた結果）:
+
+| ファミリ | @font-face 宣言 | ウェイト | **固有ファイル** |
+|---|---|---|---|
+| Noto Sans JP | 620件 | 5種 | **124個** |
+| Noto Serif JP | 496件 | 4種 | **124個** |
+| Inter | 35件 | 5種 | **7個** |
+
+**宣言数 ÷ ウェイト数 = 固有ファイル数**なら、全ウェイトが同じ実体を指している。
+
+#### 確かめ方
+
+```bash
+node -e '
+const fs=require("fs");
+let css="";for(const f of fs.readdirSync(".next/static/css")) if(f.endsWith(".css")) css+=fs.readFileSync(".next/static/css/"+f,"utf8");
+const faces=[...css.matchAll(/@font-face\s*{([^}]*)}/g)].map(m=>m[1]);
+const byFile={};
+for(const b of faces){
+ const w=(b.match(/font-weight:\s*(\d+)/)||[])[1];
+ const file=((b.match(/url\(([^)]+)\)/)||[])[1]||"").split("/").pop();
+ (byFile[file]=byFile[file]||new Set()).add(w);
+}
+const multi=Object.values(byFile).filter(s=>s.size>1).length;
+console.log(multi+" / "+Object.keys(byFile).length+" ファイルが複数ウェイトで共有されている");
+'
+```
+
+⚠️ **ビルド後（`.next` がある状態）でないと測れない。**
+
+#### 重さの正体はサブセット数
+
+和文は **124個の `unicode-range` サブセット**に分割される。
+ページ上の文字が属する範囲だけが落ちるため、**本文に使うと34個・635KB**、
+**見出しだけに使うと1個・33KB**になる。ここは制御できない。
+
+したがって和文Webフォントの選択肢は実質2つしかない。
+
+| | 効果 |
+|---|---|
+| 本文に使う | 635KB。**減らす手段は「使わない」以外に無い** |
+| 見出しだけに使う | 33KB。安いので残してよい |
+
+2026-08-09 に本文（Noto Sans JP）をやめ、OS標準の和文ゴシックにした。
+`/companies` のフォントは **35ファイル → 2ファイル**。
+見出しの Noto Serif JP と数字の Inter は残している。
+
+⚠️ **`--font-noto` という変数名は残してある。** 100箇所が参照しており、
+中身がシステムフォントに変わっただけで意味（本文の和文）は同じ。
+定義は `globals.css` の `:root`。
+
+⚠️ **macOS ではヒラギノ、Windows では游ゴシックになる。**
+macOS の見た目はほぼ変わらないことを実測で確認したが、
+**Windows は未確認**。和文の字面が変わる可能性がある。
+
+#### ついでに見つかったもの
+
+**`--font-noto-sans` が32箇所で使われているのに、どこにも定義が無かった。**
+未定義の `var()` は**宣言ごと無効**になるため、それらの `font-family` は
+何も効かず body から継承していた。実害は無かった（継承先が同じ和文フォントだった）が、
+**「指定したつもりで効いていない」形**なので `globals.css` で別名として定義した。
+
+⚠️ 新しく書くときは `--font-noto` を使うこと。
+
 ### ⚠️ 横はみ出しは「ページのスクロール幅」で測らない（2026-08-08 確立）
 
 **`document.documentElement.scrollWidth > innerWidth` で測ると見逃す。**
