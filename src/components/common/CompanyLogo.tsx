@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getLogoLetter, usableLogoUrl } from "@/lib/utils/companyLogo";
 
 // ─── Size tokens ──────────────────────────────────────────────────────────────
@@ -76,9 +76,32 @@ export interface CompanyLogoProps {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-// SSR-safe パターン: 初期レンダリングは常にグラデーション。
-// useEffect でロゴ URL の読み込みを試み、成功したときだけ画像を表示。
-// これにより broken image アイコンが絶対に表示されない。
+/*
+ * 表示するURLは**描画時に確定する**。読み込めるかを事前に試さない。
+ *
+ * ── なぜ事前に試さないか（2026-08-09）──────────────────────────────────────
+ * 以前は useEffect の中で `new Image()` を作って読み込みを試し、成功した URL だけを
+ * `<img>` に渡していた（broken image アイコンを絶対に出さないため）。
+ * これには画面に見えないコストがあった。
+ *
+ *   ⚠️ `new Image()` は **`loading="lazy"` が効かない。**
+ *      画面外のロゴも含めて、hydration 直後に**全件が一斉に取得を始める**。
+ *      `/companies` の実測で www.google.com へ **40〜65本**が同時に飛び、
+ *      1本あたり最大 804ms（初回・キャッシュ無し）かかっていた。
+ *   ⚠️ 取得は結局2回ぶん走る。試行の `new Image()` と、その後の `<img>`
+ *      （2回目はキャッシュに当たるが、リクエスト数の見え方は変わらない）。
+ *
+ * 事前試行をやめ、`<img loading="lazy">` を直接描くと、
+ * **画面外のロゴはスクロールされるまで取得されない。**
+ * 失敗したときは onError でグラデーションに落とすので、
+ * broken image が出ないという元の性質は保たれる。
+ *
+ * ⚠️ `logo_url` は 85社すべてが「NULL(9) か死んだ logo.clearbit.com(76)」で、
+ *    **使える値が1件も無い**（2026-08-09 実測）。実際に表示されているのは
+ *    どの企業も Google favicon。だから事前試行は判定として機能しておらず、
+ *    「必ず2番目に落ちる」ことを確かめるためだけに往復を1本使っていた。
+ *    ⚠️ ここは `logo_url` に本物が入れば自動的にそちらが優先される形のままにしてある。
+ */
 export function CompanyLogo({
   name,
   logoUrl,
@@ -90,51 +113,19 @@ export function CompanyLogo({
   style,
   className,
 }: CompanyLogoProps) {
-  // null = まだ試行中 or 失敗, string = 読み込み成功した URL
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    function tryLoad(src: string): Promise<boolean> {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        // 5秒でタイムアウト（Clearbit の長いタイムアウトを防ぐ）
-        const timer = setTimeout(() => resolve(false), 5000);
-        img.onload = () => { clearTimeout(timer); resolve(true); };
-        img.onerror = () => { clearTimeout(timer); resolve(false); };
-        img.src = src;
-      });
-    }
-
-    async function resolve() {
-      // 1. logo_url を試す（死んでいると分かっている配信元は null に潰れる。
-      //    判定は lib/utils/companyLogo の usableLogoUrl 1箇所に集約している）
-      const direct = usableLogoUrl(logoUrl);
-      if (direct) {
-        const ok = await tryLoad(direct);
-        if (cancelled) return;
-        if (ok) { setResolvedSrc(direct); return; }
-      }
-
-      // 2. companyUrl または logoUrl (Clearbit) からドメインを取得して Google favicon
+  /* 1. 生きている logo_url があればそれ。死んだ配信元は usableLogoUrl が null に潰す
+     2. 無ければ companyUrl / logoUrl からドメインを取り出して Google favicon
+     3. どちらも取れなければ null → グラデーション + 頭文字 */
+  const src =
+    usableLogoUrl(logoUrl) ??
+    (() => {
       const domain = extractDomain(companyUrl) ?? extractDomain(logoUrl);
-      if (domain) {
-        const favUrl = googleFaviconUrl(domain);
-        const ok = await tryLoad(favUrl);
-        if (cancelled) return;
-        if (ok) { setResolvedSrc(favUrl); return; }
-      }
+      return domain ? googleFaviconUrl(domain) : null;
+    })();
 
-      // 3. すべて失敗 → グラデーション（resolvedSrc = null のまま）
-    }
-
-    setResolvedSrc(null);
-    resolve();
-    return () => { cancelled = true; };
-  }, [logoUrl, companyUrl]);
+  // 読み込みに失敗した URL。onError で入れて、グラデーションに落とす
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const resolvedSrc = src && src !== failedSrc ? src : null;
 
   // サイズ解決
   let px: number;
@@ -176,6 +167,11 @@ export function CompanyLogo({
         <img
           src={resolvedSrc}
           alt=""
+          /* ⚠️ lazy が効くのは `<img>` に直接書いたときだけ。
+                `new Image()` で先に試すと画面外でも即座に取得が始まる */
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailedSrc(resolvedSrc)}
           style={{
             width: "100%",
             height: "100%",

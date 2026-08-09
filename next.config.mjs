@@ -28,7 +28,16 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://o4505551827705856.ingest.sentry.io",
+      /* ⚠️ Sentry の送信先はプロジェクト固有のホスト。**ここを固定値で書かないこと。**
+            2026-08-09 まで別プロジェクトの `o4505551827705856.ingest.sentry.io` が
+            書かれており、実際の DSN（`o…4511592536276992.ingest.us.sentry.io`）と
+            一致しないため、**本番のクライアントエラーが1件も届いていなかった**。
+            JS は配信・実行されるので、画面もビルドも正常に見える。
+            US / EU など地域サフィックスも変わるのでワイルドカードで受ける。 */
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+      /* Sentry の Session Replay が blob: の Worker を作る。
+         これが無いと script-src にフォールバックして弾かれる */
+      "worker-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
