@@ -153,35 +153,47 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const coverColor = owUser.cover_color ?? owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
-  // 投稿できる人か。オーナー本人のときだけ問い合わせる（他人には出さないので不要）
-  const viewerCanPost = viewerIsOwner ? await canUserPost(adminSupabase, owUser.id) : false;
+  /* ⚠️ ここは互いに依存しないので**1往復にまとめる**（2026-08-09）。
+        以前は4本を順番に await していて、そのぶん TTFB が伸びていた。
+        ぶら下がるのは「フォロー状態」だけで、これは閲覧者の ow_users.id が
+        決まらないと引けないため下に残す。
 
-  // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
-  const followCounts = await getFollowCounts(owUser.id);
+     ⚠️ 閲覧者の ow_users.id はこの1回だけ引く。以前は :167 と :287 の
+        **2箇所で同じ行を別々に引いていた**（admin と session でクライアントが
+        違うだけで、取っている行は同一）。 */
+  const [viewerCanPost, followCounts, viewerRowRes, birthRes] = await Promise.all([
+    // 投稿できる人か。オーナー本人のときだけ問い合わせる（他人には出さないので不要）
+    viewerIsOwner ? canUserPost(adminSupabase, owUser.id) : Promise.resolve(false),
+    // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
+    getFollowCounts(owUser.id),
+    // 閲覧者自身の ow_users.id（本人の行なので admin で引いても見える範囲は広がらない）
+    authUser
+      ? adminSupabase.from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle()
+      : Promise.resolve({ data: null as { id: string } | null }),
+    /* 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
+       ⚠️ birth_date は admin で取り直す。authenticated から SELECT 権限を剥がしたため。
+          上の RLS 判定（404 になるかどうか）は既に通過しているので、
+          ここで admin を使っても見せる範囲は広がらない。 */
+    adminSupabase.from("ow_users").select("birth_date").eq("id", resolvedId).maybeSingle(),
+  ]);
+
+  /** 閲覧者自身の ow_users.id。未ログインなら null。以降で使い回す */
+  const viewerOwUserId = (viewerRowRes.data?.id as string | undefined) ?? null;
 
   // フォロー状態。本人・未ログインには問い合わせない（どちらもボタンを出さないか、
   // 出しても押した時点で /auth に飛ばすため）。
   let isFollowingUser = false;
-  if (authUser && !viewerIsOwner) {
-    const { data: me } = await adminSupabase
-      .from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle();
-    if (me?.id) {
-      const { data: fol } = await adminSupabase
-        .from("ow_user_follows")
-        .select("id")
-        .eq("follower_user_id", me.id)
-        .eq("target_user_id", owUser.id)
-        .maybeSingle();
-      isFollowingUser = !!fol;
-    }
+  if (viewerOwUserId && !viewerIsOwner) {
+    const { data: fol } = await adminSupabase
+      .from("ow_user_follows")
+      .select("id")
+      .eq("follower_user_id", viewerOwUserId)
+      .eq("target_user_id", owUser.id)
+      .maybeSingle();
+    isFollowingUser = !!fol;
   }
 
-  /* 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
-     ⚠️ birth_date は admin で取り直す。authenticated から SELECT 権限を剥がしたため。
-        上の RLS 判定（404 になるかどうか）は既に通過しているので、
-        ここで admin を使っても見せる範囲は広がらない。 */
-  const { data: birthRow, error: birthErr } = await adminSupabase
-    .from("ow_users").select("birth_date").eq("id", resolvedId).maybeSingle();
+  const { data: birthRow, error: birthErr } = birthRes;
   if (birthErr) console.error("[u/[id]] birth_date", birthErr.message);
   const birthDate = (birthRow?.birth_date as string | null) ?? null;
   const age = getUserAge(birthDate);
@@ -280,19 +292,17 @@ export default async function UserProfilePage({ params }: { params: { id: string
     id: string; content: string; image_url: string | null; created_at: string;
     likes: Array<{ count: number }>;
   }>;
-  // ログインユーザーがいいねしている投稿ID一覧
+  /* ログインユーザーがいいねしている投稿ID一覧。
+     ⚠️ 閲覧者の ow_users.id は上で1回引いたものを使い回す。
+        ここで auth_id から引き直さないこと（2026-08-09 まで同じ行を2回引いていた）。 */
   const likedPostIds = new Set<string>();
-  if (authUser && recentPostsTyped.length > 0) {
-    const { data: owViewer } = await supabase
-      .from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle();
-    if (owViewer) {
-      const { data: likedRows } = await supabase
-        .from("ow_post_likes")
-        .select("post_id")
-        .eq("user_id", owViewer.id)
-        .in("post_id", recentPostsTyped.map((p) => p.id));
-      for (const r of likedRows ?? []) likedPostIds.add(r.post_id as string);
-    }
+  if (viewerOwUserId && recentPostsTyped.length > 0) {
+    const { data: likedRows } = await supabase
+      .from("ow_post_likes")
+      .select("post_id")
+      .eq("user_id", viewerOwUserId)
+      .in("post_id", recentPostsTyped.map((p) => p.id));
+    for (const r of likedRows ?? []) likedPostIds.add(r.post_id as string);
   }
 
   // ロール情報 Map（職種名 + 親カテゴリ名）
@@ -358,26 +368,30 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // → company_id が非 null = 企業ページへのリンクが有効
   const isCurrentCompanyKnown = !!currentCareer?.company_id;
 
-  // 在籍企業の募集中求人（サイドバー表示用）
-  let currentCompanyJobs: Array<{ id: string; title: string }> = [];
-  if (currentCareer?.company_id) {
-    const { data: jobsData } = await supabase
-      .from("ow_jobs")
-      .select("id, title")
-      .eq("company_id", currentCareer.company_id)
-      .in("status", ["published", "active"])
-      .limit(3);
-    currentCompanyJobs = (jobsData ?? []) as Array<{ id: string; title: string }>;
-  }
+  /* ⚠️ この2本も互いに独立なので並列にする（2026-08-09）。
+        求人は在籍企業に、記事は本人にぶら下がっており、参照し合わない。 */
+  const [jobsRes, articlesRes] = await Promise.all([
+    // 在籍企業の募集中求人（サイドバー表示用）
+    currentCareer?.company_id
+      ? supabase
+          .from("ow_jobs")
+          .select("id, title")
+          .eq("company_id", currentCareer.company_id)
+          .in("status", ["published", "active"])
+          .limit(3)
+      : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null }),
+    // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）
+    supabase
+      .from("ow_articles")
+      .select("id, slug, title, subtitle, type, eyecatch_gradient, read_min, published_at")
+      .eq("user_id", owUser.id)
+      .eq("is_published", true)
+      .order("published_at", { ascending: false })
+      .limit(6),
+  ]);
 
-  // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）
-  const { data: featuredArticlesRaw } = await supabase
-    .from("ow_articles")
-    .select("id, slug, title, subtitle, type, eyecatch_gradient, read_min, published_at")
-    .eq("user_id", owUser.id)
-    .eq("is_published", true)
-    .order("published_at", { ascending: false })
-    .limit(6);
+  const currentCompanyJobs = (jobsRes.data ?? []) as Array<{ id: string; title: string }>;
+  const featuredArticlesRaw = articlesRes.data;
   const featuredArticles = (featuredArticlesRaw ?? []) as Array<{
     id: string; slug: string; title: string; subtitle: string | null;
     type: string; eyecatch_gradient: string | null; read_min: number | null;
