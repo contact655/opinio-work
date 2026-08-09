@@ -982,7 +982,7 @@ export default function MergedTimeline({
   return (
     <>
       {/* Scoped responsive styles */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .merged-timeline {
           position: relative;
           padding: 0;
@@ -1068,7 +1068,7 @@ export default function MergedTimeline({
           background: linear-gradient(90deg, rgba(5,150,105,0.06) 0%, transparent 60%);
           border-radius: 8px;
         }
-      `}</style>
+      ` }} />
 
       <div className="merged-timeline">
         {enrichedEntries.map((entry, _idx) => {

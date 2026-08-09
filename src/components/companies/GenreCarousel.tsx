@@ -58,7 +58,7 @@ export function GenreCarousel({ companies }: Props) {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* ── カルーセル本体 ─────────────────────────────────────── */
         .genre-carousel {
           display: grid;
@@ -142,7 +142,7 @@ export function GenreCarousel({ companies }: Props) {
         @media (max-width: 640px) {
           .carousel-arrow { display: none; }
         }
-      `}</style>
+      ` }} />
 
       {/* カルーセルラッパー（矢印の基準となる position:relative） */}
       <div style={{ position: 'relative' }}>

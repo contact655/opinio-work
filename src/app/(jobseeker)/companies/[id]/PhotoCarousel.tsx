@@ -292,7 +292,7 @@ function PhotoStrip({
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* カード幅: コンテナの 1/3 → デフォルトで3枚表示 */
         .ps-card {
           width: calc((100% - ${GAP * 2}px) / 3);
@@ -314,7 +314,7 @@ function PhotoStrip({
           z-index: 2;
         }
         .ps-outer.scrolled-end::after { opacity: 0; }
-      `}</style>
+      ` }} />
 
       {/* 外側ラッパー：右フェードのための position:relative + overflow:hidden */}
       <div

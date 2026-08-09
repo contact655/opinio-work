@@ -385,7 +385,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
 
   return (
     <>
-      <style suppressHydrationWarning>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .csb-bar {
           display: flex;
           align-items: center;
@@ -607,7 +607,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
             display: flex;
           }
         }
-      `}</style>
+      ` }} />
 
       <div ref={wrapRef} style={{ marginBottom: 4 }}>
         <div className="csb-bar">

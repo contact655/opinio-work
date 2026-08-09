@@ -74,7 +74,7 @@ export function GridSortBar({ totalCount }: Props) {
 
   return (
     <>
-      <style suppressHydrationWarning>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .sort-btn {
           padding: 6px 14px;
           border-radius: 100px;
@@ -145,7 +145,7 @@ export function GridSortBar({ totalCount }: Props) {
           border: none;
         }
         .view-btn:hover { opacity: 0.85; }
-      `}</style>
+      ` }} />
 
       <div className="sort-bar-row" style={{
         display: "flex",

@@ -1991,13 +1991,13 @@ function JobsSection({
 
   return (
     <>
-    <style suppressHydrationWarning>{`
+    <style dangerouslySetInnerHTML={{ __html: `
       .job-embed-card:hover > div {
         border-color: var(--royal) !important;
         box-shadow: 0 4px 14px rgba(0,35,102,0.10) !important;
         transform: translateY(-1px);
       }
-    `}</style>
+    ` }} />
     <section
       id="jobs"
       style={{
@@ -3454,7 +3454,7 @@ export default async function CompanyDetailPage({
       {/* γ-7: モバイル固定底部バー (< 768px) */}
       <MobileBottomCTA company={company} />
 
-      <style suppressHydrationWarning>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* ── Section entrance animation ── */
         @keyframes section-enter {
           from { opacity: 0; transform: translateY(16px); }
@@ -3518,7 +3518,7 @@ export default async function CompanyDetailPage({
 
         /* ── Nav no-scrollbar ── */
         nav::-webkit-scrollbar { display: none; }
-      `}</style>
+      ` }} />
     </>
   );
 }

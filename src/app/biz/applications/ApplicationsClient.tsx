@@ -214,11 +214,11 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0, height: "100%" }}>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .app-row:hover { background: var(--bg-tint) !important; outline-color: var(--royal-100) !important; }
         .app-tab-pill:hover { background: var(--line-soft) !important; }
         .app-tab-pill[aria-selected="true"]:hover { background: var(--royal) !important; }
-      `}</style>
+      ` }} />
 
       {/* Status tabs — pill style */}
       <div
