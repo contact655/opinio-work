@@ -54,17 +54,6 @@ export function JobAccordionItem({ job, catName, catId, companyId, defaultWorkLo
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .job-accordion-btn { background: none; border: none; cursor: pointer; width: 100%; text-align: left; font-family: inherit; padding: 0; }
-        .job-accordion-btn:hover .jab-title { color: var(--royal); }
-        .jab-chevron { transition: transform 0.2s; }
-        .jab-chevron.open { transform: rotate(180deg); }
-        .jab-expand { animation: jabSlideDown 0.2s ease; }
-        @keyframes jabSlideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .jab-step { display: flex; align-items: center; gap: 6px; }
-        .jab-step::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-        .jab-step:last-child::after { display: none; }
-      ` }} />
       <div
         style={{
           border: "1px solid var(--line)",

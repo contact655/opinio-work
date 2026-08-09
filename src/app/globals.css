@@ -998,3 +998,599 @@ body {
   .pp-wide { display: block; }
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   コンポーネント固有のスタイル（2026-08-09 に JSX のインライン <style> から移設）
+
+   ⚠️ **必ずこのファイルの末尾に置くこと。**
+      元は各コンポーネントの <style> として body 内に出力されており、
+      globals.css より後に評価されていた。上に移すと同じ詳細度のときに
+      勝ち負けが逆転する。追記位置がそのまま優先順位になる。
+      実際 .genre-card / .article-card / .company-name-link は
+      このファイルの上部にも定義があり、後勝ちである必要がある。
+
+   ⚠️ JSX の <style> に戻さないこと。サーバー側だけが " と > をエスケープし、
+      ハイドレーション不一致と不正なセレクタを生む（詳細は CLAUDE.md）。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── app/(jobseeker)/companies/[id]/JobAccordionItem.tsx ─────────────────────────── */
+        .job-accordion-btn { background: none; border: none; cursor: pointer; width: 100%; text-align: left; font-family: inherit; padding: 0; }
+        .job-accordion-btn:hover .jab-title { color: var(--royal); }
+        .jab-chevron { transition: transform 0.2s; }
+        .jab-chevron.open { transform: rotate(180deg); }
+        .jab-expand { animation: jabSlideDown 0.2s ease; }
+        @keyframes jabSlideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .jab-step { display: flex; align-items: center; gap: 6px; }
+        .jab-step::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+        .jab-step:last-child::after { display: none; }
+
+/* ── app/(jobseeker)/companies/[id]/PhotoCarousel.tsx ─────────────────────────── */
+        /* カード幅: コンテナの 1/3 → デフォルトで3枚表示 */
+        .ps-card {
+          /* ⚠️ 間隔の実体は PhotoCarousel.tsx の GAP 定数。
+                二重管理を避けるため、コンポーネント側が --ps-gap2 (= GAP*2 px) を
+                インラインで渡す。ここで数値を直書きしないこと。 */
+          width: calc((100% - var(--ps-gap2, 24px)) / 3);
+          min-width: 160px; /* モバイル最小幅 */
+          flex-shrink: 0;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .ps-card:hover { transform: scale(1.025); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+        .ps-strip::-webkit-scrollbar { display: none; }
+        /* 右端フェード — スクロール可能を示すヒント */
+        .ps-outer::after {
+          content: "";
+          position: absolute;
+          top: 0; right: 0; bottom: 0;
+          width: 80px;
+          background: linear-gradient(to left, rgba(255,255,255,0.95) 0%, transparent 100%);
+          pointer-events: none;
+          transition: opacity 0.2s;
+          z-index: 2;
+        }
+        .ps-outer.scrolled-end::after { opacity: 0; }
+
+/* ── app/(jobseeker)/companies/[id]/page.tsx ─────────────────────────── */
+      .job-embed-card:hover > div {
+        border-color: var(--royal) !important;
+        box-shadow: 0 4px 14px rgba(0,35,102,0.10) !important;
+        transform: translateY(-1px);
+      }
+
+/* ── app/(jobseeker)/companies/[id]/page.tsx ─────────────────────────── */
+        /* ── Section entrance animation ── */
+        @keyframes section-enter {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        main > section, main > div[id], main > div:not([class]) {
+          animation: section-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        main > *:nth-child(1)  { animation-delay: 0.05s; }
+        main > *:nth-child(2)  { animation-delay: 0.1s;  }
+        main > *:nth-child(3)  { animation-delay: 0.15s; }
+        main > *:nth-child(4)  { animation-delay: 0.2s;  }
+        main > *:nth-child(5)  { animation-delay: 0.22s; }
+        main > *:nth-child(n+6){ animation-delay: 0.25s; }
+
+        /* ── Job cards ── */
+        .job-item-link {
+          transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+        }
+        .job-item-link:hover {
+          border-color: var(--royal) !important;
+          box-shadow: 0 6px 20px rgba(0,35,102,0.1) !important;
+          transform: translateY(-2px);
+        }
+
+        /* ── Employee cards ── */
+        .employee-card-link {
+          transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        }
+        .employee-card-link:hover {
+          border-color: var(--royal-100) !important;
+          background: #fff !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
+        }
+
+        /* ── Voice cards ── */
+        .voice-card:hover {
+          border-color: var(--purple,#7C3AED) !important;
+          box-shadow: 0 4px 16px rgba(124,58,237,0.08) !important;
+        }
+
+        /* ── Post / article cards ── */
+        .post-card-link:hover { border-color: var(--royal) !important; }
+        .company-posts-more-link:hover { background: var(--royal-50) !important; }
+        .article-card:hover {
+          border-color: var(--royal-100) !important;
+          box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
+        }
+        .article-side-cta:hover {
+          border-color: var(--royal-100) !important;
+          background: var(--royal-50) !important;
+        }
+
+        /* ── Pulse for CTA dot ── */
+        @keyframes cta-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.7); }
+        }
+
+
+        /* ── Nav no-scrollbar ── */
+        nav::-webkit-scrollbar { display: none; }
+
+/* ── app/biz/applications/ApplicationsClient.tsx ─────────────────────────── */
+        .app-row:hover { background: var(--bg-tint) !important; outline-color: var(--royal-100) !important; }
+        .app-tab-pill:hover { background: var(--line-soft) !important; }
+        .app-tab-pill[aria-selected="true"]:hover { background: var(--royal) !important; }
+
+/* ── components/companies/CompanySearchBar.tsx ─────────────────────────── */
+        .csb-bar {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 0 14px;
+          flex-wrap: wrap;
+        }
+        .csb-search-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #fff;
+          border: 1.5px solid #e6e9ef;
+          border-radius: 999px;
+          padding: 0 14px;
+          transition: border-color 0.15s, box-shadow 0.15s;
+          flex: 1 1 220px;
+          min-width: 0;
+        }
+        .csb-search-wrap:focus-within {
+          border-color: var(--royal);
+          box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+        }
+        .csb-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 13.5px;
+          color: var(--ink);
+          background: transparent;
+          padding: 9px 0;
+          min-width: 0;
+        }
+        .csb-input::placeholder { color: #6b7280; }
+        .csb-hiring {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          color: var(--ink);
+          cursor: pointer;
+          white-space: nowrap;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 7px 14px;
+          transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+          user-select: none;
+          font-family: inherit;
+          background: #fff;
+          flex-shrink: 0;
+          font-weight: 500;
+        }
+        .csb-hiring:hover {
+          border-color: #fdba74;
+          background: #fff7ed;
+        }
+        .csb-hiring.active {
+          border-color: #ea580c;
+          background: linear-gradient(135deg, #f97316, #ea580c);
+          color: #fff;
+          font-weight: 700;
+          box-shadow: 0 2px 10px rgba(234,88,12,0.30);
+        }
+        .csb-hiring input[type="checkbox"] { display: none; }
+        @keyframes pulseHiring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+        .csb-filter-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12.5px;
+          color: var(--ink-soft);
+          cursor: pointer;
+          white-space: nowrap;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 6px 12px;
+          background: #fff;
+          font-family: inherit;
+          font-weight: 500;
+          transition: border-color 0.15s, background 0.15s, color 0.15s;
+          user-select: none;
+          flex-shrink: 0;
+        }
+        .csb-filter-pill:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+        .csb-filter-pill.active {
+          border-color: var(--royal); background: var(--royal); color: #fff; font-weight: 700;
+          box-shadow: 0 2px 8px rgba(0,35,102,0.25);
+        }
+        .csb-filter-pill-menu {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          background: #fff;
+          border: 1.5px solid var(--line);
+          border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+          overflow: hidden;
+          z-index: 100;
+          min-width: 160px;
+        }
+        .csb-filter-pill-item {
+          display: block; width: 100%; text-align: left;
+          padding: 9px 14px; font-size: 13px; color: var(--ink);
+          background: none; border: none; cursor: pointer;
+          font-family: inherit; transition: background 0.1s;
+        }
+        .csb-filter-pill-item:hover { background: var(--royal-50); color: var(--royal); }
+        .csb-filter-pill-item.selected { background: var(--royal-50); color: var(--royal); font-weight: 700; }
+        .csb-foreign {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          color: var(--ink);
+          cursor: pointer;
+          white-space: nowrap;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 7px 14px;
+          transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+          user-select: none;
+          font-family: inherit;
+          background: #fff;
+          flex-shrink: 0;
+          font-weight: 500;
+        }
+        .csb-foreign:hover {
+          border-color: #a5b4fc;
+          background: #eef2ff;
+        }
+        .csb-foreign.active {
+          border-color: #0c4a6e;
+          background: linear-gradient(135deg, #0369a1, #0c4a6e);
+          color: #fff;
+          font-weight: 700;
+          box-shadow: 0 2px 10px rgba(12,74,110,0.30);
+        }
+        .csb-clear {
+          font-size: 12.5px;
+          color: var(--ink-mute);
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 5px 4px;
+          white-space: nowrap;
+          transition: color 0.15s;
+          font-family: inherit;
+          flex-shrink: 0;
+        }
+        .csb-clear:hover { color: var(--ink); }
+        .csb-suggestions {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0; right: 0;
+          background: #fff;
+          border: 1.5px solid var(--royal);
+          border-radius: 10px;
+          box-shadow: 0 8px 28px rgba(0,35,102,0.12);
+          overflow: hidden;
+          z-index: 100;
+        }
+        .csb-suggestion-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 16px;
+          font-size: 14px;
+          color: var(--ink);
+          cursor: pointer;
+          transition: background 0.1s;
+          border: none;
+          background: none;
+          width: 100%;
+          text-align: left;
+          font-family: inherit;
+        }
+        .csb-suggestion-item:hover { background: var(--royal-50); }
+        @media (max-width: 640px) {
+          .csb-bar { gap: 6px; }
+        }
+        .csb-filter-toggle {
+          display: none;
+        }
+        .csb-filter-chips {
+          display: contents;
+        }
+        @media (max-width: 767px) {
+          .csb-filter-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12.5px;
+            color: var(--ink-soft);
+            cursor: pointer;
+            white-space: nowrap;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: #fff;
+            font-family: inherit;
+            font-weight: 500;
+            transition: border-color 0.15s, background 0.15s;
+            flex-shrink: 0;
+          }
+          .csb-filter-toggle.active {
+            border-color: var(--royal);
+            background: var(--royal-50);
+            color: var(--royal);
+            font-weight: 700;
+          }
+          .csb-filter-chips {
+            display: none;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 4px 0;
+          }
+          .csb-filter-chips.expanded {
+            display: flex;
+          }
+        }
+
+/* ── components/companies/GenreCarousel.tsx ─────────────────────────── */
+        /* ── カルーセル本体 ─────────────────────────────────────── */
+        .genre-carousel {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: calc((100% - 14px * 3) / 4);
+          gap: 14px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          padding-bottom: 8px;
+          scrollbar-width: thin;
+          scrollbar-color: #e6e9ef transparent;
+        }
+        .genre-carousel::-webkit-scrollbar { height: 6px; }
+        .genre-carousel::-webkit-scrollbar-thumb {
+          background: #e6e9ef;
+          border-radius: 3px;
+        }
+        .genre-carousel > * { scroll-snap-align: start; }
+
+        @media (max-width: 640px) {
+          /* モバイル: 1.2列 + 右peek でスワイプ感を出す */
+          .genre-carousel {
+            grid-auto-columns: calc((100% - 14px) / 1.2);
+            padding-right: 24px;
+          }
+        }
+        @media (min-width: 641px) and (max-width: 1024px) {
+          .genre-carousel { grid-auto-columns: calc((100% - 14px) / 2); }
+        }
+        @media (min-width: 1025px) and (max-width: 1280px) {
+          .genre-carousel { grid-auto-columns: calc((100% - 14px * 2) / 3); }
+        }
+        @media (min-width: 1281px) and (max-width: 1499px) {
+          .genre-carousel { grid-auto-columns: calc((100% - 14px * 3) / 4); }
+        }
+        @media (min-width: 1500px) {
+          .genre-carousel { grid-auto-columns: calc((100% - 14px * 4) / 5); }
+        }
+
+        /* ── カードスタイル — globals.css の .genre-card を継承 ── */
+
+        /* ── 矢印ボタン ─────────────────────────────────────────── */
+        .carousel-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(calc(-50% - 4px)); /* スクロールバー分だけ上に補正 */
+          z-index: 10;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.96);
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #1a1d24;
+          font-size: 18px;
+          line-height: 1;
+          padding: 0;
+          transition: opacity 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+          pointer-events: auto;
+          user-select: none;
+        }
+        .carousel-arrow:hover {
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
+          border-color: #cbd5e1;
+        }
+        .carousel-arrow:active {
+          box-shadow: 0 1px 4px rgba(15, 23, 42, 0.10);
+          transform: translateY(calc(-50% - 4px)) scale(0.94);
+        }
+        .carousel-arrow-left  { left: 8px; }
+        .carousel-arrow-right { right: 8px; }
+        .carousel-arrow-hidden {
+          opacity: 0;
+          pointer-events: none;
+        }
+        /* モバイルでは矢印を非表示（スワイプで代替） */
+        @media (max-width: 640px) {
+          .carousel-arrow { display: none; }
+        }
+
+/* ── components/companies/GridSortBar.tsx ─────────────────────────── */
+        .sort-btn {
+          padding: 6px 14px;
+          border-radius: 100px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          border: 1.5px solid var(--line);
+          background: #fff;
+          color: var(--ink-soft);
+          transition: all 0.15s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          white-space: nowrap;
+          font-family: var(--font-noto), "Noto Sans JP", sans-serif;
+        }
+        .sort-btn:hover {
+          border-color: var(--royal-100);
+          background: var(--royal-50);
+          color: var(--royal);
+        }
+        .sort-btn.active {
+          background: var(--royal);
+          border-color: var(--royal);
+          color: #fff;
+          font-weight: 700;
+          box-shadow: 0 3px 12px rgba(0,35,102,0.35);
+          transform: scale(1.03);
+        }
+        .sort-scroll {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          overflow-x: auto;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          /* 横スクロール前提の行だが、flex の中では中身に押されて幅が潰れる。
+             2026-08-04 に文字を 11.5px → 12px にしたところ兄弟（表示切替・件数）が広がり、
+             このスクロール領域が 36px まで縮んで実質操作できなくなった。
+             flex-basis: 0 + flex-grow で「余りを取るが、中身では膨らまない」形にする。 */
+          flex: 1 1 0;
+          min-width: 0;
+        }
+        .sort-bar-label { display: flex; }
+        .sort-bar-left { display: flex; flex: 1 1 0; }
+        @media (max-width: 560px) {
+          /* 375px では「並び替え」ラベル + ソート + 表示切替 + 件数 が一行に収まらない。
+             左右を明示的に2段に分ける（左だけ 100% 幅にして折り返しを起こす）。
+             縮めて収める形にすると、ソートpillと表示切替が重なる。
+             ラベルは省いてスクロール領域に幅を回す。 */
+          .sort-bar-row { flex-wrap: wrap; row-gap: 10px; }
+          .sort-bar-left { flex: 1 1 100%; }
+          .sort-bar-label { display: none; }
+        }
+        .sort-scroll::-webkit-scrollbar { display: none; }
+        .view-btn {
+          padding: 5px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12px;
+          font-weight: 600;
+          transition: all 0.15s;
+          font-family: var(--font-noto), "Noto Sans JP", sans-serif;
+          white-space: nowrap;
+          border: none;
+        }
+        .view-btn:hover { opacity: 0.85; }
+
+/* ── components/profile/MergedTimeline.tsx ─────────────────────────── */
+        .merged-timeline {
+          position: relative;
+          padding: 0;
+        }
+
+        /* Vertical connecting line */
+        .merged-timeline::before {
+          content: "";
+          position: absolute;
+          top: 40px;
+          bottom: 40px;
+          left: 40px; /* center of 80px icon column */
+          width: 2px;
+          background: #CBD5E1;
+          z-index: 0;
+        }
+
+        .tl-row {
+          display: grid;
+          grid-template-columns: 80px 1fr;
+          align-items: start;
+          min-height: 60px;
+        }
+
+        /* エントリ間セパレーター */
+        .tl-row + .tl-row {
+          border-top: 1px solid var(--line-soft);
+          padding-top: 8px;
+          margin-top: 4px;
+        }
+
+        /* d-2: 並行勤務グループ — 横並びカード */
+        .d2-parallel-inner {
+          display: flex;
+          flex-direction: row;
+          background: var(--bg-tint);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        /* 2枚目以降のカードに縦区切り線 */
+        .d2-parallel-card + .d2-parallel-card {
+          border-left: 2px solid var(--line);
+        }
+
+        @media (max-width: 639px) {
+          /* モバイル: カードを縦積みに切り替え */
+          .d2-parallel-inner {
+            flex-direction: column;
+          }
+
+          /* 縦積み時は横線に切り替え */
+          .d2-parallel-card + .d2-parallel-card {
+            border-left: none;
+            border-top: 2px solid var(--line);
+          }
+        }
+
+        /* Company name hover link */
+        .company-name-link {
+          transition: color 0.15s, text-decoration 0.15s;
+        }
+        .company-name-link:hover {
+          color: var(--royal) !important;
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+
+        /* 在籍中バッジのパルスドット */
+        .tl-pulse-dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--success);
+          animation: pulseDot 1.5s ease-in-out infinite;
+          flex-shrink: 0;
+        }
+
+        /* ② 現職エントリー背景: 緑のグラデーションティント */
+        .tl-row-current {
+          background: linear-gradient(90deg, rgba(5,150,105,0.06) 0%, transparent 60%);
+          border-radius: 8px;
+        }

@@ -292,29 +292,6 @@ function PhotoStrip({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        /* カード幅: コンテナの 1/3 → デフォルトで3枚表示 */
-        .ps-card {
-          width: calc((100% - ${GAP * 2}px) / 3);
-          min-width: 160px; /* モバイル最小幅 */
-          flex-shrink: 0;
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
-        }
-        .ps-card:hover { transform: scale(1.025); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
-        .ps-strip::-webkit-scrollbar { display: none; }
-        /* 右端フェード — スクロール可能を示すヒント */
-        .ps-outer::after {
-          content: "";
-          position: absolute;
-          top: 0; right: 0; bottom: 0;
-          width: 80px;
-          background: linear-gradient(to left, rgba(255,255,255,0.95) 0%, transparent 100%);
-          pointer-events: none;
-          transition: opacity 0.2s;
-          z-index: 2;
-        }
-        .ps-outer.scrolled-end::after { opacity: 0; }
-      ` }} />
 
       {/* 外側ラッパー：右フェードのための position:relative + overflow:hidden */}
       <div
@@ -342,7 +319,10 @@ function PhotoStrip({
             overflowX: "auto",
             scrollSnapType: "x mandatory",
             scrollbarWidth: "none",
-          }}
+            /* .ps-card の幅計算（globals.css）に GAP を渡す。
+               CSS 側で数値を直書きすると GAP と二重管理になるため。 */
+            ["--ps-gap2" as string]: `${GAP * 2}px`,
+          } as React.CSSProperties}
         >
           {photos.map((photo, i) => (
             <div
