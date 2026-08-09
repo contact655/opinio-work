@@ -7,6 +7,7 @@ import type { CompanyForCarousel } from '@/types/genre';
 import { showToast } from '@/lib/toast';
 import { getLogoLetter } from '@/lib/utils/companyLogo';
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
+import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from '@/lib/bookmarks/companyBookmarks';
 
 // フェーズバッジ設定
 type StageCfgEntry = { label: string; color: string; bg: string; border: string; fontWeight?: number };
@@ -55,26 +56,6 @@ type Props = {
   compact?: boolean;
   members?: MemberPreview[];
 };
-
-// ── Bookmark fetch deduplication ─────────────────────────────────────────────
-type BookmarkCache = { ids: Set<string>; expiresAt: number };
-let _bookmarkPromise: Promise<BookmarkCache> | null = null;
-
-function fetchCompanyBookmarks(): Promise<BookmarkCache> {
-  const now = Date.now();
-  if (_bookmarkPromise) return _bookmarkPromise;
-  _bookmarkPromise = fetch('/api/bookmarks?target_type=company')
-    .then((r) => {
-      if (r.status === 401) return { ids: new Set<string>(), expiresAt: now + 60_000 };
-      return r.json().then((d) => ({
-        ids: new Set<string>(Array.isArray(d.ids) ? d.ids : []),
-        expiresAt: now + 60_000,
-      }));
-    })
-    .catch(() => ({ ids: new Set<string>(), expiresAt: now + 60_000 }));
-  setTimeout(() => { _bookmarkPromise = null; }, 60_000);
-  return _bookmarkPromise;
-}
 
 /** 法人名サフィックス除去 */
 function cleanEnName(nameEn: string | null | undefined): string | null {
@@ -132,6 +113,8 @@ export function CompanyCardCompact({ company }: Props) {
       } else if (!res.ok) {
         setBookmarked(prev);
       } else {
+        // 共有キャッシュを捨てる。捨てないと、次に読む人が60秒間古い一覧を見る
+        invalidateCompanyBookmarks();
         if (!prev) {
           showToast(`${company.name} を気になりリストに追加しました`, 'warm');
         } else {

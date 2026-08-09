@@ -6,6 +6,7 @@ import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
 import { fmtMan } from "@/lib/utils/salary";
 import type { PhaseOption } from "@/lib/constants/phase";
+import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 
 
 
@@ -243,10 +244,8 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/bookmarks?target_type=company")
-      .then((r) => r.ok ? r.json() : { ids: [] })
-      .then((d) => setBookmarkCount(Array.isArray(d.ids) ? d.ids.length : 0))
-      .catch(() => {});
+    // 企業カードと同じ一覧。共有キャッシュを通すので追加のリクエストは飛ばない
+    fetchCompanyBookmarks().then((c) => setBookmarkCount(c.ids.size));
   }, []);
 
   useEffect(() => {

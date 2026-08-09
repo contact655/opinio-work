@@ -8,6 +8,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 
 /** 法人名サフィックス除去 */
 function cleanEnName(nameEn: string | null | undefined): string | null {
@@ -65,25 +66,6 @@ function MemberAvatar({ name, photoUrl, size = 24 }: { name: string; photoUrl?: 
 }
 
 // ── Bookmark fetch deduplication（CompanyCardCompactと共有） ──────────────────
-type BookmarkCache = { ids: Set<string>; expiresAt: number };
-let _listBookmarkPromise: Promise<BookmarkCache> | null = null;
-
-function fetchListBookmarks(): Promise<BookmarkCache> {
-  const now = Date.now();
-  if (_listBookmarkPromise) return _listBookmarkPromise;
-  _listBookmarkPromise = fetch("/api/bookmarks?target_type=company")
-    .then((r) => {
-      if (r.status === 401) return { ids: new Set<string>(), expiresAt: now + 60_000 };
-      return r.json().then((d) => ({
-        ids: new Set<string>(Array.isArray(d.ids) ? d.ids : []),
-        expiresAt: now + 60_000,
-      }));
-    })
-    .catch(() => ({ ids: new Set<string>(), expiresAt: now + 60_000 }));
-  setTimeout(() => { _listBookmarkPromise = null; }, 60_000);
-  return _listBookmarkPromise;
-}
-
 type Props = {
   company: CompanyForCarousel;
   members?: MemberPreview[];
@@ -98,7 +80,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
   // 初期ブックマーク状態をロード
   useEffect(() => {
-    fetchListBookmarks().then((cache) => {
+    fetchCompanyBookmarks().then((cache) => {
       setBookmarked(cache.ids.has(company.id));
     });
   }, [company.id]);
@@ -126,8 +108,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
       }
       if (!res.ok) { setBookmarked(prev); return; }
       if (!prev) showToast(`${company.name} を気になりリストに追加しました ♥`);
-      // キャッシュ更新
-      _listBookmarkPromise = null;
+      // 共有キャッシュを捨てる。次に読む人が取り直す
+      invalidateCompanyBookmarks();
     } catch {
       setBookmarked(prev);
     } finally {
