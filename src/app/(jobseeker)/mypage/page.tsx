@@ -43,8 +43,10 @@ export default async function MypagePage({
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  // フォロー数。0 の項目は FollowCounts 側で落とすのでここでは素通し。
-  const followCounts = owUser ? await getFollowCounts(owUser.id) : { followers: 0, following: 0 };
+  /* フォロー数。0 の項目は FollowCounts 側で落とすのでここでは素通し。
+     ⚠️ 単独で await せず、下の Promise.all に相乗りさせる（2026-08-09）。
+        owUser.id しか要らないので、学歴・職歴と同時に取れる。 */
+  let followCounts: Awaited<ReturnType<typeof getFollowCounts>> = { followers: 0, following: 0 };
 
   // Fetch educations + experiences + roles in parallel
   let educations: {
@@ -59,6 +61,7 @@ export default async function MypagePage({
       { data: edus },
       { data: expRows },
       { data: allRoles },
+      followCountsResult,
     ] = await Promise.all([
       supabase
         .from("ow_user_educations")
@@ -80,7 +83,10 @@ export default async function MypagePage({
       supabase
         .from("ow_roles")
         .select("id, name, parent_id"),
+      getFollowCounts(owUser.id),
     ]);
+
+    followCounts = followCountsResult;
 
     educations = (edus ?? []).map((e) => ({
       id: e.id as string,
@@ -187,13 +193,27 @@ export default async function MypagePage({
       const companyBmarks = bmarks.filter((b) => b.target_type === "company");
       const jobBmarks = bmarks.filter((b) => b.target_type === "job");
 
+      /* ⚠️ 「気になる企業」と「気になる求人」は互いに独立。
+            2026-08-09 まで順番に await していたので1往復ぶん無駄だった。
+            片方が0件なら、そちら側は問い合わせずに null を返す。 */
+      const [bmCompaniesRes, bmJobsRes] = await Promise.all([
+        companyBmarks.length > 0
+          ? supabase
+              .from("ow_companies")
+              .select("id, slug, name, industry, employee_count, phase")
+              .in("id", companyBmarks.map((b) => b.target_id as string))
+          : Promise.resolve({ data: null }),
+        jobBmarks.length > 0
+          ? supabase
+              .from("ow_jobs")
+              .select("id, title, job_category, company_id")
+              .in("id", jobBmarks.map((b) => b.target_id as string))
+          : Promise.resolve({ data: null }),
+      ]);
+
       // ── Company bookmarks ──
-      if (companyBmarks.length > 0) {
-        const companyIds = companyBmarks.map((b) => b.target_id as string);
-        const { data: companies } = await supabase
-          .from("ow_companies")
-          .select("id, slug, name, industry, employee_count, phase")
-          .in("id", companyIds);
+      {
+        const companies = bmCompaniesRes.data;
         if (companies) {
           const companyMap = new Map(companies.map((c) => [c.id, c]));
           companyBookmarks = companyBmarks
@@ -214,23 +234,19 @@ export default async function MypagePage({
       }
 
       // ── Job bookmarks ──
-      if (jobBmarks.length > 0) {
-        const jobIds = jobBmarks.map((b) => b.target_id as string);
-        const { data: jobs } = await supabase
-          .from("ow_jobs")
-          .select("id, title, job_category, company_id")
-          .in("id", jobIds);
+      {
+        const jobs = bmJobsRes.data;
         if (jobs) {
           /* 職種の表示は会社呼称 ?? 標準職種名。
              ⚠️ ow_company_job_roles の RLS は「その会社の管理者だけ」なので、
-                ここのユーザーセッションのクライアントでは引けない。admin を使う。 */
-          const roleLabels = await fetchJobRoleLabels(jobs.map((j) => j.id as string));
-          // Also fetch company names for context
+                ここのユーザーセッションのクライアントでは引けない。admin を使う。
+             ⚠️ 会社呼称と会社名はどちらも jobs にぶら下がるだけで互いに参照しない
+                ので、まとめて1往復にする（2026-08-09）。 */
           const jobCompanyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
-          const { data: companies } = await supabase
-            .from("ow_companies")
-            .select("id, name")
-            .in("id", jobCompanyIds);
+          const [roleLabels, { data: companies }] = await Promise.all([
+            fetchJobRoleLabels(jobs.map((j) => j.id as string)),
+            supabase.from("ow_companies").select("id, name").in("id", jobCompanyIds),
+          ]);
           const companyNameMap = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
           const jobMap = new Map(jobs.map((j) => [j.id, j]));
           jobBookmarks = jobBmarks
@@ -264,23 +280,25 @@ export default async function MypagePage({
     if (meetings && meetings.length > 0) {
       const companyIdSet = new Set(meetings.map((m) => m.company_id as string));
       const companyIds = Array.from(companyIdSet);
-      const { data: companies } = await supabase
-        .from("ow_companies")
-        .select("id, name, logo_gradient, logo_letter")
-        .in("id", companyIds);
-
       const jobIds = meetings
         .filter((m) => m.job_id)
         .map((m) => m.job_id as string);
+
+      /* ⚠️ 企業と求人はどちらも meetings からぶら下がるだけで、互いに参照しない。
+            2026-08-09 まで順番に await していたので1往復ぶん無駄だった。 */
+      const [{ data: companies }, jobsRes] = await Promise.all([
+        supabase
+          .from("ow_companies")
+          .select("id, name, logo_gradient, logo_letter")
+          .in("id", companyIds),
+        jobIds.length > 0
+          ? supabase.from("ow_jobs").select("id, title").in("id", jobIds)
+          : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null }),
+      ]);
+
       const jobMap = new Map<string, string>();
-      if (jobIds.length > 0) {
-        const { data: jobs } = await supabase
-          .from("ow_jobs")
-          .select("id, title")
-          .in("id", jobIds);
-        for (const j of jobs ?? []) {
-          jobMap.set(j.id as string, j.title as string);
-        }
+      for (const j of jobsRes.data ?? []) {
+        jobMap.set(j.id as string, j.title as string);
       }
 
       const companyMap = new Map((companies ?? []).map((c) => [c.id as string, c]));
