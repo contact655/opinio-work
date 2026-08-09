@@ -9,6 +9,14 @@
       "autoPort": true
     },
     {
+      "_comment": "本番ビルドをローカルで動かす。Sentry は NODE_ENV=production でしか有効にならないため、エラー送信の検証にはこちらが要る。dev と .next を共有するので同時に起動しないこと",
+      "name": "prod",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "PATH=/opt/homebrew/bin:$PATH npm run build && PATH=/opt/homebrew/bin:$PATH npx next start -p 3100"],
+      "port": 3100,
+      "autoPort": false
+    },
+    {
       "name": "opinio-corp",
       "runtimeExecutable": "/bin/bash",
       "runtimeArgs": ["-c", "cd /Users/hisato/opinio-corp && PATH=/opt/homebrew/bin:$PATH ./node_modules/.bin/next dev -p 3001"],

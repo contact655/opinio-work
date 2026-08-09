@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function BizError({
   error,
@@ -11,6 +12,8 @@ export default function BizError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // ⚠️ これが無いと Sentry に届かない（src/app/error.tsx のコメント参照）
+    Sentry.captureException(error);
     console.error("[BizError]", error);
   }, [error]);
 

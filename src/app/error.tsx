@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function GlobalError({
   error,
@@ -11,7 +12,12 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // エラーログ（本番では Sentry 等に送信）
+    /* ⚠️ ここで captureException を呼ばないと Sentry に**1件も届かない**。
+          error.tsx はエラーを「捕まえて画面を出す」だけで、
+          報告まではしてくれない。2026-08-09 まで4つのエラー境界すべてが
+          console.error だけで、本番の障害が一切記録されていなかった
+          （コメントに「本番では Sentry 等に送信」とだけ書かれていた）。 */
+    Sentry.captureException(error);
     console.error("[GlobalError]", error);
   }, [error]);
 
