@@ -1000,10 +1000,12 @@ where to_regclass('public.'||obj) is null
 | サイドバー導線 | `/mypage` の「スカウト」＋未返答バッジ |
 | 返答API | 既存の `/api/jobseeker/scouts/[id]/reply` に接続（新規実装なし） |
 | 通知の書き込み | `POST /api/biz/scouts` の INSERT 直後（best-effort。失敗してもスカウトは送る、ただしログは出す） |
+| メール通知 | 同じ場所で `sendScoutEmail`。`email_scout_enabled` を尊重する |
 
-⚠️ **メール通知は入れていない。** `ow_profiles` / `ow_users` に配信停止の列が無く、
-   足すと週次メールを止めたのと同じ状態（止められないメール）になるため。
-   → 「週次メールは停止中」の②と同じ話。**opt-out 列を作るのが先。**
+⚠️ **メール通知は 2026-08-10 に追加した**（`sendScoutEmail`）。
+   同日に `ow_profiles.email_scout_enabled` を作ったので、配信停止が効く。
+   **判定は `sendScoutEmail` の中に置いてある。** 呼び出し側に出すと、
+   経路が増えたときに片方だけ忘れる（週次メール2本で実際に起きた）。
 
 ### スキーマ（`20260810103434_scout_notifications.sql`）
 
@@ -1096,10 +1098,56 @@ where to_regclass('public.'||obj) is null
 | ③ | 宛先が **39人中 実ユーザー3人**。抽出条件が「`ow_profiles` 全件」で `is_test` もシステムユーザーも除外していない。内訳は example.com 20 / opinio.co.jp 15(全て is_test) / gmail 3 / icloud 1。**example.com の20件は必ずハードバウンスする** |
 | ④ | weekly-jobs は当時0通だったが、それは過去7日の新着が0件だっただけ。**求人を1件公開した翌週から39人全員に送られ始める時限式**だった |
 
-### 再開する前に必ず直すこと
+### ②と③は解消済み（2026-08-10）
 
-- **②が最優先。** opt-out の列を DB に作り、localStorage から移す。cron がそれを読む
-- 宛先から `is_test` / システムユーザー / `ow_users` に対応の無い行を除外する
+**残っているのは①だけ。**（④は構造的なもので、①を直せば付随して解ける）
+
+| # | 状態 |
+|---|---|
+| ① | ❌ **未対応。** weekly-match の「マッチ度 75%」はハードコードのまま |
+| ② | ✅ 解消。`ow_profiles.email_weekly_enabled` を作り、cron が読むようにした |
+| ③ | ✅ 解消。宛先を `getWeeklyRecipients()` に集約し、除外を実装した |
+
+#### ② 配信停止（`20260810111308_email_notification_settings.sql`）
+
+| | |
+|---|---|
+| 列 | `ow_profiles.email_weekly_enabled` / `email_scout_enabled`（NOT NULL DEFAULT true） |
+| 保存 | `PUT /api/jobseeker/email-settings` |
+| UI | `/profile/edit?tab=account`。**localStorage をやめた** |
+| cron | `email_weekly_enabled = true` の人だけに送る |
+
+⚠️ **UI の項目は実在するメールと1対1にすること。** 直す前は3項目のうち
+   「新着企業」「新着記事」に対応するメールが**存在せず**、逆に実在する
+   新着求人メールには項目が無かった。設定できるのに効かない／効くのに設定できない、
+   の両方が同時に起きていた。
+
+⚠️ **`=== true` で見る。`!== false` にしない。** 値が読めなかったときに
+   送ってしまう向き（fail-open）にしないため。
+
+#### ③ 宛先（`src/lib/notify/weeklyRecipients.ts`）
+
+**weekly-jobs と weekly-match で別々に書かないこと。** 割れていたのが原因。
+
+実測（2026-08-10、本番データ）: `ow_profiles` 39件 → 宛先 **3名**
+
+| 除外 | 件数 | 理由 |
+|---|---|---|
+| `ow_users` に対応なし | **20** | アプリ上は存在しない。**必ずハードバウンスする** |
+| `is_test` / システム | 16 | 社内・検証用 |
+| 配信停止 | 0 | まだ誰も切っていない |
+
+⚠️ 何人をなぜ落としたかを `console.log` と応答 JSON の両方に出している。
+   **黙って減らすと「送ったつもり」になる。**
+
+#### 配信停止リンク
+
+⚠️ メール末尾は `/mypage` を指していたが、**そこに設定 UI は無い**。
+   `unsubscribeUrl()` で `/profile/edit?tab=account` に直した。
+   リンク先を変えるときは、そのタブが実在するか確かめること。
+
+### ①（残っているもの）
+
 - weekly-match の「75%」と「プロフィールに基づいて」を消す
 
 ⚠️ **`ow_match_scores` を作り直す必要は無い。** 希望条件

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
 
@@ -90,31 +91,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, sent: 0, reason: "no published jobs" });
     }
 
-    // メール通知を許可しているユーザーのプロフィールを取得（全ユーザーデフォルト許可）
-    const { data: profiles } = await supabase
-      .from("ow_profiles")
-      .select("user_id");
+    /* 宛先。⚠️ weekly-jobs と同じ関数を使う。ここで独自に絞らないこと */
+    const { recipients, excluded } = await getWeeklyRecipients(supabase);
 
-    if (!profiles || profiles.length === 0) {
-      return NextResponse.json({ success: true, sent: 0, reason: "no eligible users" });
-    }
+    console.log(
+      `[weekly-match] 宛先 ${recipients.length}名 / 除外: 配信停止 ${excluded.optedOut} / ` +
+      `ow_users なし ${excluded.noOwUser} / test・system ${excluded.testOrSystem} / メールなし ${excluded.noEmail}`
+    );
 
-    // ユーザーのメールアドレスを取得
-    const {
-      data: { users },
-    } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-
-    const userEmailMap = new Map<string, string>();
-    for (const u of users ?? []) {
-      if (u.email) userEmailMap.set(u.id, u.email);
+    if (recipients.length === 0) {
+      return NextResponse.json({ success: true, sent: 0, reason: "no eligible users", excluded });
     }
 
     let sent = 0;
     const errors: string[] = [];
 
-    for (const profile of profiles) {
-      const email = userEmailMap.get(profile.user_id);
-      if (!email) continue;
+    for (const profile of recipients.map((r) => ({ user_id: r.authId, email: r.email }))) {
+      const email = profile.email;
 
       // ユーザーごとのマッチスコアを取得
       const { data: matchScores } = await supabase
@@ -175,8 +168,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       sent,
-      total: profiles.length,
+      total: recipients.length,
       errors: errors.length > 0 ? errors.length : undefined,
+      excluded,
     });
   } catch (error: unknown) {
     console.error("[weekly-match] Error:", error);
@@ -257,7 +251,7 @@ function generateWeeklyEmail(topJobs: any[]): string {
       </div>
       <p style="font-size:11px;color:#94a3b8;margin-top:20px">
         OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
-        配信停止は<a href="${BASE_URL}/mypage" style="color:#94a3b8">マイページ</a>から設定できます
+        配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">プロフィール編集</a>から設定できます
       </p>
     </body>
     </html>

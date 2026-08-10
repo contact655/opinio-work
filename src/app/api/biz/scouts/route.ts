@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notify } from "@/lib/notify/email";
+import { unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
 
 export const dynamic = "force-dynamic";
 
@@ -42,23 +44,25 @@ export async function GET(_req: NextRequest) {
 
 // POST: send a scout to a candidate
 export async function POST(req: NextRequest) {
-  /* ⚠️ **スカウト送信は停止中**（2026-08-09）。再開するには
-        SCOUT_SENDING_ENABLED=true を環境変数に入れる。
+  /* ⚠️ **スカウト送信はまだ止めてある。** 再開は SCOUT_SENDING_ENABLED=true を
+        環境変数に入れるだけ。
 
-     ── なぜ止めたか ────────────────────────────────────────────────────
-     送信すると `ow_scouts` に行はできるが、**求職者がそれを知る手段が1つも無い**。
-       求職者側の閲覧UI … 無し
-       メール通知       … 無し（このファイルに sendEmail の呼び出しは無い）
-       アプリ内通知     … 無し（ow_notifications への書き込みは無い）
-     一方 `/biz/scouts` は「未読 / 既読 / 返信率」を表示するため、
-     企業には**永久に「未読」「返信率0%」**が出続けることになる。
-     LP の FAQ も「初期設定は受け取る」と説明しており、双方に事実と違う表示になる。
+     ── 止めた理由は解消済み（2026-08-10）──────────────────────────────
+     2026-08-09 に止めたのは「送れるが受け取る手段が1つも無い」ためだった。
+     受信側を作ったので、その理由は無くなっている。
 
-     ⚠️ 2026-08-09 時点で ow_scouts は0件。**まだ誰も送っていないだけ**で、
-        公開76社はいつでも送れる状態だった。0件のうちに止めている。
+       求職者側の閲覧UI … `/mypage/scouts`
+       アプリ内通知     … `ow_notifications` の type='scout'（下で INSERT）
+       メール通知       … `sendScoutEmail`（配信停止を尊重する）
+       返答             … 既存の `/api/jobseeker/scouts/[id]/reply`
 
-     ⚠️ 再開の前に受信側を作ること（CLAUDE.md「スカウトは送れるが、受け取る手段が無い」）。
-        フラグを true にするだけでは、届かない状態が復活する。 */
+     ── それでもまだ開けていない理由 ───────────────────────────────────
+     ⚠️ `scout_enabled` が null の人には送れない（`can_send_scout` が null を
+        false 扱いにする）。2026-08-10 時点で 39人中 true は3人。
+     ⚠️ LP の FAQ は「初期設定は『受け取る』」と書いていて実態と違う。
+        どちらを直すか決めてから開けること。
+
+     ⚠️ フラグを立てると `/biz/candidates` のボタンも同時に開く。片方だけ変えない。 */
   if (process.env.SCOUT_SENDING_ENABLED !== "true") {
     return NextResponse.json(
       { error: "スカウト機能は現在準備中です。受信側の画面を用意してから再開します。" },
@@ -154,7 +158,87 @@ export async function POST(req: NextRequest) {
     if (notifErr) {
       console.error("[POST /api/biz/scouts] 通知の作成に失敗（スカウトは送信済み）", notifErr.message);
     }
+
+    /* メールでも知らせる。⚠️ アプリ内通知だけだと、来訪しない限り気づけない。
+       ⚠️ 配信停止（`email_scout_enabled`）を必ず見る。**ここを外さないこと。**
+          止められないメールを送ると、週次メールを止めた理由②に逆戻りする。
+       ⚠️ `ow_profiles.user_id` は auth 空間なので `candidateUser.auth_id` で引く。 */
+    await sendScoutEmail(admin, {
+      candidateAuthId: candidateUser.auth_id,
+      candidateOwUserId: candidate_id,
+      companyName: ctx.tenantName,
+    });
   }
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * スカウトが届いたことをメールで知らせる。
+ *
+ * ⚠️ **配信停止の判定をこの関数の中に置いてある。** 呼び出し側で判定すると、
+ *    経路が増えたときに片方だけ忘れる（週次メール2本で実際に起きた）。
+ *
+ * ⚠️ best-effort。メールが送れなくてもスカウト送信は成功扱いにする。
+ *    ただし握り潰さずログは出す。
+ */
+async function sendScoutEmail(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  args: { candidateAuthId: string | null; candidateOwUserId: string; companyName: string },
+) {
+  try {
+    if (!args.candidateAuthId) return;
+
+    // ⚠️ ow_profiles.user_id は auth 空間
+    const { data: prof } = await admin
+      .from("ow_profiles")
+      .select("email_scout_enabled")
+      .eq("user_id", args.candidateAuthId)
+      .maybeSingle();
+
+    // ⚠️ 明示的に true のときだけ送る（読めなかったときに送る向きにしない）
+    if (prof?.email_scout_enabled !== true) return;
+
+    const { data: owUser } = await admin
+      .from("ow_users")
+      .select("email, name")
+      .eq("id", args.candidateOwUserId)
+      .maybeSingle();
+    if (!owUser?.email) return;
+
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.jp";
+    const esc = (v: string) =>
+      v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const company = esc(args.companyName);
+
+    await notify({
+      to: owUser.email,
+      subject: `【OPINIO】${args.companyName} からスカウトが届きました`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#0F172A">
+          <p>${esc(owUser.name ?? "")} さん</p>
+          <p><strong>${company}</strong> からスカウトが届きました。</p>
+          <p style="margin:24px 0">
+            <a href="${base}/mypage/scouts"
+               style="background:#002366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none">
+              内容を見る
+            </a>
+          </p>
+          <p style="font-size:13px;color:#475569;line-height:1.8">
+            返答するかどうかはご自身で決められます。見送っても相手に理由は伝わりません。
+          </p>
+          <hr style="margin:24px 0;border:none;border-top:1px solid #eee" />
+          <p style="font-size:12px;color:#94a3b8">
+            スカウトのお知らせが不要な場合は
+            <a href="${unsubscribeUrl(base)}" style="color:#94a3b8">プロフィール編集</a>
+            から配信を停止できます。
+          </p>
+          <p style="font-size:12px;color:#94a3b8">OPINIO</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("[POST /api/biz/scouts] スカウトメールの送信に失敗（スカウトは送信済み）", err);
+  }
 }

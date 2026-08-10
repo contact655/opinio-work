@@ -23,6 +23,7 @@ import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { CheckPillGroup, type CheckPillOption } from "@/components/ui/CheckPillGroup";
 import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
 import { hasCareerPreferences } from "@/lib/profile/completion";
+import { EMAIL_SETTING_DEFAULTS, type EmailSettingKey } from "@/lib/constants/emailSettings";
 import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 import {
   SocialIcon,
@@ -518,38 +519,68 @@ function selectStyle(): React.CSSProperties {
 
 // ─── Notification Settings Section ───────────────────────────────────────────
 
-const NOTIF_KEY = "opinio-notif-prefs";
-type NotifPrefs = { newCompanies: boolean; weeklyMatch: boolean; articleNews: boolean };
-const DEFAULT_NOTIF: NotifPrefs = { newCompanies: true, weeklyMatch: true, articleNews: false };
+/* ⚠️ 2026-08-10 まで localStorage に保存していた。cron はそれを読めないので、
+      オフにしてもメールは止まらなかった（週次メールを止めていた理由そのもの）。
+      いまは `ow_profiles` に保存する。
 
-function loadNotifPrefs(): NotifPrefs {
-  if (typeof window === "undefined") return DEFAULT_NOTIF;
-  try {
-    const stored = localStorage.getItem(NOTIF_KEY);
-    if (!stored) return DEFAULT_NOTIF;
-    return { ...DEFAULT_NOTIF, ...JSON.parse(stored) };
-  } catch { return DEFAULT_NOTIF; }
-}
+   ⚠️ **実在するメールと1対1で対応する項目だけを出すこと。**
+      以前は「新着企業」「新着記事」という、送っているメールが存在しない項目が
+      2つ並んでいて、逆に実在する新着求人メールには項目が無かった。 */
+type NotifPrefs = Record<EmailSettingKey, boolean>;
+const DEFAULT_NOTIF: NotifPrefs = EMAIL_SETTING_DEFAULTS;
 
 function NotificationSettingsSection() {
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF);
+  const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
-  useEffect(() => { setPrefs(loadNotifPrefs()); }, []);
+  const [error, setError] = useState<string | null>(null);
 
-  const toggle = (key: keyof NotifPrefs) => {
-    setPrefs((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
-      return next;
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/jobseeker/email-settings");
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        if (!alive) return;
+        setPrefs({
+          email_weekly_enabled: json.email_weekly_enabled !== false,
+          email_scout_enabled: json.email_scout_enabled !== false,
+        });
+      } catch {
+        /* ⚠️ 読めなかったときに既定値のトグルを操作可能にしない。
+              保存されていない値を「保存済み」に見せることになる。 */
+        if (alive) setError("設定を読み込めませんでした。再読み込みしてください");
+      } finally {
+        if (alive) setLoaded(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const toggle = async (key: keyof NotifPrefs) => {
+    const next = { ...prefs, [key]: !prefs[key] };
+    const prev = prefs;
+    setPrefs(next); // 楽観的更新
+    setError(null);
+    try {
+      const res = await fetch("/api/jobseeker/email-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: next[key] }),
+      });
+      if (!res.ok) throw new Error();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } catch {
+      setPrefs(prev); // ⚠️ 失敗したら戻す。「保存済み」と誤解させない
+      setError("保存に失敗しました。時間をおいて試してください");
+    }
   };
 
   const items: { key: keyof NotifPrefs; label: string; desc: string; icon: string }[] = [
-    { key: "newCompanies", label: "新着企業のお知らせ", desc: "新しい企業が掲載されたらメールでお知らせします（週1回）", icon: "🏢" },
-    { key: "weeklyMatch",  label: "マッチング求人のお知らせ", desc: "あなたの希望条件に合う求人が追加されたらお知らせします（週1回）", icon: "💼" },
-    { key: "articleNews",  label: "新着記事のお知らせ", desc: "OPINIOの新着取材記事が公開されたときにお知らせを受け取ります", icon: "📄" },
+    { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着求人と、希望条件に合う求人をまとめてお送りします", icon: "💼" },
+    { key: "email_scout_enabled",  label: "スカウトのお知らせ", desc: "企業からスカウトが届いたときにメールでお知らせします", icon: "📬" },
   ];
 
   return (
@@ -568,7 +599,12 @@ function NotificationSettingsSection() {
           </span>
         )}
       </div>
-      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      {error && (
+        <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: "var(--error)" }}>{error}</div>
+      )}
+      {/* ⚠️ 読み込みが終わるまで操作させない。既定値のまま触らせると、
+             保存されていない値を「保存済み」と見せることになる */}
+      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: "var(--space-3)", opacity: loaded ? 1 : 0.5, pointerEvents: loaded ? "auto" : "none" }}>
         {items.map(({ key, label, desc, icon }) => (
           <label
             key={key}

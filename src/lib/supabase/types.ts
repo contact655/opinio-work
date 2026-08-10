@@ -6433,6 +6433,8 @@ export type Database = {
           desired_salary_min: number | null
           desired_work_style: string | null
           desired_work_styles: string[] | null
+          email_scout_enabled: boolean
+          email_weekly_enabled: boolean
           experience_years: string | null
           id: string
           job_type: string | null
@@ -6458,6 +6460,8 @@ export type Database = {
           desired_salary_min?: number | null
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
+          email_scout_enabled?: boolean
+          email_weekly_enabled?: boolean
           experience_years?: string | null
           id?: string
           job_type?: string | null
@@ -6483,6 +6487,8 @@ export type Database = {
           desired_salary_min?: number | null
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
+          email_scout_enabled?: boolean
+          email_weekly_enabled?: boolean
           experience_years?: string | null
           id?: string
           job_type?: string | null

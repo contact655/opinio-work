@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
@@ -125,27 +126,24 @@ export async function GET(request: Request) {
       });
     }
 
-    // メール通知を許可しているユーザーを取得（全ユーザーデフォルト許可）
-    const { data: profiles } = await supabase
-      .from("ow_profiles")
-      .select("user_id, name");
+    /* 宛先。⚠️ 配信停止・is_test・システム・ow_users に対応が無い行の除外は
+          すべて getWeeklyRecipients に集約してある。ここで独自に絞らないこと
+          （weekly-match と食い違う原因になる）。 */
+    const { recipients, excluded } = await getWeeklyRecipients(supabase);
 
-    if (!profiles || profiles.length === 0) {
+    // ⚠️ 何人をなぜ落としたかを必ず出す。黙って減らすと「送ったつもり」になる
+    console.log(
+      `[weekly-jobs] 宛先 ${recipients.length}名 / 除外: 配信停止 ${excluded.optedOut} / ` +
+      `ow_users なし ${excluded.noOwUser} / test・system ${excluded.testOrSystem} / メールなし ${excluded.noEmail}`
+    );
+
+    if (recipients.length === 0) {
       return NextResponse.json({
         success: true,
         sent: 0,
         reason: "no eligible users",
+        excluded,
       });
-    }
-
-    // ユーザーのメールアドレスを取得
-    const {
-      data: { users },
-    } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-
-    const userEmailMap = new Map<string, string>();
-    for (const u of users ?? []) {
-      if (u.email) userEmailMap.set(u.id, u.email);
     }
 
     // 送信対象を構築
@@ -156,10 +154,7 @@ export async function GET(request: Request) {
     let sent = 0;
     const errors: string[] = [];
 
-    for (const profile of profiles) {
-      const email = userEmailMap.get(profile.user_id);
-      if (!email) continue;
-
+    for (const { email } of recipients) {
       try {
         await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
@@ -179,6 +174,7 @@ export async function GET(request: Request) {
       sent,
       totalJobs: totalCount,
       errors: errors.length > 0 ? errors.length : undefined,
+      excluded,
     });
   } catch (error: unknown) {
     console.error("[weekly-jobs] Error:", error);
@@ -280,7 +276,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         </p>
         <p style="font-size:11px;color:#94a3b8;line-height:1.6">
           OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
-          配信停止は<a href="${BASE_URL}/mypage" style="color:#94a3b8">マイページ</a>から設定できます
+          配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">プロフィール編集</a>から設定できます
         </p>
       </div>
     </body>
