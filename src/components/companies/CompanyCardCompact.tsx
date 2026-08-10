@@ -227,6 +227,8 @@ export function CompanyCardCompact({ company }: Props) {
             {/* ブックマーク */}
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBookmark(); }}
+              /* ⚠️ globals.css の min-height: 36px を外す（付けないと 28×36 の楕円になる） */
+              className="btn-fixed-size"
               style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 background: 'var(--line-soft)', border: 'none',

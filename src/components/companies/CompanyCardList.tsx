@@ -188,6 +188,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             onClick={handleBookmark}
             disabled={bookmarking}
             aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
+            /* ⚠️ globals.css の `button { min-height: 36px }` を外す。
+                  付けないと高さだけ 36px に伸びて **縦長の楕円**になる（26×36）。 */
+            className="btn-fixed-size"
             style={{
               position: "absolute", top: 10, right: 12,
               width: 26, height: 26, flexShrink: 0,

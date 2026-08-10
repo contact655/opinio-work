@@ -3158,7 +3158,47 @@ MQ が `true` なのに computed が変わっていなければ、インライ�
 `globals.css` の要素セレクタ（`h1`〜`h3` / `p` / `.description` / `.desc`）を疑う。
 これらは詳細度 0-0-1 と低いが、**継承より強い**。
 
-#### やってはいけない回避策
+##### ⚠️ `min-height` は `height` に勝つ（2026-08-11 確立）
+
+**`globals.css` の `button, [role="button"] { min-height: 36px }`（タップ領域用）が、
+36px 未満の正方形アイコンボタンを「縦長の楕円」に潰していた。**
+
+`/companies` の「気になる」ハートは `width: 26, height: 26, borderRadius: "50%"` の
+指定なのに **26×36** で描画されていた（40個すべて）。
+
+⚠️ **インラインの `height` では勝てない。** 上の「インラインstyle と CSS の優先順位」は
+   *同じプロパティ*の綱引きの話だが、これは**別プロパティ**の話。
+   `min-height` は常に `height` に優先するので、詳細度をいくら上げても直らない。
+
+⚠️ しかも**幅は変わらない**ので、狙っていた 36×36 のタップ領域にもなっていない。
+   見た目を壊すだけで目的も達成していなかった。
+
+#### 直し方
+
+自分でサイズを決めるボタンには **`.btn-fixed-size`**（`min-height: 0`）を付けて外す。
+
+```tsx
+<button className="btn-fixed-size" style={{ width: 26, height: 26, borderRadius: "50%" }}>
+```
+
+⚠️ グローバルルール自体は残す。テキストボタンには意味があるため。
+
+#### 見つけ方
+
+**指定値ではなく実測値で見る。** コードを読んでも分からない。
+
+```js
+document.querySelectorAll('button,[role="button"]').forEach(b=>{
+  const w=parseFloat(b.style.width), h=parseFloat(b.style.height);
+  if(w&&h&&w===h){ const r=b.getBoundingClientRect();
+    if(Math.abs(r.width-r.height)>1) console.log(b, `${w}x${h} → ${r.width}x${r.height}`); }
+});
+```
+
+2026-08-11 時点で該当は `/companies` のみ（`/jobs` `/people` `/articles` `/feed` `/salary` は0件）。
+`CompanyCardList`(26×26) と `CompanyCardCompact`(28×28) の2箇所に付与済み。
+
+### やってはいけない回避策
 
 `!important` で殴らないこと。詳細度の綱引きが増えるだけで、
 次に触る人が同じ罠を踏む。**インラインから外して CSS に寄せる**のが正しい直し方。

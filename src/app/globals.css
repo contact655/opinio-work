@@ -192,6 +192,20 @@ button, [role="button"] {
   min-height: 36px;
 }
 
+/* ⚠️ 上の min-height は **高さだけ** を押し上げるため、
+      36px 未満の正方形アイコンボタンを「縦長の楕円」に潰す。
+      幅は変わらないので、タップ領域として狙った 36×36 にもならない。
+
+   ⚠️ インラインの `height: 26px` では勝てない。min-height は height とは
+      別プロパティで、常に height に優先するため
+      （CLAUDE.md「インラインstyle と CSS の優先順位」と同じ罠）。
+
+   自分でサイズを決めるボタンには `.btn-fixed-size` を付けて外すこと。
+   2026-08-11 に /companies の「気になる」ハート（26×26 指定が 26×36 で描画）で発覚。 */
+.btn-fixed-size {
+  min-height: 0;
+}
+
 /* Prevent text size bump on iOS landscape */
 @media screen and (max-width: 768px) {
   html { -webkit-text-size-adjust: 100%; }
