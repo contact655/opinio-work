@@ -352,9 +352,10 @@ export default async function MypagePage({
   // Fetch notification badge counts
   let conversationsBadge = 0;
   let applicationsBadge = 0;
+  let scoutsBadge = 0;
   if (owUser) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [{ count: convCount }, { count: appCount }] = await Promise.all([
+    const [{ count: convCount }, { count: appCount }, { count: scoutCount }] = await Promise.all([
       supabase
         .from("ow_conversations")
         .select("id", { count: "exact", head: true })
@@ -365,9 +366,19 @@ export default async function MypagePage({
         .select("id", { count: "exact", head: true })
         .eq("user_id", owUser.id)
         .neq("status", "pending"),
+      /* 未返答のスカウト。
+         ⚠️ `ow_scouts.candidate_id` は **auth 空間**なので `user.id` で引く。
+            `owUser.id`（ow_users 空間）で引くと常に0件になる。
+         ⚠️ RLS の候補者ポリシーに依存しないよう admin で引く。条件は candidate_id だけ。 */
+      createAdminClient()
+        .from("ow_scouts")
+        .select("id", { count: "exact", head: true })
+        .eq("candidate_id", user.id)
+        .eq("status", "sent"),
     ]);
     conversationsBadge = convCount ?? 0;
     applicationsBadge = appCount ?? 0;
+    scoutsBadge = scoutCount ?? 0;
   }
 
   // Fetch ambassador memberships (面談対応者として登録されているか)
@@ -400,5 +411,5 @@ export default async function MypagePage({
   //（コンポーザーがセクションの中身そのものなので、消すと空欄になる）
   const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
 
-  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} hasCareerPreferences={hasPrefs} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} scoutsBadge={scoutsBadge} hasCareerPreferences={hasPrefs} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }

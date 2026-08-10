@@ -5808,36 +5808,63 @@ export type Database = {
       }
       ow_notifications: {
         Row: {
-          actor_user_id: string
+          actor_company_id: string | null
+          actor_user_id: string | null
           comment_id: string | null
           created_at: string
           id: string
           is_read: boolean
-          post_id: string
+          post_id: string | null
           recipient_user_id: string
+          scout_id: string | null
           type: string
         }
         Insert: {
-          actor_user_id: string
+          actor_company_id?: string | null
+          actor_user_id?: string | null
           comment_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
-          post_id: string
+          post_id?: string | null
           recipient_user_id: string
+          scout_id?: string | null
           type: string
         }
         Update: {
-          actor_user_id?: string
+          actor_company_id?: string | null
+          actor_user_id?: string | null
           comment_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
-          post_id?: string
+          post_id?: string | null
           recipient_user_id?: string
+          scout_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_notifications_actor_company_id_fkey"
+            columns: ["actor_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_actor_company_id_fkey"
+            columns: ["actor_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_actor_company_id_fkey"
+            columns: ["actor_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_notifications_actor_user_id_fkey"
             columns: ["actor_user_id"]
@@ -5871,6 +5898,13 @@ export type Database = {
             columns: ["recipient_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "ow_scouts"
             referencedColumns: ["id"]
           },
         ]

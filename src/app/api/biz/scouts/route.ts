@@ -107,14 +107,22 @@ export async function POST(req: NextRequest) {
   }
 
   // ow_scouts INSERT — trigger が自動でバリデーション + 枠消費
-  const { error } = await admin.from("ow_scouts").insert({
-    company_id: ctx.tenantId,
-    candidate_id: candidateUser.auth_id ?? candidate_id,
-    job_id: job_id ?? null,
-    message: message.trim(),
-    status: "sent",
-    sent_at: new Date().toISOString(),
-  });
+  /* ⚠️ 挿入した行の id が要るので `.select("id").single()` を付ける。
+        ⚠️ 列を絞ること。引数なしの `.select()` は全列を返し、
+           返却列にも SELECT 権限が要るため権限剥奪列があると 403 になる
+           （CLAUDE.md「列単位 GRANT を剥がすときのチェックリスト」）。 */
+  const { data: inserted, error } = await admin
+    .from("ow_scouts")
+    .insert({
+      company_id: ctx.tenantId,
+      candidate_id: candidateUser.auth_id ?? candidate_id,
+      job_id: job_id ?? null,
+      message: message.trim(),
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
 
   if (error) {
     // トリガーからのエラーコードで判定
@@ -128,6 +136,24 @@ export async function POST(req: NextRequest) {
     }
     console.error("[POST /api/biz/scouts]", error);
     return NextResponse.json({ error: "送信に失敗しました" }, { status: 500 });
+  }
+
+  /* 受信者に届いたことを知らせる。**これが無いと送っても気づかれない。**
+     ⚠️ `recipient_user_id` は **ow_users 空間**。`ow_scouts.candidate_id` は
+        auth 空間なので、そちらを渡さないこと（CLAUDE.md「user_id は2つの空間がある」）。
+        ここでは API が受け取った `candidate_id`（= ow_users.id）をそのまま使う。
+     ⚠️ 通知の失敗でスカウト送信自体を失敗させない（best-effort）。
+        ただし握りつぶさずログは必ず出す。届かなかったことに気づけなくなるため。 */
+  if (inserted?.id) {
+    const { error: notifErr } = await admin.from("ow_notifications").insert({
+      recipient_user_id: candidate_id,
+      actor_company_id: ctx.tenantId,
+      type: "scout",
+      scout_id: inserted.id,
+    });
+    if (notifErr) {
+      console.error("[POST /api/biz/scouts] 通知の作成に失敗（スカウトは送信済み）", notifErr.message);
+    }
   }
 
   return NextResponse.json({ ok: true });

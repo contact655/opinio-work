@@ -6,18 +6,46 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment";
-  postId: string;
+  type: "like" | "comment" | "scout";
+  /** ⚠️ スカウトの通知には投稿が無いので null になる */
+  postId: string | null;
   postPreview: string | null;
+  /** スカウトのときだけ入る */
+  scoutId: string | null;
   isRead: boolean;
   createdAt: string;
+  /** いいね・コメントの送り主（ユーザー） */
   actor: {
     id: string;
     name: string;
     avatarColor: string | null;
     avatarUrl: string | null;
   } | null;
+  /** スカウトの送り主（企業） */
+  actorCompany: {
+    id: string;
+    name: string;
+    slug: string | null;
+    logoLetter: string | null;
+    logoGradient: string | null;
+  } | null;
 };
+
+/** 通知を押したときの遷移先。⚠️ 種別ごとに違う */
+function notifHref(notif: NotificationItem): string {
+  if (notif.type === "scout") return "/mypage/scouts";
+  return `/feed/${notif.postId}`;
+}
+
+function notifText(notif: NotificationItem): { who: string; what: string } {
+  if (notif.type === "scout") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " からスカウトが届きました" };
+  }
+  return {
+    who: notif.actor?.name ?? "誰か",
+    what: notif.type === "like" ? " があなたの投稿にいいねしました" : " があなたの投稿にコメントしました",
+  };
+}
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -27,21 +55,26 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}日前`;
 }
 
-function ActorAvatar({ actor }: { actor: NotificationItem["actor"] }) {
+function ActorAvatar({ notif }: { notif: NotificationItem }) {
   const FALLBACK = "linear-gradient(135deg, #002366, #3B5FD9)";
-  const name = actor?.name ?? "?";
-  const initial = name.charAt(0).toUpperCase();
-  const gradient = actor?.avatarColor?.startsWith("linear-gradient")
-    ? actor.avatarColor
-    : FALLBACK;
+  const isScout = notif.type === "scout";
+  const actor = notif.actor;
+  const company = notif.actorCompany;
+
+  // ⚠️ スカウトの送り主は企業。ユーザーのアバターは入っていない
+  const name = (isScout ? company?.name : actor?.name) ?? "?";
+  const initial = (isScout && company?.logoLetter) || name.charAt(0).toUpperCase();
+  const rawGradient = isScout ? company?.logoGradient : actor?.avatarColor;
+  const gradient = rawGradient?.startsWith("linear-gradient") ? rawGradient : FALLBACK;
+  const avatarUrl = isScout ? null : actor?.avatarUrl ?? null;
 
   return (
     <div
       style={{
         width: 32,
         height: 32,
-        borderRadius: "50%",
-        background: actor?.avatarUrl ? undefined : gradient,
+        background: avatarUrl ? undefined : gradient,
+        borderRadius: isScout ? 8 : "50%", // 企業は角丸、人は円で見分ける
         flexShrink: 0,
         overflow: "hidden",
         display: "flex",
@@ -53,9 +86,9 @@ function ActorAvatar({ actor }: { actor: NotificationItem["actor"] }) {
         fontFamily: "Inter, sans-serif",
       }}
     >
-      {actor?.avatarUrl ? (
+      {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={actor.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
         initial
       )}
@@ -225,7 +258,7 @@ export function NotificationBell() {
               notifications.map((notif) => (
                 <Link
                   key={notif.id}
-                  href={`/feed/${notif.postId}`}
+                  href={notifHref(notif)}
                   onClick={() => setOpen(false)}
                   style={{ textDecoration: "none", display: "block" }}
                 >
@@ -245,7 +278,7 @@ export function NotificationBell() {
                       (e.currentTarget as HTMLDivElement).style.background = notif.isRead ? "#fff" : "var(--royal-50)";
                     }}
                   >
-                    <ActorAvatar actor={notif.actor} />
+                    <ActorAvatar notif={notif} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
@@ -255,10 +288,8 @@ export function NotificationBell() {
                           lineHeight: 1.5,
                         }}
                       >
-                        <span style={{ fontWeight: 700 }}>{notif.actor?.name ?? "誰か"}</span>
-                        {notif.type === "like"
-                          ? " があなたの投稿にいいねしました"
-                          : " があなたの投稿にコメントしました"}
+                        <span style={{ fontWeight: 700 }}>{notifText(notif).who}</span>
+                        {notifText(notif).what}
                       </div>
                       {notif.postPreview && (
                         <div

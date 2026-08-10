@@ -704,6 +704,7 @@ export default function MypageClient({
   casualMeetings,
   conversationsBadge,
   applicationsBadge,
+  scoutsBadge,
   hasCareerPreferences = false,
   showSetupBanner = false,
   setupJustDone = false,
@@ -729,6 +730,7 @@ export default function MypageClient({
   casualMeetings: CasualMeeting[];
   conversationsBadge?: number;
   applicationsBadge?: number;
+  scoutsBadge?: number;
   hasCareerPreferences?: boolean;
   showSetupBanner?: boolean;
   setupJustDone?: boolean;
@@ -1021,6 +1023,7 @@ export default function MypageClient({
       activeKey={activeView}
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
+      scoutsBadge={scoutsBadge}
       rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
     >
       {/* ウェルカムバナー（新規登録直後） */}
