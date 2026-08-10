@@ -706,8 +706,6 @@ export default function MypageClient({
   applicationsBadge,
   scoutsBadge,
   hasCareerPreferences = false,
-  showSetupBanner = false,
-  setupJustDone = false,
   isNewUser = false,
   ambassadorMemberships = [],
   showScoutBanner = false,
@@ -732,8 +730,6 @@ export default function MypageClient({
   applicationsBadge?: number;
   scoutsBadge?: number;
   hasCareerPreferences?: boolean;
-  showSetupBanner?: boolean;
-  setupJustDone?: boolean;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   showScoutBanner?: boolean;
@@ -784,10 +780,25 @@ export default function MypageClient({
     .slice(0, 3);
 
 
+  /* 公開に必要な3点のうち、まだ埋まっていないもの。
+     ⚠️ バナー本文と同じ3つを見る。文言と条件がズレると、
+        「あと1つ」と書いてあるのに何を入れればいいか分からない状態になる。
+     ⚠️ tab はすべて /profile/edit の VALID_TABS に実在するキー。 */
+  const setupMissing: { label: string; tab: string }[] = [
+    { label: "名前",     tab: "basic",  done: !!userName && userName !== "ユーザー" },
+    { label: "自己紹介", tab: "basic",  done: !!owUser?.about_me && owUser.about_me.trim().length > 0 },
+    { label: "職歴",     tab: "career", done: (timelineCareers?.length ?? 0) > 0 },
+  ].filter((x) => !x.done).map(({ label, tab }) => ({ label, tab }));
+
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* プロフィール公開促進 */}
-      {showSetupBanner && !setupJustDone && (
+      {/* プロフィール公開促進
+          ⚠️ 2026-08-10 まで `/profile/start` を指していたが、**そのページは存在せず 404** だった。
+             しかも表示条件の `ow_users.profile_setup_at` は**書くコードがどこにも無く**
+             （API は受け付けるが送るクライアントが無い）、26人中22人に永久に出続けていた。
+          ⚠️ 表示条件は「本文で約束している3つが埋まっているか」から導く。
+             書かれない列に依存すると、また消えないバナーに戻る。 */}
+      {setupMissing.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #EFF3FC 0%, #E8EDFB 100%)",
           border: "1.5px solid var(--royal-100)", borderRadius: 12,
@@ -797,15 +808,15 @@ export default function MypageClient({
             プロフィールを公開して、企業に見つけてもらいましょう
           </div>
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
-            名前・自己紹介・職歴の3つを入力するだけで完了です。
+            あと{setupMissing.length}つ、{setupMissing.map((m) => m.label).join("・")}を入力すると公開できます。
           </div>
-          <a href="/profile/start" style={{
+          <a href={`/profile/edit?tab=${setupMissing[0].tab}`} style={{
             display: "inline-block", padding: "8px 16px",
             background: "var(--royal)", color: "#fff",
             borderRadius: 8, fontSize: 12, fontWeight: 700,
             textDecoration: "none",
           }}>
-            3ステップで公開する →
+            {setupMissing[0].label}を入力する →
           </a>
         </div>
       )}
@@ -1095,30 +1106,7 @@ export default function MypageClient({
         </div>
       )}
 
-      {/* 公開完了バナー（/profile/start から遷移直後） */}
-      {setupJustDone && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-          border: "1.5px solid #6EE7B7", borderRadius: 12,
-          padding: "14px 18px", marginBottom: 16,
-        }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "var(--success)", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>プロフィールを公開しました！</div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "#047857", marginTop: 2 }}>
-              企業やメンターに見つけてもらえる状態になりました。
-              <a href="/profile/edit" style={{ color: "#065F46", fontWeight: 700, marginLeft: 6 }}>さらに詳しく編集する →</a>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {activeView === "dashboard" && (
         <DashboardView

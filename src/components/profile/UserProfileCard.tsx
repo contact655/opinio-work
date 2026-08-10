@@ -272,7 +272,7 @@ export default function UserProfileCard({
       ) : (
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
           SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。{" "}
-          <Link href="/profile/edit?tab=socials" style={{ color: "var(--royal)", fontWeight: 600 }}>
+          <Link href="/profile/edit?tab=socials_content" style={{ color: "var(--royal)", fontWeight: 600 }}>
             追加する →
           </Link>
         </div>

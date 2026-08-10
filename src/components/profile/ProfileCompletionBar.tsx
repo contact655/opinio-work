@@ -86,7 +86,7 @@ export function ProfileCompletionBar({
           <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>次: </span>
           {onTabChange ? (
             <button
-              onClick={() => onTabChange(next.tab.replace("#", ""))}
+              onClick={() => onTabChange(next.tab)}
               style={{
                 fontSize: 12, fontWeight: 600, color: "var(--royal)",
                 background: "none", border: "none", padding: 0, cursor: "pointer",
@@ -97,7 +97,7 @@ export function ProfileCompletionBar({
             </button>
           ) : (
             <a
-              href={`/profile/edit${next.tab}`}
+              href={`/profile/edit?tab=${next.tab}`}
               style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "underline", textUnderlineOffset: 2 }}
             >
               {next.hint} →

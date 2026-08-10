@@ -24,7 +24,9 @@ export const metadata = { title: { absolute: "マイページ | OPINIO" }, robot
 export default async function MypagePage({
   searchParams,
 }: {
-  searchParams?: { setup?: string; welcome?: string };
+  /* ⚠️ `setup` は 2026-08-10 に削除した。`?setup=done` を付ける経路が
+        どこにも無く（/profile/start が存在しないため）、到達不能だった。 */
+  searchParams?: { welcome?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -403,13 +405,11 @@ export default async function MypagePage({
     });
   }
 
-  const showSetupBanner = !owUser?.profile_setup_at;
-  const setupJustDone = searchParams?.setup === "done";
   const isNewUser = searchParams?.welcome === "1";
 
   // 投稿できる人か。できないなら「アクティビティ」セクションごと畳む
   //（コンポーザーがセクションの中身そのものなので、消すと空欄になる）
   const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
 
-  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} scoutsBadge={scoutsBadge} hasCareerPreferences={hasPrefs} showSetupBanner={showSetupBanner} setupJustDone={setupJustDone} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} scoutsBadge={scoutsBadge} hasCareerPreferences={hasPrefs} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }
