@@ -171,10 +171,4 @@ export const GROUP_DEFS: Record<GroupSlug, GroupDef> = {
 // 表示順（後方互換・admin 入力 UI 用）
 export const TOOL_CATEGORY_ORDER: string[] = [...CHECK_CONSTRAINT_VALUES];
 
-export function getToolCategoryLabel(category: string): string | undefined {
-  return (TOOL_CATEGORY_LABELS as Record<string, string>)[category];
-}
 
-export function getToolCategoryIcon(category: string): ToolIconDef | undefined {
-  return (TOOL_CATEGORY_ICONS as Record<string, ToolIconDef>)[category];
-}

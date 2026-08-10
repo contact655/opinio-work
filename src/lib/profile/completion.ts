@@ -125,10 +125,6 @@ export function calcCompletion(d: CompletionInput): { score: number; items: Scor
  */
 const PUBLIC_KEYS = ["avatar", "name", "aboutMe", "location", "career", "edu", "certs", "social"] as const;
 
-/** 公開項目だけの満点。81。 */
-export const PUBLIC_SCORE_MAX = 81;
-
-/** 非公開項目（希望条件・生年月日）を受け取らない入力型。 */
 export type PublicCompletionInput = Omit<CompletionInput, "hasPreferences" | "hasBirthDate">;
 
 export function calcPublicScore(d: PublicCompletionInput): number {

@@ -67,5 +67,3 @@ export const DEGREES = [
   "その他",
 ] as const;
 
-/** 企業名の公開範囲 */
-export const COMPANY_VISIBILITIES = ["real", "masked", "hidden"] as const;

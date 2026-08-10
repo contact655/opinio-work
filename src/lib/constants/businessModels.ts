@@ -16,8 +16,3 @@ export const BUSINESS_MODEL_LABELS: Record<BusinessModelKey, string> = Object.fr
   BUSINESS_MODELS.map((m) => [m.key, m.label])
 ) as Record<BusinessModelKey, string>;
 
-/** key→labelの変換（DBに保存されているkeyから表示ラベルへ）*/
-export function getBusinessModelLabel(key: string | null | undefined): string | null {
-  if (!key) return null;
-  return BUSINESS_MODEL_LABELS[key as BusinessModelKey] ?? key;
-}

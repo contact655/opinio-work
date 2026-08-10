@@ -57,8 +57,3 @@ export const VALID_REMOTE_WORK_STATUSES = new Set<string>(
   REMOTE_WORK_STATUSES.map((o) => o.value),
 );
 
-/** 値 → 表示ラベル。未知の値はそのまま返す（黙って消さない） */
-export function workStyleLabel(value: string | null | undefined): string {
-  if (!value) return "";
-  return WORK_STYLE_LABELS[value] ?? value;
-}

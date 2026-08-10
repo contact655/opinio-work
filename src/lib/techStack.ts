@@ -11,4 +11,3 @@ export const TECH_STACK_CATEGORIES: TechStackCategory[] = [
   { label: "データ/AI", items: ["TensorFlow", "PyTorch", "BigQuery", "Snowflake"] },
 ];
 
-export const TECH_STACK_OPTIONS = TECH_STACK_CATEGORIES.flatMap((c) => c.items);

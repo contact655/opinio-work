@@ -29,17 +29,6 @@ export function requireAdmin(allMemberships: Membership[], companyId: string): v
   if (m?.permission !== "admin") throw new PermissionDeniedError();
 }
 
-/**
- * Checks if the actor is a member (any role) of companyId.
- * getCompanyContext() 自体がメンバーシップを保証するため、
- * 通常は呼び出し不要だが、明示的にガードしたい場合に使う。
- */
-export function requireMember(allMemberships: Membership[], companyId: string): void {
-  const m = allMemberships.find((m) => m.companyId === companyId);
-  if (!m) throw new PermissionDeniedError("この企業のメンバーではありません");
-}
-
-/** Standard 403 response for permission denied */
 export function permissionDeniedResponse(): NextResponse {
   return NextResponse.json(
     { error: "この操作には管理者権限が必要です", code: "permission_denied" },

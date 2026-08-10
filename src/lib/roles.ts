@@ -68,17 +68,6 @@ export async function addUserRole(supabase: SupabaseClient, role: UserRole): Pro
   return true;
 }
 
-/**
- * ユーザーが特定のロールを持っているか確認
- */
-export async function hasRole(supabase: SupabaseClient, role: UserRole): Promise<boolean> {
-  const roles = await getUserRoles(supabase);
-  return roles.includes(role);
-}
-
-/**
- * サーバーサイド：ユーザーのロール一覧と関連データを取得
- */
 export async function getUserRolesWithData(supabase: SupabaseClient) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

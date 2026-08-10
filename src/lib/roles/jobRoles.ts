@@ -98,27 +98,6 @@ export function resolveTopRoleIds(tree: RoleTree, roleIds: string[] | null | und
   return out;
 }
 
-/**
- * 求人の表示用職種ラベル。primary ロールの名前を返す。
- * ow_job_roles が空の場合のみ null（その場合は項目ごと非表示にすること。
- * 「値が無い」ことを「ある値」に置き換えない — CLAUDE.md のデータ表示の原則）。
- */
-export function jobRoleLabel(tree: RoleTree, roleIds: string[] | null | undefined): string | null {
-  const first = (roleIds ?? [])[0];
-  if (!first) return null;
-  return tree.byId.get(first)?.name ?? null;
-}
-
-/**
- * ビジネス職（OTE・担当セグメントの表示対象）かどうか。
- *
- * 旧実装は job_category のフリーテキストを Set で持っていたため、
- * 「エンタープライズ営業」は該当するが「営業」は該当しない、といった穴があった。
- * 9大分類で判定すれば表記ゆれの影響を受けない。
- *
- * ソリューションエンジニア・プリセールス系は ow_roles 上では営業配下なので、
- * ここでも自動的にビジネス職として扱われる（2026-08-03 の方針確定どおり）。
- */
 const BUSINESS_TOP_SLUGS = new Set(["sales", "cs", "marketing", "bizdev", "exec"]);
 
 export function isBusinessRole(tree: RoleTree, roleIds: string[] | null | undefined): boolean {
