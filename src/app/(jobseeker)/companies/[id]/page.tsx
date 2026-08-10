@@ -3031,7 +3031,8 @@ export default async function CompanyDetailPage({
   // Phase 2: 残りのデータを companyId（UUID）で並列取得
   const companyId = resolvedId;
 
-  const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools] = await Promise.all([
+  const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
+         viewerRowResult, articleIdRowsResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     getArticlesByCompany(companyId),
@@ -3051,6 +3052,18 @@ export default async function CompanyDetailPage({
       .eq("is_public", true)
       .then((r) => r.data ?? []),
     getCompanyTools(companyId),
+    /* ⚠️ 以下2本は Phase 1 の結果（authUser / companyId）しか要らないので、
+          後段で別の段を作らずここに相乗りさせる（2026-08-09）。
+          以前は「閲覧者の ow_users を引く段」と「記事IDを引く段」が
+          別々の待ちになっており、そのぶん TTFB が伸びていた。 */
+    authResult.data.user
+      ? adminSupabase
+          .from("ow_users")
+          .select("id, visibility")
+          .eq("auth_id", authResult.data.user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
   ]);
 
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
@@ -3075,14 +3088,14 @@ export default async function CompanyDetailPage({
   // ── 閲覧者とこの企業の関係を判定（公開設定導線用） ───────────────────────────
   // 在籍者・経験者本人にだけ「このページに掲載するか」を選べる導線を出す。
   // 参照するのは本人自身の ow_experiences 行のみ。
+  /** 閲覧者自身の ow_users 行。Phase 2 で1回だけ引いたものを使い回す。
+   *  ⚠️ ここで auth_id から引き直さないこと（2026-08-09 まで Phase 3 と二重に引いていた）。 */
+  const viewerRow = viewerRowResult.data as { id: string; visibility: string | null } | null;
+  const viewerErr = viewerRowResult.error;
+
   let viewerRelation: ViewerRelation = { kind: "anonymous" };
   if (authUser) {
     viewerRelation = { kind: "unrelated" };
-    const { data: viewerRow, error: viewerErr } = await adminSupabase
-      .from("ow_users")
-      .select("id, visibility")
-      .eq("auth_id", authUser.id)
-      .maybeSingle();
     if (viewerErr) {
       console.error("[companies/[id]] viewer lookup", viewerErr.message);
     } else if (viewerRow) {
@@ -3125,16 +3138,10 @@ export default async function CompanyDetailPage({
 
   const companyJobIds = detail.jobs.flatMap((c) => c.items.map((j) => j.id));
 
-  // Phase 3: owUsers lookup + 記事ID取得 を並行実行（互いに依存しない）
-  const [owUserResult, articleIdRowsResult] = await Promise.all([
-    isAuthenticated
-      ? supabase.from("ow_users").select("id").eq("auth_id", authUser!.id).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
-  ]);
-
+  /* ⚠️ 旧 Phase 3（閲覧者の ow_users ＋ 記事ID）は Phase 2 に統合した（2026-08-09）。
+        どちらも Phase 1 の結果しか要らず、独立した待ちを1段作る理由が無かった。 */
   const companyArticleIds = ((articleIdRowsResult.data ?? []) as { id: string }[]).map((r) => r.id);
-  const owUserId = owUserResult?.data?.id ?? null;
+  const owUserId = viewerRow?.id ?? null;
 
   const orParts: string[] = [`ref_company_id.eq.${companyId}`];
   if (companyJobIds.length > 0) orParts.push(`ref_job_id.in.(${companyJobIds.join(",")})`);
