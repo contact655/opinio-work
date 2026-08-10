@@ -668,43 +668,66 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 
 ---
 
-## オンボーディングの現状（2026-08-02 実測・これが正）
+## オンボーディングの現状（2026-08-10 更新・これが正）
 
-**過去セッションの記述（5ステップ / 3ステップ / jobTypes.ts 参照）はすべて古い。以下が実装の実態。**
+**2026-08-02 版の「会社名は保存されない」は解消済み。** 以下が現在の実態。
 
 ### 画面構成：1画面のみ
 
 `src/app/onboarding/OnboardingClient.tsx` は**単一画面**。
-見出しは「現在お勤めの会社を教えてください」で、企業検索インプット1つだけ（任意入力）。
+見出しは「現在お勤めの会社を教えてください」。ステップ分岐は無い。
 
-- 職種は聞いていない。`src/lib/constants/jobTypes.ts` は **import されていない**
-- 経験年数・悩みも聞いていない
-- ステップ分岐・ステップインジケータは存在しない
+聞くのは3つ。**会社を選ぶまで職種・入社年月は出さない**（入口の摩擦を増やさないため）。
 
-### 保存されるもの：`onboarding_completed` だけ
+| 項目 | 備考 |
+|---|---|
+| 会社 | マスタ検索 or 自由入力。どちらも可 |
+| 職種 | **トップレベルのみ**（`parent_id is null` かつ `merged_into_id is null` かつ `is_active`）。2026-08-10 時点で17件 |
+| 入社年月 | 年 + 月。`started_at` は `YYYY-MM` で送る |
+
+### 保存されるもの
 
 ```
 ow_profiles.onboarding_completed = true
+ow_experiences に1件（3つ揃ったときだけ）
 ```
 
-**入力された会社名（`query` / `selectedCompany`）は求職者としては保存されない。**
-用途は企業側サインアップリンク（`/biz/auth?company=...`）への引き継ぎのみ。
+⚠️ **3つ揃わなければ経歴は作らない。** 中途半端な行を作らない。
+   そのかわり「職種と入社年月を選ぶと経歴として保存されます」と**画面に出す**。
+   黙って捨てると、2026-08-02 に指摘された「入力させたのに保存しない」に戻る。
 
-理由はコード内コメントの通り、`ow_experiences.role_category_id` が NOT NULL で
-オンボーディング時点では解決できないため。将来タスクとして職種選択の追加が必要。
+⚠️ 経歴の保存は best-effort。失敗してもオンボーディング自体は完了させるが、
+   握り潰さず画面にもログにも出す。
 
-### ow_experiences の INSERT 経路は1本だけ
+⚠️ **`role_category_id` は親カテゴリの UUID をそのまま入れてよい。**
+   求人ページ側の突き合わせは親↔子の両方向に対応済みなので、
+   ここで子職種まで選ばせる必要はない
+   （上の「求人 ↔ 人の紐付けは職種を介して導出する」を参照）。
+
+⚠️ トップレベルは **17件**（2026-08-10 実測）。
+   以前 CLAUDE.md に「9件」と書いてあったが誤り。
+
+### 公開範囲
+
+既定は `real`（既存14件中13件が real で、企業ページに出るのが本人の目的に沿うため）。
+「会社名は伏せる」チェックで `masked` にできる。
+
+⚠️ **どこに出るかを保存前に画面へ明記すること。**
+   「その企業のページに『現役社員』として表示されます」と、
+   「見えるのは OPINIO にログインしている人だけ」の両方を出している。
+   `ow_users.visibility` が全員 `login_only` なので後者は事実。
+
+### ow_experiences の INSERT 経路
 
 | 経路 | 状態 |
 |---|---|
-| `POST /api/jobseeker/experiences` | ✅ 唯一の INSERT 経路。呼び出し元は `CareerHistoryEditor.tsx`（`/profile/edit`）のみ |
-| OnboardingClient | ❌ INSERT は削除済み（失敗し続けていたため） |
+| `POST /api/jobseeker/experiences` | ✅ **唯一の INSERT 経路** |
+| `/profile/edit` の `CareerHistoryEditor` | 上の API を呼ぶ |
+| オンボーディング | 上の API を呼ぶ（2026-08-10 追加） |
 
-`role_category_id` は**親カテゴリの UUID をそのまま入れてよい**。
-`ow_roles` のトップレベルは9件（経営・CxO / 事業開発 / 営業 / カスタマーサクセス /
-マーケティング / プロダクト / データ・AI / エンジニア / コーポレート）。
-実データでも `営業`・`コーポレート` が親のまま `role_category_id` に入っている。
-表示側（`CurrentEmployeesSection`）も `roleParentId` で親集約に対応済み。
+⚠️ 必須は3点だけ: `company_id` **XOR** `company_text` **XOR** `company_anonymized` /
+   `role_category_id` / `started_at`（`YYYY-MM`）。
+   会社を2つ送ると 400（XOR 制約 `experience_company_xor`）。
 
 ---
 

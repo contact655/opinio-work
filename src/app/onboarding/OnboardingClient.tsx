@@ -14,7 +14,20 @@ type CompanyResult = {
 
 // ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
 
-function OnboardingInner() {
+export type OnboardingRole = { id: string; name: string };
+
+/** 入社年の選択肢。⚠️ ビルド時ではなく描画時に現在年を取る */
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 51 }, (_, i) => CURRENT_YEAR - i);
+const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+
+const selectStyle: React.CSSProperties = {
+  flex: 1, minWidth: 0, padding: "10px 12px",
+  border: "1px solid var(--line)", borderRadius: 10,
+  fontSize: 14, fontFamily: "inherit", background: "#fff", color: "var(--ink)",
+};
+
+function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const router = useRouter();
 
   const [query, setQuery] = useState("");
@@ -24,6 +37,16 @@ function OnboardingInner() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
+     ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
+        2026-08-10 まではここで会社名だけ聞いて**捨てていた**。 */
+  const [roleId, setRoleId] = useState<string>("");
+  const [startedYear, setStartedYear] = useState<string>("");
+  const [startedMonth, setStartedMonth] = useState<string>("");
+  /* 会社名を伏せたい人向け。既定は実名（既存14件中13件が real で、
+     求人・企業ページに出るのが本人の目的に沿うため）。 */
+  const [maskCompany, setMaskCompany] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -112,8 +135,14 @@ function OnboardingInner() {
     setShowDropdown(false);
   };
 
+  /* 会社（マスタ or 自由入力）・職種・入社年月が揃って初めて保存できる。
+     ⚠️ 任意入力のままにする。埋めなければ従来どおり onboarding_completed だけ記録する。 */
+  const hasCompany = !!selectedCompany || query.trim().length > 0;
+  const canSaveExperience = hasCompany && !!roleId && !!startedYear && !!startedMonth;
+
   const finish = async () => {
     setSaving(true);
+    setSaveError(null);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -134,10 +163,40 @@ function OnboardingInner() {
         await supabase.from("ow_profiles").insert({ user_id: user.id, onboarding_completed: true });
       }
 
-      // 会社を登録（ow_experiences.user_id は ow_users.id を使う）
-      // 会社名入力欄 (query) は ow_experiences への保存を行わない
-      // role_category_id が必須フィールドのためオンボーディング時は解決できないため。
-      // プロフィール編集画面で登録する（将来タスク: オンボーディングへの職種選択追加）。
+      /* 経歴を1件作る。**ここが登録の入口**。
+         ⚠️ 2026-08-10 まで、会社名を入力させておきながら保存していなかった
+            （role_category_id が必須で解決できなかったため）。職種と入社年月を
+            聞くようにして解消した。
+         ⚠️ 3点が揃っていないときは何もしない。中途半端な行を作らない。
+         ⚠️ 失敗してもオンボーディング自体は完了させる（best-effort）。
+            ただし握り潰さず、画面にも出してログにも残す。 */
+      if (canSaveExperience) {
+        try {
+          const res = await fetch("/api/jobseeker/experiences", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              // ⚠️ company_id / company_text は **XOR**。両方送ると 400
+              ...(selectedCompany
+                ? { company_id: selectedCompany.id }
+                : { company_text: query.trim() }),
+              role_category_id: roleId,
+              started_at: `${startedYear}-${startedMonth}`,
+              is_current: true,
+              visibility_company: maskCompany ? "masked" : "real",
+              visibility_company_profile: maskCompany ? "masked" : "real",
+            }),
+          });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            console.error("[onboarding] 経歴の保存に失敗", res.status, j);
+            setSaveError("経歴の保存に失敗しました。プロフィール編集からあとで登録できます。");
+          }
+        } catch (err) {
+          console.error("[onboarding] 経歴の保存に失敗", err);
+          setSaveError("経歴の保存に失敗しました。プロフィール編集からあとで登録できます。");
+        }
+      }
 
       // candidate ロールを付与
       await fetch("/api/roles", {
@@ -438,6 +497,101 @@ function OnboardingInner() {
             </p>
           )}
 
+          {/* ── 職種・入社年月 ────────────────────────────────────────────────
+              ⚠️ 会社が決まってから出す。最初から3つ並べると入口が重くなる。
+              ⚠️ ここまで埋めて初めて経歴として保存できる（3点が必須）。 */}
+          {hasCompany && (
+            <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                職種
+              </div>
+              <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+                いちばん近いものを1つ選んでください。あとから詳しく設定できます。
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+                {roles.map((r) => {
+                  const active = roleId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRoleId(active ? "" : r.id)}
+                      style={{
+                        padding: "7px 13px", borderRadius: 100,
+                        border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                        background: active ? "var(--royal-50)" : "#fff",
+                        color: active ? "var(--royal)" : "var(--ink-soft)",
+                        fontSize: 13, fontWeight: active ? 700 : 500,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      {r.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+                入社年月
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <select
+                  value={startedYear}
+                  onChange={(e) => setStartedYear(e.target.value)}
+                  style={selectStyle}
+                  aria-label="入社年"
+                >
+                  <option value="">年</option>
+                  {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+                </select>
+                <select
+                  value={startedMonth}
+                  onChange={(e) => setStartedMonth(e.target.value)}
+                  style={selectStyle}
+                  aria-label="入社月"
+                >
+                  <option value="">月</option>
+                  {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+                </select>
+              </div>
+
+              {/* ⚠️ どこに出るかを、保存する前に明記する */}
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 18, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={maskCompany}
+                  onChange={(e) => setMaskCompany(e.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                  会社名は伏せる（プロフィールで「IT企業」のような表記になります）
+                </span>
+              </label>
+              <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10, lineHeight: 1.8 }}>
+                {maskCompany
+                  ? "会社名を伏せても、経歴はプロフィールに残ります。"
+                  : "この経歴は、その企業のページに「現役社員」として表示されます。"}
+                <br />
+                表示されるのは <strong style={{ color: "var(--ink-soft)" }}>OPINIO にログインしている人</strong> だけです。
+                公開範囲はプロフィール編集からいつでも変更できます。
+              </p>
+            </div>
+          )}
+
+          {/* ⚠️ 会社だけ埋めて職種・年月が空だと**保存されない**。
+                 黙って捨てると、いま直したのと同じ「入力させたのに保存しない」に戻る。 */}
+          {hasCompany && !canSaveExperience && (
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#92400E", background: "var(--warm-soft)",
+                        border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginTop: 16, lineHeight: 1.7 }}>
+              職種と入社年月を選ぶと、経歴として保存されます。
+              このまま進めると会社名は保存されません（あとからプロフィール編集で登録できます）。
+            </p>
+          )}
+
+          {saveError && (
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
+          )}
+
           <button
             type="button"
             onClick={finish}
@@ -512,14 +666,14 @@ function LogoMark() {
 
 // ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
 
-export default function OnboardingPage() {
+export default function OnboardingPage({ roles }: { roles: OnboardingRole[] }) {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-tint)" }}>
         <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid var(--royal-100)", borderTopColor: "var(--royal)", animation: "spin 0.8s linear infinite" }} />
       </div>
     }>
-      <OnboardingInner />
+      <OnboardingInner roles={roles} />
     </Suspense>
   );
 }
