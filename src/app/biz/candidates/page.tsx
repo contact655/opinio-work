@@ -66,6 +66,10 @@ export default async function CandidatesPage() {
     );
   }
 
+  /** スカウト送信が有効か。⚠️ API 側（POST /api/biz/scouts）と同じ判定にすること。
+   *  片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。 */
+  const scoutSendingEnabled = process.env.SCOUT_SENDING_ENABLED === "true";
+
   const adminClient = createAdminClient();
 
   // 並列取得: プロフィール・枠・転職禁止・スカウト済みセット
@@ -287,7 +291,25 @@ export default async function CandidatesPage() {
 
   return (
     <BusinessLayout {...layoutProps}>
-      <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} roleFilterTree={roleFilterTree} />
+      {/* ⚠️ スカウト送信は停止中（2026-08-09）。受信側の画面が無く、送っても
+             求職者に届かないため。再開は SCOUT_SENDING_ENABLED=true
+             （詳細は CLAUDE.md「スカウトは送れるが、受け取る手段が無い」）。
+             候補者検索そのものは使えるのでページは残す。 */}
+      {!scoutSendingEnabled && (
+        <div style={{
+          background: "var(--warm-soft)", border: "1px solid #FDE68A",
+          borderRadius: 10, padding: "14px 18px", marginBottom: 20,
+        }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+            スカウト送信は現在準備中です
+          </div>
+          <div style={{ fontSize: 12.5, color: "#92400E", lineHeight: 1.75 }}>
+            求職者側の受信画面を用意している最中のため、送信を一時的に停止しています。
+            候補者の検索・閲覧はそのままご利用いただけます。
+          </div>
+        </div>
+      )}
+      <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} roleFilterTree={roleFilterTree} scoutSendingEnabled={scoutSendingEnabled} />
     </BusinessLayout>
   );
 }

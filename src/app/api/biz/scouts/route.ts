@@ -42,6 +42,30 @@ export async function GET(_req: NextRequest) {
 
 // POST: send a scout to a candidate
 export async function POST(req: NextRequest) {
+  /* ⚠️ **スカウト送信は停止中**（2026-08-09）。再開するには
+        SCOUT_SENDING_ENABLED=true を環境変数に入れる。
+
+     ── なぜ止めたか ────────────────────────────────────────────────────
+     送信すると `ow_scouts` に行はできるが、**求職者がそれを知る手段が1つも無い**。
+       求職者側の閲覧UI … 無し
+       メール通知       … 無し（このファイルに sendEmail の呼び出しは無い）
+       アプリ内通知     … 無し（ow_notifications への書き込みは無い）
+     一方 `/biz/scouts` は「未読 / 既読 / 返信率」を表示するため、
+     企業には**永久に「未読」「返信率0%」**が出続けることになる。
+     LP の FAQ も「初期設定は受け取る」と説明しており、双方に事実と違う表示になる。
+
+     ⚠️ 2026-08-09 時点で ow_scouts は0件。**まだ誰も送っていないだけ**で、
+        公開76社はいつでも送れる状態だった。0件のうちに止めている。
+
+     ⚠️ 再開の前に受信側を作ること（CLAUDE.md「スカウトは送れるが、受け取る手段が無い」）。
+        フラグを true にするだけでは、届かない状態が復活する。 */
+  if (process.env.SCOUT_SENDING_ENABLED !== "true") {
+    return NextResponse.json(
+      { error: "スカウト機能は現在準備中です。受信側の画面を用意してから再開します。" },
+      { status: 503 }
+    );
+  }
+
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!ctx.isPublished) {

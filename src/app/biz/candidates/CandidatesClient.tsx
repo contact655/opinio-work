@@ -137,12 +137,17 @@ export default function CandidatesClient({
   scoutQuota,
   jobOptions = [],
   roleFilterTree = [],
+  scoutSendingEnabled = false,
 }: {
   candidates: Candidate[];
   scoutQuota?: ScoutQuota;
   jobOptions?: JobOption[];
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
+  /** スカウト送信が有効か。⚠️ 2026-08-09 時点は停止中（受信側の画面が無いため）。
+   *  false のときは送信ボタンを**出さない**。押せてAPIが 503 を返す形にすると、
+   *  企業には「失敗した」ようにしか見えない。 */
+  scoutSendingEnabled?: boolean;
 }) {
   // ── フリーワード ────────────────────────────────────────────────────
   const [q, setQ] = useState("");
@@ -846,8 +851,12 @@ export default function CandidatesClient({
                         )}
                       </div>
 
-                      {/* 右: アクション */}
+                      {/* 右: アクション
+                          ⚠️ scoutSendingEnabled が false のときは送信ボタンを出さない。
+                             出したままにすると押せてしまい、API が 503 を返して
+                             企業には「失敗した」ようにしか見えない（2026-08-09）。 */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                        {scoutSendingEnabled ? (
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); openScout(c); }}
                           disabled={(scoutQuota?.remaining ?? 1) === 0}
@@ -861,6 +870,15 @@ export default function CandidatesClient({
                           }}>
                           {c.alreadyScouted ? "再スカウト" : "スカウトを送る"}
                         </button>
+                        ) : (
+                          <span style={{
+                            fontSize: 12, padding: "7px 14px", borderRadius: 7, fontWeight: 700,
+                            background: "var(--bg-tint)", color: "var(--ink-mute)",
+                            whiteSpace: "nowrap" as const, border: "1px solid var(--line)",
+                          }}>
+                            スカウト準備中
+                          </span>
+                        )}
                         <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}
                           onClick={(e) => e.stopPropagation()}>
