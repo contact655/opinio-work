@@ -140,7 +140,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           .clv-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,35,102,0.14) !important; }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
           @media (max-width: 600px) {
-            .clv-card { gap: 10px !important; min-height: 110px !important; }
+            /* ⚠️ gap は縦積みの行間になった（2026-08-11 に横並びから変更） */
+            .clv-card { gap: 8px !important; min-height: 0 !important; }
             .clv-logo { width: 44px !important; height: 44px !important; min-width: 44px !important; }
           }
         `}</style>
@@ -149,9 +150,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           target="_blank"
           className="clv-card"
           style={{
+            /* ⚠️ 2026-08-11: 横並び（ロゴ｜テキスト）から縦積みに変更。
+                  タグラインをロゴの下まで全幅に回すため。
+                  テキスト列 355px → 約425px に広がり、2行で約68文字入る。
+                  変更前は 40枚中23枚（58%）が1行クランプで途中で切れていた。 */
             display: "flex",
-            alignItems: "center",
-            gap: 14,
+            flexDirection: "column",
+            gap: 10,
             background: "#fff",
             borderRadius: 12,
             minHeight: 142,
@@ -164,7 +169,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             position: "relative",
           }}
         >
-          {/* ── ロゴ正方形（白背景・影付き） ── */}
+          {/* ── ヘッダー行: ロゴ ＋ 名前（ロゴと名前が同じ行にあるので基準線が1本になる）──
+              ⚠️ 右に paddingRight を取ってあるのは、右上のハート（絶対配置）の下に
+                 長い社名が潜り込まないようにするため。 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, paddingRight: 30 }}>
           <CompanyLogo
             name={company.name}
             logoUrl={company.logo_url}
@@ -204,12 +212,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </svg>
           </button>
 
-          {/* ── テキスト情報（3行）── */}
-          <div style={{
-            flex: 1, minWidth: 0,
-            display: "flex", flexDirection: "column", gap: 4,
-          }}>
-            {/* 行1: ブランド名（大・濃）＋ 正式名称（小・薄） */}
+          {/* ブランド名（大・濃）＋ 正式名称（小・薄）
+              ⚠️ 正式名称は重複していても省略しない。ブランド名と正式名称が
+                 別物の企業があるため（例: Kong / コング・ジャパン株式会社）。 */}
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span className="clv-name" style={{
                 fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
@@ -228,59 +234,68 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 }}>{company.name}</span>
               )}
             </div>
+          </div>
+          </div>
 
-            {/* 行3: タグライン（2行まで） */}
-            {company.tagline && (
-              <span style={{
-                fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.45,
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: 1,
-                WebkitBoxOrient: "vertical",
-              } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
+          {/* ── 区切り線: ここから下は全幅 ── */}
+          <div style={{ borderTop: "1px solid var(--line-soft)" }} />
+
+          {/* タグライン（全幅・2行まで）
+              ⚠️ ここがカードで一番情報量のある行。2行に広げるために全幅へ回した。 */}
+          {/* ⚠️ タグラインが無い企業（87社中7社）や1行の企業でもカードの高さを揃えるため、
+                 **常に2行ぶんの高さを確保する**。確保しないと 157px と 176px に割れて、
+                 グリッドの行をまたいだときに段差ができる。 */}
+          <span style={{
+            fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.55,
+            minHeight: "3.1em",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          } as React.CSSProperties}>{company.tagline ? company.tagline.replace(/^「|」$/g, "") : ""}</span>
+
+          {/* ── メタ行: 従業員数 · 募集中 · 在籍者 ──
+              ⚠️ 所在地と勤務形態は 2026-08-11 に非表示化。データは残っているので、
+                 出すならここに戻す（location / branch_locations / remote_work_status）。 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: "auto" }}>
+            {company.employee_count && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+                {/* ⚠️ 所在地を消して裸の数字になったので、何の数かをアイコンで示す */}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                {formatEmployeeCount(company.employee_count)}
+              </span>
             )}
 
-            {/* 行4: 従業員数
-                ⚠️ 所在地と勤務形態は 2026-08-11 に非表示化（カードを軽くするため）。
-                    データは残っているので、出すならここに戻す。 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {company.employee_count && (
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{formatEmployeeCount(company.employee_count)}</span>
-              )}
-            </div>
+            {company.job_count > 0 && (
+              <>
+                {company.employee_count && <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>·</span>}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap" }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 3h-8l-2 4h12l-2-4z" />
+                  </svg>
+                  募集中 {company.job_count}件
+                </span>
+              </>
+            )}
 
-            {/* 行5: リモート ＋ アバター ＋ 募集中 */}
-            {(members.length > 0 || memberCount > 0 || company.job_count > 0) && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                {/* アバターアイコン列（現役・OBOG） */}
-                {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
-                  <div style={{ display: "flex", alignItems: "center", paddingLeft: members.length > 0 ? 6 : 0 }}>
-                    {members.slice(0, 4).map((m) => (
-                      <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
-                    ))}
-                    <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginLeft: members.length > 0 ? 8 : 0, whiteSpace: "nowrap" }}>
-                      {memberCount > 0 ? `現役${memberCount}名` : ""}
-                      {obogCount > 0 ? `・OB${obogCount}名` : ""}
-                    </span>
-                  </div>
-                )}
-                {company.job_count > 0 && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 12, fontWeight: 800, padding: "3px 9px", borderRadius: 100,
-                    background: "var(--royal)", color: "#fff",
-                    whiteSpace: "nowrap",
-                  }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2"/>
-                      <path d="M16 3h-8l-2 4h12l-2-4z"/>
-                    </svg>
-                    募集中 {company.job_count}件
+            {/* 在籍者（現役・OBOG）。いる企業だけ出る */}
+            {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
+              <>
+                {(company.employee_count || company.job_count > 0) && <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>·</span>}
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  {members.slice(0, 4).map((m) => (
+                    <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
+                  ))}
+                  <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginLeft: members.length > 0 ? 8 : 0, whiteSpace: "nowrap" }}>
+                    {memberCount > 0 ? `現役${memberCount}名` : ""}
+                    {obogCount > 0 ? `${memberCount > 0 ? "・" : ""}OB${obogCount}名` : ""}
                   </span>
-                )}
-              </div>
+                </span>
+              </>
             )}
-
           </div>
         </Link>
       </>
