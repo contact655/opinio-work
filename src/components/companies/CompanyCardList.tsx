@@ -122,9 +122,13 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const displayName = enName ?? stripLegalSuffix(company.name);
   const isEnName = !!enName;
   const showSubtitle = displayName !== company.name;
-  // ライブ集計値を優先、なければ静的カラム（deprecated）にフォールバック
-  const memberCount = company.live_current_count ?? company.current_member_count ?? (members?.length ?? 0);
-  const obogCount   = company.live_obog_count   ?? company.obog_count           ?? 0;
+  /* 在籍者のライブ集計。**ライブ値のみを見る**（2026-08-11）。
+     ⚠️ `current_member_count` / `obog_count`（@deprecated 静的カラム）への
+        フォールバックは外した。値は `searchCompanies` が必ず数値で付けるので
+        （lib/search/companies.ts:274-275）、フォールバックは元から到達しない。
+     ⚠️ compact=true のカードでは使っていない。使うのは compact=false の StatCol だけ。 */
+  const memberCount = company.live_current_count ?? 0;
+  const obogCount   = company.live_obog_count   ?? 0;
   // company_features は現在非表示（culture tags 削除済み）
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
   const meetingBorder = "1px solid var(--line)";
@@ -242,24 +246,42 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
 
           {/* タグライン（全幅・2行まで）
               ⚠️ ここがカードで一番情報量のある行。2行に広げるために全幅へ回した。 */}
-          {/* ⚠️ タグラインが無い企業（87社中7社）や1行の企業でもカードの高さを揃えるため、
-                 **常に2行ぶんの高さを確保する**。確保しないと 157px と 176px に割れて、
-                 グリッドの行をまたいだときに段差ができる。 */}
+          {/* タグライン（全幅・1行省略）
+              ⚠️ 2行組は検討したうえで**不採用**（2026-08-11）。日本語は述語が後ろに来るため
+                 折り返し位置が不揃いになりやすく、禁則違反（行頭の「ー」等）も出ていた。
+                 1行固定にすると全カードの行数が構造的に揃う。
+              ⚠️ 省略で失われる「何をする会社か」は、下のメタ行の industry タグで補う。
+              ⚠️ `minHeight` は不要になったので外した（1行固定＝高さが常に一定）。 */}
           <span style={{
             fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.55,
-            minHeight: "3.1em",
+            whiteSpace: "nowrap",
             overflow: "hidden",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-          } as React.CSSProperties}>{company.tagline ? company.tagline.replace(/^「|」$/g, "") : ""}</span>
+            textOverflow: "ellipsis",
+          }}>{company.tagline ? company.tagline.replace(/^「|」$/g, "") : ""}</span>
 
-          {/* ── メタ行: 従業員数 · 募集中 · 在籍者 ──
-              ⚠️ 所在地と勤務形態は 2026-08-11 に非表示化。データは残っているので、
-                 出すならここに戻す（location / branch_locations / remote_work_status）。 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: "auto" }}>
+          {/* ── メタ行: industry タグ / 従業員数 / 募集中バッジ ──
+              ⚠️ `marginTop: "auto"` を維持すること。要素の有無でカード下端が崩れないため。
+              ⚠️ 値が無い項目は要素ごと出さない。「—」や「0件」で埋めない。
+              ⚠️ 所在地は入れない。76社が migration の固定値「東京都」で区すら無い。
+              ⚠️ 資本情報（phase / capital_type）も入れない。phase は 55/76 が listed だが
+                 その大半は外資系日本法人で、「上場」は実質**親会社**の上場を指す。
+                 一覧にバッジで並べると誤読を生むため詳細ページに残す（2026-08-11 判断）。
+              ⚠️ 在籍者（この会社の人）は入れない。76社中2社にしかデータが無いため。 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "auto" }}>
+            {/* 業種タグ — 塗りなし・淡い背景。募集中バッジと強さで差をつける */}
+            {company.industry && (
+              <span style={{
+                fontSize: 11, color: "var(--ink-soft)",
+                background: "var(--bg-tint)", border: "1px solid var(--line)",
+                /* ⚠️ `var(--radius)` は**存在しない**。未定義の var() は宣言ごと無効になり
+                      角丸が 0 になる。タグ用は `--radius-sm`（6px、globals.css:100）。 */
+                padding: "2px 8px", borderRadius: "var(--radius-sm)",
+                whiteSpace: "nowrap", flexShrink: 0,
+              }}>{company.industry}</span>
+            )}
+
             {company.employee_count && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap", flexShrink: 0 }}>
                 {/* ⚠️ 所在地を消して裸の数字になったので、何の数かをアイコンで示す */}
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
@@ -269,34 +291,25 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               </span>
             )}
 
+            {/* 募集中 — 一覧で最も行動につながる情報なので**塗り**にして右端に固定。
+                ⚠️ 上の業種タグを同じ強さで塗らないこと。どちらを見ればいいか分からなくなる。 */}
             {company.job_count > 0 && (
-              <>
-                {company.employee_count && <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>·</span>}
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap" }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 3h-8l-2 4h12l-2-4z" />
-                  </svg>
-                  募集中 {company.job_count}件
-                </span>
-              </>
-            )}
-
-            {/* 在籍者（現役・OBOG）。いる企業だけ出る */}
-            {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
-              <>
-                {(company.employee_count || company.job_count > 0) && <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>·</span>}
-                <span style={{ display: "inline-flex", alignItems: "center" }}>
-                  {members.slice(0, 4).map((m) => (
-                    <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
-                  ))}
-                  <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, marginLeft: members.length > 0 ? 8 : 0, whiteSpace: "nowrap" }}>
-                    {memberCount > 0 ? `現役${memberCount}名` : ""}
-                    {obogCount > 0 ? `${memberCount > 0 ? "・" : ""}OB${obogCount}名` : ""}
-                  </span>
-                </span>
-              </>
+              <span style={{
+                marginLeft: "auto", flexShrink: 0,
+                display: "inline-flex", alignItems: "center", gap: 3,
+                fontSize: 11, fontWeight: 800,
+                padding: "3px 9px", borderRadius: 100,
+                background: "var(--royal)", color: "#fff",
+                whiteSpace: "nowrap",
+              }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 3h-8l-2 4h12l-2-4z" />
+                </svg>
+                募集中 {company.job_count}件
+              </span>
             )}
           </div>
+
         </Link>
       </>
     );
