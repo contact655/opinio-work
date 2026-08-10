@@ -12,7 +12,6 @@ export const INDUSTRY_GROUPS = [
   { key: "ec",        label: "コマース・EC",          values: ["コマース・EC"] },
 ] as const;
 
-export type IndustryGroupKey = (typeof INDUSTRY_GROUPS)[number]["key"];
 
 export function resolveIndustryFilter(industryParam: string): string[] | null {
   const group = INDUSTRY_GROUPS.find((g) => g.key === industryParam);

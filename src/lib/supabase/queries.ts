@@ -1809,19 +1809,7 @@ export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
     .filter((a): a is Article => a !== undefined);
 }
 
-// ── Job alumni map (role-aware: matches ow_experiences by role category) ────────
 
-export type CompanyAlumniPreview = {
-  userId: string;
-  name: string;
-  gradient: string;
-};
-
-export type JobAlumniInput = {
-  jobId: string;
-  companyId: string;
-  jobCategory: string | null;
-};
 
 
 export type RoleAlias = { alias: string; roleId: string };

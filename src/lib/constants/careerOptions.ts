@@ -23,25 +23,6 @@ export const EMPLOYMENT_TYPES = [
   "その他",
 ] as const;
 
-export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
-
-/**
- * 求人の雇用形態。**経歴側の EMPLOYMENT_TYPES とは意図的に違う。**
- *
- * ── なぜ分けるか（2026-08-07）──────────────────────────────────────────────
- *   求人 = 企業が「これから採る」形態。経歴 = 本人が「経験した」形態。
- *   ・「その他」は経歴には要る（過去の形態は多様）が、求人に出しても
- *     求職者に情報が無いので出さない
- *   ・「インターン」は求人にはあるが、経歴側の選択肢には元から無い
- *   ・「派遣社員」は経歴にはあるが、求人フォームには元から無い
- *
- * ⚠️ **分けてよいが、離して置かない。** 2026-08-07 以前は求人側が
- *    JobEditForm.tsx に、フィルタが JobsClient.tsx に直書きされていて、
- *    3つの語彙に割れていた（フィルタにしか無い「副業」で絞ると必ず0件、
- *    契約社員・インターン・アルバイト・パートは登録できるのに絞れない）。
- *    値を足すときは **UI / API / DB の CHECK の3つ**を揃えること
- *    （ow_jobs_employment_type_check）。
- */
 export const JOB_EMPLOYMENT_TYPES = [
   "正社員",
   "業務委託",
@@ -50,7 +31,6 @@ export const JOB_EMPLOYMENT_TYPES = [
   "アルバイト・パート",
 ] as const;
 
-export type JobEmploymentType = (typeof JOB_EMPLOYMENT_TYPES)[number];
 
 export const VALID_JOB_EMPLOYMENT_TYPES = new Set<string>(JOB_EMPLOYMENT_TYPES);
 

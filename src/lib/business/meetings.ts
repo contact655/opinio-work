@@ -171,19 +171,6 @@ export function transformMeeting(
   };
 }
 
-// ─── Dashboard: simplified meeting type + fetcher ────────
-
-// Mirrors MeetingApplication from PendingMeetings.tsx (structural match)
-export type DashboardMeeting = {
-  id: string;
-  candidateUserId: string | null; // ow_users.id — 公開プロフィールリンク用
-  candidateName: string;
-  candidateInitial: string;
-  candidateGradient: string;
-  jobTitle: string | null;
-  appliedAt: string;
-  status: "pending" | "company_contacted" | "scheduled" | "declined";
-};
 
 
 

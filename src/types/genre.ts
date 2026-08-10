@@ -60,7 +60,3 @@ export type CompanyForCarousel = {
      常に null で「表示されないUI」が残っていたため。 */
 };
 
-export type GenreWithCompanies = Genre & {
-  companies: CompanyForCarousel[];
-  total_count: number;
-};

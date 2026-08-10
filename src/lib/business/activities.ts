@@ -22,18 +22,3 @@ export async function insertActivity(
     console.warn("[ow_activities insert] unexpected:", e);
   }
 }
-
-// ─── Read helpers ────────────────────────────────────────
-
-// Mirrors ActivityItem from ActivityList.tsx (structural match)
-type ActivityType = "application" | "meeting_scheduled" | "message" | "job_published" | "offer";
-
-export type DashboardActivity = {
-  id: string;
-  type: ActivityType;
-  body: string;
-  time: string;
-};
-
-
-
