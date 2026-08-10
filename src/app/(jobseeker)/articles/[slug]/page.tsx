@@ -11,6 +11,7 @@ import {
 } from "@/app/articles/mockArticleData";
 import {
   getArticleBySlug,
+  getArticles,
   getArticlesBySlugs,
   resolvePublishedCompanyHref,
 } from "@/lib/supabase/queries";
@@ -19,6 +20,27 @@ import { BackToTop } from "@/components/jobseeker/BackToTop";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 300;
+
+/*
+ * ⚠️ **これが無いと `revalidate` が効かない**（2026-08-09 実測）。
+ *
+ * 本番で宣言と実態を突き合わせたところ、動的セグメントは
+ * `generateStaticParams` を持つものだけがキャッシュされていた。
+ *
+ *   あり … /salary/[slug]  /jobs/dept/[slug]  /articles/type/[slug]   → HIT/PRERENDER
+ *   なし … /articles/[slug]  /jobs/[id]  /companies/[id]              → 毎回 MISS
+ *
+ * 効くページの TTFB は 0.06〜0.10秒、効かないページは 0.15〜0.47秒だった。
+ *
+ * ⚠️ ここに載らない記事（ビルド後に公開されたもの）も表示はできる。
+ *    `dynamicParams` の既定が true なので、未知の slug は都度レンダリングされ、
+ *    以降 revalidate に従ってキャッシュされる。
+ */
+export async function generateStaticParams() {
+  // getArticles() は本番では is_published = true だけを返す
+  const articles = await getArticles();
+  return articles.map((a) => ({ slug: a.slug }));
+}
 
 // ─── generateMetadata ─────────────────────────────────────────────────────────
 
