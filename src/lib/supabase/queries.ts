@@ -1474,6 +1474,76 @@ export const getCompanyEmployeesCached = (companyId: string) =>
     { revalidate: 120 }
   )();
 
+/*
+ * ⚠️ 以下3本は 2026-08-09 に追加した。`/companies/[id]` は認証を読むため
+ *    ルート単位では動的（毎リクエストで再レンダリング）になっており、
+ *    ここを都度DBに問い合わせていた。企業単位の公開データなので、
+ *    閲覧者によって内容は変わらない＝キャッシュしてよい。
+ *
+ * ⚠️ **60秒はページの `export const revalidate = 60` に合わせている。**
+ *    企業側でストーリーを公開しても、反映は最大60秒遅れる。
+ *    `/biz/posts` の Server Action は `revalidatePath("/biz/posts")` しか
+ *    呼んでおらず、公開ページのキャッシュを落とさないため。
+ *    即時反映が要るようになったら、そちらに公開ページの revalidate を足すこと。
+ */
+
+/** 企業に紐づく公開記事 */
+export const getArticlesByCompanyCached = (companyId: string) =>
+  unstable_cache(
+    () => getArticlesByCompany(companyId),
+    ["company-articles", companyId],
+    { revalidate: 60 }
+  )();
+
+/** 社内で使っているツール。公開/非公開の状態を持たないので長めでよい */
+export const getCompanyToolsCached = (companyId: string) =>
+  unstable_cache(
+    () => getCompanyTools(companyId),
+    ["company-tools", companyId],
+    { revalidate: 300 }
+  )();
+
+/** 企業ストーリー（公開済みのみ）。型は呼び出し側の CompanyPost と同形 */
+export const getCompanyStoriesCached = (companyId: string) =>
+  unstable_cache(
+    async () => {
+      const { data, error } = await createAdminClient()
+        .from("ow_company_posts")
+        .select("id, title, body, category, cover_image_url, published_at")
+        .eq("company_id", companyId)
+        .eq("is_published", true)
+        .order("published_at", { ascending: false });
+      // ⚠️ error を握りつぶさない。空配列と「取得失敗」を区別できなくなる
+      if (error) {
+        console.error("[getCompanyStoriesCached]", error.message);
+        return [];
+      }
+      return data ?? [];
+    },
+    ["company-stories", companyId],
+    { revalidate: 60 }
+  )();
+
+/** 公開中のアンバサダー（本人同意 + 公開設定の両方が立っている人だけ） */
+export const getPublicAmbassadorsCached = (companyId: string) =>
+  unstable_cache(
+    async () => {
+      const { data, error } = await createAdminClient()
+        .from("ow_company_members")
+        .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url)")
+        .eq("company_id", companyId)
+        .eq("display_consent", true)
+        .eq("is_public", true);
+      if (error) {
+        console.error("[getPublicAmbassadorsCached]", error.message);
+        return [];
+      }
+      return data ?? [];
+    },
+    ["company-ambassadors", companyId],
+    { revalidate: 60 }
+  )();
+
 // ─── Company employee categories (ow_company_employee_categories) ─────────────
 
 /** Phase Q: 各企業のカテゴリ表示設定 (display_order 順) */

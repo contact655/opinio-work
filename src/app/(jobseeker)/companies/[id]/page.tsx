@@ -9,9 +9,11 @@ import {
   getCompanyBySlugOrId,
   getCompanyPhotosCached,
   getCompanyRecruitersCached,
-  getArticlesByCompany,
+  getArticlesByCompanyCached,
   getCompanyEmployeesCached,
-  getCompanyTools,
+  getCompanyToolsCached,
+  getCompanyStoriesCached,
+  getPublicAmbassadorsCached,
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { InfoCard } from "./InfoCard";
@@ -3035,23 +3037,15 @@ export default async function CompanyDetailPage({
          viewerRowResult, articleIdRowsResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
-    getArticlesByCompany(companyId),
+    /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
+          このページは認証を読むためルート単位では毎回再レンダリングされるが、
+          企業単位の公開データは閲覧者によって変わらないのでキャッシュしてよい。
+          反映の遅れはページの `export const revalidate = 60` と同じ契約。 */
+    getArticlesByCompanyCached(companyId),
     getCompanyEmployeesCached(companyId),
-    adminSupabase
-      .from("ow_company_posts")
-      .select("id, title, body, category, cover_image_url, published_at")
-      .eq("company_id", companyId)
-      .eq("is_published", true)
-      .order("published_at", { ascending: false })
-      .then((r: { data: CompanyPost[] | null }) => r.data ?? []),
-    adminSupabase
-      .from("ow_company_members")
-      .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url)")
-      .eq("company_id", companyId)
-      .eq("display_consent", true)
-      .eq("is_public", true)
-      .then((r) => r.data ?? []),
-    getCompanyTools(companyId),
+    getCompanyStoriesCached(companyId) as Promise<CompanyPost[]>,
+    getPublicAmbassadorsCached(companyId),
+    getCompanyToolsCached(companyId),
     /* ⚠️ 以下2本は Phase 1 の結果（authUser / companyId）しか要らないので、
           後段で別の段を作らずここに相乗りさせる（2026-08-09）。
           以前は「閲覧者の ow_users を引く段」と「記事IDを引く段」が
