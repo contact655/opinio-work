@@ -4,10 +4,10 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getRoleTree, resolvePublishedCompanyHref, getJobs, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
-import { createClient } from "@/lib/supabase/server";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
@@ -21,6 +21,24 @@ import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
+
+/*
+ * ⚠️ **これが無いと `revalidate` が効かない**（2026-08-09 実測）。
+ *    本番で突き合わせたところ、動的セグメントは `generateStaticParams` を
+ *    持つものだけがキャッシュされていた（詳細は CLAUDE.md）。
+ *
+ * ⚠️ ここに載らない求人（ビルド後に公開されたもの）も表示できる。
+ *    `dynamicParams` の既定が true なので、未知の id は都度レンダリングされ、
+ *    以降 revalidate（60秒）に従う。
+ *
+ * ⚠️ 60秒は掲載状態（`status`）が出るページの上限。伸ばさないこと。
+ *    求人を閉じた後も流入し続ける時間になる。
+ */
+export async function generateStaticParams() {
+  // getJobs() は { jobs, companies } を返す。公開中の求人だけが入る
+  const { jobs } = await getJobs();
+  return jobs.map((j) => ({ id: j.slug ?? j.id }));
+}
 
 /**
  * JSON-LD（JobPosting）の employmentType に出す schema.org の語彙。
@@ -483,28 +501,16 @@ export default async function JobDetailPage({ params }: { params: { id: string }
   // 求人ロールに紐づいた現役社員・OBOG
   const jobEmployees = await getJobEmployees(job.company_id, job.role_category_id ?? null);
 
-  // Auth + bookmark state
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const isAuthenticated = !!user;
-  let initialBookmarked = false;
-  if (user) {
-    const { data: owUser } = await supabase
-      .from("ow_users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-    if (owUser) {
-      const { data: bmark } = await supabase
-        .from("ow_bookmarks")
-        .select("id")
-        .eq("user_id", owUser.id)
-        .eq("target_type", "job")
-        .eq("target_id", job.id)
-        .maybeSingle();
-      initialBookmarked = !!bmark;
-    }
-  }
+  /* ⚠️ ブックマーク状態はここで引かない（2026-08-09）。
+        引くと `auth.getUser()` が要り、ルートが動的化して
+        `export const revalidate = 60` が効かなくなる。
+        BookmarkButton が props 無しのとき自分で取りに行く。
+        ⚠️ ここに閲覧者依存の問い合わせを足さないこと。
+
+     ⚠️ 以降の問い合わせは admin クライアントを使う。
+        session クライアント（`createClient()`）は Cookie を読むため、
+        1箇所でも使うとルートごと動的になる。 */
+  const supabase = createAdminClient();
 
   // 同じ職種の他社求人。
   // 旧実装は job_category の完全一致だったため、「エンタープライズ営業」と「営業」が
@@ -1673,8 +1679,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     targetType="job"
                     targetId={job.id}
                     label="気になるに追加"
-                    initialBookmarked={initialBookmarked}
-                    isAuthenticated={isAuthenticated}
                     variant="with-text"
                   />
                 </div>

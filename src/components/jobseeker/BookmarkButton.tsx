@@ -1,11 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  useBookmarkState,
+  invalidateBookmarks,
+  type BookmarkTargetType,
+} from "@/lib/bookmarks/useBookmarkState";
 
 /**
  * 汎用ブックマークボタン
  * target_type: "company" | "job" | "mentor" | "article"
+ *
+ * ⚠️ `initialBookmarked` / `isAuthenticated` は**任意**（2026-08-09）。
+ *
+ *    渡す   … 呼び出し側が既に一覧を持っている場合（`/jobs` の JobsClient）。
+ *             二重取得にならない。
+ *    渡さない … 詳細ページなど。ボタンが自分で取りに行く。
+ *             サーバーで引くとページが動的化して ISR が効かなくなるため、
+ *             **詳細ページでは渡さないこと。**
  */
 export function BookmarkButton({
   targetType,
@@ -15,20 +28,37 @@ export function BookmarkButton({
   isAuthenticated,
   variant = "icon-only",
 }: {
-  targetType: "company" | "job" | "mentor" | "article";
+  targetType: BookmarkTargetType;
   targetId: string;
   label: string;
-  initialBookmarked: boolean;
-  isAuthenticated: boolean;
+  initialBookmarked?: boolean;
+  isAuthenticated?: boolean;
   /** "icon-only": 星アイコンのみ（40×40px）、"with-text": テキスト付きボタン */
   variant?: "icon-only" | "with-text";
 }) {
-  const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  // props で渡されていないときだけ自分で取る
+  const selfManaged = initialBookmarked === undefined || isAuthenticated === undefined;
+  const fetched = useBookmarkState(targetType, targetId);
+
+  const [bookmarked, setBookmarked] = useState(initialBookmarked ?? false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // 自前取得のときは、取れた時点で反映する
+  useEffect(() => {
+    if (selfManaged && fetched.ready) setBookmarked(fetched.bookmarked);
+  }, [selfManaged, fetched.ready, fetched.bookmarked]);
+
+  // props 経由のときは、親の値の変化に追従する（従来どおり）
+  useEffect(() => {
+    if (!selfManaged && initialBookmarked !== undefined) setBookmarked(initialBookmarked);
+  }, [selfManaged, initialBookmarked]);
+
+  const authed = selfManaged ? fetched.authenticated : !!isAuthenticated;
+
   const toggle = async () => {
-    if (!isAuthenticated) {
+    if (selfManaged && !fetched.ready) return; // 取得前は状態が確定しないので待つ
+    if (!authed) {
       router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -42,6 +72,7 @@ export function BookmarkButton({
         body: JSON.stringify({ target_type: targetType, target_id: targetId }),
       });
       if (!res.ok) setBookmarked(!next);
+      else invalidateBookmarks(targetType);
     } catch {
       setBookmarked(!next);
     } finally {

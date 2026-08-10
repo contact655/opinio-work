@@ -799,12 +799,23 @@ export const getRoleTree = cache(async function getRoleTree(): Promise<RoleTree>
 /**
  * job_id → ow_job_roles の role_id[]（is_primary が先頭）。RLS バイパス。
  *
- * ⚠️ no-store クライアントで引く。ADMIN で職種タグを付け替えたとき、
+ * ⚠️ 既定は no-store クライアント。ADMIN で職種タグを付け替えたとき、
  *    fetch キャッシュに載っていると `unstable_cache` の期限が切れた後も
  *    古いタグを返し続ける（createNoStoreAdminClient のコメント参照）。
+ *
+ * @param opts.cached true にすると通常の admin クライアントを使う。
+ *   ⚠️ **プリレンダリングされるページから呼ぶときは必ず true。**
+ *      no-store fetch は `DynamicServerError` になり、
+ *      **ビルドは失敗せずに職種だけ黙って消えたページが生成される**
+ *      （2026-08-09 に `/jobs/[id]` へ generateStaticParams を足して実際に踏んだ）。
+ *   ⚠️ そもそもページがキャッシュされるなら no-store に鮮度上の意味は無い。
+ *      配信されるのはキャッシュ済みHTMLで、鮮度はページの revalidate が決める。
  */
-export async function getJobRoleMap(jobIds?: string[]): Promise<Map<string, string[]>> {
-  const admin = createNoStoreAdminClient();
+export async function getJobRoleMap(
+  jobIds?: string[],
+  opts?: { cached?: boolean },
+): Promise<Map<string, string[]>> {
+  const admin = opts?.cached ? createAdminClient() : createNoStoreAdminClient();
   let q = admin.from("ow_job_roles").select("job_id, role_id, is_primary");
   if (jobIds && jobIds.length > 0) q = q.in("job_id", jobIds);
   const { data, error } = await q;
@@ -1058,7 +1069,13 @@ export const getJobById = cache(async function getJobById(
   // 職種は ow_job_roles が正。詳細ページでも roleIds / roleName を使えるようにする
   // （job_category は移行期間中の派生値で、判定には使わない）。
   const job = mapJob(jobRow);
-  const [roleMap, roleTree] = await Promise.all([getJobRoleMap([job.id]), getRoleTree()]);
+  /* ⚠️ cached: true。この関数は `/jobs/[id]`（プリレンダリング対象）から呼ばれる。
+        no-store のままだとビルド時に DynamicServerError になり、
+        職種が空のままページが生成される（ビルドは成功してしまう）。 */
+  const [roleMap, roleTree] = await Promise.all([
+    getJobRoleMap([job.id], { cached: true }),
+    getRoleTree(),
+  ]);
   const own = roleMap.get(job.id) ?? [];
   if (own.length > 0) {
     const expanded = new Set(own);
