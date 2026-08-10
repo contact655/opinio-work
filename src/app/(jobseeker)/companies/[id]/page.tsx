@@ -98,18 +98,20 @@ export async function generateMetadata({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-/* ⚠️ ブックマーク／フォローの状態は props で渡さない（2026-08-09）。
-      各ボタンが `useCompanyViewerState` で自分で取る。
-      ここに閲覧者依存の props を足すと、それを作るためにサーバーで
-      認証を読むことになり、ページの ISR が壊れる。 */
 function Hero({
   company,
   detail,
+  initialBookmarked,
+  initialFollowed,
+  isAuthenticated,
   recruiters,
   coverPhotoUrl,
 }: {
   company: Company;
   detail: CompanyDetail;
+  initialBookmarked: boolean;
+  initialFollowed: boolean;
+  isAuthenticated: boolean;
   recruiters: CompanyRecruiter[];
   coverPhotoUrl?: string | null;
 }) {
@@ -312,9 +314,15 @@ function Hero({
                 <BookmarkButton
                   companyName={company.name}
                   companyId={company.id}
+                  initialBookmarked={initialBookmarked}
+                  isAuthenticated={isAuthenticated}
                   variant="pill"
                 />
-                <FollowButton companyId={company.id} />
+                <FollowButton
+                  companyId={company.id}
+                  initialFollowed={initialFollowed}
+                  isAuthenticated={isAuthenticated}
+                />
               </div>
 
               {/* ⑨ Perk chips removed — work style info is shown in stats strip below */}
@@ -3127,26 +3135,34 @@ export default async function CompanyDetailPage({
   /* ⚠️ 旧 Phase 3（閲覧者の ow_users ＋ 記事ID）は Phase 2 に統合した（2026-08-09）。
         どちらも Phase 1 の結果しか要らず、独立した待ちを1段作る理由が無かった。 */
   const companyArticleIds = ((articleIdRowsResult.data ?? []) as { id: string }[]).map((r) => r.id);
+  const owUserId = viewerRow?.id ?? null;
+
   const orParts: string[] = [`ref_company_id.eq.${companyId}`];
   if (companyJobIds.length > 0) orParts.push(`ref_job_id.in.(${companyJobIds.join(",")})`);
   if (companyArticleIds.length > 0) orParts.push(`ref_article_id.in.(${companyArticleIds.join(",")})`);
 
-  /* ⚠️ ブックマークとフォローの取得はここから外した（2026-08-09）。
-        閲覧者ごとに変わる値なのでサーバーで引くとページを動的化させる。
-        `/api/jobseeker/companies/[id]/viewer-state` からクライアントが取る。
-        ⚠️ ここに閲覧者依存の問い合わせを足さないこと。足した瞬間に
-           `export const revalidate = 60` がまた効かなくなる。 */
-  const activityPostsRaw = await adminSupabase
-    // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
-    //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
-    .from("ow_posts_visible")
-    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
-    .or(orParts.join(","))
-    .neq("post_type", "company_joined")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  // Phase 4: activityPosts + bookmark/follow を並行実行
+  const [activityPostsRaw, bmarkResult, followResult] = await Promise.all([
+    adminSupabase
+  // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
+  //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
+      .from("ow_posts_visible")
+      .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
+      .or(orParts.join(","))
+      .neq("post_type", "company_joined")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    owUserId
+      ? supabase.from("ow_bookmarks").select("id").eq("user_id", owUserId).eq("target_type", "company").eq("target_id", companyId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    owUserId
+      ? createAdminClient().from("ow_company_follows").select("id").eq("follower_user_id", owUserId).eq("company_id", companyId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
+  const initialBookmarked = !!bmarkResult.data;
+  const initialFollowed = !!followResult.data;
 
   // Group posts by (YYYY-MM-DD, post_type) for 更新情報 display
   type ActivityGroup = { date: string; dateLabel: string; post_type: string; posts: ActivityPost[] };
@@ -3190,7 +3206,7 @@ export default async function CompanyDetailPage({
       />
       <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb items={[{ label: "OPINIO", href: "/" }, { label: "企業", href: "/companies" }, { label: company.name }]} />
-      <Hero company={company} detail={detail} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
+      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} initialFollowed={initialFollowed} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[

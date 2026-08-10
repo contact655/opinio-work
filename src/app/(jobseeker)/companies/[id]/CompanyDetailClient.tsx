@@ -4,10 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
-import {
-  useCompanyViewerState,
-  invalidateCompanyViewerState,
-} from "@/lib/companies/useCompanyViewerState";
 
 // ─── ShareButton ───────────────────────────────────────────────────────────────
 
@@ -252,22 +248,21 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
 
 // ─── FollowButton ─────────────────────────────────────────────────────────────
 
-export function FollowButton({ companyId }: { companyId: string }) {
-  /* ⚠️ 状態はサーバーから props で受け取らずここで取る。
-        サーバーで引くとページ全体が動的化して ISR が効かなくなるため。 */
-  const viewer = useCompanyViewerState(companyId);
-  const [followed, setFollowed] = useState(false);
+export function FollowButton({
+  companyId,
+  initialFollowed,
+  isAuthenticated,
+}: {
+  companyId: string;
+  initialFollowed: boolean;
+  isAuthenticated: boolean;
+}) {
+  const [followed, setFollowed] = useState(initialFollowed);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // 取得が終わったら反映する（それまでは未フォロー表示＝サーバーHTMLと同じ）
-  useEffect(() => {
-    if (viewer.ready) setFollowed(viewer.following);
-  }, [viewer.ready, viewer.following]);
-
   const toggle = async () => {
-    if (!viewer.ready) return;            // 取得前は押せても状態が確定しないので待つ
-    if (!viewer.authenticated) {
+    if (!isAuthenticated) {
       router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -279,7 +274,6 @@ export function FollowButton({ companyId }: { companyId: string }) {
         method: next ? "POST" : "DELETE",
       });
       if (!res.ok) setFollowed(!next);
-      else invalidateCompanyViewerState(companyId);
     } catch {
       setFollowed(!next);
     } finally {
@@ -316,25 +310,22 @@ export function FollowButton({ companyId }: { companyId: string }) {
 export default function BookmarkButton({
   companyName,
   companyId,
+  initialBookmarked,
+  isAuthenticated,
   variant = "icon",
 }: {
   companyName: string;
   companyId: string;
+  initialBookmarked: boolean;
+  isAuthenticated: boolean;
   variant?: "icon" | "pill";
 }) {
-  // ⚠️ FollowButton と同じ取得を共有する（企業IDごとに1本しか飛ばない）
-  const viewer = useCompanyViewerState(companyId);
-  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    if (viewer.ready) setBookmarked(viewer.bookmarked);
-  }, [viewer.ready, viewer.bookmarked]);
-
   const toggle = async () => {
-    if (!viewer.ready) return;
-    if (!viewer.authenticated) {
+    if (!isAuthenticated) {
       router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -350,7 +341,6 @@ export default function BookmarkButton({
         body: JSON.stringify({ target_type: "company", target_id: companyId }),
       });
       if (!res.ok) setBookmarked(!next); // revert on failure
-      else invalidateCompanyViewerState(companyId);
     } catch {
       setBookmarked(!next); // revert on network error
     } finally {
