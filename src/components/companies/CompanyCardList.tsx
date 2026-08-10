@@ -131,12 +131,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
   const meetingBoxShadow = "0 1px 4px rgba(15,23,42,0.06)";
 
   // ① リモート表示
-  const remoteLabel: Record<string, string> = {
-    full_remote: "🏠 フルリモート",
-    hybrid:      "🏠 ハイブリッド",
-    on_site:     "🏢 出社",
-  };
-  const remoteText = company.remote_work_status ? remoteLabel[company.remote_work_status] ?? null : null;
 
   if (compact) {
     return (
@@ -246,33 +240,18 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               } as React.CSSProperties}>{company.tagline.replace(/^「|」$/g, "")}</span>
             )}
 
-            {/* 行4: メタ（所在地 + 従業員数） */}
+            {/* 行4: 従業員数
+                ⚠️ 所在地と勤務形態は 2026-08-11 に非表示化（カードを軽くするため）。
+                    データは残っているので、出すならここに戻す。 */}
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {company.location && (
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                  <span style={{ whiteSpace: "nowrap" }}>{company.location.replace(/[（(].*/, "").trim().replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
-                  {company.branch_locations && company.branch_locations.length > 0 && (
-                    <span style={{ color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
-                      ＋{company.branch_locations.slice(0, 2).join("・")}
-                      {company.branch_locations.length > 2 && <span style={{ fontSize: 12 }}> 他</span>}
-                    </span>
-                  )}
-                </span>
-              )}
               {company.employee_count && (
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>· {formatEmployeeCount(company.employee_count)}</span>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{formatEmployeeCount(company.employee_count)}</span>
               )}
             </div>
 
             {/* 行5: リモート ＋ アバター ＋ 募集中 */}
-            {(remoteText || members.length > 0 || memberCount > 0 || company.job_count > 0) && (
+            {(members.length > 0 || memberCount > 0 || company.job_count > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                {remoteText && (
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{remoteText}</span>
-                )}
                 {/* アバターアイコン列（現役・OBOG） */}
                 {(members.length > 0 || memberCount > 0 || obogCount > 0) && (
                   <div style={{ display: "flex", alignItems: "center", paddingLeft: members.length > 0 ? 6 : 0 }}>
@@ -377,30 +356,8 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             </div>
           )}
 
-          {/* リモート */}
-          {remoteText && (
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{remoteText}</span>
-            </div>
-          )}
-
-          {/* 所在地 + 従業員数 + #7: メンバーアバター */}
+          {/* 従業員数 + メンバーアバター（所在地・勤務形態は 2026-08-11 に非表示化） */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {company.location && (
-              <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 3 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                <span>{company.location.replace(/[（(].*/, "").trim().replace(/^東京都/, "東京").replace(/^大阪府/, "大阪").replace(/^京都府/, "京都").replace(/[都道府県]$/, "")}</span>
-                {company.branch_locations && company.branch_locations.length > 0 && (
-                  <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>
-                    ＋{company.branch_locations.slice(0, 3).join("・")}
-                    {company.branch_locations.length > 3 && " 他"}
-                  </span>
-                )}
-              </span>
-            )}
             {company.employee_count && (
               <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 3 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={2} strokeLinecap="round">
