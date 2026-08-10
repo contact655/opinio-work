@@ -1420,6 +1420,21 @@ export async function getCompanyEmployees(companyId: string): Promise<{
 /**
  * 求人詳細ページ用: 同社 × 同ロールカテゴリの社員・OBOG を取得
  * roleCategoryId が null の場合は company 全員を返す（フォールバック）
+ *
+ * ── 判定は「同じ系統にいるか」を**両方向**で見る（2026-08-10 修正）────────
+ *
+ * ⚠️ 以前は片方向しか見ておらず、**求人が子職種・本人が親職種**の組み合わせを
+ *    取りこぼしていた。当時の実測で公開求人18件は**全部が子職種**、
+ *    経歴14件のうち2件が親職種のままで、その2人はどの求人にも出ない状態だった。
+ *
+ * ⚠️ これは登録者の入力ミスではない。`role_category_id` には
+ *    **親カテゴリの UUID をそのまま入れてよい**仕様で（CLAUDE.md「オンボーディングの現状」）、
+ *    企業ページ側（CurrentEmployeesSection）は親集約に対応済み。
+ *    求人ページ側だけが対応していなかった。
+ *
+ * ⚠️ **兄弟は一致させない。** 「エンタープライズセールス」の求人に
+ *    「インサイドセールス」の人を出さない。同じ親を持つだけの関係は別の職種。
+ *    そのため求人側の祖先を展開したうえで、本人側は自分と親までしか見ない。
  */
 export async function getJobEmployees(
   companyId: string,
@@ -1428,8 +1443,15 @@ export async function getJobEmployees(
   const all = await getCompanyEmployees(companyId);
   if (!roleCategoryId) return all;
 
+  /* 求人職種とその祖先。`expandWithAncestors` は /jobs の絞り込みと同じ展開なので、
+     判定のしかたが画面ごとにズレない。 */
+  const tree = await getRoleTree();
+  const jobLineage = new Set(expandWithAncestors(tree, [roleCategoryId]));
+
   const matchRole = (emp: CompanyEmployee) =>
-    emp.roleCategoryId === roleCategoryId ||
+    // 本人の職種が、求人職種か その祖先（＝本人が親カテゴリで登録している場合を含む）
+    (emp.roleCategoryId != null && jobLineage.has(emp.roleCategoryId)) ||
+    // 本人が子職種で、求人が親職種（従来から拾えていた向き）
     emp.roleParentId === roleCategoryId;
 
   const current = all.current.filter(matchRole);
