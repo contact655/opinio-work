@@ -7,6 +7,7 @@ import type React from "react";
 import { permanentRedirect } from "next/navigation";
 import {
   getCompanyBySlugOrId,
+  getCompaniesForList,
   getCompanyPhotosCached,
   getCompanyRecruitersCached,
   getArticlesByCompanyCached,
@@ -17,10 +18,13 @@ import {
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { InfoCard } from "./InfoCard";
+import { SecTitle } from "./SecTitle";
+import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
+import { AV_GRADIENTS } from "./avatarGradients";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStageCfg } from "@/lib/utils/stageCfg";
-import type { CompanyPhoto, CompanyRecruiter, CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
+import type { CompanyPhoto, CompanyRecruiter } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
@@ -28,13 +32,11 @@ import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, EmployeeAvatarImg, FollowButton } from "./CompanyDetailClient";
+import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
-import { createClient } from "@/lib/supabase/server";
-import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
@@ -46,6 +48,22 @@ const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
 
 // 5分間 ISR キャッシュ
 export const revalidate = 60;
+
+/*
+ * ⚠️ **これが無いと `revalidate` が効かない**（2026-08-09 実測。詳細は CLAUDE.md）。
+ *    動的セグメントは generateStaticParams を持つものだけがキャッシュされる。
+ *
+ * ⚠️ 足す前に、このページから no-store の読み取りに到達しないか確認すること。
+ *    到達するとビルドは成功したまま、その項目だけ消えたページが生成される。
+ *    2026-08-09 時点では到達しないことを確認済み。
+ */
+export async function generateStaticParams() {
+  /* ⚠️ `getCompanies()` は使えない。内部で Cookie を読む `createClient()` を使っており、
+        ビルド時（リクエスト外）に `cookies was called outside a request scope` で落ちる。
+        admin クライアントを使う `getCompaniesForList()` を通すこと。 */
+  const companies = await getCompaniesForList();
+  return companies.map((c) => ({ id: c.slug ?? c.id }));
+}
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -98,20 +116,18 @@ export async function generateMetadata({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+/* ⚠️ ブックマーク／フォローの状態は props で渡さない（2026-08-09）。
+      各ボタンが useCompanyViewerState で自分で取る。
+      ここに閲覧者依存の props を足すと、それを作るためにサーバーで
+      認証を読むことになり、ページの ISR が壊れる。 */
 function Hero({
   company,
   detail,
-  initialBookmarked,
-  initialFollowed,
-  isAuthenticated,
   recruiters,
   coverPhotoUrl,
 }: {
   company: Company;
   detail: CompanyDetail;
-  initialBookmarked: boolean;
-  initialFollowed: boolean;
-  isAuthenticated: boolean;
   recruiters: CompanyRecruiter[];
   coverPhotoUrl?: string | null;
 }) {
@@ -314,15 +330,9 @@ function Hero({
                 <BookmarkButton
                   companyName={company.name}
                   companyId={company.id}
-                  initialBookmarked={initialBookmarked}
-                  isAuthenticated={isAuthenticated}
                   variant="pill"
                 />
-                <FollowButton
-                  companyId={company.id}
-                  initialFollowed={initialFollowed}
-                  isAuthenticated={isAuthenticated}
-                />
+                <FollowButton companyId={company.id} />
               </div>
 
               {/* ⑨ Perk chips removed — work style info is shown in stats strip below */}
@@ -403,65 +413,6 @@ function Hero({
 }
 
 // TabsBar removed — replaced by CompanyStickyNav (scroll-spy version)
-
-function SecTitle({
-  icon,
-  children,
-  iconColor = "default",
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  iconColor?: "default" | "green" | "purple" | "warm";
-}) {
-  const iconBg: Record<string, string> = {
-    default: "var(--royal-50)",
-    green: "var(--success-soft,#ECFDF5)",
-    purple: "var(--purple-soft,#F3E8FF)",
-    warm: "var(--warm-soft,#FEF3C7)",
-  };
-  const iconFg: Record<string, string> = {
-    default: "var(--royal)",
-    green: "var(--success)",
-    purple: "var(--purple)",
-    warm: "#B45309",
-  };
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-3)",
-        fontFamily: 'var(--font-noto-sans)',
-        fontWeight: 800,
-        fontSize: 20,
-        color: "var(--ink)",
-        letterSpacing: "-0.01em",
-        lineHeight: 1.25,
-      }}
-    >
-      <span
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: "50%",
-          background: iconBg[iconColor],
-          color: iconFg[iconColor],
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          fontSize: 15,
-        }}
-      >
-        {icon}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-// ─── Sections ─────────────────────────────────────────────────────────────────
 
 function AboutSection({
   detail,
@@ -936,861 +887,6 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
 
 // ─── Employee Voices Section ─────────────────────────────────────────────────
 
-function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) {
-  const voices = employees.filter(e => e.catchphrase && e.catchphrase.trim().length > 0);
-  if (voices.length === 0) return null;
-
-  return (
-    <section
-      id="voices"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
-        <SecTitle
-          iconColor="purple"
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          }
-        >
-          社員の声
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 400, fontFamily: "Inter, sans-serif", marginLeft: "var(--space-2)" }}>
-            {voices.length}名
-          </span>
-        </SecTitle>
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-        <style>{`
-          .voices-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: var(--space-4);
-          }
-          @media (max-width: 767px) {
-            .voices-grid { grid-template-columns: 1fr; }
-          }
-        `}</style>
-        <div className="voices-grid">
-          {voices.slice(0, 6).map((emp) => {
-            const avatarColor = resolveAvatarColor(emp.roleParentId, emp.roleCategoryId);
-            return (
-              <a
-                key={emp.userId}
-                href={`/u/${emp.userId}`}
-                style={{ textDecoration: "none" }}
-              >
-                <div style={{
-                  padding: "var(--space-4)",
-                  border: "1px solid var(--line)",
-                  borderRadius: 14,
-                  background: "var(--bg-tint)",
-                  transition: "border-color 0.15s, box-shadow 0.15s",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-3)",
-                }}
-                className="voice-card"
-                >
-                  {/* Quote text */}
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <svg
-                      width="22" height="22" viewBox="0 0 24 24" fill="var(--purple-soft,#F3E8FF)"
-                      style={{ position: "absolute", top: -4, left: -4, opacity: 0.8 }}
-                    >
-                      <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-                      <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
-                    </svg>
-                    <p style={{
-                      margin: 0,
-                      paddingLeft: 20,
-                      fontSize: "var(--text-sm)",
-                      color: "var(--ink)",
-                      lineHeight: 1.75,
-                      fontWeight: 500,
-                    }}>
-                      {emp.catchphrase}
-                    </p>
-                  </div>
-                  {/* Attribution */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-2)" }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: "50%",
-                      background: avatarColor.bg,
-                      flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                      fontWeight: 700, fontSize: 13, color: avatarColor.text,
-                      overflow: "hidden", border: "1.5px solid var(--line)",
-                      position: "relative",
-                    }}>
-                      {emp.avatarUrl ? (
-                        <EmployeeAvatarImg src={emp.avatarUrl} alt={emp.name} fallbackBg={avatarColor.bg} fallbackText={emp.avatarInitial ?? emp.name.charAt(0)} fallbackColor={avatarColor.text} fontSize={13} />
-                      ) : emp.avatarInitial}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {emp.name}
-                      </div>
-                      {emp.roleTitle && (
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {emp.roleTitle}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Employee Sections ────────────────────────────────────────────────────────
-
-// 生年から現在の年齢を計算
-function calcAge(birthYear: number | null): number | null {
-  if (!birthYear) return null;
-  return new Date().getFullYear() - birthYear;
-}
-
-// 現役社員・OB/OG 共通の統一カードレイアウト
-function EmployeeCardInner({
-  employee,
-  age,
-  badge,
-  subInfo,
-}: {
-  employee: CompanyEmployee;
-  age: number | null;
-  badge?: React.ReactNode;
-  subInfo?: React.ReactNode;
-}) {
-  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-      {/* アバター */}
-      <div style={{
-        width: 48, height: 48, borderRadius: "50%",
-        background: avatarColor.bg, flexShrink: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
-        color: avatarColor.text, overflow: "hidden",
-        border: "2px solid var(--line)", position: "relative",
-      }}>
-        {employee.avatarUrl ? (
-          <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name}
-            fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
-            fallbackColor={avatarColor.text} fontSize={18} />
-        ) : (employee.avatarInitial ?? employee.name.charAt(0))}
-      </div>
-
-      {/* テキスト */}
-      <div style={{ minWidth: 0, flex: 1 }}>
-        {/* 1行目: 名前 + 年齢 + バッジ */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-            {employee.name}
-          </span>
-          {age !== null && (
-            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
-              {age}歳
-            </span>
-          )}
-          {badge}
-        </div>
-        {/* 2行目: 職種のみ（部署階層は表示しない） */}
-        {employee.roleTitle && (
-          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {employee.roleTitle}
-          </p>
-        )}
-        {/* 追加情報（在籍期間など） */}
-        {subInfo}
-      </div>
-    </div>
-  );
-}
-
-function EmployeeCard({
-  employee,
-  ambassadorInfo,
-  companyId,
-}: {
-  employee: CompanyEmployee;
-  showEndedAt?: boolean;
-  ambassadorInfo?: { memberId: string } | null;
-  companyId?: string;
-}) {
-  const isAmbassador = !!ambassadorInfo;
-  const age = calcAge(employee.birthYear);
-
-  const badge = isAmbassador ? (
-    <span style={{
-      fontSize: 12, fontWeight: 700,
-      padding: "2px 7px", borderRadius: 100,
-      background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
-      color: "#92400E", border: "1px solid #FCD34D",
-      whiteSpace: "nowrap", flexShrink: 0,
-    }}>💬 面談OK</span>
-  ) : undefined;
-
-  if (isAmbassador && companyId) {
-    return (
-      <div style={{
-        display: "flex", flexDirection: "column", gap: 10,
-        padding: "12px 14px",
-        background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12,
-      }}>
-        <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
-          style={{ display: "flex", textDecoration: "none" }}>
-          <EmployeeCardInner employee={employee} age={age} badge={badge} />
-        </a>
-        <Link
-          href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
-          style={{
-            display: "block", textAlign: "center",
-            padding: "8px 16px",
-            background: "linear-gradient(135deg, #F59E0B, #F97316)",
-            color: "#fff", borderRadius: 8,
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
-      style={{
-        display: "flex", alignItems: "center",
-        padding: "12px 14px",
-        background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 12,
-        textDecoration: "none",
-      }}
-    >
-      <EmployeeCardInner employee={employee} age={age} badge={badge} />
-    </a>
-  );
-}
-
-// person-card-grid: 全人物カードセクション共通（面談OK/現役社員/OBOG）
-const EMPLOYEE_GRID_CSS = `
-  /* 人物カードのグリッドは 1fr ではなく minmax(0, 1fr) を使う（2026-08-08）。
-     grid item は既定が min-width: auto なので、1fr だと中身の min-content まで
-     トラックが膨らむ。375px で 285px の枠に 380px のカードが出ていた
-     （役職名「CTC / 金融営業本部 営業第1部 / 法人営業（アカウント営業）」が原因）。
-     ⚠️ ここはテンプレートリテラルの中。コメントにバッククォートを書かないこと。 */
-  .person-card-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-  @media (max-width: 767px) {
-    .person-card-grid { grid-template-columns: minmax(0, 1fr); }
-  }
-  .employee-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-  }
-  @media (max-width: 1023px) {
-    .employee-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 767px) {
-    .employee-grid { grid-template-columns: minmax(0, 1fr); }
-  }
-  .alumni-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-  }
-  @media (max-width: 1023px) {
-    .alumni-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 767px) {
-    .alumni-grid { grid-template-columns: minmax(0, 1fr); }
-  }
-`;
-
-
-function CurrentEmployeesSection({
-  employees,
-  hiddenCount = 0,
-  totalCount,
-  categories,
-  ambassadorMap,
-  companyId,
-}: {
-  employees: CompanyEmployee[];
-  hiddenCount?: number;
-  totalCount?: number;
-  categories: CompanyEmployeeCategoryItem[];
-  ambassadorMap: Map<string, { memberId: string }>;
-  companyId: string;
-}) {
-  // ⑨ 0名でも empty state を表示するため早期 return を削除
-
-  // ── カテゴリ別社員マップ (roleId → employees) ──────────────────────────────
-  const empsByCategory = new Map<string, CompanyEmployee[]>();
-  for (const emp of employees) {
-    if (!emp.roleCategoryId) continue;
-    // 既存: 子UUID（または子なし親UUID）→ 社員
-    if (!empsByCategory.has(emp.roleCategoryId)) empsByCategory.set(emp.roleCategoryId, []);
-    empsByCategory.get(emp.roleCategoryId)!.push(emp);
-    // 追加: 親UUID → 社員（親カテゴリ登録時の集約用）
-    if (emp.roleParentId) {
-      if (!empsByCategory.has(emp.roleParentId)) empsByCategory.set(emp.roleParentId, []);
-      empsByCategory.get(emp.roleParentId)!.push(emp);
-    }
-  }
-
-  // ── 親グループ化 (display_order 順を保持) ─────────────────────────────────
-  type Group = {
-    groupKey: string;
-    parentName: string;
-    isParentDirect: boolean; // parent_id が null = 親直カテゴリ
-    children: CompanyEmployeeCategoryItem[];
-  };
-  const groups: Group[] = [];
-  const groupMap = new Map<string, Group>();
-  for (const cat of categories) {
-    const groupKey = cat.parentId ?? cat.roleId ?? cat.id;
-    if (!groupMap.has(groupKey)) {
-      const g: Group = {
-        groupKey,
-        parentName: cat.parentId ? (cat.parentName ?? cat.roleName) : cat.roleName,
-        isParentDirect: !cat.parentId,
-        children: [],
-      };
-      groups.push(g);
-      groupMap.set(groupKey, g);
-    }
-    groupMap.get(groupKey)!.children.push(cat);
-  }
-
-  // カテゴリ未割り当て社員 (roleCategoryId が null の場合)
-  const uncategorized = employees.filter((e) => !e.roleCategoryId);
-
-  const SECTION_ICON = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-
-  return (
-    <>
-    <style>{EMPLOYEE_GRID_CSS}</style>
-    <section
-      id="current-employees"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header */}
-      <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-      }}>
-        <SecTitle icon={SECTION_ICON}>
-          現役社員
-          <span
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: "var(--text-sm)",
-              fontWeight: 400,
-              color: "var(--ink-mute)",
-              marginLeft: "var(--space-2)",
-            }}
-          >
-            ({totalCount ?? employees.length}名)
-          </span>
-        </SecTitle>
-
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-      {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
-      {employees.length >= 3 && categories.length > 0 && (() => {
-        const catCounts = new Map<string, number>();
-        for (const emp of employees) {
-          const label = emp.roleParentName ?? emp.roleCategoryName ?? "その他";
-          catCounts.set(label, (catCounts.get(label) ?? 0) + 1);
-        }
-        const entries = Array.from(catCounts.entries()).sort((a, b) => b[1] - a[1]);
-        const total = employees.length;
-        const COLORS = ["var(--royal)", "#3B5FD9", "#7C3AED", "var(--success)", "#F59E0B", "#DC2626", "#6b7280"];
-        return (
-          <div style={{ marginBottom: "var(--space-6)" }}>
-            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: "var(--space-2)", gap: 2 }}>
-              {entries.map(([name, count], i) => (
-                <div
-                  key={name}
-                  title={`${name}: ${count}名 (${Math.round((count / total) * 100)}%)`}
-                  style={{
-                    flex: `${count} 0 0`,
-                    background: COLORS[i % COLORS.length],
-                    borderRadius: 100,
-                  }}
-                />
-              ))}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 16px" }}>
-              {entries.map(([name, count], i) => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0, display: "inline-block" }} />
-                  {name}
-                  <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{count}</span>名
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      {employees.length === 0 ? (
-        <div style={{
-          textAlign: "center",
-          padding: "40px 24px",
-          color: "var(--ink-mute)",
-        }}>
-          {hiddenCount > 0 ? (
-            <>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
-                ログインすると{hiddenCount}名のプロフィールが見られます
-              </div>
-              <a href="/auth" style={{ display: "inline-block", marginTop: 12, padding: "8px 22px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                ログイン / 会員登録 →
-              </a>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📸</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
-                現在登録されている社員情報はありません
-              </div>
-              <div style={{ fontSize: 13, lineHeight: 1.7 }}>
-                現役社員・OB/OGがプロフィールを登録すると<br />ここに表示されます
-              </div>
-            </>
-          )}
-        </div>
-      ) : categories.length === 0 ? (
-        // カテゴリ設定なし → レスポンシブ列
-        <div className="employee-grid">
-          {employees.map((emp) => (
-            <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
-          ))}
-        </div>
-      ) : (
-        // カテゴリ設定あり → 階層表示
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-          {groups.map((group) => {
-            const totalInGroup = group.children.reduce(
-              (sum, cat) => sum + (empsByCategory.get(cat.roleId ?? "")?.length ?? 0),
-              0
-            );
-            if (totalInGroup === 0) return null; // 0 名カテゴリは非表示
-
-            return (
-              <div key={group.groupKey}>
-                {/* 親カテゴリ見出し */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 6,
-                    marginBottom: "var(--space-3)",
-                    paddingBottom: "var(--space-2)",
-                    borderBottom: "1px solid var(--line-soft)",
-                  }}
-                >
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
-                    {group.parentName}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 400,
-                      color: "var(--ink-mute)",
-                    }}
-                  >
-                    {totalInGroup}名
-                  </span>
-                </div>
-
-                {group.isParentDirect ? (
-                  // 親直: 子見出しなしでグリッドを直接表示
-                  <div className="employee-grid">
-                    {(empsByCategory.get(group.children[0].roleId ?? "") ?? []).map((emp) => (
-                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
-                    ))}
-                  </div>
-                ) : (
-                  // 子カテゴリあり: 子見出し + グリッド
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                    {group.children.map((cat) => {
-                      const empsInCat = empsByCategory.get(cat.roleId ?? "") ?? [];
-                      if (empsInCat.length === 0) return null;
-                      return (
-                        <div key={cat.roleId ?? cat.id}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "baseline",
-                              gap: 5,
-                              marginBottom: "var(--space-2)",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: "var(--text-xs)",
-                                fontWeight: 600,
-                                color: "var(--ink-soft)",
-                              }}
-                            >
-                              {cat.roleName}
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "Inter, sans-serif",
-                                fontSize: "var(--text-xs)",
-                                fontWeight: 400,
-                                color: "var(--ink-mute)",
-                              }}
-                            >
-                              {empsInCat.length}名
-                            </span>
-                          </div>
-                          <div className="employee-grid">
-                            {empsInCat.map((emp) => (
-                              <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* カテゴリ未割り当て社員 */}
-          {uncategorized.length > 0 && (
-            <div>
-              <div
-                style={{
-                  fontSize: "var(--text-sm)",
-                  fontWeight: 700,
-                  color: "var(--ink)",
-                  marginBottom: "var(--space-3)",
-                  paddingBottom: "var(--space-2)",
-                  borderBottom: "1px solid var(--line-soft)",
-                }}
-              >
-                その他
-              </div>
-              <div className="employee-grid">
-                {uncategorized.map((emp) => (
-                  <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      </div>
-    </section>
-    </>
-  );
-}
-
-// ─── AlumniCard ──────────────────────────────────────────────────────────────
-
-function AlumniCard({ employee }: { employee: CompanyEmployee }) {
-  const age = calcAge(employee.birthYear);
-
-  function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
-    if (!startedAt || !endedAt) return null;
-    const [sy, sm] = startedAt.split("-").map(Number);
-    const [ey, em] = endedAt.split("-").map(Number);
-    const months = (ey - sy) * 12 + (em - sm);
-    if (months <= 0) return null;
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    if (years === 0) return `${rem}ヶ月`;
-    if (rem === 0) return `${years}年`;
-    return `${years}年${rem}ヶ月`;
-  }
-
-  const tenure = calcTenure(employee.startedAt, employee.endedAt);
-
-  /* ⚠️ 「💬 DM可」バッジは 2026-08-08 に削除した。
-        条件なしで全員に出ており、情報量が無かった（誰に出しても同じ）。 */
-  const badge = tenure ? (
-    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
-      {tenure}
-    </span>
-  ) : null;
-
-  const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
-  /* 2行目に現在の会社名、3行目に職種を分けて出す（2026-08-08）。
-     それまで「CTC / 金融営業本部 営業第1部 / 法人営業（アカウント営業）」のように
-     1行に詰めており、狭い画面で会社名まで省略記号に飲まれていた。
-     ⚠️ 値そのものは変えていない（会社名は brand_name ?? name、職種は自己申告の役職名）。
-     ⚠️ 省略記号を効かせるには minWidth: 0 が要る（親は flex item）。 */
-  const line = {
-    margin: "2px 0 0", fontSize: 12, fontWeight: 500,
-    minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-  } as const;
-  const subInfo = (currentDisplayName || employee.currentRoleTitle) ? (
-    <>
-      {currentDisplayName && (
-        <p title={currentDisplayName} style={{ ...line, color: "var(--ink-mute)" }}>
-          {currentDisplayName}
-        </p>
-      )}
-      {employee.currentRoleTitle && (
-        <p title={employee.currentRoleTitle} style={{ ...line, color: "var(--ink-mute)" }}>
-          {employee.currentRoleTitle}
-        </p>
-      )}
-    </>
-  ) : undefined;
-
-  // AlumniCard は roleTitle（在籍時の部署階層）を非表示にするため空の employee を渡す
-  const alumniEmployee = { ...employee, roleTitle: null };
-
-  return (
-    <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
-      style={{
-        display: "flex", alignItems: "center", gap: 0,
-        padding: "12px 14px",
-        background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-        textDecoration: "none",
-        maxWidth: 380,
-      }}
-    >
-      <EmployeeCardInner employee={alumniEmployee} age={age} badge={badge} subInfo={subInfo} />
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginLeft: 6 }}>
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-    </a>
-  );
-}
-
-// ─── 掲載設定 CTA ────────────────────────────────────────────────────────────
-// 「この企業ページに自分を掲載するか」を、在籍者・経験者本人にだけ提示する。
-// 既存の公開設定 UI（/profile/edit）は掲載先を「キャリア軌跡ページ」としか
-// 説明していなかったため、企業ページに載ることを本人が認識できていない。
-// ここでは掲載先を明示したうえで、現在の状態と変更導線を出す。
-
-type ViewerListing = "public" | "login_only" | "hidden";
-
-type ViewerRelation =
-  | { kind: "anonymous" }
-  | { kind: "unrelated" }
-  | { kind: "affiliated"; listing: ViewerListing; experienceCount: number };
-
-function ListingStatusPanel({
-  relation,
-  companyName,
-}: {
-  relation: ViewerRelation;
-  companyName: string;
-}) {
-  // 在籍者・経験者以外には出さない。求職者向けの獲得導線は別途（段階0〜2の設計）。
-  if (relation.kind !== "affiliated") return null;
-
-  const COPY: Record<ViewerListing, {
-    tone: string;
-    toneSoft: string;
-    label: string;
-    body: string;
-    action: string;
-  }> = {
-    public: {
-      tone: "var(--success)",
-      toneSoft: "var(--success-soft)",
-      label: "このページに掲載中です",
-      body: `あなたの職歴は ${companyName} のページに掲載され、ログインしていない方にも表示されています。`,
-      action: "掲載設定を変更する",
-    },
-    login_only: {
-      tone: "var(--warm)",
-      toneSoft: "var(--warm-soft)",
-      label: "ログインした方にのみ掲載中です",
-      body: `あなたの職歴は ${companyName} のページに掲載されていますが、ログインしていない方には表示されていません。全体に公開すると、この会社に興味を持った方から見つけてもらえます。`,
-      action: "掲載設定を変更する",
-    },
-    hidden: {
-      tone: "var(--ink-mute)",
-      toneSoft: "var(--bg-tint)",
-      label: "このページには掲載されていません",
-      body: `あなたには ${companyName} での職歴が登録されていますが、このページには掲載されていません。掲載すると、この会社を調べている方があなたを見つけられるようになります。`,
-      action: "掲載する",
-    },
-  };
-
-  const c = COPY[relation.listing];
-
-  return (
-    <section
-      style={{
-        background: c.toneSoft,
-        border: `1px solid ${c.tone}`,
-        borderRadius: 14,
-        padding: "18px 20px",
-        marginBottom: "var(--space-6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span
-          style={{
-            width: 8, height: 8, borderRadius: "50%",
-            background: c.tone, flexShrink: 0,
-          }}
-        />
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-          {c.label}
-        </span>
-      </div>
-
-      <p style={{ margin: 0, fontSize: 12, fontWeight: 500.5, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-        {c.body}
-      </p>
-
-      <a
-        href="/profile/edit?tab=career"
-        style={{
-          alignSelf: "flex-start",
-          padding: "8px 18px",
-          borderRadius: 100,
-          background: relation.listing === "public" ? "transparent" : c.tone,
-          border: `1px solid ${c.tone}`,
-          color: relation.listing === "public" ? c.tone : "#fff",
-          fontSize: 12.5,
-          fontWeight: 700,
-          textDecoration: "none",
-        }}
-      >
-        {c.action} →
-      </a>
-    </section>
-  );
-}
-
-function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
-  return (
-    <section
-      id="alumni"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header */}
-      <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-      }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          }
-        >
-          OB・OG社員
-          <span
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: "var(--text-sm)",
-              fontWeight: 400,
-              color: "var(--ink-mute)",
-              marginLeft: "var(--space-2)",
-            }}
-          >
-            ({totalCount ?? alumni.length}名)
-          </span>
-        </SecTitle>
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-      {alumni.length > 0 ? (
-        <>
-          <div className="employee-grid">
-            {alumni.map((emp) => (
-              <AlumniCard key={emp.userId} employee={emp} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div style={{
-          textAlign: "center", padding: "24px 20px",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)",
-        }}>
-          {hiddenCount > 0 ? (
-            <>
-              <div style={{ fontSize: 32, marginBottom: 4 }}>🔐</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>
-                ログインすると{hiddenCount}名のプロフィールが見られます
-              </div>
-              <a href="/auth" style={{ display: "inline-block", marginTop: 8, padding: "7px 20px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                ログイン / 会員登録 →
-              </a>
-            </>
-          ) : (
-            <>
-              <div style={{
-                width: 48, height: 48, borderRadius: "50%",
-                background: "var(--royal-50)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
-                </svg>
-              </div>
-              <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                OB・OG情報は順次更新されます
-              </div>
-            </>
-          )}
-        </div>
-      )}
-      </div>
-    </section>
-  );
-}
-
-// ── Embedded job card (clickable link, no accordion) ──────────────────────────
 function JobEmbedCard({
   job,
   catName,
@@ -2085,16 +1181,6 @@ function JobsSection({
     </>
   );
 }
-
-const AV_GRADIENTS = [
-  "linear-gradient(135deg, var(--royal), #3B5FD9)",
-  "linear-gradient(135deg, #F472B6, #DB2777)",
-  "linear-gradient(135deg, #34D399, var(--success))",
-  "linear-gradient(135deg, #FBBF24, #D97706)",
-  "linear-gradient(135deg, #818CF8, #6366F1)",
-  "linear-gradient(135deg, #A78BFA, #7C3AED)",
-  "linear-gradient(135deg, #22D3EE, #0891B2)",
-];
 
 function RecruitersSection({
   recruiters,
@@ -3010,15 +2096,14 @@ export default async function CompanyDetailPage({
 }: {
   params: { id: string };
 }) {
-  const supabase = createClient();
-
+  /* ⚠️ 認証はここで読まない（2026-08-09）。読むとルートが動的化して
+        `export const revalidate = 60` が効かなくなる。
+        閲覧者ごとに変わるもの（社員一覧・ブックマーク・フォロー）は
+        すべてクライアント側の専用APIに移してある。
+        ⚠️ ここに `createClient()` や `auth.getUser()` を足さないこと。 */
   const adminSupabase = createAdminClient();
 
-  // Phase 1: auth + company lookup in parallel (company lookup resolves slug→uuid)
-  const [authResult, companyResult] = await Promise.all([
-    supabase.auth.getUser(),
-    getCompanyBySlugOrIdCached(params.id),
-  ]);
+  const companyResult = await getCompanyBySlugOrIdCached(params.id);
 
   if (!companyResult) return notFound();
 
@@ -3034,7 +2119,7 @@ export default async function CompanyDetailPage({
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
-         viewerRowResult, articleIdRowsResult] = await Promise.all([
+         articleIdRowsResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -3046,17 +2131,8 @@ export default async function CompanyDetailPage({
     getCompanyStoriesCached(companyId) as Promise<CompanyPost[]>,
     getPublicAmbassadorsCached(companyId),
     getCompanyToolsCached(companyId),
-    /* ⚠️ 以下2本は Phase 1 の結果（authUser / companyId）しか要らないので、
-          後段で別の段を作らずここに相乗りさせる（2026-08-09）。
-          以前は「閲覧者の ow_users を引く段」と「記事IDを引く段」が
-          別々の待ちになっており、そのぶん TTFB が伸びていた。 */
-    authResult.data.user
-      ? adminSupabase
-          .from("ow_users")
-          .select("id, visibility")
-          .eq("auth_id", authResult.data.user.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    /* ⚠️ 記事IDは companyId しか要らないのでここに相乗りさせる。
+          閲覧者の ow_users はもう引かない（認証を読まないため）。 */
     adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
   ]);
 
@@ -3068,54 +2144,14 @@ export default async function CompanyDetailPage({
     ambassadorMap.set(a.user_id, { memberId: a.id });
   }
 
-  const authUser = authResult.data.user;
-  const isAuthenticated = !!authUser;
+  /* ⚠️ 社員一覧の出し分けはここでは行わない（2026-08-09）。
+        絞り込みは /api/jobseeker/companies/[id]/employees が
+        閲覧者のセッションで行う。ここで employees を触らないこと。 */
 
-  // visibility フィルタ: 非ログインは public のみ、ログイン済みは public + login_only
-  const filterByVisibility = (emps: CompanyEmployee[]) =>
-    isAuthenticated ? emps : emps.filter((e) => e.visibility === "public");
-  const visibleCurrentEmps = filterByVisibility(employees.current);
-  const hiddenCurrentCount = employees.current.length - visibleCurrentEmps.length;
-  const visibleAlumniEmps = filterByVisibility(employees.alumni);
-  const hiddenAlumniCount = employees.alumni.length - visibleAlumniEmps.length;
-
-  // ── 閲覧者とこの企業の関係を判定（公開設定導線用） ───────────────────────────
-  // 在籍者・経験者本人にだけ「このページに掲載するか」を選べる導線を出す。
-  // 参照するのは本人自身の ow_experiences 行のみ。
-  /** 閲覧者自身の ow_users 行。Phase 2 で1回だけ引いたものを使い回す。
-   *  ⚠️ ここで auth_id から引き直さないこと（2026-08-09 まで Phase 3 と二重に引いていた）。 */
-  const viewerRow = viewerRowResult.data as { id: string; visibility: string | null } | null;
-  const viewerErr = viewerRowResult.error;
-
-  let viewerRelation: ViewerRelation = { kind: "anonymous" };
-  if (authUser) {
-    viewerRelation = { kind: "unrelated" };
-    if (viewerErr) {
-      console.error("[companies/[id]] viewer lookup", viewerErr.message);
-    } else if (viewerRow) {
-      const { data: ownExps, error: ownErr } = await adminSupabase
-        .from("ow_experiences")
-        .select("id, visibility_company")
-        .eq("user_id", viewerRow.id as string)
-        .eq("company_id", resolvedId);
-      if (ownErr) {
-        console.error("[companies/[id]] viewer experiences", ownErr.message);
-      } else if (ownExps && ownExps.length > 0) {
-        const allHidden = ownExps.every((e) => e.visibility_company === "hidden");
-        const userVisibility = (viewerRow.visibility as string | null) ?? null;
-        // 掲載レベルは「本人の非公開希望を優先」で決める。
-        // どちらか一方でも非公開なら非公開側に倒す。
-        const listing: ViewerListing = allHidden
-          ? "hidden"
-          : userVisibility === "public"
-            ? "public"
-            : userVisibility === "login_only"
-              ? "login_only"
-              : "hidden";
-        viewerRelation = { kind: "affiliated", listing, experienceCount: ownExps.length };
-      }
-    }
-  }
+  /* ⚠️ 閲覧者と企業の関係（在籍者かどうか）の判定はここから外した（2026-08-09）。
+        閲覧者ごとに変わるためサーバーで引くとページが動的化する。
+        判定は /api/jobseeker/companies/[id]/employees に移してある。
+        ⚠️ ここに閲覧者依存の問い合わせを足さないこと。 */
 
   // フィード投稿 (会社ID + 求人ID OR + 記事ID OR)
   type ActivityPost = {
@@ -3135,34 +2171,25 @@ export default async function CompanyDetailPage({
   /* ⚠️ 旧 Phase 3（閲覧者の ow_users ＋ 記事ID）は Phase 2 に統合した（2026-08-09）。
         どちらも Phase 1 の結果しか要らず、独立した待ちを1段作る理由が無かった。 */
   const companyArticleIds = ((articleIdRowsResult.data ?? []) as { id: string }[]).map((r) => r.id);
-  const owUserId = viewerRow?.id ?? null;
 
   const orParts: string[] = [`ref_company_id.eq.${companyId}`];
   if (companyJobIds.length > 0) orParts.push(`ref_job_id.in.(${companyJobIds.join(",")})`);
   if (companyArticleIds.length > 0) orParts.push(`ref_article_id.in.(${companyArticleIds.join(",")})`);
 
-  // Phase 4: activityPosts + bookmark/follow を並行実行
-  const [activityPostsRaw, bmarkResult, followResult] = await Promise.all([
-    adminSupabase
-  // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
-  //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
-      .from("ow_posts_visible")
-      .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
-      .or(orParts.join(","))
-      .neq("post_type", "company_joined")
-      .order("created_at", { ascending: false })
-      .limit(50),
-    owUserId
-      ? supabase.from("ow_bookmarks").select("id").eq("user_id", owUserId).eq("target_type", "company").eq("target_id", companyId).maybeSingle()
-      : Promise.resolve({ data: null }),
-    owUserId
-      ? createAdminClient().from("ow_company_follows").select("id").eq("follower_user_id", owUserId).eq("company_id", companyId).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  /* ⚠️ ブックマークとフォローの取得はここから外した（2026-08-09）。
+        閲覧者ごとに変わる値なのでサーバーで引くとページを動的化させる。
+        `/api/jobseeker/companies/[id]/viewer-state` からクライアントが取る。
+        ⚠️ ここに閲覧者依存の問い合わせを足さないこと。 */
+  const activityPostsRaw = await adminSupabase
+    // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
+    .from("ow_posts_visible")
+    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
+    .or(orParts.join(","))
+    .neq("post_type", "company_joined")
+    .order("created_at", { ascending: false })
+    .limit(50);
 
   const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
-  const initialBookmarked = !!bmarkResult.data;
-  const initialFollowed = !!followResult.data;
 
   // Group posts by (YYYY-MM-DD, post_type) for 更新情報 display
   type ActivityGroup = { date: string; dateLabel: string; post_type: string; posts: ActivityPost[] };
@@ -3206,7 +2233,7 @@ export default async function CompanyDetailPage({
       />
       <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb items={[{ label: "OPINIO", href: "/" }, { label: "企業", href: "/companies" }, { label: company.name }]} />
-      <Hero company={company} detail={detail} initialBookmarked={initialBookmarked} initialFollowed={initialFollowed} isAuthenticated={isAuthenticated} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
+      <Hero company={company} detail={detail} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
@@ -3214,7 +2241,10 @@ export default async function CompanyDetailPage({
           ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
           ...(company.job_count > 0 ? [{ id: "jobs", label: "求人" }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
-          ...(employees.current.length > 0 || employees.alumni.length > 0 || hiddenCurrentCount > 0 || hiddenAlumniCount > 0 || visibleCurrentEmps.some(e => e.catchphrase) ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
+          /* ⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
+                分からない（絞り込みはクライアント側のAPIが行うため）。
+                未ログインには中身が空になりうるが、タブは案内なので許容する。 */
+          ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
           ...(companyPosts.length > 0 || companyArticles.length > 0 || activityPosts.length > 0 ? [{ id: "articles", label: "記事・更新情報" }] : []),
         ]} />
         <div
@@ -3269,21 +2299,17 @@ export default async function CompanyDetailPage({
 
             <ToolsSection tools={companyTools} />
 
-            {/* 5. 社員・OB/OG（voices → current-employees → alumni） */}
-            {/* 在籍者・経験者本人にだけ、このページへの掲載設定を提示する */}
-            <ListingStatusPanel relation={viewerRelation} companyName={company.name} />
-            <EmployeeVoicesSection employees={visibleCurrentEmps} />
-            <CurrentEmployeesSection
-              employees={visibleCurrentEmps}
-              hiddenCount={hiddenCurrentCount}
-              totalCount={employees.current.length}
+            {/* 5. 社員・OB/OG（voices → current-employees → alumni）
+                ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
+                   ここでサーバーから渡すと `auth.getUser()` が要り、
+                   ページが動的化して `revalidate = 60` が効かなくなる。
+                   絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
+            <CompanyEmployeeSections
+              companyId={company.id}
+              companyName={company.name}
               categories={employeeCategories}
               ambassadorMap={ambassadorMap}
-              companyId={company.id}
             />
-            {(visibleAlumniEmps.length > 0 || hiddenAlumniCount > 0) && (
-              <AlumniSection alumni={visibleAlumniEmps} hiddenCount={hiddenAlumniCount} totalCount={employees.alumni.length} />
-            )}
 
             {/* 6. 記事・更新情報（posts → articles → activity） */}
             <CompanyPostsSection posts={companyPosts} />
