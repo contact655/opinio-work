@@ -1786,11 +1786,22 @@ export async function getArticlesByCompany(companyId: string): Promise<Article[]
 
 export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
   if (slugs.length === 0) return [];
-  const supabase = createClient();
+  /* ⚠️ ここは admin クライアントを使う（2026-08-09 に session から変更）。
+        セッション版は Cookie を読むため、**呼んだページがルートごと動的になる**。
+        `/articles/[slug]` は `export const revalidate = 300` を宣言しているのに
+        この1行のせいで効いておらず、毎リクエスト再レンダリングしていた。
+
+     ⚠️ 権限は落ちていない。`ow_articles` の RLS は `ow_articles_public_read`
+        が `USING (true)` で、**session でも全件読めていた**。
+        つまり `is_published` の絞り込みはどこにも無く、
+        未公開記事が関連記事に出うる状態だった（実データは0件で実害なし）。
+        admin に変えるついでに、その絞り込みをここで明示する。 */
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("ow_articles")
     .select(ARTICLE_LIST_COLS)
-    .in("slug", slugs);
+    .in("slug", slugs)
+    .eq("is_published", true);
 
   if (error) {
     // ow_articles テーブル未作成の場合は mock にフォールバック
