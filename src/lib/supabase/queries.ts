@@ -15,6 +15,7 @@ import { buildRoleTree, expandWithAncestors, type RoleTree, type RoleNode } from
 import { pickRoleLabel, fetchCompanyRoleMap } from "@/lib/jobs/roleLabel";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { isCasualMeetingOpen } from "@/lib/company/casualMeeting";
+import { isJobApplicationOpen } from "@/lib/jobs/application";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
@@ -1052,10 +1053,13 @@ export const getJobById = cache(async function getJobById(
   /* ⚠️ 求人詳細の面談 CTA も企業ページと同じ判定を通す（2026-08-11）。
         片方だけ直すと「求人からは申し込めるが企業ページからは出ない」になる。 */
   const companyRow = compData as unknown as Record<string, unknown>;
-  const companyAcceptsMeeting = await isCasualMeetingOpen(
-    companyRow.id as string,
-    companyRow.accepting_casual_meetings as boolean | null,
-  );
+  const [companyAcceptsMeeting, applicationOpen] = await Promise.all([
+    isCasualMeetingOpen(
+      companyRow.id as string,
+      companyRow.accepting_casual_meetings as boolean | null,
+    ),
+    isJobApplicationOpen(companyRow.id as string),
+  ]);
 
   // 職種は ow_job_roles が正。詳細ページでも roleIds / roleName を使えるようにする
   // （job_category は移行期間中の派生値で、判定には使わない）。
@@ -1104,6 +1108,9 @@ export const getJobById = cache(async function getJobById(
 
   const company = mapCompany(compData);
   company.accepting_casual_meetings = companyAcceptsMeeting;
+  /* ⚠️ 応募が届く先があるか。求人の status とは別（lib/jobs/application.ts）。
+        published でも宛先が無ければ応募は誰にも届かない。 */
+  company.application_open = applicationOpen;
 
   return { job, company, relatedJobs };
 });

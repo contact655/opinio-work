@@ -2,8 +2,9 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getJobById } from "@/lib/supabase/queries";
+import { getJobBySlugOrId } from "@/lib/supabase/queries";
 import ApplicationForm from "./ApplicationForm";
+import { APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -17,10 +18,60 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
     redirect(`/auth/login?next=/jobs/${params.id}/apply`);
   }
 
-  const result = await getJobById(params.id);
+  /* ⚠️ getJobById は **UUID しか受けない**。ここは slug でも開く（2026-08-11 修正）。
+        一覧カードの応募ボタンは `/jobs/{slug}/apply` を指しており、
+        **公開求人5件すべてで 404 になっていた**（未ログインだと認証リダイレクトが
+        先に出るため、ログインするまで誰も気づけない形だった）。
+        2026-08-05 に casual-meeting で踏んだのと同じ罠。 */
+  const result = await getJobBySlugOrId(params.id);
   if (!result) notFound();
 
   const { job, company } = result;
+
+  /* ⚠️ 応募が届く先が無ければフォームを出さない（2026-08-11）。
+        `company.application_open` は getJobById が解決した値で、
+        求人詳細の応募CTA・一覧カード・モバイル固定バーと**同じ値**。
+        表示と送信が別々の条件を見ると必ずずれる。 */
+  if (!company.application_open) {
+    return (
+      <main style={{ maxWidth: 640, margin: "80px auto", padding: "0 24px" }}>
+        <div style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 16, padding: "48px 40px", textAlign: "center",
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: "var(--line-soft)", color: "var(--ink-mute)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 20px", fontSize: 24,
+          }}>
+            ✕
+          </div>
+          <h1 style={{
+            fontFamily: 'var(--font-noto-serif)', fontSize: 20,
+            fontWeight: 600, color: "var(--ink)", marginBottom: 12,
+          }}>
+            {APPLICATION_CLOSED_MESSAGE}
+          </h1>
+          {/* ⚠️ 理由も再開見込みも書かない。把握していない。 */}
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+            <strong style={{ color: "var(--ink)" }}>{job.role}</strong>（{company.name}）
+          </p>
+          <Link
+            href={`/jobs/${job.id}`}
+            style={{
+              display: "inline-block", padding: "10px 28px",
+              background: "var(--royal)", color: "#fff",
+              borderRadius: 8, fontSize: 13, fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            ← 募集ページに戻る
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const authName = (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const authEmail = user.email ?? "";

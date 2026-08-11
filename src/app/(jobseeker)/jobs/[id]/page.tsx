@@ -775,7 +775,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       */}
       <JobMobileStickyBar
         casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting?job_id=${job.id}` : undefined}
-        applyHref={`/jobs/${job.id}/apply`}
+        applyHref={company.application_open ? `/jobs/${job.id}/apply` : undefined}
       />
 
       {/* Body */}
@@ -1655,7 +1655,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </Link>
                   )}
 
-                  {/* ③ Secondary: 応募する */}
+                  {/* ③ Secondary: 応募する
+                      ⚠️ 宛先がある企業だけ。published でも応募が届く先があるとは限らない
+                         （lib/jobs/application.ts）。 */}
+                  {company.application_open && (
                   <Link href={`/jobs/${job.id}/apply`} style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                     width: "100%", padding: company.accepting_casual_meetings ? "12px var(--space-6)" : "15px var(--space-6)",
@@ -1674,6 +1677,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </Link>
+                  )}
 
                   <BookmarkButton
                     targetType="job"

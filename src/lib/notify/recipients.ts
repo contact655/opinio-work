@@ -30,6 +30,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * ⚠️ best-effort。失敗しても空配列を返し、呼び出し元の処理は止めない。
  *    ただしエラーは必ずログに出す（握り潰さない）。
  */
+/*
+ * ⚠️ **将来 ③「運営（ADMIN_EMAIL）へのフォールバック」を足すならここ。**
+ *    Opinio は有料職業紹介事業者なので、企業担当者が /biz に来ていない企業の
+ *    応募・面談を運営が受けて取り次ぐのが本来の形。企業開拓が進むと
+ *    「求人はあるが担当者は未登録」の企業が増えるため、そのたびに掲載を
+ *    下ろす設計にはできない。
+ *
+ *    ⚠️ **足す場所をここ1箇所に保つこと。** 面談の可否（lib/company/casualMeeting.ts）も
+ *    応募の可否（lib/jobs/application.ts）も、宛先の有無をこの関数だけで判断している。
+ *    ここに③を足せば両方が同時に開く。呼び出し側に個別のフォールバックを書かない。
+ *
+ *    2026-08-11 時点では**実装しない**（足すかどうかは別途判断）。
+ */
 export async function getCompanyNotificationRecipients(
   companyId: string,
   /** ログにどの経路から呼ばれたか出すためのラベル。例: "applications" */
@@ -89,4 +102,51 @@ function normalizeEmails(input: unknown): string[] {
         .filter((e) => e.includes("@")),
     ),
   );
+}
+
+/**
+ * 複数企業ぶんの「宛先があるか」をまとめて返す。カード一覧のように N 社を一度に描くとき用。
+ *
+ * ⚠️ `getCompanyNotificationRecipients` を N 回呼ばないこと。1社あたり2クエリ走る。
+ * ⚠️ 判定規則は上の関数と**同じ**（① notification_emails / ② permission='admin' かつ is_active）。
+ *    片方だけ直さないこと。③のフォールバックを足すときも両方に効くようにする。
+ * ⚠️ 引けなかったときは「宛先なし」に倒す。誰も受け取れない申込を送らせるより害が小さい。
+ */
+export async function filterCompaniesWithRecipients(
+  companyIds: string[],
+  source: string,
+): Promise<Set<string>> {
+  const withRecipient = new Set<string>();
+  const ids = Array.from(new Set(companyIds.filter(Boolean)));
+  if (ids.length === 0) return withRecipient;
+
+  const admin = createAdminClient();
+
+  const [{ data: companies, error: cErr }, { data: admins, error: aErr }] = await Promise.all([
+    admin.from("ow_companies").select("id, notification_emails").in("id", ids),
+    admin
+      .from("ow_company_admins")
+      .select("company_id, ow_users!user_id(email)")
+      .in("company_id", ids)
+      .eq("permission", "admin")
+      .eq("is_active", true)
+      .not("user_id", "is", null),
+  ]);
+
+  if (cErr) console.error(`[notify-recipients:${source}] ow_companies`, cErr.message);
+  if (aErr) console.error(`[notify-recipients:${source}] ow_company_admins`, aErr.message);
+  if (cErr || aErr) return withRecipient;
+
+  type AdminRow = { company_id: string; ow_users: { email: string | null } | null };
+  const hasAdmin = new Set(
+    ((admins ?? []) as unknown as AdminRow[])
+      .filter((r) => (r.ow_users?.email ?? "").includes("@"))
+      .map((r) => r.company_id),
+  );
+
+  for (const c of companies ?? []) {
+    const overrides = normalizeEmails(c.notification_emails);
+    if (overrides.length > 0 || hasAdmin.has(c.id as string)) withRecipient.add(c.id as string);
+  }
+  return withRecipient;
 }

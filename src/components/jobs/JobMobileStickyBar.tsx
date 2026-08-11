@@ -8,10 +8,15 @@ import Link from "next/link";
 
 type Props = {
   casualHref?: string;
-  applyHref: string;
+  /** 宛先がある企業のときだけ渡す。undefined なら応募ボタンを出さない
+   *  ⚠️ published でも応募が届く先があるとは限らない（lib/jobs/application.ts） */
+  applyHref?: string;
 };
 
 export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
+  /* ⚠️ どちらのCTAも出せないなら、バーごと出さない（2026-08-11）。
+        空の固定バーが画面下に居座り、コンテンツを隠すだけになる。 */
+  const hasAnyCta = !!casualHref || !!applyHref;
   const [visible, setVisible] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +43,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
 
       {/* スティッキーバー本体（lg 以上は常に非表示） */}
       {/* ⑨ Vertical stacked layout: カジュアル面談 full-width top, 応募する below */}
+      {hasAnyCta && (
       <div
         className="lg:hidden"
         style={{
@@ -90,6 +96,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
         </Link>
         ) : null}
         {/* 副CTA（面談あり）または 主CTA（面談なし）: 応募する */}
+        {applyHref ? (
         <Link
           href={applyHref}
           tabIndex={visible ? 0 : -1}
@@ -116,8 +123,10 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </Link>
+        ) : null}
         </div>
       </div>
+      )}
     </>
   );
 }

@@ -17,6 +17,15 @@ export type Company = {
   current_mentors: number;
   alumni_mentors: number;
   accepting_casual_meetings: boolean;
+  /**
+   * 応募が届く先があるか（`getCompanyNotificationRecipients` が1件以上）。
+   *
+   * ⚠️ **求人の status とは別物。** published でも宛先が無ければ応募は誰にも届かない。
+   *    2026-08-11 時点で、公開求人を持つ7社のうち6社が宛先0件だった。
+   * ⚠️ 判定は lib/jobs/application.ts に一本化。ここには結果だけを載せる。
+   * ⚠️ 付け忘れると undefined になり、応募CTAが出なくなる（安全側）。
+   */
+  application_open?: boolean;
   /** 求人・面談OKを実際に表示するか（engagement_status 連動） */
   jobs_public?: boolean;
   updated_days_ago: number;

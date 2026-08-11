@@ -386,12 +386,15 @@ function JobListItem({
              （2026-08-05 時点で該当0社だが、企業が1社でも false にした瞬間に破綻する）
           面談の導線は /jobs/[id] と /companies/[id] に残してある。
 
-          ⚠️ 企業側のフラグで出し分けないこと。この一覧に出ている求人は
-             status = 'published' だけなので、応募先は必ず存在する。
-          ⚠️ 応募済みかどうかでも出し分けない。一覧で引くとクエリが重くなる。
+          ⚠️ **「published なら応募先は必ず存在する」は誤りだった（2026-08-11 訂正）。**
+             status は掲載の可否でしかなく、応募が届く先があるかは別の事実。
+             実際、公開求人を持つ7社のうち6社は宛先0件で、応募しても誰にも届かなかった。
+             `company.application_open`（lib/jobs/application.ts が解決）で出し分ける。
+          ⚠️ 応募済みかどうかでは出し分けない。一覧で引くとクエリが重くなる。
              既に応募していれば、押した先で「すでに応募しています」が出る
              （API が 409 を返し、ApplicationForm が文言を出す）。
         */}
+        {company?.application_open && (
         <a
           href={`/jobs/${job.slug ?? job.id}/apply`}
           style={{
@@ -408,6 +411,7 @@ function JobListItem({
           </svg>
           応募
         </a>
+        )}
 
         {/* 保存をする */}
         <button

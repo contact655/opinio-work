@@ -7,6 +7,7 @@ import { getDesiredRoles } from "@/lib/profile/desiredRoles";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
 import JobsClient from "./JobsClient";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
+import { filterCompaniesAcceptingApplications } from "@/lib/jobs/application";
 
 // ログイン状態でパーソナライズするため force-dynamic
 // （getJobs は unstable_cache 内部キャッシュで高速）
@@ -87,6 +88,13 @@ export default async function JobsPage() {
     getParentRoles(),
     getRoleAliases(),
   ]);
+
+  /* ⚠️ 応募が届く先があるかを企業ごとに解決して Company に載せる（2026-08-11）。
+        求人が published でも宛先が無ければ応募は誰にも届かない。
+        判定は lib/jobs/application.ts に一本化してあり、ここでは結果を載せるだけ。
+     ⚠️ 1社ずつ引かないこと（1社あたり2クエリ走る）。 */
+  const applyOpen = await filterCompaniesAcceptingApplications(companies.map((c) => c.id));
+  for (const c of companies) c.application_open = applyOpen.has(c.id);
 
   const recommendations = await fetchUserRecommendations(jobs, companies);
 

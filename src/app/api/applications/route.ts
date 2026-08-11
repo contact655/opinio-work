@@ -11,6 +11,7 @@ import {
 import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
 import { insertActivity } from "@/lib/business/activities";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { isJobApplicationOpen, APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +56,19 @@ export async function POST(req: NextRequest) {
   // 求人の存在・公開状態チェック
   const { data: job } = await supabase
     .from("ow_jobs")
-    .select("id, status")
+    .select("id, status, company_id")
     .eq("id", job_id)
     .maybeSingle();
   if (!job || job.status !== "published") {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  /* ⚠️ status だけでは足りない（2026-08-11）。**応募が届く先があるか**を必ず見る。
+        画面側（lib/jobs/application.ts）と同じ判定をここでも通すこと。
+        ここを飛ばすと、CTA が出ていない求人に API 直叩きで応募できてしまう。
+        面談（/api/casual-meetings）で同じ形を先に踏んでいる。 */
+  if (!(await isJobApplicationOpen(job.company_id as string))) {
+    return NextResponse.json({ error: APPLICATION_CLOSED_MESSAGE }, { status: 403 });
   }
 
   // 重複応募チェック（race condition 軽減: UI 側でも button disable）
