@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
+import { isCasualMeetingOpen } from "@/lib/company/casualMeeting";
 import {
   casualMeetingAdminTemplate,
   casualMeetingUserTemplate,
@@ -78,7 +79,10 @@ export async function POST(req: NextRequest) {
   if (!company) {
     return NextResponse.json({ error: "Company not found" }, { status: 404 });
   }
-  if (!company.accepting_casual_meetings) {
+  /* ⚠️ 生のフラグで判定しない（2026-08-11）。宛先が無ければ受け付けない。
+        画面側（lib/company/casualMeeting.ts）と同じ判定をここでも通すこと。
+        ここだけフラグのままにすると、CTA が出ていない企業に API 直叩きで送れてしまう。 */
+  if (!(await isCasualMeetingOpen(company_id, company.accepting_casual_meetings))) {
     return NextResponse.json(
       { error: "This company is not currently accepting casual meeting requests" },
       { status: 403 }

@@ -15,6 +15,7 @@ import {
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 import { getUserAge } from "@/lib/age";
+import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import {
   SocialIcon,
   type SocialPlatform,
@@ -368,6 +369,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // → company_id が非 null = 企業ページへのリンクが有効
   const isCurrentCompanyKnown = !!currentCareer?.company_id;
 
+  /* ⚠️ 面談CTAは「企業が判明している」だけでは出さない（2026-08-11）。
+        在籍企業が面談を受け付けていない（＝宛先が無い）と、押した先が
+        「受け付けていません」になる。
+        ⚠️ 2026-08-11 時点では実害が出ていなかった。在籍企業が受付停止の3人は
+           たまたま全員 can_casual_meeting = false で、既存の条件に救われていた。
+           **その偶然に頼らない。** 片方が true になった瞬間に死にリンクになる。
+        判定は lib/company/casualMeeting.ts に一本化してある。 */
+  const currentCompanyMeetingOpen =
+    currentCareer?.company_id
+      ? (await filterOpenCasualMeetingCompanies([currentCareer.company_id])).has(currentCareer.company_id)
+      : false;
+
   /* ⚠️ この2本も互いに独立なので並列にする（2026-08-09）。
         求人は在籍企業に、記事は本人にぶら下がっており、参照し合わない。 */
   const [jobsRes, articlesRes] = await Promise.all([
@@ -635,8 +648,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                      既定の min-width: auto だと中身（社名入りの「〇〇 の企業ページ」）の
                      min-content まで広がり、375px で親を 14px はみ出していた。 */}
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", paddingTop: 4, minWidth: 0 }}>
-                {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー かつ企業が判明） */}
-                {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && (
+                {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー かつ在籍企業が受付中） */}
+                {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
@@ -752,8 +765,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(() => {
               const highlights: { icon: React.ReactNode; label: string; body: React.ReactNode; href?: string; color: string }[] = [];
 
-              // Card 1: カジュアル面談CTA（非オーナー、can_casual_meeting=true かつ企業判明時のみ）
-              if (!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown) {
+              // Card 1: カジュアル面談CTA（非オーナー、can_casual_meeting=true かつ在籍企業が受付中）
+              if (!viewerIsOwner && owUser.can_casual_meeting && currentCompanyMeetingOpen) {
                 highlights.push({
                   color: "var(--warm)",
                   icon: (
@@ -1483,7 +1496,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     企業ページを見る
                   </Link>
-                  {owUser.can_casual_meeting ? (
+                  {owUser.can_casual_meeting && currentCompanyMeetingOpen ? (
                     <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "10px 22px", borderRadius: 8,
@@ -1667,8 +1680,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     )}
                   </div>
 
-                  {/* カジュアル面談CTA — can_casual_meeting=true の人のみ表示（非オーナー） */}
-                  {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && (
+                  {/* カジュアル面談CTA — can_casual_meeting=true かつ在籍企業が受付中（非オーナー） */}
+                  {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
                     <>
                       <div style={{ height: 1, background: "var(--line)", margin: "0 0 14px" }} />
                       <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
