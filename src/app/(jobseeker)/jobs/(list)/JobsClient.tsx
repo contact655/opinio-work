@@ -9,7 +9,7 @@ import { showToast } from "@/lib/toast";
 import type { RecommendedJob } from "@/lib/matching/scoreJob";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
-import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { INDUSTRY_GROUPS, resolveIndustryFilter } from "@/lib/search/industryGroups";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { availablePhaseOptions, phaseMatches } from "@/lib/constants/phase";
 /**
@@ -774,13 +774,6 @@ export default function JobsClient({
     return results;
   }, [q, allJobs, companyMap]);
 
-  // 業界名の正規化マップ（フィルター用）
-  // SaaS は業態タグ（biz_model）に移行したため業界軸から削除
-  const INDUSTRY_NORMALIZE: Record<string, string> = {
-    "IT": "ITサービス",
-  };
-  const normalizeIndustry = (v: string | null) =>
-    v ? (INDUSTRY_NORMALIZE[v] ?? v) : null;
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -917,8 +910,21 @@ export default function JobsClient({
 
 
     if (industry) {
+      /* ⚠️ URL パラメータは INDUSTRY_GROUPS の **key**（"ai" 等）で、
+            `company.industry` は **DB の値**（"AI・データ" 等）。直接比較すると必ず外れる。
+            2026-08-11 まで `normalizeIndustry(c.industry) === industry` と比較しており、
+            **全業種で常に0件**だった（/jobs は45件出るのに ?industry=ai は0件）。
+            `companies.ts` と同じ `resolveIndustryFilter()` で key を値の配列に直す。 */
+      const values = resolveIndustryFilter(industry);
       const companyIds = companies
-        .filter((c) => normalizeIndustry(c.industry) === industry)
+        .filter((c) =>
+          c.industry
+            ? values
+              ? values.includes(c.industry)
+              // 未知の key はフォールバックで値そのものとして扱う（companies.ts の ilike 相当）
+              : c.industry === industry
+            : false
+        )
         .map((c) => c.id);
       list = list.filter((j) => companyIds.includes(j.company_id));
     }
