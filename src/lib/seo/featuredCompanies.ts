@@ -75,7 +75,7 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
     const { data } = await db
       .from("ow_jobs")
       .select("company_id")
-      .eq("status", "published");
+      .eq("status", "published").eq("is_test", false);
     for (const r of data ?? []) add(r.company_id as string | null);
   }
   if (basis === "articles" || basis === "content") {

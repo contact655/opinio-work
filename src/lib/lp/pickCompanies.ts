@@ -58,7 +58,7 @@ export async function pickLpCompanies(
   // 中身のある企業ID。コンテンツ量に比例する小さな集合なので、
   // 企業数が増えても取得コストは増えない。
   const [jobCoRes, articleCoRes] = await Promise.all([
-    db.from("ow_jobs").select("company_id").eq("status", "published"),
+    db.from("ow_jobs").select("company_id").eq("status", "published").eq("is_test", false),
     db.from("ow_articles").select("company_id").eq("is_published", true).not("company_id", "is", null),
   ]);
   if (jobCoRes.error) console.error("[pickLpCompanies] jobs:", jobCoRes.error.message);

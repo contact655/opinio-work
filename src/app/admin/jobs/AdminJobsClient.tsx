@@ -17,6 +17,10 @@ const STATUS_TABS = [
         公開中なのに求人原文のURLが無いものを残タスクとして可視化する。
         2026-08-11 時点で Salesforce の5件が該当し続ける。 */
   { key: "no_source",      label: "出典なし（公開中）" },
+  /* ⚠️ テスト求人は他のタブから外すが、**専用タブで必ず見えるようにする。**
+        完全に隠すと「見えていないだけ」を自分で作ることになる
+        （2026-08-11 に /admin/jobs で20件中13件が見えていなかったのと同じ形）。 */
+  { key: "test",           label: "テスト" },
 ];
 
 
@@ -34,6 +38,8 @@ type Job = {
   work_style: string | null;
   /** 求人原文のURL。運営の管理用。公開ページには出さない */
   source_url: string | null;
+  /** 検証用の求人。status とは別の軸で分類する（ow_users.is_test と同じ慣行） */
+  is_test: boolean | null;
   rejection_reason: string | null;
   rejection_reviewer: string | null;
   submitted_at: string | null;
@@ -135,8 +141,17 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
   const isMissingSource = (j: Job) =>
     normalizedStatus(j.status) === "published" && !(j.source_url ?? "").trim();
 
+
+  const isTest = (j: Job) => j.is_test === true;
+
   const filtered = jobs.filter((j) => {
-    if (activeTab === "no_source") {
+    /* ⚠️ テスト求人は「テスト」タブ以外には出さない。「すべて」にも出さない。
+          本物の下書きと混ざると、下書きの件数が信用できなくなる。 */
+    if (activeTab === "test") {
+      if (!isTest(j)) return false;
+    } else if (isTest(j)) {
+      return false;
+    } else if (activeTab === "no_source") {
       if (!isMissingSource(j)) return false;
     } else if (activeTab !== "all" && normalizedStatus(j.status) !== activeTab) {
       return false;
@@ -230,10 +245,12 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
       {/* Status Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }} role="tablist" aria-label="求人ステータスで絞り込み">
         {STATUS_TABS.map((tab) => {
+          const real = jobs.filter((j) => !isTest(j));
           const count =
-            tab.key === "all" ? jobs.length
-            : tab.key === "no_source" ? jobs.filter(isMissingSource).length
-            : jobs.filter((j) => normalizedStatus(j.status) === tab.key).length;
+            tab.key === "test" ? jobs.filter(isTest).length
+            : tab.key === "all" ? real.length
+            : tab.key === "no_source" ? real.filter(isMissingSource).length
+            : real.filter((j) => normalizedStatus(j.status) === tab.key).length;
           return (
             <button
               key={tab.key}

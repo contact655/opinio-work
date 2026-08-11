@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         .from("ow_jobs")
         .select("company_id")
         .in("company_id", idList)
-        .eq("status", "published"),
+        .eq("status", "published").eq("is_test", false),
       supabase
         .from("ow_experiences")
         .select("company_id, ow_users(id, name)")

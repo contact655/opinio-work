@@ -84,7 +84,7 @@ export async function GET(request: Request) {
     const { data: expiredCandidates } = await supabase
       .from("ow_jobs")
       .select("id, title")
-      .eq("status", "published")
+      .eq("status", "published").eq("is_test", false)
       .lt("expires_at", new Date().toISOString());
     console.log(
       `[weekly-jobs] expired candidates (DRY RUN): ${expiredCandidates?.length ?? 0} jobs`,
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
       .select(
         "id, title, job_category, salary_min, salary_max, work_style, location, ow_companies(name, url)"
       )
-      .eq("status", "published")
+      .eq("status", "published").eq("is_test", false)
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false });
 

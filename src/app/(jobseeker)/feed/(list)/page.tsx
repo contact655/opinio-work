@@ -268,7 +268,7 @@ export default async function FeedPage() {
       .from("ow_jobs")
       .select("id, slug, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
       .in("id", bookmarkedJobIds)
-      .eq("status", "published");
+      .eq("status", "published").eq("is_test", false);
     sidebarSavedJobs = (jobRows ?? []).map((j: Record<string, unknown>) => {
       const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;
       return {

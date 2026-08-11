@@ -26,7 +26,7 @@ export default async function AdminJobsPage() {
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, source_url, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))"
+      "id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, source_url, is_test, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))"
     )
     .order("updated_at", { ascending: false });
 

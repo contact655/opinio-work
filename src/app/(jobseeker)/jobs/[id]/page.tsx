@@ -529,7 +529,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
       ? await supabase
           .from("ow_jobs")
           .select("id, slug, title, job_category, salary_min, salary_max, company_id, updated_at, ow_companies!inner(id, name, logo_url, logo_letter, logo_gradient)")
-          .eq("status", "published")
+          .eq("status", "published").eq("is_test", false)
           .in("id", siblingIds)
           .order("updated_at", { ascending: false })
           .limit(3)

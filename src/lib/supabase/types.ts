@@ -5281,6 +5281,7 @@ export type Database = {
           holidays: string | null
           id: string
           incentive_note: string | null
+          is_test: boolean
           job_category: string | null
           location: string | null
           main_image_url: string | null
@@ -5352,6 +5353,7 @@ export type Database = {
           holidays?: string | null
           id?: string
           incentive_note?: string | null
+          is_test?: boolean
           job_category?: string | null
           location?: string | null
           main_image_url?: string | null
@@ -5423,6 +5425,7 @@ export type Database = {
           holidays?: string | null
           id?: string
           incentive_note?: string | null
+          is_test?: boolean
           job_category?: string | null
           location?: string | null
           main_image_url?: string | null

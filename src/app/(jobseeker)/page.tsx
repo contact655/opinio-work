@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const db = createAdminClient();
   const [{ count: companyCount }, { count: jobCount }] = await Promise.all([
     db.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
-    db.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published"),
+    db.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published").eq("is_test", false),
   ]);
 
   const scale =
@@ -75,7 +75,7 @@ export default async function HomePage() {
   const jobCountP = db
     .from("ow_jobs")
     .select("id", { count: "exact", head: true })
-    .eq("status", "published");
+    .eq("status", "published").eq("is_test", false);
 
   // ── 出身校ファセット ────────────────────────────────────────────
   // 公開ユーザーの学歴のみ。行数はユーザー数に比例するが、学歴レコードは
@@ -91,7 +91,7 @@ export default async function HomePage() {
     .select(
       "id, title, job_category, salary_min, salary_max, location, employment_type, remote_work_status, company_id, published_at"
     )
-    .eq("status", "published")
+    .eq("status", "published").eq("is_test", false)
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(PREVIEW_JOBS);
 
