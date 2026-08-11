@@ -20,6 +20,7 @@ import {
   Receipt,
   Award,
   Send,
+  ClipboardCheck,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -40,6 +41,7 @@ const NAV_GROUPS = [
     label: "コンテンツ管理",
     items: [
       { label: "企業審査",            href: "/admin/companies",        icon: <Briefcase    size={16} strokeWidth={2} /> },
+      { label: "充填状況",            href: "/admin/companies/coverage", icon: <ClipboardCheck size={16} strokeWidth={2} /> },
       { label: "求人審査",            href: "/admin/jobs",             icon: <FileText     size={16} strokeWidth={2} /> },
       { label: "職種マスタ",          href: "/admin/roles",            icon: <Briefcase    size={16} strokeWidth={2} /> },
       { label: "記事管理",            href: "/admin/articles",         icon: <Pencil       size={16} strokeWidth={2} /> },

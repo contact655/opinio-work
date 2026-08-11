@@ -273,6 +273,65 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 
 ---
 
+## 企業データの充填状況（2026-08-11 実測 / `/admin/companies/coverage`）
+
+**公開情報から機械的に取れる項目を76社100%にするのが当面の作業。** 取材項目は別。
+
+進捗は **`/admin/companies/coverage`** で見る（運営用・スコア化しない）。
+列見出しをクリックするとその項目が空の企業だけに絞れる。空のマスから
+`/admin/companies/[id]?tab=...` の該当タブへ直接飛べる。
+
+| 列 | 充填（公開76社） |
+|---|---|
+| `employee_count` / `founded_year` | **76**（済） |
+| `description` | 72 ← **残4社が最優先**（PKSHA / SmartHR / Sansan / Ubie） |
+| `capital_type` / `parent_company_name` / `parent_company_country` | 各58 |
+| `branch_locations` | 28 |
+| `capital_notes` | 8 |
+| `main_products` / `main_customers` | 各6 |
+| `customer_cases` / `global_employee_count` | 各1 |
+| `headquarters_address` | **0** |
+
+⚠️ **`logo_url` はこの一覧に入れていない。** 76社すべてが
+`https://logo.clearbit.com/...` を指しており、**このホストは名前解決すらしない**
+（Clearbit の Logo API は終了。`clearbit.com` のルートは 200 なのでネットワーク制限ではない）。
+「値はあるが表示できない」ので ✓/空欄では表せない。**別タスク。**
+
+⚠️ **画面のロゴが出ているのは別経路のおかげ。** `components/common/CompanyLogo.tsx` が
+死んだ Clearbit URL からドメインだけを抜き出し、
+`https://www.google.com/s2/favicons?domain=<domain>&sz=256` にフォールバックしている。
+**Salesforce だけが特別なのではなく、76社すべてがこの経路**（実測で確認）。
+`lib/utils/companyLogo.ts` の `usableLogoUrl` は Clearbit を null に潰す判定で、
+letter フォールバック用。両者は別の仕組みなので混同しないこと。
+
+### 出典の記録（設計メモ・まだ実装していない）
+
+求人には `source_url` / `source_verified_at` を入れた。企業にも同じ型を入れる想定だが、
+**実際に数社埋めてから形を決める**（出典の粒度は作業のやり方が決まらないと分からない）。
+
+推奨案:
+
+```sql
+ALTER TABLE ow_companies
+  ADD COLUMN source_urls text[],              -- 参照した公開情報のURL（複数可）
+  ADD COLUMN source_verified_at timestamptz;  -- 最後に全体を突き合わせた日時
+```
+
+| 論点 | 判断 | 理由 |
+|---|---|---|
+| 列を1組か | **1組** | 求人と同じ形。運用が同じなら形も同じにする |
+| 項目ごとに持つか | **持たない** | 12項目 × 2列 = 24列になる。実作業は「1社の公式サイト・IR・採用ページを一巡してまとめて埋める」なので出典と項目が1対1にならない |
+| 別テーブルか | **しない** | 1出典が複数社にまたがる等の必然が無い |
+| 鮮度判定 | **365日**（求人とは別のしきい値） | 設立年・資本区分・親会社はまず変わらない |
+
+⚠️ しきい値の定数は `src/lib/constants/` に置き、画面にハードコードしない
+   （`DISCLOSURE_MAX` を表示側に直書きして取り残された前例がある）。
+
+⚠️ 既存の鮮度判定は `src/lib/profile/freshness.ts` の **`STALE_AFTER_MONTHS = 3`** だけで、
+   **求職者プロフィール用**。求人にも企業にも鮮度判定はまだ無い。
+
+---
+
 ## ⚠️ テストデータは status で表さず `is_test` フラグで分類する（2026-08-11 確立）
 
 **「テスト用だから」という理由で status / 公開フラグの語彙を増やさないこと。**

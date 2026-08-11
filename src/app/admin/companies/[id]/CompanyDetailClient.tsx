@@ -52,6 +52,8 @@ type Props = {
   admins: CompanyAdmin[];
   allToolMasters: ToolMaster[];
   companyTools: CompanyToolRow[];
+  /** `?tab=` の値。知らない綴りは 'basic' に落とす */
+  initialTab?: string;
 };
 
 type FormData = {
@@ -86,7 +88,9 @@ type FormData = {
   opinio_comment: string;
 };
 
-type TabKey = 'basic' | 'recruiter' | 'admins' | 'opinio' | 'logo' | 'genres' | 'publish' | 'tools';
+/** ⚠️ タブのキーはここが唯一の出どころ。`?tab=` のリンク元でも必ずこの綴りを使う。 */
+export const TAB_KEYS = ['basic', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools'] as const;
+type TabKey = (typeof TAB_KEYS)[number];
 
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
 
@@ -98,7 +102,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools }: Props) {
+export function CompanyDetailClient({ company, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -140,7 +144,13 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
   const [selectedGenres, setSelectedGenres] = useState<Set<string>>(initialApproved);
 
   // ── UI state ──────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<TabKey>('basic');
+  /* ⚠️ `?tab=` を受ける（2026-08-11）。知らない値は 'basic' に落とす。
+        ⚠️ タブのキーはここが唯一の出どころ。リンク元（/admin/companies/coverage）で
+           別の綴りを書かないこと。`/profile/edit` で `?tab=socials` と書いて
+           実在キーが `socials_content` だったため既定タブに落ちていた前例がある。 */
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    TAB_KEYS.includes(initialTab as TabKey) ? (initialTab as TabKey) : 'basic'
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);

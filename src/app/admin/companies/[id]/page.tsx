@@ -7,11 +7,14 @@ import { getAllToolMasters, getCompanyToolsForAdmin } from './toolActions';
 
 type Props = {
   params: { id: string };
+  /** ⚠️ `?tab=` は充填状況一覧（/admin/companies/coverage）から直接該当タブへ飛ぶために要る。
+   *  クライアント側の useState だけだと外部からリンクできない（2026-08-11 追加）。 */
+  searchParams: { tab?: string };
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminCompanyDetailPage({ params }: Props) {
+export default async function AdminCompanyDetailPage({ params, searchParams }: Props) {
   const supabase = createAdminClient(); // service_role で RLS バイパス
 
   // 企業データ取得
@@ -55,6 +58,7 @@ export default async function AdminCompanyDetailPage({ params }: Props) {
 
   return (
     <CompanyDetailClient
+      initialTab={searchParams.tab}
       company={company}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
