@@ -5311,6 +5311,8 @@ export type Database = {
           selection_process: Json | null
           selection_steps: string[] | null
           slug: string | null
+          source_url: string | null
+          source_verified_at: string | null
           start_date_preference: string | null
           status: string | null
           submitted_at: string | null
@@ -5380,6 +5382,8 @@ export type Database = {
           selection_process?: Json | null
           selection_steps?: string[] | null
           slug?: string | null
+          source_url?: string | null
+          source_verified_at?: string | null
           start_date_preference?: string | null
           status?: string | null
           submitted_at?: string | null
@@ -5449,6 +5453,8 @@ export type Database = {
           selection_process?: Json | null
           selection_steps?: string[] | null
           slug?: string | null
+          source_url?: string | null
+          source_verified_at?: string | null
           start_date_preference?: string | null
           status?: string | null
           submitted_at?: string | null

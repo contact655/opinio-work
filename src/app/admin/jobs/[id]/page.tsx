@@ -27,6 +27,7 @@ export default async function AdminJobDetailPage({ params }: Props) {
       catch_copy, one_liner,
       probation_period, selection_duration, start_date_preference,
       status, submitted_at, published_at, updated_at,
+      source_url, source_verified_at,
       rejection_reason, rejection_date, rejection_reviewer,
       company_id,
       ow_companies!company_id (id, name, industry, employee_count, is_published)

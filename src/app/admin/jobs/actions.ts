@@ -131,3 +131,53 @@ export async function updateJobRoles(
   revalidatePath(`/jobs/${jobId}`);
   return { ok: true };
 }
+
+/**
+ * 求人の出典（原文URL）を記録する。運営用。
+ *
+ * ⚠️ **公開ページには出さない。** 求人がどこから来たかを運営が追えるようにするためだけの列。
+ *
+ * ⚠️ 空文字は null にする。「入力したが空」と「未入力」を別物として持たない
+ *    （CLAUDE.md「値が無いことを、ある値に置き換えない」の裏返しで、
+ *      空文字を残すと「出典なし」の抽出が空振りする）。
+ *
+ * 2026-08-11 に追加。出典列が無かったために公開求人18件の出所調査に丸一日かかり、
+ * うち13件は実在を確認できず掲載を下ろすことになった。
+ */
+export async function updateJobSource(
+  jobId: string,
+  sourceUrl: string,
+  markVerified: boolean,
+): Promise<{ ok: boolean; error?: string; verifiedAt?: string | null }> {
+  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  try {
+    await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
+  }
+
+  const url = sourceUrl.trim();
+  if (url && !/^https?:\/\//i.test(url)) {
+    return { ok: false, error: "URL は http:// または https:// で始めてください" };
+  }
+  if (url.length > 2000) return { ok: false, error: "URL が長すぎます（2000文字以内）" };
+
+  // ⚠️ URL が空なら突合日時も落とす。原文が無いのに「確認済み」は成立しない
+  const verifiedAt = url && markVerified ? new Date().toISOString() : null;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("ow_jobs")
+    .update({
+      source_url: url || null,
+      source_verified_at: verifiedAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId)
+    .select("id");   // ⚠️ 引数なしの .select() は全列を返す。列を絞る
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  return { ok: true, verifiedAt };
+}

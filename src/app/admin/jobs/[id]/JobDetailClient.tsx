@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import type { RoleItem } from "@/components/business/JobEditForm";
-import { updateJobRoles } from "../actions";
+import { updateJobRoles, updateJobSource } from "../actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
@@ -35,6 +35,10 @@ type Job = {
   location: string | null;
   remote_work_status: string | null;
   work_style: string | null;
+  /** 求人原文のURL。運営の管理用で、公開ページには出さない */
+  source_url: string | null;
+  /** 最後に原文と突き合わせた日時 */
+  source_verified_at: string | null;
   description_markdown: string | null;
   description: string | null;
   required_skills: string[] | null;
@@ -394,6 +398,9 @@ export default function JobDetailClient({
         {/* ── Left: job content ──────────────────────────────────────────── */}
         <div>
 
+          {/* 出典（運営用・公開ページには出さない） */}
+          <SourcePanel job={job} />
+
           {/* 差し戻し情報 */}
           {ns === "rejected" && job.rejection_reason && (
             <div style={{
@@ -697,6 +704,108 @@ export default function JobDetailClient({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * 求人の出典（原文URL）を記録するパネル。**運営用で、公開ページには出さない。**
+ *
+ * ⚠️ ここが空のまま公開している求人は `/admin/jobs` の「出典なし（公開中）」タブに出る。
+ *    埋められない求人は公開しないこと（CLAUDE.md）。
+ */
+function SourcePanel({ job }: { job: Job }) {
+  const [url, setUrl] = useState(job.source_url ?? "");
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(job.source_verified_at);
+  const [markVerified, setMarkVerified] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const dirty = url.trim() !== (job.source_url ?? "").trim() || markVerified;
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    const res = await updateJobSource(job.id, url, markVerified);
+    if (!res.ok) {
+      setError(res.error ?? "保存に失敗しました");
+    } else {
+      setVerifiedAt(res.verifiedAt ?? null);
+      setMarkVerified(false);
+      setSaved(true);
+    }
+    setSaving(false);
+  }
+
+  const missing = !url.trim();
+
+  return (
+    <div style={{
+      background: missing ? "#FFFBEB" : "#F8FAFC",
+      border: `1px solid ${missing ? "#FCD34D" : "#E2E8F0"}`,
+      borderRadius: 10, padding: "16px 20px", marginBottom: 28,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: missing ? "#92400E" : "#334155" }}>
+          出典（運営用）
+        </span>
+        <span style={{ fontSize: 12, color: "#94A3B8" }}>公開ページには出ません</span>
+      </div>
+      <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 10px", lineHeight: 1.7 }}>
+        求人原文の URL を入れてください。埋められない求人は公開しないこと。
+      </p>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => { setUrl(e.target.value); setSaved(false); }}
+          placeholder="https://..."
+          aria-label="求人原文のURL"
+          style={{
+            flex: "1 1 320px", minWidth: 0,
+            padding: "8px 10px", border: "1.5px solid #E2E8F0", borderRadius: 6,
+            fontSize: 13, color: "#0F172A", background: "#fff",
+            outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+          }}
+        />
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", flexShrink: 0 }}>
+          <input
+            type="checkbox"
+            checked={markVerified}
+            onChange={(e) => { setMarkVerified(e.target.checked); setSaved(false); }}
+            disabled={!url.trim()}
+          />
+          今日、原文と突き合わせた
+        </label>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !dirty}
+          style={{
+            padding: "8px 18px", borderRadius: 6, fontSize: 13, fontWeight: 600,
+            border: "1px solid var(--royal)", background: "var(--royal)", color: "#fff",
+            cursor: saving || !dirty ? "not-allowed" : "pointer",
+            opacity: saving || !dirty ? 0.5 : 1, flexShrink: 0,
+          }}
+        >
+          {saving ? "保存中..." : "保存"}
+        </button>
+      </div>
+
+      <div style={{ marginTop: 8, fontSize: 12, minHeight: 18 }}>
+        {error && <span style={{ color: "#DC2626" }}>{error}</span>}
+        {!error && saved && <span style={{ color: "#059669" }}>✓ 保存しました</span>}
+        {!error && !saved && (
+          verifiedAt
+            ? <span style={{ color: "#64748B" }}>最終突合: {formatDate(verifiedAt)}</span>
+            : <span style={{ color: missing ? "#92400E" : "#64748B" }}>
+                {missing ? "出典が未記録です" : "原文との突合はまだ記録されていません"}
+              </span>
+        )}
+      </div>
     </div>
   );
 }

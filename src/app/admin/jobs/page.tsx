@@ -14,6 +14,10 @@ const STATUS_TABS = [
   { key: "draft",          label: "下書き" },
   { key: "rejected",       label: "差し戻し済み" },
   { key: "private",        label: "非公開" },
+  /* ⚠️ 「出典なし」は status ではなく source_url で絞るタブ。
+        公開中なのに求人原文のURLが無いものを残タスクとして可視化する。
+        2026-08-11 時点で Salesforce の5件が該当し続ける。 */
+  { key: "no_source",      label: "出典なし（公開中）" },
 ];
 
 
@@ -29,6 +33,8 @@ type Job = {
   location: string | null;
   remote_work_status: string | null;
   work_style: string | null;
+  /** 求人原文のURL。運営の管理用。公開ページには出さない */
+  source_url: string | null;
   rejection_reason: string | null;
   rejection_reviewer: string | null;
   submitted_at: string | null;
@@ -73,7 +79,7 @@ export default function AdminJobsPage() {
       /* ⚠️ 職種の表示は標準職種名（ow_job_roles の主ロール）。運営面では会社呼称を使わない。
             会社ごとに違う名前で並ぶと、職種を横断して見られなくなる。
          ⚠️ job_category は下のキーワード検索が使っているので SELECT からは外さない。 */
-      .select("id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))")
+      .select("id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, source_url, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))")
       .order("updated_at", { ascending: false });
     setJobs((data as unknown as Job[]) || []);
     setLoading(false);
@@ -134,8 +140,16 @@ export default function AdminJobsPage() {
   const normalizedStatus = (s: string | null) =>
     s === "active" ? "published" : (s ?? "draft");
 
+  /** 公開中なのに求人原文のURLが記録されていない求人 */
+  const isMissingSource = (j: Job) =>
+    normalizedStatus(j.status) === "published" && !(j.source_url ?? "").trim();
+
   const filtered = jobs.filter((j) => {
-    if (activeTab !== "all" && normalizedStatus(j.status) !== activeTab) return false;
+    if (activeTab === "no_source") {
+      if (!isMissingSource(j)) return false;
+    } else if (activeTab !== "all" && normalizedStatus(j.status) !== activeTab) {
+      return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -227,8 +241,9 @@ export default function AdminJobsPage() {
       {/* Status Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }} role="tablist" aria-label="求人ステータスで絞り込み">
         {STATUS_TABS.map((tab) => {
-          const count = tab.key === "all"
-            ? jobs.length
+          const count =
+            tab.key === "all" ? jobs.length
+            : tab.key === "no_source" ? jobs.filter(isMissingSource).length
             : jobs.filter((j) => normalizedStatus(j.status) === tab.key).length;
           return (
             <button
