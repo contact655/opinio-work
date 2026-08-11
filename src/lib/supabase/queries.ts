@@ -585,7 +585,12 @@ export async function getCompanies(): Promise<Company[]> {
 }
 
 
-export const getCompanyById = cache(async function getCompanyById(
+/**
+ * ⚠️ **内部専用。UUID しか受けない。** ページからは `getCompanyBySlugOrId` を呼ぶこと。
+ *    export しないのは、slug を渡されて 404 になる事故を構造的に止めるため
+ *    （2026-08-05 の casual-meeting、2026-08-11 の apply で2回踏んだ）。
+ */
+const getCompanyById = cache(async function getCompanyById(
   id: string
 ): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[] } | null> {
   const supabase = createAdminClient();
@@ -1009,7 +1014,12 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 }
 
 
-export const getJobById = cache(async function getJobById(
+/**
+ * ⚠️ **内部専用。UUID しか受けない。** ページからは `getJobBySlugOrId` を呼ぶこと。
+ *    2026-08-11 まで apply ページがこれを slug 付きで呼んでおり、
+ *    公開求人5件すべてで 404 になっていた。
+ */
+const getJobById = cache(async function getJobById(
   id: string
 ): Promise<{ job: Job; company: Company; relatedJobs: Job[] } | null> {
   const supabase = createAdminClient();

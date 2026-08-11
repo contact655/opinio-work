@@ -1144,7 +1144,9 @@ export function filterJobs(jobs: Job[], params: JobFilterParams): Job[] {
   return result;
 }
 
-export function getJobById(id: string): Job | undefined {
+/** ⚠️ mock 専用。DB から引くのは queries.ts の `getJobBySlugOrId`。
+ *  名前が衝突すると import 補完でこちらが出てしまうため 2026-08-11 に改名した。 */
+export function getMockJobById(id: string): Job | undefined {
   return MOCK_JOBS.find((j) => j.id === id);
 }
 
