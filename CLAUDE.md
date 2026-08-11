@@ -273,6 +273,83 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 
 ---
 
+## ⚠️ `/admin` 配下ではブラウザ側の Supabase クライアントを使わない（2026-08-11 確立）
+
+| 何を | どうする |
+|---|---|
+| 読み取り | **サーバーコンポーネント + `createAdminClient`** |
+| 書き込み | **Server Action（`ActionResult` 型で error を画面に出す）** |
+| ブラウザ側 `@/lib/supabase/client` | **使わない** |
+
+### なぜ
+
+**ブラウザクライアントは RLS で fails closed するが、黙って0行になるため気づけない。**
+運営アカウントでも、そのテーブルに運営ポリシーが無ければ他社の行は見えないし書けない。
+supabase-js は失敗しても例外を投げないので、画面は成功したように振る舞う。
+
+⚠️ **運営ポリシー（`auth_is_admin`）を持つのは `ow_companies` だけ**だった（2026-08-11 実測）。
+   `ow_jobs` / `ow_company_admins` / `ow_users` / `ow_experiences` には1本も無い。
+
+### 実測（運営アカウントのセッションで PostgREST を直接叩いた結果）
+
+| テーブル | 全件 | 運営に見えた | 差 |
+|---|---|---|---|
+| **`ow_jobs`** | 20 | **7** | **13**（すべて他社の draft） |
+| **`ow_company_admins`** | 10 | **6** | **4**（すべて `is_active` かつ `permission='admin'`） |
+| `ow_users` | 26 | 25 | 1（システムユーザー） |
+| `ow_companies` | 85 | 85 | 0（運営ポリシーあり） |
+
+### 実際に起きていたこと（4ファイル）
+
+| 画面 | 症状 |
+|---|---|
+| `/admin/jobs`（一覧） | 他社の draft が**1件も出ない**。「審査待ち0件」が本当に0か見えていないだけか区別できなかった |
+| `/admin/jobs/[id]` の承認・差し戻し・非公開・再公開 | ブラウザクライアントで直接 UPDATE。**他社の求人では常に0行更新**。戻り値を捨てていたので成功に見えた |
+| `/admin/companies` のロゴURL編集 | `ow_companies_own_update` は `auth.uid() = user_id` を要求。`user_id` があるのは**85社中2社**で、**残り83社で0行更新** |
+| `/admin/articles` の紐づけ候補 | `ow_company_admins` 4件が欠け、企業に属する人が候補に出なかった |
+
+### 直したときの原則
+
+- **0行更新を成功として扱わない。** `.select("id")` で戻り行を受け、0件ならエラーにする
+- **`.select()` を引数なしで呼ばない。** 全列を返すため、列単位 GRANT を剥がした列があると 403 になる
+- **RLS を緩めて解決しない。** ブラウザセッションから他社の下書きが取れる経路が増える
+
+### ⚠️ 認証の内側にあるページは、実際にログインして踏むまで壊れていても分からない
+
+2026-08-11 までに**同じ形の不具合を3件**踏んだ。いずれも未ログインでは
+認証リダイレクト（307）が先に出るため、**HTTP を見る限り正常**だった。
+
+| 不具合 | 未ログインで見えた挙動 |
+|---|---|
+| `/jobs/{slug}/apply` が全件404（`getJobById` は UUID しか受けない） | 307（ログイン誘導） |
+| `/companies/{slug}/casual-meeting` が全件404（同じ原因・2026-08-05） | 307 |
+| `/admin` の0行更新 | そもそも `/admin` に入れない |
+
+#### 確認手順（メールは飛ばない・新規アカウントも作らない）
+
+`generateLink` はリンクを返すだけで送信しない。既存の `is_test` アカウント
+（求職者側）または運営アカウントを使う。
+
+```js
+const admin = createClient(url, SERVICE_ROLE_KEY);
+const { data: link } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+const pub = createClient(url, ANON_KEY);
+const { data } = await pub.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: "magiclink" });
+// ① fetch で確かめる場合: Cookie ヘッダに入れる
+// ② ブラウザで確かめる場合: public/ に一時HTMLを置いて document.cookie を書き、開いたら消す
+const value = "base64-" + Buffer.from(JSON.stringify(data.session), "utf8").toString("base64url");
+// ⚠️ base64url。標準 base64 だと @supabase/ssr が Invalid Base64-URL character で 500 になる
+// ⚠️ 3180文字を超えるので sb-<ref>-auth-token.0 / .1 に分割する（実測 5,125 文字）
+```
+
+⚠️ **確認するのは HTTP status ではなく中身。** 上の3件はどれも 200 か 307 だった。
+   「フォームが出ているか」「行が何件出ているか」まで見ること。
+
+⚠️ **ログインが要るページを直したら、必ずログインして踏む。**
+   未ログインの curl だけで「直った」と言わない。
+
+---
+
 ## RLS / GRANT を変えたら、非admin の実セッションで実測する（2026-08-06 確立）
 
 **admin のセッションで測っても、権限の検証にはならない。**

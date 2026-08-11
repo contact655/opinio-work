@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import type { RoleItem } from "@/components/business/JobEditForm";
-import { updateJobRoles, updateJobSource } from "../actions";
+import {
+  updateJobRoles,
+  updateJobSource,
+  approveJob,
+  rejectJob,
+  privateJob,
+  republishJob,
+  type ActionResult,
+} from "../actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
@@ -192,6 +199,7 @@ export default function JobDetailClient({
   const [actionLoading, setActionLoading] = useState(false);
 
   // 差し戻しモーダル
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState(job.rejection_reason ?? "");
   const [rejectionReviewer, setRejectionReviewer] = useState("OPINIO編集部");
@@ -201,56 +209,47 @@ export default function JobDetailClient({
   const company = job.ow_companies;
 
   // ── actions ────────────────────────────────────────────────────────────────
-  async function handleApprove() {
+  /* ⚠️ **ブラウザ側の Supabase クライアントで書き込まないこと（2026-08-11 修正）。**
+        ここは 4つとも `createClient()` で直接 ow_jobs を UPDATE していた。
+        `ow_jobs` には運営ポリシー（auth_is_admin）が無く、
+        `ow_jobs_company_admin_manage` は自社の求人しか許さないため、
+        **他社の求人では常に0行更新**だった。しかも戻り値を捨てていたので
+        画面は成功したように振る舞い、誰も気づけなかった。
+        書き込みは Server Action（admin クライアント＋ ActionResult）に寄せる。 */
+
+  /** 4つのアクションで共通の後処理。**error を必ず画面に出す。** */
+  async function run(fn: () => Promise<ActionResult>, nextStatus: string) {
     setActionLoading(true);
-    const supabase = createClient();
-    const now = new Date().toISOString();
-    await supabase.from("ow_jobs").update({
-      status: "published", published_at: now, updated_at: now,
-      rejection_reason: null, rejection_reviewer: null, rejection_date: null,
-    }).eq("id", job.id);
-    setStatus("published");
+    setActionError(null);
+    const res = await fn();
+    if (!res.ok) {
+      setActionError(res.error);
+    } else {
+      setStatus(nextStatus);
+    }
     setActionLoading(false);
+    return res.ok;
+  }
+
+  async function handleApprove() {
+    await run(() => approveJob(job.id), "published");
   }
 
   async function handleRejectConfirm() {
     if (!rejectionReason.trim()) return;
-    setActionLoading(true);
-    const supabase = createClient();
-    const now = new Date().toISOString();
-    const dateLabel = new Date().toLocaleDateString("ja-JP", {
-      year: "numeric", month: "long", day: "numeric",
-    });
-    await supabase.from("ow_jobs").update({
-      status: "rejected",
-      rejection_reason: rejectionReason.trim(),
-      rejection_reviewer: rejectionReviewer.trim() || "OPINIO編集部",
-      rejection_date: dateLabel,
-      updated_at: now,
-    }).eq("id", job.id);
-    setStatus("rejected");
-    setShowRejectModal(false);
-    setActionLoading(false);
+    const ok = await run(
+      () => rejectJob(job.id, rejectionReason.trim(), rejectionReviewer.trim()),
+      "rejected",
+    );
+    if (ok) setShowRejectModal(false);
   }
 
   async function handlePrivate() {
-    setActionLoading(true);
-    const supabase = createClient();
-    await supabase.from("ow_jobs").update({
-      status: "private", updated_at: new Date().toISOString(),
-    }).eq("id", job.id);
-    setStatus("private");
-    setActionLoading(false);
+    await run(() => privateJob(job.id), "private");
   }
 
   async function handleRepublish() {
-    setActionLoading(true);
-    const supabase = createClient();
-    await supabase.from("ow_jobs").update({
-      status: "published", updated_at: new Date().toISOString(),
-    }).eq("id", job.id);
-    setStatus("published");
-    setActionLoading(false);
+    await run(() => republishJob(job.id), "published");
   }
 
   // ── derived values ─────────────────────────────────────────────────────────
@@ -397,6 +396,17 @@ export default function JobDetailClient({
 
         {/* ── Left: job content ──────────────────────────────────────────── */}
         <div>
+
+          {/* ⚠️ 操作が失敗したら必ずここに出す。黙って成功に見せない */}
+          {actionError && (
+            <div role="alert" style={{
+              background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 10,
+              padding: "12px 16px", marginBottom: 20,
+              fontSize: 13, color: "#991B1B", lineHeight: 1.7,
+            }}>
+              操作に失敗しました: {actionError}
+            </div>
+          )}
 
           {/* 出典（運営用・公開ページには出さない） */}
           <SourcePanel job={job} />

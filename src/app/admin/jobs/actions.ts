@@ -14,56 +14,131 @@ async function assertAdmin(): Promise<void> {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function approveJob(jobId: string): Promise<void> {
-  if (!UUID_RE.test(jobId)) throw new Error("Invalid jobId");
-  await assertAdmin();
+/**
+ * 運営操作の戻り値。**形は admin/companies/actions.ts と同じにしてある。**
+ *
+ * ⚠️ throw しない。Server Action で throw すると unhandled rejection になり
+ *    画面に何も出ない。必ず戻り値で返して呼び出し側が出す。
+ * ⚠️ supabase-js は失敗しても例外を投げず `{ error }` を返す。
+ *    2026-08-11 まで、この4つのアクションは戻り値を捨てていた。
+ */
+export type ActionResult = { ok: true } | { ok: false; error: string };
+
+function fail(err: { code?: string; message: string } | null | undefined): ActionResult {
+  if (!err) return { ok: true };
+  return { ok: false, error: `${err.message}${err.code ? `（${err.code}）` : ""}` };
+}
+
+/**
+ * ⚠️ **0行更新を成功として扱わない。**
+ *    2026-08-11 まで求人詳細ページがブラウザ側クライアントで直接 UPDATE しており、
+ *    `ow_jobs` に運営ポリシー（auth_is_admin）が無いため
+ *    **他社の求人では常に0行更新**だった。error も出ないので成功に見えていた。
+ *    ここは admin クライアントなので RLS は効かないが、
+ *    id の綴り違いなどで0行になる可能性は残るため必ず件数を見る。
+ */
+function requireOneRow(rows: unknown[] | null, jobId: string): ActionResult {
+  if (!rows || rows.length === 0) {
+    return { ok: false, error: `対象の求人が見つかりませんでした（id: ${jobId}）` };
+  }
+  return { ok: true };
+}
+
+export async function approveJob(jobId: string): Promise<ActionResult> {
+  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  try {
+    await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
+  }
   const admin = createAdminClient();
   const now = new Date().toISOString();
-  await admin.from("ow_jobs").update({
+  const { data, error } = await admin.from("ow_jobs").update({
     status: "published",
     published_at: now,
     updated_at: now,
     rejection_reason: null,
     rejection_reviewer: null,
     rejection_date: null,
-  }).eq("id", jobId);
+  }).eq("id", jobId).select("id");   // ⚠️ 列を絞る。引数なしの .select() は全列を返す
+  if (error) return fail(error);
+  const rowCheck = requireOneRow(data, jobId);
+  if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  return { ok: true };
 }
 
 export async function rejectJob(
   jobId: string,
   reason: string,
   reviewer: string,
-): Promise<void> {
-  if (!UUID_RE.test(jobId)) throw new Error("Invalid jobId");
-  await assertAdmin();
+): Promise<ActionResult> {
+  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  if (!reason.trim()) return { ok: false, error: "差し戻し理由を入力してください" };
+  try {
+    await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
+  }
   const admin = createAdminClient();
   const now = new Date().toISOString();
   const dateLabel = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-  await admin.from("ow_jobs").update({
+  const { data, error } = await admin.from("ow_jobs").update({
     status: "rejected",
     rejection_reason: reason.slice(0, 1000),
     rejection_reviewer: (reviewer || "OPINIO編集部").slice(0, 100),
     rejection_date: dateLabel,
     updated_at: now,
-  }).eq("id", jobId);
+  }).eq("id", jobId).select("id");
+  if (error) return fail(error);
+  const rowCheck = requireOneRow(data, jobId);
+  if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  return { ok: true };
 }
 
-export async function privateJob(jobId: string): Promise<void> {
-  if (!UUID_RE.test(jobId)) throw new Error("Invalid jobId");
-  await assertAdmin();
+export async function privateJob(jobId: string): Promise<ActionResult> {
+  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  try {
+    await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
+  }
   const admin = createAdminClient();
-  await admin.from("ow_jobs").update({ status: "private", updated_at: new Date().toISOString() }).eq("id", jobId);
+  const { data, error } = await admin
+    .from("ow_jobs")
+    .update({ status: "private", updated_at: new Date().toISOString() })
+    .eq("id", jobId)
+    .select("id");
+  if (error) return fail(error);
+  const rowCheck = requireOneRow(data, jobId);
+  if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  return { ok: true };
 }
 
-export async function republishJob(jobId: string): Promise<void> {
-  if (!UUID_RE.test(jobId)) throw new Error("Invalid jobId");
-  await assertAdmin();
+export async function republishJob(jobId: string): Promise<ActionResult> {
+  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  try {
+    await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
+  }
   const admin = createAdminClient();
-  await admin.from("ow_jobs").update({ status: "published", updated_at: new Date().toISOString() }).eq("id", jobId);
+  const { data, error } = await admin
+    .from("ow_jobs")
+    .update({ status: "published", updated_at: new Date().toISOString() })
+    .eq("id", jobId)
+    .select("id");
+  if (error) return fail(error);
+  const rowCheck = requireOneRow(data, jobId);
+  if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  return { ok: true };
 }
 
 /**

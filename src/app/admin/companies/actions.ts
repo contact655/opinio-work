@@ -198,3 +198,41 @@ export async function updateSortOrder(items: { id: string; sort_order: number }[
   revalidatePath("/admin/companies");
   return { ok: true };
 }
+
+/**
+ * ロゴURLを更新する（運営用）。
+ *
+ * ⚠️ **ブラウザ側のクライアントで更新しないこと（2026-08-11 修正）。**
+ *    一覧ページが `createClient()` で直接 `ow_companies.update({logo_url})` しており、
+ *    `ow_companies_own_update` は `auth.uid() = user_id` を要求する。
+ *    `user_id` が入っているのは **85社中2社**なので、**残り83社では0行更新**だった。
+ *    戻り値も捨てていたため、入力欄は保存されたように見えていた。
+ */
+export async function updateCompanyLogoUrl(
+  companyId: string,
+  logoUrl: string | null,
+): Promise<ActionResult> {
+  if (!UUID_RE.test(companyId)) return { ok: false, error: "企業IDが不正です" };
+  await assertAdmin();
+
+  const url = (logoUrl ?? "").trim();
+  if (url && !/^https?:\/\//i.test(url)) {
+    return { ok: false, error: "URL は http:// または https:// で始めてください" };
+  }
+  if (url.length > 2000) return { ok: false, error: "URL が長すぎます（2000文字以内）" };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("ow_companies")
+    .update({ logo_url: url || null, updated_at: new Date().toISOString() })
+    .eq("id", companyId)
+    .select("id");   // ⚠️ 列を絞る。引数なしの .select() は全列を返す
+  if (error) return { ok: false, error: toMessage(error) };
+  /* ⚠️ 0行更新を成功にしない。id 違いを黙って通すと同じ穴に戻る */
+  if (!data || data.length === 0) {
+    return { ok: false, error: `対象の企業が見つかりませんでした（id: ${companyId}）` };
+  }
+
+  revalidatePath("/admin/companies");
+  return { ok: true };
+}
