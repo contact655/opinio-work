@@ -1811,19 +1811,12 @@ function Sidebar({
                   />
                   <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                 </Link>
-                {/* 補足テキスト: Primary ボタン直下、Primary 表示時のみ */}
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    textAlign: "center",
-                    margin: "8px 0",
-                    color: "#fff",
-                    opacity: 0.75,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  人事担当者が直接対応します
-                </p>
+                {/* ⚠️ 補足文は置かない（2026-08-11）。
+                       ここには「人事担当者が直接対応します」と書いてあったが、**全社で事実と違った**。
+                       宛先を持つ企業でも、受け取るのは ow_company_admins の担当者であって
+                       人事とは限らない（セールスフォース・ジャパンで対応できる1名は現役の
+                       Enterprise AE）。誰が対応するかは企業ごとに違い、OPINIO 側で保証できない。
+                       保証できないことをボタンの直下で約束しないこと。 */}
                 {/* 2nd (Secondary): 募集を見て応募する — job_count > 0 の時のみ */}
                 {hasJobs && (
                   <a

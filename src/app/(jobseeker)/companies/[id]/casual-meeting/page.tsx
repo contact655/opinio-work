@@ -30,6 +30,11 @@ export default async function CasualMeetingPage({
 
   const { company } = result;
 
+  /* ⚠️ `company.accepting_casual_meetings` は getCompanyById が
+        「フラグ true **かつ** 宛先が実在する」に潰した値（lib/company/casualMeeting.ts）。
+        ここで生のフラグを見に行かないこと。企業ページの CTA と同じ値を見ることで
+        「ボタンが出ているのに申し込めない」「出ていないのに URL 直打ちで送れる」の
+        両方を防いでいる。 */
   if (!company.accepting_casual_meetings) {
     return (
       <main style={{ maxWidth: 640, margin: "80px auto", padding: "0 24px" }}>
@@ -52,8 +57,9 @@ export default async function CasualMeetingPage({
             現在受付していません
           </h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-            <strong style={{ color: "var(--ink)" }}>{company.name}</strong> は現在、カジュアル面談の受付を一時停止しています。
-            <br />企業の準備が整い次第、再開される予定です。
+            {/* ⚠️ 「準備が整い次第、再開される予定です」と書いてあったが、
+                   再開の予定は OPINIO 側で把握していない。約束しない文言にした（2026-08-11）。 */}
+            <strong style={{ color: "var(--ink)" }}>{company.name}</strong> は現在、カジュアル面談を受け付けていません。
           </p>
           <a
             href={`/companies/${params.id}`}

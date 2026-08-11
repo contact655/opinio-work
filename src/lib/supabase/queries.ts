@@ -14,6 +14,7 @@ import { createPublicClient } from "./public";
 import { buildRoleTree, expandWithAncestors, type RoleTree, type RoleNode } from "@/lib/roles/jobRoles";
 import { pickRoleLabel, fetchCompanyRoleMap } from "@/lib/jobs/roleLabel";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
+import { isCasualMeetingOpen } from "@/lib/company/casualMeeting";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
 import type {
@@ -631,6 +632,14 @@ export const getCompanyById = cache(async function getCompanyById(
   const company = mapCompany(data, jobRows?.length ?? 0, genres);
   const detail = buildCompanyDetail(data, jobRows ?? [], roleRows ?? []);
 
+  /* ⚠️ 面談の可否は**フラグ単独では決めない**（2026-08-11）。宛先が無ければ閉じる。
+        ここで潰しておくと、企業ページの CTA・バッジ・申込ページが同じ値を見るので
+        「押せるのに送れない」がそもそも作れない。理由は lib/company/casualMeeting.ts。 */
+  company.accepting_casual_meetings = await isCasualMeetingOpen(
+    company.id,
+    company.accepting_casual_meetings,
+  );
+
   return { company, detail, employeeCategories };
 });
 
@@ -1034,6 +1043,14 @@ export const getJobById = cache(async function getJobById(
   }
   const relatedJobs: Job[] = (relatedRows ?? []).map((r) => mapJob(r as Record<string, unknown>));
 
+  /* ⚠️ 求人詳細の面談 CTA も企業ページと同じ判定を通す（2026-08-11）。
+        片方だけ直すと「求人からは申し込めるが企業ページからは出ない」になる。 */
+  const companyRow = compData as unknown as Record<string, unknown>;
+  const companyAcceptsMeeting = await isCasualMeetingOpen(
+    companyRow.id as string,
+    companyRow.accepting_casual_meetings as boolean | null,
+  );
+
   // 職種は ow_job_roles が正。詳細ページでも roleIds / roleName を使えるようにする
   // （job_category は移行期間中の派生値で、判定には使わない）。
   const job = mapJob(jobRow);
@@ -1079,11 +1096,10 @@ export const getJobById = cache(async function getJobById(
     job.roleLabel = pickRoleLabel({ standardRoleName: job.roleName });
   }
 
-  return {
-    job,
-    company: mapCompany(compData),
-    relatedJobs,
-  };
+  const company = mapCompany(compData);
+  company.accepting_casual_meetings = companyAcceptsMeeting;
+
+  return { job, company, relatedJobs };
 });
 
 export async function getJobBySlugOrId(

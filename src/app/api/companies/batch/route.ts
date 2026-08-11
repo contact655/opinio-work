@@ -3,8 +3,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient } from "@/lib/supabase/public";
+import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 
-export const runtime = "edge";
+/* ⚠️ 2026-08-11 に edge を外した。面談バッジの判定に service role が要る
+      （ow_users.email は anon から読めない）。 */
 
 export async function GET(req: NextRequest) {
   const ids = req.nextUrl.searchParams.get("ids");
@@ -58,13 +60,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  /* ⚠️ DB のフラグをそのまま返さない（2026-08-11）。宛先が無ければ「面談」バッジを出さない。
+        企業ページ側の判定（lib/company/casualMeeting.ts）と必ず同じ結論にすること。 */
+  const meetingOpen = await filterOpenCasualMeetingCompanies(
+    ((rawCompanies ?? []) as unknown as { id: string }[]).map((c) => c.id),
+  );
+
   // idList の順番を保持して返す
   const idOrder = new Map(idList.map((id, i) => [id, i] as [string, number]));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companies = (rawCompanies ?? []).map((c: any) => ({
     id: c.id, name: c.name, name_en: c.name_en, tagline: c.tagline,
     industry: c.industry, funding_stage: c.funding_stage, employee_count: c.employee_count,
-    description: c.description, accepting_casual_meetings: c.accepting_casual_meetings,
+    description: c.description, accepting_casual_meetings: meetingOpen.has(c.id),
     remote_work_status: c.remote_work_status, location: c.location,
     logo_letter: c.logo_letter, logo_gradient: c.logo_gradient, logo_url: c.logo_url,
     updated_at: c.updated_at, current_member_count: c.current_member_count,
