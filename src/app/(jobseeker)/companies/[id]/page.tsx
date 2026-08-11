@@ -87,7 +87,10 @@ export async function generateMetadata({
   //    全社の meta description が二重になっていた。値はそのまま使う。
   const size = company.employee_count?.toString().trim() || null;
   const description = company.tagline
-    ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}業界${size ? `・${size}` : ""}。企業情報と求人をOPINIOで確認。`
+    /* ⚠️ 「業界」を後ろに付けない（2026-08-11 削除）。industry の値は業界名ではなく
+          製品・業務領域なので、「開発者ツール業界」「経理・財務業界」「CRM・営業支援業界」の
+          ように日本語として成立しない。値をそのまま出す。 */
+    ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}${size ? `・${size}` : ""}。企業情報と求人をOPINIOで確認。`
     : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。`;
 
   const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}`;
