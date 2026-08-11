@@ -1503,31 +1503,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   </div>
                 </div>
 
-                {/* ⑥ Fit positives — こんな人に向いている */}
-                {company.fit_positives && company.fit_positives.length > 0 && (
-                <div style={{ marginTop: "var(--space-3)" }}>
-                  <div style={{
-                    fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em",
-                    marginBottom: "var(--space-2)", display: "flex", alignItems: "center", gap: 6,
-                  }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                    こんな人に向いている
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {company.fit_positives.slice(0, 4).map((fp, i) => (
-                      <span key={i} style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "5px 12px", borderRadius: 100, fontSize: 12, fontWeight: 600,
-                        background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
-                      }}>
-                        {fp}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                )}
+                {/* ⚠️ 「こんな人に向いている」（fit_positives）は 2026-08-11 に削除した。
+                       **運営の推測であって企業が言ったことではない。**
+                       「グローバルキャリア」「Ohana文化」等が archive/137 / 157 で
+                       出典なしに一括投入されており、公開72社に入っていた。
+                       企業詳細ページ側は同じ理由で先に削除済みで、求人ページだけ残っていた。
+                    ⚠️ データ（fit_positives / fit_negatives）は残してある。
+                       企業が自分で書けるようにするなら、入力欄と一緒に作り直すこと。 */}
 
                 {/* ⑥ Prominent CTA to company page。非公開企業では出さない */}
                 {companyHref && (

@@ -273,6 +273,131 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 
 ---
 
+## ⚠️ 「0件」を読むときは、起きなかった0か起こせなかった0かを分ける（2026-08-11 確立）
+
+**0件を「まだ使われていないだけ」と読むと、壊れている機能を見逃す。**
+
+2026-08-11 に「応募0件」を調べたら、**応募できない状態**だった。
+`/jobs/{slug}/apply` が全件404で、加えて公開求人を持つ7社のうち6社は
+通知の宛先が0件で、送っても誰にも届かなかった。
+
+### 現時点の分類（2026-08-11 実測）
+
+**❌ 起こせなかった0（経路が壊れている／存在しない）**
+
+| テーブル | 理由 |
+|---|---|
+| `ow_match_scores` | **書き込むコードが src にも migration にも存在しない。** 完全な死蔵 |
+| `ow_job_applications` | apply ページが全件404だった（同日修正）＋宛先0件（同日修正） |
+| `ow_casual_meetings` | 76社に導線が出ていたが宛先を持つのは2社だけだった（同日修正） |
+
+**⚠️ 未検証の0（経路はあるが、誰も通っていないだけかもしれない）**
+
+| テーブル | 状況 |
+|---|---|
+| `ow_company_follows` | `POST /api/jobseeker/companies/[id]/follow` はある。**未検証** |
+| `ow_user_follows` | 同上。**未検証** |
+
+⚠️ この2つは企業と登録者が増えれば実際に踏むので、そのときに確定する。
+   今わざわざ検証しないのは、これが「根拠のないデータの除去」の作業であって
+   未完成機能の棚卸しではないため。
+
+**🗑 未使用テーブル（DROP 候補。今回は消さない）**
+
+| テーブル | 状況 |
+|---|---|
+| `ow_mentor_reservations` | **メンター機能自体が無い。** `ow_mentors` は migration 132 で作られ 140 で DROP 済み。「話せる人」の実体は `ow_company_members`。**`src` からの参照0件** |
+| `ow_messages` | アプリが使うのは `ow_conversation_messages`。名前が似た別テーブルが残っている |
+
+⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
+   `SCOUT_SENDING_ENABLED` を未設定にして止めているので「起こさなかった0」。
+
+### 判定の手順
+
+1. そのテーブルに **INSERT するコードが存在するか**を grep する（0件ならそこで終わり）
+2. 存在するなら、**その経路に到達できるか**を確かめる。
+   ⚠️ 認証の内側なら、実際にログインして踏むこと（HTTP status だけ見ない）
+3. 到達できるなら、**受け取る先があるか**を確かめる
+   （応募・面談は `getCompanyNotificationRecipients` が0件だと届かない）
+
+---
+
+## ⚠️ 「開示スコア」を名乗る計算が4つある（2026-08-11 整理）
+
+**名前が似ているので、どれの話かをファイルパスと関数名で特定してから触ること。**
+2026-08-11 に `avg_salary` の配点を外すとき、どれが対象かの特定に調査が必要だった。
+
+| # | 実体 | 用途 | 満点 | `avg_salary` |
+|---|---|---|---|---|
+| 1 | [lib/utils/disclosureScore.ts](src/lib/utils/disclosureScore.ts) `calcDisclosureScore` | `/biz/dashboard` `/biz/company` の「開示充実度」 | 95 | **含まない** |
+| 2 | [lib/search/companies.ts](src/lib/search/companies.ts) の**ローカル関数** `disclosureScore` | `/companies` の並び替え「開示充実順」 | 8（旧10） | **含んでいた → 2026-08-11 に削除** |
+| 3 | [companies/(list)/page.tsx](src/app/(jobseeker)/companies/(list)/page.tsx) の `sort === "disclosure"` 分岐 | 同上（2の後段） | — | 無関係 |
+| 4 | [jobs/(list)/JobsClient.tsx](src/app/(jobseeker)/jobs/(list)/JobsClient.tsx) の `sort === "disclosure"` | `/jobs` の並び替え | 7 | 無関係 |
+
+⚠️ **CLAUDE.md 冒頭の「開示充実度スコア 取材データの実態」表と、
+   メモ `project-disclosurescore-redesign`（実質35点満点問題）が指すのは 1 だけ。**
+
+⚠️ **3 は全社同値の列で並べ替えている無意味な処理。** `reality_disclosure` は
+   87社すべてが空で、入力UIも無く一度も値が入っていない。
+   `Array.prototype.sort` は安定ソートなので比較が全件0のときは前段（2）の順序が保たれ、
+   結果として実害は無い。**後で消す候補**（今回は触っていない）。
+   `disclosureScore.ts` の `reality_disclosure` 40点が全社0点だったのと同じ根。
+
+---
+
+## ⚠️ migration を書くときのルール（2026-08-11 確立）
+
+### 1. 全社一括の UPDATE を禁止する
+
+`WHERE is_published = true` のような条件で全社を更新しない。
+**対象を id または name で明示列挙する。**
+
+実例: `archive/258_enable_casual_meetings_all_companies.sql` が
+
+```sql
+UPDATE ow_companies SET accepting_casual_meetings = true WHERE is_published = true;
+```
+
+で全社を true にし、その直前の `archive/170_disable_casual_meetings_6companies.sql`
+（「LayerX / PKSHA / Ubie / freee / SmartHR / Sansan は現時点で面談を受け付けて
+いないためバッジを非表示にする」と**理由まで書いて**個別に false にしていた）を
+理由もろとも打ち消していた。
+
+結果、公開76社すべてが「面談受付中」と表示され、**全社で申込フォームが送信可能**
+だった。宛先を持つのは2社しかない。
+
+### 2. 一括 UPDATE の前に、同じ列を触った直近の migration を確認する
+
+打ち消していないかを確認し、**確認した旨を migration のコメントに書き残す。**
+`archive/258` にその一行があれば、170 を上書きしていることに気づけた。
+
+```
+-- ── 直近に同じ列を触った migration（確認済み）────────────
+--   archive/170 … 6社を false（面談を受け付けていないため）→ 本migrationで復元される
+--   archive/258 … 公開全社を true ← これを取り消すのが目的
+```
+
+### 3. 推測値を投入しない
+
+**企業ごとに調べた値でなければ列に入れない。**
+「とりあえず hybrid」「とりあえず東京都」「たぶん700万円〜」は、
+後から migration 由来か企業設定かを判別できなくなる。
+
+実例: 出典を記録する列が無かったために、**公開求人18件の出所調査に丸一日かかった**。
+`archive/*.sql`（299本）を全文検索するしかなく、13件は実在を確認できず掲載を下ろした。
+`ow_jobs.source_url` を足したのはこのため。
+
+⚠️ 企業側にも同じ問題が残っている。2026-08-11 に除去したもの:
+
+| 列 | 社数 | 出所 |
+|---|---|---|
+| `remote_work_status` | 74 → 2 | archive/156 が 'hybrid' を一括投入（2026-07-27 に除去済み） |
+| `accepting_casual_meetings` | 76 → 2 | archive/258 |
+| `avg_salary` | 68 → 0 | archive/157（65社）/ archive/137（3社）。**どちらも出典の記載なし** |
+| 求人の `work_style` / `location` | 18 → 5 | archive/147「サンプル求人データ追加」/ archive/152 |
+
+---
+
 ## ⚠️ `/admin` 配下ではブラウザ側の Supabase クライアントを使わない（2026-08-11 確立）
 
 | 何を | どうする |
@@ -347,6 +472,19 @@ const value = "base64-" + Buffer.from(JSON.stringify(data.session), "utf8").toSt
 
 ⚠️ **ログインが要るページを直したら、必ずログインして踏む。**
    未ログインの curl だけで「直った」と言わない。
+
+### ⚠️ `*ById` は内部専用。ページからは必ず `*BySlugOrId` を呼ぶ
+
+`getJobById` / `getCompanyById` は **UUID しか受けない**。
+2026-08-11 に `export` を外し、`queries.ts` の内部関数にした。
+import した時点でビルドが落ちるので、次に同じことをしようとした人はその場で気づける。
+
+⚠️ `mockJobData` の同名関数は `getMockJobById` に改名した。
+   名前が衝突していると import 補完で mock 側が出る。
+
+⚠️ **同名・類似名の関数が他にもある。** 例: `parseSalary` は
+   `api/biz/jobs/route.ts`（リクエストボディの解析）にも別実装がある。
+   grep するときは必ずファイルパスまで確認すること。
 
 ---
 
@@ -2561,7 +2699,7 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 | ow_applications | 0件 | 求人応募データなし |
 | ow_users | 23件+ | ow_profiles 20件 |
 | ow_casual_meetings | 0件 | 申込データなし |
-| ow_mentor_reservations | 0件 | 予約データなし |
+| ow_mentor_reservations | 0件 | ⚠️ **2026-08-11 訂正: メンター機能自体が存在しない。** `ow_mentors` は migration 132 で作成後 140 で DROP 済み。「話せる人」の実体は `ow_company_members`。このテーブルは `src` から一度も参照されておらず DROP 候補 |
 
 ---
 

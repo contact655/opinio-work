@@ -82,7 +82,9 @@ export type CompanyDetail = {
   about: string;
   established: string | null;
   ceo: string | null;
-  capital: string;
+  /** ⚠️ 2026-08-11: 表示先が無く、queries.ts が全社に "非公開" を入れていたので
+   *  そちらは削除した。mock の型としては残すが**新しく使わないこと**。 */
+  capital?: string;
   hq: string | null;
   url: string;
   company_features: string[];

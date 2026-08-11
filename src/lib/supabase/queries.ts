@@ -260,11 +260,19 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
   return {
     id: row.id as string,
     mission: (row.mission as string) ?? (row.tagline as string) ?? "",
-    about: (row.description as string) ?? (row.why_join as string)
-      ?? `${row.name ?? ""}は、${row.tagline ?? ""}`,
+    /* ⚠️ 代用しない（2026-08-11）。以前は
+          `description ?? why_join ?? \`${name}は、${tagline}\`` の2段フォールバックだった。
+       ・`why_join` は migration が書いた勧誘文で、企業説明ではない。
+         公開4社（PKSHA / SmartHR / Sansan / Ubie）がこれを「企業について」として出していた
+       ・合成文は当時まだ到達していなかったが、description も why_join も無い企業が
+         1社増えた瞬間に「〇〇は、「〇〇」」という文が出る作りだった
+       値が無ければセクションごと出さない（表示側は falsy を落とす）。 */
+    about: (row.description as string) ?? null,
     established: row.founded_year ? `${row.founded_year}年` : null,
     ceo: (row.ceo_name as string) ?? null,
-    capital: "非公開",
+    /* ⚠️ `capital: "非公開"` は削除した（2026-08-11）。全社に無条件で入れていた固定文字列で、
+          資本金を確認したうえで非公開だと言っているわけではなかった。
+          表示先は元から無く、`detail.capital` の参照は src に0件だった。 */
     hq: (row.location as string) ?? null,
     url: (row.url as string) ?? "",
     company_features: Array.isArray(row.company_features) ? row.company_features as string[] : [],

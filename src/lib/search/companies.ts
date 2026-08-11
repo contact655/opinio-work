@@ -248,15 +248,14 @@ export async function searchCompanies(
     .filter((c) => {
       if (params.hiring && !hiringSet.has(c.id)) return false;
       if (params.salaryMin) {
-        // 計算値（万円）を優先、なければ手動設定の avg_salary にフォールバック
+        /* ⚠️ **求人由来の計算値のみで絞る（2026-08-11）。**
+              以前は `ow_companies.avg_salary`（「700万円〜」等の文字列）に
+              フォールバックしていたが、①出典が1つも無い機械投入値で、
+              ②`parseInt("700万円〜") / 10000 = 0.07` と換算しており、
+              **どの閾値でもほぼ全社が落ちていた**（実測: 常に1社しか残らない）。
+              計算値が無い企業は「年収が分からない」ので、絞り込みからは外す。 */
         const calcSal = calcAvgSalaryMap[c.id] ?? null;
-        if (calcSal !== null) {
-          if (calcSal < params.salaryMin) return false;
-        } else {
-          const sal = (c as { avg_salary?: number | string | null }).avg_salary;
-          const salNum = typeof sal === "number" ? sal / 10000 : typeof sal === "string" ? parseInt(sal.replace(/[^0-9]/g, ""), 10) / 10000 : 0;
-          if (!salNum || salNum < params.salaryMin) return false;
-        }
+        if (calcSal === null || calcSal < params.salaryMin) return false;
       }
       return true;
     })
@@ -288,22 +287,22 @@ export async function searchCompanies(
   if (params.sort === "jobs") {
     filteredCompanies = [...filteredCompanies].sort((a, b) => (b.job_count ?? 0) - (a.job_count ?? 0));
   } else if (params.sort === "salary") {
-    const parseSalary = (c: CompanyForCarousel) => {
-      // 計算値（万円）を優先
-      if ((c as { calc_avg_salary_man?: number | null }).calc_avg_salary_man) {
-        return (c as { calc_avg_salary_man: number }).calc_avg_salary_man;
-      }
-      const s = (c as { avg_salary?: string | number | null }).avg_salary;
-      if (!s) return 0;
-      const n = parseInt(String(s).replace(/[^0-9]/g, ""), 10);
-      return isNaN(n) ? 0 : n / 10000;
-    };
-    filteredCompanies = [...filteredCompanies].sort((a, b) => parseSalary(b) - parseSalary(a));
+    /* ⚠️ **求人由来の計算値のみで並べる（2026-08-11）。**
+          `avg_salary` へのフォールバック（parseSalary）は関数ごと削除した。
+          出典の無い機械投入値だったうえ、"700万円〜" を 0.07 と換算しており
+          並び順にもなっていなかった。計算値が無い企業は 0 として後ろに置く。 */
+    const salaryOf = (c: CompanyForCarousel) =>
+      (c as { calc_avg_salary_man?: number | null }).calc_avg_salary_man ?? 0;
+    filteredCompanies = [...filteredCompanies].sort((a, b) => salaryOf(b) - salaryOf(a));
   } else if (params.sort === "disclosure") {
+    /* ⚠️ **これは `/companies` の並び替え専用のスコア。**
+          `lib/utils/disclosureScore.ts` の `calcDisclosureScore`（95点満点・
+          /biz/dashboard と /biz/company 用）とは**別物**。名前が似ているので混同しないこと。
+       ⚠️ `avg_salary` の +2 は 2026-08-11 に外した。出典の無い機械投入値が
+          68社すべてに入っており、全社が一律に +2 を得ていて差がつかなかったうえ、
+          「開示が充実している」という意味づけの根拠が無かった。 */
     const disclosureScore = (c: CompanyForCarousel) => {
       let score = 0;
-      const s = (c as { avg_salary?: string | number | null }).avg_salary;
-      if (s && String(s).replace(/[^0-9]/g, "")) score += 2;
       if ((c.article_count ?? 0) > 0) score += 3;
       if ((c.job_count ?? 0) > 0) score += 1;
       if (Array.isArray(c.company_features) && c.company_features.length > 0) score += 1;

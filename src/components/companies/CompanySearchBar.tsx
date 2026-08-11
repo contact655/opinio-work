@@ -4,6 +4,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
+
+/**
+ * 勤務形態フィルターを出すか。
+ *
+ * ⚠️ 2026-08-11 時点で `ow_companies.remote_work_status` に値があるのは
+ *    **76社中2社**しかない。出すと「リモート可は2社だけ」と誤読されるので隠している。
+ *    充填率が上がったら true に戻す。ロジック側（searchCompanies）は無変更。
+ */
+const SHOW_WORK_STYLE_FILTER = false;
 import { fmtMan } from "@/lib/utils/salary";
 import type { PhaseOption } from "@/lib/constants/phase";
 import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
@@ -492,7 +501,16 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
             />
           )}
 
-          {/* ③ リモートフィルター */}
+          {/* ③ 勤務形態フィルター
+                 ⚠️ **2026-08-11 に UI から外した（ロジックは残してある）。**
+                    `ow_companies.remote_work_status` に値があるのは **76社中2社**だけ
+                    （残りは migration が一括投入した 'hybrid' を 2026-07-27 に
+                     NULL へ戻したため）。この状態で絞り込みを出すと
+                    「リモート可の企業は2社しかない」と誤読される。
+                 ⚠️ **消していないのは、充填率が上がったら戻すため。**
+                    `SHOW_WORK_STYLE_FILTER` を true にすれば元に戻る。
+                    URL の `?workStyle=` も引き続き効く（searchCompanies 側は無変更）。 */}
+          {SHOW_WORK_STYLE_FILTER && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             <button
               type="button"
@@ -516,6 +534,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
               </div>
             )}
           </div>
+          )}
 
           {/* ③ 年収フィルター */}
           <div style={{ position: "relative", flexShrink: 0 }}>
