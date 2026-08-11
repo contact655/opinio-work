@@ -321,9 +321,12 @@ export async function searchCompanies(
   };
 }
 
-// ── 業種一覧取得（フィルタ選択肢用）────────────────────────────────────────────
+/* ⚠️ ここにあった「業種一覧取得（フィルタ選択肢用）」の JSDoc は、
+      対応する関数が既に削除されており**コメントだけが残っていた**（2026-08-11 削除）。
+      業種フィルタの選択肢は DB の distinct ではなく
+      `src/lib/search/industryGroups.ts` の INDUSTRY_GROUPS にハードコードされている。
+      DB の industry を変えるときは、そちらも必ず同時に直すこと。 */
 
-/** 公開企業の distinct industry リスト（ドロップダウン選択肢）— 5分間キャッシュ */
 // branch_locations の値（都道府県サフィックスなし）→ 正式な都道府県名 マッピング
 const BRANCH_TO_PREF: Record<string, string> = {
   "大阪": "大阪府", "京都": "京都府", "兵庫": "兵庫県",
