@@ -390,7 +390,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           .from("ow_jobs")
           .select("id, title")
           .eq("company_id", currentCareer.company_id)
-          .in("status", ["published", "active"])
+          .eq("status", "published")
           .limit(3)
       : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null }),
     // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）

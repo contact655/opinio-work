@@ -10,7 +10,6 @@ const LEFT_BORDER: Record<BizJob["status"], string> = {
   draft:          "4px solid var(--warm)",
   pending_review: "4px solid var(--purple)",
   published:      "4px solid var(--success)",
-  active:         "4px solid var(--success)", // 旧ステータス: "published" 相当
   private:        "none",
 };
 
@@ -364,7 +363,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
         {renderDateMeta(job)}
 
         {/* 面談申込数・応募数 */}
-        {job.status === "published" || job.status === "active" ? (
+        {job.status === "published" ? (
           <>
             <span style={{
               display: "flex", alignItems: "center", gap: 5,

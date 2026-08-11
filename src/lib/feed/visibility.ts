@@ -37,7 +37,7 @@ export function isJobPostAlive(post: {
 }): boolean {
   if (post.post_type !== "job_posted") return true;
   const status = post.ref_job?.status;
-  return status === "published" || status === "active";
+  return status === "published";
 }
 
 export type PostVisibilityInput = {

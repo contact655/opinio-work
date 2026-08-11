@@ -134,17 +134,18 @@ type DbJob = {
 // ─── Helpers ───────────────────────────────────────────
 
 /**
- * DB から**読める** status。`active` は migration 113 以前の旧値で、
- * 実データは0件だが読み取り側12箇所が今も `.in(["published","active"])` で拾う。
- * DB の CHECK（ow_jobs_status_check）はこの6値。
+ * DB から**読める** status。DB の CHECK（ow_jobs_status_check）と同じ5値。
+ *
+ * ⚠️ `active` は 2026-08-11 に削除した。migration 113 以前の旧値で、
+ *    実データ0件・書き込み経路なし・published との違いを説明した記述も無かった。
+ *    **復活させないこと。**
  */
-const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", "active", "rejected", "private"]);
+const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", "rejected", "private"]);
 
 /**
- * API から**新しく設定できる** status。`active` を含まない。
+ * API から**新しく設定できる** status。
  *
- * ⚠️ 読める語彙と設定できる語彙をわざと分けている（2026-08-07）。
- *    旧値は温存しつつ、これ以上増やさないため。
+ * ⚠️ 2026-08-11 に `VALID_STATUSES` と同じ5値になった（`active` を消したため）。
  *    ⚠️ ここに値を足すときは DB の CHECK と `VALID_STATUSES`（＝表示側）も同時に足す。
  *       片方だけ足すと「DB には入るが画面で draft に化ける」状態になる。
  */
@@ -154,8 +155,6 @@ export const SETTABLE_JOB_STATUSES = new Set<string>([
 
 function toJobStatus(s: string | null): JobStatus {
   if (!s) return "draft";
-  // "active" は migration 113 適用前の旧ステータス。"published" 相当として扱う
-  if (s === "active") return "published";
   if (VALID_STATUSES.has(s)) return s as JobStatus;
   return "draft";
 }

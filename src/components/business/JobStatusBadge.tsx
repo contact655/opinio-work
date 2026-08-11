@@ -4,7 +4,6 @@ import type { StatusVariant } from "@/components/common/StatusPill";
 
 const JOB_VARIANT_MAP: Record<JobStatus, StatusVariant> = {
   published:      "published",
-  active:         "active",
   pending_review: "pending_review",
   draft:          "draft",
   rejected:       "rejected",

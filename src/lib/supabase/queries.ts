@@ -450,7 +450,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     supabase
       .from("ow_jobs")
       .select("company_id")
-      .in("status", ["active", "published"]),
+      .eq("status", "published"),
     supabase
       .from("ow_company_office_photos")
       .select("company_id, image_url, display_order")
@@ -614,7 +614,7 @@ export const getCompanyById = cache(async function getCompanyById(
       .from("ow_jobs")
       .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id)
-      .in("status", ["published", "active"]),
+      .eq("status", "published"),
     supabase
       .from("ow_roles")
       .select("id, name, parent_id"),
@@ -856,7 +856,7 @@ export const getJobs = unstable_cache(
       .select(JOB_LIST_COLS)
       .order("updated_at", { ascending: false });
     if (process.env.NODE_ENV !== "development") {
-      jobQuery = jobQuery.in("status", ["active", "published"]);
+      jobQuery = jobQuery.eq("status", "published");
     }
 
     const [{ data: jobRows, error: jobErr }, { data: compRows, error: compErr }, { data: jobRoleRows, error: jobRoleErr }, roleTree, { data: cjrRows, error: cjrErr }] = await Promise.all([
@@ -1017,7 +1017,7 @@ export const getJobById = cache(async function getJobById(
     .from("ow_jobs")
     .select(JOB_DETAIL_COLS)
     .eq("id", id)
-    .in("status", ["active", "published"])
+    .eq("status", "published")
     .single();
 
   if (error || !data) {
@@ -1038,7 +1038,7 @@ export const getJobById = cache(async function getJobById(
       .from("ow_jobs")
       .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, updated_at")
       .eq("company_id", jobRow.company_id)
-      .in("status", ["active", "published"])
+      .eq("status", "published")
       .neq("id", jobRow.id)
       .limit(3),
   ]);
@@ -1114,7 +1114,7 @@ export async function getJobBySlugOrId(
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
   const supabase = createAdminClient();
 
-  let idQuery = supabase.from("ow_jobs").select("id, slug").in("status", ["active", "published"]).limit(1);
+  let idQuery = supabase.from("ow_jobs").select("id, slug").eq("status", "published").limit(1);
   if (isUUID) { idQuery = idQuery.eq("id", slugOrId); }
   else { idQuery = idQuery.eq("slug", slugOrId); }
 

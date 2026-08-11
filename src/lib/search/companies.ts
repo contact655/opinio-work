@@ -169,7 +169,7 @@ export async function searchCompanies(
         .from("ow_jobs")
         .select("company_id, title, salary_min, salary_max")
         .in("company_id", companyIds)
-        .in("status", ["published", "active"]),
+        .eq("status", "published"),
       supabase
         .from("ow_articles")
         .select("company_id")

@@ -78,7 +78,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string; bg: string; b
 };
 
 function normalizedStatus(s: string | null) {
-  return s === "active" ? "published" : (s ?? "draft");
+  return s ?? "draft";
 }
 
 function formatDate(iso: string | null) {

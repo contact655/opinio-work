@@ -273,10 +273,10 @@ export default async function AnalyticsPage() {
   const { current: cur, delta } = monthly;
 
   // 求人ステータス集計 (jobPerf より)
-  // migration 113 適用前は "active" が旧来の "published" 相当
+  // ステータスは published / pending_review / draft / rejected / private の5値
   const jobStats = {
     total: jobPerf.length,
-    published: jobPerf.filter((j) => j.status === "published" || j.status === "active").length,
+    published: jobPerf.filter((j) => j.status === "published").length,
     pending: jobPerf.filter((j) => j.status === "pending_review").length,
     draft: jobPerf.filter((j) => j.status === "draft").length,
   };

@@ -261,10 +261,9 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
       .select("status")
       .eq("company_id", tenantId);
     const rows = data || [];
-    // DB の実際のステータス値: published (旧: active) / pending_review / draft / rejected / private
-    // migration 113 適用前は "active" が使われているため両方を許容
+    // DB の実際のステータス値: published / pending_review / draft / rejected / private
     return {
-      active: rows.filter((r: any) => r.status === "published" || r.status === "active").length,
+      active: rows.filter((r: any) => r.status === "published").length,
       review: rows.filter((r: any) => r.status === "pending_review").length,
       draft: rows.filter((r: any) => r.status === "draft").length,
       closed: rows.filter((r: any) => ["rejected", "private"].includes(r.status)).length,

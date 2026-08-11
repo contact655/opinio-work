@@ -210,7 +210,7 @@ export default async function CandidatesPage() {
     .from("ow_jobs")
     .select("id, title")
     .eq("company_id", ctx.tenantId)
-    .in("status", ["published", "active"])
+    .eq("status", "published")
     .order("title");
 
   const candidates = eligibleUsers

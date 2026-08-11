@@ -1074,16 +1074,37 @@ where to_regclass('public.'||obj) is null
 | `EMPLOYMENT_TYPES` | 経歴（本人が経験した） | 派遣社員あり / その他あり / インターンなし |
 | `JOB_EMPLOYMENT_TYPES` | 求人（企業がこれから採る） | インターンあり / その他なし / 派遣社員なし |
 
-### `ow_jobs.status` は「読める語彙」と「設定できる語彙」が非対称
+### `ow_jobs.status` は5値（2026-08-11 に `active` を削除）
 
-| 層 | 値 |
+| 値 | 意味 | 使われている場所 |
+|---|---|---|
+| `published` | 公開中 | 公開ページの読み取りは全部これ1つ |
+| `draft` | 下書き | — |
+| `pending_review` | 企業が申請 → 運営が審査 | `/admin/jobs` の「審査待ち」タブ・KPI |
+| `rejected` | 差し戻し | `rejection_reason` とセット |
+| `private` | 運営が公開を止める | `privateJob()` |
+
+DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5値**。
+非対称は解消済み。表示側の正規化は「知らない値と NULL は draft に化ける」だけ。
+
+#### `active` を復活させないこと
+
+2026-08-11 に削除した。判断の根拠は3つ。
+
+| # | 事実 |
 |---|---|
-| DB の CHECK | draft / pending_review / published / **active** / rejected / private |
-| API から設定 | active を**除く**5値（`SETTABLE_JOB_STATUSES`） |
-| 表示側の正規化 | 上の6値。知らない値は **draft に化ける** |
+| ① | 実データ **0件** |
+| ② | **`ow_jobs.status = 'active'` を書き込むコードが存在しない**（`status: "active"` の3箇所はすべて `ow_conversations` / `ow_tenant_plans`）。`SETTABLE_JOB_STATUSES` も元から除外していた |
+| ③ | **published との違いを説明した記述がどこにも無い。** 見つかったのは全部「published と同じ」と言っている記述（archive/113・admin/jobs のコメント・StatusPill の "alias for published"） |
 
-`active` は migration 113 以前の旧値。実データ0件だが、読み取り側12箇所が
-`.in(["published","active"])` で拾っているため CHECK に温存してある。
+削除時は3つ同時に変えた（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
+
+- `.in(["published","active"])` **16箇所** → `.eq("status","published")`
+- `normalizedStatus()` の `active → published` 変換を削除
+- `JobStatus` 型 / `StatusPill` / `JobStatusBadge` / `JobListCard` から削除
+
+⚠️ 実測: `update ow_jobs set status='active'` は **23514（check_violation）** で弾かれる。
+
 ⚠️ `closed` / `expired` は**あえて CHECK に入れていない**。表示側が知らないので、
 入れると「DB には入るが画面で draft に化ける」状態を作る。
 期限切れ遷移を有効化するときは CHECK と表示側を**同時に**広げること。

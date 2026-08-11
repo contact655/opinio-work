@@ -76,14 +76,14 @@ export async function GET(req: Request) {
       .from("ow_jobs")
       .select("id, title, job_category")
       .ilike("title", pattern)
-      .in("status", ["published", "active"])
+      .eq("status", "published")
       .limit(JOB_LIMIT),
     roleMatchedJobIds.length > 0
       ? supabase
           .from("ow_jobs")
           .select("id, title, job_category")
           .in("id", roleMatchedJobIds.slice(0, 200))
-          .in("status", ["published", "active"])
+          .eq("status", "published")
           .limit(JOB_LIMIT)
       : Promise.resolve({ data: [] as { id: string; title: string; job_category: string | null }[] }),
   ]);

@@ -13,7 +13,7 @@ async function getStats() {
   ] = await Promise.all([
     supabase.from("ow_users").select("id", { count: "exact", head: true }),
     supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
-    supabase.from("ow_jobs").select("id", { count: "exact", head: true }).in("status", ["active", "published"]),
+    supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published"),
     supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
     supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),

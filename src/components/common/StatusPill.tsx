@@ -15,7 +15,6 @@ export type StatusVariant =
   | "declined"           // 見送り — red (ラベルは「見送り」に統一: 企業が主語のため)
   // ── 求人掲載 ───────────────────────────────────────────
   | "published"          // 公開中 — green
-  | "active"             // 公開中（旧値）— green (alias for published)
   | "pending_review"     // 運営審査中 — purple
   | "draft"              // 下書き — gray
   | "rejected"           // 差し戻し / 不採用 — red
@@ -57,7 +56,6 @@ const STYLES: Record<StatusVariant, { bg: string; color: string; label: string }
   interview:          { bg: "var(--purple-soft)",  color: "var(--purple)", label: "面接中" },
   // green ─────────────────────────────────────────────────────────────────────
   published:          { bg: "var(--success-soft)", color: "var(--success)", label: "公開中" },
-  active:             { bg: "var(--success-soft)", color: "var(--success)", label: "公開中" },
   accepted:           { bg: "var(--success-soft)", color: "var(--success)", label: "採用" },
   hired:              { bg: "var(--success)",      color: "#ffffff",        label: "採用確定" },
   approved:           { bg: "var(--success-soft)", color: "var(--success)", label: "承認済み" },

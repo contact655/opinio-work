@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { approveJob, rejectJob, privateJob, republishJob } from "./actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 
-// DB status values (migration 113 適用前は "active"、適用後は "published")
+// DB status values: published / pending_review / draft / rejected / private の5値
 const STATUS_TABS = [
   { key: "all",            label: "すべて" },
   { key: "pending_review", label: "審査待ち" },
@@ -136,9 +136,8 @@ export default function AdminJobsPage() {
     setActionLoading(null);
   }
 
-  // "active" は "published" 相当として扱う（migration 113 適用前の互換）
-  const normalizedStatus = (s: string | null) =>
-    s === "active" ? "published" : (s ?? "draft");
+  /** ⚠️ status が NULL の行は draft 扱い。CHECK が NULL を許しているため */
+  const normalizedStatus = (s: string | null) => s ?? "draft";
 
   /** 公開中なのに求人原文のURLが記録されていない求人 */
   const isMissingSource = (j: Job) =>
