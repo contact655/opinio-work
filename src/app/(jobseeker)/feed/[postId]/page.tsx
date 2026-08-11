@@ -6,18 +6,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive } from "@/lib/feed/visibility";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 type ActorCompany = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
 
 const ACTOR_SELECT = `
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url),
-  ref_job:ow_jobs!ref_job_id(company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url))
+  ref_job:ow_jobs!ref_job_id(status, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url))
 `;
 
 /** 表示上の主体。一覧側の resolveActor と同じ規則にすること */
-function actorCompany(p: { post_type: string; ref_company: ActorCompany; ref_job: { company: ActorCompany } | null }): ActorCompany {
+function actorCompany(p: { post_type: string; ref_company: ActorCompany; ref_job: { status?: string | null; company: ActorCompany } | null }): ActorCompany {
   if (p.post_type === "company_joined") return p.ref_company;
   if (p.post_type === "job_posted") return p.ref_company ?? p.ref_job?.company ?? null;
   return null;
@@ -37,7 +37,7 @@ type RawPost = {
   visibility: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
   ref_company: ActorCompany;
-  ref_job: { company: ActorCompany } | null;
+  ref_job: { status: string | null; company: ActorCompany } | null;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: { params: { postId: string } 
     .maybeSingle();
 
   if (!raw) notFound();
-  const p = raw as unknown as { content: string; post_type: string; user: { name: string } | null; ref_company: ActorCompany; ref_job: { company: ActorCompany } | null };
+  const p = raw as unknown as { content: string; post_type: string; user: { name: string } | null; ref_company: ActorCompany; ref_job: { status: string | null; company: ActorCompany } | null };
   const co = actorCompany(p);
   // 一覧と同じ関数を通す。actor 行と本文で社名が二重にならないようにする
   const body = co ? stripActorPrefix(p.content, p.post_type, [co.brand_name ?? co.name, co.name]) : p.content;
@@ -129,6 +129,8 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   //    一覧には出ているのにシェアURLだけ 404 という状態だった（2026-08-05 修正）。
   // ⚠️ 判定は lib/feed/visibility に集約している。一覧と食い違わせない
   if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user)) notFound();
+  // 掲載を下ろした求人の「公開しました」投稿は、パーマリンクでも出さない
+  if (!isJobPostAlive(p)) notFound();
 
   const actorCo = actorCompany(p);
   const actorName = actorCo ? (actorCo.brand_name ?? actorCo.name) : (p.user?.name ?? "不明");

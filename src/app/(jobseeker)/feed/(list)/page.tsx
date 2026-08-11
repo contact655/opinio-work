@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive } from "@/lib/feed/visibility";
 import { canUserPost } from "@/lib/feed/canPost";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export type SidebarJob = { id: string; slug?: string | null; title: string; sala
 export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null } | null;
-type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
+type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
 type RawPost = {
@@ -95,7 +95,7 @@ export default async function FeedPage() {
       event_title, event_starts_at, event_location, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, location, founded_year),
-      ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
+      ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
       ref_article:ow_articles!ref_article_id(id, slug, title),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -119,8 +119,11 @@ export default async function FeedPage() {
 
   // 可視判定。⚠️ ここに if を増やさない。判定は lib/feed/visibility に集約している
   //    （3箇所に散っていた結果、パーマリンクだけ is_system の例外が抜けていた）
-  const visiblePosts = posts.filter((p) =>
-    isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user),
+  const visiblePosts = posts.filter(
+    (p) =>
+      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user) &&
+      // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
+      isJobPostAlive(p),
   );
 
   // 現職情報を別クエリで取得

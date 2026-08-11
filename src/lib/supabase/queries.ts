@@ -605,10 +605,16 @@ export const getCompanyById = cache(async function getCompanyById(
 
   // Fetch jobs + roles + employee categories + genres in parallel
   const [{ data: jobRows }, { data: roleRows }, employeeCategories, { data: genreRows }] = await Promise.all([
+    /* ⚠️ status で必ず絞る（2026-08-11）。ここに絞りが無く、**draft の求人が
+          公開中の企業ページに並んでいた**。/companies/opinio に
+          「opinio-test-…」が2件出ており、`getJobById` は draft を返さないので
+          リンク先は 404 だった。job_count もこの件数を数えているため
+          「募集中 2件」と出たうえで押すと 404、という状態だった。 */
     supabase
       .from("ow_jobs")
       .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
-      .eq("company_id", id),
+      .eq("company_id", id)
+      .in("status", ["published", "active"]),
     supabase
       .from("ow_roles")
       .select("id, name, parent_id"),

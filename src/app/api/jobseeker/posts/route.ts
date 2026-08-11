@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive } from "@/lib/feed/visibility";
 import { canUserPost } from "@/lib/feed/canPost";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ async function resolveOwUserId(
 }
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null } | null;
-type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
+type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
 
 type RawPost = {
@@ -84,8 +84,11 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
 
 // ⚠️ 判定は lib/feed/visibility に集約している。ここに if を増やさない
 function filterVisible(posts: RawPost[], myOwUserId: string | null): RawPost[] {
-  return posts.filter((p) =>
-    isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId),
+  return posts.filter(
+    (p) =>
+      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId) &&
+      // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
+      isJobPostAlive(p),
   );
 }
 
@@ -152,7 +155,7 @@ const POST_SELECT = `
   event_title, event_starts_at, event_location, created_at, visibility,
   user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, location, founded_year),
-  ref_job:ow_jobs!ref_job_id(id, slug, title, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
+  ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
   ref_article:ow_articles!ref_article_id(id, slug, title),
   likes:ow_post_likes(count),
   comments:ow_post_comments(count)

@@ -39,6 +39,7 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { isJobPostAlive } from "@/lib/feed/visibility";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -2163,7 +2164,7 @@ export default async function CompanyDetailPage({
     ref_job_id: string | null;
     ref_article_id: string | null;
     ref_company_id: string | null;
-    ow_jobs: { id: string; title: string } | null;
+    ow_jobs: { id: string; title: string; status: string | null } | null;
     ow_articles: { id: string; slug: string; title: string } | null;
   };
 
@@ -2184,13 +2185,16 @@ export default async function CompanyDetailPage({
   const activityPostsRaw = await adminSupabase
     // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
     .from("ow_posts_visible")
-    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title), ow_articles!ref_article_id(id, slug, title)")
+    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status), ow_articles!ref_article_id(id, slug, title)")
     .or(orParts.join(","))
     .neq("post_type", "company_joined")
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[]);
+  /* ⚠️ 掲載を下ろした求人の「募集を開始しました」は出さない（2026-08-11）。
+        残すと 404 になるリンクが企業ページの更新情報に並ぶ。判定は lib/feed/visibility に集約。 */
+  const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[])
+    .filter((p) => isJobPostAlive({ post_type: p.post_type, ref_job: p.ow_jobs }));
 
   // Group posts by (YYYY-MM-DD, post_type) for 更新情報 display
   type ActivityGroup = { date: string; dateLabel: string; post_type: string; posts: ActivityPost[] };

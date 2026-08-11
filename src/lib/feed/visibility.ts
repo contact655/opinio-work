@@ -18,6 +18,28 @@
  *   4. それ以外（投稿が login_only） → 投稿者の visibility に従う
  */
 
+/**
+ * 「求人を公開しました」の投稿が、まだ有効か。
+ *
+ * ⚠️ **求人の掲載を下ろしたら、その告知も一緒に消えること。**
+ *    残すと「公開しました」と書かれたカードから 404 に落ちる
+ *    （`getJobById` は published / active しか返さない）。
+ *
+ * ⚠️ 判定を各画面に散らかさないこと。フィード一覧・追い読み API・
+ *    パーマリンク・企業ページの活動欄の4箇所が同じ埋め込みを使っている。
+ *
+ * 2026-08-11: 出典の無い求人13件を draft に落とした際、この判定が無いと
+ * 13枚の死にカードがフィードに残る状態だった。
+ */
+export function isJobPostAlive(post: {
+  post_type?: string | null;
+  ref_job?: { status?: string | null } | null;
+}): boolean {
+  if (post.post_type !== "job_posted") return true;
+  const status = post.ref_job?.status;
+  return status === "published" || status === "active";
+}
+
 export type PostVisibilityInput = {
   /** ow_posts.visibility */
   postVisibility: string | null | undefined;
