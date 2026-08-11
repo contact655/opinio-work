@@ -48,7 +48,14 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           .search-results-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
         }
 
-        /* genre-card が GenreCarousel の <style> に依存しているため、ここでも定義 */
+        /* genre-card は GenreCarousel のスタイル定義に依存しているため、ここでも定義する。
+
+           ⚠️ このコメントに 山括弧 と 二重引用符 を書かないこと。
+              JSX の style タグの中身は**サーバーだけが実体参照へ変換する**ため、
+              クライアントの描画と一致せず hydration error になる。
+              2026-08-11 まで、ここに山括弧つきで style タグ名が書かれており、
+              絞り込み中の /companies を開くたびに毎回発生していた。
+              同日その注意書き自体に山括弧を含めてしまい、再発させている（2度踏んだ）。 */
         .genre-card {
           display: flex;
           flex-direction: column;
