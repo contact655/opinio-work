@@ -283,8 +283,8 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 
 | 列 | 充填（公開76社） |
 |---|---|
-| `employee_count` / `founded_year` | **76**（済） |
-| `description` | 72 ← **残4社が最優先**（PKSHA / SmartHR / Sansan / Ubie） |
+
+| `description` / `employee_count` / `founded_year` | **76**（済） |
 | `capital_type` / `parent_company_name` / `parent_company_country` | 各58 |
 | `branch_locations` | 28 |
 | `capital_notes` | 8 |
