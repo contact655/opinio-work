@@ -33,6 +33,7 @@ import type {
 } from "@/app/articles/mockArticleData";
 import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { filterListedCompanies, filterVisibleCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -443,10 +444,9 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("updated_at", { ascending: false });
 
-  if (process.env.NODE_ENV !== "development") {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    query = (query as any).eq("is_published", true);
-  }
+  /* ⚠️ ディレクトリの軸。**dev でも絞る**（以前は dev だけ素通りしていた）。
+        「一覧に出ないこと」は dev で確認できなければ検証にならない。 */
+  query = filterListedCompanies(query);
 
   const { data: companyRows, error } = await query;
   if (error) {
@@ -607,9 +607,8 @@ const getCompanyById = cache(async function getCompanyById(
     .from("ow_companies")
     .select(COMPANY_DETAIL_COLS)
     .eq("id", id);
-  if (process.env.NODE_ENV !== "development") {
-    companyQuery = companyQuery.eq("is_published", true);
-  }
+  // 詳細の軸。ディレクトリ非掲載（listing_status='draft'）でもページは見える
+  companyQuery = filterVisibleCompanies(companyQuery);
   const { data, error } = await companyQuery.single();
 
   if (error || !data) {
@@ -683,9 +682,8 @@ export async function getCompanyBySlugOrId(
   } else {
     idQuery = idQuery.eq("slug", slugOrId);
   }
-  if (process.env.NODE_ENV !== "development") {
-    idQuery = idQuery.eq("is_published", true);
-  }
+  // 詳細の軸。ディレクトリ非掲載でもページは見える
+  idQuery = filterVisibleCompanies(idQuery);
 
   const { data: idRows } = await idQuery;
   const idRow = idRows?.[0];
@@ -726,12 +724,15 @@ export const resolvePublishedCompanyHref = cache(async function resolvePublished
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key);
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("ow_companies")
-    .select("id, slug")
-    .eq(isUUID ? "id" : "slug", key)
-    .eq("is_published", true)
-    .limit(1);
+  /* ⚠️ リンク生成は **env に関係なく**絞る。dev でリンクが出て本番で404になると
+        開発中に気づけない（CLAUDE.md）。だから Strict を使う。
+     ⚠️ ここは詳細の軸。listing_status は見ない（ディレクトリ非掲載でもリンクは有効）。 */
+  const { data, error } = await filterVisibleCompaniesStrict(
+    supabase
+      .from("ow_companies")
+      .select("id, slug")
+      .eq(isUUID ? "id" : "slug", key)
+  ).limit(1);
 
   if (error) {
     console.error("[resolvePublishedCompanyHref]", error.message);

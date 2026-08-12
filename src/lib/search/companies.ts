@@ -20,6 +20,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel } from "@/types/genre";
 import { PHASE_FILTER_MAP, availablePhaseOptions, type PhaseOption } from "@/lib/constants/phase";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
@@ -128,8 +129,10 @@ export async function searchCompanies(
         "current_member_count, obog_count, avg_salary, company_features, reality_disclosure",
         useDbPagination ? { count: "exact" } : undefined
       )
-      .eq("is_published", true)
-  ).order(orderCol, { ascending: orderAsc });
+  );
+  /* ⚠️ ディレクトリの絞り込みは lib/companies/visibility.ts の1本に寄せる。
+        .eq("is_published", true) をここに直書きしない。 */
+  dataQuery = filterListedCompanies(dataQuery).order(orderCol, { ascending: orderAsc });
 
   if (useDbPagination) {
     const offset = params.offset ?? 0;
@@ -366,15 +369,15 @@ function normalizePrefecture(loc: string): string {
 export const fetchAvailablePhases = unstable_cache(
   async (): Promise<PhaseOption[]> => {
     const supabase = createPublicClient();
-    const { data, error } = await supabase
-      .from("ow_companies")
-      .select("phase")
-      .eq("is_published", true);
+    const { data, error } = await filterListedCompanies(
+      supabase.from("ow_companies").select("phase")
+    );
     if (error) {
       console.error("[fetchAvailablePhases]", error.message);
       return [];
     }
-    return availablePhaseOptions((data ?? []).map((r) => r.phase as string | null));
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return availablePhaseOptions((data ?? []).map((r: any) => r.phase as string | null));
   },
   ["available-phases"],
   { revalidate: 300 }
@@ -384,10 +387,9 @@ export const fetchAvailablePhases = unstable_cache(
 export const fetchDistinctLocations = unstable_cache(
   async (): Promise<string[]> => {
     const supabase = createPublicClient();
-    const { data } = await supabase
-      .from("ow_companies")
-      .select("location, branch_locations")
-      .eq("is_published", true);
+    const { data } = await filterListedCompanies(
+      supabase.from("ow_companies").select("location, branch_locations")
+    );
 
     const seen = new Set<string>();
     for (const row of data ?? []) {

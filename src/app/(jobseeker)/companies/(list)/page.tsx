@@ -9,6 +9,7 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
@@ -130,7 +131,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
     fetchDistinctLocations(),
     fetchAvailablePhases(),
     // 検索サジェスト用企業名リスト
-    supabase.from("ow_companies").select("id, name").eq("is_published", true).order("name"),
+    filterListedCompanies(supabase.from("ow_companies").select("id, name")).order("name"),
     // グリッド/リスト: DB側ページネーション + count を1クエリで取得
     needsGrid
       ? searchCompanies({

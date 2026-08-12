@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 /**
  * meta description に載せる代表企業名を、実データから引く。
@@ -56,10 +57,9 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
   const db = createPublicClient();
 
   // 公開企業だけを対象にする。非公開企業を説明文に出さない
-  const { data: companies, error } = await db
-    .from("ow_companies")
-    .select("id, name, brand_name")
-    .eq("is_published", true);
+  const { data: companies, error } = await filterListedCompanies(
+    db.from("ow_companies").select("id, name, brand_name")
+  );
   if (error || !companies?.length) {
     if (error) console.error("[featuredCompanies]", error.message);
     return [];

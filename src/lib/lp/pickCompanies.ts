@@ -1,4 +1,5 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 /**
  * LP のピックアップ企業を選ぶ。
@@ -71,9 +72,9 @@ export async function pickLpCompanies(
 
   let rows: PickedCompanyRow[] = [];
   if (withContentIds.length > 0) {
-    const { data, error } = await db
-      .from("ow_companies").select(COMPANY_COLS).eq("is_published", true)
-      .in("id", withContentIds).order("updated_at", { ascending: false }).limit(limit);
+    const { data, error } = await filterListedCompanies(
+      db.from("ow_companies").select(COMPANY_COLS)
+    ).in("id", withContentIds).order("updated_at", { ascending: false }).limit(limit);
     if (error) console.error("[pickLpCompanies] picked:", error.message);
     rows = (data ?? []) as unknown as PickedCompanyRow[];
   }
@@ -81,7 +82,7 @@ export async function pickLpCompanies(
   // 枠が埋まらない場合だけ、更新の新しい企業で補う
   if (rows.length < limit) {
     const exclude = rows.map((c) => c.id);
-    let fill = db.from("ow_companies").select(COMPANY_COLS).eq("is_published", true)
+    let fill = filterListedCompanies(db.from("ow_companies").select(COMPANY_COLS))
       .order("updated_at", { ascending: false }).limit(limit - rows.length);
     if (exclude.length > 0) fill = fill.not("id", "in", `(${exclude.join(",")})`);
     const { data, error } = await fill;

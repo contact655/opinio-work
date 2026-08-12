@@ -3,6 +3,7 @@ import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { getRoleAliases, getRoleTree, getJobRoleMap } from "@/lib/supabase/queries";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import { NextResponse } from "next/server";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -66,12 +67,13 @@ export async function GET(req: Request) {
   }
 
   const [{ data: companies }, { data: titleJobs }, { data: roleJobs }] = await Promise.all([
-    supabase
-      .from("ow_companies")
-      .select("id, slug, name, industry, logo_letter, logo_gradient")
-      .ilike("name", pattern)
-      .eq("is_published", true)
-      .limit(4),
+    // ⚠️ サジェストはディレクトリの軸。listing_status='draft' は出さない
+    filterListedCompanies(
+      supabase
+        .from("ow_companies")
+        .select("id, slug, name, industry, logo_letter, logo_gradient")
+        .ilike("name", pattern)
+    ).limit(4),
     supabase
       .from("ow_jobs")
       .select("id, title, job_category")

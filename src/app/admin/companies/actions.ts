@@ -109,6 +109,9 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
+  /* ⚠️ **ここは詳細ページの軸だけを動かす。** ディレクトリ掲載は
+        updateListingStatus（下）が別に持つ。2軸を同時に動かすのは
+        企業側の /biz/company だけ。 */
   // published_at は「最初に公開した日時」。非掲載に戻しても消さない
   // （フィード投稿は残るので、公開した事実の記録を消すと突合できなくなる）。
   const updates: Record<string, unknown> = { is_published: newValue, updated_at: now };
@@ -125,6 +128,51 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
   }
 
   if (newValue) await insertCompanyJoined(companyId);
+
+  revalidatePath("/admin/companies");
+  return { ok: true };
+}
+
+/**
+ * ディレクトリ掲載（listing_status）の切り替え。**is_published とは別の軸。**
+ *
+ * ── 2軸の意味（2026-08-12 分離）────────────────────────────────────────────
+ *   is_published   … 詳細ページが見えるか（404ゲート）
+ *   listing_status … 一覧・検索・サジェスト・sitemap・LP に載るか
+ *
+ * ⚠️ **経歴に出てくる企業は詳細ページだけ必要で、ディレクトリには要らない。**
+ *    以前は is_published が両方を制御しており、非公開だと経歴のリンクが404になっていた
+ *    （経歴に出る6社のうち4社が該当）。
+ *
+ * ⚠️ 企業側（/biz/company の公開トグル）は2軸を同時に動かす。
+ *    「詳細は見えるがディレクトリには出ない」は**運営だけが作れる状態**にしてある。
+ */
+export async function updateListingStatus(
+  companyId: string,
+  newValue: "listed" | "draft"
+): Promise<ActionResult> {
+  if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
+  if (newValue !== "listed" && newValue !== "draft") {
+    return { ok: false, error: "listing_status の値が不正です" };
+  }
+  await assertAdmin();
+  const admin = createAdminClient();
+
+  /* ⚠️ 0行更新を成功として扱わない。.select("id") で戻り行を受ける（CLAUDE.md）。
+        ⚠️ 引数なしの .select() は使わない。列単位 GRANT を剥がした列があると 403 になる。 */
+  const { data, error } = await admin
+    .from("ow_companies")
+    .update({ listing_status: newValue, updated_at: new Date().toISOString() })
+    .eq("id", companyId)
+    .select("id");
+
+  if (error) {
+    console.error("[updateListingStatus]", error.message);
+    return { ok: false, error: toMessage(error) };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "対象の企業が見つかりませんでした（0行更新）" };
+  }
 
   revalidatePath("/admin/companies");
   return { ok: true };

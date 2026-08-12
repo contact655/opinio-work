@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
+import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 
 /* ⚠️ 2026-08-11 に edge を外した。面談バッジの判定に service role が要る
       （ow_users.email は anon から読めない）。 */
@@ -20,15 +21,20 @@ export async function GET(req: NextRequest) {
   // 企業データ + 求人カウントを並列取得
   const [{ data: rawCompanies }, { data: activeJobs }, { data: experienceData }] =
     await Promise.all([
-      supabase
+      /* ⚠️ ここは**詳細の軸**（filterVisibleCompaniesStrict）。ディレクトリではない。
+            この API は「最近見た企業」（RecentlyViewedSection）専用で、
+            利用者が既に詳細ページに到達した企業を id 指定で引き直すだけ。
+            ディレクトリ非掲載（listing_status='draft'）でも、自分の閲覧履歴から
+            消えるほうが不自然なので listing_status では絞らない。 */
+      filterVisibleCompaniesStrict(
+        supabase
         .from("ow_companies")
         .select(
           "id, slug, name, name_en, tagline, industry, funding_stage, employee_count, description, " +
           "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
           "current_member_count, obog_count"
         )
-        .eq("is_published", true)
-        .in("id", idList),
+      ).in("id", idList),
       supabase
         .from("ow_jobs")
         .select("company_id")

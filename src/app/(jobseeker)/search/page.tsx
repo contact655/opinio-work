@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createPublicClient } from "@/lib/supabase/public";
 import { getRoleAliases, getRoleTree } from "@/lib/supabase/queries";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -61,10 +62,10 @@ async function resolveDestination(raw: string): Promise<string> {
   const safe = q.replace(/[(),%*]/g, "");
   if (safe) {
     const pattern = `%${safe}%`;
-    const { data } = await supabase
-      .from("ow_companies")
-      .select("id", { head: false })
-      .eq("is_published", true)
+    // ⚠️ 検索のルーティングもディレクトリの軸。非掲載企業に飛ばさない
+    const { data } = await filterListedCompanies(
+      supabase.from("ow_companies").select("id", { head: false })
+    )
       .or(`name.ilike.${pattern},brand_name.ilike.${pattern},slug.ilike.${pattern}`)
       .limit(1);
     if ((data?.length ?? 0) > 0) return `/companies?q=${encoded}`;

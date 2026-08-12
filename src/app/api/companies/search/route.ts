@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 /**
  * GET /api/companies/search
@@ -28,10 +29,12 @@ export async function GET(req: NextRequest) {
   const supabase = createClient();
 
   // is_published = true のみ返す（RLS + 明示フィルター）
-  let query = supabase
-    .from("ow_companies")
-    .select("id, name, brand_name, logo_url, industry, employee_count, url")
-    .eq("is_published", true)
+  // ⚠️ サジェストはディレクトリの軸。listing_status='draft' は出さない
+  let query = filterListedCompanies(
+    supabase
+      .from("ow_companies")
+      .select("id, name, brand_name, logo_url, industry, employee_count, url")
+  )
     .order("name")
     .limit(limit);
 

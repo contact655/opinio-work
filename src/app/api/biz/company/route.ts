@@ -156,6 +156,11 @@ export async function PATCH(req: Request) {
       logo_gradient:            s(d.logo_gradient),
       logo_letter:              s(d.logo_letter),
       is_published:             body.isPublished ?? false,
+      /* ⚠️ 企業側の「公開する」は**2軸を同時に**動かす。
+            2026-08-12 に is_published（詳細ページ）と listing_status（ディレクトリ）を
+            分離したが、**企業側の体験と意味は変えない**。
+            ディレクトリだけ下ろすのは運営の操作（/admin/companies）に限る。 */
+      listing_status:           body.isPublished ? "listed" : "draft",
       published_at:             body.isPublished ? now : null,
       updated_at:               now,
       draft_data:               null,

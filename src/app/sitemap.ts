@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetadataRoute } from "next";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createAdminClient();
@@ -9,10 +10,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select("id, slug, updated_at")
     .eq("status", "published").eq("is_test", false);
 
-  const { data: companies } = await supabase
-    .from("ow_companies")
-    .select("id, slug, updated_at")
-    .eq("is_published", true);
+  // ⚠️ sitemap はディレクトリの軸。listing_status='draft' は載せない
+  const { data: companies } = await filterListedCompanies(
+    supabase.from("ow_companies").select("id, slug, updated_at")
+  );
 
   const { data: articles } = await supabase
     .from("ow_articles")

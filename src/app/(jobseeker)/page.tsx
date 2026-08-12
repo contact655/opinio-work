@@ -8,6 +8,7 @@ import LandingPage, {
 } from "./LandingPage";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { pickLpCompanies } from "@/lib/lp/pickCompanies";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 
 /**
  * 掲載数は実データから出す。ハードコードすると外から見える説明文が古いまま腐るため。
@@ -16,7 +17,7 @@ import { pickLpCompanies } from "@/lib/lp/pickCompanies";
 export async function generateMetadata(): Promise<Metadata> {
   const db = createAdminClient();
   const [{ count: companyCount }, { count: jobCount }] = await Promise.all([
-    db.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
+    filterListedCompanies(db.from("ow_companies").select("id", { count: "exact", head: true })),
     db.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published").eq("is_test", false),
   ]);
 
@@ -62,16 +63,14 @@ export default async function HomePage() {
   // ── ファセット用の軽量取得 ────────────────────────────────────────
   // 集計のために industry / phase の2列だけを引く。行数は企業数に比例するが
   // 列を絞っているので数千社まで許容範囲。これ以上増えたら集計ビューに移す。
-  const facetRowsP = db
-    .from("ow_companies")
-    .select("industry, phase")
-    .eq("is_published", true);
+  const facetRowsP = filterListedCompanies(
+    db.from("ow_companies").select("industry, phase")
+  );
 
   // ── 総件数（count only: 行は取得しない）─────────────────────────
-  const companyCountP = db
-    .from("ow_companies")
-    .select("id", { count: "exact", head: true })
-    .eq("is_published", true);
+  const companyCountP = filterListedCompanies(
+    db.from("ow_companies").select("id", { count: "exact", head: true })
+  );
   const jobCountP = db
     .from("ow_jobs")
     .select("id", { count: "exact", head: true })
