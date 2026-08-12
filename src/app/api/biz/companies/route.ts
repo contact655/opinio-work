@@ -4,23 +4,42 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
 import { newCompanyAdminTemplate } from "@/lib/notify/templates";
 import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
+import { deriveCompanySlug, resolveSlugCollision } from "@/lib/companies/slug";
 
 /**
  * POST /api/biz/companies
  *
  * 新規企業を作成し、作成者を最初の admin として登録する。
- * Phase 2 Sprint 1 — 動線B（企業新規作成）バックエンド
+ * **ow_companies を作るアプリ上の唯一の経路**（/admin に作成機能は無い）。
  *
  * フロー:
  *   1. 認証チェック
  *   2. name 必須チェック
- *   3. 重複チェック（厳密一致）
- *      - 既存 → 409 + { error: "company_name_exists", existing_company }
- *      - force_create: true の場合はスキップ
- *   4. ow_companies INSERT（status: 'draft'）
- *   5. ow_company_admins INSERT（permission: 'admin'）
- *   6. biz_current_company_id Cookie をセット
- *   7. 作成結果を返す
+ *   3. 重複の**検出**（normalized_name。一致しても止めない）
+ *   4. slug の導出（作れないときは NULL のまま）
+ *   5. ow_companies INSERT（source: 'biz_self' / status: 'draft' / 非公開）
+ *   6. ow_company_admins INSERT（permission: 'admin'）
+ *   7. 運営へ通知（重複の疑いがあればその情報も載せる）
+ *   8. biz_current_company_id Cookie をセット
+ *
+ * ── ⚠️ ロール判定は入れない（2026-08-12 の決定）────────────────────────────
+ * ログインしていれば求職者アカウントでも到達できるが、**判別しない**。
+ *   ・作成されるのは常に is_published=false / is_approved=false で、
+ *     公開は運営の `/admin/companies` を通る。**公開面の実害は無い**
+ *   ・`company` ロールが存在しない（ow_user_roles は candidate と admin だけ）ので、
+ *     ロールで分岐すると無理な判定を足すことになる
+ * 代わりに **source に「どの入口か」を記録**する。入口が違えば source が違う。
+ *   biz_self … この API から作られたもの
+ *   user     … 経歴入力フローからの作成（**その入口はまだ存在しない**）
+ *
+ * ── ⚠️ 重複しても作成を止めない（2026-08-12 の決定）────────────────────────
+ * 同名の別会社は実在する（美容室・飲食店・地方の中小企業）。
+ * 止めると正しい登録まで塞ぐので、**作ったうえで運営に知らせる**。
+ * 利用者側には作成前に候補を出す導線が別にある
+ * （CreateCompanyClient のサジェスト → 参加リクエスト）。
+ *
+ * ⚠️ `force_create` は 2026-08-12 に廃止した。「一致しても止めない」なら
+ *    バイパス用のフラグに意味が無く、残すと「止まることがある」と誤読される。
  */
 export async function POST(req: Request) {
   // 1. 認証チェック
@@ -44,7 +63,7 @@ export async function POST(req: Request) {
     size?: string;
     website?: string;
     logo_url?: string;
-    force_create?: boolean;
+    name_en?: string;
     genres?: string[];
     agreedTermsBusiness?: boolean;
     agreedFeePct15?: boolean;
@@ -72,38 +91,61 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // 3. 重複チェック（force_create: true のときはスキップ）
-  if (!body.force_create) {
-    const { data: existing } = await admin
+  const websiteUrl =
+    typeof body.website === "string" && /^https:\/\//i.test(body.website)
+      ? body.website.slice(0, 2048)
+      : null;
+
+  /*
+    3. 重複の**検出**（作成は止めない）
+
+    ⚠️ 旧実装は `.eq("name", name).maybeSingle()` で、
+       ① 完全一致しか見ない（「（株）〜」と「株式会社〜」が別物になる）
+       ② **同名が既に2件以上あると .maybeSingle() 自体がエラーになり、
+          検査が壊れる**
+       の2つの問題があった。正規化での照合に置き換え、**複数件が返る前提**で受ける。
+
+    ⚠️ 正規化のルールは DB の normalize_company_name() 1本だけ。
+       TS 側で正規化値を作らず、照合ごと RPC に投げる（往復1回）。
+  */
+  const { data: dupRows, error: dupError } = await admin.rpc(
+    "find_companies_by_normalized_name",
+    { p_name: name }
+  );
+  if (dupError) {
+    // ⚠️ 握り潰さない。検出できないまま作ると、重複が誰にも気づかれずに残る
+    console.error("[POST /api/biz/companies] 重複検出に失敗:", dupError.message);
+  }
+  const duplicates = (dupRows ?? []) as {
+    id: string; name: string; slug: string | null;
+    is_published: boolean; source: string | null;
+  }[];
+
+  // 4. slug の導出
+  /*
+     ⚠️ **作れないときは NULL のままにする。** 日本語社名をローマ字に機械変換しない
+        （「株式会社データプール」→ datapool は推測。CLAUDE.md「推測値を投入しない」）。
+        slug は部分 UNIQUE（WHERE slug IS NOT NULL）なので NULL は何件でも共存できる。
+        必要な企業には運営が昇格時に付ける。
+  */
+  let slug: string | null = null;
+  const slugBase = deriveCompanySlug({ name, nameEn: body.name_en ?? null, url: websiteUrl });
+  if (slugBase) {
+    // 衝突は実データで判定する。前方一致で候補だけ引く
+    const { data: takenRows, error: takenErr } = await admin
       .from("ow_companies")
-      .select("id, name")
-      .eq("name", name)
-      .maybeSingle();
-
-    if (existing) {
-      // admin_count を取得
-      const { count: adminCount } = await admin
-        .from("ow_company_admins")
-        .select("id", { count: "exact", head: true })
-        .eq("company_id", existing.id)
-        .not("user_id", "is", null);
-
-      return NextResponse.json(
-        {
-          error: "company_name_exists",
-          message: "同名の企業が既に存在します",
-          existing_company: {
-            id: existing.id,
-            name: existing.name,
-            admin_count: adminCount ?? 0,
-          },
-        },
-        { status: 409 }
-      );
+      .select("slug")
+      .like("slug", `${slugBase}%`);
+    if (takenErr) {
+      // ⚠️ 判定できないまま採番すると UNIQUE 違反で INSERT ごと落ちる。slug を諦める
+      console.error("[POST /api/biz/companies] slug 衝突判定に失敗:", takenErr.message);
+    } else {
+      const taken = new Set((takenRows ?? []).map((r) => r.slug as string).filter(Boolean));
+      slug = resolveSlugCollision(slugBase, taken);
     }
   }
 
-  // 4. ow_companies INSERT
+  // 5. ow_companies INSERT
   const { data: company, error: companyError } = await admin
     .from("ow_companies")
     .insert({
@@ -111,13 +153,20 @@ export async function POST(req: Request) {
       description: body.description || null,
       industry: body.industry || null,
       employee_count: body.size ? parseInt(body.size, 10) : null,
-      url: (typeof body.website === "string" && /^https:\/\//i.test(body.website)) ? body.website.slice(0, 2048) : null,
+      url: websiteUrl,
       logo_url: (typeof body.logo_url === "string" && /^https:\/\//i.test(body.logo_url)) ? body.logo_url.slice(0, 2048) : null,
       status: "draft",
       is_published: false,
       plan: "free",
+      /* ⚠️ 入口を記録する。ロールで判別しない（誰が作ったかではなく、どこから作られたか）。
+            この API から作られたものは常に biz_self。 */
+      source: "biz_self",
+      /* ⚠️ 導出できなければ null のまま入れる。推測で作らない。 */
+      slug,
+      /* ⚠️ normalized_name は書かない。トリガーが name から必ず計算する。
+            そもそも authenticated には UPDATE 権限が無い（docs/ow-companies-grants.md）。 */
     })
-    .select("id, name, status, created_at, industry, url, logo_url")
+    .select("id, name, slug, source, status, created_at, industry, url, logo_url")
     .single();
 
   if (companyError || !company) {
@@ -222,7 +271,11 @@ export async function POST(req: Request) {
         creatorName: owUser?.name ?? user.email ?? "不明",
         creatorEmail: user.email ?? "",
         createdAt: company.created_at,
-        isDuplicate: body.force_create ?? false,
+        /* ⚠️ 作成は止めていないので、**気づけるのはこの通知だけ**。
+              正規化して一致した既存企業をそのまま載せる。 */
+        duplicates: duplicates
+          .filter((d) => d.id !== company.id)
+          .map((d) => ({ id: d.id, name: d.name, isPublished: d.is_published, source: d.source })),
       })
     );
   } catch (err) {
@@ -240,7 +293,17 @@ export async function POST(req: Request) {
         industry: company.industry,
         url: company.url,
         logo_url: company.logo_url,
+        /* ⚠️ SELECT しているのに返していなかったので足した（2026-08-12）。
+              「slug が付いたか」「どの入口から作られたか」は呼び出し側から見えるべき。
+              返していないと、検証時に「キーが無い」を「値が null」と誤読する。 */
+        slug: company.slug,
+        source: company.source,
       },
+      /* 正規化名が一致した既存企業。**作成は止めていない**ので、
+         呼び出し側が「もしかして既にある？」を出すために使える。 */
+      duplicate_candidates: duplicates
+        .filter((d) => d.id !== company.id)
+        .map((d) => ({ id: d.id, name: d.name, is_published: d.is_published })),
       redirect_to: `/biz/company?id=${company.id}`,
     },
     { status: 201 }

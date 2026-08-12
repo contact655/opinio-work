@@ -129,7 +129,9 @@ export function CreateCompanyClient({
 
   // 重複情報と発生元（suggestion=ドロップダウン選択 / error=409エラー）
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
-  const [conflictSource, setConflictSource] = useState<"suggestion" | "error" | null>(null);
+  /* ⚠️ 以前は 409 由来の "error" もあったが、API が重複で止めなくなったので
+        サジェスト経由の1種類だけになった（2026-08-12）。 */
+  const [conflictSource, setConflictSource] = useState<"suggestion" | null>(null);
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
   const [joinRequestSent, setJoinRequestSent] = useState(false);
 
@@ -296,8 +298,15 @@ export function CreateCompanyClient({
     }
   }
 
-  // フォーム送信
-  async function handleSubmit(e: React.FormEvent, forceCreate = false) {
+  /*
+    フォーム送信
+
+    ⚠️ 2026-08-12 に `force_create` を廃止した。API は**同名が既にあっても作成を止めない**
+       （同名の別会社が実在するため）。したがってバイパス用のフラグに意味が無い。
+       重複は運営への通知に載る。利用者側には、この画面のサジェスト経由で
+       「既存企業に参加リクエストを送る」導線が別にある。
+  */
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -315,7 +324,6 @@ export function CreateCompanyClient({
           name: name.trim(),
           industry: industry || null,
           website: website.trim() || null,
-          force_create: forceCreate,
 
           agreed_terms_business: agreedTermsBusiness || undefined,
           agreed_fee_pct15: agreedFeePct15 || undefined,
@@ -324,12 +332,9 @@ export function CreateCompanyClient({
       });
       const data = await res.json();
 
-      if (res.status === 409 && data.error === "company_name_exists") {
-        setConflict(data.existing_company);
-        setConflictSource("error");
-        setLoading(false);
-        return;
-      }
+      /* ⚠️ 409 company_name_exists の分岐は 2026-08-12 に削除した。
+            API が重複で止めなくなったので、このレスポンスはもう返らない。
+            既存企業への合流はサジェスト（conflictSource="suggestion"）が担う。 */
 
       if (!res.ok) {
         setError(data.error ?? "会社の作成に失敗しました");
@@ -553,7 +558,7 @@ export function CreateCompanyClient({
         </div>
       )}
 
-      <form onSubmit={(e) => handleSubmit(e, false)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* 会社名（サジェスト付き） */}
         <div>
           <label htmlFor="cc-company-name" style={labelStyle}>
@@ -678,9 +683,9 @@ export function CreateCompanyClient({
         </div>
 
         {/* 既存企業カード — suggestion / error 共通 */}
-        {conflict && (conflictSource === "suggestion" || conflictSource === "error") && (() => {
+        {conflict && conflictSource === "suggestion" && (() => {
           const isFirst = !conflict.admin_count || conflict.admin_count === 0;
-          const isAmber = conflictSource === "error";
+          const isAmber = false;
           const bg = isAmber ? "var(--warm-soft)" : "var(--royal-50)";
           const border = isAmber ? "1.5px solid #FCD34D" : "1.5px solid var(--royal-100)";
           const headColor = isAmber ? "#92400E" : "var(--royal)";
@@ -695,7 +700,7 @@ export function CreateCompanyClient({
               )}
               {isFirst
                 ? "この企業はまだ担当者が登録されていません"
-                : conflictSource === "error" ? "同名の企業が既に存在します" : "この企業は既に OPINIO に登録されています"
+                : "この企業は既に OPINIO に登録されています"
               }
             </div>
             <div style={{ fontSize: 12, color: bodyColor, lineHeight: 1.7, marginBottom: 14 }}>
@@ -752,7 +757,7 @@ export function CreateCompanyClient({
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <button
                 type="button"
-                onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+                onClick={(e) => handleSubmit(e as unknown as React.FormEvent)}
                 disabled={loading}
                 style={{
                   padding: "0", background: "transparent", color: "var(--ink-mute)",

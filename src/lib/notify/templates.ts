@@ -312,14 +312,32 @@ export function newCompanyAdminTemplate(params: {
   creatorName: string;
   creatorEmail: string;
   createdAt: string;
-  isDuplicate?: boolean;     // force_create=true で同名企業が既存だった場合
+  /**
+   * 正規化した企業名が一致した既存企業。
+   * ⚠️ **作成は止めていない**（同名の別会社が実在するため）。
+   *    重複に気づける経路はこの通知だけなので、必ず載せる。
+   */
+  duplicates?: { id: string; name: string; isPublished: boolean; source: string | null }[];
 }) {
-  const subjectPrefix = params.isDuplicate ? "[OPINIO] [重複承知] " : "[OPINIO] ";
-  const duplicateNote = params.isDuplicate
-    ? `<p style="color: #92400E; background: #FEF3C7; padding: 10px 14px; border-radius: 6px; font-size: 13px;">
-        ⚠️ 同名企業が既に存在する状態で、ユーザーが意図的に別法人として作成しました。
-        表記ゆれの統合が必要かどうか確認してください。
-       </p>`
+  const dups = params.duplicates ?? [];
+  const subjectPrefix = dups.length > 0 ? "[OPINIO] [重複の疑い] " : "[OPINIO] ";
+  const duplicateNote = dups.length > 0
+    ? `<div style="color: #92400E; background: #FEF3C7; padding: 12px 14px; border-radius: 6px; font-size: 13px;">
+        <p style="margin: 0 0 8px;">
+          ⚠️ 正規化した企業名が一致する既存企業が <strong>${dups.length}件</strong> あります。
+          <strong>同名の別会社の可能性もあるため、作成は止めていません。</strong>
+          統合が必要かどうか確認してください。
+        </p>
+        <ul style="margin: 0; padding-left: 18px;">
+          ${dups.map((d) => `<li style="margin-bottom: 4px;">
+            <a href="https://opinio.jp/admin/companies/${d.id}">${esc(d.name)}</a>
+            <span style="color:#78350F;">（${d.isPublished ? "公開中" : "非公開"} / source: ${esc(d.source ?? "null")}）</span>
+          </li>`).join("")}
+        </ul>
+        <p style="margin: 8px 0 0; font-size: 12px;">
+          統合する場合は canonical_company_id を設定してください（参照の付け替えはしません）。
+        </p>
+       </div>`
     : "";
 
   return {
