@@ -2614,6 +2614,7 @@ export type Database = {
           brand_name: string | null
           business_model: string | null
           business_stage: string | null
+          canonical_company_id: string | null
           capital_notes: string | null
           capital_type: string | null
           careers_url: string | null
@@ -2690,6 +2691,7 @@ export type Database = {
           name: string
           name_en: string | null
           nearest_station: string | null
+          normalized_name: string | null
           notification_emails: string[] | null
           numbers_updated_at: string | null
           obog_count: number
@@ -2764,6 +2766,7 @@ export type Database = {
           brand_name?: string | null
           business_model?: string | null
           business_stage?: string | null
+          canonical_company_id?: string | null
           capital_notes?: string | null
           capital_type?: string | null
           careers_url?: string | null
@@ -2840,6 +2843,7 @@ export type Database = {
           name: string
           name_en?: string | null
           nearest_station?: string | null
+          normalized_name?: string | null
           notification_emails?: string[] | null
           numbers_updated_at?: string | null
           obog_count?: number
@@ -2914,6 +2918,7 @@ export type Database = {
           brand_name?: string | null
           business_model?: string | null
           business_stage?: string | null
+          canonical_company_id?: string | null
           capital_notes?: string | null
           capital_type?: string | null
           careers_url?: string | null
@@ -2990,6 +2995,7 @@ export type Database = {
           name?: string
           name_en?: string | null
           nearest_station?: string | null
+          normalized_name?: string | null
           notification_emails?: string[] | null
           numbers_updated_at?: string | null
           obog_count?: number
@@ -3037,6 +3043,27 @@ export type Database = {
           x_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_companies_canonical_fkey"
+            columns: ["canonical_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_companies_canonical_fkey"
+            columns: ["canonical_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_companies_canonical_fkey"
+            columns: ["canonical_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_companies_industry_id_fkey"
             columns: ["industry_id"]
@@ -8569,6 +8596,19 @@ export type Database = {
         Returns: {
           conversation_id: string
           created: boolean
+        }[]
+      }
+      find_companies_by_normalized_name: {
+        Args: { p_name: string }
+        Returns: {
+          canonical_company_id: string
+          created_at: string
+          id: string
+          is_approved: boolean
+          is_published: boolean
+          name: string
+          slug: string
+          source: string
         }[]
       }
       get_blocked_companies: {
