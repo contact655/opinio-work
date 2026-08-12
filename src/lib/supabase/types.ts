@@ -4489,6 +4489,41 @@ export type Database = {
           },
         ]
       }
+      ow_experience_gaps: {
+        Row: {
+          axis: string
+          created_at: string
+          experience_id: string
+          id: string
+          rating: string
+          updated_at: string
+        }
+        Insert: {
+          axis: string
+          created_at?: string
+          experience_id: string
+          id?: string
+          rating: string
+          updated_at?: string
+        }
+        Update: {
+          axis?: string
+          created_at?: string
+          experience_id?: string
+          id?: string
+          rating?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_gaps_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_experience_roles: {
         Row: {
           experience_id: string
@@ -4607,8 +4642,13 @@ export type Database = {
           id: string
           is_current: boolean
           join_reason: string | null
+          join_reason_primary: string | null
+          join_reasons: string[] | null
           learnings: string | null
+          leave_reasons: string[] | null
+          prefecture: string | null
           rank: string | null
+          remote_work_status: string | null
           role_category_id: string
           role_title: string | null
           salary_base: number | null
@@ -4639,8 +4679,13 @@ export type Database = {
           id?: string
           is_current?: boolean
           join_reason?: string | null
+          join_reason_primary?: string | null
+          join_reasons?: string[] | null
           learnings?: string | null
+          leave_reasons?: string[] | null
+          prefecture?: string | null
           rank?: string | null
+          remote_work_status?: string | null
           role_category_id: string
           role_title?: string | null
           salary_base?: number | null
@@ -4671,8 +4716,13 @@ export type Database = {
           id?: string
           is_current?: boolean
           join_reason?: string | null
+          join_reason_primary?: string | null
+          join_reasons?: string[] | null
           learnings?: string | null
+          leave_reasons?: string[] | null
+          prefecture?: string | null
           rank?: string | null
+          remote_work_status?: string | null
           role_category_id?: string
           role_title?: string | null
           salary_base?: number | null

@@ -72,9 +72,11 @@ export default async function ProfileEditPage({
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
     owUser
-      ? adminSupabase   // ⚠️ join_reason を含むので admin。対象は owUser.id に固定
+      ? adminSupabase   // ⚠️ join_reason / 理由データ3種を含むので admin。対象は owUser.id に固定
           .from("ow_experiences")
-          .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type")
+          /* ⚠️ ここで選び忘れた列は、編集画面で空になり、保存した瞬間に消える。
+                CareerHistoryEditor が draft の値をそのまま PUT で送るため。 */
+          .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons")
           .eq("user_id", owUser.id)
           .order("is_current", { ascending: false })
           .order("started_at", { ascending: false })
@@ -246,6 +248,26 @@ export default async function ProfileEditPage({
     }
   }
 
+  /* 入社前後のギャップ（別テーブル）。**非公開データ**なので admin で引く。
+     対象は上で取った本人の経歴 id に固定する。 */
+  const gapsByExperience = new Map<string, { axis: string; rating: string }[]>();
+  const expIds = (expRows ?? []).map((r) => r.id as string);
+  if (expIds.length > 0) {
+    const { data: gapRows, error: gapErr } = await adminSupabase
+      .from("ow_experience_gaps")
+      .select("experience_id, axis, rating")
+      .in("experience_id", expIds);
+    if (gapErr) {
+      // ⚠️ 握り潰さない。空で描画すると、保存した瞬間に全消しになる
+      console.error("[profile/edit] ow_experience_gaps", gapErr.message);
+    }
+    for (const g of gapRows ?? []) {
+      const key = g.experience_id as string;
+      if (!gapsByExperience.has(key)) gapsByExperience.set(key, []);
+      gapsByExperience.get(key)!.push({ axis: g.axis as string, rating: g.rating as string });
+    }
+  }
+
   // Map raw DB rows to Stint[] (same logic as GET /api/jobseeker/experiences)
   const initialExperiences: Stint[] = (expRows ?? []).map((r) => {
     let companyType: "master" | "custom" | "anon";
@@ -277,6 +299,12 @@ export default async function ProfileEditPage({
       description: (r.description as string | null) ?? undefined,
       joinReason: (r.join_reason as string | null) ?? undefined,
       employmentType: (r.employment_type as string | null) ?? undefined,
+      prefecture: (r.prefecture as string | null) ?? undefined,
+      remoteWorkStatus: (r.remote_work_status as string | null) ?? undefined,
+      joinReasons: (r.join_reasons as string[] | null) ?? [],
+      joinReasonPrimary: (r.join_reason_primary as string | null) ?? undefined,
+      leaveReasons: (r.leave_reasons as string[] | null) ?? [],
+      gaps: gapsByExperience.get(r.id as string) ?? [],
     };
   });
 

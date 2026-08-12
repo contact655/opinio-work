@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { parseReasonFields } from "@/lib/constants/careerReasons";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 
@@ -100,6 +101,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "started_at required" }, { status: 400 });
   }
 
+  /* ⚠️ POST と**同じ関数**で検証する。片方にだけ書かないこと。 */
+  const reasons = parseReasonFields(body);
+  if (!reasons.ok) {
+    return NextResponse.json({ error: reasons.error, message: reasons.message }, { status: 400 });
+  }
+
   const salaryPatch: Record<string, unknown> = {};
   for (const k of ["salary_base", "salary_bonus", "salary_stock", "salary_man"] as const) {
     if (k in body) salaryPatch[k] = safeSalary(body[k]);
@@ -129,6 +136,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
       updated_at: new Date().toISOString(),
       ...salaryPatch,
+      ...reasons.patch,
     })
     .eq("id", params.id)
     .eq("user_id", owUser.id)
@@ -140,6 +148,36 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "更新に失敗しました" }, { status: 500 });
   }
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  /* 入社前後のギャップ（別テーブル）。
+     ⚠️ gaps キーが無いリクエストでは**触らない**。空配列が来たときだけ全消し。
+        「送らなかった」と「全部外した」を同じ扱いにすると、
+        ギャップを知らない古いクライアントが黙って全消しすることになる。
+     ⚠️ 行の絞り込みは RLS（ow_experience_gaps_own_manage）。
+        上の UPDATE が本人の行に当たっていることは .eq("user_id") で確認済み。 */
+  if (reasons.gaps !== null) {
+    const axes = reasons.gaps.map((g) => g.axis);
+    const del = supabase.from("ow_experience_gaps").delete().eq("experience_id", params.id);
+    const { error: delErr } = axes.length > 0
+      ? await del.not("axis", "in", `(${axes.join(",")})`)
+      : await del;
+    if (delErr) {
+      console.error("[PUT /api/jobseeker/experiences/:id gaps delete]", delErr.message);
+      return NextResponse.json({ error: "GAPS_SAVE_FAILED", message: "入社前後のギャップの保存に失敗しました。" }, { status: 500 });
+    }
+    if (reasons.gaps.length > 0) {
+      const { error: upErr } = await supabase
+        .from("ow_experience_gaps")
+        .upsert(
+          reasons.gaps.map((g) => ({ experience_id: params.id, axis: g.axis, rating: g.rating })),
+          { onConflict: "experience_id,axis" }
+        );
+      if (upErr) {
+        console.error("[PUT /api/jobseeker/experiences/:id gaps upsert]", upErr.message);
+        return NextResponse.json({ error: "GAPS_SAVE_FAILED", message: "入社前後のギャップの保存に失敗しました。" }, { status: 500 });
+      }
+    }
+  }
 
   return NextResponse.json({ success: true });
 }

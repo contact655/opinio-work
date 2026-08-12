@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { parseReasonFields } from "@/lib/constants/careerReasons";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
@@ -37,7 +38,10 @@ export async function GET() {
     /* ⚠️ 年収4列（salary_base / salary_bonus / salary_stock / salary_man）は SELECT しない。
           2026-08-06 に authenticated から SELECT 権限を剥奪したので、含めると
           permission denied で職歴一覧が丸ごと空になる。入力UIも既に無い。 */
-    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_company_profile, visibility_salary, visibility_reason")
+    /* ⚠️ 理由データ3種（join_reasons / join_reason_primary / leave_reasons）も
+          admin でないと読めない。列単位 GRANT を付けていないため
+          （20260811184225）。session クライアントで select すると 403 になる。 */
+    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_company_profile, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons")
     .eq("user_id", owUserId)
     .order("is_current", { ascending: false })
     .order("started_at", { ascending: false });
@@ -45,6 +49,27 @@ export async function GET() {
   if (rowsErr) {
     console.error("[GET /api/jobseeker/experiences]", rowsErr.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+  /* 入社前後のギャップ（別テーブル）。本人の経歴ぶんだけまとめて引く。
+     ⚠️ 非公開データ。この API は本人のセッションでしか呼べず、
+        owUserId の行に固定しているので他人のものは混ざらない。 */
+  const gapsByExperience = new Map<string, { axis: string; rating: string }[]>();
+  const experienceIds = (rows ?? []).map((r) => r.id as string);
+  if (experienceIds.length > 0) {
+    const { data: gapRows, error: gapErr } = await createAdminClient()
+      .from("ow_experience_gaps")
+      .select("experience_id, axis, rating")
+      .in("experience_id", experienceIds);
+    if (gapErr) {
+      console.error("[GET /api/jobseeker/experiences gaps]", gapErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    for (const g of gapRows ?? []) {
+      const key = g.experience_id as string;
+      if (!gapsByExperience.has(key)) gapsByExperience.set(key, []);
+      gapsByExperience.get(key)!.push({ axis: g.axis as string, rating: g.rating as string });
+    }
   }
 
   // Resolve company names for master entries
@@ -100,6 +125,16 @@ export async function GET() {
       visibilityCompanyProfile: (r.visibility_company_profile as "real" | "masked" | "hidden" | undefined) ?? "real",
       visibilitySalary: (r.visibility_salary as boolean | undefined) ?? false,
       visibilityReason: (r.visibility_reason as boolean | undefined) ?? true,
+      // ── 勤務地（表示する）
+      prefecture: (r.prefecture as string | null) ?? null,
+      remoteWorkStatus: (r.remote_work_status as string | null) ?? null,
+      /* ── 理由データ（**非公開**。この API は本人専用なので返してよい）
+            ⚠️ 公開向けのクエリ・型には絶対に含めないこと。
+               /u/[id] /people 企業詳細 スカウト /biz/candidates のどこにも出さない。 */
+      joinReasons: (r.join_reasons as string[] | null) ?? [],
+      joinReasonPrimary: (r.join_reason_primary as string | null) ?? null,
+      leaveReasons: (r.leave_reasons as string[] | null) ?? [],
+      gaps: gapsByExperience.get(r.id as string) ?? [],
     };
   });
 
@@ -187,6 +222,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "started_at required" }, { status: 400 });
   }
 
+  /* ⚠️ 勤務地・理由データの検証は POST / PATCH で**同じ関数**を使う。
+        片方にだけ書くと「作成時は保存されるが更新すると消える」が起きる。
+     ⚠️ 勤務地は API では必須にしない。オンボーディングが勤務地なしで
+        is_current=true の行を作るため。必須は CareerHistoryEditor の UI 層だけ。 */
+  const reasons = parseReasonFields(body);
+  if (!reasons.ok) {
+    return NextResponse.json({ error: reasons.error, message: reasons.message }, { status: 400 });
+  }
+
   const { data: inserted, error } = await supabase
     .from("ow_experiences")
     .insert({
@@ -211,6 +255,10 @@ export async function POST(req: Request) {
       visibility_company_profile: visibilityCompanyProfile,
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
+      /* ⚠️ 理由データは authenticated がテーブルレベルの INSERT を持つので
+            セッションクライアントのまま書ける。SELECT 権限は無いが、
+            .select("id") しか返さないので 403 にならない。 */
+      ...reasons.patch,
     })
     .select("id")
     .single();
@@ -220,5 +268,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  return NextResponse.json({ id: inserted.id as string }, { status: 201 });
+  const newId = inserted.id as string;
+
+  /* 入社前後のギャップ（別テーブル）。
+     ⚠️ 失敗を握り潰さない。経歴だけ作られてギャップが消える状態にしない。 */
+  if (reasons.gaps && reasons.gaps.length > 0) {
+    const { error: gapErr } = await supabase
+      .from("ow_experience_gaps")
+      .insert(reasons.gaps.map((g) => ({ experience_id: newId, axis: g.axis, rating: g.rating })));
+    if (gapErr) {
+      console.error("[POST /api/jobseeker/experiences gaps]", gapErr.message);
+      return NextResponse.json(
+        { error: "GAPS_SAVE_FAILED", message: "経歴は保存しましたが、入社前後のギャップの保存に失敗しました。", id: newId },
+        { status: 500 }
+      );
+    }
+  }
+
+  return NextResponse.json({ id: newId }, { status: 201 });
 }
