@@ -172,6 +172,27 @@ export function CompanyLogo({
           loading="lazy"
           decoding="async"
           onError={() => setFailedSrc(resolvedSrc)}
+          /*
+            ⚠️ **16px 以下は「取得できなかった」と同じ扱いにする。**
+
+            Google の favicon API は、対象ドメインにアイコンが無くても
+            **16×16 の汎用アイコン（地球儀）を 200 で返す**。画像としては
+            読み込みに成功するので `onError` が発火せず、そのまま 94px 等に
+            引き伸ばされて「白い四角」に見える状態になっていた
+            （2026-08-12 に伊藤忠テクノソリューションズで実測）。
+
+            これは特定企業の問題ではなく、**favicon を持たないドメイン全般**で起きる。
+            ユーザーが作る企業が増えるほど頻度が上がるので、個別対応にしない。
+
+            ⚠️ 本物だが 16px しかない favicon も巻き込む（実測で公開76社中1社:
+               シスコシステムズ）。16px を 94px に引き伸ばすくらいなら
+               頭文字のほうが読めるので、意図的にそちらへ倒している。
+            ⚠️ 判定は naturalWidth。CSS 上の表示サイズではなく**画像の実寸**を見る。
+          */
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalWidth > 0 && img.naturalWidth <= 16) setFailedSrc(resolvedSrc);
+          }}
           style={{
             width: "100%",
             height: "100%",
