@@ -64,7 +64,10 @@ export default function CoverageClient({ rows }: { rows: CoverageRow[] }) {
       <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px", lineHeight: 1.8 }}>
         公開情報から機械的に取れる項目だけを並べています（取材が要る項目は入れていません）。
         <br />
-        列見出しをクリックすると<strong>その項目が空の企業だけ</strong>に絞れます。マスをクリックすると該当タブが開きます。
+        列見出しをクリックすると<strong>その項目が空の企業だけ</strong>に絞れます。
+        <br />
+        空のマスは、運営画面に入力欄がある項目は <strong style={{ color: "#B45309" }}>＋</strong>（押すと該当タブが開く）、
+        migration で投入する項目は <strong>−</strong> で示しています。
       </p>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -139,7 +142,7 @@ export default function CoverageClient({ rows }: { rows: CoverageRow[] }) {
                            どこを押せばよいか分からなくなる */}
                     {r.filled[col.key] ? (
                       <span style={{ color: "#059669" }} aria-label="入力済み">✓</span>
-                    ) : (
+                    ) : col.editable ? (
                       <Link
                         href={`/admin/companies/${r.id}?tab=${col.tab}`}
                         aria-label={`${r.name} の ${col.title} を入力する`}
@@ -147,6 +150,12 @@ export default function CoverageClient({ rows }: { rows: CoverageRow[] }) {
                       >
                         ＋
                       </Link>
+                    ) : (
+                      /* ⚠️ 入力欄が無い列はリンクにしない（2026-08-12）。
+                            `?tab=opinio` に飛ばしても該当の入力欄が無く、
+                            「押せるが何も入力できない」リンクになっていた。
+                            マス自体は残す。消すと「空である」ことが読めなくなる。 */
+                      <span style={{ color: "#CBD5E1" }} aria-label="未入力（migration で投入）">−</span>
                     )}
                   </td>
                 ))}

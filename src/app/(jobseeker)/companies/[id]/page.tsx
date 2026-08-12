@@ -586,22 +586,38 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
+            {/* ⚠️ 列数を縮めるのは 900px 以上だけ（2026-08-12）。
+                   狭い画面で製品数に合わせると、**カードが横に伸びる**。
+                   1製品の企業（Opinio / Translead）が 375px で
+                   139px → 285px の全幅カードになった（実測）。
+                   「カードの大きさは維持する」ので 2列 / 3列は固定のままにする。
+                ⚠️ auto-fit は使わない。カードが引き伸ばされて1枚が巨大化する。
+                ⚠️ 900px 以上は固定幅（183px）。1fr のままでも 946/5 ≒ 183px で
+                   同じ見た目になるが、製品数が減っても列幅が変わらないことを
+                   明示しておくために固定値にしている。
+                ⚠️ このスタイルタグの中に山括弧と二重引用符を書かないこと。
+                   サーバーだけが実体参照へ変換し hydration error になる。 */}
             <style>{`
               .products-grid {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
                 gap: var(--space-2);
+                justify-content: start;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
               }
               @media (min-width: 640px) {
-                .products-grid { grid-template-columns: repeat(3, 1fr); }
+                .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
               }
               @media (min-width: 900px) {
-                .products-grid { grid-template-columns: repeat(5, 1fr); }
+                .products-grid { grid-template-columns: repeat(${Math.min(detail.main_products!.length, 5)}, minmax(0, 183px)); }
               }
             `}</style>
             <div className="products-grid">
               {detail.main_products!.map((raw, i) => {
-                const { name } = parseProductName(raw);
+                /* ⚠️ `sub`（括弧内の説明）を捨てないこと（2026-08-12 修正）。
+                      2026-08-12 まで `name` しか使っておらず、
+                      「SmartHR（クラウド人事労務ソフト）」の括弧内が画面に出ていなかった。
+                      データは全社 `製品名（説明）` の形で入っている。 */
+                const { name, sub } = parseProductName(raw);
                 const s = productStyle(name);
                 return (
                   <div
@@ -614,7 +630,15 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
-                      minHeight: 56,
+                      /* ⚠️ 高さは固定。説明が無い製品（「BPO事業」等）と混ざっても
+                            カードの高さを揃えるため。min-height にしないのは、
+                            min-height が height に勝って揃わなくなるのを避けるため。
+                         ⚠️ 72px は「製品名1行＋説明2行」が入る高さ。62px だと
+                            説明が2行になる製品（「マーケティングオートメーション」
+                            「API 統合・インテグレーション」等）で下が切れる。実測で決めた値。 */
+                      height: 72,
+                      boxSizing: "border-box",
+                      overflow: "hidden",
                     }}
                   >
                     {/* アイコン */}
@@ -625,9 +649,26 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     }}>
                       {s.icon}
                     </div>
-                    <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-noto-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {name}
-                    </p>
+                    {/* ⚠️ minWidth: 0 が要る。これが無いと flex item が
+                           min-content まで広がり、ellipsis が効かない。 */}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-noto-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {name}
+                      </p>
+                      {sub && (
+                        /* ⚠️ 12px 未満にしないこと（globals.css の --text-xs が下限）。
+                              2行までで打ち切り、カードの高さが崩れないようにする。 */
+                        <p style={{
+                          margin: "2px 0 0", fontSize: "var(--text-xs)", fontWeight: 500,
+                          color: "var(--ink-mute)", lineHeight: 1.3,
+                          fontFamily: "var(--font-noto-sans)",
+                          display: "-webkit-box", WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+                        }}>
+                          {sub}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
