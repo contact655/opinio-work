@@ -42,10 +42,23 @@ export type Stint = {
   salaryBonus?: number | null;
   salaryStock?: number | null;
   salaryMan?: number | null;
-  visibilityCompany?: "real" | "masked" | "hidden";
-  visibilityCompanyProfile?: "real" | "masked" | "hidden";
+  /*
+    ⚠️ 公開設定3列は **必須**（optional にしない）。
+       PUT が無条件に上書きする列なので、取得元が拾い忘れると
+       `?? "real"` / `?? true` で既定値に化け、
+       「会社名を含めない」「入社理由を公開しない」を選んだ人の設定が
+       別項目を直して保存しただけで**公開側へ反転する**。
+       2026-08-12 まで実際にその状態で、実データ8行が該当していた。
+       必須にしておけば、取得元が足し忘れた時点でビルドが落ちる。
+    ⚠️ DB 側も NOT NULL（既定 'real' / 'real' / true）なので、
+       値が無い状態は「取得漏れ」以外にありえない。
+  */
+  visibilityCompany: "real" | "masked" | "hidden";
+  visibilityCompanyProfile: "real" | "masked" | "hidden";
+  visibilityReason: boolean;
+  /* ⚠️ visibility_salary は optional のまま。PUT が `"visibility_salary" in body` の
+        ときだけ書き、エディタは送らないので往復の対象外（年収UIは 2026-08-06 に撤去）。 */
   visibilitySalary?: boolean;
-  visibilityReason?: boolean;
   // ── 勤務地（表示する）
   prefecture?: string;
   remoteWorkStatus?: string;
@@ -1471,10 +1484,14 @@ export default function CareerHistoryEditor({
     salaryBonus: s.salaryBonus != null ? String(s.salaryBonus) : "",
     salaryStock: s.salaryStock != null ? String(s.salaryStock) : "",
     salaryMan: s.salaryMan != null ? String(s.salaryMan) : "",
-    visibilityCompany: s.visibilityCompany ?? "real",
-    visibilityCompanyProfile: s.visibilityCompanyProfile ?? "real",
+    /* ⚠️ `?? "real"` / `?? true` で埋めないこと。DB が NOT NULL なので
+          値が無い＝取得元の SELECT 漏れであり、既定値に倒すと
+          「本人の非公開設定が公開側に反転した」ことに誰も気づけない。
+          Stint 側で必須にしてあるので、ここは素通しでよい。 */
+    visibilityCompany: s.visibilityCompany,
+    visibilityCompanyProfile: s.visibilityCompanyProfile,
+    visibilityReason: s.visibilityReason,
     visibilitySalary: s.visibilitySalary ?? false,
-    visibilityReason: s.visibilityReason ?? true,
     /* ⚠️ ここで拾い忘れると、編集して保存した瞬間に値が消える
           （draft の空値がそのまま PUT で送られるため）。
           サーバー側（profile/edit/page.tsx）の SELECT と対で見ること。 */

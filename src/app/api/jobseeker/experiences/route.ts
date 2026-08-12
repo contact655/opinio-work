@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { parseReasonFields } from "@/lib/constants/careerReasons";
+import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
@@ -38,10 +39,13 @@ export async function GET() {
     /* ⚠️ 年収4列（salary_base / salary_bonus / salary_stock / salary_man）は SELECT しない。
           2026-08-06 に authenticated から SELECT 権限を剥奪したので、含めると
           permission denied で職歴一覧が丸ごと空になる。入力UIも既に無い。 */
-    /* ⚠️ 理由データ3種（join_reasons / join_reason_primary / leave_reasons）も
+    /* ⚠️ 列リストは lib/experiences/columns.ts の1箇所に置く。ここに直書きしない。
+          profile/edit/page.tsx と**同じ定数**を見る。割れると
+          「片方の経路では保存できるがもう片方では消える」が起きる。
+       ⚠️ 理由データ3種（join_reasons / join_reason_primary / leave_reasons）も
           admin でないと読めない。列単位 GRANT を付けていないため
           （20260811184225）。session クライアントで select すると 403 になる。 */
-    .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_company_profile, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons")
+    .select(EXPERIENCE_EDITOR_COLS)
     .eq("user_id", owUserId)
     .order("is_current", { ascending: false })
     .order("started_at", { ascending: false });

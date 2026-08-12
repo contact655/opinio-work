@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import ProfileEditClient from "./ProfileEditClient";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
+import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 
 export const metadata = { title: { absolute: "プロフィール設定 | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -74,9 +75,11 @@ export default async function ProfileEditPage({
     owUser
       ? adminSupabase   // ⚠️ join_reason / 理由データ3種を含むので admin。対象は owUser.id に固定
           .from("ow_experiences")
-          /* ⚠️ ここで選び忘れた列は、編集画面で空になり、保存した瞬間に消える。
-                CareerHistoryEditor が draft の値をそのまま PUT で送るため。 */
-          .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, employment_type, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons")
+          /* ⚠️ 列リストは lib/experiences/columns.ts の1箇所に置く。ここに直書きしない。
+                選び忘れた列は編集画面で空になり、**保存した瞬間に消える**
+                （CareerHistoryEditor が draft をそのまま PUT で送るため）。
+                2026-08-12 に department / rank / visibility 3列で実際に起きていた。 */
+          .select(EXPERIENCE_EDITOR_COLS)
           .eq("user_id", owUser.id)
           .order("is_current", { ascending: false })
           .order("started_at", { ascending: false })
@@ -299,6 +302,16 @@ export default async function ProfileEditPage({
       description: (r.description as string | null) ?? undefined,
       joinReason: (r.join_reason as string | null) ?? undefined,
       employmentType: (r.employment_type as string | null) ?? undefined,
+      /* ⚠️ department / rank は PUT が無条件に上書きするので、ここで拾わないと
+            別の項目を直して保存しただけで消える（2026-08-12 まで実際に消えていた）。 */
+      department: (r.department as string | null) ?? undefined,
+      rank: (r.rank as Stint["rank"]) ?? null,
+      /* ⚠️ 公開設定3列。DB は NOT NULL なので `?? 既定値` で埋めない。
+            埋めると取得漏れが再発したときに「real / true に化けた」ことに気づけない。
+            Stint 側で必須にしてあるので、取り忘れるとビルドが落ちる。 */
+      visibilityCompany: r.visibility_company as Stint["visibilityCompany"],
+      visibilityCompanyProfile: r.visibility_company_profile as Stint["visibilityCompanyProfile"],
+      visibilityReason: r.visibility_reason as boolean,
       prefecture: (r.prefecture as string | null) ?? undefined,
       remoteWorkStatus: (r.remote_work_status as string | null) ?? undefined,
       joinReasons: (r.join_reasons as string[] | null) ?? [],
