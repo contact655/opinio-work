@@ -12,6 +12,13 @@ import { COVERAGE_COLUMNS } from "./columns";
  * ⚠️ 読み取りはサーバー + createAdminClient。ブラウザ側クライアントは使わない
  *    （`ow_companies` には運営ポリシーがあるが、他テーブルには無い。形を揃える）。
  *
+ * ⚠️ **`filterListedCompanies` を使わないのは意図的**（2026-08-12）。
+ *    `lib/companies/visibility.ts` は「求職者向けディレクトリに出すか」の判定で、
+ *    ここは**運営の作業管理画面**。目的が違う。
+ *    ディレクトリ非掲載（`listing_status='draft'`）の企業こそデータを埋める対象なので、
+ *    掲載の可否ではなく `is_published`（＝詳細ページが存在する企業）で拾う。
+ *    ここを `filterListedCompanies` に変えると、**埋めるべき企業が一覧から消える。**
+ *
  * ⚠️ /admin/layout.tsx が cookies() を呼ぶのでこのページは自動的に動的。
  */
 export const metadata = { title: "充填状況 | OPINIO Admin" };
