@@ -14,6 +14,7 @@
  *                     （is_published = false OR is_approved = true）の前提
  *   is_published    … **詳細ページが見えるか**（404ゲート）
  *   listing_status  … **ディレクトリに載るか**（'listed' / 'draft'）
+ *   is_test         … **検証用か**（2026-08-12 追加。公開側からは常に除外）
  *
  * `listing_status` は baseline から存在していた列で、COMMENT も
  * 「draft=非掲載, listed=事実情報として掲載（ディレクトリ）」と書かれていたが、
@@ -47,7 +48,11 @@
 export function filterListedCompanies<T>(query: T): T {
   return (query as any)
     .eq("is_published", true)
-    .eq("listing_status", "listed") as T;
+    .eq("listing_status", "listed")
+    /* ⚠️ 検証用の企業を公開側に出さない（2026-08-12 追加）。
+          `ow_companies` を引く箇所は運営画面を除いても60以上あるので、
+          個別に足さずこの2関数（と Strict）に集約する。 */
+    .eq("is_test", false) as T;
 }
 
 /**
@@ -61,7 +66,8 @@ export function filterListedCompanies<T>(query: T): T {
  */
 export function filterVisibleCompanies<T>(query: T): T {
   if (process.env.NODE_ENV === "development") return query;
-  return (query as any).eq("is_published", true) as T;
+  /* ⚠️ 検証用の企業は詳細ページも出さない（2026-08-12 追加） */
+  return (query as any).eq("is_published", true).eq("is_test", false) as T;
 }
 
 /**
@@ -69,5 +75,6 @@ export function filterVisibleCompanies<T>(query: T): T {
  * リンク生成のように「本番で404になるものを出してはいけない」箇所で使う。
  */
 export function filterVisibleCompaniesStrict<T>(query: T): T {
-  return (query as any).eq("is_published", true) as T;
+  /* ⚠️ 検証用の企業へのリンクを生成しない（2026-08-12 追加） */
+  return (query as any).eq("is_published", true).eq("is_test", false) as T;
 }

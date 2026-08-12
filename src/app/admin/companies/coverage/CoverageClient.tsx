@@ -23,7 +23,7 @@ const TOTAL = COVERAGE_COLUMNS.length;
  *
  * ⚠️ 76社を1画面で俯瞰したいので、ページネーションは置かない。密度を優先する。
  */
-export default function CoverageClient({ rows }: { rows: CoverageRow[] }) {
+export default function CoverageClient({ rows, testCount }: { rows: CoverageRow[]; testCount: number }) {
   /** 「この項目が空の企業だけ」に絞る。列ヘッダのクリックで切り替える */
   const [emptyOnly, setEmptyOnly] = useState<string | null>(null);
   /** 空が多い順（既定） / 社名順 */
@@ -59,6 +59,13 @@ export default function CoverageClient({ rows }: { rows: CoverageRow[] }) {
         <div style={{ fontSize: 12, color: "#64748B" }}>
           公開 {rows.length} 社 × {TOTAL} 項目／全項目そろっている企業{" "}
           <strong style={{ color: "#0F172A" }}>{rows.filter((r) => r.filledCount === TOTAL).length}</strong> 社
+          {/* ⚠️ 検証用の企業は表から外すが、件数は必ず出す。
+                 完全に隠すと「見えていないだけ」を自分で作ることになる。 */}
+          {testCount > 0 && (
+            <span style={{ marginLeft: 8, color: "#94A3B8" }} title="is_test = true の企業。表からは除外している">
+              （テスト {testCount} 社を除く）
+            </span>
+          )}
         </div>
       </div>
       <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px", lineHeight: 1.8 }}>

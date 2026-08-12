@@ -36,7 +36,10 @@ function isFilled(v: unknown): boolean {
 export default async function CoveragePage() {
   const supabase = createAdminClient();
 
-  const cols = ["id", "slug", "name", "brand_name", ...COVERAGE_COLUMNS.map((c) => c.key)].join(", ");
+  const cols = ["id", "slug", "name", "brand_name", "is_test", ...COVERAGE_COLUMNS.map((c) => c.key)].join(", ");
+  /* ⚠️ 検証用の企業は一覧から外すが、**件数は必ず出す**（2026-08-12）。
+        完全に消すと「見えていないだけ」を自分で作ることになる。
+        ow_jobs で「テスト」タブを残したのと同じ考え方。 */
   const { data, error } = await supabase
     .from("ow_companies")
     .select(cols)
@@ -60,7 +63,12 @@ export default async function CoveragePage() {
     );
   }
 
-  const rows: CoverageRow[] = ((data ?? []) as unknown as Record<string, unknown>[]).map((c) => {
+  const all = (data ?? []) as unknown as Record<string, unknown>[];
+  const testCount = all.filter((c) => c.is_test === true).length;
+
+  const rows: CoverageRow[] = all
+    .filter((c) => c.is_test !== true)
+    .map((c) => {
     const filled: Record<string, boolean> = {};
     for (const col of COVERAGE_COLUMNS) filled[col.key] = isFilled(c[col.key]);
     return {
@@ -72,5 +80,5 @@ export default async function CoveragePage() {
     };
   });
 
-  return <CoverageClient rows={rows} />;
+  return <CoverageClient rows={rows} testCount={testCount} />;
 }

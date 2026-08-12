@@ -2668,6 +2668,7 @@ export type Database = {
           is_approved: boolean
           is_foreign: boolean
           is_published: boolean
+          is_test: boolean
           jobs_public: boolean
           linkedin_url: string | null
           listed_exchange: string | null
@@ -2820,6 +2821,7 @@ export type Database = {
           is_approved?: boolean
           is_foreign?: boolean
           is_published?: boolean
+          is_test?: boolean
           jobs_public?: boolean
           linkedin_url?: string | null
           listed_exchange?: string | null
@@ -2972,6 +2974,7 @@ export type Database = {
           is_approved?: boolean
           is_foreign?: boolean
           is_published?: boolean
+          is_test?: boolean
           jobs_public?: boolean
           linkedin_url?: string | null
           listed_exchange?: string | null
