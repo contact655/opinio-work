@@ -1866,18 +1866,43 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
   );
 }
 
-// ─── MobileBottomCTA ── γ-7: モバイル固定底部バー (< 768px) ──────────────────
+// ─── MobileBottomCTA ── サイドバーが消える幅（< 1024px）の固定底部バー ────────
+/**
+ * ⚠️ **表示幅はサイドバーと必ず対にすること。**
+ *
+ * サイドバーの CTA カードは `hidden lg:flex` で **1024px 未満は消える**。
+ * このバーは以前 `md:hidden`（768px 未満）で、**768〜1023px にどちらも出ない
+ * 256px 幅の帯があった**（2026-08-13 実測）。iPad 縦(768) がここに入る。
+ * 求人詳細の `JobMobileStickyBar` は元から `lg:hidden` で塞がっていたので、そちらに揃えた。
+ *
+ * ⚠️ **`bottom` をインラインに書かないこと。** 幅で変える値なので Tailwind に持たせる。
+ *    モバイルボトムナビ（`MobileBottomNav`・高さ64px）は **768px 以上で消える**ので、
+ *    768〜1023px で `bottom: 64` のままだと**下端に64pxの空白が浮く**。
+ *      `bottom-16`     … < 768px、ナビの上に載せる
+ *      `md:bottom-0`   … >= 768px、ナビが無いので下端に付ける
+ *
+ * ⚠️ ボトムナビ側を `lg:hidden` に広げる案は採らなかった。
+ *    ナビは全ページ共通で、タブレットにナビを出すかは別の判断になる。
+ *    **ここで直したいのは企業詳細のCTA欠落だけ**なので、影響範囲を広げない。
+ */
+/**
+ * 固定底部バーを出すか。**バー本体と `<main>` の下余白が同じ条件を見るために切り出した。**
+ * 別々に書くと、面談も求人も無い企業で「バーは出ないのに余白だけ192px空く」ことになる。
+ */
+function hasMobileBottomCta(company: Company): boolean {
+  return company.accepting_casual_meetings === true || company.job_count > 0;
+}
+
 function MobileBottomCTA({ company }: { company: Company }) {
   const hasMeeting = company.accepting_casual_meetings === true;
   const hasJobs = company.job_count > 0;
-  if (!hasMeeting && !hasJobs) return null;
+  if (!hasMobileBottomCta(company)) return null;
 
   return (
     <div
-      className="md:hidden"
+      className="lg:hidden bottom-16 md:bottom-0"
       style={{
         position: "fixed",
-        bottom: 64, // モバイルボトムナビ（64px）の上に配置
         left: 0,
         right: 0,
         zIndex: 40,
@@ -2514,8 +2539,14 @@ export default async function CompanyDetailPage({
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
           className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]"
         >
-          {/* γ-7: モバイルで fixed bottom bar 分の余白を確保 */}
-          <main className="pb-36 md:pb-0">
+          {/* 固定底部バー（`MobileBottomCTA`）の分の逃げ。
+                 ⚠️ **バーが出る幅と必ず揃えること。** バーは `lg:hidden`（< 1024px）なので
+                    `lg:pb-0`。`md:pb-0` のままだと 768〜1023px で本文の最後が隠れる。
+                 ⚠️ 幅ごとに必要な逃げが違う。**バーの占有高さ = バー高さ + bottom**（実測）。
+                      < 768px  … 122 + 64(ナビの上) = 186px → `pb-48`(192) + 最終要素の margin 24 = 216
+                      >= 768px … 122 +  0(ナビ無し)  = 122px → `pb-36`(144) + 24 = 168
+                    `pb-36` のままだと 375px で **18px かぶっていた**（2026-08-13 実測）。 */}
+          <main className={hasMobileBottomCta(company) ? "pb-48 md:pb-36 lg:pb-0" : undefined}>
             {/* 1. 企業概要 */}
             <AboutSection
               detail={detail}
