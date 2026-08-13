@@ -44,11 +44,28 @@ export function JobseekerHeader() {
     const supabase = createClient();
     let active = true; // アンマウント後の setState 防止（二重発火・競合ガード）
 
+    /*
+      ⚠️ **同じ auth ユーザーで2回引かないこと**（2026-08-13）。
+         `getSession()` の then と `onAuthStateChange` の INITIAL_SESSION が
+         ほぼ同時に発火するため、ページを開くたびに
+         `ow_users?select=name` が**まったく同じ条件で2回**飛んでいた（実測）。
+         resolvedAuthId に解決済みの id を持たせて2回目を捨てる。
+
+      ⚠️ ログアウト（authUser=null）では必ず null に戻すこと。
+         ここで早期 return すると、別アカウントに入り直したときに
+         前の人の名前がヘッダーに残る。
+    */
+    let resolvedAuthId: string | null = null;
+
     async function resolveUser(authUser: { id: string; email?: string } | null | undefined) {
       if (!authUser) {
+        resolvedAuthId = null;
         if (active) setUser(null);
         return;
       }
+      if (resolvedAuthId === authUser.id) return;
+      resolvedAuthId = authUser.id;
+
       const { data: owUser } = await supabase
         .from("ow_users")
         .select("name")

@@ -22,10 +22,23 @@ export function CompanyAdminDndOverlay() {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const draggedIdRef = useRef<string | null>(null);
 
-  // 管理者チェック（マウント時1回のみ）
+  /*
+    管理者チェック（マウント時1回のみ）
+
+    ⚠️ **ログインしていないなら RPC を投げない**（2026-08-13）。
+       `auth_is_admin()` は auth.uid() を見るので、未ログインなら必ず false。
+       それでも毎回投げていたため、`/companies` を開いた人**全員**が
+       Supabase への往復を1回負担していた（本番実測 230ms）。
+       `getSession()` はクッキーを読むだけでネットワークに出ない。
+
+    ⚠️ コメント中に「アスタリスク2つ + /companies」と書かないこと。
+       `**` と `/` が並んだ時点でブロックコメントが閉じ、構文エラーになる。
+  */
   useEffect(() => {
     (async () => {
       const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
       const { data } = await supabase.rpc("auth_is_admin");
       setIsAdmin(!!data);
     })();

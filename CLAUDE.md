@@ -1443,6 +1443,57 @@ ESLint も `npx next lint --dir src` は `.next` を書き換えない。
 → 各項目の計測スクリプトと実測値は [.claude/rules/ui-debugging.md](.claude/rules/ui-debugging.md)
    （`.tsx` / `.jsx` / `.css` を扱うとき自動で読み込まれる）
 
+### ⚠️ 「サイトが遅い」の実体は3層ある（2026-08-13 本番実測）
+
+**遅さの正体はクエリではなかった。** Supabase の各クエリは実測 60〜110ms
+（東京同士。Vercel も `hnd1`）で、ページを重くしていたのは別の3つ。
+
+| 層 | 実体 | 実測 |
+|---|---|---|
+| ① **コールドスタート** | ISR キャッシュに載っている `/` 以外は全部サーバー関数を起動する | `/people` 2.68 → 0.82 → 0.66 → 0.50秒。`/companies` 3.39 → 1.27 → 0.37秒 |
+| ② **middleware の認証往復** | `updateSession()` の `getUser()` が毎リクエスト Supabase Auth へ出ていた | `/`（ISRヒット）で 未ログイン 0.10秒 → **ログイン中 0.23〜0.27秒** |
+| ③ **描画後のクライアント往復** | 遷移のたびに `getUser()` + `ow_profiles`。加えてヘッダーが `ow_users` を2回 | 「表示はされたのにまだ重い」の正体 |
+
+②③ は 2026-08-13 に対処済み（下記）。**① は未対処。**
+
+⚠️ **TTFB で判断しないこと。** App Router はストリーミングするので、
+   サーバーが遅くても TTFB は速いまま出る。`/companies` は
+   **ttfb=0.3秒 / total=3.5秒** だった。**`time_total` を見ること。**
+
+⚠️ **「初回だけ遅い」を環境ノイズとして捨てないこと。** 低トラフィックのページは
+   利用者にとって**毎回が初回**（＝コールドスタート）になる。
+   前後比較のときだけ warm にして測り、体感の話をするときは初回の値で語る。
+
+#### 対処済み（②③）
+
+| # | 場所 | 変更 |
+|---|---|---|
+| ② | `lib/supabase/middleware.ts` / `middleware.ts` | `updateSession(request, { verifyUser: needsAuth })`。公開ページは `getSession()`（期限内なら往復しない）に切り替え。**実測 60〜250ms → 2〜3ms** |
+| ③ | `components/jobseeker/OnboardingGuard.tsx` | `getUser()` → `getSession()`、`onboarding_completed=true` を sessionStorage に記憶。**遷移あたりの Supabase 往復 2 → 0** |
+| ③ | `components/jobseeker/JobseekerHeader.tsx` | `getSession()` と `onAuthStateChange` が同じ `ow_users` を2回引いていたのを1回に |
+| ③ | `components/companies/CompanyAdminDndOverlay.tsx` | 未ログインなら `auth_is_admin` RPC を投げない（全訪問者が 230ms 負担していた） |
+
+⚠️ **`verifyUser` は `needsAuth` と必ず同じ値にすること。**
+   `getSession()` は署名を検証しないので、middleware の
+   `needsAuth && !sessionUser` に渡る user は検証済みでなければならない。
+   詳細は `lib/supabase/middleware.ts` の JSDoc。
+
+⚠️ **StrictMode の二重実行を「直っていない」と誤読しないこと。**
+   dev では effect が2回走るため、1回に減らした修正でも回数は2のまま出る。
+   A/B（ガードを外して比較）で確かめること。
+
+#### ① コールドスタートについて（未対処・判断が要る）
+
+`/` だけが `x-vercel-cache: HIT` で常時 0.10秒。それ以外は `MISS` かつ
+`cache-control: private, no-cache, no-store`。原因は2つ。
+
+- `/companies` … `searchParams` を読むため App Router の仕様で動的レンダリングになる
+- `/jobs` … `export const dynamic = "force-dynamic"`（「あなたへのおすすめ」のため）
+
+**求人一覧そのものは全員同じ**なので、パーソナライズ部分だけを分離できれば
+`/jobs` は ISR に載る。ただし新着求人の反映が revalidate 間隔ぶん遅れるため、
+**鮮度をどこまで許容するかの製品判断が要る。** コード都合だけで決めないこと。
+
 ### Git 運用方針（2026-05-03 確定）
 - main ブランチに直接コミットする（worktree 作成禁止）
 - worktree が既に存在する場合は、`git worktree remove` で削除してから作業を開始する

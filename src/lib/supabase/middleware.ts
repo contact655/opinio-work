@@ -17,10 +17,34 @@ import type { User } from "@supabase/supabase-js";
  */
 const AUTH_TIMEOUT_MS = 2500;
 
-export async function updateSession(request: NextRequest): Promise<{
+/**
+ * @param opts.verifyUser
+ *   true  … `getUser()`。Supabase Auth へ往復してトークンを**サーバー検証**する。
+ *           middleware が返り値の user でリダイレクトを判断するパス（認証必須パス）はこちら。
+ *   false … `getSession()`。クッキーのトークンが**期限内なら往復しない**。
+ *           期限切れのときだけリフレッシュのために往復する（＝更新の責務は変わらない）。
+ *
+ * ⚠️ **公開ページで false にしてよい理由は「返り値の user を誰も使わないから」。**
+ *    middleware.ts の認可判定は `needsAuth && !sessionUser` の1箇所だけで、
+ *    `needsAuth === false` のときは user を見ない。
+ *    **認可判定に使うパスで false にしないこと。** getSession() は署名を検証しないため、
+ *    偽造クッキーでも user が返る。ここが唯一の防御になっている経路では使えない。
+ *
+ * ── なぜ分けたか（2026-08-13 実測）─────────────────────────────────────────
+ * middleware は matcher でほぼ全ページに掛かっており、`getUser()` は**毎リクエスト**
+ * Supabase Auth へネットワーク往復していた。ログイン中は公開ページまで巻き込まれる。
+ * 実測（本番 opinio.jp / LP は ISR キャッシュヒット）:
+ *   未ログイン 0.10秒 → ログイン中 0.23〜0.27秒。**差の 130〜170ms がこの往復。**
+ * 公開ページはトークンを検証する必要が無いので、期限内ならそのまま通す。
+ */
+export async function updateSession(
+  request: NextRequest,
+  opts?: { verifyUser?: boolean },
+): Promise<{
   response: NextResponse;
   user: User | null;
 }> {
+  const verifyUser = opts?.verifyUser !== false;
   let supabaseResponse = NextResponse.next({ request });
 
   /* ⚠️ タイムアウトは Promise.race ではなく **fetch を中断**して実現する。
@@ -61,7 +85,14 @@ export async function updateSession(request: NextRequest): Promise<{
         公開ページ（/companies /jobs）は未ログイン表示で出続ける。 */
   let user: User | null = null;
   try {
-    const { data, error } = await supabase.auth.getUser();
+    /* getSession() はクッキーのトークンが期限内ならネットワークに出ない。
+       期限切れなら内部でリフレッシュするので、Set-Cookie は従来どおり出る。 */
+    const { data, error } = verifyUser
+      ? await supabase.auth.getUser()
+      : await supabase.auth.getSession().then(({ data, error }) => ({
+          data: { user: data.session?.user ?? null },
+          error,
+        }));
     /* ⚠️ 中断は supabase-js が **throw せず error として返す**（catch には来ない）。
           両方で拾うこと。 */
     if (error) logAuthFailure(error, request);
