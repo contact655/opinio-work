@@ -574,11 +574,7 @@ PKCE の `code` は**登録したブラウザに保存された code_verifier �
 
 ### ⚠️ メールテンプレートに `{{ .ConfirmationURL }}` を使わない
 
-**必ず `{{ .RedirectTo }}` + `{{ .TokenHash }}` の形にする。**
-
-```html
-<a href="{{ if .RedirectTo }}{{ .RedirectTo }}{{ else }}{{ .SiteURL }}/auth/confirm?next=%2Fcompanies{{ end }}&token_hash={{ .TokenHash }}&type=email">メールアドレスを確認する</a>
-```
+**`{{ .SiteURL }}` + リテラルの `?` + `{{ .TokenHash }}` の形にする。**
 
 `{{ .ConfirmationURL }}` は GoTrue の `/verify` を経由し、そこで PKCE の
 `code` に変換されてしまう。**テンプレートを1枚でもデフォルトのまま追加すると、
@@ -587,12 +583,56 @@ PKCE の `code` は**登録したブラウザに保存された code_verifier �
 ⚠️ **対象は4枚**（`type` が違う）。Supabase ダッシュボード →
    Authentication → Email Templates。
 
-| テンプレート | `type` |
-|---|---|
-| Confirm signup | `email` |
-| Magic Link | `magiclink` |
-| Reset Password | `recovery` |
-| Invite user | `invite` |
+| テンプレート | `type` | `next` |
+|---|---|---|
+| Confirm signup | `email` | `%2Fcompanies` |
+| Magic Link | `magiclink` | `%2Fcompanies` |
+| Reset Password | `recovery` | `%2Fauth%2Fupdate-password` |
+| Invite user | `invite` | `%2Fcompanies` |
+
+```html
+<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=%2Fcompanies">メールアドレスを確認する</a>
+```
+
+### ⚠️ 最初の `?` は**リテラル**で書く。`{{ .RedirectTo }}` を URL の土台にしない
+
+**これを破ると `/signup` が 500 になり、新規登録が全員止まる。**
+2026-08-13 に本番で実際に起こした。
+
+Supabase のテンプレートは Go の `html/template` で、**URL の文脈を静的に解析**している。
+`href` の先頭がアクション（`{{ .RedirectTo }}` や `{{ .SiteURL }}`）だと、
+その値が `?` を含むかどうか分からないため `urlPart` が確定しない。
+確定しないまま次のアクションが来ると**テンプレートのコンパイル自体が失敗する**。
+
+```
+html/template:.../templates/confirmation:10:127:
+  {{.TokenHash}} appears in an ambiguous context within a URL
+```
+
+`urlPart` を確定させるのは**リテラルの `?` か `#` だけ**
+（Go `transition.go` の `tURL`: `if bytes.ContainsAny(s, "#?")`）。
+`{{ .RedirectTo }}` が持ち込む `?` は**リテラルではないので数えられない。**
+
+```html
+✗ href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email"
+✗ href="{{ if .RedirectTo }}{{ .RedirectTo }}{{ else }}...{{ end }}&token_hash={{ .TokenHash }}"
+✓ href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=%2Fcompanies"
+```
+
+⚠️ **エラーはテンプレート保存時ではなく、メール送信時に出る。**
+   ダッシュボードは保存を受け付けるので、**登録を1回試すまで壊れたことに気づけない。**
+   症状は `POST /signup` が **500 `unexpected_failure`** で、
+   `auth.users` に行すら作られない。画面には空のエラーボックスが出る。
+
+⚠️ **テンプレートを変えたら必ず1回登録を通すこと。** 保存できた＝動く、ではない。
+
+⚠️ 上記の結果、**`next` はテンプレートに固定で書く**ことになり、
+   `emailRedirectTo`（＝`{{ .RedirectTo }}`）は使っていない。
+   利用者ごとに `next` を変えたいなら、リテラルの `?` を保ったまま
+   `&next={{ .RedirectTo }}` を**末尾のクエリ値として**渡し、
+   `emailRedirectTo` に**最終遷移先そのもの**を入れる形にする
+   （`safeNext` を同一オリジンの絶対URLに対応させる改修が要る）。
+   **`{{ .RedirectTo }}` を URL の先頭に置く形には二度と戻さない。**
 
 ⚠️ **Reauthentication は対象外。** GoTrue の `ReauthenticateMail` は
    `SiteURL` / `Email` / `Token` / `Data` しか渡さず、
@@ -608,15 +648,17 @@ PKCE の `code` は**登録したブラウザに保存された code_verifier �
    `verifyTokenHash` は同じDB列に完全一致で引くので接頭辞ごと一致し、
    POST `/verify` 側に PKCE 分岐は無くセッションが発行される。
 
-### ⚠️ `confirmRedirectTo()` は常に `?next=` を含んだURLを返すこと
+### `confirmRedirectTo()` の現在の役割
 
-テンプレート側が `{{ .RedirectTo }}&token_hash=...` と**そのまま連結**するため、
-**戻り値に `?` が無いと `...confirm&token_hash=...` になり、
-token_hash がクエリとして認識されず全経路が壊れる。**
+`emailRedirectTo` に渡す値を組み立てる。
+**2026-08-13 の時点で、この値はメール本文のリンクには使われていない**
+（上のとおりテンプレートは `{{ .SiteURL }}` 起点で `next` を固定で持つ）。
 
-⚠️ **「next が空なら `?next=` を省く」という最適化を入れないこと。**
-   `next` は必須引数にしてあり、`"/"` でも `""` でも `?next=` が必ず出力される。
-   条件分岐が無いので `?` の欠落は起こりえない。**その構造を崩さない。**
+いま効いているのは1点だけ。**GoTrue の Redirect URLs 許可リストの検証を通ること。**
+許可リストに無い値を渡すと GoTrue 側で弾かれる。
+
+⚠️ 消さないこと。`{{ .RedirectTo }}` を使う形（利用者ごとの `next`）に移るときに要る。
+   移る場合は上の「最初の `?` はリテラルで書く」を必ず読むこと。
 
 ### ⚠️ `/auth/confirm` の許容 `type` に `email_change` を足さない
 
