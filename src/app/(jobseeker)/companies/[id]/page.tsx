@@ -1237,15 +1237,19 @@ function JobsSection({
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
-      {/* Section header */}
+      {/* Section header
+          ⚠️ ここにあった「すべての求人を検索（N件）」は 2026-08-13 に削除した。
+             リンク先の /companies/[id]/jobs は 2026-07-01（ca81d23a）に
+             「orphan page」として**ルートごと削除**されており 404 だった。
+             同じ理由で 2026-08-08 に下部の「N件すべての求人を見る」が消されているが、
+             このヘッダー側が取りこぼされていた。
+          ⚠️ **代替リンクは作らない。** d8304fd2 で求人セクションはその場で
+             全件展開するようになり、別ページへ送る役割自体が無くなっている。
+          ⚠️ 復活させるなら先に `/jobs?company=` を実装すること
+             （消えたルートを戻すと、このセクションと内容が重複する）。 */}
       <div style={{
         padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: "var(--space-2)",
       }}>
         <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="warm">
           募集中の求人
@@ -1253,21 +1257,6 @@ function JobsSection({
             {company.job_count}件
           </span>
         </SecTitle>
-        <Link
-          href={`/companies/${company.id}/jobs`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            padding: "6px 14px", borderRadius: 8,
-            background: "#FEF3C7", color: "#92400E",
-            border: "1px solid #FDE68A",
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          すべての求人を検索（{company.job_count}件）
-        </Link>
       </div>
 
       <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
@@ -2137,7 +2126,11 @@ function Sidebar({
             [
               { key: "業界", value: company.industry, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
               ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
-              ...(detail.parentCompanyName ? [{ key: "本社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), subText: detail.capitalNotes ?? undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
+              /* ⚠️ ラベルは「親会社」。値は parent_company_name（**親会社名**）で、
+                    所在地ではない。直下に「所在地」行が並ぶため、
+                    「本社」だと本社所在地と誤読される（2026-08-13 改称）。
+                    値の参照先は変えていない。 */
+              ...(detail.parentCompanyName ? [{ key: "親会社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), subText: detail.capitalNotes ?? undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
               { key: "従業員数", value: formatEmployeeCount(company.employee_count) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
               ...(detail.globalEmployeeCount ? [{ key: "従業員数（世界）", value: formatEmployeeCount(detail.globalEmployeeCount), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
               { key: "所在地", value: detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
