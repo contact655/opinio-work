@@ -91,6 +91,53 @@ dev と本番で挙動が異なる場合がある。
 （Clearbit の Logo API は終了。`clearbit.com` のルートは 200 なのでネットワーク制限ではない）。
 「値はあるが表示できない」ので ✓/空欄では表せない。**別タスク。**
 
+### ✅ /companies 1ページ目の9社を Salesforce と同じ密度にした（2026-08-13 完了）
+
+対象は **HPE / Ubie / OpenAI / Databricks / SmartHR / Sansan / PKSHA / HubSpot / Datadog**。
+**公開情報で埋まる項目はほぼ埋め切った。ここから先はデータ投入では進まない。**
+
+| 何を | 前 | 後 |
+|---|---|---|
+| サイドバー「企業情報」の表示行数 | **4〜8行** | **7〜11行**（Salesforce は10行） |
+| `description` | 全社1段落の塊 | **全社2段落**（改行1つで区切る） |
+| `main_products` が空の企業 | 1社（HPE） | **0社**（HPE に8件投入） |
+| `customer_cases` | Salesforce 1社のみ | **＋HPE 3件・OpenAI 2件** |
+| 表示名の組み立て | 3箇所に別実装・ルールが割れていた | **`lib/companies/displayName.ts` に集約** |
+
+`description` からは**評価語**（「世界最高評価ユニコーン企業のひとつ」「年間成長率30%以上を維持」
+「史上最速で1億ユーザーを達成」「〜も強化中」）と**時点の無い数値**を除去した。
+Datadog の「NYSE上場」は事実誤りだったので NASDAQ に訂正している。
+
+⚠️ **Datadog の `customer_cases` は意図的に空。** `main_customers` 7社を残すため
+   （事例を入れるとフォールバックが効かなくなり顧客リストが画面から消える）。
+
+#### 適用した migration（2026-08-13）
+
+| ファイル | 内容 |
+|---|---|
+| `20260813061500_fill_company_profile_9_companies.sql` | 住所・最寄駅・代表者・従業員数・資本区分・拠点など |
+| `20260813064500_fix_sansan_branch_locations.sql` | Sansan の拠点を6件に訂正 |
+| `20260813071000_rewrite_company_descriptions_9.sql` | 本文の2段落化と評価語の除去 |
+| `20260813074500_fix_pksha_product_names.sql` | PKSHA Chatbot → ChatAgent |
+| `20260813081500_hpe_products_and_customer_cases.sql` | HPE の製品8件、HPE/OpenAI の事例 |
+| `20260813093000_fill_name_en_5_companies.sql` | `name_en` が空だった5社 |
+
+#### ⚠️ 残っている差は、データ投入では埋まらない
+
+**Salesforce との差はほぼ丸ごと「取材4項目」と「求人」に集約された。**
+
+| 残っているもの | 9社の状況 | Salesforce | 埋め方 |
+|---|---|---|---|
+| `benefits`（福利厚生） | **全社0** | 10件 | **取材** |
+| `org_teams`（組織体制） | **全社0** | 23件 | **取材** |
+| `ow_company_tools`（ツール） | **全社0** | 9件 | **取材** |
+| `culture_description` | **全社 NULL** | あり | **取材** |
+| 公開求人 | **全社0件** | 5件 | 企業から預かるか、出典付きで投入 |
+
+⚠️ **公開情報で埋められる残りは `customer_cases` の6社ぶんだけ。**
+   それ以外を埋めようとすると、必ず取材か企業からの入力が要る。
+   **「ページが薄い」を理由に取材項目を推測で埋めないこと。**
+
 ⚠️ **画面のロゴが出ているのは別経路のおかげ。** `components/common/CompanyLogo.tsx` が
 死んだ Clearbit URL からドメインだけを抜き出し、
 `https://www.google.com/s2/favicons?domain=<domain>&sz=256` にフォールバックしている。
