@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { confirmRedirectTo, safeNext } from "@/lib/auth/redirects";
+import { AUTH_ERROR_DISPLAY, toAuthErrorCode, type AuthErrorCode } from "@/lib/constants/authErrors";
 
 // ─── SVG Components ─────────────────────────────────────────────────────────
 const GoogleLogo = () => (
@@ -77,16 +79,26 @@ function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawNext = searchParams.get("next") ?? "";
-  const nextUrl = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  const nextUrl = safeNext(rawNext, "/");
 
+  // 認証リンクから弾かれて戻ってきた人は「登録できていない」のではなく
+  // 「ログインすれば済む」ことが多い。mode の明示指定が無ければログインタブで迎える。
+  const urlErrorCode = toAuthErrorCode(searchParams.get("error"));
   const [mode, setMode] = useState<"signup" | "login">(
-    searchParams.get("mode") === "login" ? "login" : "signup"
+    searchParams.get("mode") === "login" || (urlErrorCode && !searchParams.get("mode"))
+      ? "login"
+      : "signup"
   );
 
-  const urlError = searchParams.get("error");
-  const [error, setError] = useState<string>(
-    urlError ? "認証エラーが発生しました。もう一度お試しください。" : ""
-  );
+  /*
+    ⚠️ URL 由来のエラーとフォーム由来のエラーを**別の state で持つ**こと。
+       2026-08-13 まで両方を1つの `error` に入れていたため、直後の
+       `useEffect(..., [mode])` がマウント時にも走って setError("") で消しており、
+       `/auth?error=...` で戻っても**画面には何も出なかった**。
+       文言は用意されていたのに一度も表示されていない状態だった。
+  */
+  const [authErrorCode, setAuthErrorCode] = useState<AuthErrorCode | null>(urlErrorCode);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const supabase = createClient();
@@ -102,6 +114,8 @@ function AuthPageInner() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const [resendMessage, setResendMessage] = useState("");
 
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -126,6 +140,7 @@ function AuthPageInner() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setAuthErrorCode(null);
 
     try {
       const supabase = createClient();
@@ -134,7 +149,7 @@ function AuthPageInner() {
         password,
         options: {
           data: { name: name.trim() || email.split("@")[0] },
-          emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
+          emailRedirectTo: confirmRedirectTo(location.origin, nextUrl),
         },
       });
 
@@ -183,10 +198,22 @@ function AuthPageInner() {
     setLoading(true);
     setError("");
 
+    setAuthErrorCode(null);
+
     const supabase = createClient();
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (loginError) {
+      /*
+        ⚠️ 未確認を「メールアドレスまたはパスワードが違います」に混ぜないこと。
+           パスワードは合っているのに直しようのない文言を出すことになり、
+           利用者は正しい対処（確認メールを開く／再送する）に辿り着けない。
+      */
+      if (loginError.code === "email_not_confirmed") {
+        setAuthErrorCode("email_not_confirmed");
+        setLoading(false);
+        return;
+      }
       setError(
         loginError.message.includes("Invalid login") || loginError.message.includes("invalid_credentials")
           ? "メールアドレスまたはパスワードが正しくありません。"
@@ -200,15 +227,52 @@ function AuthPageInner() {
     router.refresh();
   };
 
+  /**
+   * 確認メールの再送。
+   *
+   * ⚠️ すでに確認済みのアドレスに再送すると Supabase はエラーを返す。
+   *    そこを「送信しました」に丸めないこと。確認は済んでいてログインすればよい、
+   *    という**利用者が取るべき次の行動**が消えてしまう。
+   */
+  const handleResend = async () => {
+    if (!email) {
+      setResendState("failed");
+      setResendMessage("メールアドレスを入力してから再送してください。");
+      return;
+    }
+    setResendState("sending");
+    setResendMessage("");
+
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: confirmRedirectTo(location.origin, nextUrl) },
+    });
+
+    if (resendError) {
+      console.error("[auth] resend failed:", resendError.code, resendError.message);
+      setResendState("failed");
+      setResendMessage(
+        "再送できませんでした。すでに確認が完了している可能性があります。ログインをお試しください。"
+      );
+      return;
+    }
+
+    setResendState("sent");
+    setResendMessage(`${email} に確認メールを再送しました。`);
+  };
+
   const handleMagicLink = async () => {
     if (!email) { setError("メールアドレスを入力してください"); return; }
     setLoading(true);
     setError("");
+    setAuthErrorCode(null);
     const supabase = createClient();
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl || "/companies")}`,
+        emailRedirectTo: confirmRedirectTo(location.origin, nextUrl || "/companies"),
       },
     });
     if (otpError) {
@@ -308,6 +372,50 @@ function AuthPageInner() {
               </button>
             ))}
           </div>
+
+          {/* 認証リンク由来のエラー。フォームのエラーとは別枠で、対処法まで出す */}
+          {authErrorCode && (
+            <div style={s.authErrorBox} role="alert">
+              <p style={s.authErrorTitle}>{AUTH_ERROR_DISPLAY[authErrorCode].title}</p>
+              <p style={s.authErrorBody}>{AUTH_ERROR_DISPLAY[authErrorCode].body}</p>
+
+              {AUTH_ERROR_DISPLAY[authErrorCode].showResend && (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendState === "sending"}
+                      style={s.authErrorBtn}
+                    >
+                      {resendState === "sending" ? "送信中..." : "確認メールを再送する"}
+                    </button>
+                    {mode === "signup" && (
+                      <button type="button" onClick={() => setMode("login")} style={s.authErrorBtnGhost}>
+                        ログインへ
+                      </button>
+                    )}
+                  </div>
+                  {resendState !== "idle" && resendMessage && (
+                    <p
+                      style={{
+                        ...s.authErrorBody,
+                        marginTop: 10,
+                        color: resendState === "sent" ? "var(--success)" : "var(--error)",
+                      }}
+                    >
+                      {resendMessage}
+                    </p>
+                  )}
+                  {resendState === "idle" && !email && (
+                    <p style={{ ...s.authErrorBody, marginTop: 8 }}>
+                      再送するには、下のメールアドレス欄に登録したアドレスを入力してください。
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {error && (
             <div style={s.errorBox} role="alert">
@@ -680,6 +788,54 @@ const s = {
     color: "var(--error)",
     marginBottom: 20,
     lineHeight: 1.6,
+  } as React.CSSProperties,
+
+  // 認証リンク由来のエラー。フォームの errorBox より情報量が多いので別スタイル。
+  authErrorBox: {
+    background: "var(--error-soft)",
+    border: "1px solid #FECACA",
+    borderRadius: 10,
+    padding: "14px 16px",
+    marginBottom: 20,
+  } as React.CSSProperties,
+
+  authErrorTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "var(--error)",
+    margin: "0 0 6px",
+    lineHeight: 1.6,
+  } as React.CSSProperties,
+
+  authErrorBody: {
+    fontSize: 13,
+    color: "var(--ink-soft)",
+    margin: 0,
+    lineHeight: 1.8,
+  } as React.CSSProperties,
+
+  authErrorBtn: {
+    padding: "8px 16px",
+    background: "var(--royal)",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+  } as React.CSSProperties,
+
+  authErrorBtnGhost: {
+    padding: "8px 16px",
+    background: "#fff",
+    color: "var(--royal)",
+    border: "1.5px solid var(--royal-100)",
+    borderRadius: 8,
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
   } as React.CSSProperties,
 
   formTitle: {

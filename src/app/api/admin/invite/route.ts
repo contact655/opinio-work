@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { notify } from "@/lib/notify/email";
+import { confirmRedirectTo } from "@/lib/auth/redirects";
 
 export const dynamic = "force-dynamic";
 
@@ -59,10 +60,25 @@ export async function POST(req: Request) {
   );
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.jp";
-  // biz ユーザーは /auth/callback?biz=1 へ（/biz/auth/callback は存在しない）
-  const redirectTo = role === "biz"
-    ? `${siteUrl}/auth/callback?biz=1`
-    : `${siteUrl}/auth/callback`;
+  /*
+    ⚠️ **`/auth/callback` に戻さないこと。招待リンクはあそこでは絶対に成立しない。**
+
+    `inviteUserByEmail` は運営の service_role が発行するので code_challenge が付かず、
+    GoTrue は implicit flow として扱う。implicit flow の verifyGet は
+    `token.AsRedirectURL()` でトークンを **URL フラグメント**（`#access_token=...`）に載せる。
+    フラグメントはサーバーに送信されないため、Route Handler である `/auth/callback` からは
+    `code` も `access_token` も見えず、必ずエラーに落ちる。
+
+    `/auth/confirm`（token_hash + verifyOtp）はクエリだけで完結するのでこの問題が無い。
+
+    ⚠️ **これは Supabase 側の "Invite user" テンプレートを
+       `{{ .TokenHash }}` 形式に変えて初めて機能する。** 変更前は
+       `{{ .ConfirmationURL }}` が GoTrue の /verify を経由するため
+       token_hash が付かず `?error=missing_token` になる（＝従来どおり失敗するだけで、
+       悪化はしない）。テンプレートと合わせて運用すること。
+  */
+  const inviteNext = role === "biz" ? "/biz/dashboard" : "/companies";
+  const redirectTo = confirmRedirectTo(siteUrl, inviteNext);
 
   const results: { email: string; ok: boolean; error?: string }[] = [];
 

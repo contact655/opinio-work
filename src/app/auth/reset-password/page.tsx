@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { confirmRedirectTo } from "@/lib/auth/redirects";
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
@@ -16,8 +17,11 @@ export default function ResetPasswordPage() {
     setError("");
 
     const supabase = createClient();
+    // ⚠️ /auth/callback（code 交換）ではなく /auth/confirm（token_hash 検証）に着地させる。
+    //    再設定リンクは別端末で開かれる率が高く、PKCE の code は登録元ブラウザの
+    //    code_verifier が無いと交換できないため必ず失敗していた。
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      redirectTo: confirmRedirectTo(window.location.origin, "/auth/update-password"),
     });
 
     if (resetError) {

@@ -92,8 +92,8 @@ export default function AdminInvitePage() {
           </div>
           <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>
             {role === "candidate"
-              ? "求職者として招待。/auth/callback へリダイレクトされます。"
-              : "企業担当者として招待。/biz/auth/callback へリダイレクトされます。"}
+              ? "求職者として招待。確認後 /companies へ着地します。"
+              : "企業担当者として招待。確認後 /biz/dashboard へ着地します。"}
           </p>
         </div>
 

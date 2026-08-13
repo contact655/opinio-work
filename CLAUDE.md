@@ -542,6 +542,119 @@ migration 238/239 で幽霊投稿60件を作ったのと同じハザード。
 
 ---
 
+## ⚠️ 認証メールのリンクは `/auth/confirm`、OAuth だけ `/auth/callback`（2026-08-14 確立）
+
+**この2つを混ぜないこと。** 混ぜると、スマホでメールを開いた人が全員登録できなくなる。
+
+| 経路 | 着地点 | 仕組み |
+|---|---|---|
+| **メール**（確認・マジックリンク・パスワード再設定・招待） | **`/auth/confirm`** | `token_hash` を**サーバー側**で `verifyOtp` |
+| **OAuth**（Googleログイン） | **`/auth/callback`** | `code` を `exchangeCodeForSession` |
+
+### なぜ分けるか
+
+`@supabase/ssr` は **`flowType: "pkce"` をハードコード**している
+（`createBrowserClient.js` / `createServerClient.js` が `...options?.auth` の**展開後**に
+上書きしているので、指定しても変えられない）。
+
+PKCE の `code` は**登録したブラウザに保存された code_verifier とペアでないと交換できない**。
+スマホのGmailアプリ内ブラウザなど**別ブラウザでリンクを開くと必ず失敗する**。
+本番では大半の利用者がこれに該当し、`/auth?error=auth` に飛ばされていた。
+
+`token_hash` は GoTrue の POST `/verify` で検証され code_verifier を要求しない。
+`/auth/confirm` はサーバー内で完結するのでブラウザが違っても通る。
+
+⚠️ **新しくメール系の導線を足すときは必ず
+   [`confirmRedirectTo()`](src/lib/auth/redirects.ts) を使う。**
+   `/auth/callback` を直書きしない。
+
+⚠️ **共通の後処理は [src/lib/auth/postAuth.ts](src/lib/auth/postAuth.ts) にある。**
+   ow_users の解決・role 付与・onboarding 判定・ウェルカムメールをコピーしないこと。
+   2箇所に割れると、どちらか一方だけ直る形の不具合が生まれる。
+
+### ⚠️ メールテンプレートに `{{ .ConfirmationURL }}` を使わない
+
+**必ず `{{ .RedirectTo }}` + `{{ .TokenHash }}` の形にする。**
+
+```html
+<a href="{{ if .RedirectTo }}{{ .RedirectTo }}{{ else }}{{ .SiteURL }}/auth/confirm?next=%2Fcompanies{{ end }}&token_hash={{ .TokenHash }}&type=email">メールアドレスを確認する</a>
+```
+
+`{{ .ConfirmationURL }}` は GoTrue の `/verify` を経由し、そこで PKCE の
+`code` に変換されてしまう。**テンプレートを1枚でもデフォルトのまま追加すると、
+その経路だけ同じ事故が再発する。**
+
+⚠️ **対象は4枚**（`type` が違う）。Supabase ダッシュボード →
+   Authentication → Email Templates。
+
+| テンプレート | `type` |
+|---|---|
+| Confirm signup | `email` |
+| Magic Link | `magiclink` |
+| Reset Password | `recovery` |
+| Invite user | `invite` |
+
+⚠️ **Reauthentication は対象外。** GoTrue の `ReauthenticateMail` は
+   `SiteURL` / `Email` / `Token` / `Data` しか渡さず、
+   **`ConfirmationURL` も `TokenHash` も存在しない**（6桁コードを本人が入力する方式）。
+
+⚠️ **Redirect URLs（許可リスト）に `/auth/confirm` を入れること。**
+   入っていないと GoTrue が `emailRedirectTo` を破棄して Site URL に落とすため、
+   `{{ .RedirectTo }}` が空になる。
+
+⚠️ `{{ .TokenHash }}` は **`pkce_` 接頭辞付きで届く**
+   （`templatemailer.go` が `user.ConfirmationToken` をそのまま埋めるため）。
+   **そのまま `verifyOtp` に渡してよい。剥がさないこと。**
+   `verifyTokenHash` は同じDB列に完全一致で引くので接頭辞ごと一致し、
+   POST `/verify` 側に PKCE 分岐は無くセッションが発行される。
+
+### ⚠️ `confirmRedirectTo()` は常に `?next=` を含んだURLを返すこと
+
+テンプレート側が `{{ .RedirectTo }}&token_hash=...` と**そのまま連結**するため、
+**戻り値に `?` が無いと `...confirm&token_hash=...` になり、
+token_hash がクエリとして認識されず全経路が壊れる。**
+
+⚠️ **「next が空なら `?next=` を省く」という最適化を入れないこと。**
+   `next` は必須引数にしてあり、`"/"` でも `""` でも `?next=` が必ず出力される。
+   条件分岐が無いので `?` の欠落は起こりえない。**その構造を崩さない。**
+
+### ⚠️ `/auth/confirm` の許容 `type` に `email_change` を足さない
+
+GoTrue の `EmailChangeMail` は secure email change のとき
+**旧・新アドレスへ別々の `TokenHash` で2通**送る。
+1通目の `verifyOtp` は `verifyPost` の `isSingleConfirmationResponse` 分岐に入り、
+**200 OK・セッション無し**（「もう一方のリンクも開いてください」）を返す。
+
+現行ルートは `!data.session` を失敗として扱うので、
+**正常な途中経過をエラー画面として見せることになる。**
+
+⚠️ メールアドレス変更機能を作るときは、`ALLOWED_TYPES` に型を足すだけでは足りない。
+   **「1通目は成功だがセッションは無い」を独立に扱うこと**（2通目を促す画面が要る）。
+   あわせて "Change Email Address" テンプレートも差し替える。
+   2026-08-14 時点でメールアドレス変更機能は**存在しない**
+   （`updateUser` の呼び出し2箇所はどちらも email を変えていない）。
+
+### プリフェッチでトークンが焼かれる件（観測中・対処は保留）
+
+メールセキュリティ製品がリンクを自動で叩くと、本人がクリックする前に
+トークンが消費され、本人は `?error=otp_invalid` に着く。
+
+⚠️ **これは `/auth/confirm` 固有の問題ではない。** GoTrue の `/verify` も GET なので
+   従来の `/auth/callback` でも同じことが起きる。**前後で耐性は変わらない。**
+
+判断材料として `/auth/confirm` が `verifyOtp` の**成功・失敗の両方**に
+`ua` / `hasSupabaseCookie` / `secFetchMode` / `secFetchDest` を出している。
+**非ブラウザUAでの `verifyOtp ok` の件数がプリフェッチ被害の実数。**
+
+⚠️ **この値で分岐しないこと。** UA も `Sec-Fetch-*` も詐称でき、
+   誤判定すると本物の利用者の確認を拒む。観測専用。
+
+⚠️ 冪等性は確認済み。ウェルカムメールは `ow_users` 行の存在が冪等キーになっており
+   2回目は `existing` で送られない。role 付与も `UNIQUE (user_id, role)` で
+   23505 を正常扱いしている。**送信済みフラグの列は不要。**
+
+---
+
 ## ⚠️ 企業ページは作られた時点で見える。運営が決めるのは一覧掲載だけ（2026-08-13 確立）
 
 **運営が日常的に押すトグルは `listing_status` **1つだけ**。**
