@@ -1139,7 +1139,13 @@ function FeedLeftPanel({
     },
     {
       href: "/mypage/bookmarks",
-      label: "保存した投稿",
+      /* ⚠️ 遷移先の h1 に合わせる（2026-08-13）。
+            以前は「保存した投稿」だったが、`/mypage/bookmarks` が出すのは
+            **企業と求人**（`target_type in (company, job)`）で、投稿ではない。
+            投稿を保存する機能は存在しない。
+         ⚠️ 名前を増やさない。「気になる企業・求人」等にすると、
+            ページの見出し（ブックマーク）とどちらが正か分からなくなる。 */
+      label: "ブックマーク",
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
@@ -1698,7 +1704,11 @@ function PostCard({
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/feed`;
+    /* ⚠️ **投稿のパーマリンクをコピーする。** 2026-08-13 まで
+          `${origin}/feed` を固定でコピーしており、**どの投稿の「シェア」を押しても
+          フィードのトップURL**になっていた。受け取った相手はその投稿に辿り着けない。
+       ⚠️ パーマリンクは `src/app/(jobseeker)/feed/[postId]/page.tsx` に実在する。 */
+    const url = `${window.location.origin}/feed/${post.id}`;
     try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -2341,28 +2351,15 @@ function PostCard({
             )}
             <span>{copied ? "コピー済み" : "シェア"}</span>
           </button>
-          <button
-            title="保存"
-            style={{
-              display: "flex", alignItems: "center",
-              background: "none", border: "none", cursor: "pointer",
-              padding: "6px 8px", borderRadius: 6,
-              color: "var(--ink-mute)",
-              transition: "background 0.15s, color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "none";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mute)";
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-          </button>
+          {/* ⚠️ 保存ボタンは削除した（2026-08-13）。
+                 `onClick` が無く、`/api/bookmarks` も target_type に "post" を
+                 受け付けない（article / company / job / mentor の4つのみ）ため、
+                 **押しても何も起きないボタン**だった。
+              ⚠️ 配線せずに戻さないこと。CLAUDE.md「保存経路が無い入力UIは実装しない」。
+              ⚠️ フィード投稿の実体は自動生成の企業カードで、「この投稿を保存」は
+                 「この企業を保存」とほぼ同義。企業・求人の保存は配線済みなので、
+                 post を足すのは同じ機能の二重化になる。
+                 user_post が実際に流れるようになったら改めて判断する。 */}
         </div>
       </div>
       )}
