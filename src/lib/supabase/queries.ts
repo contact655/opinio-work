@@ -31,7 +31,6 @@ import type {
   ThemeItem,
   Chapter,
 } from "@/app/articles/mockArticleData";
-import { MOCK_ARTICLES } from "@/app/articles/mockArticleData";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { filterListedCompanies, filterVisibleCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 
@@ -1763,8 +1762,9 @@ const getAllArticlesCached = unstable_cache(
     }
     const { data, error } = await query;
     if (error) {
-      console.warn("[getArticles] falling back to mock:", error.message);
-      return [...MOCK_ARTICLES];
+      // ⚠️ mock へのフォールバックは 2026-08-13 に削除した。実在しない記事を本物として出すことになる。 取れなければ0件。
+      console.error("[getArticles]", error.message);
+      return [];
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
@@ -1805,9 +1805,8 @@ export const getArticleBySlug = cache(async function getArticleBySlug(slug: stri
 
   if (error || !data) {
     if (error && error.code !== "PGRST116") {
-      // ow_articles テーブル未作成の場合は mock にフォールバック
-      console.warn("[getArticleBySlug] falling back to mock:", error.message);
-      return MOCK_ARTICLES.find((a) => a.slug === slug) ?? null;
+      // ⚠️ mock へのフォールバックは 2026-08-13 に削除した。実在しない記事を本物として出すことになる。 取れなければ null（下の return null）。
+      console.error("[getArticleBySlug]", error.message);
     }
     return null;
   }
@@ -1831,9 +1830,9 @@ export async function getArticlesByCompany(companyId: string): Promise<Article[]
 
   const { data, error } = await query;
   if (error) {
-    // ow_articles テーブル未作成の場合は mock にフォールバック
-    console.warn("[getArticlesByCompany] falling back to mock:", error.message);
-    return MOCK_ARTICLES.filter((a) => a.company_id === companyId);
+    // ⚠️ mock へのフォールバックは 2026-08-13 に削除した。実在しない記事を本物として出すことになる。 取れなければ0件。
+    console.error("[getArticlesByCompany]", error.message);
+    return [];
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((row: Record<string, any>) => mapDbArticle(row));
@@ -1859,10 +1858,9 @@ export async function getArticlesBySlugs(slugs: string[]): Promise<Article[]> {
     .eq("is_published", true);
 
   if (error) {
-    // ow_articles テーブル未作成の場合は mock にフォールバック
-    console.warn("[getArticlesBySlugs] falling back to mock:", error.message);
-    const mockMap = new Map(MOCK_ARTICLES.map((a) => [a.slug, a]));
-    return slugs.map((s) => mockMap.get(s)).filter((a): a is Article => a !== undefined);
+    // ⚠️ mock へのフォールバックは 2026-08-13 に削除した。実在しない記事を本物として出すことになる。 取れなければ0件。
+    console.error("[getArticlesBySlugs]", error.message);
+    return [];
   }
 
   // Preserve original order from slugs array
