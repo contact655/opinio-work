@@ -1098,12 +1098,6 @@ body {
           box-shadow: 0 4px 16px rgba(0,35,102,0.08) !important;
         }
 
-        /* ── Voice cards ── */
-        .voice-card:hover {
-          border-color: var(--purple,#7C3AED) !important;
-          box-shadow: 0 4px 16px rgba(124,58,237,0.08) !important;
-        }
-
         /* ── Post / article cards ── */
         .post-card-link:hover { border-color: var(--royal) !important; }
         .company-posts-more-link:hover { background: var(--royal-50) !important; }

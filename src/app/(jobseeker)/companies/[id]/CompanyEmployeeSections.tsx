@@ -22,126 +22,23 @@ import type { CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabas
 
 type AmbassadorInfo = { memberId: string };
 
+/*
+ * ⚠️ 2026-08-13 に「社員の声」セクション（EmployeeVoicesSection）を削除した。復活させないこと。
+ *
+ *    出していたのは `ow_users.catchphrase` — **本人のプロフィール見出し（経歴の一行要約）**で、
+ *    企業について語ったコメントではない。それを引用符アイコン付きのカードに入れていたため、
+ *    「社員が会社について語った声」に読める形になっていた。意味の書き換えにあたる。
+ *
+ *    加えて `catchphrase` には**編集 UI がアプリ内に1つも無い**。値が入っているのは
+ *    26人中3人だけで、全員 migration（archive/248〜251）による手投入。出ていたのも
+ *    87社中3社（kaikou-dengyou / ctc / hp）だけで、いずれも直下の「現役社員」に
+ *    同じ人が並ぶため二重に見えていた。
+ *
+ *    本物の社員コメントを載せるなら、`catchphrase` を流用せず専用の列を作ること。
+ *    `catchphrase` 自体は残してある（/jobs/[id] と /schools/[id] が名前の下の
+ *    肩書き行として使っており、そちらは用法として正しい）。
+ */
 
-
-function EmployeeVoicesSection({ employees }: { employees: CompanyEmployee[] }) {
-  const voices = employees.filter(e => e.catchphrase && e.catchphrase.trim().length > 0);
-  if (voices.length === 0) return null;
-
-  return (
-    <section
-      id="voices"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
-        <SecTitle
-          iconColor="purple"
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          }
-        >
-          社員の声
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 400, fontFamily: "Inter, sans-serif", marginLeft: "var(--space-2)" }}>
-            {voices.length}名
-          </span>
-        </SecTitle>
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-        <style>{`
-          .voices-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: var(--space-4);
-          }
-          @media (max-width: 767px) {
-            .voices-grid { grid-template-columns: 1fr; }
-          }
-        `}</style>
-        <div className="voices-grid">
-          {voices.slice(0, 6).map((emp) => {
-            const avatarColor = resolveAvatarColor(emp.roleParentId, emp.roleCategoryId);
-            return (
-              <a
-                key={emp.userId}
-                href={`/u/${emp.userId}`}
-                style={{ textDecoration: "none" }}
-              >
-                <div style={{
-                  padding: "var(--space-4)",
-                  border: "1px solid var(--line)",
-                  borderRadius: 14,
-                  background: "var(--bg-tint)",
-                  transition: "border-color 0.15s, box-shadow 0.15s",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-3)",
-                }}
-                className="voice-card"
-                >
-                  {/* Quote text */}
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <svg
-                      width="22" height="22" viewBox="0 0 24 24" fill="var(--purple-soft,#F3E8FF)"
-                      style={{ position: "absolute", top: -4, left: -4, opacity: 0.8 }}
-                    >
-                      <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-                      <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
-                    </svg>
-                    <p style={{
-                      margin: 0,
-                      paddingLeft: 20,
-                      fontSize: "var(--text-sm)",
-                      color: "var(--ink)",
-                      lineHeight: 1.75,
-                      fontWeight: 500,
-                    }}>
-                      {emp.catchphrase}
-                    </p>
-                  </div>
-                  {/* Attribution */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", borderTop: "1px solid var(--line-soft)", paddingTop: "var(--space-2)" }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: "50%",
-                      background: avatarColor.bg,
-                      flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                      fontWeight: 700, fontSize: 13, color: avatarColor.text,
-                      overflow: "hidden", border: "1.5px solid var(--line)",
-                      position: "relative",
-                    }}>
-                      {emp.avatarUrl ? (
-                        <EmployeeAvatarImg src={emp.avatarUrl} alt={emp.name} fallbackBg={avatarColor.bg} fallbackText={emp.avatarInitial ?? emp.name.charAt(0)} fallbackColor={avatarColor.text} fontSize={13} />
-                      ) : emp.avatarInitial}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {emp.name}
-                      </div>
-                      {emp.roleTitle && (
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {emp.roleTitle}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 // ─── Employee Sections ────────────────────────────────────────────────────────
 
@@ -942,7 +839,6 @@ export function CompanyEmployeeSections({
   return (
     <>
       <ListingStatusPanel relation={data.relation} companyName={companyName} />
-      <EmployeeVoicesSection employees={data.current} />
       <CurrentEmployeesSection
         employees={data.current}
         hiddenCount={data.hiddenCurrentCount}
