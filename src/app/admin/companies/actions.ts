@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { revalidatePath } from "next/cache";
+import { publishedAtPatch } from "@/lib/companies/publishedAt";
 
 async function assertAdmin(): Promise<void> {
   const supabase = createClient();
@@ -112,14 +113,15 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
   /* ⚠️ **ここは詳細ページの軸だけを動かす。** ディレクトリ掲載は
         updateListingStatus（下）が別に持つ。2軸を同時に動かすのは
         企業側の /biz/company だけ。 */
-  // published_at は「最初に公開した日時」。非掲載に戻しても消さない
-  // （フィード投稿は残るので、公開した事実の記録を消すと突合できなくなる）。
-  const updates: Record<string, unknown> = { is_published: newValue, updated_at: now };
-  if (newValue) {
-    const { data: cur } = await admin
-      .from("ow_companies").select("published_at").eq("id", companyId).maybeSingle();
-    if (!cur?.published_at) updates.published_at = now;
-  }
+  /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
+        ここに条件を書き写さないこと（3経路あり、片方だけ直し忘れる）。 */
+  const { data: cur } = await admin
+    .from("ow_companies").select("published_at").eq("id", companyId).maybeSingle();
+  const updates: Record<string, unknown> = {
+    is_published: newValue,
+    ...publishedAtPatch(cur?.published_at, newValue, now),
+    updated_at: now,
+  };
 
   const { error } = await admin.from("ow_companies").update(updates).eq("id", companyId);
   if (error) {

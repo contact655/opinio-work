@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
 
@@ -106,17 +107,15 @@ export async function PUT(
   // service_role で RLS バイパス
   const supabase = createAdminClient();
 
-  /*
-    公開に切り替えるときは published_at も埋める。
-    ⚠️ published_at は「最初に公開した日時」。非掲載に戻しても消さない
-       （フィード投稿は残るので、公開した事実の記録を消すと突合できなくなる）。
-  */
+  /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
+        ここに条件を書き写さないこと（is_published を true にできる経路は3つある）。 */
   const nowIso = new Date().toISOString();
+  /** 公開に切り替える操作か。フィード投稿（company_joined）の作成条件にも使う */
   const turningPublic = updates.is_published === true;
-  if (turningPublic) {
+  if ('is_published' in updates) {
     const { data: cur } = await supabase
       .from('ow_companies').select('published_at').eq('id', params.id).maybeSingle();
-    if (!cur?.published_at) updates.published_at = nowIso;
+    Object.assign(updates, publishedAtPatch(cur?.published_at, updates.is_published === true, nowIso));
   }
 
   const { data, error } = await supabase

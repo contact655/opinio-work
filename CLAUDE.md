@@ -261,6 +261,41 @@ ALTER TABLE ow_companies
 
 ---
 
+## ⚠️ `published_at` は「最初に公開した日時」（2026-08-12 確立）
+
+**決定ロジックは [src/lib/companies/publishedAt.ts](src/lib/companies/publishedAt.ts) の
+`publishedAtPatch` 1箇所に集約している。条件を各所に書き写さないこと。**
+
+| 場面 | 挙動 |
+|---|---|
+| 初回公開 | `now` を書く |
+| 公開中に再保存 | **触らない**（上書きしない） |
+| 非公開に戻す | **消さない** |
+
+⚠️ 消さないのは、公開した瞬間に作られるフィード投稿（`company_joined`）が残るため。
+   記録を消すと投稿と突き合わせられなくなる。
+
+### `is_published` を true にできる経路は3つある
+
+| 経路 | 2026-08-12 以前の状態 |
+|---|---|
+| `admin/companies/actions.ts` `updateIsPublished` | 正しい（これが基準だった） |
+| `PATCH /api/biz/company` | **`isPublished ? now : null`。再保存で上書きし、非公開化で消していた** |
+| `PUT /api/admin/companies/[id]` | 正しい |
+
+⚠️ **新しく `is_published` を true にする経路を足すときは、必ず `publishedAtPatch` を通すこと。**
+
+### ⚠️ migration で `is_published` を true にするときも `published_at` を埋める
+
+**80社が NULL のままになり、「いつ何社公開したか」を再構成できなくなった。**
+現在公開されている80社は、`updateIsPublished` を一度も通っていない
+（migration か直接 SQL で切り替えられている）。
+
+⚠️ **バックフィルはしない。** `created_at` で埋めると推測値の投入になる。
+   「記録が無い」という事実を残す（本日除去した機械投入値と同じ性質になるため）。
+
+---
+
 ## ⚠️ migration を書くときのルール
 
 1. **全社一括の UPDATE を禁止する。** `WHERE is_published = true` のような条件で全社を更新しない。
@@ -327,6 +362,13 @@ supabase-js は失敗しても例外を投げないので、画面は成功し�
 | `/admin` の0行更新 | そもそも `/admin` に入れない |
 
 #### 確認手順（メールは飛ばない・新規アカウントも作らない）
+
+⚠️ **セッションを差し替えるときは、先に `sb-` クッキーを全部消す。**
+   非チャンク（`sb-<ref>-auth-token`）とチャンク（`.0` / `.1`）が混在すると、
+   **`@supabase/ssr` は非チャンク側を優先する**ため古いセッションで認証される。
+   2026-08-12 に運営セッションを入れたのに `/admin/companies` が `/onboarding` へ
+   リダイレクトされ、**権限が無いように見えた**（実際は前の is_test アカウントの残骸）。
+
 
 `generateLink` はリンクを返すだけで送信しない。既存の `is_test` アカウント
 （求職者側）または運営アカウントを使う。

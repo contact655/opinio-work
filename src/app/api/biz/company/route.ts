@@ -4,6 +4,7 @@ import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
+import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import type { BizCompany } from "@/lib/business/mockCompany";
@@ -100,7 +101,7 @@ export async function PATCH(req: Request) {
   // draft_data + is_approved を取得
   const { data: currentRow, error: fetchError } = await supabase
     .from("ow_companies")
-    .select("draft_data, is_approved")
+    .select("draft_data, is_approved, published_at")
     .eq("id", companyId)
     .single();
 
@@ -161,7 +162,11 @@ export async function PATCH(req: Request) {
             分離したが、**企業側の体験と意味は変えない**。
             ディレクトリだけ下ろすのは運営の操作（/admin/companies）に限る。 */
       listing_status:           body.isPublished ? "listed" : "draft",
-      published_at:             body.isPublished ? now : null,
+      /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
+            2026-08-12 まで `body.isPublished ? now : null` と書いており、
+            **公開中に再保存するたび初回公開日を上書きし、非公開に戻すと消していた。**
+            運営側（updateIsPublished）の「最初に公開した日時」という意味と食い違っていた。 */
+      ...publishedAtPatch(currentRow?.published_at, !!body.isPublished, now),
       updated_at:               now,
       draft_data:               null,
     })
