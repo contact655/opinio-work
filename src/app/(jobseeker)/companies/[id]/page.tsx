@@ -2125,7 +2125,15 @@ function Sidebar({
           {(
             [
               { key: "業界", value: company.industry, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
-              ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
+              /* ⚠️ `capital_notes` の置き場所は2箇所ある（2026-08-13）。
+                    親会社があるときは直下の「親会社」行の subText、
+                    **無いときはここ**（資本区分行）に出す。
+                    日系企業は parent_company_name が空なので、以前は
+                    上場市場・調達の一文を入れても**どこにも出なかった**。
+                 ⚠️ 両方に出さないこと。親会社行と重複する。
+                 ⚠️ `listed_exchange` は使わない。**未使用カラム**で描画先が無い。
+                    上場市場・証券コードは capital_notes の文中に書く。 */
+              ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, subText: detail.parentCompanyName ? undefined : (detail.capitalNotes ?? undefined), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
               /* ⚠️ ラベルは「親会社」。値は parent_company_name（**親会社名**）で、
                     所在地ではない。直下に「所在地」行が並ぶため、
                     「本社」だと本社所在地と誤読される（2026-08-13 改称）。
