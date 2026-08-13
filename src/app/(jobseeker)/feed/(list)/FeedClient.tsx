@@ -29,6 +29,15 @@ type RefJob = { id: string; slug?: string | null; title: string; salary_min: num
 type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
 /**
+ * 運営が機械的に生成する投稿の種別。**いいね・コメントの操作行を出さない対象**（2026-08-13）。
+ *
+ * ⚠️ `ow_posts.user_id` がシステムユーザーかどうかでは判定しない。
+ *    見たいのは「反応を受け取る人がいるか」で、`mentor_post` は
+ *    システム名義で作られても中身は人の発言なのでここに入れない。
+ */
+const AUTO_POST_TYPES = new Set(["company_joined", "job_posted", "article_published"]);
+
+/**
  * 投稿種別バッジ。名前の右に出す。
  *
  * ⚠️ **本文から定型文（「〇〇がOPINIOに掲載されました。」）を外した代わり**（2026-08-13）。
@@ -1679,6 +1688,13 @@ function PostCard({
   /* ⚠️ `isSystemPost` は削除した（2026-08-13）。カードの背景を塗り分けるためだけの変数で、
         塗り分け自体をやめたので参照が0になった。システム投稿かどうかは
         `post.user.is_system` を直接見る（アバターやバッジの分岐では今も使っている）。 */
+
+  /* 運営が機械的に作ったお知らせ。**いいね・コメントの相手が「人」ではない投稿。**
+     ⚠️ `post.user.is_system` ではなく **post_type** で判定する。
+        判定したいのは「誰が作ったか」ではなく「反応を受け取る相手がいるか」。
+        mentor_post はシステム名義で作られることがあるが、中身は人の発言なので操作行を残す。 */
+  const isAutoPost = AUTO_POST_TYPES.has(post.post_type);
+
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -2172,7 +2188,23 @@ function PostCard({
         </div>
       )}
 
-      {/* フッター: いいね + コメント + ブックマーク */}
+      {/* フッター: いいね + コメント + ブックマーク
+          ⚠️ **システム投稿（自動生成）では丸ごと出さない**（2026-08-13）。
+             company_joined / job_posted / article_published は運営が機械的に作った
+             お知らせで、いいね・コメントを押す相手が「人」ではない。
+             実際 13枚でいいねは1件だけだった。
+
+          ⚠️ 行の高さは **53px**（borderTop 1 + paddingTop 12 + ボタン 36 + marginTop 4）。
+             ボタンのラベルを消しても**1pxも縮まない**（高さを決めているのは
+             `globals.css` の `button { min-height: 36px }`＝タップ領域）。
+             実測: ラベル削除 205px→205px / 全部詰めても 193px。
+             **縮めるのではなく、出すかどうかで判断した。**
+
+          ⚠️ `min-height: 36px` は外さないこと。タップ領域のためのルール。
+
+          ⚠️ user_post / mentor_post では**現状のまま残す**。人の投稿には
+             いいねもコメントも意味がある。押す先が人になったらこの行は戻る。 */}
+      {!isAutoPost && (
       <div
         style={{
           display: "flex",
@@ -2333,6 +2365,7 @@ function PostCard({
           </button>
         </div>
       </div>
+      )}
 
       {/* コメント欄 */}
       {showComments && (
