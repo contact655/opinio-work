@@ -218,8 +218,22 @@ type StintDraft = {
   roleTitle: string;
   department: string;
   rank: string;
-  startedAt: string;
-  endedAt: string;
+  /*
+    ⚠️ 年と月は**別々に持つ**（2026-08-13 修正）。
+
+    以前は `startedAt: string`（"YYYY-MM"）1本で持ち、年セレクトと月セレクトが
+    互いの値をそこから読み合っていた。`buildYearMonth` は片方が空だと "" を返すので、
+    **新規追加（startedAt = ""）では年を選んでも月を選んでも "" のまま**になり、
+    どちらのセレクトも空に戻る。入社年月は必須なので、
+    **この画面から経歴を1件も追加できない**状態だった（2d77b044 以降）。
+
+    「片方だけ選んだ」は正当な途中状態なので、状態としてそのまま表現する。
+    "YYYY-MM" は保存時に `draftStartedAt` / `draftEndedAt` で組み立てる。
+  */
+  startedYear: string;
+  startedMonth: string;   // "1".."12"（0埋めしない。組み立て時に padStart する）
+  endedYear: string;
+  endedMonth: string;
   isCurrent: boolean;
   description: string;
   joinReason: string;
@@ -247,15 +261,26 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 1979 }, (_, i) => CURRENT_YEAR - i);
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-/** "YYYY-MM" ↔ { year, month } 変換ヘルパー */
+/**
+ * "YYYY-MM" → { year, month }。**DB から来た値を draft に展開するときだけ使う。**
+ * ⚠️ セレクトの value をここから毎回導出しないこと。それが 2026-08-13 に直したバグ。
+ */
 function parseYearMonth(ym: string): { year: string; month: string } {
   if (!ym) return { year: "", month: "" };
   const [y, m] = ym.split("-");
   return { year: y ?? "", month: m ? String(parseInt(m, 10)) : "" };
 }
-function buildYearMonth(year: string, month: string): string {
+/** 年・月が**両方**揃ったときだけ "YYYY-MM" を返す。片方だけなら ""（＝未入力扱い） */
+function toYearMonth(year: string, month: string): string {
   if (!year || !month) return "";
   return `${year}-${month.padStart(2, "0")}`;
+}
+/** 保存・バリデーション用。draft の年月から "YYYY-MM" を組み立てる */
+function draftStartedAt(d: StintDraft): string {
+  return toYearMonth(d.startedYear, d.startedMonth);
+}
+function draftEndedAt(d: StintDraft): string {
+  return toYearMonth(d.endedYear, d.endedMonth);
 }
 
 const RANK_OPTIONS = [
@@ -283,8 +308,10 @@ const EMPTY_DRAFT: StintDraft = {
   roleTitle: "",
   department: "",
   rank: "",
-  startedAt: "",
-  endedAt: "",
+  startedYear: "",
+  startedMonth: "",
+  endedYear: "",
+  endedMonth: "",
   isCurrent: false,
   description: "",
   joinReason: "",
@@ -537,20 +564,49 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
+/*
+  ⚠️ 選んだのか選び損ねたのかが**画面から分からない**状態だった（2026-08-13 修正）。
+
+  マスタを選んでも、自由入力のままでも、入力欄にはただ会社名が残るだけで
+  見た目が同じだった。選び損ねると `company_id` が付かず自由入力で保存されるが、
+  **本人には何も見えない**（企業ページの現役社員に出ない・遷移の集計に乗らない、
+  という形で後から効いてくる）。実際に通し点検で2回踏んだ。
+
+  オンボーディングには「✓ OPINIOに掲載中の企業と連携します」という確認表示が
+  すでにあるので、**新しいデザインを作らずそれを持ってくる**。
+    選択済み  → 正式名称のカード（× で解除）＋ ✓ の確認行
+    自由入力  → 未掲載であることを明記する行
+*/
 function CompanySearch({
   value,
+  companyId,
   disabled,
   onChange,
 }: {
   value: string;
+  /** 非 null ならマスタと紐づいている。表示の分岐にも使う */
+  companyId: string | null;
   disabled: boolean;
   onChange: (companyId: string | null, companyName: string) => void;
 }) {
   const [results, setResults] = useState<CompanySuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  /** 選んだ企業の付随情報（業種など）。既存レコードを開いた直後は無いので名前だけ出す */
+  const [selectedMeta, setSelectedMeta] = useState<CompanySuggestion | null>(null);
+  /* ⚠️ 「自由入力で確定した」ことを覚えておく。`companyId === null` だけでは
+        「まだ入力している途中」と区別がつかず、確定前から未掲載の案内が出てしまう。
+        既存レコードを開いたときは確定済みとして扱う（value があって id が無い＝自由入力）。 */
+  const [freeConfirmed, setFreeConfirmed] = useState(
+    () => companyId === null && value.trim().length > 0
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 入力が空になったら確定状態も捨てる（キャンセル→追加で持ち越さないため）
+  useEffect(() => {
+    if (value.trim().length === 0) setFreeConfirmed(false);
+  }, [value]);
 
   // Click outside → close dropdown
   useEffect(() => {
@@ -566,6 +622,8 @@ function CompanySearch({
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value;
     onChange(null, q); // companyId をキーストローク毎にリセット
+    setSelectedMeta(null);
+    setFreeConfirmed(false);
     setOpen(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (q.trim().length === 0) {
@@ -592,17 +650,30 @@ function CompanySearch({
 
   function handleSelect(c: CompanySuggestion) {
     onChange(c.id, c.name);
+    setSelectedMeta(c);
+    setFreeConfirmed(false);
     setResults([]);
     setOpen(false);
   }
 
   function handleNew() {
     onChange(null, value); // companyId=null、companyName=入力テキストで確定
+    setSelectedMeta(null);
+    setFreeConfirmed(true);
     setResults([]);
     setOpen(false);
   }
 
-  const showDropdown = open && value.trim().length > 0;
+  function clearSelection() {
+    onChange(null, "");
+    setSelectedMeta(null);
+    setFreeConfirmed(false);
+    setResults([]);
+    setOpen(false);
+  }
+
+  const isMaster = companyId !== null;
+  const showDropdown = !isMaster && open && value.trim().length > 0;
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
@@ -610,15 +681,50 @@ function CompanySearch({
         .ched-suggest-row:hover { background: var(--royal-50) !important; }
         .ched-suggest-new:hover { background: var(--royal-50) !important; }
       `}</style>
-      <input
-        type="text"
-        value={value}
-        onChange={handleInput}
-        onFocus={() => { if (value.trim().length > 0) setOpen(true); }}
-        placeholder="株式会社〇〇"
-        disabled={disabled}
-        style={fieldStyle()}
-      />
+      {isMaster ? (
+        /* 選択済みチップ（オンボーディングと同じ形） */
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "11px 14px",
+          border: "2px solid var(--royal)",
+          borderRadius: 10, background: "var(--royal-50)",
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {value}
+            </div>
+            {selectedMeta?.industry && (
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                {selectedMeta.industry}
+              </div>
+            )}
+          </div>
+          {!disabled && (
+            <button
+              type="button"
+              onClick={clearSelection}
+              style={{
+                flexShrink: 0, background: "none", border: "none", cursor: "pointer",
+                color: "var(--ink-mute)", padding: 4, borderRadius: 4,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              aria-label="選択を解除"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={handleInput}
+          onFocus={() => { if (value.trim().length > 0) setOpen(true); }}
+          placeholder="株式会社〇〇"
+          disabled={disabled}
+          style={fieldStyle()}
+        />
+      )}
       {showDropdown && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
@@ -673,7 +779,9 @@ function CompanySearch({
             );
           })}
 
-          {/* ＋ 新規登録 — 入力がある限り常時表示 */}
+          {/* ＋ 自由入力で確定 — 入力がある限り常時表示
+              ⚠️ 「新規登録」と書かない。**企業マスタには何も作らない**。
+                 保存先は ow_experiences.company_text だけ（2026-08-13 に文言を実態へ寄せた）。 */}
           <div
             onMouseDown={(e) => { e.preventDefault(); handleNew(); }}
             style={{
@@ -692,11 +800,30 @@ function CompanySearch({
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-              「{value}」を新規登録
-            </span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+                「{value}」をこの名前のまま入力する
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                OPINIO 未掲載の企業として記録します
+              </div>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* ── 選んだのかどうかを必ず出す ────────────────────────────────────
+          ⚠️ 「変わらないこと」でしか失敗に気づけない状態を作らない。 */}
+      {isMaster && (
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          OPINIOに掲載中の企業と連携します
+        </p>
+      )}
+      {!isMaster && freeConfirmed && (
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8 }}>
+          OPINIO 未掲載の企業として、この名前のまま記録します（企業ページには紐づきません）
+        </p>
       )}
     </div>
   );
@@ -773,9 +900,13 @@ function StintForm({
 
   const descLen = draft.description.length;
   const descOver = descLen > 500;
+  /* ⚠️ 年・月が**両方**揃うまで "" のまま。片方だけ選んだ状態を
+        「未入力」として扱う（不正な期間として赤字を出さない）。 */
+  const startedAt = draftStartedAt(draft);
+  const endedAt = draftEndedAt(draft);
   // 期間バリデーション: ended_at が入力済みかつ現職フラグなし の場合のみ started_at <= ended_at を検証
   // YYYY-MM 文字列の辞書順比較で正しく動作（例: "2024-04" > "2023-04"）
-  const periodInvalid = !draft.isCurrent && !!draft.endedAt && draft.startedAt > draft.endedAt;
+  const periodInvalid = !draft.isCurrent && !!endedAt && !!startedAt && startedAt > endedAt;
   /*
     勤務地は**直近（現職）だけ**入力を求める。それ以前は任意。
     ⚠️ 必須にしているのはこの UI 層だけ。DB は NOT NULL にしておらず、API も必須にしていない。
@@ -785,8 +916,12 @@ function StintForm({
        追記を促す形にするために必須にしている。
   */
   const locationMissing = draft.isCurrent && (!draft.prefecture || !draft.remoteWorkStatus);
-  const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!draft.startedAt;
-  const canSave = isValid && !descOver && !periodInvalid && !locationMissing && !isSaving;
+  /* ⚠️ `locationMissing` は**案内を出すためだけ**に使う。保存は止めない（2026-08-13）。
+        必須にしていた頃は、勤務地と無関係な編集（役職を直すだけ等）まで保存できず、
+        オンボーディング直後の人が全員そこで詰まっていた。
+        行き止まりを作っても入力は増えない。通してから誘う。 */
+  const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!startedAt;
+  const canSave = isValid && !descOver && !periodInvalid && !isSaving;
   const effectivelyDisabled = !canSave || !!justSaved;
 
   return (
@@ -823,6 +958,7 @@ function StintForm({
           /* マスタ/カスタム経路: company_id or company_text に保存 */
           <CompanySearch
             value={draft.companyName}
+            companyId={draft.companyId}
             disabled={isSaving || companyLocked}
             onChange={(id, name) =>
               onDraftChange({ ...draft, companyId: id, companyName: name })
@@ -931,9 +1067,10 @@ function StintForm({
       <div>
         <label style={labelStyle()}>入社年月<RequiredMark /></label>
         <div style={{ display: "flex", gap: 8 }}>
+          {/* ⚠️ 年と月は独立した state。互いの値から導出しないこと（2026-08-13 修正） */}
           <select
-            value={parseYearMonth(draft.startedAt).year}
-            onChange={(e) => set("startedAt", buildYearMonth(e.target.value, parseYearMonth(draft.startedAt).month))}
+            value={draft.startedYear}
+            onChange={(e) => set("startedYear", e.target.value)}
             disabled={isSaving}
             style={{ ...fieldStyle(), flex: 1 }}
           >
@@ -941,8 +1078,8 @@ function StintForm({
             {YEAR_OPTIONS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
           </select>
           <select
-            value={parseYearMonth(draft.startedAt).month}
-            onChange={(e) => set("startedAt", buildYearMonth(parseYearMonth(draft.startedAt).year, e.target.value))}
+            value={draft.startedMonth}
+            onChange={(e) => set("startedMonth", e.target.value)}
             disabled={isSaving}
             style={{ ...fieldStyle(), flex: 1 }}
           >
@@ -967,8 +1104,8 @@ function StintForm({
         {!draft.isCurrent && (
           <div style={{ display: "flex", gap: 8 }}>
             <select
-              value={parseYearMonth(draft.endedAt).year}
-              onChange={(e) => set("endedAt", buildYearMonth(e.target.value, parseYearMonth(draft.endedAt).month))}
+              value={draft.endedYear}
+              onChange={(e) => set("endedYear", e.target.value)}
               disabled={isSaving}
               style={{ ...fieldStyle(), flex: 1 }}
             >
@@ -976,8 +1113,8 @@ function StintForm({
               {YEAR_OPTIONS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
             </select>
             <select
-              value={parseYearMonth(draft.endedAt).month}
-              onChange={(e) => set("endedAt", buildYearMonth(parseYearMonth(draft.endedAt).year, e.target.value))}
+              value={draft.endedMonth}
+              onChange={(e) => set("endedMonth", e.target.value)}
               disabled={isSaving}
               style={{ ...fieldStyle(), flex: 1 }}
             >
@@ -996,14 +1133,14 @@ function StintForm({
       {/*
         勤務地・勤務形態
         ⚠️ 本人の**居住地**（ow_users.location）とは別物。ここは「その期間どこで働いたか」。
-        ⚠️ 現職のときだけ入力を求める。それ以前は任意（入力の重さを増やさない）。
+        ⚠️ **どの経歴でも任意。** 現職も含めて必須にしない（2026-08-13 に方針変更）。
+           必須ゲートは「勤務地と関係ない編集まで保存できない」行き止まりを作るだけで、
+           入力を促す仕掛けとして機能していなかった。案内に置き換えている。
       */}
       <div>
         <label style={labelStyle()}>
-          勤務地{draft.isCurrent && <RequiredMark />}
-          {!draft.isCurrent && (
-            <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>（任意）</span>
-          )}
+          勤務地
+          <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>（任意）</span>
         </label>
         <div style={{ display: "flex", gap: 8 }}>
           <select
@@ -1028,10 +1165,19 @@ function StintForm({
           </select>
         </div>
         {locationMissing && (
-          /* ⚠️ 文言は案内的にする。既存レコードを編集した人にとっては
-                「新しく増えた項目」なので、咎める語調にしない。 */
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--warm)", marginTop: 4, lineHeight: 1.6 }}>
-            現職の勤務地と勤務形態を入力してください
+          /* ⚠️ **目立つが、操作は止めない。** 保存ボタンは有効なまま。
+                何のために要るのかを書く（「入力してください」だけでは動機にならない）。
+                既存レコードを編集した人にとっては新しく増えた項目なので、咎める語調にしない。 */
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 7,
+            fontSize: 12, fontWeight: 600, color: "#92400E",
+            background: "var(--warm-soft)", border: "1px solid #FDE68A",
+            borderRadius: 8, padding: "9px 11px", marginTop: 8, lineHeight: 1.65,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+              <circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" />
+            </svg>
+            <span>現職の勤務地と勤務形態を入れると、同じ条件で働く人を探せるようになります。</span>
           </div>
         )}
       </div>
@@ -1474,8 +1620,10 @@ export default function CareerHistoryEditor({
     roleTitle: s.roleTitle ?? "",
     department: s.department ?? "",
     rank: s.rank ?? "",
-    startedAt: s.startedAt,
-    endedAt: s.endedAt ?? "",
+    startedYear: parseYearMonth(s.startedAt).year,
+    startedMonth: parseYearMonth(s.startedAt).month,
+    endedYear: parseYearMonth(s.endedAt ?? "").year,
+    endedMonth: parseYearMonth(s.endedAt ?? "").month,
     isCurrent: s.isCurrent,
     description: s.description ?? "",
     joinReason: s.joinReason ?? "",
@@ -1513,8 +1661,12 @@ export default function CareerHistoryEditor({
     roleTitle: "",
     department: "",
     rank: "",
-    startedAt: group.earliestStart,       // そのグループの開始年月をプリフィル
-    endedAt: group.latestEnd ?? "",        // 現職グループは "" (isCurrent チェックで制御)
+    // そのグループの開始年月をプリフィル
+    startedYear: parseYearMonth(group.earliestStart).year,
+    startedMonth: parseYearMonth(group.earliestStart).month,
+    // 現職グループは "" (isCurrent チェックで制御)
+    endedYear: parseYearMonth(group.latestEnd ?? "").year,
+    endedMonth: parseYearMonth(group.latestEnd ?? "").month,
     isCurrent: false,
     description: "",
     joinReason: "",
@@ -1556,8 +1708,8 @@ export default function CareerHistoryEditor({
       const body: Record<string, unknown> = {
         role_category_id: editDraft.roleCategoryId,
         role_title: editDraft.roleTitle || undefined,
-        started_at: editDraft.startedAt,
-        ended_at: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
+        started_at: draftStartedAt(editDraft),
+        ended_at: editDraft.isCurrent ? undefined : draftEndedAt(editDraft) || undefined,
         is_current: editDraft.isCurrent,
         description: editDraft.description || undefined,
         join_reason: editDraft.joinReason || undefined,
@@ -1591,8 +1743,8 @@ export default function CareerHistoryEditor({
                 roleCategoryId: editDraft.roleCategoryId,
                 roleLabel: roles.find((r) => r.id === editDraft.roleCategoryId)?.name ?? editDraft.roleCategoryId,
                 roleTitle: editDraft.roleTitle || undefined,
-                startedAt: editDraft.startedAt,
-                endedAt: editDraft.isCurrent ? undefined : editDraft.endedAt || undefined,
+                startedAt: draftStartedAt(editDraft),
+                endedAt: editDraft.isCurrent ? undefined : draftEndedAt(editDraft) || undefined,
                 isCurrent: editDraft.isCurrent,
                 description: editDraft.description || undefined,
                 joinReason: editDraft.joinReason || undefined,
@@ -1631,8 +1783,8 @@ export default function CareerHistoryEditor({
       const body: Record<string, unknown> = {
         role_category_id: addDraft.roleCategoryId,
         role_title: addDraft.roleTitle || undefined,
-        started_at: addDraft.startedAt,
-        ended_at: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
+        started_at: draftStartedAt(addDraft),
+        ended_at: addDraft.isCurrent ? undefined : draftEndedAt(addDraft) || undefined,
         is_current: addDraft.isCurrent,
         description: addDraft.description || undefined,
         join_reason: addDraft.joinReason || undefined,
@@ -1664,8 +1816,8 @@ export default function CareerHistoryEditor({
         roleCategoryId: addDraft.roleCategoryId,
         roleLabel: roles.find((r) => r.id === addDraft.roleCategoryId)?.name ?? addDraft.roleCategoryId,
         roleTitle: addDraft.roleTitle || undefined,
-        startedAt: addDraft.startedAt,
-        endedAt: addDraft.isCurrent ? undefined : addDraft.endedAt || undefined,
+        startedAt: draftStartedAt(addDraft),
+        endedAt: addDraft.isCurrent ? undefined : draftEndedAt(addDraft) || undefined,
         isCurrent: addDraft.isCurrent,
         description: addDraft.description || undefined,
         joinReason: addDraft.joinReason || undefined,

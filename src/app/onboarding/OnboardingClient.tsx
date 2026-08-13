@@ -3,6 +3,24 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+/* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
+      （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
+import { PREFECTURES } from "@/lib/utils/location";
+import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
+
+/*
+  勤務形態のチップ。**value は共有定数から取る**（ここに直書きすると DB の CHECK とずれる。
+  2026-08-07 に JobEditForm が日本語ラベルを送って保存が落ちた前例がある）。
+  ラベルだけ入口用に短くし、並びは「出社 → フルリモート」にしている。
+*/
+const REMOTE_SHORT_LABEL: Record<string, string> = {
+  on_site: "出社",
+  hybrid: "ハイブリッド",
+  full_remote: "フルリモート",
+};
+const REMOTE_CHIPS = REMOTE_WORK_STATUSES
+  .map((o) => ({ value: o.value as string, label: REMOTE_SHORT_LABEL[o.value] ?? o.label }))
+  .reverse();
 
 type CompanyResult = {
   id: string;
@@ -43,6 +61,13 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const [roleId, setRoleId] = useState<string>("");
   const [startedYear, setStartedYear] = useState<string>("");
   const [startedMonth, setStartedMonth] = useState<string>("");
+  /* 勤務地・勤務形態（どちらも任意）。
+     ⚠️ **後から追記してもらうのが最も難しいデータなので、入口で聞く。**
+        「フルリモートと書いてある会社に、実際にリモートで働いている人がいるか」を
+        検証するための材料で、あとから思い出して埋めてもらえる性質のものではない。
+     ⚠️ 任意のまま。空でも先に進める（入口の摩擦を増やさない）。 */
+  const [prefecture, setPrefecture] = useState<string>("");
+  const [remoteWorkStatus, setRemoteWorkStatus] = useState<string>("");
   /* 会社名を伏せたい人向け。既定は実名（既存14件中13件が real で、
      求人・企業ページに出るのが本人の目的に沿うため）。 */
   const [maskCompany, setMaskCompany] = useState(false);
@@ -183,6 +208,10 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               role_category_id: roleId,
               started_at: `${startedYear}-${startedMonth}`,
               is_current: true,
+              /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾くので、
+                    "" を送ると登録の入口が落ちる。 */
+              ...(prefecture ? { prefecture } : {}),
+              ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
               visibility_company: maskCompany ? "masked" : "real",
               visibility_company_profile: maskCompany ? "masked" : "real",
             }),
@@ -469,12 +498,14 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                       }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       </div>
+                      {/* ⚠️ 「登録」と書かない。企業マスタには何も作らず、
+                             ow_experiences.company_text に名前が入るだけ（2026-08-13）。 */}
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-                          「{query.trim()}」で登録する
+                          「{query.trim()}」をこの名前のまま入力する
                         </div>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                          OPINIOに未掲載の企業として登録
+                          OPINIO 未掲載の企業として記録します
                         </div>
                       </div>
                     </button>
@@ -493,7 +524,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           )}
           {!selectedCompany && query.trim() && !searching && results.length === 0 && (
             <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8 }}>
-              候補が見つかりません。このまま「登録して始める」をクリックして入力した名前で登録できます。
+              候補が見つかりません。このまま進めると、入力した名前のまま記録します（企業ページには紐づきません）。
             </p>
           )}
 
@@ -553,6 +584,54 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                   <option value="">月</option>
                   {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
                 </select>
+              </div>
+
+              {/*
+                勤務地・勤務形態（どちらも任意・2026-08-13 追加）
+                ⚠️ **後から追記してもらうのが最も難しいデータなので、入口で聞く。**
+                   「フルリモートと書いてある会社に、実際にリモートで働いている人がいるか」の
+                   検証材料。編集画面に追いやると、実際には誰も戻ってこない。
+                ⚠️ 任意。**空でも先に進める**（編集フォーム側の必須ゲートも同日に外した）。
+                ⚠️ どちらも1タップで終わる形にしている。項目を増やしすぎない。
+              */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 20, marginBottom: 10 }}>
+                勤務地（任意）
+              </div>
+              <select
+                value={prefecture}
+                onChange={(e) => setPrefecture(e.target.value)}
+                style={{ ...selectStyle, width: "100%" }}
+                aria-label="勤務地（都道府県）"
+              >
+                <option value="">都道府県</option>
+                {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>
+                勤務形態（任意）
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {REMOTE_CHIPS.map((o) => {
+                  const active = remoteWorkStatus === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setRemoteWorkStatus(active ? "" : o.value)}
+                      style={{
+                        padding: "7px 13px", borderRadius: 100,
+                        border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                        background: active ? "var(--royal-50)" : "#fff",
+                        color: active ? "var(--royal)" : "var(--ink-soft)",
+                        fontSize: 13, fontWeight: active ? 700 : 500,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* ⚠️ どこに出るかを、保存する前に明記する */}
