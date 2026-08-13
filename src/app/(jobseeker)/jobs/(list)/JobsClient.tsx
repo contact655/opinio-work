@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Job } from "@/app/jobs/mockJobData";
 import { showToast } from "@/lib/toast";
-import type { RecommendedJob } from "@/lib/matching/scoreJob";
+import { createClient } from "@/lib/supabase/client";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
 import { INDUSTRY_GROUPS, resolveIndustryFilter } from "@/lib/search/industryGroups";
@@ -614,19 +614,62 @@ export default function JobsClient({
   jobs: allJobs,
   companies,
   parentRoles,
-  recommendations = [],
   roleAliases = [],
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
-  recommendations?: RecommendedJob[];
   /** 検索用の職種辞書（職種名＋別名）。roleIds はその語が指す職種そのものだけ
    *  （祖先は求人側の roleIds に入っている。queries.ts の getRoleAliases 参照） */
   roleAliases?: { alias: string; roleIds: string[] }[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  /*
+    ── 「あなたへのおすすめ」（2026-08-13 にサーバーからここへ移した）──────────
+
+    元はページのサーバーコンポーネントで計算して props で受けていたが、
+    そのために `/jobs` 全体が `force-dynamic` になり、**未ログインの訪問者まで
+    毎回サーバー関数の起動（コールドスタート 2〜4秒）を負担していた。**
+    ページを ISR に載せ、パーソナライズだけをここから取りに行く。
+
+    ⚠️ **未ログインでは fetch しない。** `getSession()` はクッキーを読むだけで
+       ネットワークに出ないので、ログアウト中のサーバー往復は 0 のままになる。
+       ここで無条件に fetch すると、CDN から返した意味が半分無くなる。
+
+    ⚠️ **API からは求人IDだけ受け取る。** 求人の中身は allJobs に既にあるので、
+       オブジェクトを返させると同じデータを2回運ぶことになる。
+
+    ⚠️ **API が返した順序を保つこと。** スコア降順に並んでいる。
+       allJobs 側でフィルタし直すと順序が失われる。
+  */
+  const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data: { session } } = await createClient().auth.getSession();
+        if (!session || !active) return;
+        const res = await fetch("/api/jobseeker/recommendations");
+        if (!res.ok || !active) return;
+        const data = (await res.json()) as { jobIds?: string[] };
+        if (active) setRecommendedIds(data.jobIds ?? []);
+      } catch {
+        // おすすめが出ないだけ。求人一覧の表示は妨げない
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const recommendations = useMemo(() => {
+    if (recommendedIds.length === 0) return [];
+    const byId = new Map(allJobs.map((j) => [j.id, j]));
+    return recommendedIds
+      .map((id) => byId.get(id))
+      .filter((j): j is Job => Boolean(j));
+  }, [recommendedIds, allJobs]);
 
   const category = searchParams.get("category") ?? "";
   const bizOnly = searchParams.get("biz_only") === "1";
@@ -1530,7 +1573,7 @@ export default function JobsClient({
                 </span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
-                {recommendations.slice(0, 6).map(({ job }) => {
+                {recommendations.slice(0, 6).map((job) => {
                   const recCompany = companyMap.get(job.company_id);
                   return (
                     <a
