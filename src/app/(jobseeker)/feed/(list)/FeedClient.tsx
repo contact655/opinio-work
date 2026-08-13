@@ -8,7 +8,7 @@ import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor } from "./page";
+import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor, SidebarCompany } from "./page";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
@@ -26,7 +26,7 @@ type PostUser = {
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; location?: string | null; founded_year?: number | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
-type RefArticle = { id: string; slug: string; title: string } | null;
+type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
 /**
  * 投稿種別バッジ。名前の右に出す。
@@ -128,6 +128,7 @@ type Props = {
   sidebarUserFollows: SidebarUserFollow[];
   sidebarSavedJobs: SidebarJob[];
   sidebarMentors: SidebarMentor[];
+  sidebarCompanies: SidebarCompany[];
   hiddenMembersCount: number;
   /** 閲覧者が既にフォローしている ow_users.id。右レールのフォローボタンの初期状態に使う */
   followedUserIds: string[];
@@ -1305,6 +1306,7 @@ function FeedSidebar({
   userFollows,
   savedJobs,
   mentors,
+  companies,
   hiddenMembersCount,
   myUserId,
   followedUserIds,
@@ -1313,6 +1315,7 @@ function FeedSidebar({
   userFollows: SidebarUserFollow[];
   savedJobs: SidebarJob[];
   mentors: SidebarMentor[];
+  companies: SidebarCompany[];
   hiddenMembersCount: number;
   /** ow_users.id。未ログインは null */
   myUserId: string | null;
@@ -1336,141 +1339,10 @@ function FeedSidebar({
            ログインしても埋まらない箱を並べることになるので、代わりに登録訴求を1枚置く。
            「面談OKな人」だけは残す（ログインすれば4名が見えるので、空箱ではない）。
       */}
-      {myUserId === null ? (
-        <div style={PANEL_STYLE}>
-          {/* 文言は LP の最終CTA（LandingPage.tsx の h2 と FinalCta のゲスト用本文）と
-              /auth のトラスト行から流用している。ここで新しいコピーを作らないこと。 */}
-          <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
-          <p style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
-            登録すると、気になる企業を保存して比べられます。新しい求人が出たときの通知も受け取れます。
-          </p>
-          <a
-            href="/auth"
-            style={{
-              display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 8,
-              background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
-              textDecoration: "none",
-            }}
-          >
-            メールアドレスで無料登録
-          </a>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", justifyContent: "center", marginTop: 10 }}>
-            {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
-              <span key={t} style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{t}</span>
-            ))}
-          </div>
-        </div>
-      ) : (
-      <>
-      {/* (a) フォロー中の企業 */}
+      {/* (c) 面談OKな人。⚠️ marginTop を 0 に。**このパネルが最上部に来ることがある**ため
+             （ログイン直後はフォローも保存も0件で、上の3パネルが出ない）。 */}
       <div style={PANEL_STYLE}>
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中の企業</p>
-        {follows.length === 0 ? (
-          <p style={EMPTY_STYLE}>企業をフォローすると<br />ここに表示されます</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {follows.map((co) => (
-              <Link
-                key={co.id}
-                href={`/companies/${co.slug ?? co.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-              >
-                <CompanyLogoImg
-                  logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient}
-                  name={co.brand_name ?? co.name} size={32} borderRadius={7}
-                />
-                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {co.brand_name ?? co.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
-
-        {/* ユーザー。企業と同じパネルに置く。見出しで区切るだけにして、
-            パネルを分けない（フォローという1つの関心事なので） */}
-        <div style={{ height: 1, background: "var(--line-soft)", margin: "14px 0 12px" }} />
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中のユーザー</p>
-        {userFollows.length === 0 ? (
-          <p style={EMPTY_STYLE}>プロフィールからフォローすると<br />ここに表示されます</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {userFollows.map((u) => (
-              <Link
-                key={u.id}
-                href={`/u/${u.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-              >
-                <div
-                  style={{
-                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                    background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Inter, sans-serif",
-                    overflow: "hidden",
-                  }}
-                >
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : u.name.charAt(0)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {u.name}
-                  </div>
-                  {(u.role_title || u.company_name) && (
-                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
-      </div>
-
-      {/* (b) 気になる求人 */}
-      <div style={PANEL_STYLE}>
-        <p style={PANEL_TITLE_STYLE}>気になる募集</p>
-        {savedJobs.length === 0 ? (
-          <p style={EMPTY_STYLE}>求人を保存すると<br />ここに表示されます</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {savedJobs.map((job) => (
-              <Link
-                key={job.id}
-                href={`/jobs/${job.slug ?? job.id}`}
-                style={{ display: "flex", flexDirection: "column", gap: 2, textDecoration: "none" }}
-              >
-                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {job.title}
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {job.companyName && (
-                    <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                      {job.companyName}
-                    </span>
-                  )}
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
-                    {formatSalary(job.salary_min, job.salary_max)}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
-      </div>
-
-      </>
-      )}
-
-      {/* (c) 面談OKな人 */}
-      <div style={PANEL_STYLE}>
-        <p style={PANEL_TITLE_STYLE}>面談OKな人</p>
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>面談OKな人</p>
         {mentors.length === 0 ? (
           hiddenMembersCount > 0 ? (
             <div style={{ textAlign: "center", padding: "12px 0 8px" }}>
@@ -1533,6 +1405,187 @@ function FeedSidebar({
         {/* /mentors は /people への 308 リダイレクト。行き先に合わせた文言にする（2026-08-04） */}
         <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
       </div>
+
+      {/* (d) 掲載中の企業
+             ⚠️ **常に中身がある枠**。フォロー・保存はログイン直後は必ず0件で、
+                以前はその空箱が右レールの縦の大半を占めていた。
+                ここはディレクトリに載っている企業を出すので、0件になるのは
+                掲載企業が1社も無いときだけ。
+
+             ⚠️ **「注目の企業」とは名乗らない**（2026-08-13）。並びは
+                `getCompaniesForList()`（sort_order 昇順 → updated_at 降順）のままで、
+                `sort_order` は公開79社で**異なる値が6種類しかない**＝運営が
+                意図して並べた状態ではない。「掲載中」なら並び順が何でも実態とずれない。 */}
+      {companies.length > 0 && (
+        <div style={PANEL_STYLE}>
+          <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>掲載中の企業</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {companies.map((co) => (
+              <Link
+                key={co.id}
+                href={`/companies/${co.slug ?? co.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0 }}
+              >
+                <CompanyLogoImg
+                  logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient}
+                  name={co.brand_name ?? co.name} size={32} borderRadius={7}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {co.brand_name ?? co.name}
+                  </div>
+                  {co.industry && (
+                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {co.industry}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
+        </div>
+      )}
+
+      {myUserId === null ? (
+        <div style={PANEL_STYLE}>
+          {/* 文言は LP の最終CTA（LandingPage.tsx の h2 と FinalCta のゲスト用本文）と
+              /auth のトラスト行から流用している。ここで新しいコピーを作らないこと。 */}
+          <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
+          <p style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
+            登録すると、気になる企業を保存して比べられます。新しい求人が出たときの通知も受け取れます。
+          </p>
+          <a
+            href="/auth"
+            style={{
+              display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 8,
+              background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            メールアドレスで無料登録
+          </a>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", justifyContent: "center", marginTop: 10 }}>
+            {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
+              <span key={t} style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      ) : (
+      <>
+      {/* (a) フォロー中の企業
+             ⚠️ **0件ならパネルごと出さない**（2026-08-13）。
+                以前は「企業をフォローするとここに表示されます」の空状態を出していたが、
+                3ブロックとも空だと右レールの縦の大半を空箱が占めていた。
+                導線は各パネル末尾の「企業一覧を見る →」ではなく、
+                常に中身がある「掲載中の企業」パネルが担う。 */}
+      {follows.length > 0 && (
+      <div style={PANEL_STYLE}>
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中の企業</p>
+        {(
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {follows.map((co) => (
+              <Link
+                key={co.id}
+                href={`/companies/${co.slug ?? co.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+              >
+                <CompanyLogoImg
+                  logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient}
+                  name={co.brand_name ?? co.name} size={32} borderRadius={7}
+                />
+                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {co.brand_name ?? co.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
+      </div>
+      )}
+
+      {/* ユーザー。⚠️ 企業と同じパネルに同居させるのをやめた（2026-08-13）。
+             片方が0件でもう片方に中身がある、という組み合わせがあるため、
+             独立したパネルにしないと「0件の側だけ隠す」ができない。 */}
+      {userFollows.length > 0 && (
+      <div style={PANEL_STYLE}>
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中のユーザー</p>
+        {(
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {userFollows.map((u) => (
+              <Link
+                key={u.id}
+                href={`/u/${u.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Inter, sans-serif",
+                    overflow: "hidden",
+                  }}
+                >
+                  {u.avatar_url
+                    ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : u.name.charAt(0)}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {u.name}
+                  </div>
+                  {(u.role_title || u.company_name) && (
+                    <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
+      </div>
+      )}
+
+      {/* (b) 気になる求人。⚠️ 0件ならパネルごと出さない */}
+      {savedJobs.length > 0 && (
+      <div style={PANEL_STYLE}>
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>気になる募集</p>
+        {(
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {savedJobs.map((job) => (
+              <Link
+                key={job.id}
+                href={`/jobs/${job.slug ?? job.id}`}
+                style={{ display: "flex", flexDirection: "column", gap: 2, textDecoration: "none" }}
+              >
+                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {job.title}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {job.companyName && (
+                    <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                      {job.companyName}
+                    </span>
+                  )}
+                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+                    {formatSalary(job.salary_min, job.salary_max)}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
+      </div>
+      )}
+
+      </>
+      )}
+
     </div>
   );
 }
@@ -1623,7 +1676,9 @@ function PostCard({
     }
   };
 
-  const isSystemPost = post.user.is_system;
+  /* ⚠️ `isSystemPost` は削除した（2026-08-13）。カードの背景を塗り分けるためだけの変数で、
+        塗り分け自体をやめたので参照が0になった。システム投稿かどうかは
+        `post.user.is_system` を直接見る（アバターやバッジの分岐では今も使っている）。 */
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -1634,10 +1689,24 @@ function PostCard({
   };
 
   return (
+    /* ⚠️ **カードの背景は白で統一する。システム投稿を薄青にしない**（2026-08-13）。
+          以前は `is_system` で `#f7f9ff` / `#fff` に塗り分けていたが、
+          **実データは company_joined 76 / job_posted 18 / article_published 16 の
+          すべてがシステム投稿で、user_post は0件**。全カードが薄青で、
+          色が何も区別していなかった。薄い青は「選択中」に読まれるので通常状態では使わない。
+
+       ⚠️ user_post が増えて「人の投稿と運営の投稿を分けたい」となったら、
+          **背景色ではなくアバターの形かバッジで分けること。**
+          背景色は状態（選択・ホバー）のために空けておく。
+
+       ⚠️ 以前の3色（#f7f9ff / #eef2fc / #fafbfc）はすべてハードコードだった。
+          hover はプロジェクト共通の `--bg-tint`（左レールのナビ等と同じ）に寄せた。
+          ⚠️ 白側にトークンが無い（`--surface-*` は未定義）。`#fff` は src 全体で
+             1,000箇所以上使われている既定の面色なので、ここだけ新トークンを作らない。 */
     <div
       style={{
         padding: "18px 20px",
-        background: isSystemPost ? "#f7f9ff" : "#fff",
+        background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 12,
         overflow: "hidden",
@@ -1645,10 +1714,10 @@ function PostCard({
         cursor: "default",
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = isSystemPost ? "#eef2fc" : "#fafbfc";
+        (e.currentTarget as HTMLDivElement).style.background = "var(--bg-tint)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = isSystemPost ? "#f7f9ff" : "#fff";
+        (e.currentTarget as HTMLDivElement).style.background = "#fff";
       }}
     >
       {/* ヘッダー: アバター + 名前 + 時刻 + 削除 */}
@@ -1942,31 +2011,73 @@ function PostCard({
         </Link>
       )}
 
-      {post.post_type === "article_published" && post.ref_article && (
-        <Link
-          href={`/articles/${post.ref_article.slug}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            background: "var(--warm-soft)",
-            border: "1px solid #fde68a",
-            borderRadius: 10,
-            padding: "12px 14px",
-            marginBottom: 12,
-            textDecoration: "none",
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {post.ref_article.title}
+      {/* 記事カード。
+          ⚠️ **黄色のボックスをやめた**（2026-08-13）。サイト全体が紺〜青系のなかで
+             記事だけ黄色く、しかも全種別が同じ「色の違う箱」なので縦に流すと単調だった。
+             **形を変える**（左にサムネ枠を置く横並び）ことで種別を見分けられるようにする。
+
+          ⚠️ `ow_articles` に**画像カラムは1つも無い**（2026-08-13 に全28列を確認）。
+             サムネイルは作れないので、記事ごとに違う `eyecatch_gradient` /
+             `company_gradient_text` と `company_initial_text` で絵を作る。
+             16件すべてがこの「グラデーション＋イニシャル」になるが、
+             グラデーションが記事ごとに違うので同じ絵にはならない。
+
+          ⚠️ 企業ロゴは使わない。ロゴを引くには join が要るうえ、
+             記事の主語は企業ではなく取材そのもの。 */}
+      {post.post_type === "article_published" && post.ref_article && (() => {
+        const a = post.ref_article;
+        const grad = a.eyecatch_gradient || a.company_gradient_text
+          || "linear-gradient(135deg, #001233 0%, var(--royal) 100%)";
+        /* ⚠️ `company_initial_text` は1文字とは限らない（実データに "OP" "タイ" がある）。
+              そのまま使う。無いときだけ社名・タイトルの先頭1文字に落とす。 */
+        const initial = a.company_initial_text?.trim()
+          || (a.company_name_text || a.title || "?").trim().charAt(0);
+        return (
+          <Link
+            href={`/articles/${a.slug}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              background: "#fff",
+              border: "1px solid var(--line)",
+              borderRadius: 10,
+              padding: 10,
+              marginBottom: 12,
+              textDecoration: "none",
+            }}
+          >
+            {/* サムネ枠。画像が無いのでグラデーション＋イニシャル */}
+            <div
+              aria-hidden="true"
+              style={{
+                width: 74, height: 74, borderRadius: 8, flexShrink: 0,
+                background: grad,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 26,
+                overflow: "hidden",
+              }}
+            >
+              {initial}
             </div>
-            <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
-              取材記事を読む →
+            {/* ⚠️ `minWidth: 0` が要る。無いと長い見出しが親を押し広げる
+                   （.claude/rules/ui-debugging.md「横はみ出し」の原因2） */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                fontWeight: 700, fontSize: 14, color: "var(--ink)", lineHeight: 1.5,
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}>
+                {a.title}
+              </div>
+              <div style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 600, color: "var(--royal)", marginTop: 6 }}>
+                記事を読む →
+              </div>
             </div>
-          </div>
-        </Link>
-      )}
+          </Link>
+        );
+      })()}
 
       {/* イベントカード */}
       {post.post_type === "event" && post.event_title && (
@@ -2255,6 +2366,7 @@ export default function FeedClient({
   sidebarUserFollows,
   sidebarSavedJobs,
   sidebarMentors,
+  sidebarCompanies,
   hiddenMembersCount,
   followedUserIds,
   canPost,
@@ -2581,6 +2693,7 @@ export default function FeedClient({
             userFollows={sidebarUserFollows}
             savedJobs={sidebarSavedJobs}
             mentors={sidebarMentors}
+            companies={sidebarCompanies}
             hiddenMembersCount={hiddenMembersCount}
             myUserId={myUserId}
             followedUserIds={followedUserIds}

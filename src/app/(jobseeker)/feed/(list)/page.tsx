@@ -5,6 +5,7 @@ import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
 import { canUserPost } from "@/lib/feed/canPost";
+import { getCompaniesForList } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
   title: "投稿 | OPINIO",
@@ -15,11 +16,16 @@ export const metadata: Metadata = {
 export type SidebarFollow = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 export type SidebarUserFollow = { id: string; name: string; avatar_color: string | null; avatar_url: string | null; role_title: string | null; company_name: string | null };
 export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
+/** 右レール「掲載中の企業」。ディレクトリに載っている企業から先頭3社 */
+export type SidebarCompany = { id: string; slug: string | null; name: string; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
-type RefArticle = { id: string; slug: string; title: string } | null;
+/* ⚠️ `ow_articles` に画像カラムは1つも無い（2026-08-13 に全28列を確認）。
+      サムネイルは作れないので、記事ごとに違う `eyecatch_gradient` /
+      `company_gradient_text` と `company_initial_text` で絵を作る。 */
+type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
 type RawPost = {
   id: string;
@@ -96,7 +102,7 @@ export default async function FeedPage() {
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, industry, employee_count, location, founded_year, is_published, is_test),
       ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
-      ref_article:ow_articles!ref_article_id(id, slug, title),
+      ref_article:ow_articles!ref_article_id(id, slug, title, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `)
@@ -194,7 +200,7 @@ export default async function FeedPage() {
   });
 
   // ── サイドバーデータ（並列取得） ─────────────────────────────────────────────
-  const [followResult, userFollowResult, bookmarkResult, mentorResult] = await Promise.all([
+  const [followResult, userFollowResult, bookmarkResult, listedCompanies, mentorResult] = await Promise.all([
     // (a) フォロー中の企業 (全件)
     myOwUserId
       ? adminSupabase
@@ -220,6 +226,13 @@ export default async function FeedPage() {
           .eq("user_id", myOwUserId)
           .limit(3)
       : Promise.resolve({ data: [] }),
+    /* (d) 掲載中の企業 (max 3)
+       ⚠️ **`Promise.all` の中に入れること。** 直列にすると1段増える。
+       ⚠️ 並びは `getCompaniesForList()` のまま（sort_order 昇順 → updated_at 降順）。
+          「注目」と名乗らないのは、`sort_order` の異なる値が6種類しかなく
+          （公開79社・2026-08-13 実測）、運営が意図して並べた状態ではないため。
+          「掲載中」なら並び順が何であっても表示と実態がずれない。 */
+    getCompaniesForList(),
     // (c) 面談OKな人 (max 3) — ow_company_members から取得
     adminSupabase
       .from("ow_company_members")
@@ -325,6 +338,12 @@ export default async function FeedPage() {
       };
     });
 
+  const sidebarCompanies: SidebarCompany[] = listedCompanies.slice(0, 3).map((c) => ({
+    id: c.id, slug: c.slug, name: c.name, tagline: c.tagline || null,
+    industry: c.industry || null,
+    logo_letter: c.logo_letter, logo_gradient: c.logo_gradient, logo_url: c.logo_url,
+  }));
+
   return (
     <FeedClient
       initialPosts={initialPosts}
@@ -338,6 +357,7 @@ export default async function FeedPage() {
       sidebarFollows={sidebarFollows}
       sidebarUserFollows={sidebarUserFollows}
       sidebarSavedJobs={sidebarSavedJobs}
+      sidebarCompanies={sidebarCompanies}
       sidebarMentors={sidebarMentors}
       hiddenMembersCount={hiddenMembersCount}
       followedUserIds={followedUserIds}
