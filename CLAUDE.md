@@ -877,6 +877,30 @@ phase は「企業グループとしてのステージ」を表す。
 ヴイエムウェア（親: Broadcom NYSE上場）や
 ウォークミー（親: SAP NYSE上場）が `listed` のままなのはこの定義による。
 
+### ⚠️ `listed_exchange` は使わない。上場市場は `capital_notes` に書く（2026-08-13 確立）
+
+**`ow_companies.listed_exchange` は描画先が1箇所も無い未使用カラム。**
+`COMPANY_DETAIL_COLS` で SELECT され `detail.listedExchange` にマッピングもされているが、
+**そこから先で参照している箇所が src に0件**。入れても画面には出ない。
+
+上場市場・証券コード・ティッカーは **`capital_notes` の文中**に書く。
+
+⚠️ **`capital_notes` の置き場所は画面上2箇所ある**（`companies/[id]/page.tsx`）。
+
+| 条件 | どの行の subText に出るか |
+|---|---|
+| `parent_company_name` あり（外資系日本法人） | **「親会社」行** |
+| `parent_company_name` なし（日系企業） | **「資本区分」行**（2026-08-13 追加） |
+
+⚠️ それ以前は親会社行にしか出なかったため、**日系企業に上場・調達の一文を入れても
+   どこにも出なかった**。Sansan・PKSHA・SmartHR・Ubie がこれに該当していた。
+
+⚠️ **両方に出さないこと。** 資本区分行の subText は
+   `detail.parentCompanyName ? undefined : detail.capitalNotes` で分岐している。
+
+⚠️ **`capital_type` が空だと資本区分行ごと出ない**ので、日系企業に capital_notes を
+   入れるときは `capital_type = 'japanese_independent'` も併せて入れること。
+
 ---
 
 ## ⚠️ テーブル・カラム・関数を DROP するときのチェックリスト
