@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 
@@ -62,6 +63,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
+  /*
+    ⚠️ **`admin_count` は admin クライアントで数える。**
+
+    JSDoc には昔から `admin_count` と書いてあったが、**返していなかった**。
+    受け手（`/biz/companies/add/new`）は `!conflict.admin_count` で
+    「最初の担当者として参加できるか」を判定していたため、
+    **undefined → 常に true** になり、担当者が2名いる企業でも
+    「この企業はまだ担当者が登録されていません」と表示していた（2026-08-13 修正）。
+
+    ⚠️ **RLS 下では数えられない。** `ow_company_admins` に運営ポリシーは無く、
+       他社の行は見えないので `createClient()` で数えると 0 に落ちる
+       （CLAUDE.md「/admin 配下ではブラウザ側の Supabase クライアントを使わない」の実測で、
+        全10件中6件しか見えなかったのと同じ理由）。
+
+    ⚠️ **数えられなかったときは 0 を返さない（fail closed）。** 0 は
+       「担当者がいない＝あなたが最初の担当者になれる」という強い意味を持つ。
+       取得に失敗したら `null` を返し、受け手は「不明」として扱う。
+  */
+  const adminCount = new Map<string, number>();
+  let adminCountAvailable = true;
+  {
+    const adminDb = createAdminClient();
+    const { data: adminRows, error: adminErr } = await adminDb
+      .from("ow_company_admins")
+      .select("company_id")
+      .in("company_id", companies.map((c) => c.id))
+      .eq("is_active", true);
+
+    if (adminErr) {
+      console.error("[GET /api/companies/search] admin_count failed:", adminErr.message);
+      adminCountAvailable = false;
+    } else {
+      for (const row of adminRows ?? []) {
+        const id = row.company_id as string;
+        adminCount.set(id, (adminCount.get(id) ?? 0) + 1);
+      }
+    }
+  }
+
   const results = companies.map((c) => ({
     id: c.id,
     name: c.name,
@@ -69,6 +109,7 @@ export async function GET(req: NextRequest) {
     industry: c.industry ?? null,
     employee_count: c.employee_count ?? null,
     url: (c as { url?: string | null }).url ?? null,
+    admin_count: adminCountAvailable ? (adminCount.get(c.id) ?? 0) : null,
   }));
 
   return NextResponse.json({ results });

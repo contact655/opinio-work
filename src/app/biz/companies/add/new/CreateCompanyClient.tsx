@@ -11,19 +11,25 @@ type UserBadge = {
   email: string;
 };
 
+/*
+  ⚠️ `admin_count` は **null になりうる**。`number` で受けてはいけない。
+     `/api/companies/search` は数え損ねたとき 0 ではなく null を返す（fail closed）。
+     0 は「担当者がいない＝あなたが最初の担当者になれる」という強い意味を持つので、
+     不明と区別する。型を `number` に戻すと、この区別が静かに潰れる。
+*/
 type SearchResult = {
   id: string;
   name: string;
   logo_url: string | null;
   industry: string | null;
-  admin_count: number;
+  admin_count: number | null;
   url?: string | null;
 };
 
 type ConflictInfo = {
   id: string;
   name: string;
-  admin_count: number;
+  admin_count: number | null;
 };
 
 // ── 定数 ──────────────────────────────────────────────────────────────────
@@ -672,7 +678,12 @@ export function CreateCompanyClient({
                         {s.name}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>
-                        {s.industry ?? "業界不明"} · {s.admin_count > 0 ? `担当者 ${s.admin_count}名` : "担当者未登録"}
+                        {s.industry ?? "業界不明"} ·{" "}
+                        {s.admin_count === null
+                          ? "担当者数を確認できません"
+                          : s.admin_count > 0
+                            ? `担当者 ${s.admin_count}名`
+                            : "担当者未登録"}
                       </div>
                     </div>
                   </button>
@@ -684,7 +695,14 @@ export function CreateCompanyClient({
 
         {/* 既存企業カード — suggestion / error 共通 */}
         {conflict && conflictSource === "suggestion" && (() => {
-          const isFirst = !conflict.admin_count || conflict.admin_count === 0;
+          /*
+            ⚠️ **`=== 0` で判定する。`!conflict.admin_count` にしないこと。**
+               `admin_count` が返ってこない（undefined）／数えられなかった（null）ときに
+               true になり、担当者がいる企業でも「最初の担当者として参加できます」と
+               表示してしまう。実際 2026-08-13 まで検索APIが admin_count を返しておらず、
+               **全企業がこの状態**だった。不明なら「参加リクエストを送る」側に倒す。
+          */
+          const isFirst = conflict.admin_count === 0;
           const isAmber = false;
           const bg = isAmber ? "var(--warm-soft)" : "var(--royal-50)";
           const border = isAmber ? "1.5px solid #FCD34D" : "1.5px solid var(--royal-100)";
@@ -707,7 +725,11 @@ export function CreateCompanyClient({
               {isFirst ? (
                 <><strong>{conflict.name}</strong> は OPINIO に登録済みですが、まだ担当者がいません。最初の担当者として参加できます。</>
               ) : (
-                <><strong>{conflict.name}</strong>（担当者 {conflict.admin_count}名）が既に登録されています。既存の担当者に参加リクエストを送ってください。</>
+                <>
+                  <strong>{conflict.name}</strong>
+                  {typeof conflict.admin_count === "number" ? `（担当者 ${conflict.admin_count}名）` : ""}
+                  が既に登録されています。既存の担当者に参加リクエストを送ってください。
+                </>
               )}
             </div>
             {joinRequestSent ? (
@@ -716,7 +738,20 @@ export function CreateCompanyClient({
                 padding: "10px 14px", background: "var(--success-soft)",
                 borderRadius: 8, marginBottom: 10,
               }}>
-                ✓ {isFirst ? "参加が完了しました。ダッシュボードに移動します..." : "参加リクエストを送信しました。担当者からの招待をお待ちください。"}
+                {/*
+                  ⚠️ **ここを `isFirst` で分岐させないこと。**
+                     即時承認されたかどうかを決めるのはサーバー（`auto_approved`）で、
+                     承認された場合は上の handleJoinRequest が /biz/dashboard へ遷移する。
+                     つまりこの枝に来た時点で「承認されていない＝リクエストを送っただけ」が確定する。
+
+                     2026-08-13 まで `isFirst` で文言を出し分けていたため、
+                     担当者が2名いる企業に参加リクエストを送っただけなのに
+                     「参加が完了しました。ダッシュボードに移動します...」と表示され、
+                     しかも遷移しないまま止まっていた。
+                     ow_company_admins に行は作られておらず、/biz/dashboard は
+                     「企業が紐付いていません」を出す。**成功したと嘘をついていた。**
+                */}
+                ✓ 参加リクエストを送信しました。担当者からの招待をお待ちください。
               </div>
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
