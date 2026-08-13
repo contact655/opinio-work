@@ -379,6 +379,14 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
 - **新しいテーブルには GRANT を必ず書く。** 既定では anon も authenticated も権限が付かない。
 - **列単位 GRANT を剥がすと、剥奪列が select に1つでも入ったクエリが丸ごと 403 になる。**
   ページは HTTP 200 のまま中身だけが静かに空になる。
+- **`ow_companies` に列を足したら、その列の GRANT を migration に必ず書く。**
+  このテーブルは**テーブルレベルの UPDATE を落として列単位で配り直している**ので、
+  新しい列は**生まれた時点で書き込めない**（`authenticated` から更新すると 403）。
+  他のテーブルと違い「足せば使える」ではない。
+  実測（2026-08-13）: テーブルレベル UPDATE **0** / 列単位 **148列**。
+  以降に足した `normalized_name` `canonical_company_id` `is_test` は**権限なしのまま**
+  （運営しか触らない列なので現状は意図どおり。`listing_status` `source` は付与済み）。
+  → 現在の配り方と剥がしたときの経緯は [docs/ow-companies-grants.md](docs/ow-companies-grants.md)
 
 → 非admin セッションの取り方、GRANT の実測クエリ、剥がすときのチェックリストは
    [.claude/skills/db-safety/SKILL.md](.claude/skills/db-safety/SKILL.md)
@@ -409,6 +417,35 @@ migration 238/239 で幽霊投稿60件を作ったのと同じハザード。
 
 ⚠️ ログイン必須ページのスクリーンショットや HTTP ステータスの確認も同じ。
    一時的なセッションが要る場合は `is_test` アカウントのパスワードを使う。
+
+---
+
+## ⚠️ 企業の可視性は2軸ある（2026-08-12 確立）
+
+**`is_published` 1つで両方を制御していたのをやめた。混同すると経歴のリンクが404になる。**
+
+| 列 | 意味 |
+|---|---|
+| `is_published` | **詳細ページが見えるか**（404 ゲート） |
+| `listing_status` | **ディレクトリに載るか**（`'listed'` / `'draft'`） |
+
+経歴に出てくる企業は前者だけ必要で、後者は要らない。
+実際、経歴に出る6社のうち4社が `is_published = false` で、
+**経歴のリンクの3分の2が404の行き止まり**になっていた。
+
+⚠️ **`.eq("is_published", true)` を新しく直書きしないこと。**
+   1箇所忘れると非掲載企業がディレクトリに漏れる。
+
+| 用途 | 使うヘルパー |
+|---|---|
+| 一覧・検索・サジェスト・sitemap・LP | `filterListedCompanies` |
+| 詳細ページ・詳細ページへのリンク生成 | `filterVisibleCompanies` / `...Strict` |
+
+⚠️ **運営画面（`/admin` 配下）は対象外。** 求職者に何を見せるかの判定であって、
+   運営の作業管理は別の軸（非掲載企業こそデータを埋める対象）。
+
+→ 3つのヘルパーの使い分けと dev 例外の有無は
+   [src/lib/companies/visibility.ts](src/lib/companies/visibility.ts)
 
 ---
 
@@ -556,6 +593,51 @@ ow_experiences に1件（3つ揃ったときだけ）
 ⚠️ 必須は3点だけ: `company_id` **XOR** `company_text` **XOR** `company_anonymized` /
    `role_category_id` / `started_at`（`YYYY-MM`）。
    会社を2つ送ると 400（XOR 制約 `experience_company_xor`）。
+
+---
+
+## ⚠️ 経歴に列を足すときは4箇所を揃える（2026-08-12 確立）
+
+**編集画面は draft をそのまま PUT で送り、PUT は送られなかった列を null に上書きする。**
+初期取得の SELECT で1列でも取り忘れると、
+**利用者が別の項目を直して保存した瞬間にその列が消える。**
+
+| # | 触る場所 |
+|---|---|
+| ① | `EXPERIENCE_EDITOR_COLS`（SELECT の列リスト） |
+| ② | PUT / POST の update / insert オブジェクト |
+| ③ | `Stint` 型（`CareerHistoryEditor.tsx`） |
+| ④ | `draftFromStint()` と `StintDraft` / `EMPTY_DRAFT` |
+
+**①だけ足しても draft に載らなければ意味がない。④まで通すこと。**
+
+⚠️ **列リストは [src/lib/experiences/columns.ts](src/lib/experiences/columns.ts) の1箇所に置く。**
+   ページや API に直書きしない。`profile/edit/page.tsx` と
+   `GET /api/jobseeker/experiences` が同じ定数を見る。
+
+⚠️ **値が取れないのは「取得漏れ」なので、`?? 既定値` に倒さず型で落とす。**
+   DB が NOT NULL の列（`visibility_*`）を既定値で埋めると、同じ事故が再発しても
+   黙って通る。既定値が要るのは新規作成時だけなので `EMPTY_DRAFT` に置く。
+
+→ 同じ事故を3回起こしている。経緯は columns.ts の冒頭コメント
+
+---
+
+## ⚠️ `.select()` には文字列リテラルを渡す（2026-08-12 確立）
+
+**列リストを配列で持って `.join(", ")` で渡さないこと。**
+
+`join()` の戻り値の型は `string` なので supabase-js が select を型解決できず、
+**行の型が `GenericStringError` に化ける**。`tsc` が20件以上のエラーを出す。
+
+```ts
+// ✗ 型が落ちる
+const COLS = ["id", "name"].join(", ");
+// ✓
+const COLS = "id, name" as const;
+```
+
+見た目より型が通ることを優先する。1本の文字列リテラル + `as const`。
 
 ---
 
