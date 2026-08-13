@@ -1067,8 +1067,17 @@ body {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        /* ⚠️ fill-mode は backwards。**both にしないこと。**
+              both だと終了後も `to` の `transform: translateY(0)` が残り続け、
+              **この要素が恒久的に stacking context になる。**
+              そうなると中の `z-index` は兄弟要素と比較されなくなり、
+              後ろの兄弟（DOM順で下）に必ず覆われる。
+              2026-08-13 に `/companies` の検索チップのドロップダウン（z-index 200）が
+              並び替えバーの下に潜り、**選択肢が読めなくなっていた**のがこれ。
+              backwards なら遅延中の初期状態だけ適用され、終了後は素の状態に戻るので
+              見た目は同じまま stacking context が残らない。 */
         main > section, main > div[id], main > div:not([class]) {
-          animation: section-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+          animation: section-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
         main > *:nth-child(1)  { animation-delay: 0.05s; }
         main > *:nth-child(2)  { animation-delay: 0.1s;  }
