@@ -55,6 +55,7 @@ import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { isJobPostAlive } from "@/lib/feed/visibility";
+import { cleanEnName } from "@/lib/companies/displayName";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -240,15 +241,11 @@ function Hero({
                 {company.industry}
               </div>
               {(() => {
-                const enName = company.name_en
-                  ? company.name_en
-                      .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')
-                      .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')
-                      .replace(/\s*,\s*Inc\.?$/i, '')
-                      .replace(/\s+Inc\.?$/i, '')
-                      .replace(/\s+Corp\.?$/i, '')
-                      .trim() || null
-                  : null;
+                /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。
+                      ここには末尾 " Japan" の除去が無く、一覧カードでは「HPE」なのに
+                      詳細ページでは「HPE Japan」と出ていた。
+                      正規表現をここに書き戻さないこと。 */
+                const enName = cleanEnName(company.name_en);
                 return (
                   <>
                     <h1

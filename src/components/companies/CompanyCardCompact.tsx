@@ -8,6 +8,7 @@ import { showToast } from '@/lib/toast';
 import { getLogoLetter } from '@/lib/utils/companyLogo';
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from '@/lib/bookmarks/companyBookmarks';
+import { companyDisplayName } from '@/lib/companies/displayName';
 
 // フェーズバッジ設定
 type StageCfgEntry = { label: string; color: string; bg: string; border: string; fontWeight?: number };
@@ -57,18 +58,9 @@ type Props = {
   members?: MemberPreview[];
 };
 
-/** 法人名サフィックス除去 */
-function cleanEnName(nameEn: string | null | undefined): string | null {
-  if (!nameEn) return null;
-  const cleaned = nameEn
-    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, '')
-    .replace(/\s+Co\.,?\s*Ltd\.?$/i, '')
-    .replace(/\s*,\s*Inc\.?$/i, '')
-    .replace(/\s+Inc\.?$/i, '')
-    .replace(/\s+Corp\.?$/i, '')
-    .trim();
-  return cleaned || null;
-}
+/* ⚠️ 表示名の組み立ては `@/lib/companies/displayName` に集約した（2026-08-13）。
+      ここは法人格の除去が無く、カルーセルだけ「株式会社PKSHA Technology」と
+      法人格ごと出ていた。正規表現をここに書き戻さないこと。 */
 
 /*
   ⚠️ 2026-08-06 に compact / members を受け取るのをやめた。どちらも使っていなかった。
@@ -82,8 +74,7 @@ export function CompanyCardCompact({ company }: Props) {
     ?? 'linear-gradient(135deg, #001233 0%, var(--royal) 60%, #1a3569 100%)';
 
   const initial = getLogoLetter(company.logo_letter, company.name);
-  const displayName = cleanEnName(company.name_en) ?? company.name;
-  const isEnName = !!cleanEnName(company.name_en);
+  const { displayName, isEnName } = companyDisplayName(company.name, company.name_en);
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const [logoError, setLogoError] = useState(false);

@@ -9,30 +9,10 @@ import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
+import { companyDisplayName } from "@/lib/companies/displayName";
 
-/** 法人名サフィックス除去 */
-function cleanEnName(nameEn: string | null | undefined): string | null {
-  if (!nameEn) return null;
-  const cleaned = nameEn
-    .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
-    .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
-    .replace(/\s*,\s*Inc\.?$/i, "")
-    .replace(/\s+Inc\.?$/i, "")
-    .replace(/\s+Corp\.?$/i, "")
-    .replace(/\s+Japan$/i, "")   // 末尾の "Japan" を除去
-    .trim();
-  return cleaned || null;
-}
-
-function stripLegalSuffix(name: string): string {
-  return name
-    .replace(/^株式会社\s*/, "")
-    .replace(/\s*株式会社$/, "")
-    .replace(/^合同会社\s*/, "")
-    .replace(/\s*合同会社$/, "")
-    .replace(/^有限会社\s*/, "")
-    .trim();
-}
+/* ⚠️ 表示名の組み立ては `@/lib/companies/displayName` に集約した（2026-08-13）。
+      ここに正規表現を書き戻さないこと。3箇所に別実装があってルールが割れていた。 */
 
 
 /** メンバーアバター（写真優先・初期文字フォールバック） */
@@ -118,9 +98,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
     }
   };
 
-  const enName = cleanEnName(company.name_en);
-  const displayName = enName ?? stripLegalSuffix(company.name);
-  const isEnName = !!enName;
+  const { displayName, isEnName } = companyDisplayName(company.name, company.name_en);
   const showSubtitle = displayName !== company.name;
   /* 在籍者のライブ集計。**ライブ値のみを見る**（2026-08-11）。
      ⚠️ `current_member_count` / `obog_count`（@deprecated 静的カラム）への
