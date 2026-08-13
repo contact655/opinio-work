@@ -75,9 +75,21 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const result = await getCompanyBySlugOrIdCached(params.id);
   if (!result) notFound();
-  const { company, slug } = result;
+  const { company, slug, listingStatus } = result;
 
   const canonicalId = slug ?? params.id;
+  /*
+    ⚠️ ディレクトリ非掲載のページは検索結果に出さない（2026-08-13）。
+
+    2026-08-13 に「ページは作られた時点で存在する」へ変えたので、
+    一覧に載せないと決めたページも URL としては生きている。
+    sitemap は filterListedCompanies を通すので載らないが、
+    **経歴からリンクされるためクロールは到達しうる。**
+    それまでは is_published=false が実質 noindex の代わりをしていた。
+
+    follow は残す。ページ内の求人・記事へのリンクは辿ってよい。
+  */
+  const noindex = listingStatus !== "listed";
   // 「カジュアル面談受付中」「カジュアル面談で現場の声を聞けます」は 2026-08-03 に削除。
   // 面談前提の説明はプラットフォーム側では使わない方針。掲載企業ぶん全ページの
   // meta description になるので、外向きの文言としては最も露出が大きい。
@@ -99,6 +111,7 @@ export async function generateMetadata({
   return {
     title: { absolute: `${company.name} — 企業情報・求人 | OPINIO` },
     description,
+    ...(noindex ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: `/companies/${canonicalId}` },
     // 「カジュアル面談」は 2026-08-03 に削除（面談前提の説明はプラットフォーム側では使わない）
     keywords: [company.name, company.industry ?? "", "企業情報", "求人", "IT転職", "SaaS転職"].filter(Boolean),
@@ -930,8 +943,6 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
   );
 }
 
-// ─── Employee Voices Section ─────────────────────────────────────────────────
-
 function JobEmbedCard({
   job,
   catName,
@@ -1104,12 +1115,14 @@ function JobsSection({
       >
         <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
           <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>}>
-            募集中の案件
+            {/* ⚠️ 見出しは0件ブランチでも「募集中の求人」。ここだけ「募集中の案件」で、
+                   本文も「公開中の募集」になっており、1つのセクションに3つの語彙があった（2026-08-13 統一）。 */}
+            募集中の求人
           </SecTitle>
         </div>
         <div style={{ padding: "var(--space-6)", textAlign: "center" }}>
           <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", padding: "24px 0", margin: 0 }}>
-            現在、公開中の募集はありません。
+            現在、公開中の求人はありません。
           </p>
           {company.accepting_casual_meetings && (
             <Link href={`/companies/${company.id}/casual-meeting`} style={{
@@ -1755,7 +1768,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
 /*
   ⚠️ 2026-08-06 に currentEmployees / allEmployees を削除した。
      渡してはいたが使っていなかった。社員・OB/OG の表示は本文カラム側の
-     EmployeeVoicesSection / CurrentEmployeesSection / AlumniSection が担当しており、
+     CurrentEmployeesSection / AlumniSection が担当しており、
      そちらが本来の経路。サイドバーにも出そうとしてやめた名残だった。
 */
 function Sidebar({
@@ -2345,7 +2358,7 @@ export default async function CompanyDetailPage({
 
             <ToolsSection tools={companyTools} />
 
-            {/* 5. 社員・OB/OG（voices → current-employees → alumni）
+            {/* 5. 社員・OB/OG（current-employees → alumni）
                 ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
                    ここでサーバーから渡すと `auth.getUser()` が要り、
                    ページが動的化して `revalidate = 60` が効かなくなる。

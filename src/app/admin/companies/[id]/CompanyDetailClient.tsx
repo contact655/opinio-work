@@ -888,11 +888,14 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
 
           <div className="space-y-4">
             {/*
-              ⚠️ 未承認の企業は公開できない。DB制約 check_published_requires_approval
-                 （CHECK (is_published = false OR is_approved = true)）で弾かれ、
-                 保存が 23514 で失敗する。ここで止めないと運営には理由が分からない。
+              ⚠️ 2026-08-13 に承認の掛け先が**ページ公開から一覧掲載へ移った**。
+                 DB制約は check_listed_requires_approval
+                 （CHECK (listing_status <> 'listed' OR is_approved = true)）。
+                 ページの可視性（is_published）に承認は掛かっていない。
                  承認は企業審査の一覧（/admin/companies）の「承認」列にある
                  「承認する」ボタンで行う（updateApproval）。このタブからは is_approved を触らない。
+              ⚠️ このチェックボックスは **is_published（取り下げ）** を動かす。
+                 既定は公開なので、通常は触らない。
             */}
             <label className={`flex items-center gap-3 p-4 border border-gray-200 rounded-lg ${
               company.is_approved ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed bg-gray-50 opacity-60'

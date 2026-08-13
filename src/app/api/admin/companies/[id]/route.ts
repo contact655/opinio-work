@@ -110,8 +110,10 @@ export async function PUT(
   /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
         ここに条件を書き写さないこと（is_published を true にできる経路は3つある）。 */
   const nowIso = new Date().toISOString();
-  /** 公開に切り替える操作か。フィード投稿（company_joined）の作成条件にも使う */
-  const turningPublic = updates.is_published === true;
+  /** ディレクトリに載せる操作か。フィード投稿（company_joined）の作成条件。
+      ⚠️ 2026-08-13 に is_published から listing_status に移した。
+         ページの存在は既定になったので、お知らせは掲載に対して出す。 */
+  const turningListed = updates.listing_status === 'listed';
   if ('is_published' in updates) {
     const { data: cur } = await supabase
       .from('ow_companies').select('published_at').eq('id', params.id).maybeSingle();
@@ -127,10 +129,12 @@ export async function PUT(
 
   if (error) {
     console.error('[PUT /api/admin/companies/[id]]', error.message);
-    // 未承認のまま公開しようとした場合はここに来る（check_published_requires_approval）
-    if (error.code === '23514' && error.message.includes('check_published_requires_approval')) {
+    /* 未承認のまま**一覧掲載**しようとした場合はここに来る。
+       ⚠️ 2026-08-13 に承認の掛け先をページ公開から一覧掲載へ移したので、
+          制約名も check_listed_requires_approval に変わっている。 */
+    if (error.code === '23514' && error.message.includes('check_listed_requires_approval')) {
       return NextResponse.json(
-        { error: '運営の承認が済んでいないため掲載できません。企業審査の一覧で「承認する」を押してください。' },
+        { error: '運営の承認が済んでいないため一覧に掲載できません。企業審査の一覧で「承認する」を押してください。' },
         { status: 409 },
       );
     }
@@ -146,7 +150,7 @@ export async function PUT(
        非掲載に戻して再度公開しても投稿は作り直されない。23505 は「既にある」ので無視する。
        つまり本文は最初に公開した瞬間の brand_name / tagline で固定される。
   */
-  if (turningPublic && data) {
+  if (turningListed && data) {
     try {
       const { error: feedErr } = await supabase.from('ow_posts').insert(
         buildCompanyJoinedRow(params.id, data as { name?: string | null; brand_name?: string | null; tagline?: string | null }),

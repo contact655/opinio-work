@@ -667,13 +667,16 @@ const getCompanyById = cache(async function getCompanyById(
  */
 export async function getCompanyBySlugOrId(
   slugOrId: string
-): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[]; resolvedId: string; slug: string | null } | null> {
+): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[]; resolvedId: string; slug: string | null; listingStatus: string | null } | null> {
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
   const supabase = createAdminClient();
 
+  /* ⚠️ listing_status も取る。**noindex の判定に使う**（2026-08-13）。
+        ディレクトリ非掲載のページは sitemap には載らないが、経歴からリンクされるので
+        クロールされうる。「一覧に出さない」と決めたページを検索結果に出さないため。 */
   let idQuery = supabase
     .from("ow_companies")
-    .select("id, slug")
+    .select("id, slug, listing_status")
     .limit(1);
 
   if (isUUID) {
@@ -690,11 +693,12 @@ export async function getCompanyBySlugOrId(
 
   const resolvedId = idRow.id as string;
   const slug = (idRow.slug as string | null) ?? null;
+  const listingStatus = (idRow.listing_status as string | null) ?? null;
 
   const result = await getCompanyById(resolvedId);
   if (!result) return null;
 
-  return { ...result, resolvedId, slug };
+  return { ...result, resolvedId, slug, listingStatus };
 }
 
 /**

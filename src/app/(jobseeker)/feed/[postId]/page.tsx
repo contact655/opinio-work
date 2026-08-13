@@ -6,13 +6,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import { isPostVisibleTo, isJobPostAlive } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
-type ActorCompany = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
+type ActorCompany = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; /* ⚠️ isCompanyPostAlive で使う（2026-08-13） */ is_published: boolean | null; is_test: boolean | null } | null;
 
 const ACTOR_SELECT = `
-  ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url),
+  ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_published, is_test),
   ref_job:ow_jobs!ref_job_id(status, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url))
 `;
 
@@ -131,6 +131,8 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user)) notFound();
   // 掲載を下ろした求人の「公開しました」投稿は、パーマリンクでも出さない
   if (!isJobPostAlive(p)) notFound();
+  // 取り下げた企業の「参加しました」投稿も同じく（2026-08-13）
+  if (!isCompanyPostAlive(p)) notFound();
 
   const actorCo = actorCompany(p);
   const actorName = actorCo ? (actorCo.brand_name ?? actorCo.name) : (p.user?.name ?? "不明");

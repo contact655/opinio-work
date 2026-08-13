@@ -10,10 +10,17 @@
  * **経歴のリンクの3分の2が404の行き止まり**になっていた。
  *
  * ── 3つの列の意味 ──────────────────────────────────────────────────────────
- *   is_approved     … 運営が内容を確認した。`check_published_requires_approval`
- *                     （is_published = false OR is_approved = true）の前提
- *   is_published    … **詳細ページが見えるか**（404ゲート）
- *   listing_status  … **ディレクトリに載るか**（'listed' / 'draft'）
+ *   is_approved     … 運営が内容を確認した。**一覧掲載の前提条件**
+ *                     `check_listed_requires_approval`
+ *                     （listing_status <> 'listed' OR is_approved = true）
+ *                     ⚠️ 2026-08-13 に掛け先をページ公開から一覧掲載へ移した。
+ *                        審査はディレクトリに載せる判断に対して行う
+ *   is_published    … **詳細ページが見えるか**（404ゲート）。**既定 true**。
+ *                     ⚠️ 2026-08-13 に意味が反転した。「公開するために立てる」ではなく
+ *                        「このページは出さない」と運営が判断したときに倒す取り下げ用。
+ *                        ページは作られた時点で存在する（経歴のリンク先になるため）
+ *   listing_status  … **ディレクトリに載るか**（'listed' / 'draft'）。
+ *                     **運営が判断するのは実質ここだけ**
  *   is_test         … **検証用か**（2026-08-12 追加。公開側からは常に除外）
  *
  * `listing_status` は baseline から存在していた列で、COMMENT も

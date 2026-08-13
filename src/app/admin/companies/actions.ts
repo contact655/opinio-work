@@ -23,15 +23,15 @@ async function assertAdmin(): Promise<void> {
  * ⚠️ supabase-js は失敗しても例外を投げず { error } を返す。
  *    2026-08-05 まで全アクションが戻り値を捨てており、
  *    「トグルは動いたように見えるが DB は変わっていない」状態を作っていた
- *    （未承認企業の掲載が CHECK 制約 check_published_requires_approval で
- *      23514 で弾かれても、画面もログも無反応だった）。
+ *    （未承認企業の掲載が CHECK 制約で 23514 で弾かれても、画面もログも無反応だった）。
  */
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 /** Postgres のエラーを運営が読める日本語にする。原文も残す */
 function toMessage(err: { code?: string; message: string }): string {
-  if (err.code === "23514" && err.message.includes("check_published_requires_approval")) {
-    return "運営の承認が済んでいないため掲載できません。先に「承認」を押してください。";
+  /* ⚠️ 2026-08-13 に承認の掛け先をページ公開から一覧掲載へ移した。制約名も変わっている。 */
+  if (err.code === "23514" && err.message.includes("check_listed_requires_approval")) {
+    return "運営の承認が済んでいないため一覧に掲載できません。先に「承認」を押してください。";
   }
   return `${err.message}${err.code ? `（${err.code}）` : ""}`;
 }
@@ -99,10 +99,19 @@ export async function updateAcceptingMeetings(companyId: string, newValue: boole
 }
 
 /**
- * 掲載（is_published）。承認とは別操作。
+ * ページの取り下げ・復帰（is_published）。**日常操作ではない。**
  *
- * ⚠️ 未承認（is_approved = false）の企業は CHECK 制約で弾かれる。
- *    エラーは呼び出し元に返すこと。握り潰すと「掲載中」と表示されたまま DB は非掲載になる。
+ * ── 2026-08-13 に意味が反転した ─────────────────────────────────────────────
+ * それまでは「未公開が既定で、公開するために押す」トグルだった。
+ * いまは DB の既定が true で、**ページは作られた時点で存在する**。
+ * この関数は「このページは出さない」と運営が判断したときだけ使う取り下げ用。
+ *
+ * ⚠️ 承認（is_approved）はもうここに掛かっていない。掛け先は一覧掲載に移した
+ *    （check_listed_requires_approval）。ページの可視性と審査は無関係。
+ *
+ * ⚠️ **company_joined はここでは作らない。** フィードのお知らせは
+ *    「ディレクトリに迎え入れた」ことに対して出すので updateListingStatus が持つ。
+ *    ページが存在するだけで「参加しました」と流れるのはおかしい。
  */
 export async function updateIsPublished(companyId: string, newValue: boolean): Promise<ActionResult> {
   if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
@@ -129,8 +138,6 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
     return { ok: false, error: toMessage(error) };
   }
 
-  if (newValue) await insertCompanyJoined(companyId);
-
   revalidatePath("/admin/companies");
   return { ok: true };
 }
@@ -148,6 +155,11 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
  *
  * ⚠️ 企業側（/biz/company の公開トグル）は2軸を同時に動かす。
  *    「詳細は見えるがディレクトリには出ない」は**運営だけが作れる状態**にしてある。
+ *
+ * ⚠️ **フィードの company_joined はここで作る**（2026-08-13 に is_published から移した）。
+ *    「参加しました」のお知らせはディレクトリに迎え入れたことに対して出す。
+ *    ページが存在するだけで流すと、経歴から拾っただけの非IT企業まで告知されてしまう。
+ *    draft → listed のときだけ。往復しても部分UNIQUEで2回目は作られない。
  */
 export async function updateListingStatus(
   companyId: string,
@@ -175,6 +187,8 @@ export async function updateListingStatus(
   if (!data || data.length === 0) {
     return { ok: false, error: "対象の企業が見つかりませんでした（0行更新）" };
   }
+
+  if (newValue === "listed") await insertCompanyJoined(companyId);
 
   revalidatePath("/admin/companies");
   return { ok: true };

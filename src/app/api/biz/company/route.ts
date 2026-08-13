@@ -225,7 +225,11 @@ export async function PATCH(req: Request) {
     console.error("[company PATCH] ow_company_genres sync failed:", genreErr);
   }
 
-  // Feed: company_joined (公開時のみ, best-effort, 重複は 23505 で無視)
+  /* Feed: company_joined（**ディレクトリ掲載時のみ**, best-effort, 重複は 23505 で無視）
+     ⚠️ 2026-08-13 に条件を is_published から listing_status に移した。
+        ページは作られた時点で存在するようになったので、「参加しました」の
+        お知らせはディレクトリに迎え入れたことに対して出す。
+        この経路は2軸を同時に動かすため body.isPublished が listed と一致する。 */
   if (body.isPublished) {
     try {
       const adminSupabase = createAdminClient();

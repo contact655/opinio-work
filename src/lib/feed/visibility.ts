@@ -40,6 +40,35 @@ export function isJobPostAlive(post: {
   return status === "published";
 }
 
+/**
+ * 「企業が参加しました」の投稿が、まだ有効か。
+ *
+ * ⚠️ **ページを取り下げた企業の告知も一緒に消えること。**
+ *    `isJobPostAlive` と同じ形の穴が company_joined 側にも空いていた。
+ *    残すと「参加しました」のカードから 404 に落ちる。
+ *
+ * ── なぜ 2026-08-13 に必要になったか ────────────────────────────────────────
+ * この日、企業の可視性を1軸にした（ページは作られた時点で存在し、運営が判断するのは
+ * 一覧掲載だけ）。あわせて `is_published` の意味を「公開するために立てる」から
+ * **「このページは出さないと決めたときに倒す取り下げ用」**に反転させた。
+ * 取り下げが正式な操作になったので、告知が置き去りになる経路を塞ぐ。
+ *
+ * ⚠️ 判定するのは `is_published`（ページが見えるか）だけ。**`listing_status` は見ない。**
+ *    ディレクトリから外しただけの企業はページが生きており、告知を消す理由が無い
+ *    （そもそも listed になった瞬間にしか投稿は作られない）。
+ *
+ * ⚠️ is_test も落とす。検証用企業の投稿を公開フィードに出さない。
+ */
+export function isCompanyPostAlive(post: {
+  post_type?: string | null;
+  ref_company?: { is_published?: boolean | null; is_test?: boolean | null } | null;
+}): boolean {
+  if (post.post_type !== "company_joined") return true;
+  const c = post.ref_company;
+  if (!c) return false;
+  return c.is_published === true && c.is_test !== true;
+}
+
 export type PostVisibilityInput = {
   /** ow_posts.visibility */
   postVisibility: string | null | undefined;

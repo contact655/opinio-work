@@ -109,10 +109,10 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
   }
 
   /*
-    ページ公開（is_published）。未承認だと CHECK 制約で 23514 になり errorMsg に出る。
-    ⚠️ **2026-08-12 に意味を絞った。** この列は「企業ページ（/companies/[slug]）が
-       見えるか」だけを制御する。一覧・検索に出るかは listing_status（下）。
-       経歴に出てくる企業はページだけ必要で、ディレクトリには要らないため分けた。
+    ページの取り下げ・復帰（is_published）。**日常操作ではない**（2026-08-13）。
+    ⚠️ 既定は公開。企業ページは作られた時点で見える（経歴のリンク先になるため）。
+       ここを触るのは「このページは出さない」と判断したときだけ。
+    ⚠️ 承認はもうここに掛かっていない。掛け先は一覧掲載に移した。
   */
   function handleIsPublishedToggle(company: Company) {
     const newValue = !company.is_published;
@@ -121,9 +121,10 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
   }
 
   /*
-    一覧掲載（listing_status）。**ページ公開とは別の軸。**
-    'listed' … 一覧・検索・サジェスト・sitemap・LP に出る
-    'draft'  … 出ない。ただし**企業ページは見える**（経歴からのリンクは有効）
+    一覧掲載（listing_status）。**運営が日常的に判断するのはここだけ**（2026-08-13）。
+    'listed' … 一覧・検索・サジェスト・sitemap・LP に出る。フィードに告知が1件作られる
+    'draft'  … 出ない。ただし**企業ページは見える**（経歴からのリンクは有効）＋ noindex
+    ⚠️ 未承認だと CHECK（check_listed_requires_approval）で 23514 になる。
     ⚠️ 企業側（/biz/company の公開トグル）は2軸を同時に動かす。
        「ページは見えるが一覧に出ない」を作れるのは運営だけ。
   */
@@ -245,14 +246,16 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
            何もゲートしていない。実装済みと誤読させる説明を置かないこと。
       */}
       <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)" }}>掲載の順序:</strong>{" "}
-        <strong>承認</strong>（運営が許可）→ <strong>ページ公開</strong>（企業ページを見えるように）
-        → <strong>一覧掲載</strong>（一覧・検索に載せる）。
-        承認していない企業はページ公開できません（DB制約）。ページ公開すると求職者向けのフィードに投稿が1件作られます。
+        <strong style={{ color: "var(--ink)" }}>企業ページは作られた時点で見えます。</strong>{" "}
+        運営が判断するのは <strong>一覧掲載</strong>（一覧・検索・sitemap に載せるか）だけです。
+        一覧に載せるには <strong>承認</strong> が要ります（DB制約）。
+        一覧掲載をオンにすると、求職者向けのフィードに投稿が1件作られます。
         <br />
-        <strong style={{ color: "var(--ink)" }}>2軸に分かれています:</strong>{" "}
-        「ページ公開」は企業ページが見えるか（経歴からのリンク先）。「一覧掲載」は一覧・検索・sitemap に出るか。
-        <strong>経歴にだけ出てくる企業は「ページ公開のみ」</strong>にできます。
+        <strong>経歴にだけ出てくる企業</strong>（非IT企業など）は、一覧掲載をオフのままにしてください。
+        ページは見えるので、求職者の経歴からのリンクが 404 になりません。一覧・検索・sitemap には出ず、noindex が付きます。
+        <br />
+        <strong style={{ color: "var(--ink)" }}>ページ表示</strong>は取り下げ用です。
+        内容に誤りがある・企業から依頼があった等でページごと下げるときだけ使います（通常は触りません）。
         <strong>面談受付</strong>は、求職者がカジュアル面談を申し込めるかどうかです。
       </div>
 
@@ -324,7 +327,9 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
                      受け付けない」「受け付けるのにボタンが出ない」が起きていた。
                      求人の公開可否（ow_jobs.status）とは無関係。
                 */}
-                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "ページ公開", "一覧掲載", "企業ステータス", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
+                {/* ⚠️ 2026-08-13 に「ページ公開」→「ページ」に変え、一覧掲載の後ろへ移した。
+                       運営が日常的に押すのは「一覧掲載」だけなので、そちらを前に出す。 */}
+                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "一覧掲載", "ページ表示", "企業ステータス", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -486,46 +491,72 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
                         )}
                       </td>
 
-                      {/* ページ公開（is_published）— **企業ページが見えるか**だけ。
-                          ⚠️ 一覧に出るかは隣の「一覧掲載」。2026-08-12 に分離した。 */}
+                      {/*
+                        一覧掲載（listing_status）— **運営が判断するのはここだけ**（2026-08-13）。
+                        'listed' … 一覧・検索・サジェスト・sitemap・LP に出る。フィードに告知が1件作られる
+                        'draft'  … 出ない。ただし**企業ページは見える**（経歴からのリンク先になる）
+                        ⚠️ 未承認だと CHECK（check_listed_requires_approval）で 23514 になる。
+                           errorMsg に理由が出るので握り潰さない。
+                      */}
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <Toggle
-                            checked={c.is_published}
-                            onToggle={() => handleIsPublishedToggle(c)}
-                            pending={isLoading}
-                            label="ページ公開"
-                            onColor="var(--success)"
-                          />
-                          <span
-                            title="企業ページ（/companies/…）が見えるかどうか。経歴からのリンク先になる。一覧に出るかは隣の「一覧掲載」"
-                            style={{ fontSize: 11, fontWeight: 600, color: c.is_published ? "var(--success)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
-                            {c.is_published ? "公開中" : "非公開"}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 一覧掲載（listing_status）— **ディレクトリに出るか**。
-                          ⚠️ オフでも企業ページは見える。経歴からのリンクは404にならない。
-                             非IT企業や、経歴にだけ出てくる企業をここで下ろす。
-                          ⚠️ ページ公開がオフなら on にしても表に出ない（絞り込みが両方を見るため）。 */}
-                      <td style={{ padding: "10px 14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, opacity: c.is_published ? 1 : 0.45 }}>
-                          <Toggle
                             checked={c.listing_status === "listed"}
                             onToggle={() => handleListingToggle(c)}
-                            pending={isLoading || !c.is_published}
+                            pending={isLoading}
                             label="一覧掲載"
                             onColor="var(--royal)"
                           />
                           <span
-                            title={c.is_published
-                              ? "一覧・検索・サジェスト・sitemap に出るかどうか。オフでも企業ページは見える"
-                              : "ページ公開がオフの間は、一覧掲載を on にしても表には出ません"}
+                            title="一覧・検索・サジェスト・sitemap に出るかどうか。オフでも企業ページは見える（経歴からのリンク先）"
                             style={{ fontSize: 11, fontWeight: 600, color: c.listing_status === "listed" ? "var(--royal)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
                             {c.listing_status === "listed" ? "掲載する" : "掲載しない"}
                           </span>
                         </div>
+                      </td>
+
+                      {/*
+                        ページ（is_published）— **取り下げ専用。日常操作ではない**（2026-08-13）。
+
+                        ⚠️ トグルにしない。既定が公開なので、トグルで並べると
+                           「まだ押していない作業」に見える。実際そう誤読されていた。
+                           通常は「公開中」と出るだけで、押せるのは取り下げ／復帰のときだけ。
+                      */}
+                      <td style={{ padding: "10px 14px" }}>
+                        {c.is_published ? (
+                          <button
+                            type="button"
+                            onClick={() => { if (confirm(`「${c.name}」のページを非表示にします。\n\n・経歴からのリンクは会社名のテキストになります\n・フィードの「参加しました」投稿も出なくなります\n\n続けますか？`)) handleIsPublishedToggle(c); }}
+                            disabled={isLoading}
+                            title="企業ページ（/companies/…）を取り下げる。経歴からのリンクは自動でテキストに落ちる"
+                            style={{
+                              fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
+                              background: "none", border: "none", padding: 0,
+                              cursor: isLoading ? "wait" : "pointer", textDecoration: "underline",
+                              textUnderlineOffset: 2, whiteSpace: "nowrap",
+                            }}
+                          >
+                            非表示にする
+                          </button>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--error)" }}>非表示</span>
+                            <button
+                              type="button"
+                              onClick={() => handleIsPublishedToggle(c)}
+                              disabled={isLoading}
+                              title="企業ページを再び見えるようにする"
+                              style={{
+                                fontSize: 11, fontWeight: 600, color: "var(--royal)",
+                                background: "none", border: "none", padding: 0,
+                                cursor: isLoading ? "wait" : "pointer", textDecoration: "underline",
+                                textUnderlineOffset: 2,
+                              }}
+                            >
+                              戻す
+                            </button>
+                          </div>
+                        )}
                       </td>
 
                       {/*
