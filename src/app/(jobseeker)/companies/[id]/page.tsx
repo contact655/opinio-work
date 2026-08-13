@@ -1855,7 +1855,12 @@ function Sidebar({
             </div>
 
             {/* Heading */}
+            {/* ⚠️ `text-balance`（text-wrap: balance）を付ける。カード幅272pxでは
+                   「現在、受付中の募集・面談はありません」が
+                   「…ありませ / ん」と**1文字だけ2行目に落ちていた**（2026-08-13 実測）。
+                   balance で「現在、受付中の募集・ / 面談はありません」に分かれる。 */}
             <div
+              className="text-balance"
               style={{
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "var(--text-md)",
@@ -1962,10 +1967,17 @@ function Sidebar({
 
             {/* ── case 4: accepting_casual_meetings = false, job_count = 0 ── */}
             {!hasMeeting && !hasJobs && (
+              /* ⚠️ **`color` を明示する。** `globals.css` の `p { color: #334155 }` は
+                    親のインライン `color: "#fff"` からの**継承より強い**ため、
+                    紺色のカードの上で #334155 が出て**読めなくなっていた**
+                    （2026-08-13 実測: コントラスト比 1.42）。
+                    → `.claude/rules/ui-debugging.md`「インラインstyleとCSSの優先順位」の①。
+                 ⚠️ 暗い背景のカードに `<p>` を置くときは必ず `color` を書くこと。 */
               <p
                 style={{
                   fontSize: "var(--text-xs)",
                   textAlign: "center",
+                  color: "#fff",
                   opacity: 0.68,
                   lineHeight: 1.7,
                   margin: 0,
