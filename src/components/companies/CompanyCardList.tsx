@@ -87,7 +87,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
         return;
       }
       if (!res.ok) { setBookmarked(prev); return; }
-      if (!prev) showToast(`${company.name} を気になりリストに追加しました ♥`);
+      if (!prev) showToast(`${company.name} を保存しました ♥`);
       // 共有キャッシュを捨てる。次に読む人が取り直す
       invalidateCompanyBookmarks();
     } catch {
@@ -171,7 +171,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             type="button"
             onClick={handleBookmark}
             disabled={bookmarking}
-            aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
+            aria-label={bookmarked ? "保存を解除" : "保存する"}
             /* ⚠️ globals.css の `button { min-height: 36px }` を外す。
                   付けないと高さだけ 36px に伸びて **縦長の楕円**になる（26×36）。 */
             className="btn-fixed-size"
@@ -415,12 +415,17 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
           <JobCountStat count={company.job_count} />
         </div>
 
-        {/* ── CTA + ブックマーク ── */}
-        <div className="clc-cta" style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+        {/* ── CTA + ブックマーク ──
+             ⚠️ `alignItems` は **stretch**。`flex-end` にすると2つのボタンが
+                それぞれの内容幅になり、**縦に並んでいるのに幅が違う**（実測 81px と 100px）。
+                stretch なら列幅（＝広いほうの内容幅）に両方が揃う。
+             ⚠️ `minWidth` は保存済の実測（90px）より広く取る。
+                取らないと、押した瞬間に「保存」→「保存済」で列幅が 81→90 に動く。 */}
+        <div className="clc-cta" style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8, minWidth: 96 }}>
           <button
             type="button"
             style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
               padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
               background: company.job_count > 0
                 ? "linear-gradient(135deg, var(--royal), var(--accent))"
@@ -440,9 +445,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             type="button"
             onClick={handleBookmark}
             disabled={bookmarking}
-            aria-label={bookmarked ? "気になりを解除" : "気になりに追加"}
+            aria-label={bookmarked ? "保存を解除" : "保存する"}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
               padding: "8px 16px", borderRadius: 999,
               background: bookmarked ? "#ef4444" : "transparent",
               border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
@@ -457,7 +462,9 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <span>{bookmarked ? "気になり済み" : "気になる"}</span>
+            {/* ⚠️ 語彙は /jobs の保存ボタンと揃える（「保存」/「保存済」）。
+                   ここだけ「気になる」に戻さないこと。 */}
+            <span>{bookmarked ? "保存済" : "保存"}</span>
           </button>
 
         </div>

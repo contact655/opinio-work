@@ -604,7 +604,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
 
           </div>{/* /csb-filter-chips */}
 
-          {/* 気になり件数 */}
+          {/* 保存件数 */}
           {bookmarkCount > 0 && (
             <a
               href="/mypage"
@@ -619,7 +619,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
               }}
             >
               <span style={{ fontSize: 13 }}>♥</span>
-              {bookmarkCount}件気になり中
+              {bookmarkCount}件保存中
             </a>
           )}
         </div>

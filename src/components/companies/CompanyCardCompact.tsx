@@ -107,9 +107,9 @@ export function CompanyCardCompact({ company }: Props) {
         // 共有キャッシュを捨てる。捨てないと、次に読む人が60秒間古い一覧を見る
         invalidateCompanyBookmarks();
         if (!prev) {
-          showToast(`${company.name} を気になりリストに追加しました`, 'warm');
+          showToast(`${company.name} を保存しました`, 'warm');
         } else {
-          showToast('気になりリストから削除しました');
+          showToast('保存を解除しました');
         }
       }
     } catch {
@@ -226,7 +226,7 @@ export function CompanyCardCompact({ company }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0,
               }}
-              aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
+              aria-label={bookmarked ? '保存を解除' : '保存する'}
             >
               <svg width="13" height="12" viewBox="0 0 24 24"
                 fill={bookmarked ? 'var(--warm)' : 'none'}

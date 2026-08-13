@@ -174,8 +174,8 @@ function JobListItem({
       } else if (!res.ok) {
         setBookmarked(!next);
       } else {
-        if (next) showToast(`${job.role} を気になりリストに追加しました`, "warm");
-        else showToast("気になりリストから削除しました");
+        if (next) showToast(`${job.role} を保存しました`, "warm");
+        else showToast("保存を解除しました");
       }
     } catch {
       setBookmarked(!next);

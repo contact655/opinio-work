@@ -1664,7 +1664,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   <BookmarkButton
                     targetType="job"
                     targetId={job.id}
-                    label="気になるに追加"
+                    label="保存する"
                     variant="with-text"
                   />
                 </div>

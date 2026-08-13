@@ -107,7 +107,7 @@ export function BookmarkButton({
         <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? "#B45309" : "none"} stroke="currentColor" strokeWidth={2.5}>
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
         </svg>
-        {bookmarked ? "ブックマーク済み" : label}
+        {bookmarked ? "保存済" : label}
       </button>
     );
   }
@@ -118,8 +118,8 @@ export function BookmarkButton({
       type="button"
       onClick={toggle}
       disabled={loading}
-      title={bookmarked ? "ブックマーク済み" : label}
-      aria-label={bookmarked ? "ブックマーク済み" : label}
+      title={bookmarked ? "保存済" : label}
+      aria-label={bookmarked ? "保存済" : label}
       aria-pressed={bookmarked}
       style={{
         width: 40,
