@@ -1415,14 +1415,48 @@ ps aux | grep -E "next-server|next dev" | grep -v grep
   `isDev ? nextConfig : withSentryConfig(...)` で **dev では Sentry を適用していない**
 - ~~Node v26.5.0 と Next 14.2.35 の非互換~~ → ENOENT-on-rename は明確に競合の痕跡。単一プロセスでは起きない
 
-### ⚠️ dev サーバー稼働中に `npm run build` を打たない（2026-08-03 確立）
+### ⚠️ dev サーバー稼働中に `.next` を触る他のコマンドを打たない（2026-08-03 確立 / 2026-08-13 拡張）
 
 **上の「dev 二重起動」とは別の事象。症状が似ているので混同しないこと。**
+
+#### ⚠️ 対象は `npm run build` だけではない（2026-08-13 追記）
+
+**`.next` を共有するのは以下すべて。** どれを打っても同じ事故になる。
+
+| コマンド | 備考 |
+|---|---|
+| `npm run build` | — |
+| **`npx next start`** | ビルド済みの `.next` を読む。**起動しているだけで衝突する** |
+| **`.claude/launch.json` の `prod`** | 中身は `npm run build && npx next start -p 3100` |
+
+⚠️ **ポートが違っても `.next` は共有される。** `prod` は3100番だが、
+   `--distDir` を指定していないので dev（3000番）と**同じ `.next` を読み書きする**。
+   「ポートを分けたから大丈夫」は成り立たない。
+
+⚠️ launch.json の `prod` には「dev と .next を共有するので同時に起動しないこと」と
+   コメントがあるが、**CLAUDE.md 側にその記述が無かった**ため、ここを読んだだけでは
+   `next start` が対象だと分からなかった（2026-08-13 に実際に踏んだ）。
+
+#### 2026-08-13 に同じ節の事故を2回起こしている
+
+並行セッションで作業していた日。**どちらも「別のセッションが `.next` を触った」形。**
+
+| # | 誰が何をしたか | 症状 |
+|---|---|---|
+| ① | 別セッションが `npm run build` を実行 | 全ページ 500（`Cannot find module './vendor-chunks/@sentry.js'`） |
+| ② | 別セッションが `next start`（3100番）を起動 | 1ページだけ 500（`Cannot read properties of undefined (reading 'call')`） |
+
+⚠️ **②は間欠的に出る。** 壊れたチャンクを最初に参照したページだけが落ち、
+   再取得すると 200 に戻ることがある。**「たまたま失敗した」と流さないこと。**
+
+→ 並行セッションでの取り決めは「セッションを並行させるときのルール」を参照。
+   **`.next` を触る前に、相手の dev が止まっていることを確認する。**
 
 #### 症状
 
 ```
 Error: Cannot find module './vendor-chunks/@supabase.js'
+TypeError: Cannot read properties of undefined (reading 'call')   ← webpack-runtime.js
 ```
 
 dev サーバーが 500 を返すようになる。モジュール名は `@supabase.js` に限らず、
@@ -1430,10 +1464,11 @@ dev サーバーが 500 を返すようになる。モジュール名は `@supab
 
 #### 原因
 
-`npm run dev` と `npm run build` は**同じ `.next/` を共有する**。
+`npm run dev` / `npm run build` / `npx next start` は**同じ `.next/` を共有する**。
 dev サーバーが稼働したまま build を走らせると、build が
 `.next/server/vendor-chunks/` 以下を production 用に総入れ替えするため、
 dev サーバーが握っていたチャンクへの参照が解決できなくなる。
+`next start` も同じ `.next` を読むので、起動中に dev が再コンパイルすると同様に壊れる。
 
 #### 対処
 
