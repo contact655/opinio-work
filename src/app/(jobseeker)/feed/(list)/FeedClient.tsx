@@ -24,9 +24,61 @@ type PostUser = {
   company?: string | null;
 };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; location?: string | null; founded_year?: number | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; location?: string | null; founded_year?: number | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string } | null;
+
+/**
+ * 投稿種別バッジ。名前の右に出す。
+ *
+ * ⚠️ **本文から定型文（「〇〇がOPINIOに掲載されました。」）を外した代わり**（2026-08-13）。
+ *    定型文がカード内で最も大きい文字になり、企業のタグラインがその中に埋もれていた。
+ *    「何の出来事か」は2〜4字のバッジで足りる。
+ *
+ * ⚠️ 色は**トークンだけで組む**。ハードコードするとダークモードで破綻する。
+ *    枠線は `color-mix` で soft と同系の濃さを作っている
+ *    （`--success-100` のような中間トークンが無いため。未対応ブラウザでは
+ *     `border` 宣言ごと落ちて枠線が消えるだけで、可読性には影響しない）。
+ *
+ * ⚠️ `mentor_post` はここに入れない。名前の右に既に「面談OK」バッジがあり、二重になる。
+ */
+const POST_TYPE_BADGE: Record<string, { label: string; color: string; bg: string; border: string } | undefined> = {
+  company_joined: {
+    label: "新規掲載",
+    color: "var(--success)",
+    bg: "var(--success-soft)",
+    border: "color-mix(in srgb, var(--success) 30%, transparent)",
+  },
+  article_published: {
+    label: "取材記事",
+    color: "var(--royal)",
+    bg: "var(--royal-50)",
+    border: "var(--royal-100)",
+  },
+  job_posted: {
+    label: "新着求人",
+    color: "var(--warm)",
+    bg: "var(--warm-soft)",
+    border: "color-mix(in srgb, var(--warm) 30%, transparent)",
+  },
+};
+
+/**
+ * フィードのメタ行に出す従業員数。**括弧の注記を落とす。**
+ *
+ * `ow_companies.employee_count` は自由記述で、
+ * 「382名（2026年2月時点・単体）」のように時点の注記が付く（2026-08-13 に投入）。
+ * 企業詳細では注記に意味があるが、**フィードは1行のメタ情報**なので長すぎる。
+ *
+ * ⚠️ **フィードだけで落とす。** `formatEmployeeCount`（表示整形の共通関数）は変えない。
+ *    企業詳細のサイドバーからは注記が消えてはいけない。
+ * ⚠️ 括弧が無い値（「約200名」「1000名以上」）はそのまま通す。
+ */
+function stripCountNote(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const cut = v.split(/[（(]/)[0].trim();
+  return cut || null;
+}
 
 type LikerUser = { id: string; name: string; avatar_color: string | null; avatar_url: string | null };
 
@@ -1517,9 +1569,29 @@ function PostCard({
   const actorHref = actor.kind === "company" ? `/companies/${actor.slug ?? actor.id}` : null;
   // actor を企業にすると本文の主語と二重になるので、表示時だけ落とす。
   // ⚠️ DB の content は書き換えない。完全一致しない場合は何もしない（別の社名を切らないため）
-  const displayContent = actor.kind === "company"
+  const strippedContent = actor.kind === "company"
     ? stripActorPrefix(post.content, post.post_type, [actor.name, post.ref_company?.name, post.ref_job?.company?.name])
     : post.content;
+
+  /* ⚠️ company_joined は **本文に content を出さない**（2026-08-13）。
+        content は「〇〇がOPINIOに掲載されました。 タグライン」という定型文で、
+        カード内で最も大きい文字が定型文になり、タグラインがその中に埋もれていた。
+        「掲載された」という事実は名前の右のバッジ（下の POST_BADGE）が担う。
+
+     ⚠️ **content をパースしない。** タグラインの正本は `ow_companies.tagline` なので
+        そちらを直接読む（`page.tsx` の select に追加済み）。
+        content から括弧を剥がす実装にすると、タグライン自体に「」を含む企業
+        （例: PKSHA の「Advancing Humanity」）で壊れる。
+
+     ⚠️ DB の content は現状維持。パーマリンク `/feed/[postId]` や埋め込みでは
+        「何の投稿か」が本文だけで伝わる必要があるため、定型文には意味がある。
+        ここはフィード一覧の見せ方の話。
+
+     ⚠️ tagline が空の企業は content にフォールバックする。**空欄にはしない。** */
+  const displayContent =
+    post.post_type === "company_joined" && post.ref_company?.tagline?.trim()
+      ? post.ref_company.tagline.trim()
+      : strippedContent;
 
   const handleLike = async () => {
     if (!myUserId) { router.push("/auth?next=/feed"); return; }
@@ -1650,6 +1722,21 @@ function PostCard({
                   面談OK
                 </span>
               )}
+              {/* ⚠️ 投稿種別のバッジ。**本文から定型文を外した代わりに、ここが「何の出来事か」を担う**
+                     （2026-08-13）。文字を増やさずに種別を伝えるのが役割なので、
+                     文言は2〜4字に収めること。 */}
+              {POST_TYPE_BADGE[post.post_type] && (() => {
+                const b = POST_TYPE_BADGE[post.post_type]!;
+                return (
+                  <span style={{
+                    fontSize: 12, fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                    fontWeight: 700, color: b.color, background: b.bg,
+                    border: `1px solid ${b.border}`, borderRadius: 4, padding: "1px 5px",
+                  }}>
+                    {b.label}
+                  </span>
+                );
+              })()}
               {/* 日付インライン */}
               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                 · {relativeTime(post.created_at)}
@@ -1769,33 +1856,30 @@ function PostCard({
       */}
       {post.post_type === "company_joined" && post.ref_company && (() => {
         const co = post.ref_company;
+        /* ⚠️ ラベル（「業種」「従業員数」…）は付けない（2026-08-13）。
+              値だけで何の項目かは読めるうえ、ラベルが本文より目立っていた。
+           ⚠️ NULL の項目は「—」を出さず、**項目ごと落とす**。中黒も詰まる。 */
         const facts = [
-          co.industry?.trim() ? { k: "業種", v: co.industry.trim() } : null,
-          co.employee_count != null && String(co.employee_count).trim()
-            ? { k: "従業員数", v: formatEmployeeCount(co.employee_count) ?? "" }
-            : null,
-          co.location?.trim() ? { k: "所在地", v: co.location.trim() } : null,
-          co.founded_year ? { k: "設立", v: `${co.founded_year}年` } : null,
-        ].filter(Boolean) as { k: string; v: string }[];
+          co.industry?.trim() || null,
+          stripCountNote(formatEmployeeCount(co.employee_count)),
+          co.location?.trim() || null,
+          co.founded_year ? `${co.founded_year}年設立` : null,
+        ].filter(Boolean) as string[];
         if (facts.length === 0) return null;
         return (
+          /* ⚠️ 背景ボックスにしない。**本文より目立たせない**のがこの行の役目。
+                以前は薄青のボックスで、タグライン（本文）より視線を集めていた。 */
           <div
             style={{
-              display: "flex", flexWrap: "wrap", gap: "6px 18px",
-              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-              borderRadius: 10, padding: "11px 14px", marginBottom: 12,
+              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+              fontSize: 12,
+              color: "var(--ink-mute)",
+              lineHeight: 1.6,
+              marginBottom: 12,
+              wordBreak: "break-word",
             }}
           >
-            {facts.map((f) => (
-              <span key={f.k} style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
-                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", flexShrink: 0 }}>
-                  {f.k}
-                </span>
-                <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {f.v}
-                </span>
-              </span>
-            ))}
+            {facts.join(" · ")}
           </div>
         );
       })()}
