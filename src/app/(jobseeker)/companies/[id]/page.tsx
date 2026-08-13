@@ -1865,7 +1865,9 @@ function Sidebar({
                 fontFamily: "var(--font-noto-serif)",
                 fontSize: "var(--text-md)",
                 fontWeight: 500,
-                marginBottom: "var(--space-4)",
+                /* ⚠️ 募集も面談も無いときは**見出しがカードの最後の要素**になる。
+                      下マージンを残すと底に余白だけがぶら下がる（2026-08-13）。 */
+                marginBottom: hasMeeting || hasJobs ? "var(--space-4)" : 0,
                 lineHeight: 1.55,
               }}
             >
@@ -1965,27 +1967,19 @@ function Sidebar({
               </a>
             )}
 
-            {/* ── case 4: accepting_casual_meetings = false, job_count = 0 ── */}
-            {!hasMeeting && !hasJobs && (
-              /* ⚠️ **`color` を明示する。** `globals.css` の `p { color: #334155 }` は
-                    親のインライン `color: "#fff"` からの**継承より強い**ため、
-                    紺色のカードの上で #334155 が出て**読めなくなっていた**
-                    （2026-08-13 実測: コントラスト比 1.42）。
-                    → `.claude/rules/ui-debugging.md`「インラインstyleとCSSの優先順位」の①。
-                 ⚠️ 暗い背景のカードに `<p>` を置くときは必ず `color` を書くこと。 */
-              <p
-                style={{
-                  fontSize: "var(--text-xs)",
-                  textAlign: "center",
-                  color: "#fff",
-                  opacity: 0.68,
-                  lineHeight: 1.7,
-                  margin: 0,
-                }}
-              >
-                現在募集中の情報がありません
-              </p>
-            )}
+            {/* ── case 4: accepting_casual_meetings = false, job_count = 0 ──
+                   **見出しだけを出す。** 以前はここに
+                   「現在募集中の情報がありません」という `<p>` を置いていたが、
+                   見出しの「現在、受付中の募集・面談はありません」と**同じことを
+                   2回言っていた**ので削除した（2026-08-13）。
+
+                ⚠️ この `<p>` は `globals.css` の `p { color: #334155 }` が
+                   親のインライン `color: "#fff"` からの継承より強いため、
+                   **紺色のカードの上で読めなくなっていた**（実測コントラスト比 1.42）。
+                   重複に気づけなかったのは、そもそも見えていなかったから。
+                   → `.claude/rules/ui-debugging.md`「インラインstyleとCSSの優先順位」の①
+
+                ⚠️ **暗い背景のカードに `<p>` を置くときは必ず `color` を明示すること。** */}
           </div>
         );
       })()}
