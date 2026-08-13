@@ -768,6 +768,150 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
 }
 
 
+// ─── Locations & Capital Section ─────────────────────────────────────────────
+
+/**
+ * 「拠点・資本関係」— サイドバーに入れると折り返す長い値をここに集める。
+ *
+ * ── なぜ本文に出すか（2026-08-13 実測）────────────────────────────────────
+ * サイドバーの値カラムは **172px** しかなく（カード320px − パディング − ラベル90px）、
+ * 本社住所・最寄り駅・資本注記は**3行に折り返していた**（PKSHA で最寄り駅3行・注記3行）。
+ * 本文は約900px あるので1行に収まる。
+ *
+ * ⚠️ **さらに重要なのはモバイル。** サイドバーは `hidden lg:flex` で
+ *    **1024px 未満では `display: none`**。つまり 375px / 768px では
+ *    本社住所・最寄り駅・拠点・資本注記が**どこにも出ていなかった**。
+ *    このセクションは本文なので、モバイルで初めてこれらが見えるようになる。
+ *
+ * ── 出し分け（同じ項目を2箇所に出さない）──────────────────────────────
+ * | カード | 出す条件 | サイドバー側 |
+ * |---|---|---|
+ * | 本社 | `headquarters_address` あり（10社） | 「所在地」行を**出さない** |
+ * | その他の拠点 | `branch_locations` あり（28社） | 「拠点」行は**削除済み** |
+ * | 資本関係 | **`capital_notes` あり**（18社） | 「資本区分」バッジは残す |
+ *
+ * ⚠️ 資本関係カードの条件は `capital_type` ではなく **`capital_notes`**。
+ *    `capital_type` は65社にあり、それで出すとセクションが66社に広がるが、
+ *    資本区分はサイドバーのバッジで足りている（1行に収まる）。
+ *    **本文に出す価値があるのは注記の文だけ。**
+ *
+ * ⚠️ `headquarters_address` が無い社ではサイドバーが `location` で「所在地」を出す。
+ *    充填が進めば自動的に本文カード側へ寄り、全社埋まればサイドバーの所在地行は消える。
+ *
+ * ⚠️ `nearest_station` は本社カードの中にしか出ない。
+ *    「駅はあるが住所が無い」社は 0社（2026-08-13 実測）なので取りこぼしは無い。
+ */
+function LocationsCapitalSection({ detail }: { detail: CompanyDetail }) {
+  const hasHq = !!detail.headquartersAddress;
+  const hasBranches = !!(detail.branchLocations && detail.branchLocations.length > 0);
+  const hasCapital = !!detail.capitalNotes;
+  if (!hasHq && !hasBranches && !hasCapital) return null;
+
+  const CARD: React.CSSProperties = {
+    background: "var(--bg-tint)",
+    borderRadius: 12,
+    padding: "14px 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    minWidth: 0,
+  };
+  const LABEL: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 5,
+    fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+    letterSpacing: "0.04em", marginBottom: 2,
+  };
+  /* ⚠️ 主・副とも `color` を明示する。`<div>` なので globals.css の
+        `p { color: #334155 }` には当たらないが、様式を揃えるため書いておく。 */
+  const MAIN: React.CSSProperties = {
+    fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.7,
+    fontFamily: "var(--font-noto-sans)",
+  };
+  const SUB: React.CSSProperties = {
+    fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
+    fontFamily: "var(--font-noto-sans)",
+  };
+
+  return (
+    <section
+      id="locations"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{
+        padding: "var(--space-6) 32px var(--space-4)",
+        borderBottom: "1px solid var(--line-soft)",
+      }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          }
+        >
+          拠点・資本関係
+        </SecTitle>
+      </div>
+
+      <div style={{ padding: "var(--space-6)" }}>
+        {/* ⚠️ `minmax(240px, 1fr)` の 240px は最小幅。狭い画面では1列に折り返す。
+               `1fr` ではなく `minmax(0, 1fr)` 相当にするため minWidth: 0 をカードに置いている
+               （`.claude/rules/ui-debugging.md`「横はみ出し」の原因1・2）。 */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+          {hasHq && (
+            <div style={CARD}>
+              <div style={LABEL}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                </svg>
+                本社
+              </div>
+              <div style={MAIN}>{detail.headquartersAddress}</div>
+              {detail.nearestStation && <div style={SUB}>{detail.nearestStation}</div>}
+            </div>
+          )}
+
+          {hasBranches && (
+            <div style={CARD}>
+              <div style={LABEL}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-6h6v6" />
+                </svg>
+                その他の拠点
+              </div>
+              <div style={MAIN}>{detail.branchLocations!.join("・")}</div>
+            </div>
+          )}
+
+          {hasCapital && (
+            <div style={CARD}>
+              <div style={LABEL}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 3h18v18H3z" /><path d="M9 9h6v6H9z" />
+                </svg>
+                資本関係
+              </div>
+              {detail.capitalType && (
+                <div style={MAIN}>
+                  {CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType}
+                </div>
+              )}
+              <div style={SUB}>{detail.capitalNotes}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Benefits Section ─────────────────────────────────────────────────────────
 
 
@@ -2129,30 +2273,31 @@ function Sidebar({
             [
               { key: "業界", value: company.industry, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
               /* ⚠️ `capital_notes` の置き場所は2箇所ある（2026-08-13）。
-                    親会社があるときは直下の「親会社」行の subText、
-                    **無いときはここ**（資本区分行）に出す。
-                    日系企業は parent_company_name が空なので、以前は
-                    上場市場・調達の一文を入れても**どこにも出なかった**。
-                 ⚠️ 両方に出さないこと。親会社行と重複する。
+                    **`capital_notes` はここに出さない。**「拠点・資本関係」セクション
+                    （本文）の資本関係カードに移した（2026-08-13）。
+                 ⚠️ 値カラムは実測 **172px** しかなく、注記は3行に折り返していた。
+                    サイドバーは「ラベル：短い値」を拾う場所で、文章を読む場所ではない。
                  ⚠️ `listed_exchange` は使わない。**未使用カラム**で描画先が無い。
                     上場市場・証券コードは capital_notes の文中に書く。 */
-              ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, subText: detail.parentCompanyName ? undefined : (detail.capitalNotes ?? undefined), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
+              ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
               /* ⚠️ ラベルは「親会社」。値は parent_company_name（**親会社名**）で、
                     所在地ではない。直下に「所在地」行が並ぶため、
                     「本社」だと本社所在地と誤読される（2026-08-13 改称）。
                     値の参照先は変えていない。 */
-              ...(detail.parentCompanyName ? [{ key: "親会社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), subText: detail.capitalNotes ?? undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
+              ...(detail.parentCompanyName ? [{ key: "親会社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
               { key: "従業員数", value: formatEmployeeCount(company.employee_count) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
               ...(detail.globalEmployeeCount ? [{ key: "従業員数（世界）", value: formatEmployeeCount(detail.globalEmployeeCount), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
-              /* 所在地。**住所があれば住所、無ければ location**（2026-08-13）。
-                 ⚠️ 行を増やさない。79社中74社の location は「東京都」なので、
-                    住所行を別に足すと、埋めた企業だけ「東京都」と番地が2行並ぶ。
+              /* 所在地。**`headquarters_address` が無い社だけ**、`location` で出す（2026-08-13）。
+                 ⚠️ 住所（番地まで）がある社は「拠点・資本関係」セクションの本社カードに出すので、
+                    **ここには出さない。同じ項目を2箇所に出すと値が違って見えて読み手が迷う。**
+                 ⚠️ 住所は172pxの値カラムでは2行に折り返す。`location`（「東京都」等）は1行に収まる。
+                    充填が進めば自動的に本文カード側へ寄り、全社埋まればこの行は消える。
                  ⚠️ `hq` は location をそのまま入れたもの（queries.ts）。
-                    `?? "東京都"` のような既定値は入れないこと。値が無ければ空のまま。 */
-              { key: "所在地", value: detail.headquartersAddress || detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
-              ...(detail.branchLocations?.length ? [{ key: "拠点", value: detail.branchLocations.join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> }] : []),
+                    `?? "東京都"` のような既定値は入れないこと。値が無ければ空のまま。
+                 ⚠️ 「拠点」「最寄り駅」はここから削除した。どちらも本文の
+                    「拠点・資本関係」セクションに移してある。 */
+              ...(detail.headquartersAddress ? [] : [{ key: "所在地", value: detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> }]),
               ...(detail.remoteWorkStatus ? [{ key: "リモート状況", value: ({ full_remote: "フルリモート", hybrid: "ハイブリッド", on_site: "フル出社", other: "その他" } as Record<string, string>)[detail.remoteWorkStatus] ?? detail.remoteWorkStatus, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> }] : []),
-              ...(detail.nearestStation ? [{ key: "最寄り駅", value: detail.nearestStation, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M9 4v16"/><path d="M15 4v16"/></svg> }] : []),
               { key: "設立", value: detail.established, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
               { key: "代表者", value: detail.ceo, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
               ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
@@ -2376,6 +2521,12 @@ export default async function CompanyDetailPage({
               detail={detail}
               photos={photos}
             />
+
+            {/* 1-2. 拠点・資本関係
+                    ⚠️ サイドバーでは 172px しかなく3行に折り返していた項目をここに集める。
+                       モバイル（1024px 未満）はサイドバーごと非表示なので、
+                       **このセクションが唯一の表示先**になる。 */}
+            <LocationsCapitalSection detail={detail} />
 
             {/* 2. 製品・導入事例 */}
             <ProductsClientsSection detail={detail} />
