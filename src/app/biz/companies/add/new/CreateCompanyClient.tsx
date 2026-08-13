@@ -716,9 +716,15 @@ export function CreateCompanyClient({
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               )}
+              {/*
+                ⚠️ 「登録されています」を主語にしないこと。
+                   企業が OPINIO にあるかどうかは、この人の関心事ではない。
+                   知りたいのは**自分がいま担当者になれるのか**の一点。
+                   「既に登録されています」は「じゃあ自分は入れるの？」を残す。
+              */}
               {isFirst
                 ? "この企業はまだ担当者が登録されていません"
-                : "この企業は既に OPINIO に登録されています"
+                : "この企業には、すでに担当者がいます"
               }
             </div>
             <div style={{ fontSize: 12, color: bodyColor, lineHeight: 1.7, marginBottom: 14 }}>
@@ -726,9 +732,9 @@ export function CreateCompanyClient({
                 <><strong>{conflict.name}</strong> は OPINIO に登録済みですが、まだ担当者がいません。最初の担当者として参加できます。</>
               ) : (
                 <>
-                  <strong>{conflict.name}</strong>
-                  {typeof conflict.admin_count === "number" ? `（担当者 ${conflict.admin_count}名）` : ""}
-                  が既に登録されています。既存の担当者に参加リクエストを送ってください。
+                  <strong>{conflict.name}</strong> には
+                  {typeof conflict.admin_count === "number" ? `すでに担当者が ${conflict.admin_count}名` : "すでに担当者が"}
+                  います。担当者に追加してもらうよう、既存の担当者へ依頼を送れます。
                 </>
               )}
             </div>
@@ -751,7 +757,7 @@ export function CreateCompanyClient({
                      ow_company_admins に行は作られておらず、/biz/dashboard は
                      「企業が紐付いていません」を出す。**成功したと嘘をついていた。**
                 */}
-                ✓ 参加リクエストを送信しました。担当者からの招待をお待ちください。
+                ✓ 依頼を送信しました。既存の担当者が承認すると、この企業を操作できるようになります。
               </div>
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
@@ -769,7 +775,12 @@ export function CreateCompanyClient({
                     fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
                   }}
                 >
-                  {joinRequestLoading ? "処理中..." : (isFirst ? "最初の担当者として参加する" : "参加リクエストを送る")}
+                  {/*
+                    ⚠️ ボタンの語で結果を約束しないこと。
+                       担当者がいる企業では、押しても参加は完了しない（承認待ちになる）。
+                       「参加する」ではなく「依頼する」と書く。
+                  */}
+                  {joinRequestLoading ? "処理中..." : (isFirst ? "最初の担当者として参加する" : "担当者への追加を依頼する")}
                 </button>
                 <button
                   type="button"

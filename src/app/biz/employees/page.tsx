@@ -28,8 +28,30 @@ export default async function EmployeesPage() {
 
   const admin = createAdminClient();
 
-  // 全経歴を取得
-  const { data: rows } = await admin
+  /*
+    公開を選んだ経歴だけを取得する。
+
+    ⚠️ **`visibility_company` を必ず見ること。** 2026-08-13 まで条件が無く、
+       `createAdminClient`（RLS バイパス）で全件引いていたため、
+       オンボーディングで「会社名は伏せる」を選んだ人が
+       **その勤務先の採用担当者には実名で見えていた**。
+
+       伏せた人が気にしているのは「社名が出ること」ではなく
+       **「転職を考えていると今の会社に知られること」**なので、
+       ここに出るのはチェックボックスの文面から誰も予想できない。
+       CLAUDE.md「ユーザーの非表示希望と企業側の掲載要望が衝突したら
+       必ずユーザー側を優先する」（2026-08-02 確立）に従う。
+
+    ⚠️ 企業側が失うものは無い。`masked` / `hidden` の人は公開側にも出ていないので、
+       社員管理画面（＝公開時の見え方を調整する画面）で企業がすることが元から無い。
+
+    ⚠️ **企業が自分で隠した行（`ow_company_hidden_experiences`）はここで除外しない。**
+       あれは企業が解除できる必要がある。除外の主体が違うので混同しないこと。
+
+    ⚠️ NULL も除外される（`.eq` は NULL に一致しない）。これは意図どおり。
+       値が無いものを「公開してよい」とみなさない。
+  */
+  const { data: rows, error: rowsError } = await admin
     .from("ow_experiences")
     .select(`
       id,
@@ -46,7 +68,13 @@ export default async function EmployeesPage() {
       )
     `)
     .eq("company_id", ctx.tenantId)
+    .eq("visibility_company", "real")
     .order("started_at", { ascending: false });
+
+  // 握り潰さない。0件が「誰もいない」なのか「取得に失敗した」なのか区別できなくなる。
+  if (rowsError) {
+    console.error("[biz/employees] experiences fetch failed:", rowsError.message);
+  }
 
   // 非表示 experience_id 一覧
   const { data: hiddenRows } = await admin
