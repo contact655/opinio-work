@@ -18,7 +18,10 @@ const GROUP_MAX = 6;
 
 type Props = { tools: CompanyTool[] };
 
-const VISIBLE_GROUPS = 3; // 最初に表示するグループ数
+/* 最初に表示するグループ数。
+   ⚠️ 2026-08-13 に 3 → 2。取材の進んだ1社だけ全グループが展開され、
+      ページ長の差が「情報量の差」に見えていた。畳むだけで内容は減らさない。 */
+const VISIBLE_GROUPS = 2;
 
 export default function ToolsSectionClient({ tools }: Props) {
   const [expandedGroups, setExpandedGroups] = useState<Set<GroupSlug>>(new Set());

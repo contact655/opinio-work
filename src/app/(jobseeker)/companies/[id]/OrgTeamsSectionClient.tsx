@@ -88,8 +88,13 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-const INITIAL_DIVISIONS = 3;
-const INITIAL_TEAMS_PER_DIVISION = 4; // 部門内の初期表示チーム数
+/*
+  初期表示の上限（2026-08-13 に 3部門・4チーム → 1部門・3チーム）。
+  取材の進んだ1社だけ組織図がフル展開され、ページ長の差が
+  「情報量の差」に見えていた。畳むだけで内容は減らさない。
+*/
+const INITIAL_DIVISIONS = 1;
+const INITIAL_TEAMS_PER_DIVISION = 3; // 部門内の初期表示チーム数
 
 // ─── OrgTeamsSectionClient ────────────────────────────────────────────────────
 export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 }: { detail: CompanyDetail; companyId?: string; jobCount?: number }) {
@@ -119,7 +124,14 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
   const allDivisions = DIVISION_ORDER.filter(div => grouped.has(div));
   const visibleDivisions = showAll ? allDivisions : allDivisions.slice(0, INITIAL_DIVISIONS);
   const hiddenCount = allDivisions.length - INITIAL_DIVISIONS;
-  const hiddenTeamCount = allDivisions.slice(INITIAL_DIVISIONS).reduce((sum, div) => sum + (grouped.get(div)?.length ?? 0), 0);
+  /* ⚠️ **見えている部門の中で隠れているチームも数える**（2026-08-13 修正）。
+        以前は「隠れている部門のチーム数」だけを足しており、
+        部門内が INITIAL_TEAMS_PER_DIVISION で切られている分を取りこぼしていた。
+        畳んだ状態の部門内展開ボタンを外したので、この数が唯一の手がかりになる。 */
+  const visibleTeamCount = allDivisions
+    .slice(0, INITIAL_DIVISIONS)
+    .reduce((sum, div) => sum + Math.min(grouped.get(div)?.length ?? 0, INITIAL_TEAMS_PER_DIVISION), 0);
+  const hiddenTeamCount = detail.orgTeams.length - visibleTeamCount;
 
   return (
     <>
@@ -349,8 +361,15 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                 })}
               </div>
 
-              {/* per-division チーム展開ボタン */}
-              {!expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
+              {/*
+                per-division チーム展開ボタン。
+                ⚠️ **畳んだ状態では出さない**（2026-08-13）。
+                   初期表示が1部門になったので、「この部門の残りチーム」と
+                   「すべてを見る」がほぼ同じ操作になり、ボタンが2つ縦に並んでいた。
+                   畳んだ状態のボタンは「すべてを見る」1つに統合する。
+                   展開後は部門が複数並ぶので、部門ごとの操作として意味を取り戻す。
+              */}
+              {showAll && !expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
                 <button
                   onClick={() => setExpandedDivTeams(prev => { const n = new Set(prev); n.add(div); return n; })}
                   style={{
@@ -368,7 +387,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                   残り {teams.length - INITIAL_TEAMS_PER_DIVISION} チーム：{teams.slice(INITIAL_TEAMS_PER_DIVISION).map(t => t.name).join(" / ")}
                 </button>
               )}
-              {expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
+              {showAll && expandedDivTeams.has(div) && teams.length > INITIAL_TEAMS_PER_DIVISION && (
                 <button
                   onClick={() => setExpandedDivTeams(prev => { const n = new Set(prev); n.delete(div); return n; })}
                   style={{
@@ -391,11 +410,19 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
         })}
       </div>
 
-      {/* ── すべてを見る / 折りたたむ ── */}
-      {!showAll && hiddenCount > 0 ? (
+      {/* ── すべてを見る / 折りたたむ ──
+          ⚠️ **チームだけが隠れている場合も出す**（2026-08-13 修正）。
+             条件が `hiddenCount > 0`（＝隠れている**部門**の有無）だけだと、
+             部門が1つしかない企業でチームが3件を超えたとき、
+             畳んだ状態の部門内展開ボタンを外した分だけ**到達不能になる**。 */}
+      {!showAll && (hiddenCount > 0 || hiddenTeamCount > 0) ? (
         <ShowMoreButton
           variant="expand"
-          label={`すべてを見る（残り ${hiddenCount} 部門 · ${hiddenTeamCount} チーム）`}
+          label={
+            hiddenCount > 0
+              ? `すべてを見る（残り ${hiddenCount} 部門 · ${hiddenTeamCount} チーム）`
+              : `すべてを見る（残り ${hiddenTeamCount} チーム）`
+          }
           expanded={false}
           onClick={() => setShowAll(true)}
           fade

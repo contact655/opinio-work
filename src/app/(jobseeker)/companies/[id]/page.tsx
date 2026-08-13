@@ -35,6 +35,21 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, FollowButton } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
+import { CollapsibleList } from "./CollapsibleList";
+
+/*
+  各セクションの**初期表示の上限**（2026-08-13）。
+
+  取材の進んだ1社だけが全セクションをフル展開しており、ページ長の差が
+  そのまま「情報量の差」に見えていた。内容は減らさず初期表示の高さだけ揃える。
+
+  ⚠️ 上限は「畳む/畳まない」の判断にしか使わない。**データは全件描画して渡す。**
+  ⚠️ 製品の 5 は 900px でグリッド1行ぶん（`Math.min(全件, 5)` 列）。
+     ここを変えるときは列数の式（下の products-grid）も一緒に見ること。
+*/
+const PRODUCTS_LIMIT = 5;
+const JOBS_LIMIT = 3;
+const BENEFIT_CATEGORY_LIMIT = 3;
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan } from "@/lib/utils/salary";
@@ -624,8 +639,15 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 .products-grid { grid-template-columns: repeat(${Math.min(detail.main_products!.length, 5)}, minmax(0, 183px)); }
               }
             `}</style>
-            <div className="products-grid">
-              {detail.main_products!.map((raw, i) => {
+            {/* ⚠️ 初期表示は5件＝900px で1行ちょうど（2026-08-13）。
+                   **列数の式は変えていない**（`Math.min(全件, 5)`）。畳んでも列幅が
+                   動かないよう、母数は表示件数ではなく全件のまま。 */}
+            <CollapsibleList
+              limit={PRODUCTS_LIMIT}
+              labelCollapsed={`すべての製品を見る（残り ${detail.main_products!.length - PRODUCTS_LIMIT} 件）`}
+              containerClassName="products-grid"
+              buttonWrapperStyle={{ marginTop: "var(--space-3)" }}
+              items={detail.main_products!.map((raw, i) => {
                 /* ⚠️ `sub`（括弧内の説明）を捨てないこと（2026-08-12 修正）。
                       2026-08-12 まで `name` しか使っておらず、
                       「SmartHR（クラウド人事労務ソフト）」の括弧内が画面に出ていなかった。
@@ -685,7 +707,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                   </div>
                 );
               })}
-            </div>
+            />
           </div>
         )}
 
@@ -854,35 +876,45 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                 categorize() が "other" を返すので、必ず最後に「その他」として出す
                 （カテゴリ定義だけを回すと、その値が画面から消える）。
              ⚠️ 1件も無いカテゴリは見出しごと出さない。 */
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            {[...BENEFIT_CATEGORIES, { key: "other", label: "その他", keywords: [] }]
-              .filter((cat) => (grouped.get(cat.key)?.length ?? 0) > 0)
-              .map((cat) => (
-                <div key={cat.key}>
-                  <div style={{
-                    fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
-                    letterSpacing: "0.04em", marginBottom: 8,
-                  }}>
-                    {cat.label}
+          /* ⚠️ 上限は**カテゴリ数**。カテゴリの途中で切ると
+                「働き方」の一部だけ見えている状態になり、何が隠れているか分からない。 */
+          (() => {
+            const activeCats = [...BENEFIT_CATEGORIES, { key: "other", label: "その他", keywords: [] }]
+              .filter((cat) => (grouped.get(cat.key)?.length ?? 0) > 0);
+            return (
+              <CollapsibleList
+                limit={BENEFIT_CATEGORY_LIMIT}
+                labelCollapsed={`すべてを見る（残り ${activeCats.length - BENEFIT_CATEGORY_LIMIT} カテゴリ）`}
+                containerStyle={{ display: "flex", flexDirection: "column", gap: 18 }}
+                buttonWrapperStyle={{ marginTop: "var(--space-4)" }}
+                items={activeCats.map((cat) => (
+                  <div key={cat.key}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+                      letterSpacing: "0.04em", marginBottom: 8,
+                    }}>
+                      {cat.label}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+                      {(grouped.get(cat.key) ?? []).map((b) => {
+                        const def = getBenefitIconDef(b);
+                        return (
+                          <InfoCard
+                            key={b}
+                            icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
+                            label={b}
+                            color={def.color}
+                            bg={def.bg}
+                            border={def.border}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-                    {(grouped.get(cat.key) ?? []).map((b) => {
-                      const def = getBenefitIconDef(b);
-                      return (
-                        <InfoCard
-                          key={b}
-                          icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
-                          label={b}
-                          color={def.color}
-                          bg={def.bg}
-                          border={def.border}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-          </div>
+                ))}
+              />
+            );
+          })()
         ) : (
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
@@ -1139,11 +1171,58 @@ function JobsSection({
     );
   }
 
-  // Limit: top 3 categories × 3 items each
-  const displayCats = detail.jobs.slice(0, 3).map(cat => ({
-    ...cat,
-    displayItems: sortItems(cat.items).slice(0, 3),
-  }));
+  /*
+    初期表示は**求人3件**まで（2026-08-13）。それまでは「上位3カテゴリ × 各3件」で
+    最大9件出ており、求人の多い1社だけセクションが突出して長かった。
+
+    ⚠️ **カテゴリ単位ではなく求人の件数で切る。** カテゴリ単位だと
+       「1カテゴリに5件」の企業で上限が効かない。
+    ⚠️ **件数は削らない。** 全カテゴリ・全求人をノード化し、
+       畳む位置（3件目の求人の直後）を添字で渡すだけ。
+  */
+  const allCats = detail.jobs.map(cat => ({ ...cat, displayItems: sortItems(cat.items) }));
+  const showCatHeaders = detail.jobs.length > 1;
+  const jobNodes: React.ReactNode[] = [];
+  let shownJobs = 0;
+  let limitIndex = -1;
+  allCats.forEach((cat, ci) => {
+    if (showCatHeaders) {
+      jobNodes.push(
+        <div key={`h-${cat.cat}`} style={{
+          display: "flex", alignItems: "center", gap: 8,
+          /* 先頭以外は前のカテゴリとの間を空ける（元の marginBottom: 20 相当） */
+          marginTop: ci === 0 ? 0 : 14, marginBottom: 4,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+            {cat.cat}
+          </span>
+          <span style={{
+            fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
+            color: "var(--ink-mute)", background: "var(--bg-tint)",
+            border: "1px solid var(--line)", padding: "1px 7px", borderRadius: 100,
+          }}>
+            {cat.total}件
+          </span>
+          <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+        </div>
+      );
+    }
+        cat.displayItems.forEach((job, ji) => {
+      jobNodes.push(
+        <JobEmbedCard
+          key={job.id ?? `${ci}-${ji}`}
+          job={job}
+          catName={cat.cat}
+          companyHQ={companyHQ}
+        />
+      );
+      shownJobs += 1;
+      if (shownJobs === JOBS_LIMIT) limitIndex = jobNodes.length;
+    });
+  });
+  /* 3件に満たない企業は畳まない（limitIndex が立たないので全件が上限） */
+  if (limitIndex < 0) limitIndex = jobNodes.length;
+  const hiddenJobs = shownJobs - JOBS_LIMIT;
 
   return (
     <>
@@ -1192,48 +1271,19 @@ function JobsSection({
       </div>
 
       <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
-        {/* Categories */}
-        {displayCats.map((cat, ci) => (
-          <div key={cat.cat} style={{ marginBottom: ci < displayCats.length - 1 ? 20 : 0 }}>
-            {/* Flat category header */}
-            {detail.jobs.length > 1 && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8,
-                marginBottom: 10,
-              }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
-                  {cat.cat}
-                </span>
-                <span style={{
-                  fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
-                  color: "var(--ink-mute)", background: "var(--bg-tint)",
-                  border: "1px solid var(--line)", padding: "1px 7px", borderRadius: 100,
-                }}>
-                  {cat.total}件
-                </span>
-                <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-              </div>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {cat.displayItems.map((job, ji) => (
-                <JobEmbedCard
-                  key={job.id ?? `${ci}-${ji}`}
-                  job={job}
-                  catName={cat.cat}
-                  companyHQ={companyHQ}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* ⚠️ ここにあった「N件すべての求人を見る」は 2026-08-08 に削除した。
+        {/* ⚠️ 「N件すべての求人を見る」で**別ページへ飛ばさない**。
                リンク先の /companies/[id]/jobs は 2026-07-01（ca81d23a）に
-               「orphan page」として**ルートごと削除**されており、404 だった。
-               このセクションの上に求人が全件並んでいるので、リンク先を作り直すより
-               既にある導線に寄せる（記事CTA で /jobs?company= をやめたのと同じ判断）。
-            ⚠️ 求人が増えて一覧が必要になったら、`/jobs?company=` を実装するのが筋。
-               消えたルートを復活させると企業ページの求人セクションと内容が重複する。 */}
+               「orphan page」としてルートごと削除されており 404。
+               `/jobs?company=` も未実装なので、遷移先が存在しない。
+               その場で展開する（内容はこのセクションに全件ある）。 */}
+        <CollapsibleList
+          items={jobNodes}
+          limit={limitIndex}
+          labelCollapsed={`残り ${hiddenJobs} 件の求人を見る`}
+          containerStyle={{ display: "flex", flexDirection: "column", gap: 6 }}
+          buttonWrapperStyle={{ marginTop: 16 }}
+          fade
+        />
       </div>
     </section>
     </>
