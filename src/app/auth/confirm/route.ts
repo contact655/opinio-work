@@ -112,6 +112,48 @@ export async function GET(request: Request) {
   const fail = (code: AuthErrorCode) =>
     NextResponse.redirect(`${origin}/auth?error=${code}`);
 
+  /*
+    ⚠️ 旧テンプレート（`{{ .ConfirmationURL }}`）からの着地を受け止める保険。
+
+    ConfirmationURL は GoTrue の /verify を経由し、`?code=` を付けてここへ戻してくる。
+    token_hash 形式のテンプレートに差し替えるまでの移行期間、および
+    差し替えを取り消した場合に、このルートが「token_hash が無い」と言って
+    弾いてしまわないようにする。
+
+    ⚠️ **この経路は PKCE なので別ブラウザでは通らない**（元々の問題そのもの）。
+       あくまで「テンプレートが旧形式でも登録が完全に死なない」ための保険であって、
+       token_hash 形式への差し替えを不要にするものではない。
+  */
+  const code = searchParams.get("code");
+  if (!tokenHash && code) {
+    console.info(`${LOG} falling back to code exchange (legacy template):`, requestSignals(request));
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error || !data.session) {
+      console.error(`${LOG} exchangeCodeForSession failed:`, {
+        status: error?.status,
+        code: error?.code,
+        message: error?.message,
+        ...requestSignals(request),
+      });
+      return fail("exchange_failed");
+    }
+    const { isNewUser } = await resolveOwUserForVerifiedEmail(data.session, LOG);
+    if (next.startsWith("/biz") || next.startsWith("/auth/update-password")) {
+      return NextResponse.redirect(`${origin}${next}`);
+    }
+    return NextResponse.redirect(
+      await jobseekerDestination({
+        supabase,
+        session: data.session,
+        origin,
+        next: next === "/" ? "/companies" : next,
+        isNewUser,
+        logPrefix: LOG,
+      })
+    );
+  }
+
   if (!tokenHash || !type) {
     // メールソフトがリンクを途中で切ると起きる。何が欠けたかを残す。
     console.error(
