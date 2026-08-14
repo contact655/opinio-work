@@ -36,7 +36,10 @@ function extractToc(content: string): TocEntry[] {
 
 const LEGAL_LINKS = [
   { href: "/terms", label: "利用規約" },
-  { href: "/terms/business", label: "企業向け規約" },
+  /* ⚠️ 企業向けは2本（2026-08-14 に分割）。`/terms/business` は分割前の全文で、
+        過去の同意記録がこれを指しているので**残す**。導線からは外す。 */
+  { href: "/terms/listing", label: "掲載利用規約" },
+  { href: "/terms/placement", label: "人材紹介利用規約" },
   { href: "/privacy", label: "プライバシーポリシー" },
   { href: "/legal/agency", label: "職業安定法に基づく明示事項" },
 ];

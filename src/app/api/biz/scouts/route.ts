@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notify/email";
@@ -72,6 +74,18 @@ export async function POST(req: NextRequest) {
 
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  /* 人材紹介利用規約（成功報酬）への同意が要る。
+     ⚠️ **画面側（/biz/candidates）と同じ判定にすること。** 片方だけ変えると
+        「押せるのに 403」か「押せないのに送れる」になる（スカウトのフラグと同じ形）。 */
+  const { data: { user: scoutUser } } = await createClient().auth.getUser();
+  if (!scoutUser || !(await hasAgreedTerms(scoutUser.id, "placement"))) {
+    return NextResponse.json(
+      { error: "人材紹介利用規約への同意が必要です。「候補者を探す」から同意してください。" },
+      { status: 403 }
+    );
+  }
+
   if (!ctx.isPublished) {
     return NextResponse.json(
       { error: "運営審査が完了するまでスカウトを送信できません" },

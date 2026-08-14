@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyEditClient } from "./CompanyEditClient";
 import type { Genre } from "@/components/ui/GenreChipSelector";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 
 export const dynamic = "force-dynamic";
@@ -24,16 +25,10 @@ export default async function BizCompanyPage() {
   // 規約同意記録を確認（ow_terms_agreements）
   const { data: { user } } = await supabase.auth.getUser();
   const adminClient = createAdminClient();
-  const { data: existingAgreement } = user
-    ? await adminClient
-        .from("ow_terms_agreements")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("terms_type", "business")
-        .limit(1)
-        .maybeSingle()
-    : { data: null };
-  const termsAgreed = !!existingAgreement;
+  /* ⚠️ ここは **掲載** の同意だけを見る（2026-08-14 に分割）。
+        人材紹介（成功報酬）の同意は、スカウト・紹介を使う画面で取る。
+        分割前の `business` はどちらにも効く（`hasAgreedTerms` 参照）。 */
+  const termsAgreed = user ? await hasAgreedTerms(user.id, "listing") : false;
 
   const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, saasCatsResult, jobCntResult, storyCntResult, interviewScoreData] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),

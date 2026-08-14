@@ -98,7 +98,8 @@ export function JobseekerFooter() {
               {[
                 { href: "/contact",      label: "お問い合わせ" },
                 { href: "/terms",          label: "利用規約" },
-                { href: "/terms/business", label: "企業向け規約" },
+                { href: "/terms/listing", label: "掲載利用規約" },
+                { href: "/terms/placement", label: "人材紹介利用規約" },
                 { href: "/privacy",        label: "プライバシーポリシー" },
                 { href: "/legal/agency",   label: "職業安定法に基づく明示事項" },
               ].map(({ href, label }) => (

@@ -1,5 +1,8 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
+import { hasAgreedTerms } from "@/lib/business/termsAgreement";
+import { createClient } from "@/lib/supabase/server";
+import { PlacementTermsPanel } from "./PlacementTermsPanel";
 import { createAdminClient } from "@/lib/supabase/admin";
 import CandidatesClient from "./CandidatesClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
@@ -68,7 +71,14 @@ export default async function CandidatesPage() {
 
   /** スカウト送信が有効か。⚠️ API 側（POST /api/biz/scouts）と同じ判定にすること。
    *  片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。 */
-  const scoutSendingEnabled = process.env.SCOUT_SENDING_ENABLED === "true";
+  const scoutSendingEnabledEnv = process.env.SCOUT_SENDING_ENABLED === "true";
+
+  /* 人材紹介（成功報酬）の同意。⚠️ 掲載の同意とは別に、**使うときに**取る。
+     ⚠️ API 側（POST /api/biz/scouts）でも同じ判定をしている。
+        画面を隠すだけでは直接叩けてしまう。 */
+  const { data: { user: authUser } } = await createClient().auth.getUser();
+  const placementAgreed = authUser ? await hasAgreedTerms(authUser.id, "placement") : false;
+  const scoutSendingEnabled = scoutSendingEnabledEnv && placementAgreed;
 
   const adminClient = createAdminClient();
 
@@ -295,7 +305,10 @@ export default async function CandidatesPage() {
              求職者に届かないため。再開は SCOUT_SENDING_ENABLED=true
              （詳細は CLAUDE.md「スカウトは送れるが、受け取る手段が無い」）。
              候補者検索そのものは使えるのでページは残す。 */}
-      {!scoutSendingEnabled && (
+      {scoutSendingEnabledEnv && !placementAgreed && (
+        <PlacementTermsPanel companyId={ctx.tenantId} />
+      )}
+      {!scoutSendingEnabledEnv && (
         <div style={{
           background: "var(--warm-soft)", border: "1px solid #FDE68A",
           borderRadius: 10, padding: "14px 18px", marginBottom: 20,

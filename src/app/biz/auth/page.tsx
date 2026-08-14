@@ -368,7 +368,7 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
 
       {/* ⑨ Minimal footer */}
       <div style={{ textAlign: "center", padding: "24px 0 12px", fontSize: 11, color: "var(--ink-mute)", marginTop: "auto" }}>
-        <a href="/terms/business" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>利用規約（掲載企業）</a>
+        <a href="/terms/listing" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>掲載利用規約</a>
         <a href="/privacy" style={{ color: "var(--ink-mute)", textDecoration: "none", marginRight: 16 }}>プライバシーポリシー</a>
         <span>© 2026 Opinio Inc.</span>
       </div>
@@ -473,7 +473,6 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   const [contactName, setContactName] = useState("");
   const [contactTitle, setContactTitle] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
-  const [agreedFee, setAgreedFee] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -620,7 +619,6 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
             pending_company: companyName,
             pending_industry: industry || null,
             agreed_terms_business: agreedTerms,
-            agreed_fee_pct15: agreedFee,
             agreed_terms_version: "2026-07",
           },
           emailRedirectTo: confirmRedirectTo(location.origin, "/biz/companies/add/new"),
@@ -1038,7 +1036,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           onChange={setAgreedTerms}
           label={
             <>
-              <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>企業向け利用規約</a>
+              <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載利用規約</a>
               {" "}および{" "}
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>プライバシーポリシー</a>
               に同意します
@@ -1046,21 +1044,23 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           }
         />
 
-        <ConsentCheckbox
-          id="biz-agree-fee"
-          checked={agreedFee}
-          onChange={setAgreedFee}
-          label="成果報酬（成約時に採用者の理論年収の15%）が発生することを理解し、同意します"
-        />
+        {/* ⚠️ 成功報酬（人材紹介）の同意はここで取らない（2026-08-14 に規約を2本へ分割）。
+               掲載だけしたい企業に紹介の同意まで求めない。同意は
+               「候補者を探す」＝スカウトを使う時点で取る（PlacementTermsPanel）。 */}
+        <p style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8, margin: "-4px 0 12px" }}>
+          スカウト・人材紹介（成約時に採用者の理論年収の15%）をご利用の際は、
+          <a href="/terms/placement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>人材紹介利用規約</a>
+          への同意を別途お願いします。
+        </p>
 
         <button
           type="submit"
-          disabled={loading || !agreedTerms || !agreedFee}
+          disabled={loading || !agreedTerms}
           style={{
             ...submitBtnStyle,
             marginTop: 16,
-            opacity: loading || !agreedTerms || !agreedFee ? 0.45 : 1,
-            cursor: loading || !agreedTerms || !agreedFee ? "not-allowed" : "pointer",
+            opacity: loading || !agreedTerms ? 0.45 : 1,
+            cursor: loading || !agreedTerms ? "not-allowed" : "pointer",
           }}
         >
           {loading ? "登録中..." : "企業アカウントを開設する →"}
@@ -1539,7 +1539,7 @@ function ImplicitConsent() {
   return (
     <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", lineHeight: 1.8, marginTop: 12 }}>
       登録することで{" "}
-      <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>利用規約（掲載企業向け）</a>
+      <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載利用規約</a>
       {" "}および{" "}
       <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>プライバシーポリシー</a>
       {" "}に同意したものとみなします。

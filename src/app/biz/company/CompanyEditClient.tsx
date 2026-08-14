@@ -40,7 +40,7 @@ type Props = {
   isAdmin?: boolean;
   /** ow_genres 全件（display_order 昇順ソート済み）。GenreChipSelector に渡す。 */
   availableGenres?: Genre[];
-  /** 掲載・人材紹介利用規約への同意済みか */
+  /** 掲載利用規約への同意済みか */
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
@@ -540,12 +540,12 @@ export function CompanyEditClient({
         body: JSON.stringify({
           userId,
           companyId,
-          termsType: "business",
+          termsType: "listing",
           termsVersion: "2026-08-01",
         }),
       });
       setTermsAgreed(true);
-      showToast("掲載・人材紹介利用規約への同意を記録しました ✓", "default");
+      showToast("掲載利用規約への同意を記録しました ✓", "default");
     } finally {
       setIsRecordingAgreement(false);
     }
@@ -808,14 +808,22 @@ export function CompanyEditClient({
                 borderRadius: 12,
               }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-                  掲載・人材紹介利用規約への同意
+                  掲載利用規約への同意
                 </p>
                 <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.8 }}>
                   OPINIOに企業情報を掲載するには、
-                  <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
-                    掲載・人材紹介利用規約
+                  <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
+                    掲載利用規約
                   </a>
                   への同意が必要です。規約の全文を確認の上、同意してください。
+                  <br />
+                  {/* ⚠️ 成功報酬（人材紹介）の同意はここで取らない。
+                         掲載だけしたい企業に紹介の同意まで求めない（2026-08-14 分割）。 */}
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                    成功報酬（人材紹介）については、スカウト・紹介機能を使うときに
+                    <a href="/terms/placement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>人材紹介利用規約</a>
+                    への同意をお願いします。
+                  </span>
                 </p>
                 <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 16 }}>
                   <input
@@ -825,7 +833,7 @@ export function CompanyEditClient({
                     style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer" }}
                   />
                   <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
-                    <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載・人材紹介利用規約</a>
+                    <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載利用規約</a>
                     の全文を読み、内容に同意します。
                   </span>
                 </label>
@@ -854,9 +862,9 @@ export function CompanyEditClient({
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
-                  掲載・人材紹介利用規約に同意済み
+                  掲載利用規約に同意済み
                 </span>
-                <a href="/terms/business" target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-soft)", textDecoration: "underline" }}>
+                <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-soft)", textDecoration: "underline" }}>
                   規約全文を確認する →
                 </a>
               </div>
