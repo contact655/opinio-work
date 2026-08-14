@@ -1,3 +1,4 @@
+import { companyDisplayName } from "@/lib/companies/displayName";
 /**
  * ow_experiences の会社名を解決する共通ヘルパー。
  *
@@ -27,18 +28,32 @@
 export type ExperienceCompanyRow = {
   company_text?: string | null;
   company_anonymized?: string | null;
-  /** `.select("... , ow_companies(name)")` の結果。エイリアスした場合は company も見る */
-  ow_companies?: { name?: string | null } | { name?: string | null }[] | null;
-  company?: { name?: string | null } | { name?: string | null }[] | null;
+  /** `.select("... , ow_companies(name, name_en)")` の結果。エイリアスした場合は company も見る */
+  ow_companies?: CompanyRel | CompanyRel[] | null;
+  company?: CompanyRel | CompanyRel[] | null;
 };
 
+type CompanyRel = { name?: string | null; name_en?: string | null };
+
 /** PostgREST は to-one でもクライアント設定次第で配列を返すことがあるため両方受ける */
-function firstName(
-  rel: { name?: string | null } | { name?: string | null }[] | null | undefined
-): string | null {
+function firstRel(rel: CompanyRel | CompanyRel[] | null | undefined): CompanyRel | null {
   if (!rel) return null;
-  const obj = Array.isArray(rel) ? rel[0] : rel;
-  return obj?.name ?? null;
+  return (Array.isArray(rel) ? rel[0] : rel) ?? null;
+}
+
+/**
+ * マスタと紐づいた経歴の社名。**企業ページ・企業一覧と同じ表示名にする。**
+ *
+ * ⚠️ 2026-08-15 まで `ow_companies.name`（正式名称）をそのまま返しており、
+ *    同じ会社が企業一覧では「Salesforce」、ユーザー一覧の経歴では
+ *    「株式会社セールスフォース・ジャパン」と出ていた。
+ *    表示名の組み立ては `lib/companies/displayName.ts` に集約してあるので、
+ *    **ここでもそれを通す。正規表現をコピーしない。**
+ */
+function masterDisplayName(rel: CompanyRel | CompanyRel[] | null | undefined): string | null {
+  const c = firstRel(rel);
+  if (!c?.name) return null;
+  return companyDisplayName(c.name, c.name_en).displayName;
 }
 
 /**
@@ -48,8 +63,8 @@ function firstName(
 export function resolveExperienceCompanyName(exp: ExperienceCompanyRow | null | undefined): string | null {
   if (!exp) return null;
   return (
-    firstName(exp.ow_companies) ??
-    firstName(exp.company) ??
+    masterDisplayName(exp.ow_companies) ??
+    masterDisplayName(exp.company) ??
     exp.company_text ??
     exp.company_anonymized ??
     null
@@ -86,4 +101,6 @@ export function resolveExperienceCompanyLabel(
  *   .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
  */
 export const EXPERIENCE_COMPANY_COLS =
-  "company_id, company_text, company_anonymized, ow_companies(name)";
+  /* ⚠️ `name_en` も取る。表示名は `companyDisplayName` が name_en 優先で作るため、
+        取り忘れると経歴だけ正式名称（「株式会社セールスフォース・ジャパン」）に戻る。 */
+  "company_id, company_text, company_anonymized, ow_companies(name, name_en)";
