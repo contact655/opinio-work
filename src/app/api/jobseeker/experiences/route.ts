@@ -136,8 +136,9 @@ export async function GET() {
       companyAnonymized: r.company_anonymized as string | undefined || undefined,
       displayCompanyName,
       roleCategoryId: roleUuid,
-      /* ⚠️ 主職種を必ず含める。行が無い経歴でも配列は返す（呼び出し側で分岐させない）。 */
-      roleCategoryIds: rolesByExperience.get(r.id as string) ?? [roleUuid],
+      /* ⚠️ 主職種を**必ず先頭に混ぜる**。行が無い経歴でも配列を返し、
+            junction が主職種と違う値だけを持つ経歴でも主職種を落とさない。 */
+      roleCategoryIds: Array.from(new Set([roleUuid, ...(rolesByExperience.get(r.id as string) ?? [])])),
       roleTitle: r.role_title as string | undefined || undefined,
       department: (r.department as string | null) ?? undefined,
       rank: (r.rank as string | null) ?? null,

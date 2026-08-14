@@ -1292,6 +1292,10 @@ export type CompanyEmployee = {
   endedAt: string | null;   // "YYYY-MM" 形式、OB のみ使用
   // === Phase Q-5 追加: カテゴリ情報 ===
   roleCategoryId: string | null;
+  /* 複数職種（`ow_experience_roles`）。**主職種を必ず含む。**
+     ⚠️ 1つしか無い経歴には junction の行が無いので、その場合は
+        `[roleCategoryId]` を入れる。呼び出し側で「行が無い場合」を分岐させない。 */
+  roleCategoryIds: string[];
   roleCategoryName: string | null;
   roleParentId: string | null;
   roleParentName: string | null;
@@ -1372,6 +1376,31 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     return EMPTY;
   }
 
+  /* 複数職種。現役・OB 両方の経歴ぶんをまとめて1回で引く。
+     ⚠️ 行が無い経歴が普通（1職種だけなら書かない仕様）。無ければ主職種だけを使う。 */
+  /* ⚠️ currentRows / alumniRows は `any` で受けているので、
+        ここも明示的に注釈する（暗黙 any は lint とビルドで落ちる）。 */
+  const expIds = [
+    ...((currentRows ?? []) as { id: string }[]).map((r) => r.id),
+    ...((alumniRows ?? []) as { id: string }[]).map((r) => r.id),
+  ];
+  const rolesByExp = new Map<string, string[]>();
+  if (expIds.length > 0) {
+    const { data: erRows, error: erErr } = await supabase
+      .from("ow_experience_roles")
+      .select("experience_id, role_id, is_primary")
+      .in("experience_id", expIds)
+      .order("is_primary", { ascending: false });
+    /* ⚠️ 握り潰さない。ここが黙って空になると「複数職種を選んだのに求人ページに出ない」
+          という、原因の見えない不具合になる。 */
+    if (erErr) console.error("[getCompanyEmployees experience_roles]", erErr.message);
+    for (const r of erRows ?? []) {
+      const k = r.experience_id as string;
+      if (!rolesByExp.has(k)) rolesByExp.set(k, []);
+      rolesByExp.get(k)!.push(r.role_id as string);
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function mapEmp(row: Record<string, any>, endedAt?: string | null, startedAt?: string | null): CompanyEmployee {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1394,6 +1423,13 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       startedAt: startedAt ? (startedAt as string).slice(0, 7) : null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
       roleCategoryId,
+      /* ⚠️ 主職種を**必ず先頭に混ぜる**。junction 側の行が主職種と違う値だけを
+            持っている経歴が実在するので（過去の migration が入れた6件）、
+            junction だけを見ると主職種を落としてしまう。 */
+      roleCategoryIds: Array.from(new Set([
+        ...(roleCategoryId ? [roleCategoryId] : []),
+        ...(rolesByExp.get(row.id as string) ?? []),
+      ])),
       roleCategoryName: (role?.name as string | null) ?? null,
       roleParentId: (role?.parent_id as string | null) ?? null,
       roleParentName: (parent?.name as string | null) ?? null,
@@ -1499,11 +1535,20 @@ export async function getJobEmployees(
   const tree = await getRoleTree();
   const jobLineage = new Set(expandWithAncestors(tree, [roleCategoryId]));
 
-  const matchRole = (emp: CompanyEmployee) =>
-    // 本人の職種が、求人職種か その祖先（＝本人が親カテゴリで登録している場合を含む）
-    (emp.roleCategoryId != null && jobLineage.has(emp.roleCategoryId)) ||
-    // 本人が子職種で、求人が親職種（従来から拾えていた向き）
-    emp.roleParentId === roleCategoryId;
+  /* ⚠️ **本人が複数職種を持つ場合は、どれか1つでも一致すれば出す**（2026-08-14）。
+        主職種だけで判定すると、2つ目以降に選んだ職種の求人に本人が出ない。 */
+  const matchRole = (emp: CompanyEmployee) => {
+    const empRoles = emp.roleCategoryIds.length > 0
+      ? emp.roleCategoryIds
+      : (emp.roleCategoryId ? [emp.roleCategoryId] : []);
+    if (empRoles.length === 0) return false;
+    // ① 本人の職種が、求人職種か その祖先（＝本人が親カテゴリで登録している場合）
+    if (empRoles.some((r) => jobLineage.has(r))) return true;
+    /* ② 本人が子職種で、求人が親職種。
+          ⚠️ **本人側だけを祖先展開する。** 両方展開すると、同じ親を共有する
+             兄弟職種まで一致してしまう（2026-08-10 の判断をそのまま踏襲）。 */
+    return expandWithAncestors(tree, empRoles).includes(roleCategoryId);
+  };
 
   const current = all.current.filter(matchRole);
   const alumni  = all.alumni.filter(matchRole);

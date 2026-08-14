@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/client";
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
+/* ⚠️ 学歴の区分もここに直書きしない。API（educations POST）が `DEGREES` で検証しており、
+      別の語彙を送ると 400 になる（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
+import { DEGREES, DEGREE_LABELS } from "@/lib/constants/careerOptions";
 /* ⚠️ 上限は API と同じ定数を見る。ここに数字を書かない。 */
 import { MAX_ROLES_PER_EXPERIENCE as MAX_ROLES } from "@/lib/constants/experienceRoles";
 
@@ -52,6 +55,8 @@ type PastJob = {
 type EducationRow = {
   key: number;
   school: string;
+  /** `DEGREES` の値。空は未選択（API は空なら null にする）。 */
+  degree: string;
   faculty: string;
   gradYear: string;
   gradMonth: string;
@@ -62,7 +67,7 @@ const emptyPastJob = (key: number): PastJob => ({
   startYear: "", startMonth: "", endYear: "", endMonth: "",
 });
 const emptyEducation = (key: number): EducationRow => ({
-  key, school: "", faculty: "", gradYear: "", gradMonth: "",
+  key, school: "", degree: "", faculty: "", gradYear: "", gradMonth: "",
 });
 
 /**
@@ -274,6 +279,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
         if (!e.school.trim()) continue;
         await postJson("/api/jobseeker/educations", {
           school: e.school.trim(),
+          /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾く。 */
+          ...(e.degree ? { degree: e.degree } : {}),
           ...(e.faculty.trim() ? { faculty: e.faculty.trim() } : {}),
           ...(e.gradYear && e.gradMonth ? { graduated_at: `${e.gradYear}-${e.gradMonth}` } : {}),
         }, "学歴", failures);
@@ -762,6 +769,17 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                   style={textInputStyle}
                   aria-label={`学歴 ${idx + 1} の学校名`}
                 />
+                {/* 学校区分。⚠️ 値は `DEGREES`（API の検証と同じ定数）、表示は `DEGREE_LABELS`。
+                       小学校・中学校・高等学校・専門学校・短期大学・大学・大学院まで選べる。 */}
+                <select
+                  value={e.degree}
+                  onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, degree: ev.target.value } : p))}
+                  style={{ ...selectStyle, width: "100%", marginTop: 8 }}
+                  aria-label={`学歴 ${idx + 1} の区分`}
+                >
+                  <option value="">区分（任意）</option>
+                  {DEGREES.map((d) => <option key={d} value={d}>{DEGREE_LABELS[d]}</option>)}
+                </select>
                 <input
                   type="text"
                   value={e.faculty}
