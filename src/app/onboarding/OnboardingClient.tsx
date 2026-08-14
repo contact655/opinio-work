@@ -63,9 +63,14 @@ const emptyEducation = (key: number): EducationRow => ({
   key, school: "", faculty: "", gradYear: "", gradMonth: "",
 });
 
-/** 保存できる過去の職歴か（現職と同じ3点）。 */
+/**
+ * 保存できる過去の職歴か。
+ * ⚠️ 退職年月も必須。`is_current = false` かつ `ended_at` が空の経歴は、
+ *    企業ページの現役社員にも OB/OG にも出ない（OB 側が `ended_at is not null` を要求する）。
+ */
 const pastJobReady = (j: PastJob) =>
-  (!!j.company || j.companyText.trim().length > 0) && !!j.roleId && !!j.startYear && !!j.startMonth;
+  (!!j.company || j.companyText.trim().length > 0) &&
+  !!j.roleId && !!j.startYear && !!j.startMonth && !!j.endYear && !!j.endMonth;
 
 /**
  * POST して、落ちたら `failures` に積む。
@@ -125,6 +130,15 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const [roleId, setRoleId] = useState<string>("");
   const [startedYear, setStartedYear] = useState<string>("");
   const [startedMonth, setStartedMonth] = useState<string>("");
+  /* 在籍中かどうか。**離職中の人もここを通る**（2026-08-14 追加）。
+     ⚠️ 既定は在籍中。大半は在職中で、外すと全員に退職年月を聞くことになる。
+     ⚠️ 在籍中でないときは退職年月を**必須**にする。`is_current = false` かつ
+        `ended_at` が空の経歴は、企業ページの現役社員にも OB/OG にも出ない
+        （`getCompanyEmployees` の OB 側が `ended_at is not null` を要求する）。
+        どこにも出ない行を黙って作らない。 */
+  const [isCurrent, setIsCurrent] = useState(true);
+  const [endedYear, setEndedYear] = useState<string>("");
+  const [endedMonth, setEndedMonth] = useState<string>("");
   /* 勤務地・勤務形態（どちらも任意）。
      ⚠️ **後から追記してもらうのが最も難しいデータなので、入口で聞く。**
         「フルリモートと書いてある会社に、実際にリモートで働いている人がいるか」を
@@ -175,7 +189,9 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* 会社（マスタ or 自由入力）・職種・入社年月が揃って初めて保存できる。
      ⚠️ 任意入力のままにする。埋めなければ従来どおり onboarding_completed だけ記録する。 */
   const hasCompany = !!selectedCompany || query.trim().length > 0;
-  const canSaveExperience = hasCompany && !!roleId && !!startedYear && !!startedMonth;
+  const hasEnded = !!endedYear && !!endedMonth;
+  const canSaveExperience =
+    hasCompany && !!roleId && !!startedYear && !!startedMonth && (isCurrent || hasEnded);
 
   const finish = async () => {
     setSaving(true);
@@ -217,7 +233,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             : { company_text: query.trim() }),
           role_category_id: roleId,
           started_at: `${startedYear}-${startedMonth}`,
-          is_current: true,
+          is_current: isCurrent,
+          ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
           /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾くので、
                 "" を送ると登録の入口が落ちる。 */
           ...(prefecture ? { prefecture } : {}),
@@ -238,9 +255,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ...(j.company ? { company_id: j.company.id } : { company_text: j.companyText.trim() }),
           role_category_id: j.roleId,
           started_at: `${j.startYear}-${j.startMonth}`,
-          /* ⚠️ 終了年月は任意。片方だけ選ばれているときは送らない
-                （`YYYY-` のような値を作ると 400 になる）。 */
-          ...(j.endYear && j.endMonth ? { ended_at: `${j.endYear}-${j.endMonth}` } : {}),
+          ended_at: `${j.endYear}-${j.endMonth}`,
           is_current: false,
           visibility_company: "real",
           visibility_company_profile: "real",
@@ -386,7 +401,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700,
             color: "var(--ink)", marginBottom: 6, lineHeight: 1.45,
           }}>
-            現在お勤めの会社を教えてください
+            直近のお勤め先を教えてください
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
             {/*
@@ -472,6 +487,50 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 </select>
               </div>
 
+              {/* 在籍中かどうか（2026-08-14 追加）
+                  ⚠️ **離職中の人もこの画面を通る。** 「現在お勤めの会社」しか聞かないと、
+                     離職中の人は在籍していない会社を現職として登録するしかなかった。
+                  ⚠️ 外したときは退職年月を必須にする。`is_current = false` かつ
+                     `ended_at` が空の経歴は、企業ページの現役社員にも OB/OG にも出ない。 */}
+              <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={isCurrent}
+                  onChange={(e) => setIsCurrent(e.target.checked)}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                  現在も在籍中
+                </span>
+              </label>
+
+              {!isCurrent && (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>
+                    退職年月
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <select
+                      value={endedYear}
+                      onChange={(e) => setEndedYear(e.target.value)}
+                      style={selectStyle}
+                      aria-label="退職年"
+                    >
+                      <option value="">年</option>
+                      {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+                    </select>
+                    <select
+                      value={endedMonth}
+                      onChange={(e) => setEndedMonth(e.target.value)}
+                      style={selectStyle}
+                      aria-label="退職月"
+                    >
+                      <option value="">月</option>
+                      {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
+
               {/*
                 勤務地・勤務形態（どちらも任意・2026-08-13 追加）
                 ⚠️ **後から追記してもらうのが最も難しいデータなので、入口で聞く。**
@@ -534,7 +593,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                      知らせずに保存するのは同意を取ったことにならない。
                   ⚠️ ただし長い説明にしない。3文あったものを1文に縮めた（2026-08-14）。 */}
               <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 18, lineHeight: 1.8 }}>
-                その企業のページに「現役社員」として表示されます。見えるのは
+                その企業のページに{isCurrent ? "「現役社員」" : "「OB・OG」"}として表示されます。見えるのは
                 <strong style={{ color: "var(--ink-soft)" }}> OPINIO にログインしている人 </strong>
                 だけです。
               </p>
@@ -622,7 +681,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                       style={selectStyle}
                       aria-label={`職歴 ${idx + 1} の退職年`}
                     >
-                      <option value="">退職年（任意）</option>
+                      <option value="">退職年</option>
                       {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
                     </select>
                     <select
@@ -639,7 +698,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                   {/* ⚠️ 揃っていない行は保存されない。黙って捨てない。 */}
                   {touched && !ready && (
                     <p style={{ fontSize: 12, fontWeight: 600, color: "#92400E", marginTop: 10, lineHeight: 1.7 }}>
-                      会社名・職種・入社年月がそろうと保存されます。
+                      会社名・職種・入社年月・退職年月がそろうと保存されます。
                     </p>
                   )}
                 </div>
@@ -736,7 +795,9 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           {hasCompany && !canSaveExperience && (
             <p style={{ fontSize: 12, fontWeight: 600, color: "#92400E", background: "var(--warm-soft)",
                         border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginTop: 16, lineHeight: 1.7 }}>
-              職種と入社年月を選ぶと、経歴として保存されます。
+              {isCurrent
+                ? "職種と入社年月を選ぶと、経歴として保存されます。"
+                : "職種・入社年月・退職年月を選ぶと、経歴として保存されます。"}
               このまま進めると会社名は保存されません（あとからプロフィール編集で登録できます）。
             </p>
           )}
