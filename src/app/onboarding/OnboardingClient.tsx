@@ -1140,12 +1140,9 @@ function CompanyPicker({
         )}
       </div>
 
-      {selected && (
-        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          OPINIOに掲載中の企業と連携します
-        </p>
-      )}
+      {/* ⚠️ 選択後の「OPINIOに掲載中の企業と連携します」は出さない（2026-08-15 削除）。
+             選ばれた企業はカード（社名＋業種）で見えているので、それ以上の説明は要らない。
+             「掲載」は運営側の事情で、本人の職歴を書く欄には関係が無い。 */}
       {/*
         ⚠️ ここを「候補が見つかりません」に戻さないこと（2026-08-13 変更）。
            「見つかりません」は検索の失敗＝自分のミスとして読まれ、
