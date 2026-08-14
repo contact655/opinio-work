@@ -4,6 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo } from "@/lib/auth/redirects";
+/* ⚠️ 業種の選択肢はここに書かない。求職者側の業種フィルタと同じ出どころから取る
+      （別リストを持つと、企業が選んだ値がフィルタに一切引っかからなくなる）。 */
+import { INDUSTRY_SELECT_GROUPS } from "@/lib/search/industryGroups";
 
 type Mode = "signup" | "login";
 
@@ -26,16 +29,7 @@ type InviteContext = {
 };
 
 
-const INDUSTRY_OPTIONS = [
-  "IT / SaaS",
-  "コンサルティング",
-  "金融 / FinTech",
-  "製造業",
-  "小売 / EC",
-  "メディア",
-  "医療 / ヘルスケア",
-  "その他",
-];
+
 
 const EMPLOYEE_COUNT_OPTIONS = [
   "1-10名",
@@ -1006,7 +1000,11 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
               onChange={(e) => setIndustry(e.target.value)} style={selectStyle}
               onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)}>
               <option value="">任意</option>
-              {INDUSTRY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              {INDUSTRY_SELECT_GROUPS.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                </optgroup>
+              ))}
             </select>
           </div>
           <div>

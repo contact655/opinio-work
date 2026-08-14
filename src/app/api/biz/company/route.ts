@@ -7,6 +7,7 @@ import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { isValidIndustry } from "@/lib/search/industryGroups";
 import type { BizCompany } from "@/lib/business/mockCompany";
 
 
@@ -124,6 +125,16 @@ export async function PATCH(req: Request) {
   // draft_data があれば本番カラムに展開。なければ is_published のみ更新
   // ※ genres は ow_companies カラムに存在しない（関係テーブル管理）ため除外
   const d = (draftData ?? {}) as Record<string, unknown>;
+
+  /* 業種は選択肢の外の値を受け取らない。
+     ⚠️ 旧表記（`LEGACY_INDUSTRY_VALUES`）は通す。弾くと、その値を持つ既存企業が
+        業種と無関係な項目を保存しただけで 400 になる。 */
+  if (typeof d.industry === "string" && d.industry.trim() && !isValidIndustry(d.industry.trim())) {
+    return NextResponse.json(
+      { error: "INVALID_INDUSTRY", message: "業種の値が不正です。" },
+      { status: 400 }
+    );
+  }
   const s = (v: unknown): string | null => typeof v === "string" ? v : null;
   const n = (v: unknown): number | null => typeof v === "number" ? v : null;
   const sa = (v: unknown): string[] | null => Array.isArray(v) ? v as string[] : null;

@@ -94,16 +94,11 @@ export const COMPANY_SECTIONS = [
 
 export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];
 
-export const INDUSTRY_OPTIONS = [
-  "IT / SaaS",
-  "コンサルティング",
-  "金融 / FinTech",
-  "製造業",
-  "医療 / ヘルスケア",
-  "教育",
-  "EC / 小売",
-  "その他",
-];
+/* ⚠️ 業種の選択肢をここに持たない（2026-08-14）。求職者側の業種フィルタと
+      同じ出どころ（`lib/search/industryGroups.ts`）から再輸出するだけにする。
+      以前はここに独自の8値があり、`/biz/company` の編集フォームが
+      フィルタに存在しない値を保存できてしまっていた。 */
+export { INDUSTRY_OPTIONS } from "@/lib/search/industryGroups";
 
 export const PHASE_OPTIONS = [
   "シード",

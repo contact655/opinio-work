@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isValidIndustry } from "@/lib/search/industryGroups";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
@@ -143,6 +144,16 @@ export async function POST(req: Request) {
       const taken = new Set((takenRows ?? []).map((r) => r.slug as string).filter(Boolean));
       slug = resolveSlugCollision(slugBase, taken);
     }
+  }
+
+  /* 業種は選択肢の外の値を受け取らない。
+     ⚠️ 黙って null に落とさず 400 で返す（CLAUDE.md「選択肢が決まっている値は
+        UI / API / DB の CHECK を3つ揃える」）。空文字は未設定なので null にする。 */
+  if (typeof body.industry === "string" && body.industry.trim() && !isValidIndustry(body.industry.trim())) {
+    return NextResponse.json(
+      { error: "INVALID_INDUSTRY", message: "業種の値が不正です。" },
+      { status: 400 }
+    );
   }
 
   // 5. ow_companies INSERT

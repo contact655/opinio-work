@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+/* ⚠️ 業種の選択肢はここに書かない。求職者側の業種フィルタと同じ出どころから取る
+      （別リストを持つと、企業が選んだ値がフィルタに一切引っかからなくなる）。 */
+import { INDUSTRY_SELECT_GROUPS } from "@/lib/search/industryGroups";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -34,16 +37,7 @@ type ConflictInfo = {
 
 // ── 定数 ──────────────────────────────────────────────────────────────────
 
-const INDUSTRY_OPTIONS = [
-  "IT / SaaS",
-  "コンサルティング",
-  "金融 / FinTech",
-  "製造業",
-  "小売 / EC",
-  "メディア",
-  "医療 / ヘルスケア",
-  "その他",
-];
+
 
 const selectStyle: React.CSSProperties = {
   display: "block", width: "100%", padding: "11px 14px",
@@ -831,8 +825,10 @@ export function CreateCompanyClient({
             style={{ ...selectStyle, color: industry ? "var(--ink)" : "var(--ink-mute)" }}
           >
             <option value="">選択してください</option>
-            {INDUSTRY_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o}</option>
+            {INDUSTRY_SELECT_GROUPS.map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.options.map((o) => <option key={o} value={o}>{o}</option>)}
+              </optgroup>
             ))}
           </select>
         </div>
