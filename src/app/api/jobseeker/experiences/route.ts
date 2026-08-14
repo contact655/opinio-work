@@ -8,6 +8,9 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+/** 1つの経歴に紐づけられる職種の上限。⚠️ UI 側の上限もこの値を見ること。 */
+export const MAX_ROLES_PER_EXPERIENCE = 5;
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function resolveOwUserId(
@@ -76,6 +79,27 @@ export async function GET() {
     }
   }
 
+  /* 複数職種（`ow_experience_roles`）。
+     ⚠️ **主職種しか持たない経歴では行が無い**（1件のときは書かない仕様）。
+        その場合は `role_category_id` だけを返す。 */
+  const rolesByExperience = new Map<string, string[]>();
+  if (experienceIds.length > 0) {
+    const { data: roleRows, error: roleErr } = await createAdminClient()
+      .from("ow_experience_roles")
+      .select("experience_id, role_id, is_primary")
+      .in("experience_id", experienceIds)
+      .order("is_primary", { ascending: false });
+    if (roleErr) {
+      console.error("[GET /api/jobseeker/experiences roles]", roleErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    for (const r of roleRows ?? []) {
+      const key = r.experience_id as string;
+      if (!rolesByExperience.has(key)) rolesByExperience.set(key, []);
+      rolesByExperience.get(key)!.push(r.role_id as string);
+    }
+  }
+
   // Resolve company names for master entries
   const companyIds = (rows ?? [])
     .filter((r) => r.company_id)
@@ -114,6 +138,8 @@ export async function GET() {
       companyAnonymized: r.company_anonymized as string | undefined || undefined,
       displayCompanyName,
       roleCategoryId: roleUuid,
+      /* ⚠️ 主職種を必ず含める。行が無い経歴でも配列は返す（呼び出し側で分岐させない）。 */
+      roleCategoryIds: rolesByExperience.get(r.id as string) ?? [roleUuid],
       roleTitle: r.role_title as string | undefined || undefined,
       department: (r.department as string | null) ?? undefined,
       rank: (r.rank as string | null) ?? null,
@@ -181,6 +207,21 @@ export async function POST(req: Request) {
   if (!roleId) {
     return NextResponse.json({ error: "Invalid role_category_id" }, { status: 400 });
   }
+
+  /* 複数職種（任意）。
+     ⚠️ `ow_experiences.role_category_id` は1つしか持てないので、**先頭を主職種**として
+        そこに入れ、全部を `ow_experience_roles` に書く。列を増やさないのは、
+        既存の表示・マッチングが `role_category_id` を前提にしているため
+        （読み側を全部直すまでは、主職種だけでも従来どおり動く必要がある）。
+     ⚠️ 不正な UUID は 400。黙って捨てない。 */
+  const extraRoleIds = Array.isArray(body.role_category_ids)
+    ? (body.role_category_ids as unknown[]).map(String)
+    : [];
+  if (extraRoleIds.some((r) => !UUID_RE.test(r))) {
+    return NextResponse.json({ error: "Invalid role_category_ids" }, { status: 400 });
+  }
+  /* 主職種を必ず先頭に置いて重複を除く。上限5件（入口で選ばせすぎない）。 */
+  const allRoleIds = Array.from(new Set([roleId, ...extraRoleIds])).slice(0, MAX_ROLES_PER_EXPERIENCE);
 
   const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
   if (!DATE_RE.test(body.started_at as string)) {
@@ -273,6 +314,29 @@ export async function POST(req: Request) {
   }
 
   const newId = inserted.id as string;
+
+  /* 複数職種を `ow_experience_roles` に書く。
+     ⚠️ **admin クライアントを使う。** このテーブルは RLS が有効で SELECT のポリシーしか無く、
+        authenticated からの INSERT は 0 行で落ちる（GRANT はあるので権限エラーにもならず、
+        黙って入らない形になる）。所有者の確認はこの API が上でやっている。
+     ⚠️ 1件だけのときは書かない。`role_category_id` と重複するだけで、
+        「複数選んだ経歴」と「1つだけの経歴」を後から見分けられなくなる。 */
+  if (allRoleIds.length > 1) {
+    const { error: roleErr } = await createAdminClient()
+      .from("ow_experience_roles")
+      .insert(allRoleIds.map((rid, i) => ({
+        experience_id: newId,
+        role_id: rid,
+        is_primary: i === 0,
+      })));
+    if (roleErr) {
+      console.error("[POST /api/jobseeker/experiences roles]", roleErr.message);
+      return NextResponse.json(
+        { error: "ROLES_SAVE_FAILED", message: "経歴は保存しましたが、職種の保存に失敗しました。", id: newId },
+        { status: 500 }
+      );
+    }
+  }
 
   /* 入社前後のギャップ（別テーブル）。
      ⚠️ 失敗を握り潰さない。経歴だけ作られてギャップが消える状態にしない。 */

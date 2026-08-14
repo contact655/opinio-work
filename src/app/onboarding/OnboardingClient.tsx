@@ -104,6 +104,9 @@ async function postJson(
 
 export type OnboardingRole = { id: string; name: string };
 
+/** 1つの経歴に選べる職種の上限。⚠️ API（experiences POST）の上限と同じ値にすること。 */
+const MAX_ROLES = 5;
+
 /** 入社年の選択肢。⚠️ ビルド時ではなく描画時に現在年を取る */
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 51 }, (_, i) => CURRENT_YEAR - i);
@@ -127,7 +130,11 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
      ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
         2026-08-10 まではここで会社名だけ聞いて**捨てていた**。 */
-  const [roleId, setRoleId] = useState<string>("");
+  /* 職種は複数選べる（2026-08-14）。
+     ⚠️ 先頭が主職種になる。`ow_experiences.role_category_id` は1つしか持てないので、
+        API が先頭をそこへ入れ、全部を `ow_experience_roles` に書く。
+     ⚠️ 上限は API と同じ5件。ここだけ増やしても API が切り捨てる。 */
+  const [roleIds, setRoleIds] = useState<string[]>([]);
   const [startedYear, setStartedYear] = useState<string>("");
   const [startedMonth, setStartedMonth] = useState<string>("");
   /* 在籍中かどうか。**離職中の人もここを通る**（2026-08-14 追加）。
@@ -191,7 +198,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const hasCompany = !!selectedCompany || query.trim().length > 0;
   const hasEnded = !!endedYear && !!endedMonth;
   const canSaveExperience =
-    hasCompany && !!roleId && !!startedYear && !!startedMonth && (isCurrent || hasEnded);
+    hasCompany && roleIds.length > 0 && !!startedYear && !!startedMonth && (isCurrent || hasEnded);
 
   const finish = async () => {
     setSaving(true);
@@ -231,7 +238,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ...(selectedCompany
             ? { company_id: selectedCompany.id }
             : { company_text: query.trim() }),
-          role_category_id: roleId,
+          role_category_id: roleIds[0],
+          ...(roleIds.length > 1 ? { role_category_ids: roleIds } : {}),
           started_at: `${startedYear}-${startedMonth}`,
           is_current: isCurrent,
           ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
@@ -438,16 +446,23 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 職種
               </div>
               <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-                いちばん近いものを1つ選んでください。あとから詳しく設定できます。
+                当てはまるものを選んでください（{MAX_ROLES}つまで）。あとから詳しく設定できます。
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
                 {roles.map((r) => {
-                  const active = roleId === r.id;
+                  const active = roleIds.includes(r.id);
                   return (
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => setRoleId(active ? "" : r.id)}
+                      aria-pressed={active}
+                      onClick={() => setRoleIds((prev) =>
+                        prev.includes(r.id)
+                          ? prev.filter((x) => x !== r.id)
+                          /* ⚠️ 上限を超えたら足さない。API 側も5件で切るので、
+                                ここで通すと「選べたのに保存されない」になる。 */
+                          : prev.length >= MAX_ROLES ? prev : [...prev, r.id]
+                      )}
                       style={{
                         padding: "7px 13px", borderRadius: 100,
                         border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
