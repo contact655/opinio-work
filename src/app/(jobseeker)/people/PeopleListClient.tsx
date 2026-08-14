@@ -398,6 +398,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
   const [role, setRole] = useState("");
 
   const [age, setAge] = useState("");
+  /* 外資系。⚠️ **これまでの職歴に1社でもあればヒット**（現職に限らない）。
+     判定は directory.ts の `hasForeignExperience` に集約している。 */
+  const [foreign, setForeign] = useState("");
   const [sort, setSort] = useState("profile");
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -424,6 +427,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
     return ambassadors.filter((a) => {
       if (!matchRole(a, role, roleSlugToId)) return false;
       if (!matchAge(a, age)) return false;
+      if (foreign === "yes" && !a.hasForeignExperience) return false;
       if (!q) return true;
       // 検索対象。学歴の人は学校名で引けるようにする
       const aff = a.affiliation;
@@ -438,7 +442,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
         (a.roleName ?? "").toLowerCase().includes(q)
       );
     });
-  }, [ambassadors, role, age, keyword, roleSlugToId]);
+  }, [ambassadors, role, age, foreign, keyword, roleSlugToId]);
 
   const sorted = useMemo(() => {
     // 既定（プロフィール順）はサーバー側で publicScore 降順に並べてあるのでそのまま。
@@ -649,7 +653,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             {/* モバイル: フィルタトグル */}
             <button
               type="button"
-              className={`ppl-filter-toggle${(role || age) ? " active" : ""}`}
+              className={`ppl-filter-toggle${(role || age || foreign) ? " active" : ""}`}
               onClick={() => setFiltersExpanded(!filtersExpanded)}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -662,6 +666,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
               <FilterChip label="年齢" value={age} options={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setAge(v ?? ""); setOpenChip(null); }} isOpen={openChip === "age"} onToggle={() => toggleChip("age")} />
+              {/* ⚠️ 並びは 職種 → 年齢 → 外資系。 */}
+              <FilterChip label="外資系" value={foreign} options={[{ value: "yes", label: "外資系の経験あり" }]} onSelect={(v) => { setForeign(v ?? ""); setOpenChip(null); }} isOpen={openChip === "foreign"} onToggle={() => toggleChip("foreign")} />
               {hasFilter && (
                 <button type="button" onClick={clearAll} style={{ fontSize: 12, fontWeight: 500.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}

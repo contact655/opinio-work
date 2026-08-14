@@ -94,6 +94,13 @@ export type DirectoryPerson = {
   roleName: string | null;
   /** 職種フィルタ用の9大分類 ID。roleName とは粒度が違う（フィルタは粗く） */
   topRoleId: string | null;
+  /**
+   * これまでの職歴に**1社でも外資系**（`ow_companies.is_foreign`）があるか。
+   * ⚠️ 現職に限らない。過去の在籍も含める（/people の外資系フィルタ用）。
+   * ⚠️ マスタと紐づいた経歴（`company_id`）だけが対象。自由入力の社名は
+   *    外資かどうかを判定できないので false になる（推測しない）。
+   */
+  hasForeignExperience: boolean;
   /** ow_users.can_casual_meeting。true で「面談可」バッジ */
   canCasualMeeting: boolean;
   /** 公開項目だけの完成度（81点満点）。既定の並び順に使う */
@@ -194,7 +201,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   // 完成度と所属の材料をまとめて引く。
   // ⚠️ 希望条件（ow_profiles）は引かない。公開されない情報を並び順に混ぜないため
   //    （src/lib/profile/completion.ts の PUBLIC_KEYS を参照）。
-  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, memberRes, roleTree] = await Promise.all([
+  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, foreignRes, memberRes, roleTree] = await Promise.all([
     db.from("ow_experiences")
       .select(`user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
       .in("user_id", ids),
@@ -206,6 +213,10 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     db.from("ow_user_achievements").select("user_id").in("user_id", ids),
     db.from("ow_user_awards").select("user_id").in("user_id", ids),
     db.from("ow_user_media_appearances").select("user_id").in("user_id", ids),
+    /* 外資系の企業ID。⚠️ 経歴側の JOIN に列を足すと共有定数
+       （EXPERIENCE_COMPANY_COLS）を触ることになるので、ここだけ別に引く。
+       企業数は79件（2026-08-14）なので1回引いても軽い。 */
+    db.from("ow_companies").select("id").eq("is_foreign", true),
     db.from("ow_company_members")
       .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)")
       .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
@@ -215,7 +226,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   for (const [label, res] of Object.entries({
     experiences: expRes, educations: eduRes, links: linkRes,
     achievements: achRes, awards: awdRes, media: medRes,
-    members: memberRes,
+    members: memberRes, foreignCompanies: foreignRes,
   })) {
     if (res.error) console.error(`[people] ${label} fetch error:`, res.error.message);
   }
@@ -238,11 +249,19 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     ...((medRes.data ?? []) as { user_id: string }[]),
   ]);
   const members = byUser((memberRes.data ?? []) as unknown as MemberRow[]);
+  const foreignCompanyIds = new Set(((foreignRes.data ?? []) as { id: string }[]).map((c) => c.id));
 
   const now = new Date();
 
   const people = visible.map((u): DirectoryPerson => {
     const myExps    = exps.get(u.id) ?? [];
+    /* ⚠️ `visibility_company` は見ない。**社名を出すかどうかと、外資経験があるかは別**。
+          伏せている経歴でも「外資経験あり」の絞り込みには入れてよい
+          ……ようで実はよくない。伏せた経歴から企業が推測できてしまうため、
+          社名を出さない経歴（hidden）は判定から外す。 */
+    const hasForeignExperience = myExps.some(
+      (e) => e.visibility_company !== "hidden" && e.company_id && foreignCompanyIds.has(e.company_id)
+    );
     const myMembers = members.get(u.id) ?? [];
 
     // ── 所属。企業側の掲載 > 現職 > 直近の退職済み > なし ────────────────
@@ -341,6 +360,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       affiliation,
       roleName: roleNode?.name ?? null,
       topRoleId: topRole?.id ?? null,
+      hasForeignExperience,
       canCasualMeeting: u.can_casual_meeting === true,
       publicScore,
       experienceMonths,
