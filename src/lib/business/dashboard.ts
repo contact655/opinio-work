@@ -98,6 +98,26 @@ const ZERO_STATS: MonthlyStats = { applications: 0, scouts: 0, interviews: 0, of
 // ─── Tenant Context ───────────────────────────────────
 
 /**
+ * 企業に所属していない人にも出せる表示名。
+ *
+ * ⚠️ **参加系のページ（`/biz/companies/add` 配下）は `getTenantContext` の
+ *    戻り値でページ全体を出し分けないこと。** あれは所属が無いと null を返すので、
+ *    「これから参加する人」が参加画面に入れなくなる。
+ *    実際 2026-08-14 まで、所属の無い人は
+ *    `/biz/dashboard` → `/biz/companies/add`（レイアウトのリダイレクト）→
+ *    「企業アカウントが必要です」だけが出る行き止まりに入っていた。
+ */
+export async function getBizUserName(): Promise<string> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return (
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "ご担当者"
+  );
+}
+
+/**
  * 現在ログイン中ユーザーの企業ロール (tenant_id) と企業情報を取得。
  * 企業ロールが無い場合は null を返す。
  */

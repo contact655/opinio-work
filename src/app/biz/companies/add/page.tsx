@@ -1,6 +1,5 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
-import { getTenantContext } from "@/lib/business/dashboard";
+import { getTenantContext, getBizUserName } from "@/lib/business/dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -45,21 +44,36 @@ const OPTIONS = [
 ];
 
 export default async function AddCompanyPage() {
+  /*
+    ⚠️ **所属が無い人にこそ出すページ。** 2026-08-14 まで
+       `if (!ctx) return <BizNoTenantPage />` としており、企業に所属していない人には
+       3つの選択肢が一度も出なかった。しかも `BizLayout` は所属が無いと
+       `/biz/dashboard` をここへリダイレクトするので、
+
+         /biz/dashboard → /biz/companies/add →「企業アカウントが必要です」
+         → ボタンは「ホームへ戻る」と「企業アカウントを追加する →」だけ
+         → どちらを押しても同じ画面
+
+       という行き止まりになっていた（`/biz/companies/add/new` に直接来た人だけが
+       会社を作れていた）。**ここで所属を要求しないこと。**
+  */
   const ctx = await getTenantContext();
-  if (!ctx) return <BizNoTenantPage />;
+  const userName = ctx?.userName ?? (await getBizUserName());
 
   return (
     <BusinessLayout
-      userName={ctx.userName}
-      tenantName={ctx.tenantName}
-      tenantLogoGradient={ctx.logoGradient}
-      tenantLogoLetter={ctx.logoLetter}
-      memberships={ctx.allCompanies}
-      currentTenantId={ctx.tenantId}
+      userName={userName}
+      tenantName={ctx?.tenantName}
+      tenantLogoGradient={ctx?.logoGradient}
+      tenantLogoLetter={ctx?.logoLetter}
+      memberships={ctx?.allCompanies}
+      currentTenantId={ctx?.tenantId}
     >
       <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
-        {/* 戻るリンク */}
-        <a
+        {/* 戻るリンク
+            ⚠️ 所属が無いときは出さない。/biz/dashboard は BizLayout が
+               このページへリダイレクトするので、押すと同じ画面に戻ってくる。 */}
+        {ctx && <a
           href="/biz/dashboard"
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
@@ -71,7 +85,7 @@ export default async function AddCompanyPage() {
             <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           ホームに戻る
-        </a>
+        </a>}
 
         {/* タイトル */}
         <h1 style={{
@@ -81,8 +95,16 @@ export default async function AddCompanyPage() {
         }}>
           会社を追加
         </h1>
-        <p style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 40, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 40, lineHeight: 1.8 }}>
           参加方法を選んでください。
+          {!ctx && (
+            <>
+              {/* ⚠️ 求職者としての登録（経歴）と企業アカウントは別物。
+                     ここを書かないと「勤務先は登録済みなのに企業が無いと言われる」と読まれる。 */}
+              <br />
+              プロフィールに登録した勤務先とは別に、採用担当者として使う企業アカウントが必要です。
+            </>
+          )}
         </p>
 
         {/* 3 枚のカード */}

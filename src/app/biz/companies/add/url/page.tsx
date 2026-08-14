@@ -1,6 +1,5 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
-import { getTenantContext } from "@/lib/business/dashboard";
+import { getTenantContext, getBizUserName } from "@/lib/business/dashboard";
 import { AddByUrlClient } from "./AddByUrlClient";
 
 export const dynamic = "force-dynamic";
@@ -10,17 +9,19 @@ export const metadata = {
 };
 
 export default async function AddByUrlPage() {
+  /* ⚠️ 所属が無くても表示する。**このページは「これから参加する人」のためのもの**で、
+        所属を要求すると招待コードを受け取った人が入力画面に入れない（2026-08-14 修正）。 */
   const ctx = await getTenantContext();
-  if (!ctx) return <BizNoTenantPage />;
+  const userName = ctx?.userName ?? (await getBizUserName());
 
   return (
     <BusinessLayout
-      userName={ctx.userName}
-      tenantName={ctx.tenantName}
-      tenantLogoGradient={ctx.logoGradient}
-      tenantLogoLetter={ctx.logoLetter}
-      memberships={ctx.allCompanies}
-      currentTenantId={ctx.tenantId}
+      userName={userName}
+      tenantName={ctx?.tenantName}
+      tenantLogoGradient={ctx?.logoGradient}
+      tenantLogoLetter={ctx?.logoLetter}
+      memberships={ctx?.allCompanies}
+      currentTenantId={ctx?.tenantId}
     >
       <AddByUrlClient />
     </BusinessLayout>
