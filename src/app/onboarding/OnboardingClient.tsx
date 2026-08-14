@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
+/* ⚠️ 上限は API と同じ定数を見る。ここに数字を書かない。 */
+import { MAX_ROLES_PER_EXPERIENCE as MAX_ROLES } from "@/lib/constants/experienceRoles";
 
 /*
   勤務形態のチップ。**value は共有定数から取る**（ここに直書きすると DB の CHECK とずれる。
@@ -103,9 +105,6 @@ async function postJson(
 // ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
 
 export type OnboardingRole = { id: string; name: string };
-
-/** 1つの経歴に選べる職種の上限。⚠️ API（experiences POST）の上限と同じ値にすること。 */
-const MAX_ROLES = 5;
 
 /** 入社年の選択肢。⚠️ ビルド時ではなく描画時に現在年を取る */
 const CURRENT_YEAR = new Date().getFullYear();

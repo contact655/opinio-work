@@ -4,12 +4,10 @@ import { parseReasonFields } from "@/lib/constants/careerReasons";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { MAX_ROLES_PER_EXPERIENCE } from "@/lib/constants/experienceRoles";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-
-/** 1つの経歴に紐づけられる職種の上限。⚠️ UI 側の上限もこの値を見ること。 */
-export const MAX_ROLES_PER_EXPERIENCE = 5;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
