@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
-import { PREFECTURES } from "@/lib/utils/location";
+import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 
 /*
@@ -505,13 +505,16 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       </div>
                       {/* ⚠️ 「登録」と書かない。企業マスタには何も作らず、
-                             ow_experiences.company_text に名前が入るだけ（2026-08-13）。 */}
+                             ow_experiences.company_text に名前が入るだけ（2026-08-13）。
+                          ⚠️ 「企業として保存します」も書かない（2026-08-14）。
+                             ow_companies に行は作られないので、企業ページも検索候補も増えない。
+                             作られると読める文言は、この画面で実際に誤解された。 */}
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
                           「{query.trim()}」をこの名前のまま入力する
                         </div>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                          OPINIO 未掲載の企業として記録します
+                          あなたの経歴にこの社名で保存します
                         </div>
                       </div>
                     </button>
@@ -528,9 +531,23 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               OPINIOに掲載中の企業と連携します
             </p>
           )}
+          {/*
+            ⚠️ ここを「候補が見つかりません」に戻さないこと（2026-08-13 変更）。
+
+               掲載が無いのは **OPINIO 側の都合**であって、入力した人は何も間違えていない。
+               「見つかりません」は検索の失敗＝自分のミスとして読まれ、
+               入力し直しか離脱を誘う。実際 IT/SaaS 以外の企業では普通に起きる。
+
+            ⚠️ 「紐づきません」のような実装語を使わない。何を失うのかが伝わらない。
+               失うのは「企業ページへのリンク」だけで、経歴としては普通に残る。
+               **まず「このまま進めて大丈夫」と言い切ること。**
+          */}
           {!selectedCompany && query.trim() && !searching && results.length === 0 && (
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8 }}>
-              候補が見つかりません。このまま進めると、入力した名前のまま記録します（企業ページには紐づきません）。
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.8 }}>
+              この会社はまだ OPINIO に掲載されていません。<strong style={{ color: "var(--ink-soft)" }}>このまま進めて大丈夫です。</strong>
+              <br />
+              入力した社名がそのまま経歴に残ります（企業ページへのリンクは付きません）。
+              掲載されたら、プロフィール編集で選び直せます。
             </p>
           )}
 
@@ -610,7 +627,15 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 aria-label="勤務地（都道府県）"
               >
                 <option value="">都道府県</option>
-                {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+                {/* ⚠️ よく選ばれる4件を先頭に出す。47件を北から南に並べると
+                       東京都は13番目・大阪府は27番目で、毎回スクロールが要る。
+                    ⚠️ 二重に出さないため下は `OTHER_PREFECTURES`（43件）。 */}
+                <optgroup label="よく選ばれる">
+                  {COMMON_PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </optgroup>
+                <optgroup label="すべての都道府県">
+                  {OTHER_PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </optgroup>
               </select>
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>

@@ -36,3 +36,21 @@ export const PREFECTURES = [
   "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県",
 ] as const;
 
+/**
+ * よく選ばれる都道府県。`<select>` の先頭に `<optgroup>` で出すためのもの。
+ *
+ * ⚠️ **`PREFECTURES` 本体の並び（北から南）は変えないこと。**
+ *    `careerReasons.ts` の値検証（`VALID_PREFECTURES`）と
+ *    `JobsClient` の絞り込みリストが同じ配列を見ており、
+ *    そちらは地理順で出るのが正しい。並べ替えは表示側（select）で行う。
+ *
+ * ⚠️ 出すときは `OTHER_PREFECTURES` と組で使う。`PREFECTURES` 全件と並べると
+ *    東京都が2回出て、選んだつもりの位置と選択位置がずれる。
+ */
+export const COMMON_PREFECTURES = ["東京都", "大阪府", "愛知県", "福岡県"] as const;
+
+/** `COMMON_PREFECTURES` を除いた残り43件（北から南の順のまま）。 */
+export const OTHER_PREFECTURES = PREFECTURES.filter(
+  (p) => !(COMMON_PREFECTURES as readonly string[]).includes(p),
+);
+

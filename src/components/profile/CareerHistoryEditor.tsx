@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
-import { PREFECTURES } from "@/lib/utils/location";
+import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import {
   JOIN_REASONS,
@@ -1151,7 +1151,13 @@ function StintForm({
             style={{ ...fieldStyle(), flex: 1 }}
           >
             <option value="">都道府県</option>
-            {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+            {/* ⚠️ オンボーディングと同じ並び。片方だけ変えないこと（同じ項目の入力欄）。 */}
+            <optgroup label="よく選ばれる">
+              {COMMON_PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </optgroup>
+            <optgroup label="すべての都道府県">
+              {OTHER_PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </optgroup>
           </select>
           <select
             aria-label="勤務形態"
