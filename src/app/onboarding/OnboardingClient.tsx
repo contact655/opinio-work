@@ -30,6 +30,71 @@ type CompanyResult = {
   phase: string | null;
 };
 
+/* これまでの職歴（任意・複数）。
+   ⚠️ 現職と同じく **会社・職種・開始年月の3点が揃った行だけ** を保存する。
+      中途半端な行を作らない（2026-08-10 の方針をそのまま適用する）。 */
+type PastJob = {
+  key: number;
+  company: CompanyResult | null;
+  companyText: string;
+  roleId: string;
+  startYear: string;
+  startMonth: string;
+  endYear: string;
+  endMonth: string;
+};
+
+/* 学歴（任意・複数）。
+   ⚠️ API が必須にしているのは `school` だけ。卒業年月は任意なので必須にしない
+      （思い出せない人をここで止めない）。 */
+type EducationRow = {
+  key: number;
+  school: string;
+  faculty: string;
+  gradYear: string;
+  gradMonth: string;
+};
+
+const emptyPastJob = (key: number): PastJob => ({
+  key, company: null, companyText: "", roleId: "",
+  startYear: "", startMonth: "", endYear: "", endMonth: "",
+});
+const emptyEducation = (key: number): EducationRow => ({
+  key, school: "", faculty: "", gradYear: "", gradMonth: "",
+});
+
+/** 保存できる過去の職歴か（現職と同じ3点）。 */
+const pastJobReady = (j: PastJob) =>
+  (!!j.company || j.companyText.trim().length > 0) && !!j.roleId && !!j.startYear && !!j.startMonth;
+
+/**
+ * POST して、落ちたら `failures` に積む。
+ * ⚠️ 握り潰さない。`console.error` と画面表示の両方に出す
+ *    （CLAUDE.md「エラーと失敗を握りつぶさない原則」）。
+ */
+async function postJson(
+  url: string,
+  body: Record<string, unknown>,
+  label: string,
+  failures: string[],
+) {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      console.error(`[onboarding] ${label}の保存に失敗`, res.status, j);
+      failures.push(label);
+    }
+  } catch (err) {
+    console.error(`[onboarding] ${label}の保存に失敗`, err);
+    failures.push(label);
+  }
+}
+
 // ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
 
 export type OnboardingRole = { id: string; name: string };
@@ -48,11 +113,10 @@ const selectStyle: React.CSSProperties = {
 function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const router = useRouter();
 
+  /* 会社の検索・候補・ドロップダウンの状態は `CompanyPicker` の中にある。
+     ここが持つのは「何が選ばれたか」だけ。 */
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CompanyResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyResult | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
@@ -68,14 +132,24 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
      ⚠️ 任意のまま。空でも先に進める（入口の摩擦を増やさない）。 */
   const [prefecture, setPrefecture] = useState<string>("");
   const [remoteWorkStatus, setRemoteWorkStatus] = useState<string>("");
-  /* 会社名を伏せたい人向け。既定は実名（既存14件中13件が real で、
-     求人・企業ページに出るのが本人の目的に沿うため）。 */
-  const [maskCompany, setMaskCompany] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  /*
+    ⚠️ 「会社名は伏せる」チェックはここに置かない（2026-08-14 に削除）。
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+       伏せた経歴は企業ページにも検索にも出ないので、置いた分だけ選ばれ、
+       この画面で集めたデータがそのまま使えなくなる。
+       LinkedIn / Wantedly にも社名を伏せる設定は無く、実名が前提になっている。
+
+       公開範囲を変えたい人は `/profile/edit?tab=career` の経歴ごとの
+       「会社名の公開設定」でいつでも変えられる（`CareerHistoryEditor` の
+       `visibilityCompany` / `visibilityCompanyProfile`）。
+       **列も編集UIも消していない。** 入口では既定の `real` で保存するだけ。
+  */
+  /* これまでの職歴・学歴（どちらも任意・既定は0件）。
+     ⚠️ 既定で行を1つ出さない。出すと「埋めなければいけない」に見えて入口が重くなる。 */
+  const [pastJobs, setPastJobs] = useState<PastJob[]>([]);
+  const [educations, setEducations] = useState<EducationRow[]>([]);
+  const rowKeyRef = useRef(1);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Auth guard + 完了済みチェック
   useEffect(() => {
@@ -96,69 +170,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
         return;
       }
     });
-    setTimeout(() => inputRef.current?.focus(), 100);
   }, [router]);
-
-  // クリック外でドロップダウンを閉じる
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
-        inputRef.current && !inputRef.current.contains(e.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  // デバウンス検索
-  const search = useCallback((q: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (q.trim().length === 0) {
-      setResults([]);
-      setShowDropdown(false);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/onboarding/companies/search?q=${encodeURIComponent(q)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data.results ?? []);
-          setShowDropdown(true);
-        }
-      } finally {
-        setSearching(false);
-      }
-    }, 280);
-  }, []);
-
-  const handleQueryChange = (val: string) => {
-    setQuery(val);
-    setSelectedCompany(null);
-    search(val);
-  };
-
-  const selectCompany = (c: CompanyResult) => {
-    setSelectedCompany(c);
-    setQuery(c.name);
-    setShowDropdown(false);
-  };
-
-  const clearSelection = () => {
-    setSelectedCompany(null);
-    setQuery("");
-    setResults([]);
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  // フリーテキストで登録（DBに見つからない場合）
-  const confirmFreeText = () => {
-    setShowDropdown(false);
-  };
 
   /* 会社（マスタ or 自由入力）・職種・入社年月が揃って初めて保存できる。
      ⚠️ 任意入力のままにする。埋めなければ従来どおり onboarding_completed だけ記録する。 */
@@ -168,6 +180,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const finish = async () => {
     setSaving(true);
     setSaveError(null);
+    /* ⚠️ 失敗を握り潰さない。どれが落ちたかを画面にも出す（best-effort だが黙らない）。 */
+    const failures: string[] = [];
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -196,35 +210,57 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
          ⚠️ 失敗してもオンボーディング自体は完了させる（best-effort）。
             ただし握り潰さず、画面にも出してログにも残す。 */
       if (canSaveExperience) {
-        try {
-          const res = await fetch("/api/jobseeker/experiences", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              // ⚠️ company_id / company_text は **XOR**。両方送ると 400
-              ...(selectedCompany
-                ? { company_id: selectedCompany.id }
-                : { company_text: query.trim() }),
-              role_category_id: roleId,
-              started_at: `${startedYear}-${startedMonth}`,
-              is_current: true,
-              /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾くので、
-                    "" を送ると登録の入口が落ちる。 */
-              ...(prefecture ? { prefecture } : {}),
-              ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
-              visibility_company: maskCompany ? "masked" : "real",
-              visibility_company_profile: maskCompany ? "masked" : "real",
-            }),
-          });
-          if (!res.ok) {
-            const j = await res.json().catch(() => ({}));
-            console.error("[onboarding] 経歴の保存に失敗", res.status, j);
-            setSaveError("経歴の保存に失敗しました。プロフィール編集からあとで登録できます。");
-          }
-        } catch (err) {
-          console.error("[onboarding] 経歴の保存に失敗", err);
-          setSaveError("経歴の保存に失敗しました。プロフィール編集からあとで登録できます。");
-        }
+        await postJson("/api/jobseeker/experiences", {
+          // ⚠️ company_id / company_text は **XOR**。両方送ると 400
+          ...(selectedCompany
+            ? { company_id: selectedCompany.id }
+            : { company_text: query.trim() }),
+          role_category_id: roleId,
+          started_at: `${startedYear}-${startedMonth}`,
+          is_current: true,
+          /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾くので、
+                "" を送ると登録の入口が落ちる。 */
+          ...(prefecture ? { prefecture } : {}),
+          ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
+          /* ⚠️ 既定は実名。伏せる選択肢は入口から外した（上のコメント参照）。 */
+          visibility_company: "real",
+          visibility_company_profile: "real",
+        }, "経歴", failures);
+      }
+
+      /* これまでの職歴。
+         ⚠️ 3点が揃った行だけ送る。`pastJobReady` は現職と同じ条件。
+         ⚠️ **直列で送る**。experiences の POST は毎回 ow_users を引き直すので、
+            並列にしても速くならないうえ、失敗した行の特定が難しくなる。 */
+      for (const j of pastJobs) {
+        if (!pastJobReady(j)) continue;
+        await postJson("/api/jobseeker/experiences", {
+          ...(j.company ? { company_id: j.company.id } : { company_text: j.companyText.trim() }),
+          role_category_id: j.roleId,
+          started_at: `${j.startYear}-${j.startMonth}`,
+          /* ⚠️ 終了年月は任意。片方だけ選ばれているときは送らない
+                （`YYYY-` のような値を作ると 400 になる）。 */
+          ...(j.endYear && j.endMonth ? { ended_at: `${j.endYear}-${j.endMonth}` } : {}),
+          is_current: false,
+          visibility_company: "real",
+          visibility_company_profile: "real",
+        }, "職歴", failures);
+      }
+
+      /* 学歴。⚠️ 必須は学校名だけ（API 側も同じ）。 */
+      for (const e of educations) {
+        if (!e.school.trim()) continue;
+        await postJson("/api/jobseeker/educations", {
+          school: e.school.trim(),
+          ...(e.faculty.trim() ? { faculty: e.faculty.trim() } : {}),
+          ...(e.gradYear && e.gradMonth ? { graduated_at: `${e.gradYear}-${e.gradMonth}` } : {}),
+        }, "学歴", failures);
+      }
+
+      if (failures.length > 0) {
+        setSaveError(
+          `${Array.from(new Set(failures)).join("・")}の保存に失敗しました。プロフィール編集からあとで登録できます。`
+        );
       }
 
       // candidate ロールを付与
@@ -327,12 +363,6 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
     );
   }
 
-  // ドロップダウンに表示する候補
-  const showFreeTextOption = query.trim().length >= 1 && !selectedCompany && results.length < 8;
-  const exactMatch = results.some(
-    (r) => r.name === query.trim() || (r.brand_name ?? "") === query.trim()
-  );
-
   // ── 現職会社入力画面 ──────────────────────────────────────────────────────
   return (
     <div style={pageWrap}>
@@ -369,187 +399,20 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             任意入力です。あとから変更できます。
           </p>
 
-          {/* 検索インプット + ドロップダウン */}
-          <div style={{ position: "relative" }}>
-            {/* 選択済みチップ表示 */}
-            {selectedCompany ? (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "11px 14px",
-                border: "2px solid var(--royal)",
-                borderRadius: 10, background: "var(--royal-50)",
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {selectedCompany.name}
-                  </div>
-                  {selectedCompany.industry && (
-                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{selectedCompany.industry}</div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  style={{
-                    flexShrink: 0, background: "none", border: "none", cursor: "pointer",
-                    color: "var(--ink-mute)", padding: 4, borderRadius: 4,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                  aria-label="選択を解除"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </div>
-            ) : (
-              <div style={{ position: "relative" }}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => handleQueryChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") setShowDropdown(false);
-                    if (e.key === "Enter" && !saving && !showDropdown) finish();
-                  }}
-                  placeholder="例：セールスフォース、Salesforce、株式会社〇〇"
-                  disabled={saving}
-                  style={{
-                    width: "100%", padding: "13px 40px 13px 16px",
-                    border: "1px solid var(--line)", borderRadius: 10,
-                    fontSize: 14, color: "var(--ink)", fontFamily: "inherit",
-                    outline: "none", boxSizing: "border-box" as const,
-                    background: saving ? "var(--bg-tint)" : "#fff",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "var(--royal)";
-                    if (results.length > 0 || query.trim()) setShowDropdown(true);
-                  }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "var(--line)"; }}
-                  autoComplete="off"
-                />
-                {/* 検索アイコン / スピナー */}
-                <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-                  {searching ? (
-                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid var(--royal-100)", borderTopColor: "var(--royal)", animation: "spin 0.7s linear infinite" }} />
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ドロップダウン */}
-            {showDropdown && (results.length > 0 || showFreeTextOption) && (
-              <div
-                ref={dropdownRef}
-                style={{
-                  position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100,
-                  overflow: "hidden",
-                }}
-              >
-                {results.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); selectCompany(c); }}
-                    style={{
-                      width: "100%", textAlign: "left", background: "none", border: "none",
-                      padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--royal-50)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "none"; }}
-                  >
-                    <div style={{
-                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                      background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                      display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-                      fontSize: 12, fontWeight: 700,
-                    }}>
-                      {c.name.replace(/^株式会社|合同会社|有限会社/, "").trim().charAt(0)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {c.name}
-                      </div>
-                      {(c.industry || c.phase) && (
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                          {[c.industry, c.phase].filter(Boolean).join(" · ")}
-                        </div>
-                      )}
-                    </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </button>
-                ))}
-
-                {/* フリーテキスト登録オプション（DBに完全一致がない場合） */}
-                {showFreeTextOption && !exactMatch && query.trim().length > 0 && (
-                  <>
-                    {results.length > 0 && <div style={{ height: 1, background: "var(--line)", margin: "0 12px" }} />}
-                    <button
-                      type="button"
-                      onMouseDown={(e) => { e.preventDefault(); confirmFreeText(); }}
-                      style={{
-                        width: "100%", textAlign: "left", background: "none", border: "none",
-                        padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "none"; }}
-                    >
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                        background: "var(--bg-tint)", border: "1px dashed var(--line)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                      </div>
-                      {/* ⚠️ 「登録」と書かない。企業マスタには何も作らず、
-                             ow_experiences.company_text に名前が入るだけ（2026-08-13）。
-                          ⚠️ 「企業として保存します」も書かない（2026-08-14）。
-                             ow_companies に行は作られないので、企業ページも検索候補も増えない。
-                             作られると読める文言は、この画面で実際に誤解された。 */}
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-                          「{query.trim()}」をこの名前のまま入力する
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                          あなたの経歴にこの社名で保存します
-                        </div>
-                      </div>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* 選択済みの場合の説明テキスト */}
-          {selectedCompany && (
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-              OPINIOに掲載中の企業と連携します
-            </p>
-          )}
-          {/*
-            ⚠️ ここを「候補が見つかりません」に戻さないこと（2026-08-13 変更）。
-
-               掲載が無いのは **OPINIO 側の都合**であって、入力した人は何も間違えていない。
-               「見つかりません」は検索の失敗＝自分のミスとして読まれ、
-               入力し直しか離脱を誘う。実際 IT/SaaS 以外の企業では普通に起きる。
-
-            ⚠️ 「紐づきません」のような実装語を使わない。何を失うのかが伝わらない。
-               失うのは「企業ページへのリンク」だけで、経歴としては普通に残る。
-               **まず「このまま進めて大丈夫」と言い切ること。**
-          */}
-          {!selectedCompany && query.trim() && !searching && results.length === 0 && (
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.8 }}>
-              この会社はまだ OPINIO に掲載されていません。<strong style={{ color: "var(--ink-soft)" }}>このまま進めて大丈夫です。</strong>
-              <br />
-              入力した社名がそのまま経歴に残ります（企業ページへのリンクは付きません）。
-              掲載されたら、プロフィール編集で選び直せます。
-            </p>
-          )}
+          {/* 会社の検索・選択。
+              ⚠️ 実装は `CompanyPicker` の1つだけにする。これまでの職歴の行も同じ部品を使う。
+                 ここに inline で書き直すと、片方だけ直る形の不具合が生まれる。 */}
+          <CompanyPicker
+            text={query}
+            selected={selectedCompany}
+            disabled={saving}
+            autoFocus
+            placeholder="例：セールスフォース、Salesforce、株式会社〇〇"
+            onTextChange={(v) => { setQuery(v); setSelectedCompany(null); }}
+            onSelect={(c) => { setSelectedCompany(c); setQuery(c.name); }}
+            onClear={() => { setSelectedCompany(null); setQuery(""); }}
+            onEnter={() => { if (!saving) finish(); }}
+          />
 
           {/* ── 職種・入社年月 ────────────────────────────────────────────────
               ⚠️ 会社が決まってから出す。最初から3つ並べると入口が重くなる。
@@ -665,28 +528,204 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 })}
               </div>
 
-              {/* ⚠️ どこに出るかを、保存する前に明記する */}
-              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 18, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={maskCompany}
-                  onChange={(e) => setMaskCompany(e.target.checked)}
-                  style={{ marginTop: 2 }}
-                />
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                  会社名は伏せる（プロフィールで「IT企業」のような表記になります）
-                </span>
-              </label>
-              <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10, lineHeight: 1.8 }}>
-                {maskCompany
-                  ? "会社名を伏せても、経歴はプロフィールに残ります。"
-                  : "この経歴は、その企業のページに「現役社員」として表示されます。"}
+              {/* ⚠️ どこに出るかを、保存する前に明記する。
+                     チェックボックスは外したが、**この説明は外さない**。
+                     出る場所を知らせないまま保存するのは同意を取ったことにならない。 */}
+              <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 18, lineHeight: 1.8 }}>
+                この経歴は、その企業のページに「現役社員」として表示されます。
                 <br />
                 表示されるのは <strong style={{ color: "var(--ink-soft)" }}>OPINIO にログインしている人</strong> だけです。
                 公開範囲はプロフィール編集からいつでも変更できます。
               </p>
             </div>
           )}
+
+          {/* ── これまでの職歴（任意・複数）────────────────────────────────
+              ⚠️ 既定では「＋ 職歴を追加」だけを出す。行を最初から出すと、
+                 現職しか無い人にも「埋めるべき欄」に見えて入口が重くなる。
+              ⚠️ 保存条件は現職と同じ3点（`pastJobReady`）。揃わない行は送らない。 */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>これまでの職歴</div>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
+              過去に在籍した会社を追加できます。あとからプロフィール編集でも追加できます。
+            </p>
+
+            {pastJobs.map((j, idx) => {
+              const ready = pastJobReady(j);
+              const touched = !!j.company || !!j.companyText.trim() || !!j.roleId || !!j.startYear || !!j.startMonth;
+              return (
+                <div key={j.key} style={rowCardStyle}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>職歴 {idx + 1}</div>
+                    <button
+                      type="button"
+                      onClick={() => setPastJobs((prev) => prev.filter((p) => p.key !== j.key))}
+                      aria-label={`職歴 ${idx + 1} を削除`}
+                      className="btn-fixed-size"
+                      style={removeBtnStyle}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+
+                  <CompanyPicker
+                    text={j.companyText}
+                    selected={j.company}
+                    disabled={saving}
+                    placeholder="会社名"
+                    onTextChange={(v) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, companyText: v, company: null } : p))}
+                    onSelect={(c) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, company: c, companyText: c.name } : p))}
+                    onClear={() => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, company: null, companyText: "" } : p))}
+                  />
+
+                  <select
+                    value={j.roleId}
+                    onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, roleId: e.target.value } : p))}
+                    style={{ ...selectStyle, width: "100%", marginTop: 8 }}
+                    aria-label={`職歴 ${idx + 1} の職種`}
+                  >
+                    <option value="">職種</option>
+                    {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+                    <select
+                      value={j.startYear}
+                      onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, startYear: e.target.value } : p))}
+                      style={selectStyle}
+                      aria-label={`職歴 ${idx + 1} の入社年`}
+                    >
+                      <option value="">入社年</option>
+                      {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+                    </select>
+                    <select
+                      value={j.startMonth}
+                      onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, startMonth: e.target.value } : p))}
+                      style={selectStyle}
+                      aria-label={`職歴 ${idx + 1} の入社月`}
+                    >
+                      <option value="">月</option>
+                      {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <select
+                      value={j.endYear}
+                      onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, endYear: e.target.value } : p))}
+                      style={selectStyle}
+                      aria-label={`職歴 ${idx + 1} の退職年`}
+                    >
+                      <option value="">退職年（任意）</option>
+                      {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+                    </select>
+                    <select
+                      value={j.endMonth}
+                      onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, endMonth: e.target.value } : p))}
+                      style={selectStyle}
+                      aria-label={`職歴 ${idx + 1} の退職月`}
+                    >
+                      <option value="">月</option>
+                      {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+                    </select>
+                  </div>
+
+                  {/* ⚠️ 揃っていない行は保存されない。黙って捨てない。 */}
+                  {touched && !ready && (
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#92400E", marginTop: 10, lineHeight: 1.7 }}>
+                      会社名・職種・入社年月がそろうと保存されます。
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => setPastJobs((prev) => [...prev, emptyPastJob(rowKeyRef.current++)])}
+              style={addBtnStyle}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span> 職歴を追加
+            </button>
+          </div>
+
+          {/* ── 学歴（任意・複数）────────────────────────────────────────── */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>学歴</div>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
+              学校名だけでも保存できます。
+            </p>
+
+            {educations.map((e, idx) => (
+              <div key={e.key} style={rowCardStyle}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>学歴 {idx + 1}</div>
+                  <button
+                    type="button"
+                    onClick={() => setEducations((prev) => prev.filter((p) => p.key !== e.key))}
+                    aria-label={`学歴 ${idx + 1} を削除`}
+                    className="btn-fixed-size"
+                    style={removeBtnStyle}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={e.school}
+                  onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, school: ev.target.value } : p))}
+                  placeholder="学校名"
+                  disabled={saving}
+                  maxLength={100}
+                  style={textInputStyle}
+                  aria-label={`学歴 ${idx + 1} の学校名`}
+                />
+                <input
+                  type="text"
+                  value={e.faculty}
+                  onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, faculty: ev.target.value } : p))}
+                  placeholder="学部・学科（任意）"
+                  disabled={saving}
+                  maxLength={100}
+                  style={{ ...textInputStyle, marginTop: 8 }}
+                  aria-label={`学歴 ${idx + 1} の学部・学科`}
+                />
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+                  <select
+                    value={e.gradYear}
+                    onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, gradYear: ev.target.value } : p))}
+                    style={selectStyle}
+                    aria-label={`学歴 ${idx + 1} の卒業年`}
+                  >
+                    <option value="">卒業年（任意）</option>
+                    {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+                  </select>
+                  <select
+                    value={e.gradMonth}
+                    onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, gradMonth: ev.target.value } : p))}
+                    style={selectStyle}
+                    aria-label={`学歴 ${idx + 1} の卒業月`}
+                  >
+                    <option value="">月</option>
+                    {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setEducations((prev) => [...prev, emptyEducation(rowKeyRef.current++)])}
+              style={addBtnStyle}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span> 学歴を追加
+            </button>
+          </div>
 
           {/* ⚠️ 会社だけ埋めて職種・年月が空だと**保存されない**。
                  黙って捨てると、いま直したのと同じ「入力させたのに保存しない」に戻る。 */}
@@ -743,6 +782,295 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
 }
 
 // ─── Shared styles & sub-components ──────────────────────────────────────────
+
+const textInputStyle: React.CSSProperties = {
+  width: "100%", padding: "10px 12px",
+  border: "1px solid var(--line)", borderRadius: 10,
+  fontSize: 14, color: "var(--ink)", fontFamily: "inherit",
+  outline: "none", boxSizing: "border-box", background: "#fff",
+};
+
+const rowCardStyle: React.CSSProperties = {
+  border: "1px solid var(--line)", borderRadius: 12,
+  padding: "14px 14px 16px", marginBottom: 10, background: "var(--bg-tint)",
+};
+
+const addBtnStyle: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 6,
+  padding: "9px 16px", borderRadius: 10,
+  border: "1px dashed var(--line)", background: "#fff",
+  color: "var(--royal)", fontSize: 13, fontWeight: 700,
+  cursor: "pointer", fontFamily: "inherit",
+  whiteSpace: "nowrap",
+};
+
+/* ⚠️ `.btn-fixed-size` を付けて `globals.css` の `min-height: 36px` を外す。
+      付けないと 26×26 のつもりが 26×36 の縦長になる
+      （.claude/rules/ui-debugging.md「min-height は height に勝つ」）。 */
+const removeBtnStyle: React.CSSProperties = {
+  width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+  background: "none", border: "none", cursor: "pointer",
+  color: "var(--ink-mute)", padding: 0,
+  display: "flex", alignItems: "center", justifyContent: "center",
+};
+
+/**
+ * 会社名の検索・選択。**現職の欄と「これまでの職歴」の各行が同じ部品を使う。**
+ *
+ * ⚠️ 候補・検索中・ドロップダウンの状態はこの中に閉じる。呼び出し側が持つのは
+ *    「入力された文字列」と「選ばれた企業」だけ。
+ * ⚠️ 見つからないときの説明文もここに置く。呼び出し側に書くと、
+ *    行ごとに文言が割れる（CLAUDE.md「実装が3箇所に割れていた」の再発）。
+ */
+function CompanyPicker({
+  text, selected, disabled, placeholder, autoFocus,
+  onTextChange, onSelect, onClear, onEnter,
+}: {
+  text: string;
+  selected: CompanyResult | null;
+  disabled?: boolean;
+  placeholder: string;
+  autoFocus?: boolean;
+  onTextChange: (v: string) => void;
+  onSelect: (c: CompanyResult) => void;
+  onClear: () => void;
+  onEnter?: () => void;
+}) {
+  const [results, setResults] = useState<CompanyResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (autoFocus) setTimeout(() => inputRef.current?.focus(), 100);
+  }, [autoFocus]);
+
+  // クリック外でドロップダウンを閉じる
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current && !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // デバウンス検索
+  const search = useCallback((q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (q.trim().length === 0) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/onboarding/companies/search?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.results ?? []);
+          setShowDropdown(true);
+        }
+      } finally {
+        setSearching(false);
+      }
+    }, 280);
+  }, []);
+
+  const showFreeTextOption = text.trim().length >= 1 && !selected && results.length < 8;
+  const exactMatch = results.some(
+    (r) => r.name === text.trim() || (r.brand_name ?? "") === text.trim()
+  );
+
+  return (
+    <>
+      <div style={{ position: "relative" }}>
+        {selected ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "11px 14px",
+            border: "2px solid var(--royal)",
+            borderRadius: 10, background: "var(--royal-50)",
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {selected.name}
+              </div>
+              {selected.industry && (
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{selected.industry}</div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setResults([]);
+                onClear();
+                setTimeout(() => inputRef.current?.focus(), 50);
+              }}
+              className="btn-fixed-size"
+              style={removeBtnStyle}
+              aria-label="選択を解除"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        ) : (
+          <div style={{ position: "relative" }}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={text}
+              onChange={(e) => { onTextChange(e.target.value); search(e.target.value); }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setShowDropdown(false);
+                if (e.key === "Enter" && !showDropdown) onEnter?.();
+              }}
+              placeholder={placeholder}
+              disabled={disabled}
+              style={{
+                ...textInputStyle,
+                padding: "13px 40px 13px 16px",
+                background: disabled ? "var(--bg-tint)" : "#fff",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "var(--royal)";
+                if (results.length > 0 || text.trim()) setShowDropdown(true);
+              }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--line)"; }}
+              autoComplete="off"
+            />
+            {/* 検索アイコン / スピナー */}
+            <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+              {searching ? (
+                <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid var(--royal-100)", borderTopColor: "var(--royal)", animation: "spin 0.7s linear infinite" }} />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ドロップダウン */}
+        {showDropdown && (results.length > 0 || showFreeTextOption) && (
+          <div
+            ref={dropdownRef}
+            style={{
+              position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+              background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100,
+              overflow: "hidden",
+            }}
+          >
+            {results.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onSelect(c); setShowDropdown(false); }}
+                style={{
+                  width: "100%", textAlign: "left", background: "none", border: "none",
+                  padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--royal-50)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "none"; }}
+              >
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+                  display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                  {c.name.replace(/^株式会社|合同会社|有限会社/, "").trim().charAt(0)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {c.name}
+                  </div>
+                  {(c.industry || c.phase) && (
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                      {[c.industry, c.phase].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            ))}
+
+            {/* 自由入力のまま進むオプション（マスタに完全一致が無い場合） */}
+            {showFreeTextOption && !exactMatch && text.trim().length > 0 && (
+              <>
+                {results.length > 0 && <div style={{ height: 1, background: "var(--line)", margin: "0 12px" }} />}
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); setShowDropdown(false); }}
+                  style={{
+                    width: "100%", textAlign: "left", background: "none", border: "none",
+                    padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "none"; }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: "var(--bg-tint)", border: "1px dashed var(--line)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </div>
+                  {/* ⚠️ 「登録」と書かない。企業マスタには何も作らず、
+                         ow_experiences.company_text に名前が入るだけ（2026-08-13）。
+                      ⚠️ 「企業として保存します」も書かない（2026-08-14）。
+                         ow_companies に行は作られないので、企業ページも検索候補も増えない。
+                         作られると読める文言は、この画面で実際に誤解された。 */}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                      「{text.trim()}」をこの名前のまま入力する
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                      あなたの経歴にこの社名で保存します
+                    </div>
+                  </div>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selected && (
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          OPINIOに掲載中の企業と連携します
+        </p>
+      )}
+      {/*
+        ⚠️ ここを「候補が見つかりません」に戻さないこと（2026-08-13 変更）。
+
+           掲載が無いのは **OPINIO 側の都合**であって、入力した人は何も間違えていない。
+           「見つかりません」は検索の失敗＝自分のミスとして読まれ、
+           入力し直しか離脱を誘う。実際 IT/SaaS 以外の企業では普通に起きる。
+
+        ⚠️ 「紐づきません」のような実装語を使わない。何を失うのかが伝わらない。
+           失うのは「企業ページへのリンク」だけで、経歴としては普通に残る。
+           **まず「このまま進めて大丈夫」と言い切ること。**
+      */}
+      {!selected && text.trim() && !searching && results.length === 0 && (
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.8 }}>
+          この会社はまだ OPINIO に掲載されていません。<strong style={{ color: "var(--ink-soft)" }}>このまま進めて大丈夫です。</strong>
+          <br />
+          入力した社名がそのまま経歴に残ります（企業ページへのリンクは付きません）。
+          掲載されたら、プロフィール編集で選び直せます。
+        </p>
+      )}
+    </>
+  );
+}
 
 const pageWrap: React.CSSProperties = {
   minHeight: "100vh",
