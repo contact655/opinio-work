@@ -549,8 +549,11 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>これまでの職歴</div>
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
             </div>
+            {/* ⚠️ 1行に収まる長さにする。「あとからプロフィール編集でも追加できます」を
+                   足していたが、カード上部の「任意入力です。あとから変更できます。」と
+                   同じことを言っており、2行目に「ます。」だけが落ちていた。 */}
             <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
-              過去に在籍した会社を追加できます。あとからプロフィール編集でも追加できます。
+              過去に在籍した会社を追加できます。
             </p>
 
             {pastJobs.map((j, idx) => {
