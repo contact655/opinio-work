@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { BizEmployee } from "./page";
+import type { BizEmployee, BizTeamMember } from "./page";
 
 type Props = {
   current: BizEmployee[];
   alumni: BizEmployee[];
   hidden: BizEmployee[];
+  /** 管理アカウント（チーム管理と同じ人たち）。⚠️ 社員管理はチーム管理を内包する。 */
+  teamMembers: BizTeamMember[];
   companyName: string;
 };
 
-type Tab = "current" | "alumni" | "hidden";
+type Tab = "current" | "alumni" | "hidden" | "team";
 
 function formatPeriod(startedAt: string, endedAt: string | null, isCurrent: boolean): string {
   const start = startedAt.slice(0, 7).replace("-", ".");
@@ -245,7 +247,7 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-export function EmployeesClient({ current, alumni, hidden, companyName }: Props) {
+export function EmployeesClient({ current, alumni, hidden, teamMembers, companyName }: Props) {
   const [tab, setTab] = useState<Tab>("current");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -270,7 +272,7 @@ export function EmployeesClient({ current, alumni, hidden, companyName }: Props)
     });
   };
 
-  const list = tab === "current" ? current : tab === "alumni" ? alumni : hidden;
+  const list = tab === "current" ? current : tab === "alumni" ? alumni : tab === "hidden" ? hidden : [];
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 32px 80px" }}>
@@ -281,7 +283,9 @@ export function EmployeesClient({ current, alumni, hidden, companyName }: Props)
           社員管理
         </h1>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          OPINIOに登録された{companyName}の現役社員・OB/OGの一覧です。ユーザーが企業マスタからこの企業を選択すると自動的に反映されます。
+          {companyName}に関係する人の一覧です。<br />
+          <strong style={{ color: "var(--ink)" }}>現役社員・OB/OG</strong> は、本人がプロフィールの経歴でこの企業を選ぶと自動で反映されます。
+          <strong style={{ color: "var(--ink)" }}>管理アカウント</strong> は、この管理画面を使えるメンバー（チーム管理と同じ）です。
         </p>
         {hidden.length > 0 && (
           <div style={{ marginTop: 10, padding: "8px 12px", background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "#92400E" }}>
@@ -296,6 +300,7 @@ export function EmployeesClient({ current, alumni, hidden, companyName }: Props)
           { key: "current" as const, label: "現役社員", count: current.length },
           { key: "alumni" as const, label: "OB・OG社員", count: alumni.length },
           { key: "hidden" as const, label: "非表示中", count: hidden.length },
+          { key: "team" as const, label: "管理アカウント", count: teamMembers.length },
         ].map(({ key, label, count }) => (
           <button
             key={key}
@@ -335,7 +340,55 @@ export function EmployeesClient({ current, alumni, hidden, companyName }: Props)
       )}
 
       {/* リスト */}
-      {tab === "hidden" ? (
+      {tab === "team" ? (
+        <>
+          <div style={{ marginBottom: 16, padding: "10px 14px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            この管理画面を使えるメンバーです。追加・削除は「チーム管理」から行います。<br />
+            ⚠️ ここに出ることと、企業ページに「現役社員」として出ることは別です。
+            公開側に出すには、本人がプロフィールの経歴でこの企業を選ぶ必要があります。
+          </div>
+          {teamMembers.length === 0 ? (
+            <div style={{ padding: "48px 24px", textAlign: "center", background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>管理アカウントがありません</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {teamMembers.map((m) => (
+                <div key={m.userId} style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "14px 16px", background: "#fff",
+                  border: "1px solid var(--line)", borderRadius: 12,
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 700,
+                  }}>
+                    {(m.name ?? m.email ?? "?").charAt(0)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {m.name ?? m.email ?? "—"}
+                    </div>
+                    {m.email && (
+                      <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</div>
+                    )}
+                  </div>
+                  {m.permission && (
+                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", padding: "2px 8px", borderRadius: 100 }}>
+                      {m.permission === "admin" ? "管理者" : m.permission}
+                    </span>
+                  )}
+                  <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: m.hasExperience ? "var(--success)" : "var(--ink-mute)" }}>
+                    {m.hasExperience ? "経歴も登録済み" : "経歴は未登録"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : tab === "hidden" ? (
         list.length === 0 ? (
           <div style={{ padding: "48px 24px", textAlign: "center", background: "var(--bg-tint)",
             border: "1px dashed var(--line)", borderRadius: 12 }}>

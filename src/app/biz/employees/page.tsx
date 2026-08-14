@@ -10,6 +10,17 @@ export const metadata = {
   title: { absolute: "社員管理 | OPINIO Business" },
 };
 
+/** 管理アカウント（`ow_company_admins`）。チーム管理と同じ人たち。 */
+export type BizTeamMember = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  avatarUrl: string | null;
+  permission: string | null;
+  /** 同じ人が経歴（`ow_experiences`）も登録しているか */
+  hasExperience: boolean;
+};
+
 export type BizEmployee = {
   experienceId: string;
   userId: string;
@@ -99,6 +110,34 @@ export default async function EmployeesPage() {
     }];
   });
 
+  /* 管理アカウント（チーム管理と同じ `ow_company_admins`）。
+     ⚠️ **社員管理はチーム管理を内包する。** 2026-08-14 まで、この画面は
+        `ow_experiences`（本人が公開した在籍情報）しか見ておらず、
+        採用担当者本人がどこにも出なかった。
+     ⚠️ ただし2つは意味が違う（経歴＝本人が公開した在籍情報／
+        管理アカウント＝採用管理の権限）。**同じ一覧に混ぜず、区分を分けて出す。** */
+  const { data: adminRows, error: adminErr } = await admin
+    .from("ow_company_admins")
+    .select("user_id, permission, is_active, ow_users (id, name, email, avatar_url)")
+    .eq("company_id", ctx.tenantId)
+    .eq("is_active", true);
+  if (adminErr) console.error("[biz/employees] admins fetch failed:", adminErr.message);
+
+  const experienceUserIds = new Set((rows ?? []).map((r: any) => r.user_id as string));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const teamMembers: BizTeamMember[] = (adminRows ?? []).flatMap((r: any) => {
+    const u = r.ow_users;
+    if (!u) return [];
+    return [{
+      userId: u.id as string,
+      name: (u.name as string | null) ?? null,
+      email: (u.email as string | null) ?? null,
+      avatarUrl: (u.avatar_url as string | null) ?? null,
+      permission: (r.permission as string | null) ?? null,
+      hasExperience: experienceUserIds.has(u.id as string),
+    }];
+  });
+
   const current = employees.filter((e) => e.isCurrent && !hiddenIds.has(e.experienceId));
   const alumni = employees.filter((e) => !e.isCurrent && !hiddenIds.has(e.experienceId));
   const hidden = employees.filter((e) => hiddenIds.has(e.experienceId));
@@ -114,6 +153,7 @@ export default async function EmployeesPage() {
     >
       <EmployeesClient
         current={current}
+        teamMembers={teamMembers}
         alumni={alumni}
         hidden={hidden}
         companyName={ctx.tenantName ?? ""}
