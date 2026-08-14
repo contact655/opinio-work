@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { confirmRedirectTo } from "@/lib/auth/redirects";
 
 type Mode = "signup" | "login";
 
@@ -486,6 +487,15 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   const [existingCompany, setExistingCompany] = useState<{ id: string; name: string; adminCount: number } | null>(null);
   const [joinRequestSent, setJoinRequestSent] = useState(false);
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
+  /*
+    メール確認が有効な環境では signUp はセッションを返さない。
+    そのまま次の画面へ飛ばすと、担当者は「登録できたのに何も操作できない画面」に着く。
+    ⚠️ /biz/companies/add/new は BizLayout の MEMBERSHIP_EXEMPT なので
+       未ログインでも 200 で描画される。ログインへ弾かれもせず、
+       プリフィルだけが空の会社作成フォームが出る（最も分かりにくい壊れ方）。
+    セッションが無いときはここで止め、確認メールを開いてもらう。
+  */
+  const [confirmSentTo, setConfirmSentTo] = useState<string | null>(null);
 
 
   // ② Google OAuth
@@ -523,10 +533,25 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
     setError(null);
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signUp({
+      /*
+        ⚠️ 着地先を /biz/dashboard にしないこと。
+           確認メールを開いた時点では招待をまだ受諾していないので企業に所属しておらず、
+           BizLayout が /biz/companies/add へ飛ばす。招待元に参加すべき人が
+           「新しい会社を作る」画面に着き、重複企業を作ってしまう。
+           招待受諾ページに戻せば、そこで受諾まで完結する
+           （このページは MEMBERSHIP_EXEMPT かつ token だけで動くので、
+            sessionStorage が無い別ブラウザで開いても通る）。
+      */
+      const inviteNext = inviteContext
+        ? `/biz/auth/accept-invite?token=${encodeURIComponent(inviteContext.token)}`
+        : "/biz/dashboard";
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name: contactName } },
+        options: {
+          data: { name: contactName },
+          emailRedirectTo: confirmRedirectTo(location.origin, inviteNext),
+        },
       });
       if (authError) {
         if (authError.message.includes("already registered") || authError.message.includes("User already registered")) {
@@ -534,6 +559,20 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           return;
         }
         setError(authError.message);
+        return;
+      }
+      /*
+        ⚠️ 「メール列挙の防止」が有効だと、登録済みアドレスでもエラーにならず
+           identities が空のダミー user が返る。ここを拾わないと
+           「確認メールを送りました」と嘘をつくことになる（メールは届かない）。
+      */
+      if (data.user?.identities?.length === 0) {
+        onSwitchToLogin(email);
+        return;
+      }
+      if (!data.session) {
+        // セッションが無いので /api/biz/members/accept は 401 になる。呼ばずに待たせる。
+        setConfirmSentTo(email);
         return;
       }
       if (inviteContext) {
@@ -578,17 +617,20 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       }
 
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: {
-          name: contactName,
-          pending_company: companyName,
-          pending_industry: industry || null,
-          agreed_terms_business: agreedTerms,
-          agreed_fee_pct15: agreedFee,
-          agreed_terms_version: "2026-07",
-        } },
+        options: {
+          data: {
+            name: contactName,
+            pending_company: companyName,
+            pending_industry: industry || null,
+            agreed_terms_business: agreedTerms,
+            agreed_fee_pct15: agreedFee,
+            agreed_terms_version: "2026-07",
+          },
+          emailRedirectTo: confirmRedirectTo(location.origin, "/biz/companies/add/new"),
+        },
       });
 
       if (authError) {
@@ -605,6 +647,21 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           return;
         }
         setError(authError.message);
+        return;
+      }
+
+      // 既存アドレス（メール列挙の防止が有効なとき、エラーではなく identities 空で返る）
+      if (data.user?.identities?.length === 0) {
+        setShowExistingNotice(true);
+        try {
+          const pending: PendingCompany = { name: companyName, industry, employeeCount, genres: [] };
+          sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
+        } catch { /* ignore */ }
+        return;
+      }
+
+      if (!data.session) {
+        setConfirmSentTo(email);
         return;
       }
 
@@ -633,6 +690,36 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
     } finally {
       setJoinRequestLoading(false);
     }
+  }
+
+  // ─── 確認メール送信済み（メール確認が有効な環境） ──────────────────────────
+  if (confirmSentTo) {
+    return (
+      <div style={{ textAlign: "center", padding: "32px 0" }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: "50%", background: "var(--success-soft)",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+        }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)"
+            strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h2 style={titleStyle}>確認メールを送りました</h2>
+        <p style={{ ...subtitleStyle, marginBottom: 28 }}>
+          <strong style={{ color: "var(--ink)" }}>{confirmSentTo}</strong> に確認メールを送信しました。<br />
+          メール内のリンクを開くと、
+          {isInviteMode ? "招待の受諾に進めます。" : "企業情報の入力に進めます。"}
+        </p>
+        <button
+          type="button"
+          onClick={() => { setConfirmSentTo(null); onSwitchToLogin(confirmSentTo); }}
+          style={{ ...submitBtnStyle, width: "auto", padding: "10px 28px" }}
+        >
+          ログインへ
+        </button>
+      </div>
+    );
   }
 
   // ─── 重複企業が見つかったとき ──────────────────────────────────────────────
