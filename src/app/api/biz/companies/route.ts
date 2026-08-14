@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isValidIndustry } from "@/lib/search/industryGroups";
+import { deriveBrandName } from "@/lib/companies/displayName";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
@@ -61,6 +62,8 @@ export async function POST(req: Request) {
     name?: string;
     description?: string;
     industry?: string;
+    /** 任意。空なら社名から法人格を落とした値を既定にする */
+    brand_name?: string;
     size?: string;
     website?: string;
     logo_url?: string;
@@ -161,6 +164,11 @@ export async function POST(req: Request) {
     .from("ow_companies")
     .insert({
       name,
+      /* ブランド名の既定値。⚠️ 空のときだけ入れる。人が直した値を上書きしない。
+         ⚠️ 機械的に法人格を落とすだけなので、例外（HPE など）は運営が直す運用。 */
+      brand_name: (typeof body.brand_name === "string" && body.brand_name.trim())
+        ? body.brand_name.trim().slice(0, 100)
+        : deriveBrandName(name),
       description: body.description || null,
       industry: body.industry || null,
       employee_count: body.size ? parseInt(body.size, 10) : null,

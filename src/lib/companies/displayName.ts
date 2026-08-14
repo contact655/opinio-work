@@ -70,3 +70,22 @@ export function companyDisplayName(
   const ja = stripLegalSuffix(name);
   return { displayName: ja || name, isEnName: false };
 }
+
+/**
+ * `ow_companies.brand_name` の既定値を社名から作る。
+ *
+ * ⚠️ **新規作成時にだけ使う。** 既存87社への一括 UPDATE はしない
+ *    （CLAUDE.md「全社一括の UPDATE を禁止／推測値を投入しない」）。
+ *    表示は `companyDisplayName()` が name_en から作るので、既存分は既に揃っている。
+ *
+ * ⚠️ **機械的に法人格を落とすだけ。** これで足りない会社は人が直す前提
+ *    （例：「日本ヒューレット・パッカード合同会社」→ ここでは
+ *    「日本ヒューレット・パッカード」。ブランドの「HPE」にはならない）。
+ *
+ * @returns 削り切って空になる場合は null（空文字を入れて名前を消さない）
+ */
+export function deriveBrandName(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const stripped = stripLegalSuffix(name);
+  return stripped && stripped !== name.trim() ? stripped : (stripped || null);
+}

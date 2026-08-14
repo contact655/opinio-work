@@ -69,6 +69,8 @@ type FormData = {
   is_published: boolean;
   // ⚠️ status は持たない。編集UIを撤去したので送らない（2026-08-05）
   // 基本情報タブ追加フィールド
+  /** ブランド名。空なら表示名は name / name_en から作られる */
+  brand_name: string;
   mission: string;
   tagline: string;
   why_join: string;
@@ -118,6 +120,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
     logo_url: company.logo_url ?? '',
     is_published: company.is_published ?? false,
     // 基本情報追加
+    brand_name: company.brand_name ?? '',
     mission: company.mission ?? '',
     tagline: company.tagline ?? '',
     why_join: company.why_join ?? '',
@@ -441,6 +444,23 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
                   onChange={(e) => update('name', e.target.value)}
                   className={inputCls}
                 />
+              </div>
+
+              <div>
+                <label htmlFor="acd-brand-name" className={labelCls}>ブランド名</label>
+                <input
+                  id="acd-brand-name"
+                  type="text"
+                  value={formData.brand_name}
+                  onChange={(e) => update('brand_name', e.target.value)}
+                  placeholder="例: Salesforce（空なら社名から自動で作ります）"
+                  className={inputCls}
+                />
+                {/* ⚠️ 新規作成時は社名から法人格を落とした値が既定で入る。
+                       機械的な除去では足りない例外（HPE など）をここで直す。 */}
+                <p style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 4, lineHeight: 1.7 }}>
+                  一覧・企業ページ・ユーザーの経歴に出る名前です。空のままでも表示は崩れません。
+                </p>
               </div>
 
               <div>

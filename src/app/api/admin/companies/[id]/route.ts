@@ -42,6 +42,9 @@ export async function PUT(
     //    ow_companies.status は is_approved / is_published と無関係で、掲載の可否を
     //    何もゲートしていない。唯一の編集UI（企業詳細の公開設定タブ）を撤去したので、
     //    ここも閉じて書き込み経路を無くした。承認は is_approved（企業審査の一覧）。
+    /* ブランド名。⚠️ **公開側の表示名に効く。** 新規作成時は社名から法人格を
+       落とした値が既定で入るので、「HPE」のような例外だけ運営がここで直す。 */
+    'brand_name',
     // 基本情報追加フィールド
     'mission',
     'tagline',
@@ -63,7 +66,7 @@ export async function PUT(
   ];
 
   const FIELD_LIMITS: Record<string, number> = {
-    name: 200, tagline: 300, mission: 1000, description: 5000,
+    name: 200, brand_name: 100, tagline: 300, mission: 1000, description: 5000,
     why_join: 3000, culture_description: 3000, location: 200, industry: 100, phase: 100,
     url: 2048, ceo_name: 200, headquarters_address: 300, nearest_station: 200,
     recruiter_name: 200, recruiter_role: 200, recruiter_message: 2000,
