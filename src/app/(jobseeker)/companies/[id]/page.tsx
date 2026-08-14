@@ -2553,12 +2553,6 @@ export default async function CompanyDetailPage({
               photos={photos}
             />
 
-            {/* 1-2. 拠点・資本関係
-                    ⚠️ サイドバーでは 172px しかなく3行に折り返していた項目をここに集める。
-                       モバイル（1024px 未満）はサイドバーごと非表示なので、
-                       **このセクションが唯一の表示先**になる。 */}
-            <LocationsCapitalSection detail={detail} />
-
             {/* 2. 製品・導入事例 */}
             <ProductsClientsSection detail={detail} />
 
@@ -2610,6 +2604,20 @@ export default async function CompanyDetailPage({
               categories={employeeCategories}
               ambassadorMap={ambassadorMap}
             />
+
+            {/* 5-2. 拠点・資本関係
+                    ⚠️ サイドバーでは 172px しかなく3行に折り返していた項目をここに集める。
+                       モバイル（1024px 未満）はサイドバーごと非表示なので、
+                       **このセクションが唯一の表示先**になる。
+
+                    ⚠️ 置き場所は「記事・更新情報の直前」。2026-08-14 に
+                       企業概要の直後（1-2）からここへ下げた。事業の話（製品・求人・
+                       働く環境・社員）を先に読ませ、住所や資本といった参照情報は
+                       後ろにまとめるため。
+                    ⚠️ 「取材記事の直前」ではなく「企業からの投稿の直前」に置いている。
+                       投稿↔取材記事↔更新情報はスティッキーナビの `articles` タブが
+                       まとめて指す1グループなので、間に別セクションを挟まない。 */}
+            <LocationsCapitalSection detail={detail} />
 
             {/* 6. 記事・更新情報（posts → articles → activity） */}
             <CompanyPostsSection posts={companyPosts} />
