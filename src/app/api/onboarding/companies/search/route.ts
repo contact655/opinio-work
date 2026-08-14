@@ -29,8 +29,12 @@ export async function GET(req: NextRequest) {
 
   const { data: companies, error } = await admin
     .from("ow_companies")
-    .select("id, name, brand_name, industry, phase, is_published")
-    .or(`name.ilike.%${safeQ}%,brand_name.ilike.%${safeQ}%`)
+    /* ⚠️ `name_en` も返す。表示名は `companyDisplayName()` が name_en 優先で作るので、
+          返さないと候補だけ正式名称（「株式会社セールスフォース・ジャパン」）になる。 */
+    .select("id, name, name_en, brand_name, industry, phase, is_published")
+    /* ⚠️ 検索は正式名称・ブランド名・英語名の3つに当てる。表示が英語名になる会社を
+          英語名で引けないと、見えている名前で検索できないことになる。 */
+    .or(`name.ilike.%${safeQ}%,brand_name.ilike.%${safeQ}%,name_en.ilike.%${safeQ}%`)
     .order("is_published", { ascending: false })
     .order("name")
     .limit(8);
@@ -43,6 +47,7 @@ export async function GET(req: NextRequest) {
     results: (companies ?? []).map((c) => ({
       id: c.id,
       name: c.name,
+      name_en: c.name_en ?? null,
       brand_name: c.brand_name ?? null,
       industry: c.industry ?? null,
       phase: c.phase ?? null,

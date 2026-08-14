@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
+import { companyDisplayName } from "@/lib/companies/displayName";
 /* ⚠️ 学歴の区分もここに直書きしない。API（educations POST）が `DEGREES` で検証しており、
       別の語彙を送ると 400 になる（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { DEGREES, DEGREE_LABELS } from "@/lib/constants/careerOptions";
@@ -30,6 +31,8 @@ const REMOTE_CHIPS = REMOTE_WORK_STATUSES
 type CompanyResult = {
   id: string;
   name: string;
+  /** 英語社名。表示名を作るのに使う（`companyDisplayName`） */
+  name_en: string | null;
   brand_name: string | null;
   industry: string | null;
   phase: string | null;
@@ -75,6 +78,13 @@ const emptyEducation = (key: number): EducationRow => ({
  * ⚠️ 退職年月も必須。`is_current = false` かつ `ended_at` が空の経歴は、
  *    企業ページの現役社員にも OB/OG にも出ない（OB 側が `ended_at is not null` を要求する）。
  */
+/**
+ * 候補・選択カードに出す社名。**企業一覧・企業ページと同じ表示名にする。**
+ * ⚠️ ここで正規表現を書かない。`lib/companies/displayName.ts` を通す。
+ */
+const companyLabel = (c: CompanyResult) =>
+  c.brand_name?.trim() || companyDisplayName(c.name, c.name_en).displayName;
+
 const pastJobReady = (j: PastJob) =>
   (!!j.company || j.companyText.trim().length > 0) &&
   !!j.roleId && !!j.startYear && !!j.startMonth && !!j.endYear && !!j.endMonth;
@@ -982,8 +992,10 @@ function CompanyPicker({
   }, []);
 
   const showFreeTextOption = text.trim().length >= 1 && !selected && results.length < 8;
+  /* ⚠️ 表示名でも完全一致を見る。候補に「Salesforce」と出ているのに
+        「Salesforce」と打つと『この名前のまま入力する』が出る、を防ぐ。 */
   const exactMatch = results.some(
-    (r) => r.name === text.trim() || (r.brand_name ?? "") === text.trim()
+    (r) => r.name === text.trim() || (r.brand_name ?? "") === text.trim() || companyLabel(r) === text.trim()
   );
 
   return (
@@ -998,7 +1010,7 @@ function CompanyPicker({
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {selected.name}
+                {companyLabel(selected)}
               </div>
               {selected.industry && (
                 <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{selected.industry}</div>
@@ -1083,11 +1095,11 @@ function CompanyPicker({
                   display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
                   fontSize: 12, fontWeight: 700,
                 }}>
-                  {c.name.replace(/^株式会社|合同会社|有限会社/, "").trim().charAt(0)}
+                  {companyLabel(c).charAt(0)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {c.name}
+                    {companyLabel(c)}
                   </div>
                   {(c.industry || c.phase) && (
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
