@@ -176,6 +176,18 @@ export default function ProfileEditClient({
     : "profile";
   const [activeTab, setActiveTab] = useState<ProfileTabKey>(resolvedInitialTab);
 
+  /* ── タブの遅延マウント（★一度開いたら二度と外さない）───────────────────
+        ⚠️ アンマウントする形に戻さないこと。3-B の2条件が壊れる:
+           ① 保存していない入力がタブ切替で消える
+           ② 開くたびに再取得が走る（設定タブの email-settings、学歴の schools）
+        開くまでマウントしないのは、初回描画で3タブ分を描かないため。
+        設定タブは mount 時に `/api/jobseeker/email-settings` を1本引くので、
+        プロフィールを見に来ただけの人にその1本を負わせない。 */
+  const [mountedTabs, setMountedTabs] = useState<Set<ProfileTabKey>>(() => new Set([resolvedInitialTab]));
+  useEffect(() => {
+    setMountedTabs((prev) => (prev.has(activeTab) ? prev : new Set(prev).add(activeTab)));
+  }, [activeTab]);
+
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   /* 希望条件は WishesTab が持つ（3-B）。親は**保存済みの結果だけ**を受け取る。
@@ -466,6 +478,7 @@ export default function ProfileEditClient({
 
         {/* プロフィールタブ（3-B で別ファイルへ切り出し。中身は移しただけ）
             ⚠️ display:none で残す。アンマウントすると未保存の入力がタブ切替で消える。 */}
+        {mountedTabs.has("profile") && (
         <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
           <ProfileTab
             owUser={owUser}
@@ -485,11 +498,13 @@ export default function ProfileEditClient({
             notifyGlobalSave={notifyGlobalSave}
           />
         </div>
+        )}
 
 
 
         {/* 転職の希望タブ（3-B で別ファイルへ切り出し）
             ⚠️ display:none で残す。アンマウントすると未保存の入力がタブ切替で消える。 */}
+        {mountedTabs.has("wishes") && (
         <div style={{ display: activeTab === "wishes" ? "block" : "none" }}>
           <WishesTab
             roles={roles}
@@ -503,6 +518,7 @@ export default function ProfileEditClient({
             notifyGlobalSave={notifyGlobalSave}
           />
         </div>
+        )}
 
 
 
@@ -514,6 +530,7 @@ export default function ProfileEditClient({
         {/* 設定タブ（3-B で別ファイルへ切り出し。中身は移しただけ）
             ⚠️ display:none で残す。アンマウントするとメール通知設定の取得が
                タブを開くたびに走り、未保存の公開設定も消える。 */}
+        {mountedTabs.has("settings") && (
         <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
           <SettingsTab
             owUserId={owUser?.id}
@@ -526,6 +543,7 @@ export default function ProfileEditClient({
             notifyGlobalSave={notifyGlobalSave}
           />
         </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             アカウントタブ
