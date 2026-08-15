@@ -24,6 +24,7 @@ type Candidate = {
   /** 表示用。本人が選んだ職種名（展開前） */
   desiredRoleNames: string[];
   workStyles: string[] | null;
+  desiredPrefectures: string[] | null;
   desiredPhase: string[] | null;
   transferTiming: string | null;
   /** transfer_timing を最後に「変更」した日時。NULL なら鮮度を出さない */
@@ -790,6 +791,14 @@ export default function CandidatesClient({
                                 希望: {c.desiredRoleNames.join("・")}
                               </span>
                             )}
+                          </div>
+                        )}
+
+                        {/* 希望勤務地。⚠️ 表示のみ（絞り込みは別タスク）。
+                            ⚠️ 空なら行ごと出さない。「未設定」とも書かない。 */}
+                        {c.desiredPrefectures && c.desiredPrefectures.length > 0 && (
+                          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.5 }}>
+                            希望勤務地: {c.desiredPrefectures.join("・")}
                           </div>
                         )}
 

@@ -27,6 +27,7 @@ export async function PUT(req: Request) {
 
   const patch: {
     name?: string;
+    headline?: string | null;
     avatar_color?: string | null;
     cover_color?: string | null;
     about_me?: string | null;
@@ -52,6 +53,15 @@ export async function PUT(req: Request) {
     }
     /* ⚠️ avatar_color / cover_color は値のホワイトリスト検証が本来要る（docs に宿題として記載）。
           ここでは空→null だけを揃える。形式の検証は入れない。 */
+    /* 肩書き1行。⚠️ 上限は DB の CHECK（ow_users_headline_length）と同じ 40。
+          超過は **切らずに 400**。切ると「入力したのに途中で消えた」になる。 */
+    if ("headline" in body) {
+      const h = optionalText(body.headline, 200);
+      if (h !== null && h.length > 40) {
+        return NextResponse.json({ error: "INVALID_HEADLINE", message: "肩書きは40文字以内で入力してください。" }, { status: 400 });
+      }
+      patch.headline = h;
+    }
     if ("avatar_color" in body) patch.avatar_color = optionalText(body.avatar_color, 100);
     if ("cover_color"  in body) patch.cover_color  = optionalText(body.cover_color, 100);
     if ("about_me" in body) patch.about_me = optionalText(body.about_me, 2000);

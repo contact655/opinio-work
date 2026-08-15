@@ -86,7 +86,7 @@ export default async function CandidatesPage() {
   const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_styles, desired_phase, transfer_timing, transfer_timing_updated_at, scout_enabled, desired_salary_min, desired_salary_max")
+      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_phase, transfer_timing, transfer_timing_updated_at, scout_enabled, desired_salary_min, desired_salary_max")
       .eq("scout_enabled", true)
       .then(r => r.data ?? []),
     adminClient
@@ -139,6 +139,7 @@ export default async function CandidatesPage() {
   const profilesByAuthId = new Map<string, {
     onboarding_completed: boolean;
     desired_work_styles: string[] | null;
+    desired_prefectures: string[] | null;
     desired_phase: string[] | null;
     transfer_timing: string | null;
     transfer_timing_updated_at: string | null;
@@ -255,6 +256,8 @@ export default async function CandidatesPage() {
         desiredRoleIds: authId ? (desiredByAuthId.get(authId)?.expandedIds ?? []) : [],
         desiredRoleNames: authId ? (desiredByAuthId.get(authId)?.names ?? []) : [],
         workStyles: (profile?.desired_work_styles as string[] | null) || null,
+        /* 希望勤務地。⚠️ 表示のみ。絞り込みUIの追加は別タスク。 */
+        desiredPrefectures: (profile?.desired_prefectures as string[] | null) || null,
         desiredPhase: profile?.desired_phase || null,
         transferTiming: profile?.transfer_timing || null,
         /* ⚠️ NULL のときは鮮度を出さない。「不明」とも書かない（既存39件は全て NULL） */

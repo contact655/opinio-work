@@ -29,7 +29,7 @@ export default async function ProfileEditPage({
   const adminSupabase = createAdminClient();
   const { data: owUser } = await adminSupabase
     .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, is_open_to_work, social_links")
+    .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, location, birth_date, about_me, future_aspirations, is_open_to_work, social_links")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -205,6 +205,7 @@ export default async function ProfileEditPage({
   // ow_profiles — 希望条件 + スカウト設定
   let profilePrefs: {
     desired_work_styles: string[] | null;
+    desired_prefectures: string[] | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
     transfer_timing: string | null;
@@ -221,7 +222,7 @@ export default async function ProfileEditPage({
        ⚠️ experience_years は引かない。職歴から自動計算する表示専用になった。 */
     const { data, error } = await supabase
       .from("ow_profiles")
-      .select("desired_work_styles, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
     if (error) console.error("[profile/edit] ow_profiles fetch error:", error.message);

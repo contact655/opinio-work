@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { PREFECTURES } from "@/lib/utils/location";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import {
@@ -49,6 +50,7 @@ export async function PUT(req: Request) {
 
   const patch: {
     desired_work_styles?: string[] | null;
+    desired_prefectures?: string[] | null;
     desired_salary_min?: number | null;
     desired_salary_max?: number | null;
     transfer_timing?: string | null;
@@ -97,6 +99,11 @@ export async function PUT(req: Request) {
   }
 
   /** 文字列配列。許容値に無いものが1つでもあれば 400。空配列は null（未設定）。 */
+  /* 希望勤務地の許容値。⚠️ 47件を直書きしない。所在地の選択肢と同じ定数を見る
+        （`location.ts` の PREFECTURES）。DB に CHECK は張っていないので、
+        ここが唯一の関門になる。 */
+  const VALID_PREFECTURES = new Set<string>(PREFECTURES);
+
   function readEnumArray(key: string, allowed: Set<string>): string[] | null | NextResponse {
     const v = body[key];
     if (v === null || v === undefined) return null;
@@ -118,6 +125,15 @@ export async function PUT(req: Request) {
     const v = readEnum(key, allowed);
     if (v instanceof NextResponse) return v;
     patch[key] = v;
+  }
+
+  /* ⚠️ 全部外したときは **null** に寄せる（空配列にしない）。
+        `desired_work_styles` など既存の配列列が `uniq.length > 0 ? uniq : null` で
+        null に倒しており、片方だけ空配列だと「未設定」の判定が列ごとに割れる。 */
+  if ("desired_prefectures" in body) {
+    const v = readEnumArray("desired_prefectures", VALID_PREFECTURES);
+    if (v instanceof NextResponse) return v;
+    patch.desired_prefectures = v;
   }
 
   if ("desired_work_styles" in body) {

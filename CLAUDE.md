@@ -498,6 +498,30 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
 - **`auth.uid()` が返すのは `auth.users.id` で、`ow_users.id` とは別物。**
   どちらの空間かはテーブルごとに違う。ポリシーを書く前に
   [docs/user-id-spaces.md](docs/user-id-spaces.md) の表を見ること。
+- **`ow_users` に列を足したら `grant select` が要る。**
+  `authenticated` の SELECT は**列を列挙する形**で配られているため、
+  `ADD COLUMN` した列は**読めない状態で生まれる**。
+  ⚠️ **UPDATE はテーブルレベルなので「書けはする」。** だから実測しないと気づけない
+  （2026-08-15 に `headline` で実際に踏んだ。適用直後の実測は SELECT=false / UPDATE=true）。
+
+  ```sql
+  -- 列を足したあと必ず実測する
+  select has_column_privilege('authenticated','public.ow_users','新しい列','SELECT');
+  ```
+
+- **SELECT を列単位で配っているテーブルの一覧**（2026-08-15 実測）。
+  ここに載っているテーブルに列を足したら、**`grant select (列名)` を同じ migration に書く。**
+
+  | テーブル | 読める列 / 全列 |
+  |---|---|
+  | `ow_users` | 30 / 32 |
+  | `ow_experiences` | 26 / 35 |
+  | `ow_career_profiles` | 7 / 9 |
+
+  ⚠️ **これ以外の `ow_*` はテーブルレベル**なので、列を足せばそのまま読める。
+  ⚠️ `ow_companies` は逆に **UPDATE** が列単位（テーブルレベルを落としてある）。
+     読めるが書けない列が生まれる。**SELECT 側と UPDATE 側で運用が違うので混同しない。**
+
 - **新しいテーブルには GRANT を必ず書く。** 既定では anon も authenticated も権限が付かない。
 - **列単位 GRANT を剥がすと、剥奪列が select に1つでも入ったクエリが丸ごと 403 になる。**
   ページは HTTP 200 のまま中身だけが静かに空になる。

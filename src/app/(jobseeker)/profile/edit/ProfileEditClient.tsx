@@ -26,6 +26,7 @@ import {
 } from "./_components/recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
+import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import {
   DESIRED_WORK_STYLES,
   TRANSFER_TIMINGS,
@@ -121,15 +122,21 @@ type OwUser = {
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
   social_links: Json | null;
+  headline: string | null;
 } | null;
 
 // ─── Basic info state ─────────────────────────────────────────────────────────
 
 type BasicInfo = {
   name: string;
+  /** 肩書き1行（40字）。⚠️ 上限は DB の CHECK と API と UI の3つに置く */
+  headline: string;
   location: string;
   aboutMe: string;
 };
+
+/** 肩書きの上限。⚠️ DB の CHECK（`ow_users_headline_length`）と同じ値にすること。 */
+const HEADLINE_MAX = 40;
 
 type SettingsState = {
   avatarColor: string;
@@ -797,6 +804,7 @@ export default function ProfileEditClient({
     //    希望職種は ow_profile_desired_roles、勤務スタイルは desired_work_styles、
     //    経験年数は職歴から自動計算に移った（2026-08-07）。列は残置。
     desired_work_styles: string[] | null;
+    desired_prefectures: string[] | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
     transfer_timing: string | null;
@@ -817,6 +825,10 @@ export default function ProfileEditClient({
   // ── 希望条件 (ow_profiles) state ─────────────────────────────────────────────
   const [prefRoleIds, setPrefRoleIds] = useState<string[]>(initialDesiredRoleIds);
   const [prefWorkStyles, setPrefWorkStyles] = useState<string[]>(initialProfilePrefs?.desired_work_styles ?? []);
+  /* 希望勤務地。⚠️ 全部外したときは **null**（空配列にしない）。
+     API 側も `uniq.length > 0 ? uniq : null` で null に倒しており、
+     片方だけ空配列だと「未設定」の判定が列ごとに割れる。 */
+  const [prefPrefectures, setPrefPrefectures] = useState<string[]>(initialProfilePrefs?.desired_prefectures ?? []);
   const [prefSalaryMin, setPrefSalaryMin] = useState(initialProfilePrefs?.desired_salary_min?.toString() ?? "");
   const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
   const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
@@ -1219,6 +1231,7 @@ export default function ProfileEditClient({
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     name:             owUser?.name      ?? "",
+    headline:         owUser?.headline  ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
   });
@@ -1229,6 +1242,7 @@ export default function ProfileEditClient({
   // 変更検知用の初期値（保存成功時に更新）
   const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
     name:             owUser?.name      ?? "",
+    headline:         owUser?.headline  ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
   });
@@ -1260,6 +1274,7 @@ export default function ProfileEditClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name:             basicInfo.name,
+          headline:         basicInfo.headline,
           location:         basicInfo.location,
           about_me:         basicInfo.aboutMe,
           birth_date:       birthDate,
@@ -1483,6 +1498,27 @@ export default function ProfileEditClient({
                   placeholder="例：山田 太郎"
                   style={inputStyle()}
                 />
+              </FormGroup>
+
+              {/* ⚠️ 肩書きは名前の直下（モックのとおり）。40字の上限は
+                     DB の CHECK / API / ここ の3つに置く。 */}
+              <FormGroup
+                label="肩書き（1行）"
+                hint={`${HEADLINE_MAX}字まで ・ 一覧やスカウト画面で最初に読まれる行です`}
+                htmlFor="pe-headline"
+              >
+                <input
+                  id="pe-headline"
+                  type="text"
+                  value={basicInfo.headline}
+                  maxLength={HEADLINE_MAX}
+                  onChange={(e) => setBasicInfo((prev) => ({ ...prev, headline: e.target.value }))}
+                  placeholder="例：SaaSの法人営業／IS→FSを6年。次はカスタマーサクセスへ"
+                  style={inputStyle()}
+                />
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, textAlign: "right" }}>
+                  {basicInfo.headline.length} / {HEADLINE_MAX}
+                </div>
               </FormGroup>
 
               <FormGroup label="所在地" hint="現在お住まいの都道府県を選択してください。" htmlFor="pe-location">
@@ -1764,9 +1800,22 @@ export default function ProfileEditClient({
             )}
 
             <FormSection
-              title="勤務スタイル・転職時期"
-              desc="希望する働き方と転職のタイミングを教えてください。"
+              title="希望勤務地・勤務スタイル"
+              desc="当てはまるものすべてを選べます。"
             >
+              {/* ⚠️ 希望勤務地はモックに合わせて勤務スタイルと同じカードに置く。
+                     値は所在地と同じ `PREFECTURES`。よく選ばれる4件を先頭に出す並びも流用する。 */}
+              <FormGroup label="希望勤務地">
+                <CheckPillGroup
+                  ariaLabel="希望勤務地"
+                  value={prefPrefectures}
+                  options={[...COMMON_PREFECTURES, ...OTHER_PREFECTURES].map((p) => ({ value: p, label: p }))}
+                  onChange={async (next) => {
+                    setPrefPrefectures(next);
+                    await savePreferences({ desired_prefectures: next.length > 0 ? next : null });
+                  }}
+                />
+              </FormGroup>
               <FormGroup label="希望勤務スタイル">
                 {/* ⚠️ 複数選べる。「フルリモート希望」と「週2出社まで可」を
                        並べられないと幅が表現できない、というのが作り直しの理由。 */}

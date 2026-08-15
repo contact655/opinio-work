@@ -61,6 +61,7 @@ type OwUser = {
   about_me: string | null;
   location: string | null;
   social_links: SocialLinks | null;
+  headline: string | null;
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
   can_casual_meeting: boolean | null;
@@ -138,7 +139,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     */
     supabase
       .from("ow_users")
-      .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
+      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
       .eq("id", resolvedId)
       .maybeSingle(),
   ]);
@@ -598,6 +599,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 }}>
                   {owUser.name}
                 </div>
+                {/* 肩書き1行。⚠️ 空なら何も出さない（空欄も既定文言も出さない）。 */}
+                {owUser.headline && (
+                  <div style={{
+                    fontSize: 15, fontWeight: 600, color: "var(--ink-soft)",
+                    marginBottom: 8, lineHeight: 1.6,
+                  }}>
+                    {owUser.headline}
+                  </div>
+                )}
                 {/* Current role subtitle */}
                 {currentCareer && (
                   <div style={{ marginBottom: "var(--space-2)", lineHeight: 1.5 }}>
