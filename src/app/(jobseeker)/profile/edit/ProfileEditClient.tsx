@@ -1979,20 +1979,11 @@ export default function ProfileEditClient({
         {/* 発信コンテンツ（SNS・発信タブ内） */}
         {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
-            {/* why-fill hint */}
-            <div style={{
-              display: "flex", alignItems: "flex-start", gap: 8,
-              padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-              background: "var(--warm-soft)", border: "1px solid #FDE68A",
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "#92400E", lineHeight: 1.6 }}>
-                note / YouTube を繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります
-              </span>
-            </div>
+            {/* ⚠️ 色付きバナーにしない（2026-08-15）。カードの desc に混ぜて1行にする。
+                   1画面に色付きバナーを2つ以上出さない。 */}
             <FormSection
               title="発信コンテンツ"
-              desc="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。プロフィールページに表示されます。"
+              desc="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります。"
             >
               {/* 既存リスト */}
               {contentLinks.length > 0 && (
