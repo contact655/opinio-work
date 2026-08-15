@@ -481,7 +481,16 @@ function CardSaveFooter({
         </div>
       )}
       <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>このカードだけを保存します</span>
+        {/* ⚠️ 未保存であることは**画面に出す**。タブ切替では確認を出さない方針なので
+               （移動しても入力は消えない）、気づく手段はここと、タブ名の「未保存」印。 */}
+        {dirty ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--royal)" }}>
+            <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", display: "inline-block" }} />
+            未保存の変更があります
+          </span>
+        ) : (
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>このカードだけを保存します</span>
+        )}
         <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
           <button
             type="button"
@@ -1529,19 +1538,13 @@ export default function ProfileEditClient({
     prefCardDirty.worry    ? "今一番の悩み・相談テーマ" : null,
   ].filter((v): v is string => v !== null);
 
+  /* ⚠️ **タブ切替では確認を出さない**（2026-08-15）。移動しても入力は消えないので、
+        確認する理由が無い。未保存であることは
+        「カードのフッターの表示」と「タブ名の『未保存』印」で伝える。
+        確認を出すのはページ離脱のときだけ。あちらは実際に失われる。 */
   const requestTabChange = useCallback((tab: ProfileTab) => {
-    if (tab === activeTab) return;
-    if (dirtyCardLabels.length > 0) {
-      /* ⚠️ 「破棄して移動しますか？」とは書かない。**実際には破棄していない**（タブを
-            移っても入力内容は残り、戻れば元どおり出る）。やっていないことを文言で
-            約束しないこと。ページを離れたときだけ消える、と事実のまま書く。 */
-      const ok = window.confirm(
-        `保存していない変更があります（${dirtyCardLabels.join("・")}）。\n保存せずに移動しますか？（入力した内容はこのページを離れるまで残ります）`
-      );
-      if (!ok) return;
-    }
     setActiveTab(tab);
-  }, [activeTab, dirtyCardLabels]);
+  }, []);
 
   /* ⚠️ 文言はブラウザが決める（差し替えられない）。出すか出さないかだけを制御する。 */
   const hasDirty = dirtyCardLabels.length > 0;
@@ -1569,9 +1572,17 @@ export default function ProfileEditClient({
   };
 
 
+  /* タブごとの未保存。★「未設定」とは別物。判定はカードの dirty をそのまま束ねるだけ。 */
+  const tabDirty: Record<ProfileTab, boolean> = {
+    profile:  isBasicDirty || isSocialDirty,
+    wishes:   Object.values(prefCardDirty).some(Boolean),
+    settings: isAccountDirty,
+  };
+
   const profileTabsWithCompletion = PROFILE_TABS.map((tab) => ({
     ...tab,
     completed: tabCompletion[tab.key as ProfileTab],
+    dirty: tabDirty[tab.key as ProfileTab],
   }));
 
   // ── プロフィール完成度 ───────────────────────────────────────────────────
@@ -1876,43 +1887,16 @@ export default function ProfileEditClient({
                 />
               </FormGroup>
 
-            {/* ⚠️ 保存行はカードの中（右下）に置く。処理・送信内容は変えていない。 */}
-            <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>このカードだけを保存します</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <button
-                type="button"
-                onClick={handleCancelBasic}
-                disabled={!isBasicDirty || basicSaving || basicJustSaved}
-                style={{
-                  padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
-                  background: "#fff", color: "var(--ink-soft)",
-                  border: "1px solid var(--line)", borderRadius: 8,
-                  fontFamily: "inherit",
-                  cursor: !isBasicDirty || basicSaving || basicJustSaved ? "default" : "pointer",
-                  opacity: !isBasicDirty || basicSaving || basicJustSaved ? 0.5 : 1,
-                }}
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveBasic}
-                disabled={!isBasicDirty || basicSaving || basicJustSaved}
-                style={{
-                  padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
-                  background: basicJustSaved ? "var(--success)" : (!isBasicDirty || basicSaving) ? "var(--ink-mute)" : "var(--royal)",
-                  color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontFamily: "inherit",
-                  cursor: !isBasicDirty || basicSaving || basicJustSaved ? "default" : "pointer",
-                  transition: "background 0.2s",
-                }}
-              >
-                {basicSaving ? "保存中…" : basicJustSaved ? "✓ 保存しました" : "保存"}
-              </button>
-              </span>
-            </div>
+            {/* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。
+                   ★他のカードと同じ `CardSaveFooter` を使う。未保存の出し方を揃えるため。 */}
+              <CardSaveFooter
+                dirty={isBasicDirty}
+                saving={basicSaving}
+                justSaved={basicJustSaved}
+                error={null}
+                onSave={handleSaveBasic}
+                onCancel={handleCancelBasic}
+              />
             </FormSection>
 
             {basicToastMsg && (
@@ -2251,42 +2235,16 @@ export default function ProfileEditClient({
               socialLinks={socialLinks}
               setSocialLinks={setSocialLinks}
               /* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。 */
-              footer={<>
-            
-            <div style={CARD_FOOTER_STYLE}>
-              <button
-                type="button"
-                onClick={handleCancelSocial}
-                disabled={!isSocialDirty || socialSaving || socialJustSaved}
-                style={{
-                  padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
-                  background: "#fff", color: "var(--ink-soft)",
-                  border: "1px solid var(--line)", borderRadius: 8,
-                  fontFamily: "inherit",
-                  cursor: !isSocialDirty || socialSaving || socialJustSaved ? "default" : "pointer",
-                  opacity: !isSocialDirty || socialSaving || socialJustSaved ? 0.5 : 1,
-                }}
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveSocial}
-                disabled={!isSocialDirty || socialSaving || socialJustSaved}
-                style={{
-                  padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
-                  background: socialJustSaved ? "var(--success)" : (!isSocialDirty || socialSaving) ? "var(--ink-mute)" : "var(--royal)",
-                  color: "#fff",
-                  border: "none", borderRadius: 8,
-                  fontFamily: "inherit",
-                  cursor: !isSocialDirty || socialSaving || socialJustSaved ? "default" : "pointer",
-                  transition: "background 0.2s",
-                }}
-              >
-                {socialSaving ? "保存中…" : socialJustSaved ? "✓ 保存しました" : "保存"}
-              </button>
-            </div>
-              </>}
+              footer={
+                <CardSaveFooter
+                  dirty={isSocialDirty}
+                  saving={socialSaving}
+                  justSaved={socialJustSaved}
+                  error={null}
+                  onSave={handleSaveSocial}
+                  onCancel={handleCancelSocial}
+                />
+              }
             />
             {socialToastMsg && (
               <Toast

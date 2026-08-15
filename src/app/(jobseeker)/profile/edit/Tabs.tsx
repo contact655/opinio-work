@@ -7,6 +7,9 @@ export type TabItem = {
   label: string;
   /** false のときだけ「未設定」ラベルを出す。true / undefined は何も出さない */
   completed?: boolean;
+  /** そのタブに未保存のカードがあるか。★「未設定」とは別物。
+      未設定 = まだ何も入れていない（黄）／未保存 = 入れたがまだ保存していない（青） */
+  dirty?: boolean;
 };
 
 // ─── Tabs Component ───────────────────────────────────────────────────────────
@@ -70,6 +73,19 @@ export default function Tabs({
                      7タブのとき「公開設定」「アカウント」が常に緑で、
                      色が何を表すのか読めなかった。**未設定のタブにだけ言葉で出す。**
                      判定は呼び出し側の `tabCompletion` をそのまま使い、ここに条件を書かない。 */}
+              {tab.dirty && (
+                <span
+                  style={{
+                    fontSize: 11, fontWeight: 700, lineHeight: 1,
+                    color: "var(--royal)", background: "var(--royal-50)",
+                    border: "1px solid var(--royal-100)",
+                    borderRadius: 100, padding: "3px 7px",
+                    flexShrink: 0,
+                  }}
+                >
+                  未保存
+                </span>
+              )}
               {tab.completed === false && (
                 <span
                   style={{
