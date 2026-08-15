@@ -193,3 +193,38 @@ select t.tablename from t join pol p using (tablename)
 
 ⚠️ 求人側の勤務地は `ow_jobs.location`（自由文字列）で、都道府県の正規化がされていない。
    軸を作る前に、求人側の値が都道府県として突き合わせられる形かを先に確かめること。
+
+---
+
+## `ow_user_socials` を DROP するか決める（2026-08-16 記録）
+
+**対象**: `public.ow_user_socials`（0件）。2026-08-16 に SELECT を own + admin に絞ったが、
+**そもそも残す理由があるか**は別途決める。
+
+**判断材料**（すべて 2026-08-16 実測）:
+
+| 見たもの | 結果 |
+|---|---|
+| 行数 | **0件**（書かれた形跡なし。`created_at` の行そのものが無い） |
+| src からの参照 | **0件** |
+| 他テーブルからの FK / ビュー / 関数 / トリガー | **すべて0** |
+| 現役の代替 | `ow_users.social_links`（JSONB・2名が使用中）と `ow_user_content_links`（発信コンテンツ） |
+| プラットフォームの対応範囲 | ★**この表のほうが狭い**。CHECK は note/x/github/linkedin/other の5種で、
+`SNS_PLATFORMS`（x / linkedin / github / instagram / facebook / youtube / note）に**届いていない** |
+| この表にしかない列 | `username` / `custom_label` / `sort_order` / `verified` / **`oauth_token`** |
+
+**意見: DROP してよい。** 理由:
+1. 「並び順つき・ラベルつきのリンク集」は **`ow_user_content_links` が既に担っている**
+   （url / platform / title / description / thumbnail_url / sort_order）。用途が重なる
+2. プラットフォームの対応が現役の実装より**狭い**ので、使い始めるにも CHECK の作り直しが要る
+3. 参照が一切無いため、DROP で壊れるものが無い（型は `npm run gen:types` で追随）
+
+⚠️ **`oauth_token` は残す設計ごと考え直すべき。** SNS 連携をやるなら、
+   トークンを**クライアントから読めるテーブルに置かない**（今は own ポリシーで本人が読める。
+   実測で本人・運営からトークン値が見えることを確認した）。
+   サーバー専用の置き場（service_role のみ）か、Vault を使う。
+
+**やるなら**: `drop table public.ow_user_socials;` の migration 1本 ＋ `npm run gen:types`。
+⚠️ **DROP の前に CLAUDE.md のチェックリストを通すこと**（PL/pgSQL の本体は
+   Postgres が依存として追跡しないため、FK が0でも関数の中で参照されていることがある。
+   今回は関数0件を確認済み）。
