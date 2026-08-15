@@ -113,6 +113,10 @@ export type RawExperienceRow = {
   /** ow_roles の UUID */
   role_category_id: string;
   role_title: string | null;
+  /** 部署名（例: "第6営業部"）。任意 — SELECT に含めない画面がある */
+  department?: string | null;
+  /** 役職ランクの**生値**（"manager" 等）。表示時は rankLabel() を通すこと */
+  rank?: string | null;
   /** DATE "YYYY-MM-DD" */
   started_at: string;
   /** DATE "YYYY-MM-DD" | null（is_current の場合 null）*/
@@ -225,6 +229,11 @@ export function buildTimelineCareerEntriesFromRaw(
       role_label,
       role_parent_name: roleInfo?.parent_name ?? null,
       role_title:      r.role_title,
+      /* ⚠️ SELECT に列が無い画面（/mypage）では undefined になる。
+            `?? null` に倒しても「未入力」と区別が付かないので、
+            **undefined のまま渡して表示側で落とす**。 */
+      department:      r.department,
+      rank:            r.rank,
       started_at:      r.started_at,
       ended_at:        r.ended_at,
       is_current:      r.is_current,

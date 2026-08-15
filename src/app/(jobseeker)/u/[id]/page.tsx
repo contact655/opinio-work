@@ -223,7 +223,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
     */
     adminSupabase
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
+      /*
+        ⚠️ department / rank / employment_type は 2026-08-15 に足した。
+           3列とも `RawExperienceRow` にも `CareerEntry` にも元から定義があり、
+           MergedTimeline 側に描画コードまで書かれていたが、
+           **この SELECT に無かったので一度も表示されたことがなかった**
+           （employment_type は同社グループのヘッダーバッジ）。
+           admin クライアントで引いているので列単位 GRANT の制約は受けない。
+      */
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
@@ -384,15 +392,21 @@ export default async function UserProfilePage({ params }: { params: { id: string
   /* ⚠️ この2本も互いに独立なので並列にする（2026-08-09）。
         求人は在籍企業に、記事は本人にぶら下がっており、参照し合わない。 */
   const [jobsRes, articlesRes] = await Promise.all([
-    // 在籍企業の募集中求人（サイドバー表示用）
+    /* 在籍企業の募集中求人（本文カラム最下部の求人セクション用）
+       ⚠️ `count: "exact"` を付けるのは、見出しの「N件」を**総数**にするため。
+          2026-08-15 まで `limit(3)` で取った行数をそのまま「N件」と出していたので、
+          10件募集していても「3件」と表示されていた（実データでは
+          Salesforce が公開5件なので「3件」と出ていた）。
+       ⚠️ 表示条件は status='published' かつ is_test=false の2つだけ。
+          ここを増やすと企業ページ側の求人一覧と件数が食い違う。 */
     currentCareer?.company_id
       ? supabase
           .from("ow_jobs")
-          .select("id, title")
+          .select("id, title", { count: "exact" })
           .eq("company_id", currentCareer.company_id)
           .eq("status", "published").eq("is_test", false)
           .limit(3)
-      : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null }),
+      : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null, count: null as number | null }),
     // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）
     supabase
       .from("ow_articles")
@@ -404,6 +418,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
   ]);
 
   const currentCompanyJobs = (jobsRes.data ?? []) as Array<{ id: string; title: string }>;
+  /** 在籍企業の公開求人の**総数**。取れなければ表示済みの件数に倒す（0件を捏造しない） */
+  const currentCompanyJobCount =
+    (jobsRes as { count?: number | null }).count ?? currentCompanyJobs.length;
   const featuredArticlesRaw = articlesRes.data;
   const featuredArticles = (featuredArticlesRaw ?? []) as Array<{
     id: string; slug: string; title: string; subtitle: string | null;
@@ -414,24 +431,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
   /* ⚠️ 2026-08-06: キャリアサマリーの自動計算（在籍社数・通算年数）を削除した。
      計算はしていたが、どこにも表示していなかった。復活させるなら git 履歴から取る。 */
 
-  // 在籍期間計算（currentCareer）
-  const currentCareerTenure = (() => {
-    if (!currentCareer) return null;
-    const start = new Date(currentCareer.started_at);
-    const now = new Date();
-    const months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth();
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    if (years === 0) return `${rem}ヶ月`;
-    if (rem === 0) return `${years}年`;
-    return `${years}年${rem}ヶ月`;
-  })();
+  /* ⚠️ 2026-08-15: 右サイドバー「在籍企業」を削除したのに伴い、
+        そこだけで使っていた3つを消した。復活させるなら git 履歴から取る。
 
-  // 現職企業フェーズ
-  const currentCompanyPhase = currentCareer?.company_id ? (companyInfoById.get(currentCareer.company_id)?.phase ?? null) : null;
-
-  // サイドバーにコンテンツがあるか（なければ1カラム）
-  const hasSidebarContent = isCurrentCompanyKnown;
+        - currentCareerTenure … 「在籍 N年Mヶ月」バッジ。
+          ⚠️ 独自の月数計算を持っていた（`lib/profile/tenure.ts` の
+             `formatDuration` と別実装で、終了日の +1ヶ月補正が無い）。
+             期間表記を出す必要が再び出たら **tenure.ts を使うこと。**
+        - currentCompanyPhase … `ow_companies.phase` の**生値**をそのまま
+          バッジに出していた（"listed" / "non_listed" / "unicorn" /
+          "series_b" / "series_d"）。日本語ラベルが無いまま公開側に出ていたので、
+          移設先で復活させていない。
+        - hasSidebarContent … 2カラム切替用。1カラム化で不要。 */
 
   // セクションナビ用リスト（ProfileNavClient に渡す）
   const navSections = [
@@ -466,31 +477,30 @@ export default async function UserProfilePage({ params }: { params: { id: string
   return (
     <div style={{ background: "var(--bg-tint)", minHeight: "100vh" }}>
       <style>{`
+        /* 2026-08-15: 右サイドバー（在籍企業）を削除して1カラムにした。
+           has-sidebar / profile-sidebar / profile-sidebar-sticky の3クラスは
+           もう誰も付けないので定義ごと消してある。
+
+           ここに max-width を足していない。理由を残す。
+           行長の上限は外枠の maxWidth 1060（下）が既に担っている。
+           自己紹介は 15px の和文なので、実際の行長は
+
+             (1060 − 左右padding 40 − セクションpadding 56 − border 2) ÷ 15px
+             = 962 ÷ 15 ≒ 全角64字
+
+           で、読みやすさの目安（1行80〜100字以内）を満たす。
+           満たしているのに新しい上限値を足すと、根拠の無い数字が1つ増える。
+           足すとしたら 15px という前提が変わったときで、そのときは
+           上の式で計算し直すこと。
+
+           ⚠️ この style タグの中でバッククォートを使わないこと
+              （テンプレートリテラルが途中で閉じてビルドが落ちる。
+              2026-08-15 に実際に踏んだ）。子孫セレクタの記号と
+              引用符も使わない（ui-conventions: hydration mismatch になる）。 */
         .profile-grid {
           display: block;
         }
-        .profile-grid.has-sidebar {
-          display: grid;
-          grid-template-columns: 1fr 272px;
-          gap: 20px;
-          align-items: start;
-        }
-        .profile-sidebar {
-          display: none;
-        }
-        .profile-grid.has-sidebar .profile-sidebar {
-          display: block;
-        }
         @media (max-width: 960px) {
-          .profile-grid.has-sidebar {
-            display: block;
-          }
-          .profile-grid.has-sidebar .profile-sidebar {
-            display: none;
-          }
-          .profile-sidebar-sticky {
-            position: static !important;
-          }
           .profile-cover { height: 140px !important; }
           .profile-avatar { width: 88px !important; height: 88px !important; font-size: 32px !important; }
           .profile-avatar-wrap { margin-top: -44px !important; }
@@ -751,7 +761,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </div>
 
         {/* Two-column grid: main content | sidebar */}
-        <div className={`profile-grid${hasSidebarContent ? " has-sidebar" : ""}`}>
+        <div className="profile-grid">
 
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
@@ -1461,6 +1471,70 @@ export default async function UserProfilePage({ params }: { params: { id: string
             )}
 
 
+          {/* ── 在籍企業の募集中求人 ──────────────────────────────────
+              2026-08-15 に右サイドバーから本文カラム最下部へ移設した。
+
+              ⚠️ 遷移先は **企業ページ（/companies/[id]）** にすること。
+                 `/companies/[id]/jobs` は 2026-07-01 にルートごと削除されて 404、
+                 `/jobs?company=` は未実装。求人の全件はいずれも企業ページ側にある。
+              ⚠️ 見出しの件数は取得行数ではなく総数（currentCompanyJobCount）。
+                 ここに currentCompanyJobs.length を書かないこと（最大3にしかならない）。 */}
+          {isCurrentCompanyKnown && currentCompanyJobs.length > 0 && (
+            <section style={{
+              background: "#fff", border: "1px solid var(--line)",
+              borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+              boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", minWidth: 0 }}>
+                  {shortCompanyName(currentCareer!.company_name)}の募集中の求人
+                </span>
+                <span style={{
+                  fontSize: "var(--text-xs)", color: "#D97706", fontWeight: 700,
+                  fontFamily: "Inter, sans-serif", flexShrink: 0,
+                }}>
+                  {currentCompanyJobCount}件
+                </span>
+                <div style={{ flex: 1, height: 1, background: "var(--line)", minWidth: 0 }} />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {currentCompanyJobs.map((job) => (
+                  <Link key={job.id} href={`/jobs/${job.id}`} style={{
+                    display: "flex", alignItems: "center", gap: "var(--space-3)",
+                    padding: "12px 14px", borderRadius: 9,
+                    background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    textDecoration: "none",
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    {/* ⚠️ minWidth:0 が無いと ellipsis が効かず親を押し広げる */}
+                    <span style={{
+                      fontSize: 14, color: "var(--ink)", fontWeight: 500, minWidth: 0,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }} title={job.title}>
+                      {job.title}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              {/* UI規約: 濃紺塗り・白文字・中央配置・コンパクト幅 */}
+              <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "10px 22px", borderRadius: 8,
+                  background: "var(--royal)", color: "#fff",
+                  fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
+                }}>
+                  すべての求人を見る →
+                </Link>
+              </div>
+            </section>
+          )}
+
           {/* Footer CTA — パーソナライズ
               ⚠️ 2026-08-08 まで .profile-grid の**外**にあり、常に 1020px
                  （コンテナ全幅）だった。サイドバーが出るページでは職歴・学歴カードが
@@ -1586,264 +1660,20 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
           </div>{/* /main column */}
 
-          {/* ── Sidebar ─────────────────────────────────────────────── */}
-          <aside className="profile-sidebar">
-            <div className="profile-sidebar-sticky" style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          {/* ⚠️ 2026-08-15: 右サイドバーをここから削除した（在籍企業カード + 死にコード）。
 
-              {/* Current company card — 企業ページへ + カジュアル面談CTA */}
-              {currentCareer && currentCareer.company_id && (
-                <div style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "18px 20px",
-                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-                }}>
-                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: "var(--space-3)", textTransform: "uppercase" }}>
-                    在籍企業
-                  </div>
-                  {/* Company link — 企業が判明している場合のみリンク化 */}
-                  {isCurrentCompanyKnown ? (
-                  <Link href={`/companies/${currentCareer.company_id}`} style={{
-                    textDecoration: "none", display: "flex", alignItems: "center", gap: "var(--space-3)",
-                    marginBottom: "var(--space-3)",
-                  }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 9, flexShrink: 0,
-                      background: currentCareer.logo_gradient ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 16, fontWeight: 700,
-                      border: "1px solid rgba(0,0,0,0.06)",
-                    }}>
-                      {currentCareer.logo_letter ?? currentCareer.company_name.charAt(0)}
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{
-                        fontFamily: "'Noto Serif JP', serif",
-                        fontSize: 14, fontWeight: 700, color: "var(--ink)",
-                        marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {shortCompanyName(currentCareer.company_name)}
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {currentCareer.role_label}
-                      </div>
-                    </div>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                  ) : (
-                  /* 企業不明: 非リンク表示 */
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 9, flexShrink: 0,
-                      background: "linear-gradient(135deg, #64748b, #94a3b8)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      border: "1px solid rgba(0,0,0,0.06)",
-                    }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                      </svg>
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 2 }}>
-                        非公開企業
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
-                        {currentCareer.role_label}
-                      </div>
-                    </div>
-                  </div>
-                  )}
+                削除したのは2ブロック。
+                  ① 在籍企業カード … 企業リンク / 在籍N年 / phase生値バッジ /
+                     カジュアル面談CTA / 募集中の求人3件 / すべての求人を見る
+                  ② StrengthsFinder … 条件が `(null as string[] | null)?.length` で
+                     常に undefined。**一度も描画されたことのない約100行**
+                     （`ow_users.strengths_finder` 列は DB に存在しない）。
 
-                  {/* 在籍期間 + フェーズ */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: !viewerIsOwner ? 10 : 0 }}>
-                    {currentCareerTenure && (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        fontSize: "var(--text-xs)", color: "var(--ink-mute)",
-                        background: "var(--bg-tint)", border: "1px solid var(--line)",
-                        padding: "2px 8px", borderRadius: 100,
-                      }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        在籍 {currentCareerTenure}
-                      </span>
-                    )}
-                    {currentCompanyPhase && (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center",
-                        fontSize: "var(--text-xs)", color: "var(--royal)",
-                        background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                        padding: "2px 8px", borderRadius: 100, fontWeight: 600,
-                      }}>
-                        {currentCompanyPhase}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* カジュアル面談CTA — can_casual_meeting=true かつ在籍企業が受付中（非オーナー） */}
-                  {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
-                    <>
-                      <div style={{ height: 1, background: "var(--line)", margin: "0 0 14px" }} />
-                      <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                        padding: "10px 14px", borderRadius: 8,
-                        background: "linear-gradient(135deg, var(--warm) 0%, #D97706 100%)",
-                        color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-                        boxShadow: "0 2px 10px rgba(245,158,11,0.25)",
-                      }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                        カジュアル面談を申し込む
-                      </Link>
-                      <p style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
-                        担当者が返信します
-                      </p>
-                    </>
-                  )}
-
-                  {/* 募集中求人リスト */}
-                  {currentCompanyJobs.length > 0 && (
-                    <>
-                      <div style={{ height: 1, background: "var(--line)", margin: "14px 0 12px" }} />
-                      <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: "var(--space-2)" }}>
-                        募集中の求人 {currentCompanyJobs.length}件
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {currentCompanyJobs.map((job) => (
-                          <Link key={job.id} href={`/jobs/${job.id}`} style={{
-                            display: "flex", alignItems: "center", gap: "var(--space-2)",
-                            padding: "7px 10px", borderRadius: 7,
-                            background: "var(--bg-tint)", border: "1px solid var(--line)",
-                            textDecoration: "none",
-                          }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                            </svg>
-                            <span style={{
-                              fontSize: 12, color: "var(--ink)", fontWeight: 500,
-                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                            }}>
-                              {job.title}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                      <Link href={`/companies/${currentCareer.company_id}`} style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        marginTop: "var(--space-2)", fontSize: "var(--text-xs)", color: "var(--royal)", fontWeight: 600, textDecoration: "none",
-                      }}>
-                        すべての求人を見る →
-                      </Link>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* StrengthsFinder — column not yet in DB, hidden until data exists */}
-              {(null as string[] | null)?.length && (() => {
-                const DOMAIN_MAP: Record<string, { label: string; color: string; bg: string; border: string }> = {
-                  // 実行力
-                  "達成欲": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "アレンジ": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "信念": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "公平性": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "慎重さ": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "規律性": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "集中力": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "責任感": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  "回復志向": { label: "実行力", color: "#7C3AED", bg: "#F3E8FF", border: "#DDD6FE" },
-                  // 影響力
-                  "活発性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "指揮": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "コミュニケーション": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "競争性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "最上志向": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "自己確信": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "自我": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  "社交性": { label: "影響力", color: "#D97706", bg: "#FEF3C7", border: "#FDE68A" },
-                  // 人間関係構築
-                  "適応性": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "つながり": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "成長促進": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "共感": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "調和性": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "包含": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "個別化": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "ポジティブ": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  "親密性": { label: "関係構築", color: "var(--success)", bg: "#ECFDF5", border: "#A7F3D0" },
-                  // 戦略的思考
-                  "分析思考": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "文脈": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "未来志向": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "着想": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "収集心": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "内省": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "学習欲": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                  "戦略性": { label: "戦略思考", color: "var(--royal)", bg: "#EFF3FC", border: "#DCE5F7" },
-                };
-                const strengths: string[] = [];
-                return (
-                  <div style={{
-                    background: "#fff", border: "1px solid var(--line)",
-                    borderRadius: 14, padding: "18px 20px",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                      </svg>
-                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                        StrengthsFinder
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                      {strengths.map((sName: string, idx: number) => {
-                        const name = sName;
-                        const domain = DOMAIN_MAP[name];
-                        return (
-                          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            {/* 順位バッジ */}
-                            <div style={{
-                              width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                              background: domain ? domain.color : "var(--ink-mute)",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 12, fontWeight: 700, color: "#fff",
-                              fontFamily: "Inter, sans-serif",
-                            }}>
-                              {idx + 1}
-                            </div>
-                            {/* 資質名 */}
-                            <span style={{
-                              fontSize: "var(--text-sm)", fontWeight: 600,
-                              color: domain ? domain.color : "var(--ink)",
-                              flex: 1,
-                            }}>
-                              {name}
-                            </span>
-                            {/* ドメインバッジ */}
-                            {domain && (
-                              <span style={{
-                                fontSize: 12, fontWeight: 600,
-                                color: domain.color,
-                                background: domain.bg,
-                                border: `1px solid ${domain.border}`,
-                                padding: "1px 6px", borderRadius: 100,
-                                whiteSpace: "nowrap",
-                              }}>
-                                {domain.label}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
-
-            </div>
-          </aside>
+                「募集中の求人」は本文カラム最下部の求人セクションへ移設済み。
+                カジュアル面談CTAはヘッダーと Footer CTA に元から同じ導線があるため
+                移設していない（3箇所目を作らない）。
+             ⚠️ phase の生値バッジは復活させないこと。詳細は上の
+                currentCompanyPhase の削除コメントを参照。 */}
 
         </div>{/* /profile-grid */}
 

@@ -34,6 +34,54 @@ export const JOB_EMPLOYMENT_TYPES = [
 
 export const VALID_JOB_EMPLOYMENT_TYPES = new Set<string>(JOB_EMPLOYMENT_TYPES);
 
+/**
+ * 役職ランク（`ow_experiences.rank`）。
+ *
+ * ⚠️ 2026-08-15 にここへ移した。それまで `CareerHistoryEditor.tsx` に
+ *    直書きされており、同ファイルのコメント自身が
+ *    「選択肢は careerOptions.ts と共有すること」と書いていた。
+ *    公開プロフィール（/u/[id]）が役職を表示するようになり、
+ *    **入力側と表示側の2箇所が同じ語彙を持つ**ことになったので実際に共通化した。
+ *
+ * ⚠️ **DB に入っている生値は英語**（"none" / "leader" / "manager" …）。
+ *    画面に出すときは必ず `RANK_LABELS` を通すこと。生値を描画しない
+ *    （`ow_companies.phase` の生値が公開ページに出ていた前例がある）。
+ *
+ * ⚠️ **"none"（役職なし）は表示しない。** 「役職が無い」という入力であって、
+ *    出すべき値ではない。`rankLabel()` が null を返す。
+ *
+ * ⚠️ 実データ（2026-08-15）は none / leader / manager / NULL の4種のみ。
+ *    general_manager と executive は選べるが未使用。
+ *
+ * ⚠️ API 側は現在この一覧で検証していない
+ *    （`rank: s(body.rank, 100)` で長さだけ切っている）。
+ *    検証を足すときは **DB の CHECK も同時に**張ること
+ *    （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
+ */
+export const RANKS = [
+  { value: "none",            label: "役職なし" },
+  { value: "leader",          label: "係長・リーダークラス" },
+  { value: "manager",         label: "課長・マネージャークラス" },
+  { value: "general_manager", label: "部長・ゼネラルマネージャークラス" },
+  { value: "executive",       label: "役員クラス" },
+] as const;
+
+export const RANK_LABELS: Record<string, string> = Object.fromEntries(
+  RANKS.map((r) => [r.value, r.label])
+);
+
+/**
+ * 表示用の役職ラベル。出すものが無ければ null。
+ *
+ * - NULL / 空文字      → null（未入力）
+ * - "none"             → null（役職なしと明示的に選んだ）
+ * - 未知の値           → null（生値を画面に出さない）
+ */
+export function rankLabel(rank: string | null | undefined): string | null {
+  if (!rank || rank === "none") return null;
+  return RANK_LABELS[rank] ?? null;
+}
+
 /** 学位。UI のセレクトと API の検証が共有する */
 export const DEGREES = [
   "小学校卒",

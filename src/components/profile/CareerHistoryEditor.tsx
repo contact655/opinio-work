@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { EMPLOYMENT_TYPES, RANKS } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import {
@@ -283,13 +283,13 @@ function draftEndedAt(d: StintDraft): string {
   return toYearMonth(d.endedYear, d.endedMonth);
 }
 
+/* ⚠️ 2026-08-15: 直書きをやめ careerOptions.ts の RANKS を参照するようにした。
+      公開プロフィール（/u/[id]）が役職を表示するようになり、
+      **入力側と表示側で同じ語彙を持つ**ことになったため。
+      すぐ下の EMPLOYMENT_TYPE_OPTIONS のコメントが求めていたのと同じ扱い。 */
 const RANK_OPTIONS = [
   { value: "", label: "選択してください" },
-  { value: "none", label: "役職なし" },
-  { value: "leader", label: "係長・リーダークラス" },
-  { value: "manager", label: "課長・マネージャークラス" },
-  { value: "general_manager", label: "部長・ゼネラルマネージャークラス" },
-  { value: "executive", label: "役員クラス" },
+  ...RANKS,
 ];
 
 /* ⚠️ 選択肢は src/lib/constants/careerOptions.ts と共有する。

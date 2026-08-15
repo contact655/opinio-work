@@ -7,6 +7,7 @@ import FutureSectionEditor from "./FutureSectionEditor";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
+import { rankLabel } from "@/lib/constants/careerOptions";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
 function shortCompanyName(name: string): string {
@@ -72,6 +73,16 @@ export interface CareerEntry {
   role_parent_name?: string | null;
   /** 自由記述の役職名（例: "AE 関西DX推進営業部"） */
   role_title?: string | null;
+  /**
+   * 部署名（例: "ネットワークリクルーティング事業部・Solution Sales1G"）。
+   * 同社グループ内の主見出しに使う。
+   *
+   * ⚠️ **SELECT に含めていない画面では undefined。** /mypage は現在含めていないので、
+   *    向こうの表示は従来どおり（役職名が主見出し）になる。
+   */
+  department?: string | null;
+  /** 役職ランクの**生値**（"manager" 等）。描画時は必ず rankLabel() を通す */
+  rank?: string | null;
   started_at: string;       // "YYYY-MM-DD"
   ended_at: string | null;  // "YYYY-MM-DD" | null when is_current
   is_current: boolean;
@@ -159,6 +170,73 @@ function formatYM(dateStr: string): string {
 
 // 期間文字列（"2年3ヶ月"）の計算は lib/profile/tenure.ts に移した（2026-08-07）。
 // 社会人経験年数の自動計算が同じ式を使うため、2箇所に書き写さない。
+
+/**
+ * role_title の先頭に付いている部署名を落とす。
+ *
+ * 実データの role_title は部署を含んだ形で保存されている。
+ *   department = "第6営業部"
+ *   role_title = "第6営業部 / 電設資材営業（課長）"
+ * 部署を主見出しに出すと、そのすぐ下に同じ文字列がもう一度出てしまう。
+ *
+ * ⚠️ **表示層だけの整形で、DB は触らない。** 区切り（/ ・ ｜ 全角スペース等）が
+ *    続く場合のみ落とす。前方一致しなければ role_title をそのまま返す
+ *    （勝手に文字を削らない）。
+ */
+function stripDepartmentPrefix(roleTitle: string, department: string | null | undefined): string {
+  if (!department) return roleTitle;
+  const dept = department.trim();
+  const title = roleTitle.trim();
+  if (!dept || !title.startsWith(dept)) return roleTitle;
+  const rest = title.slice(dept.length).replace(/^[\s　]*[/／·・|｜-]?[\s　]*/, "");
+  // 部署名しか入っていなかった場合は空文字を返す（呼び出し側が行ごと落とす）
+  return rest;
+}
+
+/**
+ * 同社グループ内の1在籍期間について、表示する行を組み立てる。
+ *
+ * 並び: 部署（主見出し） → 役職ランク → 役職名 → 職種
+ *
+ * ルール:
+ * - **department が NULL の行は空の見出しを出さない。** 役職名 → 職種の順に繰り上げる
+ * - 主見出しに使った文字列はサブ行に出さない（同じ語が2回出ない）
+ * - 役職ランクは生値ではなく `rankLabel()` を通す。"none" と未知の値は出さない
+ * - 役職名は `stripDepartmentPrefix` で部署の接頭辞を落としてから比較する
+ *
+ * ⚠️ 出せる文字列が1つも無いことは起きない（role_label は必須）。
+ */
+function buildPositionLines(c: CareerEntry): { heading: string; sub: string[] } {
+  const dept = c.department?.trim() || null;
+  // 部署を主見出しに出すぶん、役職名からは同じ接頭辞を落とす
+  const title = (c.role_title ? stripDepartmentPrefix(c.role_title, dept) : "").trim() || null;
+  const rank = rankLabel(c.rank);
+  const role = c.role_label?.trim() || null;
+
+  const parent = c.role_parent_name?.trim() || null;
+
+  // 主見出し: 部署 → 役職名 → 職種 の順に繰り上げる
+  const heading = dept || title || role || c.role_label;
+
+  /* ⚠️ role_parent_name（職種の親カテゴリ。例「営業」）を落とさないこと。
+        2026-08-15 にこの関数へ寄せたとき、いったん落としてしまった。
+        department / rank を足す改修であって、既存の表示を減らす改修ではない。
+        職種と同じ行に出す（縦に積むと親カテゴリだけで1行使い、
+        在籍期間の縦線が間延びする）。これは改修前と同じ体裁。 */
+  const sub: string[] = [];
+  const push = (v: string | null) => { if (v && v !== heading && !sub.includes(v)) sub.push(v); };
+
+  push(rank);
+  push(title);
+  if (role && role !== heading) {
+    push([parent, role].filter(Boolean).join(" · "));
+  } else if (role && role === heading) {
+    // 職種が主見出しに繰り上がった場合、親カテゴリだけを下に残す
+    push(parent);
+  }
+
+  return { heading, sub };
+}
 
 /** 同一開始月の職歴 ID を収集して Set で返す */
 function buildParallelMap(careers: CareerEntry[]): Set<string> {
@@ -681,10 +759,9 @@ function CareerContent({
   const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
   const hasDesc = !!data.description;
 
-  // 表示する役職ラベル: role_title（例: "Enterprise Account Executive"）> role_label（例: "フィールドセールス"）
-  const positionLabel = data.role_title || data.role_label;
-  // 役職と職種が違う場合のみサブに職種を出す
-  const subLabel = data.role_title && data.role_label !== data.role_title ? data.role_label : null;
+  /* 主見出しとサブ行。同社グループ（career-same-company）と**同じ組み立てを使う**。
+     1社1行の人と複数在籍の人とで、部署・役職の出方が変わらないようにするため。 */
+  const lines = buildPositionLines(data);
 
   return (
     <div style={{ paddingTop: 10, paddingBottom: 22, paddingLeft: 8 }}>
@@ -712,17 +789,17 @@ function CareerContent({
         {isParallel && <ParallelBadge />}
       </div>
 
-      {/* 役職名（メイン・太字） */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, lineHeight: 1.4 }}>
-        {positionLabel}
+      {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, lineHeight: 1.4, overflowWrap: "anywhere" }}>
+        {lines.heading}
       </div>
 
-      {/* 部門 / 職種カテゴリ（サブ） */}
-      {(data.role_parent_name || subLabel) && (
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
-          {[data.role_parent_name, subLabel].filter(Boolean).join(" · ")}
+      {/* 役職ランク → 役職名 → 職種。空の行は出さない */}
+      {lines.sub.map((line, i) => (
+        <div key={i} style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.45, overflowWrap: "anywhere" }}>
+          {line}
         </div>
-      )}
+      ))}
 
       {/* 期間 */}
       <div style={{
@@ -1109,6 +1186,11 @@ export default function MergedTimeline({
                 }, null);
 
             const duration = formatDuration(earliestStart, latestEnd);
+            /* グループを代表する雇用形態。新しい行を優先し、最初に見つかった非 NULL を採る。
+               ⚠️ 複数種類が混在する場合（正社員→業務委託 等）は代表1つしか出せない。
+                  混在は現時点の実データには無い。出し分けが要るなら子の行に移すこと。 */
+            const groupEmploymentType =
+              items.find((c) => c.employment_type)?.employment_type ?? null;
 
             return (
               <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
@@ -1134,9 +1216,14 @@ export default function MergedTimeline({
                         {shortCompanyName(head.company_name)}
                       </span>
                     )}
-                    {head.employment_type && (
+                    {/* ⚠️ head（＝先頭の1件）ではなくグループ全体から拾う。
+                           実データでは同じ会社でも古い行にしか employment_type が
+                           入っていないことがあり（例: 大塚さんの海光電業は
+                           現職2件が NULL・最古の1件だけ "正社員"）、
+                           head だけ見ると雇用形態が出ない。 */}
+                    {groupEmploymentType && (
                       <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink-soft)" }}>
-                        · {head.employment_type}
+                        · {groupEmploymentType}
                       </span>
                     )}
                     {duration && (
@@ -1159,7 +1246,7 @@ export default function MergedTimeline({
                       const posDuration = formatDuration(c.started_at, c.ended_at);
                       const isLast = idx === items.length - 1;
                       // 表示するポジション名: role_title > role_label の優先順
-                      const positionLabel = c.role_title || c.role_label;
+                      const lines = buildPositionLines(c);
 
                       return (
                         <div key={c.id} style={{ position: "relative", paddingBottom: isLast ? 0 : 20 }}>
@@ -1172,9 +1259,9 @@ export default function MergedTimeline({
                             zIndex: 1,
                           }} />
 
-                          {/* ポジション名（太字ヘッダー） */}
-                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35 }}>
-                            {positionLabel}
+                          {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる */}
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35, overflowWrap: "anywhere" }}>
+                            {lines.heading}
                             {c.is_current && items.length > 1 && (
                               <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
                                 在籍中
@@ -1182,12 +1269,12 @@ export default function MergedTimeline({
                             )}
                           </div>
 
-                          {/* 部門 / 職種（サブ情報） */}
-                          {(c.role_parent_name || (c.role_title && c.role_label !== c.role_title)) && (
-                            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3 }}>
-                              {[c.role_parent_name, c.role_title ? c.role_label : null].filter(Boolean).join(" · ")}
+                          {/* 役職ランク → 役職名 → 職種。空の行は出さない */}
+                          {lines.sub.map((line, i) => (
+                            <div key={i} style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.45, overflowWrap: "anywhere" }}>
+                              {line}
                             </div>
-                          )}
+                          ))}
 
                           {/* 期間 */}
                           <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
