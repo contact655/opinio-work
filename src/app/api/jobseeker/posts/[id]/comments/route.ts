@@ -18,7 +18,14 @@ async function resolveOwUserId(
   return data?.id ?? null;
 }
 
-// GET /api/jobseeker/posts/[id]/comments — コメント一覧（認証不要）
+/**
+ * GET /api/jobseeker/posts/[id]/comments — コメント一覧
+ *
+ * ⚠️ **認証必須**（2026-08-16 に変更）。以前は認証不要だった。
+ *    投稿本体（`ow_posts`）を未ログインから読めなくした（20260815140000）のに、
+ *    **コメントだけ直接読めるのは筋が通らない**ため揃えた。
+ *    RLS 側も `ow_post_comments_select_authenticated` で揃えている。
+ */
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -26,8 +33,10 @@ export async function GET(
   const supabase = createClient();
   const postId = params.id;
 
-  // 投稿者の visibility をチェック（private は非公開）
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 投稿者の visibility をチェック（private は非公開）
   const { data: post } = await supabase
     .from("ow_posts")
     .select("user:ow_users!user_id(visibility)")
@@ -36,9 +45,6 @@ export async function GET(
   if (post) {
     const visibility = (post.user as unknown as { visibility: string | null } | null)?.visibility;
     if (visibility === "private") {
-      return NextResponse.json({ comments: [] });
-    }
-    if (visibility === "login_only" && !user) {
       return NextResponse.json({ comments: [] });
     }
   }

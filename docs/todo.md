@@ -103,73 +103,55 @@ migration を書く。⚠️ 企業ごとに対応が取れているかを先に
 
 ---
 
-## RLS が `USING(true)` かつ anon に SELECT がある テーブル一覧（2026-08-15 実測）
+## RLS が `USING(true)` かつ anon に SELECT がある テーブル ── **個人データは片付いた**（2026-08-16）
 
-**この形は今回で3例目**（学歴 2026-08-06 → 実績3種＋発信コンテンツ 2026-08-15）。
-残りが何件あるかを一度数えた。25件のうち **11件を片付けたので残り14件**
-（20260815130000 で実績3種＋発信コンテンツ、20260815140000 で posts / post_likes /
-experience_roles、20260816 で settings / job_assignees / experience_stories、
-`ow_user_socials` は DROP）。
+25件を洗い出し、**個人データ・企業の内部情報・運営設定を12件すべて塞いだ**（うち1件は DROP）。
+**残り13件は「公開が正しい」ものだけ。** ★塞ぎに行かないこと。理由を下の表に書いた。
 
-⚠️ **形は4通りに分かれた。** 一律に当てないこと。
-   own+admin（実績・学歴・ストーリー）／ authenticated（フィード・いいね）／
-   **その企業のメンバー**（求人担当者）／ **admin のみ**（運営設定）。
+⚠️ **形は4通りに分かれた。一律に当てないこと。**
 
-⚠️ **塞ぎ方は1つではない。** 「本人だけが見るもの」は own + admin、
-   **「他人が読む前提のもの」は authenticated**（ログイン済みなら読める）。
-   一律に own を当てると、フィードのように他人の行を読む画面が静かに空になる。
-   **いいね数のような集計は、読める範囲が狭いと数字だけが小さくなる。**
+| 形 | 使ったテーブル |
+|---|---|
+| own + admin | 実績 / 受賞 / メディア掲載 / 発信コンテンツ / 学歴 / 経歴ストーリー（★親の職歴経由） |
+| **authenticated**（ログイン済みなら読める） | 投稿 / いいね / **コメント** ← 他人が読む前提。集計列がある |
+| **その企業のメンバー** | 求人の担当者（`auth_is_company_member`） |
+| **admin のみ** | 運営設定 |
 
-判定に使ったクエリ:
+⚠️ **集計列（`likes(count)` / `comments(count)`）があるテーブルを own にしない。**
+   読める範囲を狭めると **HTTP 200 のまま数字だけが小さくなる**。
 
-```sql
-with t as (select c.relname as tablename from pg_class c
-             join pg_namespace n on n.oid=c.relnamespace
-            where n.nspname='public' and c.relkind='r' and c.relname like 'ow_%'),
-     pol as (select tablename, bool_or(cmd='SELECT' and qual='true') as select_true
-               from pg_policies where schemaname='public' group by tablename)
-select t.tablename from t join pol p using (tablename)
- where p.select_true and has_table_privilege('anon','public.'||quote_ident(t.tablename),'SELECT');
-```
+### 塞いだもの（履歴。触らない）
 
-⚠️ `information_schema.role_table_grants` は（実行ロールの都合で）空を返すことがある。
-   **`has_table_privilege` を使う。**
-
-| テーブル | 行数 | 個人データ | 備考 |
+| テーブル | 行数 | 形 | migration |
 |---|---|---|---|
-| ~~`ow_user_achievements`~~ | 0 | ✅ | **塞いだ**（20260815130000） |
-| ~~`ow_user_awards`~~ | 0 | ✅ | **塞いだ** |
-| ~~`ow_user_media_appearances`~~ | 0 | ✅ | **塞いだ** |
-| ~~`ow_user_content_links`~~ | 0 | ✅ | **塞いだ** |
-| ~~`ow_posts`~~ | 170 | ✅ | **塞いだ**（20260815140000）。★own ではなく **authenticated**（フィードは他人の投稿を読む画面） |
-| ~~`ow_post_likes`~~ | 1 | ✅ | **塞いだ**。★同じく authenticated。own にすると**いいね数が静かに変わる** |
-| `ow_post_comments` | 0 | ✅ | 誰が何にコメントしたか。**未対応**（0件のうちに塞ぐ。形は post_likes と同じはず） |
-| ~~`ow_experience_roles`~~ | 6 | ✅ | **塞いだ**。★こちらは own（親 experience 経由）+ admin。読み取り経路が0件で、親より広いのは筋が通らないため |
-| ~~`ow_experience_stories`~~ | 0 | ✅ | **塞いだ**（20260816130000）。own は**親の職歴経由**（この表に user_id が無い） |
-| ~~`ow_user_socials`~~ | 0 | ✅ | **DROP 済み**（20260816140000）。用途は content_links と social_links が担う |
-| `ow_articles` | 16 | — | 公開記事。公開が正しい |
-| `ow_roles` / `ow_role_aliases` | 154 / 260 | — | 職種マスター。公開が正しい |
-| `ow_schools` | 37 | — | 学校マスター。公開が正しい |
-| `ow_tool_masters` | 78 | — | ツールマスター。公開が正しい |
-| `ow_job_roles` | 20 | — | 求人の職種 |
-| `ow_company_tools` | 9 | — | 企業の利用ツール |
-| `ow_company_culture_tags` / `ow_company_office_photos` / `ow_company_segments` | 各0 | — | 企業側の公開情報 |
-| ~~`ow_job_assignees`~~ | 0 | ⚠️ | **塞いだ**（20260816100000）。★own でも authenticated でもなく **その企業のメンバー** |
-| `ow_job_matching_tags` / `ow_job_requirements` | 各0 | — | 求人の付帯情報 |
-| `ow_story_sections` | 0 | — | 記事のセクション |
-| ~~`ow_settings`~~ | 0 | ⚠️ | **塞いだ**（20260816090000 + 091500）。★**admin のみ**（GRANT を締めすぎて戻した経緯つき） |
+| `ow_user_achievements` / `ow_user_awards` / `ow_user_media_appearances` / `ow_user_content_links` | 0 | own+admin | 20260815130000 |
+| `ow_posts`(170) / `ow_post_likes`(1) | — | authenticated | 20260815140000 |
+| `ow_experience_roles`(6) | — | own（親の職歴経由）+admin | 20260815140000 |
+| `ow_settings` | 0 | **admin のみ** | 20260816090000 + 091500 |
+| `ow_job_assignees` | 0 | **企業メンバー** | 20260816100000 |
+| `ow_experience_stories` | 0 | own（親の職歴経由）+admin | 20260816130000 |
+| `ow_post_comments` | 0 | **authenticated** | 20260816150000 |
+| ~~`ow_user_socials`~~ | 0 | **DROP** | 20260816140000 |
 
-**優先度**: 行数 × 個人データの有無で見る。
-1. `ow_posts`（170行・個人データ・現に読める）
-2. `ow_experience_roles`（6行・経歴の一部）／`ow_post_likes`（1行）
-3. 残っているのは **`ow_post_comments`** だけ（他は公開情報・マスター）。
-   ⚠️ post_likes と同じ理由で **authenticated** にすること（コメント数を他人も数える）
+### 残り13件 ── すべて「公開が正しい」。★根拠つき
 
-⚠️ 塞ぐときは**読み取り経路を先に確認する**。session クライアントで他人の行を読んでいる
-   画面があると、RLS を own+admin にした瞬間に **HTTP 200 のまま中身だけ消える**
-   （今回 `/u/[id]` の4クエリがこれに該当し、admin クライアントへ差し替えた）。
+| テーブル | 行数 | 公開でよい理由 |
+|---|---|---|
+| `ow_articles` | 16 | 公開記事。未ログインの `/articles` で全文を出している |
+| `ow_roles` / `ow_role_aliases` | 154 / 260 | 職種マスター。未ログインの求人検索・職種フィルタが引く |
+| `ow_schools` | 37 | 学校マスター。学歴の入力候補（`/profile/edit`）と `/schools` で使う |
+| `ow_tool_masters` | 78 | ツールマスター。企業ページの「使っているツール」の名前・ロゴ |
+| `ow_job_roles` | 20 | 求人に紐づく職種。**求人自体が公開**なので、その属性も公開でよい |
+| `ow_company_tools` | 9 | 企業が公開しているツール。企業ページに出す |
+| `ow_company_culture_tags` / `ow_company_office_photos` / `ow_company_segments` | 各0 | **企業ページに出す公開情報**（オフィス写真・カルチャータグ）。個人データではない |
+| `ow_job_matching_tags` / `ow_job_requirements` | 各0 | 公開求人の付帯情報 |
+| `ow_story_sections` | 0 | 記事のセクション見出し。記事が公開なので同じ |
 
----
+⚠️ **「0件だから未対応」ではない。** 上の13件は**値が入っても公開してよい**もの。
+   個人データ・企業の内部情報・運営設定は**すべて処理済み**。
+
+⚠️ ただし `ow_company_office_photos` は**企業側が書ける**表なので、
+   書き込みポリシー（誰がアップロードできるか）は別途の関心事。読みは公開でよい。
 
 ## 希望勤務地（`desired_prefectures`）がマッチングに使われていない（2026-08-15 記録）
 
