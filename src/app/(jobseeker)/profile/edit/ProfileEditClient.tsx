@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { PublicProfileLinkCard } from "@/components/profile/PublicProfileLinkCard";
+import { PROFILE_VISIBILITY_OPTIONS } from "@/lib/constants/profileVisibility";
 import { GhostExample } from "@/components/profile/GhostExample";
 import type { Json } from "@/lib/supabase/types";
 import Image from "next/image";
@@ -1358,11 +1360,15 @@ export default function ProfileEditClient({
           { label: "プロフィール" },
         ]}
         rightColumn={
-          <ProfileCompletionBar
-            data={completionData}
-            mode="sidebar"
-            onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <ProfileCompletionBar
+              data={completionData}
+              mode="sidebar"
+              onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
+            />
+            {/* ⚠️ 公開範囲に関わらず常設する。文言は設定値から出す（決め打ちしない） */}
+            <PublicProfileLinkCard userId={owUser?.id} visibility={settings.visibility} />
+          </div>
         }
       >
 
@@ -1458,6 +1464,10 @@ export default function ProfileEditClient({
             mode="edit"
             onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
           />
+          {/* ⚠️ 右カラムが消える幅では、ここが「公開プロフィールを見る」の唯一の導線になる */}
+          <div style={{ marginBottom: 16 }}>
+            <PublicProfileLinkCard userId={owUser?.id} visibility={settings.visibility} />
+          </div>
         </div>
 
         {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
@@ -2287,30 +2297,7 @@ export default function ProfileEditClient({
                 desc="プロフィールページを誰が閲覧できるかを設定します。"
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {(
-                    [
-                      // ⚠️ public の説明は「ログイン中の…」ではない。
-                      //    現在は /people と /u/[id] が middleware でログイン必須のため
-                      //    public でも未ログインには出ないが、その制限が外れたときに
-                      //    意味が変わる設定なので、いま同意を取るべき範囲で書く。
-                      //    設定の意味を後から拡大しないこと（2026-08-04）。
-                      {
-                        value: "public",
-                        label: "公開",
-                        desc: "OPINIO にログインしている人が閲覧できます。将来この制限を外す場合は、事前にお知らせします（外れると、ログインしていない人や検索エンジンからも見える状態になります）。",
-                      },
-                      {
-                        value: "login_only",
-                        label: "ログインユーザーのみ（初期設定）",
-                        desc: "OPINIO にログインしている人だけが閲覧できます。ログインしていない人には、この制限が外れた後も表示されません。",
-                      },
-                      {
-                        value: "private",
-                        label: "非公開",
-                        desc: "自分だけが閲覧できます。企業の候補者検索にも表示されません。",
-                      },
-                    ] as const
-                  ).map((opt) => (
+                  {PROFILE_VISIBILITY_OPTIONS.map((opt) => (
                     <label
                       key={opt.value}
                       style={{

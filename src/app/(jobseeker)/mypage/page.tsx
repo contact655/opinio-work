@@ -351,6 +351,34 @@ export default async function MypagePage({
     showScoutBanner = profile?.onboarding_completed === true && profile?.scout_enabled == null;
   }
 
+  /* 実績（数値実績・受賞歴・メディア掲載）の件数。
+     ⚠️ **固定値を渡さないこと。** 完成度の式は completion.ts の1本に寄せてあるので、
+        ここで 0 を決め打ちすると 1件でも登録された瞬間に
+        /mypage と /profile/edit で % が食い違う（2026-08-15 に実際に固定値だった）。 */
+  let certOrAchievementCount = 0;
+  let contentLinkCount = 0;
+  if (owUser) {
+    const [
+      { count: achCount, error: achError },
+      { count: awdCount, error: awdError },
+      { count: medCount, error: medError },
+      { count: linkCount, error: linkError },
+    ] = await Promise.all([
+      supabase.from("ow_user_achievements").select("id", { count: "exact", head: true }).eq("user_id", owUser.id),
+      supabase.from("ow_user_awards").select("id", { count: "exact", head: true }).eq("user_id", owUser.id),
+      supabase.from("ow_user_media_appearances").select("id", { count: "exact", head: true }).eq("user_id", owUser.id),
+      /* 発信コンテンツも同じ理由で数える。/profile/edit は
+         contentLinks.length + social_links で出しているので、ここで落とすと同じずれになる。 */
+      supabase.from("ow_user_content_links").select("id", { count: "exact", head: true }).eq("user_id", owUser.id),
+    ]);
+    if (achError) console.error("[mypage] achievements count error:", achError.message);
+    if (awdError) console.error("[mypage] awards count error:", awdError.message);
+    if (medError) console.error("[mypage] media appearances count error:", medError.message);
+    if (linkError) console.error("[mypage] content links count error:", linkError.message);
+    certOrAchievementCount = (achCount ?? 0) + (awdCount ?? 0) + (medCount ?? 0);
+    contentLinkCount = linkCount ?? 0;
+  }
+
   // Fetch notification badge counts
   let conversationsBadge = 0;
   let applicationsBadge = 0;
@@ -411,5 +439,5 @@ export default async function MypagePage({
   //（コンポーザーがセクションの中身そのものなので、消すと空欄になる）
   const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
 
-  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} scoutsBadge={scoutsBadge} hasCareerPreferences={hasPrefs} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
+  return <MypageClient canPost={canPost} owUser={owUser} followCounts={followCounts} educations={educations} timelineCareers={timelineCareers} companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} casualMeetings={casualMeetings} conversationsBadge={conversationsBadge} applicationsBadge={applicationsBadge} scoutsBadge={scoutsBadge} hasCareerPreferences={hasPrefs} certOrAchievementCount={certOrAchievementCount} contentLinkCount={contentLinkCount} isNewUser={isNewUser} ambassadorMemberships={ambassadorMemberships} showScoutBanner={showScoutBanner} schoolPeerCounts={schoolPeerCounts} />;
 }

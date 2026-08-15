@@ -707,6 +707,8 @@ export default function MypageClient({
   applicationsBadge,
   scoutsBadge,
   hasCareerPreferences = false,
+  certOrAchievementCount = 0,
+  contentLinkCount = 0,
   isNewUser = false,
   ambassadorMemberships = [],
   showScoutBanner = false,
@@ -731,6 +733,10 @@ export default function MypageClient({
   applicationsBadge?: number;
   scoutsBadge?: number;
   hasCareerPreferences?: boolean;
+  /** 数値実績＋受賞歴＋メディア掲載の合計。★固定値を書かない（page.tsx で数える） */
+  certOrAchievementCount?: number;
+  /** 発信コンテンツ（ow_user_content_links）の件数。同上 */
+  contentLinkCount?: number;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   showScoutBanner?: boolean;
@@ -892,9 +898,9 @@ export default function MypageClient({
           experienceCount:       timelineCareers?.length ?? 0,
           educationCount:        educations?.length ?? 0,
           hasPreferences:        hasCareerPreferences,
-          // 資格は 2026-08-04 に廃止。実績・受賞・メディア掲載は /mypage では未取得のため 0
-          certOrAchievementCount: 0,
-          socialOrContentCount:  Object.values((owUser?.social_links as Record<string, unknown>) ?? {}).filter(Boolean).length,
+          // 資格は 2026-08-04 に廃止。実績・受賞・メディア掲載は page.tsx が数えて渡す
+          certOrAchievementCount,
+          socialOrContentCount:  contentLinkCount + Object.values((owUser?.social_links as Record<string, unknown>) ?? {}).filter(Boolean).length,
         };
         return <ProfileCompletionBar data={completionData} mode="mypage" />;
       })()}
