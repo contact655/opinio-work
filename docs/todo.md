@@ -85,7 +85,13 @@ SNS の入力を空にして保存すると `null` ではなく **`{"x": ""}`** 
 ## RLS が `USING(true)` かつ anon に SELECT がある テーブル一覧（2026-08-15 実測）
 
 **この形は今回で3例目**（学歴 2026-08-06 → 実績3種＋発信コンテンツ 2026-08-15）。
-残りが何件あるかを一度数えた。**下の4つは 20260815130000 で塞いだので、残りは21件。**
+残りが何件あるかを一度数えた。25件のうち **7件を塞いだので残り18件**
+（20260815130000 で実績3種＋発信コンテンツ、20260815140000 で posts / post_likes / experience_roles）。
+
+⚠️ **塞ぎ方は1つではない。** 「本人だけが見るもの」は own + admin、
+   **「他人が読む前提のもの」は authenticated**（ログイン済みなら読める）。
+   一律に own を当てると、フィードのように他人の行を読む画面が静かに空になる。
+   **いいね数のような集計は、読める範囲が狭いと数字だけが小さくなる。**
 
 判定に使ったクエリ:
 
@@ -108,10 +114,10 @@ select t.tablename from t join pol p using (tablename)
 | ~~`ow_user_awards`~~ | 0 | ✅ | **塞いだ** |
 | ~~`ow_user_media_appearances`~~ | 0 | ✅ | **塞いだ** |
 | ~~`ow_user_content_links`~~ | 0 | ✅ | **塞いだ** |
-| **`ow_posts`** | **170** | ✅ | **要検討の筆頭。** フィード投稿。ログイン必須の画面にしか出ないのに anon が全件読める |
-| `ow_post_likes` | 1 | ✅ | 誰が何にいいねしたか |
-| `ow_post_comments` | 0 | ✅ | 同上 |
-| **`ow_experience_roles`** | **6** | ✅ | 経歴↔職種。`ow_experiences` 本体は anon に閉じているのに、こちらは開いている |
+| ~~`ow_posts`~~ | 170 | ✅ | **塞いだ**（20260815140000）。★own ではなく **authenticated**（フィードは他人の投稿を読む画面） |
+| ~~`ow_post_likes`~~ | 1 | ✅ | **塞いだ**。★同じく authenticated。own にすると**いいね数が静かに変わる** |
+| `ow_post_comments` | 0 | ✅ | 誰が何にコメントしたか。**未対応**（0件のうちに塞ぐ。形は post_likes と同じはず） |
+| ~~`ow_experience_roles`~~ | 6 | ✅ | **塞いだ**。★こちらは own（親 experience 経由）+ admin。読み取り経路が0件で、親より広いのは筋が通らないため |
 | `ow_experience_stories` | 0 | ✅ | 経歴のストーリー |
 | `ow_user_socials` | 0 | ✅ | 未使用テーブル（`ow_users.social_links` が現役） |
 | `ow_articles` | 16 | — | 公開記事。公開が正しい |
@@ -130,7 +136,9 @@ select t.tablename from t join pol p using (tablename)
 1. `ow_posts`（170行・個人データ・現に読める）
 2. `ow_experience_roles`（6行・経歴の一部）／`ow_post_likes`（1行）
 3. 0件のもの（`ow_job_assignees` / `ow_settings` / `ow_user_socials` /
-   `ow_experience_stories` / `ow_post_comments`）は**書かれ始める前に**塞ぐ
+   `ow_experience_stories` / `ow_post_comments`）は**書かれ始める前に**塞ぐ。
+   ⚠️ `ow_post_comments` は post_likes と同じ理由で **authenticated** にすること
+   （コメント数を他人も数える）
 
 ⚠️ 塞ぐときは**読み取り経路を先に確認する**。session クライアントで他人の行を読んでいる
    画面があると、RLS を own+admin にした瞬間に **HTTP 200 のまま中身だけ消える**
