@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { GhostExample } from "@/components/profile/GhostExample";
 import { EMPLOYMENT_TYPES, RANKS } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
@@ -1587,6 +1586,7 @@ export default function CareerHistoryEditor({
   onSavedCountChange,
   renderStintExtras,
   onExperienceDeleted,
+  openAddNonce,
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
@@ -1601,8 +1601,18 @@ export default function CareerHistoryEditor({
       呼び出し側は手元の実績・受賞の experience_id も null に落とす必要がある
       （やらないと、再読み込みするまで画面から消えたように見える） */
   onExperienceDeleted?: (experienceId: string) => void;
+  /** ★カードの見出しにある「＋」から追加モーダルを開くための合図（2026-08-16）。
+      値が変わるたびに開く。⚠️ ref を渡さない（この部品の内部状態を外に晒さないため）。 */
+  openAddNonce?: number;
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
+
+  /* 見出しの「＋」から開く。★初回マウント時（undefined / 0）は開かない */
+  useEffect(() => {
+    if (!openAddNonce) return;
+    setAddDraft(EMPTY_DRAFT);
+    setAddingForCompanyKey("__new__");
+  }, [openAddNonce]);
 
   /* 保存済み件数を親へ返す。⚠️ 3箇所の setStints はいずれも `res.ok` の後なので、
      ここで通知される件数は「保存済み」を意味する。 */
@@ -2081,9 +2091,25 @@ export default function CareerHistoryEditor({
       );
       })}
 
-      {/* Empty state */}
+      {/* Empty state
+          ⚠️ 記入例カード（GhostExample）はやめた（2026-08-16）。表示モードでは
+             「登録済みの1件」に見えてしまうため。何を書くかは編集モードの
+             placeholder が担う。文言の型は写真・SNS と揃える。 */}
       {stints.length === 0 && addingForCompanyKey === null && (
-        <GhostExample line1="株式会社〇〇　エンタープライズ営業" line2="2020年4月 〜 在籍中 ・ 東京都" />
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+          まだ職歴を登録していません。
+          <button
+            type="button"
+            onClick={() => { setAddDraft(EMPTY_DRAFT); setAddingForCompanyKey("__new__"); }}
+            style={{
+              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+              textDecoration: "underline", textUnderlineOffset: 2,
+            }}
+          >
+            職歴を追加する
+          </button>
+        </p>
       )}
 
       {/* 新規会社用「+ 経歴を追加」ボタン */}

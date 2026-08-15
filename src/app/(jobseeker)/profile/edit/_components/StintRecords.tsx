@@ -17,6 +17,7 @@ export function StintRecords({
   experienceId,
   achievements, setAchievements,
   awards, setAwards,
+  initiallyOpen = false,
 }: {
   /** この職歴の id。`null` は「その他の実績・受賞」 */
   experienceId: string | null;
@@ -24,8 +25,17 @@ export function StintRecords({
   setAchievements: React.Dispatch<React.SetStateAction<Achievement[]>>;
   awards: Award[];
   setAwards: React.Dispatch<React.SetStateAction<Award[]>>;
+  /**
+   * マウント時点で編集フォームを開いた状態にする。
+   *
+   * ⚠️ 「その他の実績・受賞」用。親の ＋ を押してこれがマウントされたとき、
+   *    閉じた状態で出すと**もう1回押させることになる**（1回目の押下では
+   *    見出しと「まだ登録されていません。」が出るだけ）。同じ操作の入口を
+   *    2段に重ねない。
+   */
+  initiallyOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
 
   const myAch = achievements.filter((a) => (a.experience_id ?? null) === experienceId);
   const myAwd = awards.filter((a) => (a.experience_id ?? null) === experienceId);
@@ -33,7 +43,26 @@ export function StintRecords({
   return (
     <div style={{ marginTop: 8 }}>
       {/* 閉じているときはチップで並べる（モックの .chip） */}
-      {!open && (
+      {/* ⚠️ 0件のときは1行の空状態（2026-08-16）。記入例カードは使わない。
+             入れ子の中なので「この職歴には」と、どこの話かを明示する。 */}
+      {!open && myAch.length + myAwd.length === 0 && (
+        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+          {experienceId === null ? "まだ登録されていません。" : "この職歴にはまだ実績・受賞がありません。"}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            style={{
+              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+              fontSize: 12, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+              textDecoration: "underline", textUnderlineOffset: 2,
+            }}
+          >
+            実績・受賞を追加する
+          </button>
+        </p>
+      )}
+
+      {!open && myAch.length + myAwd.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           {myAch.map((a) => (
             <Chip key={a.id} label={`実績：${a.title}`} />
@@ -51,11 +80,7 @@ export function StintRecords({
               fontFamily: "inherit",
             }}
           >
-            {myAch.length + myAwd.length > 0
-              ? "＋ 実績・受賞を編集"
-              /* ⚠️ 「その他」（experienceId が null）では「この職歴に」と書かない。
-                    職歴の話ではないので、読んだ人が対応を取り違える。 */
-              : experienceId === null ? "＋ 実績・受賞を追加" : "＋ この職歴に実績・受賞を追加"}
+            ＋ 実績・受賞を編集
           </button>
         </div>
       )}

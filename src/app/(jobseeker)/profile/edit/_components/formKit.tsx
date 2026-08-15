@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 /**
  * /profile/edit のカード・入力欄の共通部品。
  *
@@ -44,6 +46,11 @@ export function CardSaveFooter({
   onSave: () => void; onCancel: () => void;
 }) {
   const locked = !dirty || saving || justSaved;
+  /* ⚠️ **キャンセルは「変更が無いとき」も押せるようにする。**（2026-08-16）
+        `EditableSection` では、キャンセルが**編集モードの唯一の出口**になった。
+        `locked` で無効にすると、何も入力していないカードを開いたときに
+        **閉じる手段が無くなる**（実測で踏んだ）。押せないのは保存中と保存直後だけ。 */
+  const cancelLocked = saving || justSaved;
   return (
     <>
       {error && (
@@ -70,12 +77,12 @@ export function CardSaveFooter({
           <button
             type="button"
             onClick={onCancel}
-            disabled={locked}
+            disabled={cancelLocked}
             style={{
               padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
               background: "#fff", color: "var(--ink-soft)",
               border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit",
-              cursor: locked ? "default" : "pointer", opacity: locked ? 0.5 : 1,
+              cursor: cancelLocked ? "default" : "pointer", opacity: cancelLocked ? 0.5 : 1,
             }}
           >
             キャンセル
@@ -232,3 +239,152 @@ export function TextareaField({
   );
 }
 
+
+/**
+ * 表示 → 鉛筆で編集、のカード（2026-08-16 / LinkedIn 型）。
+ *
+ * ⚠️ **見出し・説明・アクションボタンは必ずこの部品が描く。**
+ *    中の子部品（CareerHistoryEditor / EducationEditor / MediaAppearanceEditor /
+ *    SocialLinksEditor）は `hideHeading` で自前の見出しを止める。
+ *    「見出しを描かないモード」をここに作らないこと。見出しの担当が2箇所に割れる
+ *    （4-2 でメディア掲載の見出しが二重に出た形）。
+ *
+ * ⚠️ モーダルにしない。編集はカードの中で切り替える。
+ * ★**編集モードを閉じると `editContent` はアンマウントされる。**
+ *   次に開いたときの初期値は、**必ず親の保存済みスナップショットから取る**こと。
+ *   SSR 時点のプロップ（`owUser` など）を初期値にしない。
+ *   ⚠️ 2026-08-16 に写真カードで実際に踏んだ。アップロード直後に閉じて開き直すと、
+ *      内部 state が `owUser.avatar_url`（読み込み時の値）へ戻り、
+ *      **いま保存した写真が「未登録」に見えて削除もできなかった。**
+ *   ⚠️ 保存に成功したら**親のスナップショットを更新する**（子の内部 state だけ直さない）。
+ *      3-A-1 の「完成度は保存済みの値だけから出す」と同じ話が、
+ *      表示モードの導入で「編集モードの初期値」にも及んだ。
+ *
+ * ⚠️ 編集モードから出るのは **`CardSaveFooter` の「保存」「キャンセル」だけ**。
+ *    見出し側に「編集をやめる」を置かない（出口が2箇所に散る）。
+ *    呼び出し側は footer の `onCancel` に「入力を保存済みの値へ戻す ＋ 表示モードへ戻る」
+ *    を合成して渡すこと。
+ * ⚠️ 枠は `CARD_STYLE` を使う。新しいカードの見た目を増やさない。
+ */
+export function EditableSection({
+  title,
+  description,
+  isEditing,
+  onStartEdit,
+  action = "edit",
+  actionLabel,
+  children,
+  editContent,
+}: {
+  title: string;
+  description?: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  /** edit=鉛筆（1件を直す）/ add=＋（リストに足す） */
+  action?: "edit" | "add";
+  /** ★aria-label。「基本情報を編集」「職歴を追加」のように具体的に書く */
+  actionLabel: string;
+  /** 表示モードの中身 */
+  children: React.ReactNode;
+  /** 編集モードの中身（既存の入力欄一式をそのまま置く） */
+  editContent: React.ReactNode;
+}) {
+  return (
+    <section style={CARD_STYLE}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)" }}>{title}</div>
+          {description && (
+            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
+              {description}
+            </div>
+          )}
+        </div>
+        {/* ⚠️ **編集中はアクションボタンを描かない。**
+               編集モードの出口は `CardSaveFooter` の「保存」「キャンセル」の2つだけにする。
+               見出し側にも出口を置くと、未保存の入力を捨てる操作が2箇所に散る。 */}
+        {!isEditing && (
+          <SectionActionButton action={action} label={actionLabel} onClick={onStartEdit} />
+        )}
+      </div>
+
+      <div style={{ marginTop: description ? 20 : 16 }}>
+        {isEditing ? editContent : children}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * 見出し行の右端に出すアイコンボタン（鉛筆 / ＋）。
+ * ⚠️ ホバーとフォーカスの見た目はここ1箇所。カードごとに書かない。
+ * ⚠️ `.btn-fixed-size` を付ける。globals.css の `min-height: 36px` が
+ *    正方形ボタンを縦長に潰すため（ui-debugging.md）。
+ */
+export function SectionActionButton({
+  action, label, onClick,
+}: { action: "edit" | "add"; label: string; onClick: () => void }) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="btn-fixed-size"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      style={{
+        flexShrink: 0,
+        width: 32, height: 32, borderRadius: "50%",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        background: hovered ? "var(--royal-50)" : "transparent",
+        border: `1px solid ${hovered ? "var(--royal-100)" : "var(--line)"}`,
+        color: hovered ? "var(--royal)" : "var(--ink-mute)",
+        cursor: "pointer", transition: "background 0.15s, color 0.15s, border-color 0.15s",
+      }}
+    >
+      {action === "edit" ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+/**
+ * 即時保存のカード（写真・発信コンテンツ）の出口。
+ *
+ * ⚠️ **「完了」は保存ではない。API を呼ばない。** 表示モードに戻すだけ。
+ *    これらのカードは操作した時点で保存が終わっているので、未保存の入力が無い。
+ * ⚠️ 見た目（上罫線＋右寄せ）は `CardSaveFooter` と揃える。
+ *    出口の位置を7枚で同じにするため、見出し側には戻さない。
+ */
+export function CardDoneFooter({ onDone, note }: { onDone: () => void; note?: string }) {
+  return (
+    <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
+      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+        {note ?? "変更はすぐに保存されます"}
+      </span>
+      <button
+        type="button"
+        onClick={onDone}
+        style={{
+          padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 120,
+          background: "var(--royal)", color: "#fff",
+          border: "none", borderRadius: 8, fontFamily: "inherit", cursor: "pointer",
+        }}
+      >
+        完了
+      </button>
+    </div>
+  );
+}

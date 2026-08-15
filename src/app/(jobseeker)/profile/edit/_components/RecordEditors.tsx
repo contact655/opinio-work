@@ -8,8 +8,7 @@
  *    ロジックを直すのはここではなく、次のコミットで行う。
  */
 
-import { useState, useCallback } from "react";
-import { GhostExample } from "@/components/profile/GhostExample";
+import { useState, useCallback, useEffect } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import {
@@ -555,10 +554,17 @@ export function EducationEditor({
   educations,
   setEducations,
   schools,
+  hideHeading = false,
+  openAddNonce,
 }: {
+  /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16）。値が変わるたびに開く */
+  openAddNonce?: number;
   educations: Education[];
   setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
   schools: School[];  // 段階6-7 Phase 1: ProfileEditClient トップレベルから受け取る
+  /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16）。
+      ⚠️ 既定は false なので、他から呼ばれても見た目は変わらない */
+  hideHeading?: boolean;
 }) {
   // Edit state
   const [editingId,    setEditingId]    = useState<string | null>(null);
@@ -567,6 +573,9 @@ export function EducationEditor({
   const [editJustSaved, setEditJustSaved] = useState(false);
   // Add state
   const [adding,      setAdding]      = useState(false);
+
+  /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
+  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
   const [addDraft,    setAddDraft]    = useState<EducationDraft>(EMPTY_EDU_DRAFT);
   const [addSaving,   setAddSaving]   = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
@@ -742,14 +751,19 @@ export function EducationEditor({
   }, []);
 
   return (
-    <div style={{ marginTop: "var(--space-8)" }}>
-      {/* Section header — フラット（職歴と同じ構造、白カードなし） */}
-      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>
-        学歴
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-        大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。
-      </div>
+    <div style={{ marginTop: hideHeading ? 0 : "var(--space-8)" }}>
+      {/* Section header — フラット（職歴と同じ構造、白カードなし）
+          ⚠️ hideHeading のときは EditableSection が同じ見出しを描く。二重にしない */}
+      {!hideHeading && (
+        <>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>
+            学歴
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+            大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。
+          </div>
+        </>
+      )}
       {/* School request banner（段階6-8 Phase 3）— 教育リストの上に表示 */}
       {bannerSchoolName && (
         <SchoolRequestBanner
@@ -791,8 +805,23 @@ export function EducationEditor({
       ))}
 
       {/* Empty state */}
+      {/* ⚠️ 記入例カードはやめた（2026-08-16）。表示モードでは「登録済みの1件」に見えるため。
+             何を書くかは編集モードの placeholder が担う。 */}
       {educations.length === 0 && !adding && (
-        <GhostExample line1="獨協大学　経済学部 経営学科" line2="学士 ・ 2013年4月 〜 2017年3月" />
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+          まだ学歴を登録していません。
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            style={{
+              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+              textDecoration: "underline", textUnderlineOffset: 2,
+            }}
+          >
+            学歴を追加する
+          </button>
+        </p>
       )}
 
       {/* Add form */}
@@ -1153,9 +1182,7 @@ export function AchievementEditor({
           )}
         </div>
       ))}
-      {scoped.length === 0 && !adding && showHeading && (
-        <GhostExample line1="新規ARR 1.2億円を達成（前年比 180%）" line2="2024年 ・ エンタープライズ営業部" />
-      )}
+      {/* ⚠️ 記入例カードはやめた（2026-08-16）。0件の案内は StintRecords 側の1行に集約 */}
       {adding && (
         <div style={{ marginTop: scoped.length > 0 ? 12 : 0 }}>
           <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
@@ -1351,9 +1378,7 @@ export function AwardEditor({
           )}
         </div>
       ))}
-      {scoped.length === 0 && !adding && showHeading && (
-        <GhostExample line1="全社MVP（年間表彰）" line2="株式会社〇〇 ・ 2024年12月" />
-      )}
+      {/* ⚠️ 同上 */}
       {adding && (
         <div style={{ marginTop: scoped.length > 0 ? 12 : 0 }}>
           <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
@@ -1467,13 +1492,23 @@ function MediaAppearanceCard({
 }
 
 export function MediaAppearanceEditor({
-  mediaAppearances, setMediaAppearances,
-}: { mediaAppearances: MediaAppearance[]; setMediaAppearances: React.Dispatch<React.SetStateAction<MediaAppearance[]>>; }) {
+  mediaAppearances, setMediaAppearances, hideHeading = false, openAddNonce,
+}: {
+  /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16） */
+  openAddNonce?: number;
+  mediaAppearances: MediaAppearance[];
+  setMediaAppearances: React.Dispatch<React.SetStateAction<MediaAppearance[]>>;
+  /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16） */
+  hideHeading?: boolean;
+}) {
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
   const [editJustSaved, setEditJustSaved] = useState(false);
   const [adding,       setAdding]       = useState(false);
+
+  /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
+  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
   const [addDraft,     setAddDraft]     = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
   const [addSaving,    setAddSaving]    = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
@@ -1543,11 +1578,16 @@ export function MediaAppearanceEditor({
   }, [deleteTarget, setMediaAppearances, showToast]);
 
   return (
-    <div style={{ marginTop: 36 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>メディア掲載</div>
-      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-        取材・インタビュー・記事掲載・登壇などを登録できます。
-      </div>
+    <div style={{ marginTop: hideHeading ? 0 : 36 }}>
+      {/* ⚠️ hideHeading のときは EditableSection が同じ見出しを描く。二重にしない */}
+      {!hideHeading && (
+        <>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>メディア掲載</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+            取材・インタビュー・記事掲載・登壇などを登録できます。
+          </div>
+        </>
+      )}
       {mediaAppearances.map((item, idx) => (
         <div key={item.id}>
           {editingId === item.id ? (
@@ -1562,8 +1602,22 @@ export function MediaAppearanceEditor({
           )}
         </div>
       ))}
+      {/* ⚠️ 記入例カードはやめた（2026-08-16）。理由は学歴と同じ */}
       {mediaAppearances.length === 0 && !adding && (
-        <GhostExample line1="〇〇CEOインタビュー「SaaSの未来」" line2="日経ビジネス ・ 2025年3月" />
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+          まだメディア掲載を登録していません。
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            style={{
+              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+              textDecoration: "underline", textUnderlineOffset: 2,
+            }}
+          >
+            メディア掲載を追加する
+          </button>
+        </p>
       )}
       {adding && (
         <div style={{ marginTop: mediaAppearances.length > 0 ? 12 : 0 }}>

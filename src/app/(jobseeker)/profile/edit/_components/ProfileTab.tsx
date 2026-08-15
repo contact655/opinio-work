@@ -13,16 +13,16 @@
  *    載せないこと。載せると「保存していないのに完成度が上がる」に戻る。
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Toast from "@/components/ui/Toast";
-import { GhostExample } from "@/components/profile/GhostExample";
 import {
-  Card,
   FormSection,
   FormGroup,
   CardSaveFooter,
+  CardDoneFooter,
+  EditableSection,
   TextareaField,
   inputStyle,
   selectStyle,
@@ -131,16 +131,27 @@ function ProfilePhotoUploader({
   basicInfoName,
   settings,
   onAvatarSaved,
+  onCoverSaved,
+  savedAvatarUrl,
+  savedCoverPhotoUrl,
 }: {
   owUser: OwUser;
   basicInfoName: string;
   settings: SettingsState;
   /** DB への保存が成功したときだけ呼ぶ。完成度は親の保存済みスナップショットから出す */
   onAvatarSaved?: (url: string | null) => void;
+  /** ★カバーも同じ形で親へ返す（2026-08-16）。表示モードのプレビューが使う */
+  onCoverSaved?: (url: string | null) => void;
+  /** ★初期値は**親の保存済みスナップショット**から受け取る（2026-08-16）。
+      ⚠️ `owUser`（SSR 時点のプロップ）から初期化しないこと。この部品は
+         編集モードを閉じるたびに**アンマウントされる**ので、次に開いたときに
+         古い値へ戻り、いま保存した写真が「未登録」に見える（実測で踏んだ）。 */
+  savedAvatarUrl: string | null;
+  savedCoverPhotoUrl: string | null;
 }) {
   const supabase = createClient();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(owUser?.avatar_url ?? null);
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(owUser?.cover_photo_url ?? null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(savedAvatarUrl);
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(savedCoverPhotoUrl);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -179,6 +190,7 @@ function ProfilePhotoUploader({
       return null;
     }
     if (type === "avatar") onAvatarSaved?.(publicUrl);
+    else onCoverSaved?.(publicUrl);
     return publicUrl;
   };
 
@@ -213,7 +225,7 @@ function ProfilePhotoUploader({
       return;
     }
     if (type === "avatar") { setAvatarUrl(null); onAvatarSaved?.(null); }
-    else setCoverPhotoUrl(null);
+    else { setCoverPhotoUrl(null); onCoverSaved?.(null); }
   };
 
   const uploadBtn = (label: string, loading: boolean, onClick: () => void): React.ReactNode => (
@@ -395,18 +407,19 @@ function SocialLinksEditor({
   socialLinks,
   setSocialLinks,
   footer,
+  hideHeading = false,
 }: {
   socialLinks: SocialLinks;
   setSocialLinks: React.Dispatch<React.SetStateAction<SocialLinks>>;
   /** カード内の右下に置く操作行。⚠️ カードの外に浮かせないために受け取る */
   footer?: React.ReactNode;
+  /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16） */
+  hideHeading?: boolean;
 }) {
-  return (
-    <div style={{ maxWidth: 680 }}>
-      <FormSection
-        title="SNS・外部リンク"
-        desc="登録したリンクはプロフィールページに表示されます。"
-      >
+  /* ⚠️ hideHeading のときは FormSection（枠＋見出し）ごと外す。
+        EditableSection が枠と見出しを持つので、二重の枠にしない。 */
+  const body = (
+    <>
         {SNS_PLATFORMS.map((platform) => {
           const meta = SOCIAL_META[platform];
           return (
@@ -450,11 +463,308 @@ function SocialLinksEditor({
           空欄の SNS はプロフィールページに表示されません。
         </div>
         {footer}
+    </>
+  );
+
+  if (hideHeading) return body;
+  return (
+    <div style={{ maxWidth: 680 }}>
+      <FormSection
+        title="SNS・外部リンク"
+        desc="登録したリンクはプロフィールページに表示されます。"
+      >
+        {body}
       </FormSection>
     </div>
   );
 }
 
+
+/**
+ * 発信コンテンツの表示モード（2026-08-16）。
+ *
+ * ⚠️ 0件のときは**1行の空状態**（2026-08-16 に記入例カードから変更）。
+ *    表示モードでは記入例が「登録済みの1件」に見えるため、7枚とも1行に統一した。
+ * ⚠️ 一覧は親の `contentLinks`（API の戻り値で更新される state）から描く。
+ *    SSR 時点のプロップ（`initialContentLinks`）を直接見ない。
+ */
+function ContentLinksView({
+  links, onDelete, onStartAdd,
+}: { links: ContentLink[]; onDelete: (id: string) => void; onStartAdd: () => void }) {
+  if (links.length === 0) {
+    return (
+      <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+        まだ発信コンテンツを登録していません。
+        <button
+          type="button"
+          onClick={onStartAdd}
+          style={{
+            background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+            fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+            textDecoration: "underline", textUnderlineOffset: 2,
+          }}
+        >
+          発信コンテンツを追加する
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+      {links.map((link) => (
+        <div key={link.id} style={{
+          display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
+          padding: "12px 14px", borderRadius: 10,
+          border: "1px solid var(--line)", background: "var(--bg-tint)",
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
+              {PLATFORM_OPTIONS.find((p) => p.value === link.platform)?.label ?? link.platform ?? "Web"}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {link.title || link.url}
+            </div>
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={link.url}
+              style={{
+                fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
+                display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}
+            >
+              {link.url}
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={() => onDelete(link.id)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
+            aria-label={`${link.title || link.url} を削除`}
+            title="削除"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+            </svg>
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * SNS・外部リンクの表示モード（2026-08-16）。
+ *
+ * ⚠️ **空かどうかは「値が入っているか」で判定する。キーの有無で判定しない。**
+ *    保存済みの `social_links` には空文字のキーが残ることがある（既知の不具合。
+ *    SNS を空にして保存すると `{"x": ""}` になる。docs/todo.md に記録済み）。
+ *    キーの有無で見ると「登録あり」に化ける。
+ */
+function SocialLinksView({
+  socialLinks, onStartEdit,
+}: { socialLinks: SocialLinks; onStartEdit: () => void }) {
+  const filled = SNS_PLATFORMS.filter((p) => (socialLinks[p] ?? "").trim().length > 0);
+
+  if (filled.length === 0) {
+    return (
+      <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+        まだ登録されていません。
+        <button
+          type="button"
+          onClick={onStartEdit}
+          style={{
+            background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+            fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+            textDecoration: "underline", textUnderlineOffset: 2,
+          }}
+        >
+          SNS・外部リンクを追加する
+        </button>
+      </p>
+    );
+  }
+
+  return (
+    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: 10 }}>
+      {filled.map((p) => {
+        const url = (socialLinks[p] ?? "").trim();
+        return (
+          <li key={p}>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={url}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "7px 12px", borderRadius: 100,
+                border: "1px solid var(--line)", background: "#fff",
+                fontSize: 13, fontWeight: 600, color: "var(--ink)", textDecoration: "none",
+                maxWidth: 260, overflow: "hidden",
+              }}
+            >
+              <SocialIcon platform={p} size={16} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {SOCIAL_META[p].label}
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * プロフィール画像・カバーの表示モード（2026-08-16）。
+ *
+ * ⚠️ **保存済みの URL だけを受け取る。** アップローダー内部の state を渡さない
+ *    （保存が終わっていない画像を「登録済み」に見せない）。
+ * ⚠️ 記入例（GhostExample）は足さない。空のときは1行の控えめな文だけ。
+ */
+function ProfilePhotoView({
+  avatarUrl, coverPhotoUrl, avatarColor, coverColor, name, onStartEdit,
+}: {
+  avatarUrl: string | null;
+  coverPhotoUrl: string | null;
+  avatarColor: string;
+  coverColor: string;
+  name: string;
+  onStartEdit: () => void;
+}) {
+  const none = !avatarUrl && !coverPhotoUrl;
+  return (
+    <div>
+      <div style={{
+        width: "100%", maxWidth: 360, borderRadius: 12, overflow: "hidden",
+        border: "1px solid var(--line)",
+      }}>
+        <div style={{ height: 90, position: "relative", background: coverPhotoUrl ? undefined : coverColor, overflow: "hidden" }}>
+          {coverPhotoUrl && <Image src={coverPhotoUrl} alt="" fill style={{ objectFit: "cover" }} />}
+        </div>
+        <div style={{ padding: "0 14px 14px", marginTop: -28 }}>
+          <div style={{
+            position: "relative",
+            width: 56, height: 56, borderRadius: "50%",
+            background: avatarUrl ? undefined : avatarColor,
+            overflow: "hidden", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "var(--text-xl)", fontWeight: 600,
+            border: "3px solid #fff", boxShadow: "0 2px 8px rgba(15,23,42,0.1)",
+          }}>
+            {avatarUrl ? <Image src={avatarUrl} alt="" fill style={{ objectFit: "cover" }} /> : (name.charAt(0) || "?")}
+          </div>
+        </div>
+      </div>
+      {none && (
+        <p style={{ margin: "12px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+          まだ写真を登録していません。いまは名前の頭文字と既定の色を表示しています。
+          <button
+            type="button"
+            onClick={onStartEdit}
+            style={{
+              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+              textDecoration: "underline", textUnderlineOffset: 2,
+            }}
+          >
+            写真を追加する
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 基本情報の表示モード（2026-08-16）。
+ *
+ * ⚠️ **保存済みの値だけを受け取る。** 入力中の state（`basicInfo`）を渡さないこと。
+ *    渡すと「保存していないのに表示が変わる」形になる（3-A-1 と同じ原則）。
+ * ⚠️ 空の項目は**行ごと出さない**。「未設定」を並べない（「値が無いことを、
+ *    ある値に置き換えない」）。
+ * ⚠️ 生年月日は「1990年3月15日（36歳）」の形で出す。**この画面は本人しか見ない**。
+ *    公開側（/u/[id] / /people / directory.ts）が年齢だけを出す扱いは変えないこと。
+ */
+function BasicInfoView({
+  name, headline, location, aboutMe, birth, onStartEdit,
+}: {
+  name: string;
+  headline: string;
+  location: string;
+  aboutMe: string;
+  birth: { year: string; month: string; day: string };
+  onStartEdit: () => void;
+}) {
+  const age = ageFromBirth(birth);
+  /* ⚠️ **ここは本人だけが見る編集画面**なので、生年月日そのものを出す。
+        公開側（/u/[id] / /people / directory.ts）は**年齢だけ**という扱いを変えないこと。 */
+  const birthLabel =
+    birth.year && birth.month && birth.day
+      ? `${birth.year}年${Number(birth.month)}月${Number(birth.day)}日${age !== null ? `（${age}歳）` : ""}`
+      : null;
+  const rows: { label: string; value: string }[] = [
+    name.trim()     && name !== "ユーザー" ? { label: "名前", value: name } : null,
+    headline.trim() ? { label: "肩書き", value: headline } : null,
+    location.trim() ? { label: "所在地", value: location } : null,
+    birthLabel      ? { label: "生年月日", value: birthLabel } : null,
+  ].filter((r): r is { label: string; value: string } => r !== null);
+
+  if (rows.length === 0 && !aboutMe.trim()) {
+    return (
+      <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+        まだ登録されていません。
+        <button
+          type="button"
+          onClick={onStartEdit}
+          style={{
+            background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+            fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+            textDecoration: "underline", textUnderlineOffset: 2,
+          }}
+        >
+          名前や自己紹介を追加する
+        </button>
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: "10px 20px" }}>
+        {rows.map((r) => (
+          <React.Fragment key={r.label}>
+            <dt style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{r.label}</dt>
+            <dd style={{ margin: 0, fontSize: 14, color: "var(--ink)", minWidth: 0, overflowWrap: "anywhere" }}>{r.value}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+      {aboutMe.trim() && (
+        <div style={{ marginTop: rows.length > 0 ? 16 : 0, paddingTop: rows.length > 0 ? 16 : 0, borderTop: rows.length > 0 ? "1px solid var(--line-soft)" : "none" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", marginBottom: 6 }}>自己紹介</div>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+            {aboutMe}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 生年月日3つから年齢を出す。★揃っていなければ null（「0歳」を出さない） */
+function ageFromBirth({ year, month, day }: { year: string; month: string; day: string }): number | null {
+  if (!year || !month || !day) return null;
+  const y = Number(year), m = Number(month), d = Number(day);
+  if (!y || !m || !d) return null;
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const beforeBirthday =
+    today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d);
+  if (beforeBirthday) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+}
 
 export default function ProfileTab({
   owUser,
@@ -589,6 +899,11 @@ export default function ProfileTab({
 
   const isSocialDirty = JSON.stringify(socialLinks) !== JSON.stringify(savedSocialLinks);
 
+  /* 保存が成功したときだけ表示モードへ戻す。★失敗時は戻さない（編集モードのままエラー） */
+  useEffect(() => {
+    if (socialJustSaved) setEditingSocial(false);
+  }, [socialJustSaved]);
+
   const handleSaveSocial = useCallback(async () => {
     setSocialSaving(true);
     notifyGlobalSave("saving");
@@ -651,12 +966,33 @@ export default function ProfileTab({
      画像は ProfilePhotoUploader、職歴は CareerHistoryEditor が
      それぞれ自前の state を持っているので、保存成功の通知を受けてここに写す。 */
   const [savedAvatarUrl, setSavedAvatarUrl] = useState<string | null>(owUser?.avatar_url ?? null);
+  /* ★カバーも保存済みの値を親で持つ（2026-08-16）。表示モードのプレビューが見る。
+     ⚠️ アップローダー内部の state（coverPhotoUrl）を表示モードに使わない。 */
+  const [savedCoverPhotoUrl, setSavedCoverPhotoUrl] = useState<string | null>(owUser?.cover_photo_url ?? null);
   const [savedExperienceCount, setSavedExperienceCount] = useState<number>(initialExperiences.length);
+
+  /* 表示 ⇄ 編集（2026-08-16 / LinkedIn 型）。既定は表示モード。
+     ⚠️ カードごとに独立させる。複数のカードを同時に開けてよい。 */
+  const [editingBasic, setEditingBasic] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState(false);
+  const [editingSocial, setEditingSocial] = useState(false);
+  const [editingContent, setEditingContent] = useState(false);
+  /* 職歴カードの見出し「＋」→ 追加モーダルを開く合図。値が変わるたびに開く */
+  const [careerAddNonce, setCareerAddNonce] = useState(0);
+  const [eduAddNonce, setEduAddNonce] = useState(0);
+  const [mediaAddNonce, setMediaAddNonce] = useState(0);
 
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
   const [basicToastVariant, setBasicToastVariant] = useState<"default" | "error">("default");
+
+  /* 保存が成功したときだけ表示モードへ戻す。
+     ⚠️ 失敗時は戻さない（編集モードのままエラーを出す）。`basicJustSaved` は
+        `handleSaveBasic` の成功パスでしか true にならない。 */
+  useEffect(() => {
+    if (basicJustSaved) setEditingBasic(false);
+  }, [basicJustSaved]);
 
   const isBasicDirty =
     JSON.stringify(basicInfo) !== JSON.stringify(initialBasicInfo) ||
@@ -738,12 +1074,36 @@ export default function ProfileTab({
         {/* ⚠️ 写真は「設定」から「プロフィール」の先頭へ移した（2026-08-15）。
                アップロードのロジックは触らず、コンポーネントごと移動しただけ。 */}
           <div style={{ maxWidth: 680 }}>
-            <FormSection
+            <EditableSection
               title="プロフィール画像・カバー"
-              desc="プロフィールページのヘッダーに表示されます。"
+              description="プロフィールページのヘッダーに表示されます。"
+              isEditing={editingPhoto}
+              onStartEdit={() => setEditingPhoto(true)}
+              action="edit"
+              actionLabel="プロフィール画像・カバーを編集"
+              editContent={<>
+                <ProfilePhotoUploader
+                  owUser={owUser}
+                  basicInfoName={basicInfo.name}
+                  settings={settings}
+                  onAvatarSaved={setSavedAvatarUrl}
+                  onCoverSaved={setSavedCoverPhotoUrl}
+                  savedAvatarUrl={savedAvatarUrl}
+                  savedCoverPhotoUrl={savedCoverPhotoUrl}
+                />
+                {/* ⚠️ 写真は選んだ時点で保存される。「完了」は保存ではなく出口 */}
+                <CardDoneFooter onDone={() => setEditingPhoto(false)} note="写真は選んだ時点で保存されます" />
+              </>}
             >
-              <ProfilePhotoUploader owUser={owUser} basicInfoName={basicInfo.name} settings={settings} onAvatarSaved={setSavedAvatarUrl} />
-            </FormSection>
+              <ProfilePhotoView
+                avatarUrl={savedAvatarUrl}
+                coverPhotoUrl={savedCoverPhotoUrl}
+                avatarColor={settings.avatarColor}
+                coverColor={settings.coverColor}
+                name={initialBasicInfo.name}
+                onStartEdit={() => setEditingPhoto(true)}
+              />
+            </EditableSection>
           </div>
 
           <div style={{ maxWidth: 680 }}>
@@ -753,10 +1113,14 @@ export default function ProfileTab({
                    保存ボタンは1つで、送る中身も1回の PUT のまま。2枚に分かれていた頃は
                    **保存ボタンが自己紹介側にしか無く**、基本情報カードの中を探しても
                    見つからない状態だった（カード境界とボタンの帰属が1対1でなかった）。 */}
-            <FormSection
+            <EditableSection
               title="基本情報"
-              desc="プロフィールページの先頭に出ます。"
-            >
+              description="プロフィールページの先頭に出ます。"
+              isEditing={editingBasic}
+              onStartEdit={() => setEditingBasic(true)}
+              action="edit"
+              actionLabel="基本情報を編集"
+              editContent={<>
               <FormGroup label="名前" htmlFor="pe-name">
                 <input
                   id="pe-name"
@@ -878,9 +1242,23 @@ export default function ProfileTab({
                 justSaved={basicJustSaved}
                 error={null}
                 onSave={handleSaveBasic}
-                onCancel={handleCancelBasic}
+                /* ⚠️ 編集モードの出口はこの「キャンセル」だけ。
+                      入力を保存済みの値へ戻してから表示モードへ戻す
+                      （3-A-3 のキャンセルと同じ挙動。タブを移っても残す仕様ではない）。 */
+                onCancel={() => { handleCancelBasic(); setEditingBasic(false); }}
               />
-            </FormSection>
+              </>}
+            >
+              {/* 表示モード。★保存済みの値だけを出す（入力中の state を混ぜない） */}
+              <BasicInfoView
+                name={initialBasicInfo.name}
+                headline={initialBasicInfo.headline}
+                location={initialBasicInfo.location}
+                aboutMe={initialBasicInfo.aboutMe}
+                birth={{ year: initialBirthYear, month: initialBirthMonth, day: initialBirthDay }}
+                onStartEdit={() => setEditingBasic(true)}
+              />
+            </EditableSection>
 
             {basicToastMsg && (
               <Toast
@@ -895,11 +1273,23 @@ export default function ProfileTab({
         {/* 職歴・学歴タブ */}
           <div style={{ maxWidth: 680 }}>
 
-            {/* ⚠️ 中の部品が自前の見出しを描くので `Card`（見出し無し）で包む。 */}
-            <Card>
+            {/* ⚠️ 見出しと「＋」は EditableSection が持つ（2026-08-16）。
+                   `CareerHistoryEditor` は自前の見出しを描いていない（確認済み）。 */}
+            <EditableSection
+              title="職歴"
+              description="新しい順に表示されます。会社ごとにまとめて出ます。"
+              /* ★このカードに「編集モード」は無い。編集は行の鉛筆（既存のモーダル）。
+                    見出しの＋は追加モーダルを開くだけなので isEditing は常に false。 */
+              isEditing={false}
+              onStartEdit={() => setCareerAddNonce((n) => n + 1)}
+              action="add"
+              actionLabel="職歴を追加"
+              editContent={null}
+            >
               {/* ★実績・受賞は職歴の中に畳む（4-2）。各職歴の下にチップで出す。
                      独立カードに戻さないこと。どの職歴での話かが分からなくなる。 */}
               <CareerHistoryEditor
+                openAddNonce={careerAddNonce}
                 initialExperiences={initialExperiences}
                 roles={roles}
                 roleAliases={roleAliases}
@@ -939,6 +1329,9 @@ export default function ProfileTab({
                     setAchievements={setAchievements}
                     awards={awards}
                     setAwards={setAwards}
+                    /* ＋ から開いたときは、そのまま入力欄まで出す（2回押させない）。
+                       既に実績がある場合は showOrphanEditor が false なのでチップ表示のまま。 */
+                    initiallyOpen={showOrphanEditor}
                   />
                 </div>
               )}
@@ -956,14 +1349,26 @@ export default function ProfileTab({
                   </button>
                 </div>
               )}
-            </Card>
-            <Card>
+            </EditableSection>
+            <EditableSection
+              title="学歴"
+              description="大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。"
+              /* ★このカードに「編集モード」は無い。編集は行の鉛筆（その場でインライン編集）。
+                    見出しの＋は追加フォームを開くだけ。 */
+              isEditing={false}
+              onStartEdit={() => setEduAddNonce((n) => n + 1)}
+              action="add"
+              actionLabel="学歴を追加"
+              editContent={null}
+            >
               <EducationEditor
                 educations={educations}
                 setEducations={setEducations}
                 schools={schools}
+                hideHeading
+                openAddNonce={eduAddNonce}
               />
-            </Card>
+            </EditableSection>
           </div>
 
         {/* メディア掲載（★実績・受賞とは別。職歴に属さないので独立カードのまま）
@@ -971,29 +1376,60 @@ export default function ProfileTab({
                メディア掲載は個人としての登壇・寄稿・退職後の取材があり、
                在籍先に紐づけられないのでここに残す。 */}
           <div style={{ maxWidth: 680 }}>
-            {/* ⚠️ 見出しを二重に書かない。`MediaAppearanceEditor` が自前で描く。 */}
-            <Card>
-              <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
-            </Card>
+            {/* ⚠️ 見出しは EditableSection が描く。子は hideHeading で止める（二重にしない） */}
+            <EditableSection
+              title="メディア掲載"
+              description="取材・インタビュー・記事掲載・登壇などを登録できます。"
+              isEditing={false}
+              onStartEdit={() => setMediaAddNonce((n) => n + 1)}
+              action="add"
+              actionLabel="メディア掲載を追加"
+              editContent={null}
+            >
+              <MediaAppearanceEditor
+                mediaAppearances={mediaAppearances}
+                setMediaAppearances={setMediaAppearances}
+                hideHeading
+                openAddNonce={mediaAddNonce}
+              />
+            </EditableSection>
           </div>
 
         {/* SNS・発信コンテンツタブ */}
           <>
-            <SocialLinksEditor
-              socialLinks={socialLinks}
-              setSocialLinks={setSocialLinks}
-              /* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。 */
-              footer={
-                <CardSaveFooter
-                  dirty={isSocialDirty}
-                  saving={socialSaving}
-                  justSaved={socialJustSaved}
-                  error={null}
-                  onSave={handleSaveSocial}
-                  onCancel={handleCancelSocial}
-                />
-              }
-            />
+            <div style={{ maxWidth: 680 }}>
+              <EditableSection
+                title="SNS・外部リンク"
+                description="登録したリンクはプロフィールページに表示されます。"
+                isEditing={editingSocial}
+                onStartEdit={() => setEditingSocial(true)}
+                action="edit"
+                actionLabel="SNS・外部リンクを編集"
+                editContent={
+                  /* ⚠️ 見出しは EditableSection が描く。子は hideHeading で止める */
+                  <SocialLinksEditor
+                    socialLinks={socialLinks}
+                    setSocialLinks={setSocialLinks}
+                    hideHeading
+                    /* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。 */
+                    footer={
+                      <CardSaveFooter
+                        dirty={isSocialDirty}
+                        saving={socialSaving}
+                        justSaved={socialJustSaved}
+                        error={null}
+                        onSave={handleSaveSocial}
+                        /* ★編集モードの出口。入力を保存済みの値へ戻してから閉じる */
+                        onCancel={() => { handleCancelSocial(); setEditingSocial(false); }}
+                      />
+                    }
+                  />
+                }
+              >
+                {/* 表示は**保存済みの値**から。入力中の socialLinks を渡さない */}
+                <SocialLinksView socialLinks={savedSocialLinks} onStartEdit={() => setEditingSocial(true)} />
+              </EditableSection>
+            </div>
             {socialToastMsg && (
               <Toast
                 message={socialToastMsg}
@@ -1007,10 +1443,14 @@ export default function ProfileTab({
           <div style={{ maxWidth: 680 }}>
             {/* ⚠️ 色付きバナーにしない（2026-08-15）。カードの desc に混ぜて1行にする。
                    1画面に色付きバナーを2つ以上出さない。 */}
-            <FormSection
+            <EditableSection
               title="発信コンテンツ"
-              desc="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります。"
-            >
+              description="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります。"
+              isEditing={editingContent}
+              onStartEdit={() => setEditingContent(true)}
+              action="add"
+              actionLabel="発信コンテンツを追加"
+              editContent={<>
               {/* 既存リスト */}
               {contentLinks.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 20 }}>
@@ -1043,13 +1483,6 @@ export default function ProfileTab({
                       </button>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* 空のときは記入例を出す（何を登録する欄なのかを文章で説明しない） */}
-              {contentLinks.length === 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <GhostExample line1="SaaSの立ち上げで学んだこと" line2="note ・ https://note.com/yourname/n/xxxx" />
                 </div>
               )}
 
@@ -1142,7 +1575,17 @@ export default function ProfileTab({
                   </button>
                 </div>
               </div>
-            </FormSection>
+              {/* ⚠️ 「追加する」を押した時点で保存される。完了は出口だけ（API を呼ばない） */}
+              <CardDoneFooter onDone={() => setEditingContent(false)} note="追加した時点で保存されます" />
+              </>}
+            >
+              {/* 表示モード。★0件のときは記入例カードのまま（1行の空状態にしない） */}
+              <ContentLinksView
+                links={contentLinks}
+                onDelete={handleDeleteContentLink}
+                onStartAdd={() => setEditingContent(true)}
+              />
+            </EditableSection>
           </div>
     </>
   );
