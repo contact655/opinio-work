@@ -420,3 +420,23 @@ const card = [...document.querySelectorAll("section")].find(s => s.innerText.sta
 
 ⚠️ カード見出しの鉛筆／＋は常にあるので、**本文の中に入口を作るときは
    「本文側に2つ目を作っていないか」を必ず見る。**
+
+### ⑨ 幅や座標を測るときは `window.innerWidth` を必ず一緒に出す
+
+**ブラウザペインが非表示だと `innerWidth` が 0 になり、要素の幅も 0 で返る。**
+これをレイアウト崩れと読み違えると、**存在しない不具合を追うことになる。**
+
+```js
+// ✗ 幅だけ返す（0 が「潰れている」のか「測れていない」のか分からない）
+return { 幅: el.offsetWidth, 親: el.parentElement.clientWidth };
+// ✓ 計測環境ごと返す
+return { innerWidth, 幅: el.offsetWidth, 親: el.parentElement.clientWidth };
+```
+
+⚠️ **実例（2026-08-16）**: 発信コンテンツの URL リンクが `offsetWidth: 0` /
+   親も `clientWidth: 0` と出た。祖先を辿ると `<section>` まで 66px しかなく、
+   一見レイアウトが壊れているように見えた。原因は**ペインが非表示**で
+   `innerWidth` が 0 だったこと。1300px に戻すと 472px で正常だった。
+
+⚠️ `innerWidth` が期待値（375 / 768 / 1300 など）でなければ、
+   **その計測結果は捨てる。** 直す前にビューポートを作り直すこと。
