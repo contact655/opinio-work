@@ -6518,6 +6518,7 @@ export type Database = {
           bio: string | null
           created_at: string | null
           desired_phase: string[] | null
+          desired_prefectures: string[] | null
           desired_salary_max: number | null
           desired_salary_min: number | null
           desired_work_style: string | null
@@ -6545,6 +6546,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           desired_phase?: string[] | null
+          desired_prefectures?: string[] | null
           desired_salary_max?: number | null
           desired_salary_min?: number | null
           desired_work_style?: string | null
@@ -6572,6 +6574,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           desired_phase?: string[] | null
+          desired_prefectures?: string[] | null
           desired_salary_max?: number | null
           desired_salary_min?: number | null
           desired_work_style?: string | null
@@ -7782,6 +7785,7 @@ export type Database = {
           created_at: string
           email: string
           future_aspirations: string | null
+          headline: string | null
           id: string
           is_active_mentor: boolean
           is_mentor: boolean
@@ -7815,6 +7819,7 @@ export type Database = {
           created_at?: string
           email: string
           future_aspirations?: string | null
+          headline?: string | null
           id?: string
           is_active_mentor?: boolean
           is_mentor?: boolean
@@ -7848,6 +7853,7 @@ export type Database = {
           created_at?: string
           email?: string
           future_aspirations?: string | null
+          headline?: string | null
           id?: string
           is_active_mentor?: boolean
           is_mentor?: boolean

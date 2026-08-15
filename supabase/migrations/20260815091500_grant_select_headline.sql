@@ -1,0 +1,23 @@
+-- ow_users.headline に SELECT の GRANT を付ける（直前の migration の訂正）
+--
+-- ⚠️ **直前の `20260815090000` のコメントは誤りだった。**
+--    「`ow_users` は SELECT の列単位剥奪が email / birth_date の2列だけなので、
+--     新しい列にも SELECT が自動で付く」と書いたが、**付かない。**
+--
+--    実測（migration 適用直後）:
+--      has_column_privilege('authenticated','ow_users','headline','SELECT') → **false**
+--      has_column_privilege('authenticated','ow_users','headline','UPDATE') → true
+--
+--    `authenticated` の SELECT は `GRANT SELECT (列を列挙) ON ow_users` の形で
+--    配られているため、**あとから足した列は列挙に入らず、読めない状態で生まれる**。
+--    `ow_companies` で起きるのと同じ形が、`ow_users` では **SELECT 側**で起きる
+--    （UPDATE はテーブルレベルなので書けはする）。
+--
+-- ⚠️ 読めないまま放置すると、`headline` を select に1つ足しただけで
+--    **そのクエリが丸ごと 403 になり、ページの中身が黙って空になる**（CLAUDE.md）。
+--
+-- ⚠️ `anon` はテーブルレベルの SELECT を持つので追加は不要（実測: headline も true）。
+-- ⚠️ `ow_profiles.desired_prefectures` も追加不要（authenticated は
+--    ow_profiles に**テーブルレベル**の SELECT を持つ。実測: true）。
+
+grant select (headline) on ow_users to authenticated;
