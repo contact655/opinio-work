@@ -159,10 +159,13 @@ function ProfilePhotoUploader({
   owUser,
   basicInfoName,
   settings,
+  onAvatarSaved,
 }: {
   owUser: OwUser;
   basicInfoName: string;
   settings: SettingsState;
+  /** DB への保存が成功したときだけ呼ぶ。完成度は親の保存済みスナップショットから出す */
+  onAvatarSaved?: (url: string | null) => void;
 }) {
   const supabase = createClient();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(owUser?.avatar_url ?? null);
@@ -191,11 +194,20 @@ function ProfilePhotoUploader({
     const { data: { publicUrl } } = supabase.storage.from("ow-uploads").getPublicUrl(data.path);
 
     // DB に保存
-    await fetch("/api/jobseeker/profile-photo", {
+    /* ⚠️ 応答を捨てない。以前は res を見ずに publicUrl を返していたので、
+          DB 保存に失敗しても画面には新しい写真が出ていた（保存済みに見える）。 */
+    const res = await fetch("/api/jobseeker/profile-photo", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, url: publicUrl }),
     });
+    if (!res.ok) {
+      console.error("[profile] photo save failed:", res.status);
+      setUploadError("写真の保存に失敗しました。もう一度お試しください。");
+      setTimeout(() => setUploadError(null), 5000);
+      return null;
+    }
+    if (type === "avatar") onAvatarSaved?.(publicUrl);
     return publicUrl;
   };
 
@@ -218,12 +230,18 @@ function ProfilePhotoUploader({
   };
 
   const removePhoto = async (type: "avatar" | "cover") => {
-    await fetch("/api/jobseeker/profile-photo", {
+    const res = await fetch("/api/jobseeker/profile-photo", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type }),
     });
-    if (type === "avatar") setAvatarUrl(null);
+    if (!res.ok) {
+      console.error("[profile] photo delete failed:", res.status);
+      setUploadError("写真の削除に失敗しました。もう一度お試しください。");
+      setTimeout(() => setUploadError(null), 5000);
+      return;
+    }
+    if (type === "avatar") { setAvatarUrl(null); onAvatarSaved?.(null); }
     else setCoverPhotoUrl(null);
   };
 
@@ -763,6 +781,19 @@ function SocialLinksEditor({
 // ─── Education Editor ─────────────────────────────────────────────────────────
 
 // Draft type for the education edit/add form
+/** 希望条件の保存済みスナップショット。キー名は career-preferences API の body と揃える
+    （`savePreferences` の patch をそのまま重ねられるようにするため）。 */
+type SavedPrefs = {
+  desired_role_ids: string[];
+  desired_work_styles: string[] | null;
+  desired_prefectures: string[] | null;
+  desired_salary_min: number | null;
+  desired_salary_max: number | null;
+  transfer_timing: string | null;
+  desired_phase: string[] | null;
+  worry: string | null;
+};
+
 export default function ProfileEditClient({
   owUser,
   authEmail,
@@ -841,17 +872,31 @@ export default function ProfileEditClient({
   const [prefSaved, setPrefSaved] = useState(false);
   const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* 希望条件の**保存済みスナップショット**。入力中の state（pref*）とは別に持つ。
+     ⚠️ 完成度はここからしか計算しない（2026-08-15）。入力中の state から出すと
+        「保存していないのに % が上がる」ことになる。savePreferences が成功したときだけ更新する。 */
+  const [savedPrefs, setSavedPrefs] = useState<SavedPrefs>({
+    desired_role_ids:    initialDesiredRoleIds,
+    desired_work_styles: initialProfilePrefs?.desired_work_styles ?? null,
+    desired_prefectures: initialProfilePrefs?.desired_prefectures ?? null,
+    desired_salary_min:  initialProfilePrefs?.desired_salary_min ?? null,
+    desired_salary_max:  initialProfilePrefs?.desired_salary_max ?? null,
+    transfer_timing:     initialProfilePrefs?.transfer_timing ?? null,
+    desired_phase:       initialProfilePrefs?.desired_phase ?? null,
+    worry:               initialProfilePrefs?.worry ?? null,
+  });
+
   /* 希望条件が1つでも入っているか。**判定は completion.ts の1本に寄せる。**
      こことタブ完了ドットと /mypage で式が分かれると完成度がずれる（2026-08-07）。 */
   const hasPrefs = hasCareerPreferences({
-    desiredRoleCount:    prefRoleIds.length,
-    desired_work_styles: prefWorkStyles,
-    desired_prefectures: prefPrefectures,
-    desired_salary_min:  prefSalaryMin ? Number(prefSalaryMin) : null,
-    desired_salary_max:  prefSalaryMax ? Number(prefSalaryMax) : null,
-    transfer_timing:     prefTiming || null,
-    desired_phase:       prefPhase,
-    worry:               prefWorry || null,
+    desiredRoleCount:    savedPrefs.desired_role_ids.length,
+    desired_work_styles: savedPrefs.desired_work_styles,
+    desired_prefectures: savedPrefs.desired_prefectures,
+    desired_salary_min:  savedPrefs.desired_salary_min,
+    desired_salary_max:  savedPrefs.desired_salary_max,
+    transfer_timing:     savedPrefs.transfer_timing,
+    desired_phase:       savedPrefs.desired_phase,
+    worry:               savedPrefs.worry,
   });
 
   /** role_id → 職種名。希望職種チップの表示に使う */
@@ -873,8 +918,9 @@ export default function ProfileEditClient({
 
   // ── 社会人経験年数（職歴から自動計算・表示のみ）──────────────────────────
   // ⚠️ 職歴が0件なら null。呼び出し側は項目ごと非表示にする（「0年」と出さない）。
-  // ⚠️ initialExperiences は SSR 時点のスナップショット。職歴タブで追加した直後は
-  //    再読み込みまで反映されない。CareerHistoryEditor が router.refresh() する。
+  // ⚠️ initialExperiences は SSR 時点のスナップショット。職歴を追加しても
+  //    再読み込みまでこの年数は変わらない（**再取得はしていない**）。
+  //    完成度のほうは CareerHistoryEditor から件数を受け取って追随する（savedExperienceCount）。
   const oldestCareerStart = useMemo(() => {
     const starts = initialExperiences.map((e) => e.startedAt).filter(Boolean);
     return starts.length > 0 ? starts.reduce((a, b) => (a < b ? a : b)) : null;
@@ -978,6 +1024,9 @@ export default function ProfileEditClient({
         body: JSON.stringify(patch),
       });
       if (res.ok) {
+        /* ⚠️ 成功したときだけスナップショットを進める。ここを外に出すと
+              「送った瞬間に % が動く」形に戻る。 */
+        setSavedPrefs((prev) => ({ ...prev, ...(patch as Partial<SavedPrefs>) }));
         if (prefSavedTimerRef.current) clearTimeout(prefSavedTimerRef.current);
         setPrefSaved(true);
         notifyGlobalSave("saved");
@@ -1254,6 +1303,12 @@ export default function ProfileEditClient({
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
   const [initialBirthDay,   setInitialBirthDay]   = useState<string>(initialParsed.day);
 
+  /* 保存済みのアバターURLと職歴件数。**完成度だけが見る。**
+     画像は ProfilePhotoUploader、職歴は CareerHistoryEditor が
+     それぞれ自前の state を持っているので、保存成功の通知を受けてここに写す。 */
+  const [savedAvatarUrl, setSavedAvatarUrl] = useState<string | null>(owUser?.avatar_url ?? null);
+  const [savedExperienceCount, setSavedExperienceCount] = useState<number>(initialExperiences.length);
+
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
@@ -1314,11 +1369,13 @@ export default function ProfileEditClient({
   /* ⚠️ **条件をタブ側に書き足さない。** 7枚のときの判定をそのまま OR で束ねるだけにする。
         新しい基準を作ると、完成度の判定と食い違う。 */
   const tabCompletion: Record<ProfileTab, boolean> = {
+    /* ⚠️ 完成度と同じく**保存済みの値だけ**を見る。入力中の state を混ぜると
+          打ち始めた瞬間にドットが点く（保存していないのに「設定済み」に見える）。 */
     profile:
-      !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()) ||
-      initialExperiences.length > 0 || educations.length > 0 ||
+      !!(initialBasicInfo.name.trim() || initialBasicInfo.aboutMe.trim()) ||
+      savedExperienceCount > 0 || educations.length > 0 ||
       achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0 ||
-      Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
+      Object.values(savedSocialLinks).some((v) => !!v) || contentLinks.length > 0,
     wishes:   hasPrefs,
     /* 公開設定・アカウントは既定値で成立しているので、常に「設定済み」。 */
     settings: true,
@@ -1335,18 +1392,32 @@ export default function ProfileEditClient({
   // スクロールしないと見えなかったため、右カラムへ移した（2026-08-07）。
   // ⚠️ 右カラムは 1100px 未満で消える（rightColumnCollapse="hide"）。
   //    その幅では本文側の `.mypage-narrow-only` の控えが出る。
+  /* ⚠️ **入力中の state を1つも見ないこと。**（2026-08-15 確立）
+        完成度は「保存済みの値」だけから出す。入力欄の state（basicInfo / birth* /
+        socialLinks / pref*）を混ぜると、**保存していないのに % が上がる**。
+        逆に、読み込み時のプロップ（owUser.avatar_url / initialExperiences /
+        initialSocialLinks）を見ると**保存したのに % が動かない**（3項目が実際にそうだった）。
+
+        ここが見てよいのは、次の「保存に成功したときだけ進むもの」に限る。
+          initialBasicInfo / initialBirth*  … handleSaveBasic の成功後
+          savedAvatarUrl                    … 写真の PUT / DELETE の成功後
+          savedExperienceCount              … CareerHistoryEditor の成功後
+          educations / achievements / awards / mediaAppearances / contentLinks
+                                            … 各 API の戻り値で set している
+          savedSocialLinks                  … handleSaveSocial の成功後
+          hasPrefs（savedPrefs 由来）        … savePreferences の成功後 */
   const completionData: CompletionInput = {
-    hasName:               !!basicInfo.name && basicInfo.name.trim() !== "" && basicInfo.name !== "ユーザー",
-    hasHeadline:           !!basicInfo.headline && basicInfo.headline.trim().length > 0,
-    hasAboutMe:            !!basicInfo.aboutMe && basicInfo.aboutMe.trim().length > 0,
-    hasLocation:           !!basicInfo.location && basicInfo.location.trim().length > 0,
-    hasBirthDate:          !!birthYear && !!birthMonth && !!birthDay,
-    hasAvatar:             !!owUser?.avatar_url,
-    experienceCount:       initialExperiences.length,
+    hasName:               !!initialBasicInfo.name && initialBasicInfo.name.trim() !== "" && initialBasicInfo.name !== "ユーザー",
+    hasHeadline:           !!initialBasicInfo.headline && initialBasicInfo.headline.trim().length > 0,
+    hasAboutMe:            !!initialBasicInfo.aboutMe && initialBasicInfo.aboutMe.trim().length > 0,
+    hasLocation:           !!initialBasicInfo.location && initialBasicInfo.location.trim().length > 0,
+    hasBirthDate:          !!initialBirthYear && !!initialBirthMonth && !!initialBirthDay,
+    hasAvatar:             !!savedAvatarUrl,
+    experienceCount:       savedExperienceCount,
     educationCount:        educations.length,
     hasPreferences:        hasPrefs,
     certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
-    socialOrContentCount:  contentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
+    socialOrContentCount:  contentLinks.length + Object.values(savedSocialLinks).filter(Boolean).length,
   };
 
   return (
@@ -1488,7 +1559,7 @@ export default function ProfileEditClient({
               title="プロフィール画像・カバー"
               desc="プロフィールページのヘッダーに表示されます。"
             >
-              <ProfilePhotoUploader owUser={owUser} basicInfoName={basicInfo.name} settings={settings} />
+              <ProfilePhotoUploader owUser={owUser} basicInfoName={basicInfo.name} settings={settings} onAvatarSaved={setSavedAvatarUrl} />
             </FormSection>
           </div>
         )}
@@ -1668,7 +1739,7 @@ export default function ProfileEditClient({
 
             {/* ⚠️ 中の部品が自前の見出しを描くので `Card`（見出し無し）で包む。 */}
             <Card>
-              <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} />
+              <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} onSavedCountChange={setSavedExperienceCount} />
             </Card>
             <Card>
               <EducationEditor

@@ -1579,13 +1579,21 @@ export default function CareerHistoryEditor({
   roles = [],
   roleAliases = {},
   birthDate,
+  onSavedCountChange,
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
   roleAliases?: Record<string, string[]>;
   birthDate?: string | null;
+  /** 保存済みの職歴件数。**API が成功したときだけ**変わる（stints は楽観更新ではなく成功後に更新している）。
+      親の完成度がこれを見る。渡さなくても動く。 */
+  onSavedCountChange?: (count: number) => void;
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
+
+  /* 保存済み件数を親へ返す。⚠️ 3箇所の setStints はいずれも `res.ok` の後なので、
+     ここで通知される件数は「保存済み」を意味する。 */
+  useEffect(() => { onSavedCountChange?.(stints.length); }, [stints.length, onSavedCountChange]);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
