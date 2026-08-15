@@ -54,14 +54,14 @@ export default async function ProfileEditPage({
     owUser
       ? supabase
           .from("ow_user_achievements")
-          .select("id, title, value, unit, description, period_start, period_end, sort_order")
+          .select("id, title, value, unit, description, period_start, period_end, sort_order, experience_id")
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),
     owUser
       ? supabase
           .from("ow_user_awards")
-          .select("id, title, issuer, awarded_at, description, sort_order")
+          .select("id, title, issuer, awarded_at, description, sort_order, experience_id")
           .eq("user_id", owUser.id)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] }),

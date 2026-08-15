@@ -1481,10 +1481,13 @@ function StintCard({
   stint,
   onEdit,
   onDelete,
+  extras,
 }: {
   stint: Stint & { showCurrentBadge?: boolean };
   onEdit: () => void;
   onDelete: () => void;
+  /** 職歴の下に足す差し込み（フェーズ4-2 の実績・受賞）。渡されなければ何も描かない */
+  extras?: React.ReactNode;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -1568,6 +1571,8 @@ function StintCard({
       </div>
       {/* ストーリーアコーディオン */}
       <StoryAccordion experienceId={stint.id} />
+      {/* 実績・受賞（4-2）。★ここに直接 UI を書かない。中身は呼び出し側が渡す */}
+      {extras}
     </div>
   );
 }
@@ -1580,6 +1585,8 @@ export default function CareerHistoryEditor({
   roleAliases = {},
   birthDate,
   onSavedCountChange,
+  renderStintExtras,
+  onExperienceDeleted,
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
@@ -1588,6 +1595,12 @@ export default function CareerHistoryEditor({
   /** 保存済みの職歴件数。**API が成功したときだけ**変わる（stints は楽観更新ではなく成功後に更新している）。
       親の完成度がこれを見る。渡さなくても動く。 */
   onSavedCountChange?: (count: number) => void;
+  /** 各職歴の下に差し込むもの（4-2 の実績・受賞）。この部品は中身を知らない */
+  renderStintExtras?: (experienceId: string) => React.ReactNode;
+  /** 職歴を削除したときに呼ぶ。★DB 側は ON DELETE SET NULL で実績を残すので、
+      呼び出し側は手元の実績・受賞の experience_id も null に落とす必要がある
+      （やらないと、再読み込みするまで画面から消えたように見える） */
+  onExperienceDeleted?: (experienceId: string) => void;
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
 
@@ -1879,6 +1892,7 @@ export default function CareerHistoryEditor({
       });
       if (!res.ok) throw new Error();
       setStints((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      onExperienceDeleted?.(deleteTarget.id);
       setDeleteTarget(null);
       showToast("職歴を削除しました");
     } catch {
@@ -2025,6 +2039,7 @@ export default function CareerHistoryEditor({
                         stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
                         onEdit={() => startEdit(s)}
                         onDelete={() => setDeleteTarget(s)}
+                        extras={renderStintExtras?.(s.id)}
                       />
                     </div>
                   ))}

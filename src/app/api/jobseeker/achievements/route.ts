@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { optionalText } from "@/lib/api/normalize";
+import { verifyExperienceId } from "@/lib/api/experienceOwnership";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("ow_user_achievements")
-    .select("id, title, value, unit, description, period_start, period_end, sort_order")
+    .select("id, title, value, unit, description, period_start, period_end, sort_order, experience_id")
     .eq("user_id", owUserId)
     .order("sort_order", { ascending: true });
 
@@ -69,6 +70,10 @@ export async function POST(req: Request) {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  /* ★どの職歴の実績か。**他人の職歴 id を弾くのはここだけ**（FK は RLS を通らない）。 */
+  const experienceId = await verifyExperienceId(supabase, owUserId, body.experience_id);
+  if (experienceId instanceof NextResponse) return experienceId;
+
   const { data: maxRow } = await supabase
     .from("ow_user_achievements")
     .select("sort_order")
@@ -80,8 +85,8 @@ export async function POST(req: Request) {
 
   const { data: inserted, error: insertError } = await supabase
     .from("ow_user_achievements")
-    .insert({ user_id: owUserId, title, value, unit, description, period_start: periodStart, period_end: periodEnd, sort_order: nextSortOrder })
-    .select("id, title, value, unit, description, period_start, period_end, sort_order")
+    .insert({ user_id: owUserId, title, value, unit, description, period_start: periodStart, period_end: periodEnd, sort_order: nextSortOrder, experience_id: experienceId })
+    .select("id, title, value, unit, description, period_start, period_end, sort_order, experience_id")
     .single();
 
   if (insertError) {

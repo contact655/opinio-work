@@ -1038,8 +1038,20 @@ function AchievementCard({
 }
 
 export function AchievementEditor({
-  achievements, setAchievements,
-}: { achievements: Achievement[]; setAchievements: React.Dispatch<React.SetStateAction<Achievement[]>>; }) {
+  achievements, setAchievements, experienceId, showHeading = true,
+}: {
+  achievements: Achievement[];
+  setAchievements: React.Dispatch<React.SetStateAction<Achievement[]>>;
+  /** このエディタが担当する職歴。`null` は「その他」、`undefined` は全件（従来の形） */
+  experienceId?: string | null;
+  /** 職歴カードの中に置くときは見出しを出さない */
+  showHeading?: boolean;
+}) {
+  /* ⚠️ 絞り込みと、新規作成時に付ける experience_id は**同じ値**から出す。
+        別々に書くと「その職歴の下に追加したのに、別の場所に出る」形になる。 */
+  const scoped = experienceId === undefined
+    ? achievements
+    : achievements.filter((a) => (a.experience_id ?? null) === experienceId);
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
@@ -1057,6 +1069,7 @@ export function AchievementEditor({
   }, []);
 
   const makeBody = (d: AchievementDraft) => ({
+    ...(experienceId === undefined ? {} : { experience_id: experienceId }),
     title: d.title.trim(),
     value: d.value !== "" && !isNaN(parseInt(d.value, 10)) ? parseInt(d.value, 10) : null,
     unit: d.unit.trim() || null,
@@ -1118,11 +1131,15 @@ export function AchievementEditor({
 
   return (
     <div style={{ marginTop: 0 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>数値実績</div>
-      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-        定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。
-      </div>
-      {achievements.map((item, idx) => (
+      {showHeading && (
+        <>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>数値実績</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+            定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。
+          </div>
+        </>
+      )}
+      {scoped.map((item, idx) => (
         <div key={item.id}>
           {editingId === item.id ? (
             <AchievementForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
@@ -1131,16 +1148,16 @@ export function AchievementEditor({
             <AchievementCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAch(item)); }}
               onDelete={() => setDeleteTarget(item)} />
           )}
-          {idx < achievements.length - 1 && editingId !== item.id && (
+          {idx < scoped.length - 1 && editingId !== item.id && (
             <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
           )}
         </div>
       ))}
-      {achievements.length === 0 && !adding && (
+      {scoped.length === 0 && !adding && showHeading && (
         <GhostExample line1="新規ARR 1.2億円を達成（前年比 180%）" line2="2024年 ・ エンタープライズ営業部" />
       )}
       {adding && (
-        <div style={{ marginTop: achievements.length > 0 ? 12 : 0 }}>
+        <div style={{ marginTop: scoped.length > 0 ? 12 : 0 }}>
           <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_ACH_DRAFT); }} />
         </div>
@@ -1226,8 +1243,17 @@ function AwardCard({
 }
 
 export function AwardEditor({
-  awards, setAwards,
-}: { awards: Award[]; setAwards: React.Dispatch<React.SetStateAction<Award[]>>; }) {
+  awards, setAwards, experienceId, showHeading = true,
+}: {
+  awards: Award[];
+  setAwards: React.Dispatch<React.SetStateAction<Award[]>>;
+  /** このエディタが担当する職歴。`null` は「その他」、`undefined` は全件（従来の形） */
+  experienceId?: string | null;
+  showHeading?: boolean;
+}) {
+  const scoped = experienceId === undefined
+    ? awards
+    : awards.filter((a) => (a.experience_id ?? null) === experienceId);
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
@@ -1245,6 +1271,7 @@ export function AwardEditor({
   }, []);
 
   const makeBody = (d: AwardDraft) => ({
+    ...(experienceId === undefined ? {} : { experience_id: experienceId }),
     title: d.title.trim(), issuer: d.issuer.trim() || null,
     awarded_at: monthToDate(d.awarded_at), description: d.description.trim() || null,
   });
@@ -1301,12 +1328,16 @@ export function AwardEditor({
   }, [deleteTarget, setAwards, showToast]);
 
   return (
-    <div style={{ marginTop: 36 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>受賞歴</div>
-      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-        社内外のアワード・表彰・コンペ入賞などを登録できます。
-      </div>
-      {awards.map((item, idx) => (
+    <div style={{ marginTop: showHeading ? 36 : 0 }}>
+      {showHeading && (
+        <>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>受賞歴</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+            社内外のアワード・表彰・コンペ入賞などを登録できます。
+          </div>
+        </>
+      )}
+      {scoped.map((item, idx) => (
         <div key={item.id}>
           {editingId === item.id ? (
             <AwardForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
@@ -1315,16 +1346,16 @@ export function AwardEditor({
             <AwardCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAward(item)); }}
               onDelete={() => setDeleteTarget(item)} />
           )}
-          {idx < awards.length - 1 && editingId !== item.id && (
+          {idx < scoped.length - 1 && editingId !== item.id && (
             <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
           )}
         </div>
       ))}
-      {awards.length === 0 && !adding && (
+      {scoped.length === 0 && !adding && showHeading && (
         <GhostExample line1="全社MVP（年間表彰）" line2="株式会社〇〇 ・ 2024年12月" />
       )}
       {adding && (
-        <div style={{ marginTop: awards.length > 0 ? 12 : 0 }}>
+        <div style={{ marginTop: scoped.length > 0 ? 12 : 0 }}>
           <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); }} />
         </div>

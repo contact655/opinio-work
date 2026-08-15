@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { optionalText } from "@/lib/api/normalize";
+import { verifyExperienceId } from "@/lib/api/experienceOwnership";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -51,12 +52,16 @@ export async function PUT(
   const periodStart = typeof body.period_start === "string" && body.period_start ? body.period_start : null;
   const periodEnd   = typeof body.period_end   === "string" && body.period_end   ? body.period_end   : null;
 
+  /* ★他人の職歴に付け替えられないようにする。PUT でも必ず通す。 */
+  const experienceId = await verifyExperienceId(supabase, owUserId, body.experience_id);
+  if (experienceId instanceof NextResponse) return experienceId;
+
   const { data: updated, error } = await supabase
     .from("ow_user_achievements")
-    .update({ title, value, unit, description, period_start: periodStart, period_end: periodEnd })
+    .update({ title, value, unit, description, period_start: periodStart, period_end: periodEnd, experience_id: experienceId })
     .eq("id", params.id)
     .eq("user_id", owUserId)
-    .select("id, title, value, unit, description, period_start, period_end, sort_order")
+    .select("id, title, value, unit, description, period_start, period_end, sort_order, experience_id")
     .maybeSingle();
 
   if (error) {

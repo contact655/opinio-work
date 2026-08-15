@@ -46,6 +46,8 @@ export type Achievement = {
   period_start: string | null;
   period_end: string | null;
   sort_order: number;
+  /** どの職歴の話か。null は「その他の実績・受賞」（4-2 で追加） */
+  experience_id: string | null;
 };
 
 export type Award = {
@@ -55,6 +57,8 @@ export type Award = {
   awarded_at: string | null;
   description: string | null;
   sort_order: number;
+  /** どの職歴の話か。null は「その他の実績・受賞」（4-2 で追加） */
+  experience_id: string | null;
 };
 
 export type MediaAppearance = {

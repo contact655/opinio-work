@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 「プロフィール」タブ（写真 / 基本情報 / 職歴 / 学歴 / 実績・受賞 / SNS / 発信コンテンツ）。
+ * 「プロフィール」タブ（写真 / 基本情報 / 職歴〈実績・受賞を内包〉 / 学歴 / メディア掲載 / SNS / 発信コンテンツ）。
  *
  * ⚠️ 3-B（2026-08-15）で `ProfileEditClient.tsx` から**そのまま移した**。
  *    差分は「移動」と「props の受け渡し」だけ。ロジックは変えていない。
@@ -29,8 +29,6 @@ import {
 } from "./formKit";
 import {
   EducationEditor,
-  AchievementEditor,
-  AwardEditor,
   MediaAppearanceEditor,
   type RoleItem,
 } from "./RecordEditors";
@@ -42,6 +40,7 @@ import {
   type MediaAppearance,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
+import { StintRecords } from "./StintRecords";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -573,6 +572,12 @@ export default function ProfileTab({
   const [awards,           setAwards]           = useState<Award[]>(initialAwards);
   const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
+  /* どの職歴にも紐づかない実績・受賞（experience_id が null）。
+     ⚠️ 職歴を削除すると ON DELETE SET NULL でここへ移ってくる。**消さない。** */
+  const orphanAchievements = achievements.filter((a) => !a.experience_id);
+  const orphanAwards       = awards.filter((a) => !a.experience_id);
+  const [showOrphanEditor, setShowOrphanEditor] = useState(false);
+
   // ── SNS タブの状態（明示保存方式） ──────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
   // 保存済みの値を保持して変更検知（JSON.stringify 比較）
@@ -892,7 +897,65 @@ export default function ProfileTab({
 
             {/* ⚠️ 中の部品が自前の見出しを描くので `Card`（見出し無し）で包む。 */}
             <Card>
-              <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} onSavedCountChange={setSavedExperienceCount} />
+              {/* ★実績・受賞は職歴の中に畳む（4-2）。各職歴の下にチップで出す。
+                     独立カードに戻さないこと。どの職歴での話かが分からなくなる。 */}
+              <CareerHistoryEditor
+                initialExperiences={initialExperiences}
+                roles={roles}
+                roleAliases={roleAliases}
+                birthDate={owUser?.birth_date}
+                onSavedCountChange={setSavedExperienceCount}
+                /* ★職歴を消しても実績は消えない（ON DELETE SET NULL）。手元の state も
+                      同じように null へ落として「その他の実績・受賞」に出す。
+                      これをやらないと、再読み込みするまで画面から消えたように見える。 */
+                onExperienceDeleted={(experienceId) => {
+                  setAchievements((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
+                  setAwards((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
+                }}
+                renderStintExtras={(experienceId) => (
+                  <StintRecords
+                    experienceId={experienceId}
+                    achievements={achievements}
+                    setAchievements={setAchievements}
+                    awards={awards}
+                    setAwards={setAwards}
+                  />
+                )}
+              />
+
+              {/* どの職歴にも紐づいていないもの。★消さずにここへ集める
+                     （職歴を消すと ON DELETE SET NULL でここに移ってくる） */}
+              {(orphanAchievements.length > 0 || orphanAwards.length > 0 || showOrphanEditor) && (
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 4 }}>
+                    その他の実績・受賞
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
+                    どの職歴にも紐づいていないものです。職歴を削除すると、その職歴の実績・受賞はここに移ります。
+                  </div>
+                  <StintRecords
+                    experienceId={null}
+                    achievements={achievements}
+                    setAchievements={setAchievements}
+                    awards={awards}
+                    setAwards={setAwards}
+                  />
+                </div>
+              )}
+              {orphanAchievements.length === 0 && orphanAwards.length === 0 && !showOrphanEditor && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowOrphanEditor(true)}
+                    style={{
+                      background: "none", border: "none", padding: 0, cursor: "pointer",
+                      fontSize: 12, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+                    }}
+                  >
+                    ＋ 職歴に紐づかない実績・受賞を追加
+                  </button>
+                </div>
+              )}
             </Card>
             <Card>
               <EducationEditor
@@ -903,22 +966,13 @@ export default function ProfileTab({
             </Card>
           </div>
 
-        {/* 実績・受賞（数値実績 / 受賞歴 / メディア掲載 を1枚に）
-            ⚠️ 3つを別カードにすると、この画面だけでカードが10枚になる。
-               中の見出し（数値実績・受賞歴・メディア掲載）がそのままブロックになる。 */}
+        {/* メディア掲載（★実績・受賞とは別。職歴に属さないので独立カードのまま）
+            ⚠️ 4-2 で「実績・受賞」カードは廃止し、数値実績と受賞歴は職歴カードへ移した。
+               メディア掲載は個人としての登壇・寄稿・退職後の取材があり、
+               在籍先に紐づけられないのでここに残す。 */}
           <div style={{ maxWidth: 680 }}>
+            {/* ⚠️ 見出しを二重に書かない。`MediaAppearanceEditor` が自前で描く。 */}
             <Card>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)", marginBottom: 6 }}>
-                実績・受賞
-              </div>
-              {/* ⚠️ 色付きバナーにしない。カード内の補助テキストとして置く。 */}
-              <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7 }}>
-                埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります。
-              </div>
-              <AchievementEditor achievements={achievements} setAchievements={setAchievements} />
-              <div style={{ height: 1, background: "var(--line-soft)", margin: "24px 0" }} />
-              <AwardEditor awards={awards} setAwards={setAwards} />
-              <div style={{ height: 1, background: "var(--line-soft)", margin: "24px 0" }} />
               <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
             </Card>
           </div>

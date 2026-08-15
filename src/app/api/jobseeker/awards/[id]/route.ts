@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { optionalText } from "@/lib/api/normalize";
 import { NextResponse } from "next/server";
+import { verifyExperienceId } from "@/lib/api/experienceOwnership";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +51,16 @@ export async function PUT(
   const awardedAt   = typeof body.awarded_at  === "string" && DATE_RE.test(body.awarded_at) ? body.awarded_at : null;
   const description = optionalText(body.description, 1000);
 
+  /* ★他人の職歴に付け替えられないようにする。PUT でも必ず通す。 */
+  const experienceId = await verifyExperienceId(supabase, owUserId, body.experience_id);
+  if (experienceId instanceof NextResponse) return experienceId;
+
   const { data: updated, error } = await supabase
     .from("ow_user_awards")
-    .update({ title, issuer, awarded_at: awardedAt, description })
+    .update({ title, issuer, awarded_at: awardedAt, description, experience_id: experienceId })
     .eq("id", params.id)
     .eq("user_id", owUserId)
-    .select("id, title, issuer, awarded_at, description, sort_order")
+    .select("id, title, issuer, awarded_at, description, sort_order, experience_id")
     .single();
 
   if (error) {
