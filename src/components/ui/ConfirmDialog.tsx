@@ -99,6 +99,9 @@ export default function ConfirmDialog({
             lineHeight: 1.7,
             marginBottom: 24,
             fontFamily: "inherit",
+            /* 呼び出し側が \n で改行できるようにする。⚠️ pre ではなく pre-line
+                  （インデントの空白まで出さない） */
+            whiteSpace: "pre-line",
           }}
         >
           {message}

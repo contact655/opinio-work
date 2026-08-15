@@ -1900,7 +1900,7 @@ export default function CareerHistoryEditor({
     } finally {
       setDeleting(false);
     }
-  }, [deleteTarget, showToast]);
+  }, [deleteTarget, showToast, onExperienceDeleted]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -2177,9 +2177,14 @@ export default function CareerHistoryEditor({
       <ConfirmDialog
         isOpen={!!deleteTarget}
         title="職歴を削除しますか？"
+        /* ⚠️ 実績・受賞の行方を**常に**書く（2026-08-15 / フェーズ4-2）。
+              DB は ON DELETE SET NULL なので消えないが、削除ダイアログが職歴の話しか
+              していないと「一緒に消えた」と読まれる。
+           ★件数は出さない。件数を出すために、この部品に実績への依存を作らない
+              （紐づく実績が0件のときにも出るが、事実として誤りではなく害もない）。 */
         message={
           deleteTarget
-            ? `「${deleteTarget.displayCompanyName}」での職歴を削除します。この操作は取り消せません。`
+            ? `「${deleteTarget.displayCompanyName}」での職歴を削除します。この操作は取り消せません。\nこの職歴の実績・受賞は削除されず、「その他の実績・受賞」に移ります。`
             : ""
         }
         confirmLabel="削除する"
