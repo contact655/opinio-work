@@ -13,6 +13,10 @@
  * 結果、`ow_users.about_me` に `''` の行が生まれ、`count(about_me)` のような
  * 充填率の集計が「入力済み」と数えてしまう（表示側は truthy 判定なので画面は無事だった）。
  *
+ * ⚠️ **text 列だけの話ではない。** JSONB の `ow_users.social_links` も同じ形で
+ *    `{"note": ""}` が残っていた（2026-08-16 に `optionalTextMap` を足して解消）。
+ *    値が text のマップを受け取る列を足すときは、この関数を通すこと。
+ *
  * ⚠️ **「空」は正常系、「不正」は異常系。この2つを混同しない。**
  *    空 → `null`（任意項目）か 400（必須項目）。不正 → 400。**黙って捨てない。**
  *
@@ -53,6 +57,42 @@ export function optionalText(value: unknown, max: number): string | null {
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
   return trimmed.slice(0, max);
+}
+
+/**
+ * 任意の「キー → text」マップ（JSONB 列）。**空の値はキーごと落とし、
+ * 全部空なら `null` にする。**
+ *
+ * ⚠️ **キーを空文字のまま残さない。** 残すと2つ困る:
+ *    ① SQL の充填率集計が「入力済み」と数える（`optionalText` と同じ理由）
+ *    ② **画面から元の状態に戻せなくなる。** 全部消して保存しても `{"x": ""}` が残り、
+ *       `null` に戻す手段が UI に無い（2026-08-16 までの `ow_users.social_links` が
+ *       これで、検証のたびに service role で書き戻していた）
+ *
+ * ⚠️ 空（`null` / `""` / 空白のみ）は正常系なので落とす。
+ *    **型が違うもの（数値・配列・入れ子）は異常系なので 400。** 黙って捨てない。
+ *
+ * @param field ログ用の列名。⚠️ 利用者に見せる文言には出さない
+ */
+export function optionalTextMap(
+  value: unknown,
+  max: number,
+  field: string,
+  userMessage: string,
+): Record<string, string> | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new InvalidInputError(field, userMessage);
+  }
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v === null || v === undefined) continue; // 空扱い（キーを落とす）
+    if (typeof v !== "string") throw new InvalidInputError(`${field}.${k}`, userMessage);
+    const trimmed = v.trim();
+    if (trimmed.length === 0) continue;
+    out[k] = trimmed.slice(0, max);
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 /**

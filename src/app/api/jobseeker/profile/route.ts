@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { Json } from "@/lib/supabase/types";
 /* ⚠️ 空入力の扱いは1箇所に寄せる。ここに if を書き足さないこと（lib/api/normalize.ts の冒頭を参照）。 */
-import { optionalText, requiredText, InvalidInputError } from "@/lib/api/normalize";
+import { optionalText, optionalTextMap, requiredText, InvalidInputError } from "@/lib/api/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -75,11 +75,19 @@ export async function PUT(req: Request) {
       else if (typeof bd === "string" && BIRTH_RE.test(bd)) patch.birth_date = bd;
       else return NextResponse.json({ error: "INVALID_BIRTH_DATE", message: "生年月日の形式が正しくありません。" }, { status: 400 });
     }
+    /* ⚠️ **空文字のキーを残さない。** 残すと、全部消して保存しても `{"x": ""}` が残り、
+          `null` に戻す手段が画面から無くなる（2026-08-16 まで実際にそうだった）。
+          text 列の `optionalText` と同じ扱いを JSONB にも通す。 */
     if ("social_links" in body) {
       if (JSON.stringify(body.social_links).length > 2000) {
         return NextResponse.json({ error: "SOCIAL_LINKS_TOO_LARGE", message: "SNS リンクの量が多すぎます。" }, { status: 400 });
       }
-      patch.social_links = body.social_links as Json | null;
+      patch.social_links = optionalTextMap(
+        body.social_links,
+        500,
+        "ow_users.social_links",
+        "SNS リンクの形式が正しくありません。",
+      ) as Json | null;
     }
     /* ⚠️ 公開設定は黙って捨てない。捨てると「非公開にしたのに公開のまま」になる */
     if ("visibility" in body) {
