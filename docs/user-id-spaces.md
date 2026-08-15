@@ -124,3 +124,17 @@
 ⚠️ この表は baseline の FK 定義から機械生成した。
    テーブルや列を足したら更新すること。
 
+
+⚠️ 2026-08-16 に **1つの機能の中で2空間が並んでいる**例を記録する。
+   経歴ストーリー（`ow_experience_stories`）:
+
+   | 何 | 空間 | 根拠 |
+   |---|---|---|
+   | テーブルの所有者判定 | **`ow_users.id`** | ★この表に `user_id` は**無い**。`experience_id` → `ow_experiences.user_id` 経由でしか決まらない |
+   | Storage の画像パス `{uid}/experience-stories/…` | **`auth.uid()`** | `StoryAccordion` が `user.id`（auth）でパスを組む。`ow_uploads_can_write` の③も同じ形 |
+
+   ⚠️ **`image_url` のパス先頭は `auth.uid()` であって `ow_users.id` ではない。**
+      ストーリー画像の孤児掃除や、パスから所有者を引き当てる処理を書くときは、
+      **必ず変換を挟むこと**（`ow_users.auth_id` ↔ `ow_users.id`）。
+   ⚠️ 揃えるならパス側（`{ow_users.id}/…`）だが、**既存ファイルの公開URLが変わる**ため
+      2026-08-16 時点で未着手。やるなら DB の `image_url` 付け替えとセットで。

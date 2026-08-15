@@ -106,8 +106,14 @@ migration を書く。⚠️ 企業ごとに対応が取れているかを先に
 ## RLS が `USING(true)` かつ anon に SELECT がある テーブル一覧（2026-08-15 実測）
 
 **この形は今回で3例目**（学歴 2026-08-06 → 実績3種＋発信コンテンツ 2026-08-15）。
-残りが何件あるかを一度数えた。25件のうち **7件を塞いだので残り18件**
-（20260815130000 で実績3種＋発信コンテンツ、20260815140000 で posts / post_likes / experience_roles）。
+残りが何件あるかを一度数えた。25件のうち **11件を片付けたので残り14件**
+（20260815130000 で実績3種＋発信コンテンツ、20260815140000 で posts / post_likes /
+experience_roles、20260816 で settings / job_assignees / experience_stories、
+`ow_user_socials` は DROP）。
+
+⚠️ **形は4通りに分かれた。** 一律に当てないこと。
+   own+admin（実績・学歴・ストーリー）／ authenticated（フィード・いいね）／
+   **その企業のメンバー**（求人担当者）／ **admin のみ**（運営設定）。
 
 ⚠️ **塞ぎ方は1つではない。** 「本人だけが見るもの」は own + admin、
    **「他人が読む前提のもの」は authenticated**（ログイン済みなら読める）。
@@ -139,8 +145,8 @@ select t.tablename from t join pol p using (tablename)
 | ~~`ow_post_likes`~~ | 1 | ✅ | **塞いだ**。★同じく authenticated。own にすると**いいね数が静かに変わる** |
 | `ow_post_comments` | 0 | ✅ | 誰が何にコメントしたか。**未対応**（0件のうちに塞ぐ。形は post_likes と同じはず） |
 | ~~`ow_experience_roles`~~ | 6 | ✅ | **塞いだ**。★こちらは own（親 experience 経由）+ admin。読み取り経路が0件で、親より広いのは筋が通らないため |
-| `ow_experience_stories` | 0 | ✅ | 経歴のストーリー |
-| `ow_user_socials` | 0 | ✅ | 未使用テーブル（`ow_users.social_links` が現役） |
+| ~~`ow_experience_stories`~~ | 0 | ✅ | **塞いだ**（20260816130000）。own は**親の職歴経由**（この表に user_id が無い） |
+| ~~`ow_user_socials`~~ | 0 | ✅ | **DROP 済み**（20260816140000）。用途は content_links と social_links が担う |
 | `ow_articles` | 16 | — | 公開記事。公開が正しい |
 | `ow_roles` / `ow_role_aliases` | 154 / 260 | — | 職種マスター。公開が正しい |
 | `ow_schools` | 37 | — | 学校マスター。公開が正しい |
@@ -148,18 +154,16 @@ select t.tablename from t join pol p using (tablename)
 | `ow_job_roles` | 20 | — | 求人の職種 |
 | `ow_company_tools` | 9 | — | 企業の利用ツール |
 | `ow_company_culture_tags` / `ow_company_office_photos` / `ow_company_segments` | 各0 | — | 企業側の公開情報 |
-| `ow_job_assignees` | 0 | ⚠️ | 求人の担当者。**企業の内部情報**。行が入る前に見直す |
+| ~~`ow_job_assignees`~~ | 0 | ⚠️ | **塞いだ**（20260816100000）。★own でも authenticated でもなく **その企業のメンバー** |
 | `ow_job_matching_tags` / `ow_job_requirements` | 各0 | — | 求人の付帯情報 |
 | `ow_story_sections` | 0 | — | 記事のセクション |
-| `ow_settings` | 0 | ⚠️ | 運営設定。**行が入る前に見直す** |
+| ~~`ow_settings`~~ | 0 | ⚠️ | **塞いだ**（20260816090000 + 091500）。★**admin のみ**（GRANT を締めすぎて戻した経緯つき） |
 
 **優先度**: 行数 × 個人データの有無で見る。
 1. `ow_posts`（170行・個人データ・現に読める）
 2. `ow_experience_roles`（6行・経歴の一部）／`ow_post_likes`（1行）
-3. 0件のもの（`ow_job_assignees` / `ow_settings` / `ow_user_socials` /
-   `ow_experience_stories` / `ow_post_comments`）は**書かれ始める前に**塞ぐ。
-   ⚠️ `ow_post_comments` は post_likes と同じ理由で **authenticated** にすること
-   （コメント数を他人も数える）
+3. 残っているのは **`ow_post_comments`** だけ（他は公開情報・マスター）。
+   ⚠️ post_likes と同じ理由で **authenticated** にすること（コメント数を他人も数える）
 
 ⚠️ 塞ぐときは**読み取り経路を先に確認する**。session クライアントで他人の行を読んでいる
    画面があると、RLS を own+admin にした瞬間に **HTTP 200 のまま中身だけ消える**
@@ -193,38 +197,3 @@ select t.tablename from t join pol p using (tablename)
 
 ⚠️ 求人側の勤務地は `ow_jobs.location`（自由文字列）で、都道府県の正規化がされていない。
    軸を作る前に、求人側の値が都道府県として突き合わせられる形かを先に確かめること。
-
----
-
-## `ow_user_socials` を DROP するか決める（2026-08-16 記録）
-
-**対象**: `public.ow_user_socials`（0件）。2026-08-16 に SELECT を own + admin に絞ったが、
-**そもそも残す理由があるか**は別途決める。
-
-**判断材料**（すべて 2026-08-16 実測）:
-
-| 見たもの | 結果 |
-|---|---|
-| 行数 | **0件**（書かれた形跡なし。`created_at` の行そのものが無い） |
-| src からの参照 | **0件** |
-| 他テーブルからの FK / ビュー / 関数 / トリガー | **すべて0** |
-| 現役の代替 | `ow_users.social_links`（JSONB・2名が使用中）と `ow_user_content_links`（発信コンテンツ） |
-| プラットフォームの対応範囲 | ★**この表のほうが狭い**。CHECK は note/x/github/linkedin/other の5種で、
-`SNS_PLATFORMS`（x / linkedin / github / instagram / facebook / youtube / note）に**届いていない** |
-| この表にしかない列 | `username` / `custom_label` / `sort_order` / `verified` / **`oauth_token`** |
-
-**意見: DROP してよい。** 理由:
-1. 「並び順つき・ラベルつきのリンク集」は **`ow_user_content_links` が既に担っている**
-   （url / platform / title / description / thumbnail_url / sort_order）。用途が重なる
-2. プラットフォームの対応が現役の実装より**狭い**ので、使い始めるにも CHECK の作り直しが要る
-3. 参照が一切無いため、DROP で壊れるものが無い（型は `npm run gen:types` で追随）
-
-⚠️ **`oauth_token` は残す設計ごと考え直すべき。** SNS 連携をやるなら、
-   トークンを**クライアントから読めるテーブルに置かない**（今は own ポリシーで本人が読める。
-   実測で本人・運営からトークン値が見えることを確認した）。
-   サーバー専用の置き場（service_role のみ）か、Vault を使う。
-
-**やるなら**: `drop table public.ow_user_socials;` の migration 1本 ＋ `npm run gen:types`。
-⚠️ **DROP の前に CLAUDE.md のチェックリストを通すこと**（PL/pgSQL の本体は
-   Postgres が依存として追跡しないため、FK が0でも関数の中で参照されていることがある。
-   今回は関数0件を確認済み）。

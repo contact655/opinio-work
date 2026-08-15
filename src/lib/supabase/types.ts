@@ -7741,53 +7741,6 @@ export type Database = {
           },
         ]
       }
-      ow_user_socials: {
-        Row: {
-          created_at: string
-          custom_label: string | null
-          id: string
-          oauth_token: string | null
-          platform: string
-          sort_order: number
-          url: string
-          user_id: string
-          username: string | null
-          verified: boolean
-        }
-        Insert: {
-          created_at?: string
-          custom_label?: string | null
-          id?: string
-          oauth_token?: string | null
-          platform: string
-          sort_order: number
-          url: string
-          user_id: string
-          username?: string | null
-          verified?: boolean
-        }
-        Update: {
-          created_at?: string
-          custom_label?: string | null
-          id?: string
-          oauth_token?: string | null
-          platform?: string
-          sort_order?: number
-          url?: string
-          user_id?: string
-          username?: string | null
-          verified?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_user_socials_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "ow_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_users: {
         Row: {
           about_me: string | null
@@ -8685,6 +8638,7 @@ export type Database = {
         Returns: Json
       }
       normalize_company_name: { Args: { p_name: string }; Returns: string }
+      ow_uploads_can_write: { Args: { object_name: string }; Returns: boolean }
       purge_old_page_views: { Args: never; Returns: undefined }
       reject_school_request: {
         Args: { p_approved_by: string; p_request_id: string }
