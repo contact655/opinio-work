@@ -94,16 +94,16 @@ export type ScoreItem = {
 
 function buildItems(d: CompletionInput): ScoreItem[] {
   return [
-    { key: "avatar",   label: "プロフィール画像",       done: d.hasAvatar,                      weight: 11, hint: "写真を追加する",              tab: "basic" },
-    { key: "name",     label: "名前",                  done: d.hasName,                        weight: 8,  hint: "名前を入力する",              tab: "basic" },
-    { key: "aboutMe",  label: "自己紹介",              done: d.hasAboutMe,                     weight: 12, hint: "自己紹介を書く",              tab: "basic" },
-    { key: "location", label: "所在地",                done: d.hasLocation,                    weight: 4,  hint: "所在地を設定する",            tab: "basic" },
-    { key: "birth",    label: "生年月日",              done: d.hasBirthDate,                   weight: 4,  hint: "生年月日を入力する",          tab: "basic" },
-    { key: "career",   label: "職歴",                  done: d.experienceCount >= 1,            weight: 30, hint: "職歴を追加する",              tab: "career" },
-    { key: "edu",      label: "学歴",                  done: d.educationCount >= 1,             weight: 10, hint: "学歴を追加する",              tab: "career" },
-    { key: "prefs",    label: "希望条件",              done: d.hasPreferences,                  weight: 15, hint: "希望職種・勤務スタイルを入力する", tab: "preferences" },
-    { key: "certs",    label: "実績・受賞",            done: d.certOrAchievementCount >= 1,    weight: 3,  hint: "実績や受賞歴を追加する",      tab: "certs_achievements" },
-    { key: "social",   label: "SNS・発信",             done: d.socialOrContentCount >= 1,      weight: 3,  hint: "SNSリンクや発信コンテンツを追加する", tab: "socials_content" },
+    { key: "avatar",   label: "プロフィール画像",       done: d.hasAvatar,                      weight: 11, hint: "写真を追加する",              tab: "profile" },
+    { key: "name",     label: "名前",                  done: d.hasName,                        weight: 8,  hint: "名前を入力する",              tab: "profile" },
+    { key: "aboutMe",  label: "自己紹介",              done: d.hasAboutMe,                     weight: 12, hint: "自己紹介を書く",              tab: "profile" },
+    { key: "location", label: "所在地",                done: d.hasLocation,                    weight: 4,  hint: "所在地を設定する",            tab: "profile" },
+    { key: "birth",    label: "生年月日",              done: d.hasBirthDate,                   weight: 4,  hint: "生年月日を入力する",          tab: "profile" },
+    { key: "career",   label: "職歴",                  done: d.experienceCount >= 1,            weight: 30, hint: "職歴を追加する",              tab: "profile" },
+    { key: "edu",      label: "学歴",                  done: d.educationCount >= 1,             weight: 10, hint: "学歴を追加する",              tab: "profile" },
+    { key: "prefs",    label: "希望条件",              done: d.hasPreferences,                  weight: 15, hint: "希望職種・勤務スタイルを入力する", tab: "wishes" },
+    { key: "certs",    label: "実績・受賞",            done: d.certOrAchievementCount >= 1,    weight: 3,  hint: "実績や受賞歴を追加する",      tab: "profile" },
+    { key: "social",   label: "SNS・発信",             done: d.socialOrContentCount >= 1,      weight: 3,  hint: "SNSリンクや発信コンテンツを追加する", tab: "profile" },
   ];
 }
 

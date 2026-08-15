@@ -85,5 +85,5 @@ export async function getWeeklyRecipients(supabase: SupabaseClient<any, any, any
  *    **リンク先を変えるときは、そのタブが実在するか確かめること。**
  */
 export function unsubscribeUrl(baseUrl: string): string {
-  return `${baseUrl}/profile/edit?tab=account`;
+  return `${baseUrl}/profile/edit?tab=settings`;
 }

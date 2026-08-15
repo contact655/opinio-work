@@ -5,7 +5,7 @@
 export type TabItem = {
   key: string;
   label: string;
-  /** Optional completion state: true = green dot, false = gray dot, undefined = no dot */
+  /** false のときだけ「未設定」ラベルを出す。true / undefined は何も出さない */
   completed?: boolean;
 };
 
@@ -66,16 +66,22 @@ export default function Tabs({
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               {tab.label}
-              {tab.completed !== undefined && (
+              {/* ⚠️ ●（緑・グレー）は廃止した（2026-08-15）。
+                     7タブのとき「公開設定」「アカウント」が常に緑で、
+                     色が何を表すのか読めなかった。**未設定のタブにだけ言葉で出す。**
+                     判定は呼び出し側の `tabCompletion` をそのまま使い、ここに条件を書かない。 */}
+              {tab.completed === false && (
                 <span
                   style={{
-                    width: 6, height: 6, borderRadius: "50%",
-                    background: tab.completed ? "var(--success)" : "var(--ink-mute)",
-                    opacity: tab.completed ? 1 : 0.4,
+                    fontSize: 11, fontWeight: 700, lineHeight: 1,
+                    color: "#92400E", background: "#FEF3C7",
+                    border: "1px solid #FDE68A",
+                    borderRadius: 100, padding: "3px 7px",
                     flexShrink: 0,
-                    display: "inline-block",
                   }}
-                />
+                >
+                  未設定
+                </span>
               )}
             </span>
           </button>
@@ -86,9 +92,8 @@ export default function Tabs({
         .profile-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .profile-tabs::-webkit-scrollbar { display: none; }
 
-        /* デスクトップ: 折り返す。
-           7タブで 719px 必要だが、本文が 719px を超えるのは 1400px 以上のときだけ。
-           横スクロールのままだと「アカウント」が見切れて気づかれない。 */
+        /* デスクトップ: 折り返す。⚠️ 3タブになったので通常は1行に収まるが、
+           折り返しの指定は残す（ラベルが伸びたときに見切れないため）。 */
         @media (min-width: 768px) {
           .profile-tabs { flex-wrap: wrap; overflow-x: visible; }
         }

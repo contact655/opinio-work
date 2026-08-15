@@ -785,9 +785,9 @@ export default function MypageClient({
         「あと1つ」と書いてあるのに何を入れればいいか分からない状態になる。
      ⚠️ tab はすべて /profile/edit の VALID_TABS に実在するキー。 */
   const setupMissing: { label: string; tab: string }[] = [
-    { label: "名前",     tab: "basic",  done: !!userName && userName !== "ユーザー" },
-    { label: "自己紹介", tab: "basic",  done: !!owUser?.about_me && owUser.about_me.trim().length > 0 },
-    { label: "職歴",     tab: "career", done: (timelineCareers?.length ?? 0) > 0 },
+    { label: "名前",     tab: "profile",  done: !!userName && userName !== "ユーザー" },
+    { label: "自己紹介", tab: "profile",  done: !!owUser?.about_me && owUser.about_me.trim().length > 0 },
+    { label: "職歴",     tab: "profile", done: (timelineCareers?.length ?? 0) > 0 },
   ].filter((x) => !x.done).map(({ label, tab }) => ({ label, tab }));
 
   const dashboardRightColumn = (

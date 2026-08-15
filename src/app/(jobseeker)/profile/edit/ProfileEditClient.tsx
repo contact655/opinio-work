@@ -91,7 +91,21 @@ function detectPlatform(url: string): string {
   return "other";
 }
 
-type ProfileTab = "basic" | "career" | "preferences" | "certs_achievements" | "socials_content" | "privacy" | "account";
+/* タブは3枚（2026-08-15 に7枚から再編）。
+   ⚠️ 旧7値は `LEGACY_TAB_MAP` で解決する。`?tab=` を持つメールやブックマークが
+      既にあるので、旧値で来ても既定タブに落とさない。 */
+type ProfileTab = "profile" | "wishes" | "settings";
+
+/** 旧 `?tab=` の値 → 新タブ。**消さないこと。** */
+const LEGACY_TAB_MAP: Record<string, ProfileTab> = {
+  basic: "profile",
+  career: "profile",
+  certs_achievements: "profile",
+  socials_content: "profile",
+  preferences: "wishes",
+  privacy: "settings",
+  account: "settings",
+};
 
 type OwUser = {
   id: string;
@@ -382,13 +396,9 @@ function ProfilePhotoUploader({
 
 
 const PROFILE_TABS: TabItem[] = [
-  { key: "basic",             label: "基本情報" },
-  { key: "career",            label: "職歴・学歴" },
-  { key: "preferences",       label: "希望条件" },
-  { key: "certs_achievements", label: "実績・受賞" },
-  { key: "socials_content",   label: "SNS・発信" },
-  { key: "privacy",           label: "公開設定" },
-  { key: "account",           label: "アカウント" },
+  { key: "profile",  label: "プロフィール" },
+  { key: "wishes",   label: "転職の希望" },
+  { key: "settings", label: "設定" },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -772,13 +782,14 @@ export default function ProfileEditClient({
     worry: string | null;
   } | null;
 }) {
-  const VALID_TABS: ProfileTab[] = [
-    "basic", "career", "preferences",
-    "certs_achievements", "socials_content", "privacy", "account",
-  ];
-  const [activeTab, setActiveTab] = useState<ProfileTab>(
-    VALID_TABS.includes(initialTab as ProfileTab) ? (initialTab as ProfileTab) : "basic"
-  );
+  const VALID_TABS: ProfileTab[] = ["profile", "wishes", "settings"];
+  /* ⚠️ 旧値（basic / career / ...）で来ても対応表で解決する。既定に落とさない。 */
+  const resolvedInitialTab: ProfileTab =
+    VALID_TABS.includes(initialTab as ProfileTab) ? (initialTab as ProfileTab)
+    : (initialTab && LEGACY_TAB_MAP[initialTab]) ? LEGACY_TAB_MAP[initialTab]
+    : "profile";
+  const [activeTab, setActiveTab] = useState<ProfileTab>(resolvedInitialTab);
+
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   // ── 希望条件 (ow_profiles) state ─────────────────────────────────────────────
@@ -976,7 +987,7 @@ export default function ProfileEditClient({
 
   const isAccountDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
 
-  const handleSaveAccount = useCallback(async () => {
+  const handleSavePrivacy = useCallback(async () => {
     setAccountSaving(true);
     notifyGlobalSave("saving");
     try {
@@ -1259,15 +1270,19 @@ export default function ProfileEditClient({
   }, [initialBasicInfo, initialBirthYear, initialBirthMonth, initialBirthDay]);
 
   // ── タブ完成度（各タブにデータがあれば green dot） ─────────────────────────
+  /* ⚠️ **条件をタブ側に書き足さない。** 7枚のときの判定をそのまま OR で束ねるだけにする。
+        新しい基準を作ると、完成度の判定と食い違う。 */
   const tabCompletion: Record<ProfileTab, boolean> = {
-    basic:             !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()),
-    career:            initialExperiences.length > 0 || educations.length > 0,
-    preferences:       hasPrefs,
-    certs_achievements: achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0,
-    socials_content:   Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
-    privacy:           true,
-    account:           true,
+    profile:
+      !!(basicInfo.name.trim() || basicInfo.aboutMe.trim()) ||
+      initialExperiences.length > 0 || educations.length > 0 ||
+      achievements.length > 0 || awards.length > 0 || mediaAppearances.length > 0 ||
+      Object.values(socialLinks).some((v) => !!v) || contentLinks.length > 0,
+    wishes:   hasPrefs,
+    /* 公開設定・アカウントは既定値で成立しているので、常に「設定済み」。 */
+    settings: true,
   };
+
 
   const profileTabsWithCompletion = PROFILE_TABS.map((tab) => ({
     ...tab,
@@ -1342,27 +1357,8 @@ export default function ProfileEditClient({
                 自己紹介・職歴・学歴を入力すると、企業のカジュアル面談やメンター相談が
                 スムーズになります。<strong>入力内容は自動保存</strong>されます。
               </div>
-              <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 10, flexWrap: "wrap" }}>
-                {[
-                  { tab: "basic" as ProfileTab, label: "① 基本情報" },
-                  { tab: "career" as ProfileTab, label: "② 職歴" },
-                ].map(({ tab, label }) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    style={{
-                      padding: "4px 12px", borderRadius: 100,
-                      background: activeTab === tab ? "#F59E0B" : "rgba(245,158,11,0.15)",
-                      color: activeTab === tab ? "#fff" : "#92400E",
-                      border: `1px solid ${activeTab === tab ? "#D97706" : "transparent"}`,
-                      fontFamily: "inherit", fontSize: "var(--text-xs)", fontWeight: 700, cursor: "pointer",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {/* ⚠️ 「① 基本情報 / ② 職歴」へ飛ぶチップは外した（2026-08-15）。
+                     3タブではどちらも「プロフィール」になり、押し分ける意味が無くなったため。 */}
             </div>
             <button
               type="button"
@@ -1434,7 +1430,20 @@ export default function ProfileEditClient({
         {/* ── タブコンテンツ ──────────────────────────────────────────────────── */}
 
         {/* 基本情報タブ */}
-        {activeTab === "basic" && (
+        {/* ⚠️ 写真は「設定」から「プロフィール」の先頭へ移した（2026-08-15）。
+               アップロードのロジックは触らず、コンポーネントごと移動しただけ。 */}
+        {activeTab === "profile" && (
+          <div style={{ maxWidth: 680 }}>
+            <FormSection
+              title="プロフィール画像・カバー"
+              desc="プロフィールページのヘッダーに表示されます。"
+            >
+              <ProfilePhotoUploader owUser={owUser} basicInfoName={basicInfo.name} settings={settings} />
+            </FormSection>
+          </div>
+        )}
+
+        {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
 
             {/* ── Section 1: 基本情報（名前・所在地・生年月日） ────────────── */}
@@ -1583,7 +1592,7 @@ export default function ProfileEditClient({
         )}
 
         {/* 職歴・学歴タブ */}
-        {activeTab === "career" && (
+        {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
 
             <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} />
@@ -1596,7 +1605,7 @@ export default function ProfileEditClient({
         )}
 
         {/* 希望条件タブ */}
-        {activeTab === "preferences" && (
+        {activeTab === "wishes" && (
           <div style={{ maxWidth: 680 }}>
             {/* why-fill hint */}
             <div style={{
@@ -1865,7 +1874,7 @@ export default function ProfileEditClient({
         )}
 
         {/* 実績・受賞タブ */}
-        {activeTab === "certs_achievements" && (
+        {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
             <div>
               {/* why-fill hint */}
@@ -1887,7 +1896,7 @@ export default function ProfileEditClient({
         )}
 
         {/* SNS・発信コンテンツタブ */}
-        {activeTab === "socials_content" && (
+        {activeTab === "profile" && (
           <>
             <SocialLinksEditor
               socialLinks={socialLinks}
@@ -1938,7 +1947,7 @@ export default function ProfileEditClient({
         )}
 
         {/* 発信コンテンツ（SNS・発信タブ内） */}
-        {activeTab === "socials_content" && (
+        {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
             {/* why-fill hint */}
             <div style={{
@@ -2087,7 +2096,7 @@ export default function ProfileEditClient({
         {/* ══════════════════════════════════════════════════════════════════
             公開設定タブ
         ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "privacy" && (() => {
+        {activeTab === "settings" && (() => {
           const isPrivate = settings.visibility === "private";
           const effectiveScout = !isPrivate && scoutEnabled === true;
           const currentEmployerNames = initialExperiences
@@ -2549,7 +2558,7 @@ export default function ProfileEditClient({
                 </button>
                 <button
                   type="button"
-                  onClick={handleSaveAccount}
+                  onClick={handleSavePrivacy}
                   disabled={!isAccountDirty || accountSaving || accountJustSaved}
                   style={{
                     padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
@@ -2577,16 +2586,8 @@ export default function ProfileEditClient({
         {/* ══════════════════════════════════════════════════════════════════
             アカウントタブ
         ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "account" && (
+        {activeTab === "settings" && (
           <div style={{ maxWidth: 680 }}>
-
-            {/* ── Section 1: プロフィール画像・カバー ──────────────────────── */}
-            <FormSection
-              title="プロフィール画像・カバー"
-              desc="プロフィールページのヘッダーに表示されます。"
-            >
-              <ProfilePhotoUploader owUser={owUser} basicInfoName={basicInfo.name} settings={settings} />
-            </FormSection>
 
             {/* ── Section 2: ログイン情報 ───────────────────────────────────── */}
             <FormSection title="ログイン情報">
