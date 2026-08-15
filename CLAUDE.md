@@ -529,6 +529,14 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
      （`20260815120000_add_experience_id_to_achievements_awards.sql`）。
      `headline` のときは適用前の読みだけで済ませて外している。**測るのは適用後。**
 
+- **★「誰にも読ませない」は GRANT で、「誰に読ませるか」は RLS で書く。**
+  両方を GRANT でやると、**ポリシーが死んだまま残って次に読む人を誤らせる。**
+  ⚠️ **admin も `authenticated` ロールで来る。** authenticated から GRANT を剥がすと
+  **RLS まで到達せず、運営でも読めなくなる**（2026-08-16 に `ow_settings` で実際に踏んだ。
+  `20260816090000` で締めすぎ、`20260816091500` で戻した）。
+  正しい組み合わせは **anon は revoke / authenticated は grant / RLS で絞る**。
+  `ow_user_educations` と `ow_settings` がこの形。
+
 - **新しいテーブルには GRANT を必ず書く。** 既定では anon も authenticated も権限が付かない。
 - **列単位 GRANT を剥がすと、剥奪列が select に1つでも入ったクエリが丸ごと 403 になる。**
   ページは HTTP 200 のまま中身だけが静かに空になる。
