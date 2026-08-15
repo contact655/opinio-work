@@ -1243,7 +1243,14 @@ body {
         }
         .csb-filter-pill-item:hover { background: var(--royal-50); color: var(--royal); }
         .csb-filter-pill-item.selected { background: var(--royal-50); color: var(--royal); font-weight: 700; }
-        .csb-foreign {
+        /* 「外資系」トグル。
+           ⚠️ **`/companies` と `/people` が共有する。** 2026-08-15 に
+              `.csb-foreign`（CompanySearchBar 専用）から改名して共通化した。
+              それまで `/people` 側は選択肢1つだけのドロップダウンで、
+              同じ意味のフィルタなのに操作も見た目も違っていた。
+           ⚠️ **片方だけスタイルを書き換えないこと。** コピーして持っていくと
+              またズレる（企業名表示が3実装に割れた前例がある）。 */
+        .foreign-toggle {
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -1261,11 +1268,11 @@ body {
           flex-shrink: 0;
           font-weight: 500;
         }
-        .csb-foreign:hover {
+        .foreign-toggle:hover {
           border-color: #a5b4fc;
           background: #eef2ff;
         }
-        .csb-foreign.active {
+        .foreign-toggle.active {
           border-color: #0c4a6e;
           background: linear-gradient(135deg, #0369a1, #0c4a6e);
           color: #fff;
@@ -1561,6 +1568,28 @@ body {
           border-left: 2px solid var(--line);
         }
 
+        /* 本文セルの左余白。
+           ⚠️ **インラインstyleに戻さないこと。** モバイルで 0 に落とす必要があり、
+              インラインだとメディアクエリが勝てない
+              （.claude/rules/ui-debugging.md「レスポンシブで変えたい値を
+              インラインstyleに書かない」。padding はその筆頭）。 */
+        .tl-content { padding-left: 8px; }
+        .tl-content-edu { padding-left: 14px; }
+
+        /* ロゴ列のセル。
+           ⚠️ **display をインラインstyleに戻さないこと。** モバイルで none に
+              落とす必要があり、インラインだとメディアクエリが勝てない
+              （2026-08-15 に実際に踏んだ: 列は畳めたのにロゴが消えず、
+              64px のロゴと 28px のインラインロゴが両方出た）。 */
+        .tl-icon-cell {
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+        }
+
+        /* モバイル用のインラインロゴ。デスクトップは左のロゴ列が出すので隠す */
+        .tl-inline-logo { display: none; }
+
         @media (max-width: 639px) {
           /* モバイル: カードを縦積みに切り替え */
           .d2-parallel-inner {
@@ -1572,6 +1601,22 @@ body {
             border-left: none;
             border-top: 2px solid var(--line);
           }
+
+          /* ── ロゴ列を畳んで本文を全幅にする（2026-08-15）──────────────────
+             375px では 64px のロゴを載せるためだけに **80px の固定列**を確保しており、
+             セクション padding 56px と入れ子 28px を足すと
+             **375px 中 206px（55%）が余白**、本文は 169px＝1行12文字しか無かった。
+             モバイルではロゴ列をやめ、ロゴは企業名の行に 28px で並べる。
+             実測 169px → 279px（1行20文字）。 */
+          .tl-row { grid-template-columns: 1fr; }
+          .tl-icon-cell { display: none; }
+          .tl-content, .tl-content-edu { padding-left: 0; }
+          .tl-inline-logo { display: inline-flex; flex-shrink: 0; }
+
+          /* 縦線はロゴ列の中心（left: 40px）に引いてあるので、列が無いと
+             本文の上を通ってしまう。モバイルでは出さない。
+             エントリの区切りは .tl-row + .tl-row の境界線が担う。 */
+          .merged-timeline::before { display: none; }
         }
 
         /* Company name hover link */

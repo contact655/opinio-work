@@ -463,10 +463,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
     return filtered;
   }, [filtered, sort]);
 
-  const hasFilter = !!(keyword || role || age);
+  /* ⚠️ `foreign` を必ず含めること（2026-08-15 修正）。
+        以前は両方から漏れており、**外資系だけを選ぶと「✕ すべてクリア」が出ず、
+        他の条件と一緒にクリアしても外資系だけ残っていた。**
+        絞り込みを1つ足したら、この2つにも足す。 */
+  const hasFilter = !!(keyword || role || age || foreign);
 
   function clearAll() {
-    setKeyword(""); setRole(""); setAge("");
+    setKeyword(""); setRole(""); setAge(""); setForeign("");
   }
 
   if (ambassadors.length === 0) {
@@ -666,8 +670,22 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
               <FilterChip label="年齢" value={age} options={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setAge(v ?? ""); setOpenChip(null); }} isOpen={openChip === "age"} onToggle={() => toggleChip("age")} />
-              {/* ⚠️ 並びは 職種 → 年齢 → 外資系。 */}
-              <FilterChip label="外資系" value={foreign} options={[{ value: "yes", label: "外資系の経験あり" }]} onSelect={(v) => { setForeign(v ?? ""); setOpenChip(null); }} isOpen={openChip === "foreign"} onToggle={() => toggleChip("foreign")} />
+              {/* ⚠️ 並びは 職種 → 年齢 → 外資系。
+                  外資系は **押すだけのトグル**。`/companies` と同じ `.foreign-toggle` を使う。
+                  ⚠️ FilterChip（ドロップダウン）に戻さないこと。2026-08-15 まで
+                     選択肢が「外資系の経験あり」1つだけのドロップダウンで、
+                     開く → 選ぶ の2手が要り、同じ意味のフィルタなのに
+                     `/companies` と操作も見た目も違っていた。
+                  ⚠️ 見た目を変えるときは globals.css の `.foreign-toggle` を直す。
+                     ここに個別のスタイルを書くと2ページでまたズレる。 */}
+              <button
+                type="button"
+                className={`foreign-toggle${foreign === "yes" ? " active" : ""}`}
+                onClick={() => { setForeign(foreign === "yes" ? "" : "yes"); setOpenChip(null); }}
+                aria-pressed={foreign === "yes"}
+              >
+                外資系{foreign === "yes" && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+              </button>
               {hasFilter && (
                 <button type="button" onClick={clearAll} style={{ fontSize: 12, fontWeight: 500.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}

@@ -403,18 +403,36 @@ const PROFILE_TABS: TabItem[] = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+/* ⚠️ カードの見た目はここ1箇所。`FormSection` と `Card` が同じ値を共有する。
+      片方だけ変えると、同じ画面にサイズ違いのカードが並ぶ。 */
+const CARD_STYLE: React.CSSProperties = {
+  background: "#fff", border: "1px solid var(--line)",
+  borderRadius: 14, padding: "28px 32px", marginBottom: 20,
+};
+
+/**
+ * 見出しを持たないカード。
+ * ⚠️ 中の部品が自前の見出しを描くもの（職歴 / 学歴 / 実績3種）に使う。
+ *    `FormSection` で包むと見出しが二重になる。
+ */
+function Card({ children }: { children: React.ReactNode }) {
+  return <section style={CARD_STYLE}>{children}</section>;
+}
+
+/** カード内の右下に置く操作行（保存・キャンセル）。⚠️ カードの外に浮かせない。 */
+const CARD_FOOTER_STYLE: React.CSSProperties = {
+  display: "flex", justifyContent: "flex-end", alignItems: "center",
+  gap: "var(--space-2)", marginTop: 20, paddingTop: 16,
+  borderTop: "1px solid var(--line-soft)",
+};
+
 function FormSection({
   title, desc, children,
 }: {
   title: React.ReactNode; desc?: string; children: React.ReactNode;
 }) {
   return (
-    <section
-      style={{
-        background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 14, padding: "28px 32px", marginBottom: 20,
-      }}
-    >
+    <section style={CARD_STYLE}>
       <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)", marginBottom: desc ? 6 : 20 }}>
         {title}
       </div>
@@ -671,9 +689,12 @@ function TextareaField({
 function SocialLinksEditor({
   socialLinks,
   setSocialLinks,
+  footer,
 }: {
   socialLinks: SocialLinks;
   setSocialLinks: React.Dispatch<React.SetStateAction<SocialLinks>>;
+  /** カード内の右下に置く操作行。⚠️ カードの外に浮かせないために受け取る */
+  footer?: React.ReactNode;
 }) {
   return (
     <div style={{ maxWidth: 680 }}>
@@ -723,6 +744,7 @@ function SocialLinksEditor({
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.7 }}>
           空欄の SNS はプロフィールページに表示されません。
         </div>
+        {footer}
       </FormSection>
     </div>
   );
@@ -1544,10 +1566,8 @@ export default function ProfileEditClient({
                 rows={5}
                 ariaLabel="自己紹介"
               />
-            </FormSection>
-
-            {/* ── 保存・キャンセルボタン ────────────────────────────────────────── */}
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-6)" }}>
+            {/* ⚠️ 保存行はカードの中（右下）に置く。処理・送信内容は変えていない。 */}
+            <div style={CARD_FOOTER_STYLE}>
               <button
                 type="button"
                 onClick={handleCancelBasic}
@@ -1580,6 +1600,8 @@ export default function ProfileEditClient({
                 {basicSaving ? "保存中…" : basicJustSaved ? "✓ 保存しました" : "保存"}
               </button>
             </div>
+            </FormSection>
+
             {basicToastMsg && (
               <Toast
                 message={basicToastMsg}
@@ -1595,12 +1617,17 @@ export default function ProfileEditClient({
         {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
 
-            <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} />
-            <EducationEditor
-              educations={educations}
-              setEducations={setEducations}
-              schools={schools}
-            />
+            {/* ⚠️ 中の部品が自前の見出しを描くので `Card`（見出し無し）で包む。 */}
+            <Card>
+              <CareerHistoryEditor initialExperiences={initialExperiences} roles={roles} roleAliases={roleAliases} birthDate={owUser?.birth_date} />
+            </Card>
+            <Card>
+              <EducationEditor
+                educations={educations}
+                setEducations={setEducations}
+                schools={schools}
+              />
+            </Card>
           </div>
         )}
 
@@ -1873,25 +1900,25 @@ export default function ProfileEditClient({
           </div>
         )}
 
-        {/* 実績・受賞タブ */}
+        {/* 実績・受賞（数値実績 / 受賞歴 / メディア掲載 を1枚に）
+            ⚠️ 3つを別カードにすると、この画面だけでカードが10枚になる。
+               中の見出し（数値実績・受賞歴・メディア掲載）がそのままブロックになる。 */}
         {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
-            <div>
-              {/* why-fill hint */}
-              <div style={{
-                display: "flex", alignItems: "flex-start", gap: 8,
-                padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--royal)", lineHeight: 1.6 }}>
-                  埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります
-                </span>
+            <Card>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)", marginBottom: 6 }}>
+                実績・受賞
+              </div>
+              {/* ⚠️ 色付きバナーにしない。カード内の補助テキストとして置く。 */}
+              <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7 }}>
+                埋めると、公開プロフィールの説得力が上がり、メンターやキャリアの先輩からの声かけ率が上がります。
               </div>
               <AchievementEditor achievements={achievements} setAchievements={setAchievements} />
+              <div style={{ height: 1, background: "var(--line-soft)", margin: "24px 0" }} />
               <AwardEditor awards={awards} setAwards={setAwards} />
+              <div style={{ height: 1, background: "var(--line-soft)", margin: "24px 0" }} />
               <MediaAppearanceEditor mediaAppearances={mediaAppearances} setMediaAppearances={setMediaAppearances} />
-            </div>
+            </Card>
           </div>
         )}
 
@@ -1901,9 +1928,10 @@ export default function ProfileEditClient({
             <SocialLinksEditor
               socialLinks={socialLinks}
               setSocialLinks={setSocialLinks}
-            />
-            {/* 保存・キャンセルボタン */}
-            <div style={{ maxWidth: 680, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-6)" }}>
+              /* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。 */
+              footer={<>
+            
+            <div style={CARD_FOOTER_STYLE}>
               <button
                 type="button"
                 onClick={handleCancelSocial}
@@ -1936,6 +1964,8 @@ export default function ProfileEditClient({
                 {socialSaving ? "保存中…" : socialJustSaved ? "✓ 保存しました" : "保存"}
               </button>
             </div>
+              </>}
+            />
             {socialToastMsg && (
               <Toast
                 message={socialToastMsg}

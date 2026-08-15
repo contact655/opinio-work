@@ -508,17 +508,31 @@ function CompanyLogoIcon({
   logo_letter,
   logo_gradient,
   company_name,
+  size = 64,
 }: {
   isCurrent: boolean;
   logo_url?: string | null;
   logo_letter?: string | null;
   logo_gradient?: string | null;
   company_name?: string;
+  /**
+   * 一辺の px。既定 64（デスクトップのロゴ列）。
+   * モバイルは企業名の行に 28px で並べる（ロゴ列を畳むため）。
+   *
+   * ⚠️ **フォールバックの分岐（非公開→鍵 / logo_url → 文字円 → イニシャル）を
+   *    もう1つ書かないこと。** 同じ判定が2箇所に割れると、
+   *    片方だけ「非」が出る・片方だけ鍵が出ない、が起きる。
+   *    サイズだけ変えてこの関数を使い回す。
+   */
+  size?: number;
 }) {
+  // 64px のときの見た目を基準に比率で縮める（22/64, 18/64, 11/64）
+  const iconPx = Math.round(size * 0.344);
+  const fontPx = Math.round(size * 0.281);
   const wrapStyle: React.CSSProperties = {
-    width: 64,
-    height: 64,
-    borderRadius: 11,
+    width: size,
+    height: size,
+    borderRadius: Math.round(size * 0.172),
     flexShrink: 0,
     margin: "0 auto",
     position: "relative",
@@ -534,7 +548,7 @@ function CompanyLogoIcon({
   if (isAnonymous) {
     return (
       <div style={{ ...wrapStyle, background: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)" }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={iconPx} height={iconPx} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </div>
@@ -549,7 +563,7 @@ function CompanyLogoIcon({
           logoUrl={logo_url}
           logoLetter={logo_letter ?? null}
           logoGradient={logo_gradient ?? null}
-          size={64}
+          size={size}
         />
       </div>
     );
@@ -559,7 +573,7 @@ function CompanyLogoIcon({
   if (logo_letter && logo_gradient) {
     return (
       <div style={wrapStyle}>
-        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={64} />
+        <LetterCircle letter={logo_letter} gradient={logo_gradient} size={size} />
       </div>
     );
   }
@@ -571,7 +585,7 @@ function CompanyLogoIcon({
     : "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)";
   return (
     <div style={{ ...wrapStyle, background: fallbackGrad }}>
-      <span style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
+      <span style={{ color: "#fff", fontSize: fontPx, fontWeight: 700, fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
         {fallbackLetter}
       </span>
     </div>
@@ -764,9 +778,20 @@ function CareerContent({
   const lines = buildPositionLines(data);
 
   return (
-    <div style={{ paddingTop: 10, paddingBottom: 22, paddingLeft: 8 }}>
+    <div className="tl-content" style={{ paddingTop: 10, paddingBottom: 22 }}>
       {/* 会社名 + 雇用形態 + バッジ */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6, lineHeight: 1.35 }}>
+        {/* モバイル専用のインラインロゴ。デスクトップは左のロゴ列が出すので CSS で隠す */}
+        <span className="tl-inline-logo">
+          <CompanyLogoIcon
+            isCurrent={data.is_current}
+            logo_url={data.logo_url}
+            logo_letter={data.logo_letter}
+            logo_gradient={data.logo_gradient}
+            company_name={data.company_name}
+            size={28}
+          />
+        </span>
         {data.company_id ? (
           <Link href={`/companies/${data.company_id}`} className="company-name-link"
             style={{ fontSize: 17, fontWeight: 700, color: "#111", textDecoration: "none" }}>
@@ -809,12 +834,17 @@ function CareerContent({
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
       </div>
 
-      {/* 業務内容 */}
+      {/* 業務内容
+          ⚠️ **固定の maxWidth を戻さないこと（2026-08-15 に 560px を撤去）。**
+             サイドバー撤去で本文カラムが 728→1020px に広がったのに、この 560px が
+             取り残されて **1440px 実測で 882px 中 560px しか使わず 322px（37%）が空いていた**
+             （1行 40字。同じページの自己紹介は 63字で組んでいる）。
+             行長の上限はページ外枠の maxWidth 1060 が担う。ここに2つ目の上限を置かない。
+          ⚠️ ui-debugging.md「レスポンシブで変えたい値をインラインstyleに書かない」の
+             対象そのもの（width / maxWidth）。狭幅で縮められなくなる。 */}
       {data.description && (
         isAuthenticated ? (
-          <div style={{ maxWidth: 560 }}>
-            <ExpandableDesc text={data.description} />
-          </div>
+          <ExpandableDesc text={data.description} />
         ) : (
           <DescriptionGate />
         )
@@ -829,9 +859,12 @@ function EducationContent({ data }: { data: EducationEntry }) {
   const endLabel = data.is_current ? "現在" : data.graduated_at ? formatYM(data.graduated_at) : "";
 
   return (
-    <div style={{ paddingTop: 8, paddingBottom: 18, paddingLeft: 14 }}>
+    <div className="tl-content tl-content-edu" style={{ paddingTop: 8, paddingBottom: 18 }}>
       {/* School + badge */}
-      <div style={{ marginBottom: 3, lineHeight: 1.3 }}>
+      <div style={{ marginBottom: 3, lineHeight: 1.3, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span className="tl-inline-logo">
+          <SchoolLogoImg schoolMaster={data.school_master ?? null} size={28} />
+        </span>
         {data.school_id ? (
           <Link
             href={`/schools/${data.school_id}`}
@@ -1070,10 +1103,8 @@ export default function MergedTimeline({
             return (
               <div key="future" className="tl-row">
                 <div
+                  className="tl-icon-cell"
                   style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "center",
                     paddingTop: 8,
                   }}
                 >
@@ -1096,10 +1127,8 @@ export default function MergedTimeline({
             return (
               <div key={`career-${c.id}`} className={["tl-row", c.is_current && "tl-row-current"].filter(Boolean).join(" ")}>
                 <div
+                  className="tl-icon-cell"
                   style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "center",
                     paddingTop: 8,
                   }}
                 >
@@ -1136,17 +1165,17 @@ export default function MergedTimeline({
               <div key={`group-${groupStart.slice(0, 7)}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
                 {/* アイコン: グループ内に is_current があれば royal, なければ muted（暫定 A-1 pending） */}
                 <div
+                  className="tl-icon-cell"
                   style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "center",
                     paddingTop: 8,
                   }}
                 >
                   <CareerIcon isCurrent={anyIsCurrent} />
                 </div>
-                {/* d-2: bg-tint 背景 + border-left 区切り */}
-                <div style={{ paddingTop: 8, paddingBottom: 28, paddingLeft: 14 }}>
+                {/* d-2: bg-tint 背景 + border-left 区切り
+                    並行グループはカード内に 24px の小ロゴを持つので、
+                    tl-inline-logo は足さない（ロゴが2つ出てしまう） */}
+                <div className="tl-content tl-content-edu" style={{ paddingTop: 8, paddingBottom: 28 }}>
                   {/* グループ期間インライン表示 */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                     <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.4 }}>
@@ -1194,7 +1223,7 @@ export default function MergedTimeline({
 
             return (
               <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 8 }}>
+                <div className="tl-icon-cell" style={{ paddingTop: 8 }}>
                   <CompanyLogoIcon
                     isCurrent={anyIsCurrent}
                     logo_url={head.logo_url}
@@ -1203,9 +1232,19 @@ export default function MergedTimeline({
                     company_name={head.company_name}
                   />
                 </div>
-                <div style={{ paddingTop: 10, paddingBottom: 28, paddingLeft: 8 }}>
+                <div className="tl-content" style={{ paddingTop: 10, paddingBottom: 28 }}>
                   {/* 会社名ヘッダー */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap", lineHeight: 1.3 }}>
+                    <span className="tl-inline-logo">
+                      <CompanyLogoIcon
+                        isCurrent={anyIsCurrent}
+                        logo_url={head.logo_url}
+                        logo_letter={head.logo_letter}
+                        logo_gradient={head.logo_gradient}
+                        company_name={head.company_name}
+                        size={28}
+                      />
+                    </span>
                     {head.company_id ? (
                       <Link href={`/companies/${head.company_id}`} className="company-name-link"
                         style={{ fontSize: 18, fontWeight: 700, color: "#111", textDecoration: "none" }}>
@@ -1282,12 +1321,13 @@ export default function MergedTimeline({
                             {posDuration && ` · ${posDuration}`}
                           </div>
 
-                          {/* 業務内容 */}
+                          {/* 業務内容
+                              ⚠️ 520px の固定幅を撤去した（2026-08-15）。理由は
+                                 単独カード側（CareerContent）の同じコメントを参照。
+                                 こちらは 854px 中 520px で **334px（39%）が空いていた**。 */}
                           {c.description && (
                             isAuthenticated ? (
-                              <div style={{ maxWidth: 520 }}>
-                                <ExpandableDesc text={c.description} />
-                              </div>
+                              <ExpandableDesc text={c.description} />
                             ) : (
                               <DescriptionGate />
                             )
@@ -1307,10 +1347,8 @@ export default function MergedTimeline({
             return (
               <div key={`edu-${e.id}`} className="tl-row">
                 <div
+                  className="tl-icon-cell"
                   style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "center",
                     paddingTop: 8,
                     position: "relative",
                     zIndex: 1,

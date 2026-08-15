@@ -562,7 +562,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
           {/* 外資系 */}
           <button
             type="button"
-            className={`csb-foreign${currentForeign ? " active" : ""}`}
+            className={`foreign-toggle${currentForeign ? " active" : ""}`}
             onClick={() => updateParam("foreign", currentForeign ? null : "1")}
             aria-pressed={currentForeign}
           >
