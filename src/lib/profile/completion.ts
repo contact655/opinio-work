@@ -28,6 +28,8 @@
 export type CompletionInput = {
   hasName: boolean;
   hasAboutMe: boolean;
+  /** 肩書き1行（40字）。⚠️ 名前の直下に出るので、自己紹介より先に読まれる */
+  hasHeadline: boolean;
   hasLocation: boolean;
   hasBirthDate: boolean;
   hasAvatar: boolean;
@@ -61,6 +63,8 @@ export type CompletionInput = {
 export function hasCareerPreferences(p: {
   desiredRoleCount?: number;
   desired_work_styles?: string[] | null;
+  /** 希望勤務地（2026-08-15 追加）。⚠️ 「1つでも入っていれば達成」の既存の形に足すだけ */
+  desired_prefectures?: string[] | null;
   desired_salary_min?: number | null;
   desired_salary_max?: number | null;
   transfer_timing?: string | null;
@@ -70,6 +74,7 @@ export function hasCareerPreferences(p: {
   return Boolean(
     (p.desiredRoleCount ?? 0) > 0 ||
     (p.desired_work_styles && p.desired_work_styles.length > 0) ||
+    (p.desired_prefectures && p.desired_prefectures.length > 0) ||
     p.desired_salary_min != null ||
     p.desired_salary_max != null ||
     p.transfer_timing ||
@@ -96,7 +101,10 @@ function buildItems(d: CompletionInput): ScoreItem[] {
   return [
     { key: "avatar",   label: "プロフィール画像",       done: d.hasAvatar,                      weight: 11, hint: "写真を追加する",              tab: "profile" },
     { key: "name",     label: "名前",                  done: d.hasName,                        weight: 8,  hint: "名前を入力する",              tab: "profile" },
-    { key: "aboutMe",  label: "自己紹介",              done: d.hasAboutMe,                     weight: 12, hint: "自己紹介を書く",              tab: "profile" },
+    /* ⚠️ 合計100は変えない。自己紹介 12 → 8 に分け、肩書きへ 4 を回した。
+          一覧やスカウトで先に読まれるのは名前の直下の1行なので、そちらに配点を持たせる。 */
+    { key: "headline", label: "肩書き（1行）",          done: d.hasHeadline,                    weight: 4,  hint: "肩書きを1行で書く",          tab: "profile" },
+    { key: "aboutMe",  label: "自己紹介",              done: d.hasAboutMe,                     weight: 8,  hint: "自己紹介を書く",              tab: "profile" },
     { key: "location", label: "所在地",                done: d.hasLocation,                    weight: 4,  hint: "所在地を設定する",            tab: "profile" },
     { key: "birth",    label: "生年月日",              done: d.hasBirthDate,                   weight: 4,  hint: "生年月日を入力する",          tab: "profile" },
     { key: "career",   label: "職歴",                  done: d.experienceCount >= 1,            weight: 30, hint: "職歴を追加する",              tab: "profile" },
@@ -128,7 +136,9 @@ export function calcCompletion(d: CompletionInput): { score: number; items: Scor
  * ⚠️ ここに prefs / birth を足さないこと。足すと上の問題が戻る。
  *    型でも防いでいる（PublicCompletionInput が2つを受け取らない）。
  */
-const PUBLIC_KEYS = ["avatar", "name", "aboutMe", "location", "career", "edu", "certs", "social"] as const;
+/* ⚠️ `headline` は**公開される**（/u/[id] の名前の下に出る）ので、公開スコアにも入れる。
+      入れないと「公開プロフィールに出る項目なのに一覧の並びに効かない」ことになる。 */
+const PUBLIC_KEYS = ["avatar", "name", "headline", "aboutMe", "location", "career", "edu", "certs", "social"] as const;
 
 export type PublicCompletionInput = Omit<CompletionInput, "hasPreferences" | "hasBirthDate">;
 

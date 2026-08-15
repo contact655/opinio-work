@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { GhostExample } from "@/components/profile/GhostExample";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import {
@@ -791,9 +792,7 @@ export function EducationEditor({
 
       {/* Empty state */}
       {educations.length === 0 && !adding && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
-          学歴はまだ登録されていません
-        </div>
+        <GhostExample line1="獨協大学　経済学部 経営学科" line2="学士 ・ 2013年4月 〜 2017年3月" />
       )}
 
       {/* Add form */}
@@ -1138,9 +1137,7 @@ export function AchievementEditor({
         </div>
       ))}
       {achievements.length === 0 && !adding && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
-          数値実績はまだ登録されていません
-        </div>
+        <GhostExample line1="新規ARR 1.2億円を達成（前年比 180%）" line2="2024年 ・ エンタープライズ営業部" />
       )}
       {adding && (
         <div style={{ marginTop: achievements.length > 0 ? 12 : 0 }}>
@@ -1324,9 +1321,7 @@ export function AwardEditor({
         </div>
       ))}
       {awards.length === 0 && !adding && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
-          受賞歴はまだ登録されていません
-        </div>
+        <GhostExample line1="全社MVP（年間表彰）" line2="株式会社〇〇 ・ 2024年12月" />
       )}
       {adding && (
         <div style={{ marginTop: awards.length > 0 ? 12 : 0 }}>
@@ -1537,9 +1532,7 @@ export function MediaAppearanceEditor({
         </div>
       ))}
       {mediaAppearances.length === 0 && !adding && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
-          メディア掲載はまだ登録されていません
-        </div>
+        <GhostExample line1="〇〇CEOインタビュー「SaaSの未来」" line2="日経ビジネス ・ 2025年3月" />
       )}
       {adding && (
         <div style={{ marginTop: mediaAppearances.length > 0 ? 12 : 0 }}>

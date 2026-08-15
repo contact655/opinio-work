@@ -172,7 +172,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     .from("ow_users")
     /* ⚠️ birth_date は authenticated から SELECT 権限を剥がしてあるので admin で引く。
        ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, about_me, location, social_links, created_at, can_casual_meeting, birth_date");
+    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, can_casual_meeting, birth_date");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -182,7 +182,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
   type UserRow = {
     id: string; name: string | null; avatar_color: string | null; avatar_url: string | null;
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
-    about_me: string | null; location: string | null;
+    headline: string | null; about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
     can_casual_meeting: boolean | null; birth_date: string | null;
   };
@@ -341,6 +341,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
 
     const publicScore = calcPublicScore({
       hasName: true,
+      hasHeadline: !!u.headline?.trim(),
       hasAboutMe,
       hasLocation: !!u.location?.trim(),
       hasAvatar: !!u.avatar_url,

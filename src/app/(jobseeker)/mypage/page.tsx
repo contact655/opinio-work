@@ -41,7 +41,7 @@ export default async function MypagePage({
         本人の行だけを扱うので admin で引く。 */
   const { data: owUser } = await createAdminClient()
     .from("ow_users")
-    .select("id, name, avatar_color, avatar_url, cover_color, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
+    .select("id, name, avatar_color, avatar_url, cover_color, headline, about_me, birth_date, location, social_links, future_aspirations, profile_setup_at")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -336,7 +336,7 @@ export default async function MypagePage({
     const [{ data: profile, error: profileError }, { count: desiredRoleCount, error: drError }] = await Promise.all([
       supabase
         .from("ow_profiles")
-        .select("desired_work_styles, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, onboarding_completed, scout_enabled")
+        .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, onboarding_completed, scout_enabled")
         .eq("user_id", user.id)
         .maybeSingle(),
       supabase

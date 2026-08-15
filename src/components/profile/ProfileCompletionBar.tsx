@@ -10,11 +10,25 @@ export { calcCompletion } from "@/lib/profile/completion";
 
 import { calcCompletion as calcCompletionImpl, type CompletionInput as CompletionInputT, type ScoreItem } from "@/lib/profile/completion";
 
-function nextAction(items: ScoreItem[]): ScoreItem | null {
-  // Priority order: weight desc, then first not done
-  const undone = items.filter((it) => !it.done);
-  if (!undone.length) return null;
-  return undone.sort((a, b) => b.weight - a.weight)[0];
+/**
+ * 次にやると効くことを**最大3つ**返す（配点の大きい順）。
+ *
+ * ⚠️ 呼び出し側で `slice` しない。「いくつ出すか」はこの関数の責務にする。
+ *    表示箇所は2ページ（/mypage と /profile/edit）あり、片方だけ件数が変わると
+ *    「同じ完成度カードなのに出る数が違う」形になる。
+ */
+function nextActions(items: ScoreItem[]): ScoreItem[] {
+  return items
+    .filter((it) => !it.done)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 3);
+}
+
+/** 内訳の並び。完了を上（配点の大きい順）→ 未完了（配点の大きい順） */
+function breakdownOrder(items: ScoreItem[]): ScoreItem[] {
+  return [...items].sort((a, b) =>
+    a.done === b.done ? b.weight - a.weight : a.done ? -1 : 1
+  );
 }
 
 export function ProfileCompletionBar({
@@ -28,7 +42,7 @@ export function ProfileCompletionBar({
   mode?: "edit" | "mypage" | "sidebar";
 }) {
   const { score, items } = calcCompletionImpl(data);
-  const next = nextAction(items);
+  const nexts = nextActions(items);
   const compact = mode === "sidebar";
 
   const color =
@@ -71,38 +85,63 @@ export function ProfileCompletionBar({
         }} />
       </div>
 
-      {/* Next action hint */}
-      {next && (
+      {/* ── 内訳（項目 / 取得点 / 満点）──────────────────────────────
+          ⚠️ 「何点分がどこで欠けているか」を出す。%だけだと、どれを埋めれば
+             どれだけ動くのかが分からず、軽い項目から埋めることになる。 */}
+      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+        {breakdownOrder(items).map((it) => (
+          <div
+            key={it.key}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+              fontSize: 12, lineHeight: 1.4,
+              color: it.done ? "var(--ink-soft)" : "var(--ink-mute)",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+              <span aria-hidden="true" style={{ color: it.done ? "var(--success)" : "var(--line)", flexShrink: 0 }}>
+                {it.done ? "✓" : "○"}
+              </span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={it.label}>
+                {it.label}
+              </span>
+            </span>
+            <b style={{
+              fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700, flexShrink: 0,
+              color: it.done ? "var(--ink)" : "var(--ink-mute)",
+            }}>
+              {it.done ? it.weight : 0} / {it.weight}
+            </b>
+          </div>
+        ))}
+      </div>
+
+      {/* 次にやると効くこと（最大3件・配点の大きい順） */}
+      {nexts.length > 0 && (
         <div style={{
-          marginTop: 10, display: "flex", gap: 6,
-          // 260px のサイドバーでは1行に収まらないヒントがあるため折り返す
-          alignItems: compact ? "flex-start" : "center",
-          flexWrap: "wrap",
+          marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line-soft)",
+          display: "flex", flexDirection: "column", gap: 6,
         }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"
-               style={{ flexShrink: 0, marginTop: compact ? 3 : 0 }}>
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>次: </span>
-          {onTabChange ? (
-            <button
-              onClick={() => onTabChange(next.tab)}
-              style={{
-                fontSize: 12, fontWeight: 600, color: "var(--royal)",
-                background: "none", border: "none", padding: 0, cursor: "pointer",
-                textDecoration: "underline", textUnderlineOffset: 2,
-              }}
-            >
-              {next.hint} →
-            </button>
-          ) : (
-            <a
-              href={`/profile/edit?tab=${next.tab}`}
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "underline", textUnderlineOffset: 2 }}
-            >
-              {next.hint} →
-            </a>
-          )}
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>次にやると効くこと</span>
+          {nexts.map((it) => {
+            const label = `${it.hint}（+${it.weight}%）`;
+            const style = {
+              fontSize: 12, fontWeight: 600, color: "var(--royal)",
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+              textAlign: "left" as const, textDecoration: "underline", textUnderlineOffset: 2,
+              // 260px のサイドバーでは1行に収まらないヒントがあるため折り返す
+              lineHeight: 1.5,
+            };
+            return onTabChange ? (
+              <button key={it.key} onClick={() => onTabChange(it.tab)} style={style}>
+                → {label}
+              </button>
+            ) : (
+              <a key={it.key} href={`/profile/edit?tab=${it.tab}`} style={style}>
+                → {label}
+              </a>
+            );
+          })}
         </div>
       )}
 

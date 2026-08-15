@@ -30,6 +30,7 @@ type OwUser = {
   birth_date: string | null;
   location: string | null;
   social_links: Json | null;
+  headline: string | null;
   future_aspirations: string | null;
 } | null;
 
@@ -883,6 +884,7 @@ export default function MypageClient({
       {(() => {
         const completionData: CompletionInput = {
           hasName:               !!userName && userName !== "ユーザー",
+          hasHeadline:           !!owUser?.headline && String(owUser.headline).trim().length > 0,
           hasAboutMe:            !!owUser?.about_me && owUser.about_me.trim().length > 0,
           hasLocation:           !!owUser?.location && owUser.location.trim().length > 0,
           hasBirthDate:          !!owUser?.birth_date,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { GhostExample } from "@/components/profile/GhostExample";
 import { EMPLOYMENT_TYPES, RANKS } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
@@ -2059,9 +2060,7 @@ export default function CareerHistoryEditor({
 
       {/* Empty state */}
       {stints.length === 0 && addingForCompanyKey === null && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontStyle: "italic", padding: "2px 0 6px" }}>
-          職歴はまだ登録されていません
-        </div>
+        <GhostExample line1="株式会社〇〇　エンタープライズ営業" line2="2020年4月 〜 在籍中 ・ 東京都" />
       )}
 
       {/* 新規会社用「+ 経歴を追加」ボタン */}

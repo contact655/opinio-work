@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { GhostExample } from "@/components/profile/GhostExample";
 import type { Json } from "@/lib/supabase/types";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -843,6 +844,7 @@ export default function ProfileEditClient({
   const hasPrefs = hasCareerPreferences({
     desiredRoleCount:    prefRoleIds.length,
     desired_work_styles: prefWorkStyles,
+    desired_prefectures: prefPrefectures,
     desired_salary_min:  prefSalaryMin ? Number(prefSalaryMin) : null,
     desired_salary_max:  prefSalaryMax ? Number(prefSalaryMax) : null,
     transfer_timing:     prefTiming || null,
@@ -1333,6 +1335,7 @@ export default function ProfileEditClient({
   //    その幅では本文側の `.mypage-narrow-only` の控えが出る。
   const completionData: CompletionInput = {
     hasName:               !!basicInfo.name && basicInfo.name.trim() !== "" && basicInfo.name !== "ユーザー",
+    hasHeadline:           !!basicInfo.headline && basicInfo.headline.trim().length > 0,
     hasAboutMe:            !!basicInfo.aboutMe && basicInfo.aboutMe.trim().length > 0,
     hasLocation:           !!basicInfo.location && basicInfo.location.trim().length > 0,
     hasBirthDate:          !!birthYear && !!birthMonth && !!birthDay,
@@ -2066,6 +2069,13 @@ export default function ProfileEditClient({
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* 空のときは記入例を出す（何を登録する欄なのかを文章で説明しない） */}
+              {contentLinks.length === 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <GhostExample line1="SaaSの立ち上げで学んだこと" line2="note ・ https://note.com/yourname/n/xxxx" />
                 </div>
               )}
 
