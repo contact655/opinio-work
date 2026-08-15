@@ -7,7 +7,26 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { pathFromOwUploadsUrl } from "@/lib/storage/owUploads";
 import { NextResponse } from "next/server";
+
+/**
+ * 差し替え・削除で不要になった実ファイルを Storage から消す。
+ *
+ * ⚠️ **session クライアントで消す。** ポリシー（ow_uploads_delete_own_paths）が効くので、
+ *    他人のパスは消せない。admin クライアントに寄せると、この関門が無くなる。
+ * ⚠️ best-effort。消せなくても本体（DB の URL 更新）は成功させる。ただし**握り潰さない**
+ *    （console.error に出す）。ここで 500 を返すと「削除できない」ように見える。
+ */
+async function removeOldObject(
+  supabase: ReturnType<typeof createClient>,
+  url: string | null | undefined
+): Promise<void> {
+  const path = pathFromOwUploadsUrl(url);
+  if (!path) return;
+  const { error } = await supabase.storage.from("ow-uploads").remove([path]);
+  if (error) console.error("[profile-photo] storage remove failed:", path, error.message);
+}
 
 export async function PUT(req: Request) {
   const supabase = createClient();
@@ -41,12 +60,17 @@ export async function PUT(req: Request) {
   }
 
   // ow_users.id を auth_id から解決
+  /* ⚠️ 差し替え前の URL を先に取る。あとで消すため。
+        取らないと、差し替えるたびに古いファイルが Storage に残り続ける
+        （2026-08-15 時点で孤児 102件 / 13.2MB の一因）。 */
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id")
+    .select("id, avatar_url, cover_photo_url")
     .eq("auth_id", user.id)
     .maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const previousUrl = body.type === "cover" ? owUser.cover_photo_url : owUser.avatar_url;
 
   const { error } = await supabase
     .from("ow_users")
@@ -57,6 +81,9 @@ export async function PUT(req: Request) {
     console.error("[profile-photo PUT]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+
+  // 同じファイルを上書き（upsert）した場合は消さない
+  if (previousUrl && previousUrl !== body.url) await removeOldObject(supabase, previousUrl);
 
   return NextResponse.json({ ok: true });
 }
@@ -85,10 +112,12 @@ export async function DELETE(req: Request) {
 
   const { data: owUser } = await supabase
     .from("ow_users")
-    .select("id")
+    .select("id, avatar_url, cover_photo_url")
     .eq("auth_id", user.id)
     .maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const currentUrl = body.type === "cover" ? owUser.cover_photo_url : owUser.avatar_url;
 
   const { error } = await supabase
     .from("ow_users")
@@ -96,8 +125,14 @@ export async function DELETE(req: Request) {
     .eq("id", owUser.id);
 
   if (error) {
+    console.error("[profile-photo DELETE]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+
+  /* ★実ファイルも消す。DB の URL を null にするだけでは、
+        **URL を知っている人は未ログインのまま開き続けられる**（バケットが public）。
+        2026-08-15 に実測して確認した。 */
+  await removeOldObject(supabase, currentUrl);
 
   return NextResponse.json({ ok: true });
 }
