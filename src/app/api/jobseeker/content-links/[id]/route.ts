@@ -36,11 +36,12 @@ export async function PUT(
   if (!url || url.length > 2048) {
     return NextResponse.json({ error: "INVALID_URL", message: "URLを入力してください（2048字以内）" }, { status: 400 });
   }
-  // Protocol validation
+  /* Protocol validation
+     ⚠️ POST 側（../route.ts）と文言を揃える。片方だけ直さない */
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") {
-      return NextResponse.json({ error: "INVALID_URL", message: "https:// URLを入力してください" }, { status: 400 });
+      return NextResponse.json({ error: "INVALID_URL", message: "https://で始まるURLを入力してください" }, { status: 400 });
     }
   } catch {
     return NextResponse.json({ error: "INVALID_URL", message: "有効なURLを入力してください" }, { status: 400 });

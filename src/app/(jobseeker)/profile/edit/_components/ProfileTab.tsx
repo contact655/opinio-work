@@ -480,6 +480,252 @@ function SocialLinksEditor({
 }
 
 
+/** 発信コンテンツの入力値。追加と編集で同じ形を使う */
+type LinkDraft = {
+  url: string;
+  platform: string;
+  title: string;
+  description: string;
+  thumbnail_url: string | null;
+};
+
+const EMPTY_LINK_DRAFT: LinkDraft = {
+  url: "", platform: "other", title: "", description: "", thumbnail_url: null,
+};
+
+const draftFromLink = (l: ContentLink): LinkDraft => ({
+  url: l.url,
+  platform: l.platform ?? "other",
+  title: l.title ?? "",
+  description: l.description ?? "",
+  thumbnail_url: l.thumbnail_url,
+});
+
+/**
+ * 発信コンテンツの入力フォーム。**追加と編集で同じものを使う**（2026-08-16）。
+ *
+ * ⚠️ 編集用のフォームを別に作らない。項目・検証・OGP 取得が2箇所に割れると、
+ *    片方だけ直る形の不具合が生まれる（週次メールの配信停止で実際に起きた形）。
+ *
+ * ⚠️ ★初期値は呼び出し側が渡す `initial` から取る。**閉じるとアンマウントされる**ので、
+ *    `initial` には必ず**保存済みの行**（親の `contentLinks`）を渡すこと。
+ *    SSR 時点のプロップを渡すと、保存した値が開き直しで消える
+ *    （`.claude/rules/ui-debugging.md` ⑦）。
+ */
+function ContentLinkForm({
+  heading, initial, submitLabel, saving, error, onSubmit, onCancel,
+}: {
+  heading: string;
+  initial: LinkDraft;
+  submitLabel: string;
+  saving: boolean;
+  error: string | null;
+  onSubmit: (draft: LinkDraft) => void;
+  /** 省略すると「キャンセル」を出さない（追加フォームはカードの「完了」が出口） */
+  onCancel?: () => void;
+}) {
+  const [draft, setDraft] = useState<LinkDraft>(initial);
+  const [ogpFetching, setOgpFetching] = useState(false);
+  const [ogpFetched, setOgpFetched] = useState(false);
+
+  const set = <K extends keyof LinkDraft>(k: K, v: LinkDraft[K]) =>
+    setDraft((d) => ({ ...d, [k]: v }));
+
+  /* URL を離れたときに OGP を取りに行く。★埋まっている項目は上書きしない
+     （編集で開いたときに、本人が書いたタイトルを消さないため） */
+  const handleUrlBlur = async () => {
+    const url = draft.url.trim();
+    if (!url) return;
+    try { new URL(url); } catch { return; }
+    setOgpFetching(true);
+    setOgpFetched(false);
+    try {
+      const res = await fetch(`/api/jobseeker/content-links/ogp?url=${encodeURIComponent(url)}`);
+      if (!res.ok) return;
+      const data: { title: string | null; thumbnail_url: string | null; description: string | null } = await res.json();
+      setDraft((d) => ({
+        ...d,
+        title: data.title && !d.title.trim() ? data.title : d.title,
+        description: data.description && !d.description.trim() ? data.description.slice(0, 200) : d.description,
+        thumbnail_url: data.thumbnail_url ?? d.thumbnail_url,
+      }));
+      if (data.title || data.thumbnail_url) setOgpFetched(true);
+    } catch {
+      // サイレントフェイル（OGP は補助。取れなくても入力は続けられる）
+    } finally {
+      setOgpFetching(false);
+    }
+  };
+
+  const disabled = saving || !draft.url.trim();
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "16px" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>{heading}</div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>URL *</label>
+          <input
+            type="url"
+            value={draft.url}
+            onChange={(e) => {
+              const v = e.target.value;
+              setOgpFetched(false);
+              setDraft((d) => ({ ...d, url: v, platform: v.trim() ? detectPlatform(v.trim()) : d.platform }));
+            }}
+            onBlur={() => { void handleUrlBlur(); }}
+            placeholder="https://note.com/..."
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+          />
+          {ogpFetching && (
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "4px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ display: "inline-block", width: 10, height: 10, border: "2px solid var(--ink-mute)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              ページ情報を取得中...
+            </p>
+          )}
+          {ogpFetched && !ogpFetching && (
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
+          )}
+        </div>
+
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>プラットフォーム（URL入力で自動判定）</label>
+          <select
+            value={draft.platform}
+            onChange={(e) => set("platform", e.target.value)}
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", background: "#fff", cursor: "pointer" }}
+          >
+            {PLATFORM_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>タイトル（任意）</label>
+          <input
+            type="text"
+            value={draft.title}
+            onChange={(e) => set("title", e.target.value)}
+            placeholder="例：SaaS営業で学んだこと"
+            maxLength={200}
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>説明（任意）</label>
+          <input
+            type="text"
+            value={draft.description}
+            onChange={(e) => set("description", e.target.value)}
+            placeholder="一言コメント"
+            maxLength={500}
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+          />
+        </div>
+
+        {error && (
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", margin: 0 }}>{error}</p>
+        )}
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => onSubmit(draft)}
+            disabled={disabled}
+            style={{
+              padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: disabled ? "var(--bg-tint)" : "var(--royal)",
+              color: disabled ? "var(--ink-mute)" : "#fff",
+              border: "none", cursor: disabled ? "default" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {saving ? "保存中..." : submitLabel}
+          </button>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={saving}
+              style={{
+                padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                background: "#fff", color: "var(--ink-soft)",
+                border: "1px solid var(--line)", cursor: saving ? "default" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              キャンセル
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 発信コンテンツ1行の読み取り表示（表示モードと編集モードの一覧で共用） */
+function ContentLinkRow({
+  link, onEdit, onDelete,
+}: { link: ContentLink; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
+      padding: "12px 14px", borderRadius: 10,
+      border: "1px solid var(--line)", background: "var(--bg-tint)",
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
+          {PLATFORM_OPTIONS.find((p) => p.value === link.platform)?.label ?? link.platform ?? "Web"}
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {link.title || link.url}
+        </div>
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={link.url}
+          style={{
+            fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
+            display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}
+        >
+          {link.url}
+        </a>
+      </div>
+      {/* ⚠️ 入口は行あたり2つだけ（鉛筆＝編集 / ゴミ箱＝削除）。
+             「編集」の文字ボタンを重ねて置かない（ルール⑧） */}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="btn-fixed-size"
+        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
+        aria-label={`${link.title || link.url} を編集`}
+        title="編集"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="btn-fixed-size"
+        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
+        aria-label={`${link.title || link.url} を削除`}
+        title="削除"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 /**
  * 発信コンテンツの表示モード（2026-08-16）。
  *
@@ -489,8 +735,8 @@ function SocialLinksEditor({
  *    SSR 時点のプロップ（`initialContentLinks`）を直接見ない。
  */
 function ContentLinksView({
-  links, onDelete, onStartAdd,
-}: { links: ContentLink[]; onDelete: (id: string) => void; onStartAdd: () => void }) {
+  links, onEdit, onDelete, onStartAdd,
+}: { links: ContentLink[]; onEdit: (id: string) => void; onDelete: (id: string) => void; onStartAdd: () => void }) {
   if (links.length === 0) {
     return (
       <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
@@ -512,43 +758,12 @@ function ContentLinksView({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       {links.map((link) => (
-        <div key={link.id} style={{
-          display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
-          padding: "12px 14px", borderRadius: 10,
-          border: "1px solid var(--line)", background: "var(--bg-tint)",
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
-              {PLATFORM_OPTIONS.find((p) => p.value === link.platform)?.label ?? link.platform ?? "Web"}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {link.title || link.url}
-            </div>
-            <a
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={link.url}
-              style={{
-                fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
-                display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}
-            >
-              {link.url}
-            </a>
-          </div>
-          <button
-            type="button"
-            onClick={() => onDelete(link.id)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
-            aria-label={`${link.title || link.url} を削除`}
-            title="削除"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-            </svg>
-          </button>
-        </div>
+        <ContentLinkRow
+          key={link.id}
+          link={link}
+          onEdit={() => onEdit(link.id)}
+          onDelete={() => onDelete(link.id)}
+        />
       ))}
     </div>
   );
@@ -803,39 +1018,21 @@ export default function ProfileTab({
 }) {
   // ── 発信コンテンツリンク state ──────────────────────────────────────────────
   const [contentLinks, setContentLinks] = useState<ContentLink[]>(initialContentLinks);
-  const [newLinkUrl, setNewLinkUrl] = useState("");
-  const [newLinkTitle, setNewLinkTitle] = useState("");
-  const [newLinkDesc, setNewLinkDesc] = useState("");
-  const [newLinkThumbnail, setNewLinkThumbnail] = useState<string | null>(null);
-  const [newLinkPlatform, setNewLinkPlatform] = useState("other");
+  /** 行編集の対象。★常に1つ。別の行の鉛筆を押すと前の行は閉じる（差し替わるだけ） */
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  /** 追加フォームを初期化するための鍵。追加が成功したら +1 して作り直す */
+  const [addFormNonce, setAddFormNonce] = useState(0);
   const [linkSaving, setLinkSaving] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [ogpFetching, setOgpFetching] = useState(false);
-  const [ogpFetched, setOgpFetched] = useState(false);
 
-  const handleUrlBlur = async () => {
-    const url = newLinkUrl.trim();
-    if (!url) return;
-    try { new URL(url); } catch { return; } // 不正URLはスキップ
-    setOgpFetching(true);
-    setOgpFetched(false);
-    try {
-      const res = await fetch(`/api/jobseeker/content-links/ogp?url=${encodeURIComponent(url)}`);
-      if (!res.ok) return;
-      const data: { title: string | null; thumbnail_url: string | null; description: string | null } = await res.json();
-      if (data.title && !newLinkTitle.trim()) setNewLinkTitle(data.title);
-      if (data.description && !newLinkDesc.trim()) setNewLinkDesc(data.description.slice(0, 200));
-      if (data.thumbnail_url) setNewLinkThumbnail(data.thumbnail_url);
-      if (data.title || data.thumbnail_url) setOgpFetched(true);
-    } catch {
-      // サイレントフェイル
-    } finally {
-      setOgpFetching(false);
-    }
-  };
+  /* ⚠️ `linkSaving` / `linkError` を追加と編集で共有している。
+        **同時に出るフォームは常に1つ**（行を編集している間は追加フォームを出さない）
+        なので取り違えは起きない。モードを切り替えるときにエラーを消すこと。 */
+  const startEditLink = (id: string) => { setLinkError(null); setEditingLinkId(id); };
+  const cancelEditLink = () => { setLinkError(null); setEditingLinkId(null); };
 
-  const handleAddContentLink = async () => {
-    const url = newLinkUrl.trim();
+  const handleAddContentLink = async (draft: LinkDraft) => {
+    const url = draft.url.trim();
     if (!url) { setLinkError("URLを入力してください"); return; }
     setLinkSaving(true); setLinkError(null);
     try {
@@ -844,10 +1041,10 @@ export default function ProfileTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url,
-          platform: newLinkPlatform,
-          title: newLinkTitle.trim() || null,
-          description: newLinkDesc.trim() || null,
-          thumbnail_url: newLinkThumbnail || null,
+          platform: draft.platform,
+          title: draft.title.trim() || null,
+          description: draft.description.trim() || null,
+          thumbnail_url: draft.thumbnail_url || null,
         }),
       });
       if (!res.ok) {
@@ -857,9 +1054,40 @@ export default function ProfileTab({
       }
       const inserted: ContentLink = await res.json();
       setContentLinks((prev) => [...prev, inserted]);
-      setNewLinkUrl(""); setNewLinkTitle(""); setNewLinkDesc("");
-      setNewLinkThumbnail(null); setNewLinkPlatform("other");
-      setOgpFetched(false);
+      setAddFormNonce((n) => n + 1); // 入力欄を空に戻す（フォームを作り直す）
+    } catch {
+      setLinkError("通信エラーが発生しました");
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
+  /* ⚠️ 保存後は**API の戻り値で該当行を置き換える**。手元の draft で置き換えない
+        （サーバー側の正規化（trim・切り詰め・null 化）が反映されなくなる）。 */
+  const handleUpdateContentLink = async (id: string, draft: LinkDraft) => {
+    const url = draft.url.trim();
+    if (!url) { setLinkError("URLを入力してください"); return; }
+    setLinkSaving(true); setLinkError(null);
+    try {
+      const res = await fetch(`/api/jobseeker/content-links/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url,
+          platform: draft.platform,
+          title: draft.title.trim() || null,
+          description: draft.description.trim() || null,
+          thumbnail_url: draft.thumbnail_url || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setLinkError(err.message ?? "保存に失敗しました");
+        return; // ★失敗時は編集モードのまま（入力を捨てない）
+      }
+      const updated: ContentLink = await res.json();
+      setContentLinks((prev) => prev.map((l) => (l.id === id ? updated : l)));
+      setEditingLinkId(null);
     } catch {
       setLinkError("通信エラーが発生しました");
     } finally {
@@ -868,6 +1096,7 @@ export default function ProfileTab({
   };
 
   const handleDeleteContentLink = async (id: string) => {
+    if (editingLinkId === id) setEditingLinkId(null);
     setContentLinks((prev) => prev.filter((l) => l.id !== id));
     await fetch(`/api/jobseeker/content-links/${id}`, { method: "DELETE" });
   };
@@ -1447,143 +1676,67 @@ export default function ProfileTab({
               title="発信コンテンツ"
               description="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります。"
               isEditing={editingContent}
-              onStartEdit={() => setEditingContent(true)}
+              /* ⚠️ 見出しの＋は「追加」。行編集が開いたままだと追加フォームが出ないので閉じる */
+              onStartEdit={() => { cancelEditLink(); setEditingContent(true); }}
               action="add"
               actionLabel="発信コンテンツを追加"
               editContent={<>
-              {/* 既存リスト */}
+              {/* 既存リスト。★行ごとに鉛筆で編集に変わる（フォームは追加と同じものを使う） */}
               {contentLinks.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 20 }}>
                   {contentLinks.map((link) => (
-                    <div key={link.id} style={{
-                      display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
-                      padding: "12px 14px", borderRadius: 10,
-                      border: "1px solid var(--line)", background: "var(--bg-tint)",
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
-                          {PLATFORM_OPTIONS.find(p => p.value === link.platform)?.label ?? link.platform ?? "Web"}
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {link.title || link.url}
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {link.url}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteContentLink(link.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
-                        title="削除"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-                        </svg>
-                      </button>
-                    </div>
+                    editingLinkId === link.id ? (
+                      /* ★key に id を付けて、開くたびに保存済みの行から作り直す
+                            （閉じるとアンマウントされるため。ルール⑦） */
+                      <ContentLinkForm
+                        key={link.id}
+                        heading="このコンテンツを編集"
+                        initial={draftFromLink(link)}
+                        submitLabel="保存"
+                        saving={linkSaving}
+                        error={linkError}
+                        onSubmit={(draft) => { void handleUpdateContentLink(link.id, draft); }}
+                        onCancel={cancelEditLink}
+                      />
+                    ) : (
+                      <ContentLinkRow
+                        key={link.id}
+                        link={link}
+                        onEdit={() => startEditLink(link.id)}
+                        onDelete={() => { void handleDeleteContentLink(link.id); }}
+                      />
+                    )
                   ))}
                 </div>
               )}
 
-              {/* 新規追加フォーム */}
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "16px" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>新しいコンテンツを追加</div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>URL *</label>
-                    <input
-                      type="url"
-                      value={newLinkUrl}
-                      onChange={(e) => {
-                        setNewLinkUrl(e.target.value);
-                        setOgpFetched(false);
-                        if (e.target.value.trim()) {
-                          setNewLinkPlatform(detectPlatform(e.target.value.trim()));
-                        }
-                      }}
-                      onBlur={handleUrlBlur}
-                      placeholder="https://note.com/..."
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
-                    />
-                    {ogpFetching && (
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "4px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ display: "inline-block", width: 10, height: 10, border: "2px solid var(--ink-mute)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                        ページ情報を取得中...
-                      </p>
-                    )}
-                    {ogpFetched && !ogpFetching && (
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>プラットフォーム（URL入力で自動判定）</label>
-                    <select
-                      value={newLinkPlatform}
-                      onChange={(e) => setNewLinkPlatform(e.target.value)}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", background: "#fff", cursor: "pointer" }}
-                    >
-                      {PLATFORM_OPTIONS.map((p) => (
-                        <option key={p.value} value={p.value}>{p.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>タイトル（任意）</label>
-                    <input
-                      type="text"
-                      value={newLinkTitle}
-                      onChange={(e) => setNewLinkTitle(e.target.value)}
-                      placeholder="例：SaaS営業で学んだこと"
-                      maxLength={200}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>説明（任意）</label>
-                    <input
-                      type="text"
-                      value={newLinkDesc}
-                      onChange={(e) => setNewLinkDesc(e.target.value)}
-                      placeholder="一言コメント"
-                      maxLength={500}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
-                    />
-                  </div>
-
-                  {linkError && (
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", margin: 0 }}>{linkError}</p>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleAddContentLink}
-                    disabled={linkSaving || !newLinkUrl.trim()}
-                    style={{
-                      padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-                      background: linkSaving || !newLinkUrl.trim() ? "var(--bg-tint)" : "var(--royal)",
-                      color: linkSaving || !newLinkUrl.trim() ? "var(--ink-mute)" : "#fff",
-                      border: "none", cursor: linkSaving || !newLinkUrl.trim() ? "default" : "pointer",
-                      fontFamily: "inherit", alignSelf: "flex-start",
-                    }}
-                  >
-                    {linkSaving ? "保存中..." : "追加する"}
-                  </button>
-                </div>
-              </div>
-              {/* ⚠️ 「追加する」を押した時点で保存される。完了は出口だけ（API を呼ばない） */}
-              <CardDoneFooter onDone={() => setEditingContent(false)} note="追加した時点で保存されます" />
+              {/* 新規追加フォーム。
+                  ⚠️ 行を編集している間は出さない（編集対象は常に1つ。入力欄が2組並ばない） */}
+              {editingLinkId === null && (
+                <ContentLinkForm
+                  key={addFormNonce}
+                  heading="新しいコンテンツを追加"
+                  initial={EMPTY_LINK_DRAFT}
+                  submitLabel="追加する"
+                  saving={linkSaving}
+                  error={linkError}
+                  onSubmit={(draft) => { void handleAddContentLink(draft); }}
+                />
+              )}
+              {/* ⚠️ 「追加する」を押した時点で保存される。完了は出口だけ（API を呼ばない）。
+                     行編集の出口は行内のキャンセル／保存なので、ここは追加の話しかしない。 */}
+              <CardDoneFooter
+                onDone={() => { cancelEditLink(); setEditingContent(false); }}
+                note="追加した時点で保存されます"
+              />
               </>}
             >
-              {/* 表示モード。★0件のときは記入例カードのまま（1行の空状態にしない） */}
+              {/* 表示モード */}
               <ContentLinksView
                 links={contentLinks}
+                onEdit={(id) => { startEditLink(id); setEditingContent(true); }}
                 onDelete={handleDeleteContentLink}
-                onStartAdd={() => setEditingContent(true)}
+                onStartAdd={() => { cancelEditLink(); setEditingContent(true); }}
               />
             </EditableSection>
           </div>
