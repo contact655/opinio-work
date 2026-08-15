@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPINIO プロフィール編集 — 改善案モック</title>
+<style>
+:root{
+  --page:#f6f7f9; --card:#ffffff; --line:#e6e8ec; --line2:#d7dae0;
+  --ink:#161a20; --ink2:#5b626d; --ink3:#8b919b;
+  --navy:#1b2a56; --blue:#2f6fd0; --blue-bg:#eef4fd;
+  --amber:#e08b0b; --amber-bg:#fdf3e2;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer}
+
+/* mock toolbar (not part of the product) */
+.toolbar{background:#22262e;color:#e9ecf1;padding:10px 20px;display:flex;align-items:center;gap:14px;font-size:12.5px;flex-wrap:wrap}
+.toolbar strong{font-weight:600}
+.toolbar button{background:transparent;border:1px solid #4a505c;color:#e9ecf1;border-radius:6px;padding:4px 12px;font-size:12.5px}
+.toolbar button.on{background:#e9ecf1;color:#22262e;border-color:#e9ecf1}
+.toolbar span{color:#98a0ad}
+
+/* product header */
+.gnav{background:#fff;border-bottom:1px solid var(--line);padding:0 28px;display:flex;align-items:center;gap:28px;height:56px}
+.logo{font-weight:700;letter-spacing:.06em;color:var(--navy);font-size:17px}
+.gnav nav{display:flex;gap:22px;font-size:13.5px;color:var(--ink2)}
+.gnav .right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--ink3)}
+.avatar-sm{width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:12px}
+.crumb{padding:9px 28px;font-size:12px;color:var(--ink3);background:#fff;border-bottom:1px solid var(--line)}
+
+.wrap{max-width:1240px;margin:0 auto;padding:22px 28px 64px;display:grid;grid-template-columns:212px minmax(0,1fr) 268px;gap:24px;align-items:start}
+
+/* left rail */
+.rail h4{font-size:11.5px;color:var(--ink3);margin:14px 0 6px;letter-spacing:.04em}
+.rail a{display:flex;gap:8px;padding:7px 10px;border-radius:8px;color:var(--ink2);font-size:13.5px}
+.rail a.on{background:#eef1f6;color:var(--navy);font-weight:600}
+
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tabs button{background:none;border:0;padding:9px 16px 12px;color:var(--ink2);font-size:14.5px;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:7px}
+.tabs button.on{color:var(--navy);font-weight:600;border-bottom-color:var(--navy)}
+.count{background:#eef1f6;color:var(--ink2);border-radius:9px;font-size:11px;padding:1px 7px;line-height:1.6}
+.count.zero{background:var(--amber-bg);color:var(--amber)}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;position:relative}
+.card > h3{margin:0 0 2px;font-size:15.5px;font-weight:600}
+.card .hint{color:var(--ink3);font-size:12.5px;margin:0 0 14px}
+.edit{position:absolute;top:16px;right:16px;background:none;border:1px solid var(--line2);border-radius:7px;color:var(--ink2);font-size:12.5px;padding:3px 11px}
+.edit:hover{background:#f4f6f9}
+
+.kv{display:grid;grid-template-columns:104px 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--ink3);font-size:12.5px;padding-top:2px}
+.kv dd{margin:0}
+.muted{color:var(--ink3)}
+
+/* identity block */
+.cover{height:92px;border-radius:10px;background:linear-gradient(100deg,#1b2a56,#4a6fc0)}
+.idrow{display:flex;gap:16px;align-items:flex-end;margin-top:-34px;padding:0 4px}
+.avatar-lg{width:76px;height:76px;border-radius:50%;background:#fff;border:3px solid #fff;display:grid;place-items:center;color:var(--navy);font-size:24px;font-weight:600;background:#dfe5f2}
+.idname{padding-bottom:6px}
+.idname .n{font-size:19px;font-weight:600;line-height:1.4}
+.idname .h{color:var(--ink2);font-size:13.5px}
+
+/* inline edit demo */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:4px}
+.field .req{color:#c2410c;font-size:11px;margin-left:4px}
+input[type=text],textarea,select{width:100%;padding:8px 11px;border:1px solid var(--line2);border-radius:8px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+textarea{resize:vertical}
+.counter{text-align:right;font-size:11.5px;color:var(--ink3);margin-top:3px}
+.editing{border-color:#c3cddd;box-shadow:0 0 0 3px rgba(47,111,208,.08)}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn{border-radius:8px;padding:7px 16px;font-size:13.5px;border:1px solid var(--line2);background:#fff;color:var(--ink2)}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.autosave{font-size:12px;color:var(--ink3);margin-right:auto;align-self:center}
+
+/* list items (職歴/学歴) */
+.item{display:flex;gap:13px;padding:14px 0;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0}
+.thumb{width:40px;height:40px;border-radius:8px;background:#eef1f6;display:grid;place-items:center;color:var(--navy);font-size:13px;font-weight:600;flex:none}
+.item .t{font-size:14.5px;font-weight:600}
+.item .s{color:var(--ink2);font-size:13px}
+.item .d{color:var(--ink3);font-size:12.5px}
+.sub{margin-top:8px;padding-left:0}
+.chip{display:inline-block;background:#f2f4f8;color:var(--ink2);border-radius:14px;padding:3px 11px;font-size:12.5px;margin:3px 5px 0 0}
+.chip.sel{background:var(--blue-bg);color:#1d4f9c}
+.addline{display:flex;align-items:center;gap:8px;color:var(--blue);font-size:13.5px;padding:11px 0 2px;border-top:1px solid var(--line);margin-top:6px}
+
+/* ghost empty state */
+.ghost{border:1px dashed var(--line2);border-radius:10px;padding:13px 15px;background:#fbfcfd}
+.ghost .g1{color:var(--ink3);font-size:14px}
+.ghost .g2{color:#b3b9c2;font-size:12.5px}
+.ghost .tag{display:inline-block;font-size:11px;color:var(--ink3);background:#eef1f6;border-radius:5px;padding:1px 7px;margin-bottom:7px}
+
+/* right rail */
+.side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 17px;margin-bottom:14px}
+.side h4{margin:0 0 3px;font-size:13.5px;font-weight:600}
+.pct{font-size:26px;font-weight:600;color:var(--navy);line-height:1.2}
+.bar{height:6px;border-radius:4px;background:#eef1f6;overflow:hidden;margin:8px 0 14px}
+.bar i{display:block;height:100%;width:42%;background:var(--amber)}
+.brk{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-top:1px solid #f1f3f6;color:var(--ink2)}
+.brk:first-of-type{border-top:0}
+.brk b{font-weight:500;color:var(--ink3)}
+.brk.done{color:var(--ink3)}
+.brk.todo b{color:var(--amber)}
+.side .btn{width:100%;margin-top:12px;text-align:center;display:block}
+.next{font-size:12.5px;color:var(--ink2);border-top:1px solid #f1f3f6;margin-top:10px;padding-top:10px}
+.next a{color:var(--blue);display:block;padding:3px 0}
+
+/* radio rows */
+.opt{border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin-bottom:8px;display:flex;gap:11px}
+.opt.on{border-color:#b9c9e6;background:var(--blue-bg)}
+.dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line2);flex:none;margin-top:3px}
+.opt.on .dot{border:4.5px solid var(--navy)}
+.opt .t{font-size:13.8px;font-weight:600}
+.opt .s{font-size:12.5px;color:var(--ink2)}
+.sw{width:38px;height:22px;border-radius:12px;background:var(--navy);position:relative;flex:none}
+.sw i{position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;right:3px}
+.sw.off{background:#d7dae0}.sw.off i{left:3px;right:auto}
+.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #f1f3f6}
+.row:first-child{border-top:0}
+.row .g{flex:1}
+.danger{border-color:#f0cfcf;background:#fdf6f6}
+.danger h3{color:#a12b2b}
+
+/* annotations */
+.note{display:none;position:absolute;top:-11px;left:16px;background:var(--navy);color:#fff;font-size:11.5px;padding:2px 10px;border-radius:11px;z-index:5}
+body.notes .note{display:inline-block}
+body.notes .card{border-color:#b9c9e6}
+
+.hide{display:none}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}.rail{display:none}}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <strong>モック</strong><span>OPINIO /profile/edit 改善案 — 実データではありません</span>
+  <button id="noteBtn">変更点のラベルを表示</button>
+</div>
+
+<header class="gnav">
+  <div class="logo">OPINIO</div>
+  <nav><span>企業</span><span>募集</span><span>ユーザー</span><span>フィード</span><span>記事</span></nav>
+  <div class="right"><span>検索</span><span>通知</span><div class="avatar-sm">山</div></div>
+</header>
+<div class="crumb">OPINIO / マイページ / プロフィール</div>
+
+<div class="wrap">
+
+  <aside class="rail">
+    <h4>マイページ</h4>
+    <a>ホーム</a><a>応募管理</a><a>スカウト</a><a>メッセージ</a><a>ブックマーク</a>
+    <h4>アカウント</h4>
+    <a class="on">プロフィール</a>
+  </aside>
+
+  <main>
+    <div class="tabs">
+      <button class="on" data-tab="p">プロフィール</button>
+      <button data-tab="w">転職の希望 <span class="count zero">未設定</span></button>
+      <button data-tab="s">設定</button>
+    </div>
+
+    <!-- ============ プロフィール ============ -->
+    <section id="tab-p">
+
+      <div class="card">
+        <div class="note">写真をアカウントから移動</div>
+        <button class="edit">写真を変更</button>
+        <div class="cover"></div>
+        <div class="idrow">
+          <div class="avatar-lg">山</div>
+          <div class="idname">
+            <div class="n">山田 空次郎</div>
+            <div class="h">SaaSの法人営業／IS→FSを6年。次はカスタマーサクセスへ</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="note">肩書き1行を新設・インライン保存</div>
+        <h3>基本情報</h3>
+        <p class="hint">プロフィールページの先頭に出ます。</p>
+
+        <div class="field">
+          <label>名前 <span class="req">必須</span></label>
+          <input type="text" value="山田 空次郎">
+        </div>
+        <div class="field">
+          <label>肩書き（1行）</label>
+          <input class="editing" type="text" value="SaaSの法人営業／IS→FSを6年。次はカスタマーサクセスへ">
+          <div class="counter">40字まで ・ 一覧やスカウト画面で最初に読まれる行です</div>
+        </div>
+        <div class="field">
+          <label>所在地</label>
+          <select><option>東京都</option></select>
+        </div>
+        <div class="field">
+          <label>生年月日</label>
+          <select><option>1994年6月12日（年齢のみ公開）</option></select>
+        </div>
+        <div class="field">
+          <label>自己紹介</label>
+          <textarea rows="3" placeholder="例：リクルートで4年間営業を経験後、SaaS企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"></textarea>
+          <div class="counter">0 / 200</div>
+        </div>
+        <div class="actions">
+          <span class="autosave">このカードだけを保存します</span>
+          <button class="btn">キャンセル</button>
+          <button class="btn primary">保存</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="note">実績は職歴の中に畳む</div>
+        <h3>職歴</h3>
+        <p class="hint">新しい順に表示されます。</p>
+
+        <div class="item">
+          <div class="thumb">SH</div>
+          <div style="flex:1">
+            <div class="t">株式会社SmartHR</div>
+            <div class="s">フィールドセールス ・ 正社員 ・ 東京都 ・ ハイブリッド</div>
+            <div class="d">2021年4月 〜 現在（5年5ヶ月）</div>
+            <div class="sub">
+              <span class="chip">実績：新規ARR 148%達成（2024年度）</span>
+              <span class="chip">受賞：全社MVP（2024年上期）</span>
+              <span class="chip" style="color:var(--blue);background:var(--blue-bg)">＋ この職歴に実績・受賞を追加</span>
+            </div>
+          </div>
+          <button class="edit" style="position:static;align-self:flex-start">編集</button>
+        </div>
+
+        <div class="item">
+          <div class="thumb">RC</div>
+          <div style="flex:1">
+            <div class="t">株式会社リクルート</div>
+            <div class="s">インサイドセールス ・ 正社員 ・ 東京都</div>
+            <div class="d">2017年4月 〜 2021年3月（4年）</div>
+            <div class="sub"><span class="chip" style="color:var(--blue);background:var(--blue-bg)">＋ この職歴に実績・受賞を追加</span></div>
+          </div>
+          <button class="edit" style="position:static;align-self:flex-start">編集</button>
+        </div>
+
+        <div class="addline">＋ 職歴を追加</div>
+      </div>
+
+      <div class="card">
+        <div class="note">空状態は記入例をそのまま見せる</div>
+        <h3>学歴</h3>
+        <p class="hint">大学・大学院・専門学校・高校などを登録できます。</p>
+        <div class="ghost">
+          <span class="tag">記入例</span>
+          <div class="g1">獨協大学　経済学部 経営学科</div>
+          <div class="g2">学士 ・ 2013年4月 〜 2017年3月</div>
+        </div>
+        <div class="addline">＋ 学歴を追加</div>
+      </div>
+
+      <div class="card">
+        <h3>メディア掲載</h3>
+        <p class="hint">取材・インタビュー・登壇などを登録できます。</p>
+        <div class="ghost">
+          <span class="tag">記入例</span>
+          <div class="g1">〇〇CEOインタビュー「SaaSの未来」</div>
+          <div class="g2">日経ビジネス ・ 2025年3月</div>
+        </div>
+        <div class="addline">＋ メディア掲載を追加</div>
+      </div>
+
+      <div class="card">
+        <h3>SNS・外部リンク</h3>
+        <p class="hint">入力したものだけがプロフィールに並びます。</p>
+        <div class="field"><label>X</label><input type="text" placeholder="https://x.com/yourname"></div>
+        <div class="field"><label>note</label><input type="text" placeholder="https://note.com/yourname"></div>
+        <div class="addline">＋ ほかのサービスを追加（LinkedIn／GitHub／Instagram／Facebook／YouTube）</div>
+      </div>
+    </section>
+
+    <!-- ============ 転職の希望 ============ -->
+    <section id="tab-w" class="hide">
+      <div class="card">
+        <div class="note">企業に見せる条件をこの1タブに集約</div>
+        <h3>希望職種</h3>
+        <p class="hint">複数選べます。職歴からは分からない「これから」を伝える項目です。</p>
+        <div>
+          <span class="chip sel">カスタマーサクセス ×</span>
+          <span class="chip sel">フィールドセールス ×</span>
+          <span class="chip" style="color:var(--blue)">＋ 職種を追加</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>希望勤務地・勤務スタイル</h3>
+        <p class="hint">当てはまるものすべてを選べます。</p>
+        <div style="margin-bottom:10px">
+          <span class="chip sel">東京都 ×</span><span class="chip sel">神奈川県 ×</span>
+          <span class="chip" style="color:var(--blue)">＋ 勤務地を追加</span>
+        </div>
+        <div>
+          <span class="chip sel">フルリモート</span><span class="chip sel">ハイブリッド</span><span class="chip">出社中心</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>希望年収</h3>
+        <p class="hint">未入力なら企業には表示されません。</p>
+        <div style="display:flex;gap:12px;align-items:center">
+          <input type="text" value="600" style="width:110px"><span class="muted">万円 〜</span>
+          <input type="text" value="800" style="width:110px"><span class="muted">万円</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="note">鮮度を本人にも見せる</div>
+        <h3>転職検討時期</h3>
+        <select><option>1〜3ヶ月以内</option></select>
+        <div class="hint" style="margin:10px 0 0">最終更新：4ヶ月前 ・ 企業には「情報が古い可能性」と表示されています。<a style="color:var(--blue)"> 今の状況に更新する</a></div>
+      </div>
+
+      <div class="card">
+        <h3>興味のある企業フェーズ</h3>
+        <p class="hint">どのステージの企業に関心がありますか。</p>
+        <span class="chip">シリーズA</span><span class="chip sel">シリーズB</span><span class="chip sel">シリーズC</span><span class="chip">上場</span>
+      </div>
+    </section>
+
+    <!-- ============ 設定 ============ -->
+    <section id="tab-s" class="hide">
+      <div class="card">
+        <div class="note">公開設定とアカウントを1タブに統合</div>
+        <h3>プロフィールの公開範囲</h3>
+        <p class="hint">プロフィールページを誰が閲覧できるかを設定します。</p>
+        <div class="opt"><div class="dot"></div><div><div class="t">公開</div><div class="s">ログインしている人が閲覧できます。制限を外す場合は事前にお知らせします。</div></div></div>
+        <div class="opt on"><div class="dot"></div><div><div class="t">ログインユーザーのみ（初期設定）</div><div class="s">OPINIO にログインしている人だけが閲覧できます。</div></div></div>
+        <div class="opt"><div class="dot"></div><div><div class="t">非公開</div><div class="s">自分だけが閲覧できます。企業の候補者検索にも表示されません。</div></div></div>
+      </div>
+
+      <div class="card">
+        <h3>スカウト</h3>
+        <div class="row"><div class="g"><div class="t">企業からのスカウトを受け取る</div><div class="s muted">条件に合う企業からスカウトが届きます</div></div><div class="sw"><i></i></div></div>
+        <div class="row"><div class="g"><div class="t">「転職検討中」バッジを表示</div><div class="s muted">企業側には表示されません</div></div><div class="sw off"><i></i></div></div>
+        <div class="row"><div class="g"><div class="t">ブロック中の企業</div><div class="s muted">職務経歴に登録した企業からは自動的に見えません</div></div><span class="muted">0社</span></div>
+      </div>
+
+      <div class="card">
+        <h3>ログイン情報</h3>
+        <div class="row"><div class="g"><div class="s muted">メールアドレス</div><div class="t">contact+24@opinio.co.jp</div></div><button class="btn">変更</button></div>
+        <div class="row"><div class="g"><div class="s muted">パスワード</div><div class="t">••••••••</div></div><button class="btn">変更</button></div>
+      </div>
+
+      <div class="card">
+        <h3>メール通知</h3>
+        <div class="row"><div class="g"><div class="t">週1回のおすすめメール</div><div class="s muted">新着求人と、希望条件に合う求人をまとめてお送りします</div></div><div class="sw"><i></i></div></div>
+        <div class="row"><div class="g"><div class="t">スカウトのお知らせ</div><div class="s muted">企業からスカウトが届いたときにお知らせします</div></div><div class="sw"><i></i></div></div>
+      </div>
+
+      <div class="card danger">
+        <h3>アカウント削除</h3>
+        <p class="hint">プロフィール・職歴・記事へのコメントなど、すべてのデータが削除されます。この操作は取り消せません。</p>
+        <button class="btn" style="border-color:#d99;color:#a12b2b">アカウントを削除する</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- right rail -->
+  <aside>
+    <div class="side" style="position:relative">
+      <div class="note">内訳と次の一手を複数見せる</div>
+      <h4>プロフィール完成度</h4>
+      <div class="pct">42%</div>
+      <div class="bar"><i></i></div>
+      <div class="brk done"><span>職歴</span><b>30 / 30</b></div>
+      <div class="brk done"><span>基本情報</span><b>12 / 12</b></div>
+      <div class="brk todo"><span>希望条件</span><b>0 / 15</b></div>
+      <div class="brk todo"><span>自己紹介</span><b>0 / 12</b></div>
+      <div class="brk todo"><span>学歴</span><b>0 / 10</b></div>
+      <div class="next">
+        次にやると効くこと
+        <a>→ 希望職種を選ぶ（+15%）</a>
+        <a>→ 自己紹介を書く（+12%）</a>
+        <a>→ 学歴を追加する（+10%）</a>
+      </div>
+    </div>
+    <div class="side" style="position:relative">
+      <div class="note">プレビューを常設</div>
+      <h4>企業からの見え方</h4>
+      <p class="hint" style="margin:2px 0 0">今はログイン中のユーザーにのみ公開されています。</p>
+      <button class="btn">公開プロフィールを見る</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+document.querySelectorAll('.tabs button').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on');
+    ['p','w','s'].forEach(function(k){
+      document.getElementById('tab-'+k).classList.toggle('hide', k!==b.dataset.tab);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+});
+var nb=document.getElementById('noteBtn');
+nb.onclick=function(){
+  document.body.classList.toggle('notes');
+  var on=document.body.classList.contains('notes');
+  nb.classList.toggle('on',on);
+  nb.textContent=on?'変更点のラベルを隠す':'変更点のラベルを表示';
+};
+</script>
+</body>
+</html>
