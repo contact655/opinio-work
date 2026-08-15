@@ -1567,10 +1567,14 @@ export default function ProfileEditClient({
         {activeTab === "profile" && (
           <div style={{ maxWidth: 680 }}>
 
-            {/* ── Section 1: 基本情報（名前・所在地・生年月日） ────────────── */}
+            {/* ── 基本情報（名前・肩書き・所在地・生年月日・自己紹介）────────
+                ⚠️ **自己紹介を別カードに戻さないこと。**（2026-08-15 統合）
+                   保存ボタンは1つで、送る中身も1回の PUT のまま。2枚に分かれていた頃は
+                   **保存ボタンが自己紹介側にしか無く**、基本情報カードの中を探しても
+                   見つからない状態だった（カード境界とボタンの帰属が1対1でなかった）。 */}
             <FormSection
               title="基本情報"
-              desc="プロフィールページに表示される情報です。"
+              desc="プロフィールページの先頭に出ます。"
             >
               <FormGroup label="名前" htmlFor="pe-name">
                 <input
@@ -1671,23 +1675,24 @@ export default function ProfileEditClient({
                 </div>
               </FormGroup>
 
-            </FormSection>
+              <FormGroup
+                label="自己紹介"
+                hint="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
+              >
+                <TextareaField
+                  value={basicInfo.aboutMe}
+                  onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
+                  placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
+                  softLimit={200}
+                  rows={5}
+                  ariaLabel="自己紹介"
+                />
+              </FormGroup>
 
-            {/* ── Section 2: 自己紹介 ──────────────────────────────────────────── */}
-            <FormSection
-              title="自己紹介"
-              desc="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
-            >
-              <TextareaField
-                value={basicInfo.aboutMe}
-                onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
-                placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
-                softLimit={200}
-                rows={5}
-                ariaLabel="自己紹介"
-              />
             {/* ⚠️ 保存行はカードの中（右下）に置く。処理・送信内容は変えていない。 */}
-            <div style={CARD_FOOTER_STYLE}>
+            <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>このカードだけを保存します</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
               <button
                 type="button"
                 onClick={handleCancelBasic}
@@ -1719,6 +1724,7 @@ export default function ProfileEditClient({
               >
                 {basicSaving ? "保存中…" : basicJustSaved ? "✓ 保存しました" : "保存"}
               </button>
+              </span>
             </div>
             </FormSection>
 
