@@ -1912,6 +1912,36 @@ A/B（ローカル本番ビルド・中央値11回・未ログインを対照）
 - **push は柴さんの明示的な「OK push して」を待つ。自分の判断で push しない。**
   他セッションの未検証の作業がリモートに出るため、ここは特に厳守する
 
+### ⚠️ デプロイの確認は `/api/health` の commit で行う（2026-08-15 確立）
+
+**完了条件は「Vercel が Ready になった」ではない。**
+Ready は「そのデプロイが出来上がった」であって、
+**本番の別名（opinio.jp）がそのデプロイを指しているとは限らない。**
+
+```bash
+curl -s https://opinio.jp/api/health
+```
+
+返ってきた `commit` が **push したコミットの先頭8桁と一致したら完了**。
+
+```json
+{"commit":"241682d1","builtAt":"2026-08-15T00:45:12.345Z"}
+```
+
+⚠️ **`vercel inspect --json` は使えない。** `meta.githubCommitSha` を返さない
+   （実測 2026-08-15。返るキーは aliases / builds / contextName / createdAt /
+   id / name / readyState / target / url のみ）。
+
+⚠️ **時刻と順序からの推定を「照合した」と書かない。** 「push の直後に作られた
+   デプロイが Ready だから、たぶんそれ」は照合ではない。
+
+⚠️ `commit` が `null` のときはローカル実行（`VERCEL_GIT_COMMIT_SHA` が無い）。
+   本番で null が返るならビルド環境変数の設定を疑う。
+
+実体は [src/app/api/health/route.ts](src/app/api/health/route.ts)。
+**返すのはコミットの先頭8桁とビルド時刻だけ**で、環境変数の中身は出さない。
+
+
 #### ⚠️ ステージングはファイルパスを列挙する（2026-08-15 確立）
 
 **`git add -A` / `git add .` / `git commit -am` は禁止。**
