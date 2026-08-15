@@ -331,3 +331,45 @@ select count(*) as total, count(対象列) as filled, max(created_at) from 対�
 
 大半が埋まっていれば保存経路は動いていたことになり、疑う対象を
 **検証手段か直近の変更**に絞れる。コードを読む前にこれをやると調査が短くなる。
+
+### ⑤ URL とファイル名を突き合わせるときは、クエリ文字列を落としてから比較する
+
+`?t=1781261252894` のようなキャッシュ回避クエリが付いた URL は、
+`url LIKE '%' || object_name` から**外れる**。
+その結果、**現役のファイルが「どこからも参照されていない孤児」に見える。**
+
+```sql
+-- ✗ 付いているクエリのぶんだけ取りこぼす
+where url like '%' || o.name
+-- ✓ クエリとフラグメントを落としてから比べる
+where split_part(split_part(url,'?',1),'#',1) like '%' || o.name
+```
+
+⚠️ 2026-08-15 に実際に踏んだ。Storage の孤児を数えたら
+   **実在する利用者のアバターが孤児に混ざっていた**（`avatar_url` が `?t=…` 付きだった）。
+   削除の直前に気づいた。
+
+### ⑥ 消す前の確認は、**違う方法で2回**やる
+
+同じ突き合わせをもう一度走らせても、**前提が同じなら同じ答えしか出ない。**
+「念のため再実行」は確認になっていない。
+
+ファイル名や id を消すなら、2つ目の方法は**全 text 列の横断検索**にする。
+どの列に埋まっていても引っかかるので、突き合わせの式を間違えていても気づける。
+
+```sql
+select table_name, column_name, (xpath('/row/cnt/text()', x))[1]::text::int as hits
+from (
+  select c.table_name, c.column_name,
+    query_to_xml(format('select count(*) as cnt from public.%I where %I like ''%%対象文字列%%''',
+      c.table_name, c.column_name), false, true, '') as x
+  from information_schema.columns c
+  join information_schema.tables t
+    on t.table_schema = c.table_schema and t.table_name = c.table_name and t.table_type = 'BASE TABLE'
+  where c.table_schema = 'public' and c.data_type in ('text','character varying')
+) s
+where (xpath('/row/cnt/text()', x))[1]::text::int > 0;
+```
+
+⚠️ ⑤で助かったのはこの方法。1つ目（列を列挙した突き合わせ）は「参照0」と言い、
+   2つ目（全文検索）が `ow_users.avatar_url` に1件を見つけた。
