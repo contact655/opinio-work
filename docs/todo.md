@@ -79,3 +79,59 @@ SNS の入力を空にして保存すると `null` ではなく **`{"x": ""}`** 
 ⚠️ 消す実装を入れるときは、**URL からパスを復元して消す**形にすること
 （`avatar_url` は publicUrl なので、バケット名以降を切り出す）。
 別ユーザーのパスを消せないよう、`users/avatars/<自分の id>/` で始まることを必ず確認する。
+
+---
+
+## RLS が `USING(true)` かつ anon に SELECT がある テーブル一覧（2026-08-15 実測）
+
+**この形は今回で3例目**（学歴 2026-08-06 → 実績3種＋発信コンテンツ 2026-08-15）。
+残りが何件あるかを一度数えた。**下の4つは 20260815130000 で塞いだので、残りは21件。**
+
+判定に使ったクエリ:
+
+```sql
+with t as (select c.relname as tablename from pg_class c
+             join pg_namespace n on n.oid=c.relnamespace
+            where n.nspname='public' and c.relkind='r' and c.relname like 'ow_%'),
+     pol as (select tablename, bool_or(cmd='SELECT' and qual='true') as select_true
+               from pg_policies where schemaname='public' group by tablename)
+select t.tablename from t join pol p using (tablename)
+ where p.select_true and has_table_privilege('anon','public.'||quote_ident(t.tablename),'SELECT');
+```
+
+⚠️ `information_schema.role_table_grants` は（実行ロールの都合で）空を返すことがある。
+   **`has_table_privilege` を使う。**
+
+| テーブル | 行数 | 個人データ | 備考 |
+|---|---|---|---|
+| ~~`ow_user_achievements`~~ | 0 | ✅ | **塞いだ**（20260815130000） |
+| ~~`ow_user_awards`~~ | 0 | ✅ | **塞いだ** |
+| ~~`ow_user_media_appearances`~~ | 0 | ✅ | **塞いだ** |
+| ~~`ow_user_content_links`~~ | 0 | ✅ | **塞いだ** |
+| **`ow_posts`** | **170** | ✅ | **要検討の筆頭。** フィード投稿。ログイン必須の画面にしか出ないのに anon が全件読める |
+| `ow_post_likes` | 1 | ✅ | 誰が何にいいねしたか |
+| `ow_post_comments` | 0 | ✅ | 同上 |
+| **`ow_experience_roles`** | **6** | ✅ | 経歴↔職種。`ow_experiences` 本体は anon に閉じているのに、こちらは開いている |
+| `ow_experience_stories` | 0 | ✅ | 経歴のストーリー |
+| `ow_user_socials` | 0 | ✅ | 未使用テーブル（`ow_users.social_links` が現役） |
+| `ow_articles` | 16 | — | 公開記事。公開が正しい |
+| `ow_roles` / `ow_role_aliases` | 154 / 260 | — | 職種マスター。公開が正しい |
+| `ow_schools` | 37 | — | 学校マスター。公開が正しい |
+| `ow_tool_masters` | 78 | — | ツールマスター。公開が正しい |
+| `ow_job_roles` | 20 | — | 求人の職種 |
+| `ow_company_tools` | 9 | — | 企業の利用ツール |
+| `ow_company_culture_tags` / `ow_company_office_photos` / `ow_company_segments` | 各0 | — | 企業側の公開情報 |
+| `ow_job_assignees` | 0 | ⚠️ | 求人の担当者。**企業の内部情報**。行が入る前に見直す |
+| `ow_job_matching_tags` / `ow_job_requirements` | 各0 | — | 求人の付帯情報 |
+| `ow_story_sections` | 0 | — | 記事のセクション |
+| `ow_settings` | 0 | ⚠️ | 運営設定。**行が入る前に見直す** |
+
+**優先度**: 行数 × 個人データの有無で見る。
+1. `ow_posts`（170行・個人データ・現に読める）
+2. `ow_experience_roles`（6行・経歴の一部）／`ow_post_likes`（1行）
+3. 0件のもの（`ow_job_assignees` / `ow_settings` / `ow_user_socials` /
+   `ow_experience_stories` / `ow_post_comments`）は**書かれ始める前に**塞ぐ
+
+⚠️ 塞ぐときは**読み取り経路を先に確認する**。session クライアントで他人の行を読んでいる
+   画面があると、RLS を own+admin にした瞬間に **HTTP 200 のまま中身だけ消える**
+   （今回 `/u/[id]` の4クエリがこれに該当し、admin クライアントへ差し替えた）。

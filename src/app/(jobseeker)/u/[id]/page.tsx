@@ -252,22 +252,26 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
-    supabase
+    /* ⚠️ 実績・受賞・メディア掲載・発信コンテンツは **admin クライアントで引く**（2026-08-15）。
+          RLS の SELECT を own + admin に絞ったので、session クライアントでは
+          **他人のページで0件になる**（HTTP は 200 のまま中身だけ消える）。
+          学歴（250行目）が先に同じ形になっており、この4つが取り残されていた。 */
+    adminSupabase
       .from("ow_user_content_links")
       .select("id, url, platform, title, description, thumbnail_url, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
-    supabase
+    adminSupabase
       .from("ow_user_achievements")
       .select("id, title, value, unit, description, period_start, period_end, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
-    supabase
+    adminSupabase
       .from("ow_user_awards")
       .select("id, title, issuer, awarded_at, description, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
-    supabase
+    adminSupabase
       .from("ow_user_media_appearances")
       .select("id, title, media_name, url, thumbnail_url, appeared_at, description, sort_order")
       .eq("user_id", owUser.id)
