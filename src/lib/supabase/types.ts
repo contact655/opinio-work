@@ -7308,6 +7308,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          experience_id: string | null
           id: string
           period_end: string | null
           period_start: string | null
@@ -7320,6 +7321,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          experience_id?: string | null
           id?: string
           period_end?: string | null
           period_start?: string | null
@@ -7332,6 +7334,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          experience_id?: string | null
           id?: string
           period_end?: string | null
           period_start?: string | null
@@ -7342,6 +7345,13 @@ export type Database = {
           value?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_user_achievements_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_user_achievements_user_id_fkey"
             columns: ["user_id"]
@@ -7356,6 +7366,7 @@ export type Database = {
           awarded_at: string | null
           created_at: string
           description: string | null
+          experience_id: string | null
           id: string
           issuer: string | null
           sort_order: number
@@ -7366,6 +7377,7 @@ export type Database = {
           awarded_at?: string | null
           created_at?: string
           description?: string | null
+          experience_id?: string | null
           id?: string
           issuer?: string | null
           sort_order: number
@@ -7376,6 +7388,7 @@ export type Database = {
           awarded_at?: string | null
           created_at?: string
           description?: string | null
+          experience_id?: string | null
           id?: string
           issuer?: string | null
           sort_order?: number
@@ -7383,6 +7396,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_user_awards_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_user_awards_user_id_fkey"
             columns: ["user_id"]

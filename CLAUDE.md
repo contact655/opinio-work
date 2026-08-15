@@ -522,6 +522,13 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
   ⚠️ `ow_companies` は逆に **UPDATE** が列単位（テーブルレベルを落としてある）。
      読めるが書けない列が生まれる。**SELECT 側と UPDATE 側で運用が違うので混同しない。**
 
+  ⚠️ **一覧に無いことを根拠にせず、列を足した直後に必ず測る。**
+     2026-08-15 に `ow_user_achievements` / `ow_user_awards` へ `experience_id` を足したとき、
+     適用**前**に「4権限ともテーブルレベル」と確かめ、適用**後**にも
+     `has_column_privilege` で SELECT / INSERT / UPDATE を測って true を確認した
+     （`20260815120000_add_experience_id_to_achievements_awards.sql`）。
+     `headline` のときは適用前の読みだけで済ませて外している。**測るのは適用後。**
+
 - **新しいテーブルには GRANT を必ず書く。** 既定では anon も authenticated も権限が付かない。
 - **列単位 GRANT を剥がすと、剥奪列が select に1つでも入ったクエリが丸ごと 403 になる。**
   ページは HTTP 200 のまま中身だけが静かに空になる。
