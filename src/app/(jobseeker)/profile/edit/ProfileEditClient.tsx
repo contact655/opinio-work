@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { PublicProfileLinkCard } from "@/components/profile/PublicProfileLinkCard";
 import type { Json } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
@@ -25,7 +24,6 @@ import {
 } from "./_components/recordTypes";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { hasCareerPreferences } from "@/lib/profile/completion";
-import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 import type { SocialPlatform } from "@/components/SocialIcon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -243,7 +241,8 @@ export default function ProfileEditClient({
     visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
     isOpenToWork: owUser?.is_open_to_work ?? false,
   };
-  /* 保存済みの公開設定。右カラムの「企業からの見え方」と、写真カードのプレビューが見る */
+  /* 保存済みの公開設定。写真カードのプレビューが見る。
+     ⚠️ 右カラムの「企業からの見え方」は 2026-08-16 に外した（本体は設定タブにある）。 */
   const [savedSettings, setSavedSettings] = useState<SettingsState>(initialSettingsForTab);
   const [settingsDirty, setSettingsDirty] = useState(false);
 
@@ -318,55 +317,34 @@ export default function ProfileEditClient({
     dirty: tabDirty[tab.key as ProfileTabKey],
   }));
 
-  // ── プロフィール完成度 ───────────────────────────────────────────────────
-  // 本文の先頭に置いていたが、タブと入力欄がその分だけ下に押し出されて
-  // スクロールしないと見えなかったため、右カラムへ移した（2026-08-07）。
-  // ⚠️ 右カラムは 1100px 未満で消える（rightColumnCollapse="hide"）。
-  //    その幅では本文側の `.mypage-narrow-only` の控えが出る。
-  /* ⚠️ **入力中の state を1つも見ないこと。**（2026-08-15 確立）
-        完成度は「保存済みの値」だけから出す。入力欄の state（basicInfo / birth* /
-        socialLinks / pref*）を混ぜると、**保存していないのに % が上がる**。
-        逆に、読み込み時のプロップ（owUser.avatar_url / initialExperiences /
-        initialSocialLinks）を見ると**保存したのに % が動かない**（3項目が実際にそうだった）。
+  /* ⚠️ **完成度バーはこのページから外した**（2026-08-16。フェーズ3）。
+        `/mypage` に同じものがあり、編集画面ではタブの「未設定」バッジが
+        同じ役割を果たすため。`src/lib/profile/completion.ts` は残っている
+        （`/mypage` と、すぐ上の `tabCompletion` が使う）。
 
-        ここが見てよいのは、次の「保存に成功したときだけ進むもの」に限る。
-          profileSaved   … ProfileTab が保存に成功したときだけ送ってくるスナップショット
-          wishesHasPrefs … WishesTab が savePrefCard の成功後に送ってくる値 */
-  const completionData: CompletionInput = {
-    hasName:               !!profileSaved.name && profileSaved.name.trim() !== "" && profileSaved.name !== "ユーザー",
-    hasHeadline:           profileSaved.headline.trim().length > 0,
-    hasAboutMe:            profileSaved.aboutMe.trim().length > 0,
-    hasLocation:           profileSaved.location.trim().length > 0,
-    hasBirthDate:          profileSaved.hasBirthDate,
-    hasAvatar:             !!profileSaved.avatarUrl,
-    experienceCount:       profileSaved.experienceCount,
-    educationCount:        profileSaved.educationCount,
-    hasPreferences:        wishesHasPrefs,
-    certOrAchievementCount: profileSaved.certOrAchievementCount,
-    socialOrContentCount:  profileSaved.socialOrContentCount,
-  };
+     ⚠️ **ここに完成度を戻すときは、「保存済みの値」だけから作ること。**
+        入力中の state を混ぜると保存していないのに % が上がり、読み込み時の
+        プロップを見ると保存したのに % が動かない（2026-08-15 に3項目が実際にそうだった）。
+        見てよいのは `profileSaved` と `wishesHasPrefs` に限る。 */
 
   return (
     <MypageMockProvider>
+      {/* ⚠️ **このページは右カラムを渡さない**（2026-08-16）。
+             `MypageLayout` は `rightColumn` の有無で自動的に2カラムになるので、
+             CSS は触っていない。
+             外した2枚と、その行き先:
+               「プロフィール完成度」 … `/mypage` に同じものがある。編集画面では
+                                        タブの「未設定」バッジが同じ役割を果たす
+               「企業からの見え方」   … 設定タブ（公開範囲）に本体がある。
+                                        ここに置くと同じ説明が2箇所に出る
+             「公開プロフィールを見る」だけはタブ行の右端にボタンで残す。 */}
       <MypageLayout
         activeKey="profile"
-        rightColumnCollapse="hide"
         breadcrumb={[
           { label: "OPINIO", href: "/" },
           { label: "マイページ", href: "/mypage" },
           { label: "プロフィール" },
         ]}
-        rightColumn={
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <ProfileCompletionBar
-              data={completionData}
-              mode="sidebar"
-              onTabChange={(tab) => requestTabChange(tab as ProfileTabKey)}
-            />
-            {/* ⚠️ 公開範囲に関わらず常設する。文言は設定値から出す（決め打ちしない） */}
-            <PublicProfileLinkCard userId={owUser?.id} visibility={savedSettings.visibility} />
-          </div>
-        }
       >
 
         {/* ── ウェルカムバナー（新規登録後 ?welcome=1 のみ表示） ─────────────── */}
@@ -454,24 +432,44 @@ export default function ProfileEditClient({
 
         </div>
 
-        {/* ── プロフィール完成度（1100px 未満のみ。それ以上は右カラム） ────── */}
-        <div className="mypage-narrow-only">
-          <ProfileCompletionBar
-            data={completionData}
-            mode="edit"
-            onTabChange={(tab) => requestTabChange(tab as ProfileTabKey)}
-          />
-          {/* ⚠️ 右カラムが消える幅では、ここが「公開プロフィールを見る」の唯一の導線になる */}
-          <div style={{ marginBottom: 16 }}>
-            <PublicProfileLinkCard userId={owUser?.id} visibility={savedSettings.visibility} />
-          </div>
-        </div>
-
         {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
+        {/* ⚠️ 「公開プロフィールを見る」は**この1つだけ**。幅で出し分けない
+               （右カラムと `.mypage-narrow-only` に2つ持っていたのをやめた）。 */}
         <Tabs
           tabs={profileTabsWithCompletion}
           activeTab={activeTab}
           onTabChange={(key) => requestTabChange(key as ProfileTabKey)}
+          trailing={owUser?.id ? (
+            <a
+              href={`/u/${owUser.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="公開プロフィールを見る（新しいタブで開く）"
+              title="公開プロフィールを見る"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "7px 12px", borderRadius: 8,
+                border: "1px solid var(--line)", background: "#fff",
+                fontSize: 12, fontWeight: 700, color: "var(--royal)",
+                textDecoration: "none", whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              {/* ⚠️ 768px 未満ではラベルを隠す（アイコンだけ）。
+                     176px あるとタブ行の残りが155pxになり、3つのタブが横スクロールに
+                     追いやられる（375px で実測）。**導線の数は変えない。**
+                     読み上げは `aria-label` が担うので、視覚的にだけ隠す。 */}
+              <span className="public-profile-label">公開プロフィールを見る</span>
+              <style>{`
+                .public-profile-label { display: none; }
+                @media (min-width: 768px) { .public-profile-label { display: inline; } }
+              `}</style>
+            </a>
+          ) : undefined}
         />
 
         {/* ── タブコンテンツ ──────────────────────────────────────────────────── */}
@@ -533,7 +531,6 @@ export default function ProfileEditClient({
         {mountedTabs.has("settings") && (
         <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
           <SettingsTab
-            owUserId={owUser?.id}
             authEmail={authEmail}
             initialSettings={initialSettingsForTab}
             initialScoutEnabled={initialScoutEnabled}

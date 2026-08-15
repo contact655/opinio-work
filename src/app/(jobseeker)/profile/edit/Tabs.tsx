@@ -18,12 +18,31 @@ export default function Tabs({
   tabs,
   activeTab,
   onTabChange,
+  trailing,
 }: {
   tabs: TabItem[];
   activeTab: string;
   onTabChange: (key: string) => void;
+  /**
+   * タブと同じ行の右端に置くもの（「公開プロフィールを見る」など）。
+   *
+   * ⚠️ **`role="tablist"` の中には入れない。** タブではないものを入れると、
+   *    スクリーンリーダーがタブとして読み上げる。外側の行に置くこと。
+   * ⚠️ 下線（2px）は**外側の行**が引く。タブ側に戻すと、右端のボタンの下だけ
+   *    線が切れる。
+   */
+  trailing?: React.ReactNode;
 }) {
   return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-end",
+        gap: 12,
+        borderBottom: "2px solid var(--line)",
+        marginBottom: 28,
+      }}
+    >
     <div
       role="tablist"
       aria-label="プロフィール編集セクション"
@@ -31,8 +50,8 @@ export default function Tabs({
       style={{
         display: "flex",
         gap: 0,
-        borderBottom: "2px solid var(--line)",
-        marginBottom: 28,
+        flex: 1,
+        minWidth: 0,
         // ⚠️ overflowX / flexWrap をインラインに書かないこと。
         //    幅で切り替えたい値なので、下のメディアクエリが効かなくなる。
       }}
@@ -46,8 +65,11 @@ export default function Tabs({
             role="tab"
             aria-selected={active}
             onClick={() => onTabChange(tab.key)}
+            className="profile-tab"
+            /* ⚠️ `padding` をインラインに書かないこと。幅で変えたい値なので、
+                  インラインに置くとメディアクエリが効かなくなる
+                  （`.claude/rules/ui-debugging.md`「インラインstyle と CSS の優先順位」）。 */
             style={{
-              padding: "10px 18px",
               fontSize: "var(--text-sm)",
               fontWeight: active ? 700 : 500,
               color: active ? "var(--royal)" : "var(--ink-soft)",
@@ -108,12 +130,22 @@ export default function Tabs({
         .profile-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .profile-tabs::-webkit-scrollbar { display: none; }
 
+        /* ⚠️ 狭幅では左右の余白を詰める。同じ行の右端に「公開プロフィールを見る」を
+              置いたぶん（2026-08-16）タブの幅が減り、375px で 325px の中身が
+              293px に収まらず横スクロールになっていた。余白を詰めて1行に収める。 */
+        .profile-tab { padding: 10px 12px; }
+        @media (min-width: 768px) { .profile-tab { padding: 10px 18px; } }
+
         /* デスクトップ: 折り返す。⚠️ 3タブになったので通常は1行に収まるが、
            折り返しの指定は残す（ラベルが伸びたときに見切れないため）。 */
         @media (min-width: 768px) {
           .profile-tabs { flex-wrap: wrap; overflow-x: visible; }
         }
       `}</style>
+    </div>
+      {trailing && (
+        <div style={{ flexShrink: 0, paddingBottom: 6 }}>{trailing}</div>
+      )}
     </div>
   );
 }

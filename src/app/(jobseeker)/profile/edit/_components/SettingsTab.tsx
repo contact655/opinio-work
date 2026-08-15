@@ -153,7 +153,6 @@ function NotificationSettingsSection() {
 
 
 export default function SettingsTab({
-  owUserId,
   authEmail,
   initialSettings: initialSettingsProp,
   initialScoutEnabled = null,
@@ -162,13 +161,12 @@ export default function SettingsTab({
   onDirtyChange,
   notifyGlobalSave,
 }: {
-  owUserId: string | undefined;
   authEmail: string;
   initialSettings: SettingsState;
   initialScoutEnabled?: boolean | null;
   /** 「在籍企業にスカウトを見せない」の表示にだけ使う */
   initialExperiences?: Stint[];
-  /** 保存に成功した公開設定。★右カラムの「企業からの見え方」がこれを見る */
+  /** 保存に成功した公開設定。★親が保持し、写真カードのプレビューが見る */
   onSettingsChange: (settings: SettingsState) => void;
   onDirtyChange: (dirty: boolean) => void;
   notifyGlobalSave: (status: "saving" | "saved" | "error") => void;
@@ -200,8 +198,7 @@ export default function SettingsTab({
       });
       if (!res.ok) throw new Error();
       setInitialSettings(settings); // 保存成功: 次回比較の基準点を更新
-      /* ★保存できたときだけ親へ返す。右カラムの「企業からの見え方」は
-            これを見る（入力中の値を見せない）。 */
+      /* ★保存できたときだけ親へ返す（入力中の値を見せない）。 */
       onSettingsChange(settings);
       setAccountToastVariant("default");
       setAccountToastMsg("アカウント設定を保存しました");
@@ -424,26 +421,11 @@ export default function SettingsTab({
                     </span>
                   </div>
                 </div>
-                {owUserId && !isPrivate && (
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--royal-100)" }}>
-                    <a
-                      href={`/u/${owUserId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
-                      }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
-                      </svg>
-                      公開プロフィールを確認する →
-                    </a>
-                  </div>
-                )}
+                {/* ⚠️ ここにあった「公開プロフィールを確認する →」は外した（2026-08-16）。
+                       タブ行の右端に「公開プロフィールを見る」を常設したため、この節では
+                       同じ場所への入口が2つ並んでいた（`.claude/rules/ui-debugging.md` ⑧）。
+                       ★タブ行のボタンは**公開範囲に関わらず常に出る**ので、
+                       ここが `!isPrivate` で消えていた非公開の人にも導線が届くようになった。 */}
               </div>
 
               {/* ── Section 1: プロフィールの公開範囲 ───────────────────────── */}
