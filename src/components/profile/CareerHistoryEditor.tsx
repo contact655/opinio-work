@@ -2113,7 +2113,9 @@ export default function CareerHistoryEditor({
       )}
 
       {/* 新規会社用「+ 経歴を追加」ボタン */}
-      {addingForCompanyKey === null && (
+      {/* ⚠️ 0件のときは出さない。すぐ上の空状態が同じ操作の入口を既に出しているため
+             （同じ操作の入口を2つ縦に並べない。2026-08-16） */}
+      {addingForCompanyKey === null && stints.length > 0 && (
         <button
           type="button"
           onClick={() => {

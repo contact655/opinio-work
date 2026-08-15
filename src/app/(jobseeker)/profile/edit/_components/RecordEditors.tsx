@@ -840,7 +840,9 @@ export function EducationEditor({
       )}
 
       {/* "+ 学歴を追加" button */}
-      {!adding && (
+      {/* ⚠️ 0件のときは出さない。すぐ上の空状態が同じ操作の入口を既に出しているため
+             （同じ操作の入口を2つ縦に並べない。2026-08-16） */}
+      {!adding && educations.length > 0 && (
         <button
           type="button"
           onClick={() => setAdding(true)}
@@ -1625,7 +1627,8 @@ export function MediaAppearanceEditor({
             onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_MA_DRAFT); }} />
         </div>
       )}
-      {!adding && <AddSectionBtn label="メディア掲載を追加" onClick={() => setAdding(true)} />}
+      {/* ⚠️ 0件のときは出さない（理由は学歴と同じ） */}
+      {!adding && mediaAppearances.length > 0 && <AddSectionBtn label="メディア掲載を追加" onClick={() => setAdding(true)} />}
       <ConfirmDialog isOpen={!!deleteTarget} title="メディア掲載を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
