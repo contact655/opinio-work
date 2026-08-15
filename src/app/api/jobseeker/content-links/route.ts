@@ -54,21 +54,22 @@ export async function POST(req: Request) {
   if (!url || url.length > 2048) {
     return NextResponse.json({ error: "INVALID_URL", message: "URLを入力してください（2048字以内）" }, { status: 400 });
   }
-  /* ⚠️ **`message` を必ず返す。** 画面は `err.message ?? "保存に失敗しました"` で出しているので、
-        message が無いと「保存に失敗しました」としか出ず、利用者は理由が分からない
-        （この2分岐だけ message が無く、http:// を入れた人が原因に辿り着けなかった。2026-08-16）。
-     ⚠️ `error` の値は変えていない。すでに出回っている可能性があるため。 */
+  /* ★400 は `{ error: コード, message: 画面に出す文 }` で返す。
+        - `error`   … 機械が読む識別子。**日本語の文を入れない**
+        - `message` … 利用者に見せる文。画面は `err.message ?? "保存に失敗しました"`
+     ⚠️ **message を省かない。** 省くと画面には「保存に失敗しました」としか出ず、
+        `http://` を入れた人が原因に辿り着けない（2026-08-16 まで実際にそうなっていた）。 */
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") {
       return NextResponse.json(
-        { error: "URLはhttps://で始まる必要があります", message: "https://で始まるURLを入力してください" },
+        { error: "INVALID_URL", message: "https://で始まるURLを入力してください" },
         { status: 400 }
       );
     }
   } catch {
     return NextResponse.json(
-      { error: "有効なURLを入力してください", message: "有効なURLを入力してください" },
+      { error: "INVALID_URL", message: "有効なURLを入力してください" },
       { status: 400 }
     );
   }

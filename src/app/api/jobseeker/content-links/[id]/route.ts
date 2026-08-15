@@ -37,7 +37,7 @@ export async function PUT(
     return NextResponse.json({ error: "INVALID_URL", message: "URLを入力してください（2048字以内）" }, { status: 400 });
   }
   /* Protocol validation
-     ⚠️ POST 側（../route.ts）と文言を揃える。片方だけ直さない */
+     ⚠️ POST 側（../route.ts）と `error` コード・`message` の文言を揃える。片方だけ直さない */
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") {
