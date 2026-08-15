@@ -250,23 +250,48 @@ export async function PUT(req: Request) {
     }
   }
 
-  // ── 希望職種は「全消し → 入れ直し」。差分を取らない ────────────────────────
+  // ── 希望職種は**差分だけ**書く（2026-08-15。以前は「全消し → 入れ直し」）──────
   // ⚠️ session クライアントで書く。RLS の own ポリシーが auth.uid() で効くので、
   //    他人の行には触れない。admin に寄せると RLS を素通りしてしまう。
+  //
+  // ★変わっていない行は触らない。カード単位のボタン保存にしたことで、
+  //   **変更が無くても desired_role_ids が毎回送られてくる**ようになった。
+  //   全消し→入れ直しのままだと、そのたびに行の id と created_at が作り直され、
+  //   「いつ選んだか」が保存を押すたびに新しくなってしまう。
+  //   ⚠️ 呼び出し側で「変わったときだけ送る」という約束にはしない。約束は破られる。
+  //      どこから送られても無駄な作り直しが起きない状態にする。
   if (desiredRoleIds !== null) {
-    const { error: delError } = await supabase
+    const { data: currentRows, error: curError } = await supabase
       .from("ow_profile_desired_roles")
-      .delete()
+      .select("role_id")
       .eq("user_id", user.id);
-    if (delError) {
-      console.error("[PUT /api/jobseeker/career-preferences] desired_roles delete", delError.message);
+    if (curError) {
+      console.error("[PUT /api/jobseeker/career-preferences] desired_roles select", curError.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 
-    if (desiredRoleIds.length > 0) {
+    const currentIds = (currentRows ?? []).map((r) => r.role_id as string);
+    const current = new Set(currentIds);
+    const next = new Set(desiredRoleIds);
+    const toDelete = currentIds.filter((id) => !next.has(id));
+    const toInsert = desiredRoleIds.filter((id) => !current.has(id));
+
+    if (toDelete.length > 0) {
+      const { error: delError } = await supabase
+        .from("ow_profile_desired_roles")
+        .delete()
+        .eq("user_id", user.id)
+        .in("role_id", toDelete);
+      if (delError) {
+        console.error("[PUT /api/jobseeker/career-preferences] desired_roles delete", delError.message);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      }
+    }
+
+    if (toInsert.length > 0) {
       const { error: insError } = await supabase
         .from("ow_profile_desired_roles")
-        .insert(desiredRoleIds.map((role_id) => ({ user_id: user.id, role_id })));
+        .insert(toInsert.map((role_id) => ({ user_id: user.id, role_id })));
       if (insError) {
         console.error("[PUT /api/jobseeker/career-preferences] desired_roles insert", insError.message);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

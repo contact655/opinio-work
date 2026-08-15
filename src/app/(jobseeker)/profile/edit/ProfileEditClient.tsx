@@ -454,6 +454,67 @@ const CARD_FOOTER_STYLE: React.CSSProperties = {
   borderTop: "1px solid var(--line-soft)",
 };
 
+/**
+ * カード内の保存行（保存 / キャンセル / 状態 / エラー）。
+ *
+ * ⚠️ 希望条件のカードはこれを使う。②基本情報・⑦SNS と**同じ形・同じ文言**にすること。
+ *    片方だけ言い回しが違うと「押した結果が同じか」を利用者が判断できない。
+ */
+function CardSaveFooter({
+  dirty, saving, justSaved, error, onSave, onCancel,
+}: {
+  dirty: boolean; saving: boolean; justSaved: boolean;
+  /** API が返したエラー文。★どの項目が不正かを含むので、丸めずそのまま出す */
+  error: string | null;
+  onSave: () => void; onCancel: () => void;
+}) {
+  const locked = !dirty || saving || justSaved;
+  return (
+    <>
+      {error && (
+        <div role="alert" style={{
+          marginTop: 16, padding: "10px 14px", borderRadius: 8,
+          background: "var(--error-soft, #FEF2F2)", border: "1px solid #FECACA",
+          fontSize: 12, fontWeight: 600, color: "var(--error)",
+        }}>
+          {error}
+        </div>
+      )}
+      <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>このカードだけを保存します</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={locked}
+            style={{
+              padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
+              background: "#fff", color: "var(--ink-soft)",
+              border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit",
+              cursor: locked ? "default" : "pointer", opacity: locked ? 0.5 : 1,
+            }}
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={locked}
+            style={{
+              padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
+              background: justSaved ? "var(--success)" : locked ? "var(--ink-mute)" : "var(--royal)",
+              color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit",
+              cursor: locked ? "default" : "pointer", transition: "background 0.2s",
+            }}
+          >
+            {saving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
+          </button>
+        </span>
+      </div>
+    </>
+  );
+}
+
 function FormSection({
   title, desc, children,
 }: {
@@ -781,8 +842,12 @@ function SocialLinksEditor({
 // ─── Education Editor ─────────────────────────────────────────────────────────
 
 // Draft type for the education edit/add form
+/** 希望条件のカード。★保存の単位。ここに無いものはカードとして存在しない */
+type PrefCardKey = "roles" | "location" | "salary" | "phase" | "worry";
+type PrefCardState = { saving: boolean; saved: boolean; error: string | null };
+
 /** 希望条件の保存済みスナップショット。キー名は career-preferences API の body と揃える
-    （`savePreferences` の patch をそのまま重ねられるようにするため）。 */
+    （`savePrefCard` の patch をそのまま重ねられるようにするため）。 */
 type SavedPrefs = {
   desired_role_ids: string[];
   desired_work_styles: string[] | null;
@@ -868,13 +933,20 @@ export default function ProfileEditClient({
   const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
   const [prefWorry, setPrefWorry] = useState(initialProfilePrefs?.worry ?? "");
   const [prefPhase, setPrefPhase] = useState<string[]>(initialProfilePrefs?.desired_phase ?? []);
-  const [prefSaving, setPrefSaving] = useState(false);
-  const [prefSaved, setPrefSaved] = useState(false);
-  const prefSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* カードごとの保存状態。★1つにまとめない。まとめると、あるカードを保存したときに
+     全カードのフッターが「保存しました」になる。 */
+  const [prefCardState, setPrefCardState] = useState<Record<PrefCardKey, PrefCardState>>({
+    roles:    { saving: false, saved: false, error: null },
+    location: { saving: false, saved: false, error: null },
+    salary:   { saving: false, saved: false, error: null },
+    phase:    { saving: false, saved: false, error: null },
+    worry:    { saving: false, saved: false, error: null },
+  });
+  const prefSavedTimers = useRef<Partial<Record<PrefCardKey, ReturnType<typeof setTimeout>>>>({});
 
   /* 希望条件の**保存済みスナップショット**。入力中の state（pref*）とは別に持つ。
      ⚠️ 完成度はここからしか計算しない（2026-08-15）。入力中の state から出すと
-        「保存していないのに % が上がる」ことになる。savePreferences が成功したときだけ更新する。 */
+        「保存していないのに % が上がる」ことになる。savePrefCard が成功したときだけ更新する。 */
   const [savedPrefs, setSavedPrefs] = useState<SavedPrefs>({
     desired_role_ids:    initialDesiredRoleIds,
     desired_work_styles: initialProfilePrefs?.desired_work_styles ?? null,
@@ -885,6 +957,23 @@ export default function ProfileEditClient({
     desired_phase:       initialProfilePrefs?.desired_phase ?? null,
     worry:               initialProfilePrefs?.worry ?? null,
   });
+
+  /* カードごとの未保存判定。★配列は順序を無視して比べる（選ぶ順で dirty にしない）。 */
+  const sameSet = (a: string[] | null | undefined, b: string[] | null | undefined) =>
+    JSON.stringify([...(a ?? [])].sort()) === JSON.stringify([...(b ?? [])].sort());
+
+  const prefCardDirty: Record<PrefCardKey, boolean> = {
+    roles:    !sameSet(prefRoleIds, savedPrefs.desired_role_ids),
+    location:
+      !sameSet(prefPrefectures, savedPrefs.desired_prefectures) ||
+      !sameSet(prefWorkStyles, savedPrefs.desired_work_styles) ||
+      (prefTiming || null) !== savedPrefs.transfer_timing,
+    salary:
+      (prefSalaryMin ? parseInt(prefSalaryMin, 10) : null) !== savedPrefs.desired_salary_min ||
+      (prefSalaryMax ? parseInt(prefSalaryMax, 10) : null) !== savedPrefs.desired_salary_max,
+    phase:    !sameSet(prefPhase, savedPrefs.desired_phase),
+    worry:    (prefWorry || null) !== savedPrefs.worry,
+  };
 
   /* 希望条件が1つでも入っているか。**判定は completion.ts の1本に寄せる。**
      こことタブ完了ドットと /mypage で式が分かれると完成度がずれる（2026-08-07）。 */
@@ -1013,9 +1102,37 @@ export default function ProfileEditClient({
     }
   }, []);
 
-  // ── 希望条件 save callback（notifyGlobalSave 宣言後） ─────────────────────
-  const savePreferences = useCallback(async (patch: Record<string, unknown>) => {
-    setPrefSaving(true);
+  /* ── 希望条件の保存（★カード単位のボタン保存。2026-08-15 に自動保存をやめた）──────
+        以前は1項目触るたびに PUT していた。他のカード（基本情報・SNS）はボタン保存なので、
+        同じ画面で作法が2つあることになり、「押さないと保存されないのか」が読めなかった。
+
+     ⚠️ 送る内容の変換（[] や "" を null にする）は**呼び出し側で揃える**。
+        API 側も null に倒すが、列ごとに扱いが割れているので手前で揃える。 */
+  const buildPrefPatch = useCallback((card: PrefCardKey): Record<string, unknown> => {
+    switch (card) {
+      case "roles":
+        return { desired_role_ids: prefRoleIds };
+      case "location":
+        return {
+          desired_prefectures: prefPrefectures.length > 0 ? prefPrefectures : null,
+          desired_work_styles: prefWorkStyles,
+          transfer_timing:     prefTiming || null,
+        };
+      case "salary":
+        return {
+          desired_salary_min: prefSalaryMin ? parseInt(prefSalaryMin, 10) : null,
+          desired_salary_max: prefSalaryMax ? parseInt(prefSalaryMax, 10) : null,
+        };
+      case "phase":
+        return { desired_phase: prefPhase.length > 0 ? prefPhase : null };
+      case "worry":
+        return { worry: prefWorry || null };
+    }
+  }, [prefRoleIds, prefPrefectures, prefWorkStyles, prefTiming, prefSalaryMin, prefSalaryMax, prefPhase, prefWorry]);
+
+  const savePrefCard = useCallback(async (card: PrefCardKey) => {
+    const patch = buildPrefPatch(card);
+    setPrefCardState((prev) => ({ ...prev, [card]: { saving: true, saved: false, error: null } }));
     notifyGlobalSave("saving");
     try {
       const res = await fetch("/api/jobseeker/career-preferences", {
@@ -1023,20 +1140,54 @@ export default function ProfileEditClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (res.ok) {
-        /* ⚠️ 成功したときだけスナップショットを進める。ここを外に出すと
-              「送った瞬間に % が動く」形に戻る。 */
-        setSavedPrefs((prev) => ({ ...prev, ...(patch as Partial<SavedPrefs>) }));
-        if (prefSavedTimerRef.current) clearTimeout(prefSavedTimerRef.current);
-        setPrefSaved(true);
-        notifyGlobalSave("saved");
-        prefSavedTimerRef.current = setTimeout(() => setPrefSaved(false), 3000);
-      } else {
+      if (!res.ok) {
+        /* ★どの項目が不正かを画面に出す。API は `desired_salary_min は 0〜…` のように
+              キー名入りで返すので、丸めずにそのまま見せる。 */
+        const json = await res.json().catch(() => null);
+        const message = (json && typeof json.error === "string" && json.error)
+          || "保存に失敗しました。もう一度お試しください。";
+        setPrefCardState((prev) => ({ ...prev, [card]: { saving: false, saved: false, error: message } }));
         notifyGlobalSave("error");
+        return;
       }
-    } catch { notifyGlobalSave("error"); }
-    finally { setPrefSaving(false); }
-  }, [notifyGlobalSave]);
+      /* ⚠️ 成功したときだけスナップショットを進める（完成度はこれだけを見る）。 */
+      setSavedPrefs((prev) => ({ ...prev, ...(patch as Partial<SavedPrefs>) }));
+      setPrefCardState((prev) => ({ ...prev, [card]: { saving: false, saved: true, error: null } }));
+      notifyGlobalSave("saved");
+      if (prefSavedTimers.current[card]) clearTimeout(prefSavedTimers.current[card] as ReturnType<typeof setTimeout>);
+      prefSavedTimers.current[card] = setTimeout(() => {
+        setPrefCardState((prev) => ({ ...prev, [card]: { ...prev[card], saved: false } }));
+      }, 3000);
+    } catch {
+      setPrefCardState((prev) => ({ ...prev, [card]: { saving: false, saved: false, error: "保存に失敗しました。もう一度お試しください。" } }));
+      notifyGlobalSave("error");
+    }
+  }, [buildPrefPatch, notifyGlobalSave]);
+
+  /** 保存していない変更を捨てて、保存済みの値に戻す */
+  const cancelPrefCard = useCallback((card: PrefCardKey) => {
+    setPrefCardState((prev) => ({ ...prev, [card]: { ...prev[card], error: null } }));
+    switch (card) {
+      case "roles":
+        setPrefRoleIds(savedPrefs.desired_role_ids);
+        break;
+      case "location":
+        setPrefPrefectures(savedPrefs.desired_prefectures ?? []);
+        setPrefWorkStyles(savedPrefs.desired_work_styles ?? []);
+        setPrefTiming(savedPrefs.transfer_timing ?? "");
+        break;
+      case "salary":
+        setPrefSalaryMin(savedPrefs.desired_salary_min?.toString() ?? "");
+        setPrefSalaryMax(savedPrefs.desired_salary_max?.toString() ?? "");
+        break;
+      case "phase":
+        setPrefPhase(savedPrefs.desired_phase ?? []);
+        break;
+      case "worry":
+        setPrefWorry(savedPrefs.worry ?? "");
+        break;
+    }
+  }, [savedPrefs]);
 
   // ── schools マスター（段階6-7 Phase 1: EducationEditor から hoisted） ───────
   // EducationEditor が mount される度に fetch しないよう、ProfileEditClient
@@ -1365,6 +1516,42 @@ export default function ProfileEditClient({
     setBirthDay(initialBirthDay);
   }, [initialBasicInfo, initialBirthYear, initialBirthMonth, initialBirthDay]);
 
+  /* ── 未保存の変更（★確認を出すのはタブ切替とページ離脱の2箇所だけ）──────────
+        同じタブの中でカードを移るときは出さない。画面に見えており、複数のカードが
+        同時に未保存でも困らないため。カードごとに違う扱いにしないこと。 */
+  const dirtyCardLabels: string[] = [
+    isBasicDirty  ? "基本情報" : null,
+    isSocialDirty ? "SNS・外部リンク" : null,
+    prefCardDirty.roles    ? "希望職種" : null,
+    prefCardDirty.location ? "希望勤務地・勤務スタイル" : null,
+    prefCardDirty.salary   ? "希望年収" : null,
+    prefCardDirty.phase    ? "興味のある企業フェーズ" : null,
+    prefCardDirty.worry    ? "今一番の悩み・相談テーマ" : null,
+  ].filter((v): v is string => v !== null);
+
+  const requestTabChange = useCallback((tab: ProfileTab) => {
+    if (tab === activeTab) return;
+    if (dirtyCardLabels.length > 0) {
+      /* ⚠️ 「破棄して移動しますか？」とは書かない。**実際には破棄していない**（タブを
+            移っても入力内容は残り、戻れば元どおり出る）。やっていないことを文言で
+            約束しないこと。ページを離れたときだけ消える、と事実のまま書く。 */
+      const ok = window.confirm(
+        `保存していない変更があります（${dirtyCardLabels.join("・")}）。\n保存せずに移動しますか？（入力した内容はこのページを離れるまで残ります）`
+      );
+      if (!ok) return;
+    }
+    setActiveTab(tab);
+  }, [activeTab, dirtyCardLabels]);
+
+  /* ⚠️ 文言はブラウザが決める（差し替えられない）。出すか出さないかだけを制御する。 */
+  const hasDirty = dirtyCardLabels.length > 0;
+  useEffect(() => {
+    if (!hasDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasDirty]);
+
   // ── タブ完成度（各タブにデータがあれば green dot） ─────────────────────────
   /* ⚠️ **条件をタブ側に書き足さない。** 7枚のときの判定をそのまま OR で束ねるだけにする。
         新しい基準を作ると、完成度の判定と食い違う。 */
@@ -1405,7 +1592,7 @@ export default function ProfileEditClient({
           educations / achievements / awards / mediaAppearances / contentLinks
                                             … 各 API の戻り値で set している
           savedSocialLinks                  … handleSaveSocial の成功後
-          hasPrefs（savedPrefs 由来）        … savePreferences の成功後 */
+          hasPrefs（savedPrefs 由来）        … savePrefCard の成功後 */
   const completionData: CompletionInput = {
     hasName:               !!initialBasicInfo.name && initialBasicInfo.name.trim() !== "" && initialBasicInfo.name !== "ユーザー",
     hasHeadline:           !!initialBasicInfo.headline && initialBasicInfo.headline.trim().length > 0,
@@ -1435,7 +1622,7 @@ export default function ProfileEditClient({
             <ProfileCompletionBar
               data={completionData}
               mode="sidebar"
-              onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
+              onTabChange={(tab) => requestTabChange(tab as ProfileTab)}
             />
             {/* ⚠️ 公開範囲に関わらず常設する。文言は設定値から出す（決め打ちしない） */}
             <PublicProfileLinkCard userId={owUser?.id} visibility={settings.visibility} />
@@ -1533,7 +1720,7 @@ export default function ProfileEditClient({
           <ProfileCompletionBar
             data={completionData}
             mode="edit"
-            onTabChange={(tab) => setActiveTab(tab as ProfileTab)}
+            onTabChange={(tab) => requestTabChange(tab as ProfileTab)}
           />
           {/* ⚠️ 右カラムが消える幅では、ここが「公開プロフィールを見る」の唯一の導線になる */}
           <div style={{ marginBottom: 16 }}>
@@ -1545,7 +1732,7 @@ export default function ProfileEditClient({
         <Tabs
           tabs={profileTabsWithCompletion}
           activeTab={activeTab}
-          onTabChange={(key) => setActiveTab(key as ProfileTab)}
+          onTabChange={(key) => requestTabChange(key as ProfileTab)}
         />
 
         {/* ── タブコンテンツ ──────────────────────────────────────────────────── */}
@@ -1771,23 +1958,8 @@ export default function ProfileEditClient({
                 希望条件を埋めると、条件に合う企業や求人とのマッチング精度が上がります
               </span>
             </div>
-            {/* 保存状態インジケーター */}
-            {(prefSaving || prefSaved) && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 6, marginBottom: "var(--space-4)",
-                padding: "var(--space-2) 14px", borderRadius: 8,
-                background: prefSaved ? "var(--success-soft)" : "var(--royal-50)",
-                border: `1px solid ${prefSaved ? "#A7F3D0" : "var(--royal-100)"}`,
-                fontSize: 12, fontWeight: 600,
-                color: prefSaved ? "var(--success)" : "var(--royal)",
-              }}>
-                {prefSaving ? (
-                  <><span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid currentColor", borderTopColor: "transparent", display: "inline-block", animation: "spin 0.6s linear infinite" }} /> 保存中…</>
-                ) : (
-                  <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg> 保存しました</>
-                )}
-              </div>
-            )}
+            {/* ⚠️ 保存インジケーターは各カードのフッターに置く（2026-08-15）。
+                   タブ上部に1つだと、どのカードが保存されたのか分からない。 */}
 
             {/* ── 希望職種（複数選択）────────────────────────────────────────
                 職歴からは「やってきたこと」しか分からない。**キャリアチェンジ希望は
@@ -1803,12 +1975,10 @@ export default function ProfileEditClient({
                   roles={desiredRoleOptions ?? roles}
                   aliases={roleAliases}
                   value=""
-                  onSelect={async (roleId) => {
+                  onSelect={(roleId) => {
                     if (prefRoleIds.includes(roleId)) return;
                     if (prefRoleIds.length >= MAX_DESIRED_ROLES) return;
-                    const next = [...prefRoleIds, roleId];
-                    setPrefRoleIds(next);
-                    await savePreferences({ desired_role_ids: next });
+                    setPrefRoleIds([...prefRoleIds, roleId]);
                   }}
                   selectableParent
                   clearOnSelect
@@ -1841,11 +2011,7 @@ export default function ProfileEditClient({
                         <button
                           type="button"
                           aria-label={`${roleNameById.get(id) ?? "この職種"} を外す`}
-                          onClick={async () => {
-                            const next = prefRoleIds.filter((r) => r !== id);
-                            setPrefRoleIds(next);
-                            await savePreferences({ desired_role_ids: next });
-                          }}
+                          onClick={() => setPrefRoleIds(prefRoleIds.filter((r) => r !== id))}
                           style={{
                             border: "none", background: "none", cursor: "pointer",
                             color: "var(--royal)", fontSize: 15, lineHeight: 1, padding: "0 2px",
@@ -1858,6 +2024,14 @@ export default function ProfileEditClient({
                   </div>
                 )}
               </div>
+              <CardSaveFooter
+                dirty={prefCardDirty.roles}
+                saving={prefCardState.roles.saving}
+                justSaved={prefCardState.roles.saved}
+                error={prefCardState.roles.error}
+                onSave={() => { void savePrefCard("roles"); }}
+                onCancel={() => cancelPrefCard("roles")}
+              />
             </FormSection>
 
             {/* ── 社会人経験年数（自動計算・表示のみ）────────────────────────
@@ -1900,10 +2074,7 @@ export default function ProfileEditClient({
                   ariaLabel="希望勤務地"
                   value={prefPrefectures}
                   options={[...COMMON_PREFECTURES, ...OTHER_PREFECTURES].map((p) => ({ value: p, label: p }))}
-                  onChange={async (next) => {
-                    setPrefPrefectures(next);
-                    await savePreferences({ desired_prefectures: next.length > 0 ? next : null });
-                  }}
+                  onChange={setPrefPrefectures}
                 />
               </FormGroup>
               <FormGroup label="希望勤務スタイル">
@@ -1913,20 +2084,14 @@ export default function ProfileEditClient({
                   ariaLabel="希望勤務スタイル"
                   value={prefWorkStyles}
                   options={workStyleOptions}
-                  onChange={async (next) => {
-                    setPrefWorkStyles(next);
-                    await savePreferences({ desired_work_styles: next });
-                  }}
+                  onChange={setPrefWorkStyles}
                 />
               </FormGroup>
               <FormGroup label="転職検討時期" htmlFor="pe-timing">
                 <select
                   id="pe-timing"
                   value={prefTiming}
-                  onChange={async (e) => {
-                    setPrefTiming(e.target.value);
-                    await savePreferences({ transfer_timing: e.target.value || null });
-                  }}
+                  onChange={(e) => setPrefTiming(e.target.value)}
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
@@ -1935,6 +2100,14 @@ export default function ProfileEditClient({
                   ))}
                 </select>
               </FormGroup>
+              <CardSaveFooter
+                dirty={prefCardDirty.location}
+                saving={prefCardState.location.saving}
+                justSaved={prefCardState.location.saved}
+                error={prefCardState.location.error}
+                onSave={() => { void savePrefCard("location"); }}
+                onCancel={() => cancelPrefCard("location")}
+              />
             </FormSection>
 
             <FormSection
@@ -1949,10 +2122,6 @@ export default function ProfileEditClient({
                       type="number"
                       value={prefSalaryMin}
                       onChange={(e) => setPrefSalaryMin(e.target.value)}
-                      onBlur={async (e) => {
-                        const val = e.target.value ? parseInt(e.target.value, 10) : null;
-                        await savePreferences({ desired_salary_min: val });
-                      }}
                       placeholder="例: 600"
                       min={0}
                       max={SALARY_MAX_MAN}
@@ -1968,10 +2137,6 @@ export default function ProfileEditClient({
                       type="number"
                       value={prefSalaryMax}
                       onChange={(e) => setPrefSalaryMax(e.target.value)}
-                      onBlur={async (e) => {
-                        const val = e.target.value ? parseInt(e.target.value, 10) : null;
-                        await savePreferences({ desired_salary_max: val });
-                      }}
                       placeholder="例: 900"
                       min={0}
                       max={SALARY_MAX_MAN}
@@ -1986,6 +2151,14 @@ export default function ProfileEditClient({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>下限が上限を超えています
                 </div>
               )}
+              <CardSaveFooter
+                dirty={prefCardDirty.salary}
+                saving={prefCardState.salary.saving}
+                justSaved={prefCardState.salary.saved}
+                error={prefCardState.salary.error}
+                onSave={() => { void savePrefCard("salary"); }}
+                onCancel={() => cancelPrefCard("salary")}
+              />
             </FormSection>
 
             <FormSection
@@ -1996,10 +2169,15 @@ export default function ProfileEditClient({
                 ariaLabel="興味のある企業フェーズ"
                 value={prefPhase}
                 options={DESIRED_PHASES.map((p) => ({ value: p, label: p }))}
-                onChange={async (next) => {
-                  setPrefPhase(next);
-                  await savePreferences({ desired_phase: next.length > 0 ? next : null });
-                }}
+                onChange={setPrefPhase}
+              />
+              <CardSaveFooter
+                dirty={prefCardDirty.phase}
+                saving={prefCardState.phase.saving}
+                justSaved={prefCardState.phase.saved}
+                error={prefCardState.phase.error}
+                onSave={() => { void savePrefCard("phase"); }}
+                onCancel={() => cancelPrefCard("phase")}
               />
             </FormSection>
 
@@ -2011,10 +2189,7 @@ export default function ProfileEditClient({
                 <select
                   id="pe-worry"
                   value={prefWorry}
-                  onChange={async (e) => {
-                    setPrefWorry(e.target.value);
-                    await savePreferences({ worry: e.target.value || null });
-                  }}
+                  onChange={(e) => setPrefWorry(e.target.value)}
                   style={selectStyle()}
                 >
                   <option value="">未設定</option>
@@ -2023,6 +2198,14 @@ export default function ProfileEditClient({
                   ))}
                 </select>
               </FormGroup>
+              <CardSaveFooter
+                dirty={prefCardDirty.worry}
+                saving={prefCardState.worry.saving}
+                justSaved={prefCardState.worry.saved}
+                error={prefCardState.worry.error}
+                onSave={() => { void savePrefCard("worry"); }}
+                onCancel={() => cancelPrefCard("worry")}
+              />
             </FormSection>
 
             <div style={{
