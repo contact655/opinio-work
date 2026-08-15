@@ -33,3 +33,19 @@
 
 **やるなら**: アップロード前にクライアントで長辺をリサイズ（Canvas か `createImageBitmap`）し、
 上限（例: 5MB）を超えるものは弾く。**弾いたことを画面に出す**（黙って落とさない）。
+
+---
+
+## 宿題: `social_links` の空文字がキーごと残る（2026-08-15 記録）
+
+**対象**: `PUT /api/jobseeker/profile` の `social_links`（`ow_users.social_links` / JSONB）。
+
+**なぜ残っているか**: 2026-08-15 に空入力を null へ寄せた（`lib/api/normalize.ts`）が、
+対象は **text 列だけ**で JSONB は素通し（`patch.social_links = body.social_links as Json | null`）。
+SNS の入力を空にして保存すると `null` ではなく **`{"x": ""}`** が残る（実測）。
+表示側は truthy 判定なので画面は無事だが、キー存在判定（`social_links ? 'x'`）や
+充填率の集計は誤る。
+
+**やるなら**: 空文字の値を持つキーを落とし、全キーが空になったら列ごと null にする。
+正規化は `normalize.ts` に足し、`profile/route.ts` がそれを通る形にする
+（route に if を書き足さない）。既存データの掃除は**別コミットの migration**。
