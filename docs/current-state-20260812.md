@@ -717,3 +717,15 @@ UI は `/profile/edit`「基本情報」の **「所在地」**（hint: 「現�
 | **在籍者数だけは匿名に露出している** | A-3 / `/api/jobseeker/companies/[id]/employees` の実測 |
 | **`ow_companies.listing_status` は全85件が `listed`** で、enum を持つ意味が現状ゼロ | D-1 |
 | `ow_experience_roles`（6件）は依然として未配線 | CLAUDE.md の記載どおり。今回も `src` から読み書きは見つからず |
+
+## 宿題: avatar_color / cover_color に値の検証が無い（2026-08-15 記録）
+
+`PUT /api/jobseeker/profile` の `avatar_color` / `cover_color` は、
+**100字以内の任意の文字列を受け取る**。CSS の値としてそのまま
+`style` に埋まるため、本来はホワイトリスト（既定のグラデーション一覧）で
+検証すべき列。
+
+2026-08-15 の空入力正規化では**空→null だけを揃え、形式の検証は入れていない**。
+入力UIは色の選択肢しか出さないので現状の実害は無いが、API を直接叩けば任意の値が入る。
+
+対象: `ow_users.avatar_color` / `ow_users.cover_color`（どちらも 2026-08-15 時点で `''` は0件）

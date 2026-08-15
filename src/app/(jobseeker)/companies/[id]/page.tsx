@@ -36,6 +36,7 @@ import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, F
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 import { CollapsibleList } from "./CollapsibleList";
+import { ShowMoreButton } from "./ShowMoreButton";
 
 /*
   各セクションの**初期表示の上限**（2026-08-13）。
@@ -1384,10 +1385,11 @@ function JobsSection({
              「orphan page」として**ルートごと削除**されており 404 だった。
              同じ理由で 2026-08-08 に下部の「N件すべての求人を見る」が消されているが、
              このヘッダー側が取りこぼされていた。
-          ⚠️ **代替リンクは作らない。** d8304fd2 で求人セクションはその場で
-             全件展開するようになり、別ページへ送る役割自体が無くなっている。
-          ⚠️ 復活させるなら先に `/jobs?company=` を実装すること
-             （消えたルートを戻すと、このセクションと内容が重複する）。 */}
+          ⚠️ **ヘッダー側に代替リンクを作らない。** d8304fd2 で求人セクションはその場で
+             全件展開するようになり、ヘッダーから別ページへ送る役割は無い。
+             セクション下部の「N件すべての求人を見る」（`/jobs?company=`）が
+             2026-08-15 に復活しているので、導線としてはそちらで足りている。
+          ⚠️ `/companies/[id]/jobs` は**いまも 404**。戻さないこと。 */}
       <div style={{
         padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
@@ -1401,11 +1403,8 @@ function JobsSection({
       </div>
 
       <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
-        {/* ⚠️ 「N件すべての求人を見る」で**別ページへ飛ばさない**。
-               リンク先の /companies/[id]/jobs は 2026-07-01（ca81d23a）に
-               「orphan page」としてルートごと削除されており 404。
-               `/jobs?company=` も未実装なので、遷移先が存在しない。
-               その場で展開する（内容はこのセクションに全件ある）。 */}
+        {/* ⚠️ その場で展開するのは維持する（内容はこのセクションに全件ある）。
+               ここで **別ページへ飛ばす必要は無い**ので、展開は CollapsibleList のまま。 */}
         <CollapsibleList
           items={jobNodes}
           limit={limitIndex}
@@ -1413,6 +1412,21 @@ function JobsSection({
           containerStyle={{ display: "flex", flexDirection: "column", gap: 6 }}
           buttonWrapperStyle={{ marginTop: 16 }}
           fade
+        />
+
+        {/* 「N件すべての求人を見る」— 2026-08-15 に復活させた。
+            ⚠️ 2026-08-08 に削除した理由は「遷移先が存在しない」ことだった
+               （/companies/[id]/jobs は 2026-07-01 にルートごと削除されて 404、
+               当時 `/jobs?company=` は未実装で全社の求人が出ていた）。
+               同日のコメントに「復活させるなら `/jobs?company=` を実装するのが筋」と
+               残してあり、2026-08-15 に JobsClient 側へ実装したのでその条件を満たした。
+            ⚠️ **`/companies/[id]/jobs` には戻さないこと。** いまも 404 のまま。
+            ⚠️ 値は slug 優先・UUID も可（JobsClient が両方受ける）。 */}
+        <ShowMoreButton
+          variant="navigate"
+          label={`${company.job_count}件すべての求人を見る`}
+          href={`/jobs?company=${encodeURIComponent(company.slug ?? company.id)}`}
+          wrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
         />
       </div>
     </section>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { optionalText } from "@/lib/api/normalize";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -59,10 +60,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const issuer      = typeof body.issuer      === "string" ? body.issuer.trim().slice(0, 100) || null : null;
+  const issuer      = optionalText(body.issuer, 100);
   const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$/;
   const awardedAt   = typeof body.awarded_at  === "string" && DATE_RE.test(body.awarded_at) ? body.awarded_at : null;
-  const description = typeof body.description === "string" ? body.description.trim().slice(0, 1000) || null : null;
+  const description = optionalText(body.description, 1000);
 
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });

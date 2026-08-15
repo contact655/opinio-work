@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { Json } from "@/lib/supabase/types";
+/* ⚠️ 空入力の扱いは1箇所に寄せる。ここに if を書き足さないこと（lib/api/normalize.ts の冒頭を参照）。 */
+import { optionalText, requiredText, InvalidInputError } from "@/lib/api/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -38,44 +40,62 @@ export async function PUT(req: Request) {
     updated_at: string;
   } = { updated_at: new Date().toISOString() };
 
-  if ("name" in body && typeof body.name === "string") {
-    if (body.name.length > 100) return NextResponse.json({ error: "name は100字以内で入力してください" }, { status: 400 });
-    patch.name = body.name;
-  }
-  if ("avatar_color" in body) patch.avatar_color = typeof body.avatar_color === "string" && body.avatar_color.length <= 100 ? body.avatar_color : null;
-  if ("cover_color" in body) patch.cover_color = typeof body.cover_color === "string" && body.cover_color.length <= 100 ? body.cover_color : null;
-  if ("about_me" in body) {
-    if (typeof body.about_me === "string" && body.about_me.length > 2000) return NextResponse.json({ error: "about_me は2000字以内で入力してください" }, { status: 400 });
-    patch.about_me = typeof body.about_me === "string" ? body.about_me : null;
-  }
-  /* ⚠️ 不正値は 400。黙って null にすると「入力したのに消えた」になる（学歴で実際に1ヶ月起きた） */
-  if ("birth_date" in body) {
-    const bd = body.birth_date;
-    if (bd === null || bd === "") patch.birth_date = null;
-    else if (typeof bd === "string" && BIRTH_RE.test(bd)) patch.birth_date = bd;
-    else return NextResponse.json({ error: "INVALID_BIRTH_DATE", message: "生年月日の形式が正しくありません。" }, { status: 400 });
-  }
-  if ("location" in body) {
-    if (typeof body.location === "string" && body.location.length > 100) return NextResponse.json({ error: "location は100字以内で入力してください" }, { status: 400 });
-    patch.location = typeof body.location === "string" ? body.location : null;
-  }
-  if ("future_aspirations" in body) {
-    if (typeof body.future_aspirations === "string" && body.future_aspirations.length > 2000) return NextResponse.json({ error: "future_aspirations は2000字以内で入力してください" }, { status: 400 });
-    patch.future_aspirations = typeof body.future_aspirations === "string" ? body.future_aspirations : null;
-  }
-  if ("social_links" in body) {
-    if (JSON.stringify(body.social_links).length > 2000) return NextResponse.json({ error: "social_links が大きすぎます" }, { status: 400 });
-    patch.social_links = body.social_links as Json | null;
-  }
-  /* ⚠️ 公開設定は黙って捨てない。捨てると「非公開にしたのに公開のまま」になる */
-  if ("visibility" in body) {
-    if (typeof body.visibility !== "string" || !VALID_VISIBILITY.has(body.visibility)) {
-      return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開範囲の値が不正です。" }, { status: 400 });
+  /* ⚠️ 空は正常系（任意項目は null）、不正は異常系（400）。混同しない。
+        ⚠️ **受け取る項目を増やさないこと。** ここに列を足すと、編集UIが無いのに
+           書き込める列が生まれる（`catchphrase` を足しかけて外した経緯がある）。 */
+  try {
+    /* ⚠️ `name` は必須だが、**キーが無いときは触らない**。
+          未送信は「変更なし」であって空ではない。同一視すると、
+          他項目だけを保存したときに名前が消える。 */
+    if ("name" in body) {
+      patch.name = requiredText(body.name, "ow_users.name", "お名前を入力してください", 100);
     }
-    patch.visibility = body.visibility;
+    /* ⚠️ avatar_color / cover_color は値のホワイトリスト検証が本来要る（docs に宿題として記載）。
+          ここでは空→null だけを揃える。形式の検証は入れない。 */
+    if ("avatar_color" in body) patch.avatar_color = optionalText(body.avatar_color, 100);
+    if ("cover_color"  in body) patch.cover_color  = optionalText(body.cover_color, 100);
+    if ("about_me" in body) patch.about_me = optionalText(body.about_me, 2000);
+    if ("location" in body) patch.location = optionalText(body.location, 100);
+    if ("future_aspirations" in body) patch.future_aspirations = optionalText(body.future_aspirations, 2000);
+
+    /* ⚠️ 不正値は 400。黙って null にすると「入力したのに消えた」になる（学歴で実際に1ヶ月起きた） */
+    if ("birth_date" in body) {
+      const bd = body.birth_date;
+      if (bd === null || bd === "") patch.birth_date = null;
+      else if (typeof bd === "string" && BIRTH_RE.test(bd)) patch.birth_date = bd;
+      else return NextResponse.json({ error: "INVALID_BIRTH_DATE", message: "生年月日の形式が正しくありません。" }, { status: 400 });
+    }
+    if ("social_links" in body) {
+      if (JSON.stringify(body.social_links).length > 2000) {
+        return NextResponse.json({ error: "SOCIAL_LINKS_TOO_LARGE", message: "SNS リンクの量が多すぎます。" }, { status: 400 });
+      }
+      patch.social_links = body.social_links as Json | null;
+    }
+    /* ⚠️ 公開設定は黙って捨てない。捨てると「非公開にしたのに公開のまま」になる */
+    if ("visibility" in body) {
+      if (typeof body.visibility !== "string" || !VALID_VISIBILITY.has(body.visibility)) {
+        return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開範囲の値が不正です。" }, { status: 400 });
+      }
+      patch.visibility = body.visibility;
+    }
+    if ("is_open_to_work" in body) patch.is_open_to_work = body.is_open_to_work === true;
+
+    /* ⚠️ **これは text ではなく timestamptz。** 任意 text の正規化を通さない。
+          空文字をそのまま渡すと Postgres が 22007 で弾き、**400 ではなく 500 になる**。
+          空・null は null、文字列は形式を検証して不正なら 400。 */
+    if ("profile_setup_at" in body) {
+      const v = body.profile_setup_at;
+      if (v === null || v === "" || v === undefined) patch.profile_setup_at = null;
+      else if (typeof v === "string" && !Number.isNaN(Date.parse(v))) patch.profile_setup_at = v;
+      else return NextResponse.json({ error: "INVALID_PROFILE_SETUP_AT", message: "日時の形式が正しくありません。" }, { status: 400 });
+    }
+  } catch (e) {
+    if (e instanceof InvalidInputError) {
+      console.error("[PUT /api/jobseeker/profile]", e.message);
+      return NextResponse.json({ error: "INVALID_INPUT", message: e.userMessage }, { status: 400 });
+    }
+    throw e;
   }
-  if ("is_open_to_work" in body) patch.is_open_to_work = body.is_open_to_work === true;
-  if ("profile_setup_at" in body) patch.profile_setup_at = typeof body.profile_setup_at === "string" ? body.profile_setup_at : null;
 
   const { updated_at: _, ...rest } = patch;
   if (Object.keys(rest).length === 0) {

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { optionalText } from "@/lib/api/normalize";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -78,8 +79,8 @@ export async function POST(req: Request) {
     platform = body.platform;
   }
 
-  const title = typeof body.title === "string" ? body.title.trim().slice(0, 200) : null;
-  const description = typeof body.description === "string" ? body.description.trim().slice(0, 500) : null;
+  const title = optionalText(body.title, 200);
+  const description = optionalText(body.description, 500);
   const rawThumb = typeof body.thumbnail_url === "string" ? body.thumbnail_url.trim() : null;
   let thumbnail_url: string | null = null;
   if (rawThumb) {

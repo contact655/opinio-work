@@ -531,8 +531,26 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
 
 // ─── Company queries ──────────────────────────────────────────────────────────
 
+/*
+  ⚠️ **`is_published` を外さないこと（2026-08-15 に追加）。**
+
+  `mapCompany` は `is_published: (row.is_published as boolean) ?? false` と書いているが、
+  ここに列が無かったため **row.is_published が常に undefined → 全社 false** になっていた。
+  `CompanyListRow` の型は `is_published: boolean` と宣言しているので **tsc では気づけない**
+  （型が実際の SELECT と食い違っていても検査は通る）。
+
+  実害2件:
+    ① `/jobs` の求人カードの企業名が **クリックしても何も起きなかった**
+       （`if (company.is_published) router.push(...)` が常に false）
+    ② `/jobs?company=` が企業を1社も解決できなかった（2026-08-15 の実装時に発覚）
+
+  ⚠️ 追加前に anon / authenticated の SELECT 権限を実測済み
+     （`has_column_privilege` で両方 true）。列単位 GRANT を剥がした列を
+     select に混ぜると**クエリごと 403 になりページが静かに空になる**ので、
+     このリストに列を足すときは必ず先に確かめること。
+*/
 const COMPANY_LIST_COLS = [
-  "id", "slug", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count",
+  "id", "slug", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count", "is_published",
   "logo_gradient", "logo_letter", "logo_url", "url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
   "description", "why_join", "benefits", "evaluation_system",

@@ -689,6 +689,36 @@ export default function JobsClient({
         ow_industries マスタで絞りたくなったら、まず industry との二本立てをどうするか決めること。 */
   const prefecture = searchParams.get("prefecture") ?? "";
   const empType = searchParams.get("emp_type") ?? "";   // 雇用形態フィルター（カンマ区切り複数可）
+  /* 企業で絞る（2026-08-15 実装）。値は **slug 優先・UUID も受理**。
+     ⚠️ 2026-08-08 に企業ページの「N件すべての求人を見る」を消したとき、
+        コメントに「復活させるなら `/jobs?company=` が筋」と残していたもの。
+        それまで `company` は**読まれておらず、200 を返して全社の求人を出していた**
+        （記事CTA は 2026-08-04 にこれを理由にリンクごと企業ページへ寄せた）。
+     ⚠️ 生成側は `/companies/${slug ?? id}` と同じ綴りにすること。
+        リンクを作る箇所を増やすときも slug を優先する（共有URLが読める）。 */
+  const companyParam = searchParams.get("company") ?? "";
+
+  /* companyParam → 企業。見つからなければ null。
+     ⚠️ **`is_published` を必ず見る。** ここを外すと、運営が取り下げた企業の社名が
+        チップに出てしまう（取り下げ＝詳細ページが404、が現在の意味。CLAUDE.md 参照）。
+        求人カードの企業名リンクが `company.is_published` を見ているのと同じ理由。
+     ⚠️ `companies` は getJobs が **全社**返すので、公開求人0件の企業も解決できる。
+        「この企業の公開求人はありません」を社名付きで出せるのはこのため。 */
+  const companyFilter = useMemo(() => {
+    if (!companyParam) return null;
+    const key = companyParam.toLowerCase();
+    return companies.find(
+      (c) => c.is_published && (c.slug?.toLowerCase() === key || c.id.toLowerCase() === key)
+    ) ?? null;
+  }, [companyParam, companies]);
+
+  /* 指定されたが解決できなかった。**黙って無視しない**（CLAUDE.md「エラーを握りつぶさない」）。
+     404 にはしない — 古い共有リンクで真っ白になるより、全件＋注記のほうが読める。 */
+  const companyNotFound = !!companyParam && !companyFilter;
+
+  /** チップ・空状態に出す企業名。求人カードと同じ綴り（brand_name 優先） */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyFilterName = companyFilter ? ((companyFilter as any).brand_name ?? companyFilter.name) as string : "";
 
   // 複数選択用: カンマ区切り文字列 → Set
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
@@ -977,6 +1007,14 @@ export default function JobsClient({
     }
 
 
+    /* 企業フィルタ（?company=）。他のフィルタと AND で重なる。
+       ⚠️ 解決できなかったとき（companyNotFound）は**絞らない**。
+          全件＋注記にする判断（2026-08-15）。ここで0件にすると、
+          綴り違いの共有リンクが「求人なし」に見えてしまう。 */
+    if (companyFilter) {
+      list = list.filter((j) => j.company_id === companyFilter.id);
+    }
+
     // 都道府県フィルタ (job.location から抽出した都道府県と完全一致)
     if (prefecture) {
       list = list.filter((j) => extractPrefecture(j.location) === prefecture);
@@ -1046,7 +1084,7 @@ export default function JobsClient({
     }
 
     return { list, ignoredTerms };
-  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, industry, prefecture, empType, empTypeSet, companyStage, companyStageSet, sort, companies, companyMap, roleAliases]);
+  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, industry, prefecture, empType, empTypeSet, companyStage, companyStageSet, companyFilter, sort, companies, companyMap, roleAliases]);
 
   const filtered = searchResult.list;
   const ignoredTerms = searchResult.ignoredTerms;
@@ -1106,7 +1144,10 @@ export default function JobsClient({
     return () => observer.disconnect();
   }, [hasMore]);
 
-  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType || companyStage || bizOnly);
+  /* ⚠️ `companyFilter`（解決できた企業）だけを数える。`companyParam` を入れると、
+        綴り違いのときに「絞り込み中」と言いながら全件出ている状態になる。
+        解決できなかったことは companyNotFound の注記で別に伝える。 */
+  const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType || companyStage || bizOnly || companyFilter);
 
 
   const roleCounts = useMemo(() => {
@@ -1452,10 +1493,46 @@ export default function JobsClient({
             })}
           </div>
 
+          {/* 企業が解決できなかったときの注記。⚠️ 黙って全件を出さない */}
+          {companyNotFound && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 2, paddingBottom: 2, alignItems: "center" }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0,
+                padding: "3px 10px", borderRadius: 100,
+                background: "#FEF3C7", border: "1.5px solid #FDE68A",
+                color: "#92400E", fontSize: 12, fontWeight: 700,
+              }}>
+                指定された企業が見つかりません。すべての募集を表示しています
+              </span>
+              <button type="button" onClick={() => setParam("company", "")} style={{
+                fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none",
+                border: "none", cursor: "pointer", padding: "3px 4px",
+                fontFamily: "inherit", textDecoration: "underline",
+              }}>
+                指定を外す
+              </button>
+            </div>
+          )}
+
           {/* アクティブフィルター (optional row 4) */}
           {hasFilter && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 2, paddingBottom: 2, alignItems: "center" }}>
               <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
+              {companyFilter && (
+                <button key="co" type="button" onClick={() => setParam("company", "")} title={companyFilterName} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, maxWidth: "100%",
+                  padding: "3px 10px", borderRadius: 100,
+                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
+                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  {/* ⚠️ minWidth:0 が無いと ellipsis が効かず親を押し広げる（375px で実測済みの罠） */}
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    企業: {companyFilterName}
+                  </span>
+                  <span style={{ fontSize: 12, opacity: 0.8, flexShrink: 0 }}>✕</span>
+                </button>
+              )}
               {category && (() => {
                 const r = parentRoles.find(r => r.id === category);
                 const rc = r ? getRoleColor(r.name) : { color: "var(--royal)", bg: "var(--royal-50)" };
@@ -1645,12 +1722,32 @@ export default function JobsClient({
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>条件に合う募集が見つかりませんでした</h3>
+              {/* ⚠️ 企業で絞っているときは「条件に合う募集が…」では何が起きたか分からない。
+                     公開求人を1件も持たない企業は 86/87 社あるので、ここは頻繁に踏まれる。 */}
+              <h3 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)", marginBottom: 8, overflowWrap: "anywhere" }}>
+                {companyFilter
+                  ? `${companyFilterName}の公開中の募集はありません`
+                  : "条件に合う募集が見つかりませんでした"}
+              </h3>
               {/* 「カジュアル面談で直接聞いてみましょう」は 2026-08-03 に差し替え。
                   面談を前提にした案内はプラットフォーム側の説明では使わない方針。
                   ここは検索結果が0件のときの導線なので、条件を緩めるか企業から辿るかを示す。 */}
-              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: 20 }}>条件を緩めるか、企業から探してみてください</p>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: 20 }}>
+                {companyFilter
+                  ? "企業ページから会社の情報を見られます"
+                  : "条件を緩めるか、企業から探してみてください"}
+              </p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                {/* 企業で絞って0件のときは、その企業のページへ戻れるようにする */}
+                {companyFilter && (
+                  <Link href={`/companies/${companyFilter.slug ?? companyFilter.id}`} style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
+                    color: "#fff", fontSize: "var(--text-base)", fontWeight: 600, textDecoration: "none",
+                  }}>
+                    企業ページを見る
+                  </Link>
+                )}
                 <button type="button" onClick={() => router.replace("/jobs")} style={{
                   padding: "10px 24px", borderRadius: 8, background: "var(--royal)",
                   color: "#fff", border: "none", fontSize: "var(--text-base)", fontWeight: 600, cursor: "pointer",

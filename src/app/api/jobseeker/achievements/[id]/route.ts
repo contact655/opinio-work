@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { optionalText } from "@/lib/api/normalize";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -45,8 +46,8 @@ export async function PUT(
   }
 
   const value       = typeof body.value       === "number" && Number.isInteger(body.value) ? body.value : null;
-  const unit        = typeof body.unit        === "string" ? body.unit.trim().slice(0, 20) || null : null;
-  const description = typeof body.description === "string" ? body.description.trim().slice(0, 2000) || null : null;
+  const unit        = optionalText(body.unit, 20);
+  const description = optionalText(body.description, 2000);
   const periodStart = typeof body.period_start === "string" && body.period_start ? body.period_start : null;
   const periodEnd   = typeof body.period_end   === "string" && body.period_end   ? body.period_end   : null;
 

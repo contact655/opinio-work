@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { optionalText } from "@/lib/api/normalize";
 import { NextResponse } from "next/server";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,13 +46,13 @@ export async function PUT(
     );
   }
 
-  const mediaName   = typeof body.media_name   === "string" ? body.media_name.trim().slice(0, 100) || null : null;
+  const mediaName   = optionalText(body.media_name, 100);
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   const appearedAtRaw = typeof body.appeared_at === "string" ? body.appeared_at : null;
   const appearedAt = appearedAtRaw && DATE_RE.test(appearedAtRaw) ? appearedAtRaw : null;
-  const description = typeof body.description  === "string" ? body.description.trim().slice(0, 1000) || null : null;
+  const description = optionalText(body.description, 1000);
 
-  const url = typeof body.url === "string" ? body.url.trim().slice(0, 2048) || null : null;
+  const url = optionalText(body.url, 2048);
   if (url && !/^https:\/\//i.test(url)) {
     return NextResponse.json(
       { error: "INVALID_URL_FORMAT", message: "URL は https:// で始めてください。" },

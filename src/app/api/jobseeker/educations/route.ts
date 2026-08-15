@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { optionalText } from "@/lib/api/normalize";
 import { normalizeYm, isBlankYm } from "@/lib/utils/ym";
 import { DEGREES } from "@/lib/constants/careerOptions";
 import { NextResponse } from "next/server";
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
   }
 
   // バリデーション 2: faculty（100字以内 任意）
-  const faculty = typeof body.faculty === "string" ? body.faculty.trim() : null;
+  const faculty = optionalText(body.faculty, 100);
   if (faculty !== null && faculty.length > 100) {
     return NextResponse.json(
       { error: "INVALID_FACULTY_LENGTH", message: "学部・学科は100字以内で入力してください。" },

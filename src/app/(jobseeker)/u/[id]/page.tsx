@@ -342,13 +342,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
   );
 
   const companyInfoById = new Map<string, CompanyLogoInfo>();
+  /** company_id → slug（null 可）。`/jobs?company=` を組むためだけに持つ */
+  const companySlugById = new Map<string, string | null>();
   if (allCompanyIds.length > 0) {
     // adminSupabase を使い is_published=false の企業名も取得（プロフィール表示用）
     const { data: expCompanies } = await adminSupabase
       .from("ow_companies")
-      .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
+      /* ⚠️ slug は `/jobs?company=` を組むために足した（2026-08-15）。
+            CompanyLogoInfo には載せない（タイムライン側では使わないため）。 */
+      .select("id, slug, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
       .in("id", allCompanyIds);
     for (const c of expCompanies ?? []) {
+      companySlugById.set(c.id as string, (c.slug as string | null) ?? null);
       companyInfoById.set(c.id as string, {
         name: c.name as string,
         logoUrl: (c.logo_url as string | null) ?? null,
@@ -1474,9 +1479,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── 在籍企業の募集中求人 ──────────────────────────────────
               2026-08-15 に右サイドバーから本文カラム最下部へ移設した。
 
-              ⚠️ 遷移先は **企業ページ（/companies/[id]）** にすること。
-                 `/companies/[id]/jobs` は 2026-07-01 にルートごと削除されて 404、
-                 `/jobs?company=` は未実装。求人の全件はいずれも企業ページ側にある。
+              ⚠️ 遷移先は **`/jobs?company=<slug>`**（2026-08-15 に企業ページから変更）。
+                 `/companies/[id]/jobs` は 2026-07-01 にルートごと削除されて 404 のままなので、
+                 そちらには**戻さないこと**。
+                 値は slug 優先・UUID も可（JobsClient 側が両方受ける）。
               ⚠️ 見出しの件数は取得行数ではなく総数（currentCompanyJobCount）。
                  ここに currentCompanyJobs.length を書かないこと（最大3にしかならない）。 */}
           {isCurrentCompanyKnown && currentCompanyJobs.length > 0 && (
@@ -1522,7 +1528,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
               {/* UI規約: 濃紺塗り・白文字・中央配置・コンパクト幅 */}
               <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
-                <Link href={`/companies/${currentCareer!.company_id!}`} style={{
+                <Link href={`/jobs?company=${encodeURIComponent(companySlugById.get(currentCareer!.company_id!) ?? currentCareer!.company_id!)}`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "10px 22px", borderRadius: 8,
                   background: "var(--royal)", color: "#fff",

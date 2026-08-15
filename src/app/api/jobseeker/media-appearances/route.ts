@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { optionalText } from "@/lib/api/normalize";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -59,8 +60,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const mediaName    = typeof body.media_name    === "string" ? body.media_name.trim().slice(0, 100) || null : null;
-  const description  = typeof body.description   === "string" ? body.description.trim().slice(0, 1000) || null : null;
+  const mediaName    = optionalText(body.media_name, 100);
+  const description  = optionalText(body.description, 1000);
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   const appearedAtRaw = typeof body.appeared_at === "string" ? body.appeared_at : null;
   const appearedAt = appearedAtRaw && DATE_RE.test(appearedAtRaw) ? appearedAtRaw : null;
