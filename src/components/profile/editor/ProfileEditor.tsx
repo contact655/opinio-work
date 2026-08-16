@@ -150,7 +150,7 @@ export default function ProfileEditor({
   profileTabExtra,
   companyLogoInfo = [],
   followCounts,
-  openBasicNonce = 0,
+  openBasicNonce = 0, openHeaderNonce = 0,
   openCareerNonce = 0,
   onSavedSnapshotChange,
 }: {
@@ -184,6 +184,7 @@ export default function ProfileEditor({
   /** ★ヘッダーに出すフォロー数（2026-08-16 / 2-7） */
   followCounts?: { followers: number; following: number };
   openBasicNonce?: number;
+  openHeaderNonce?: number;
   openCareerNonce?: number;
   /**
    * **保存に成功したときだけ進む**スナップショットを親へ渡す。
@@ -233,8 +234,8 @@ export default function ProfileEditor({
      ⚠️ タブを切り替えても中身はアンマウントしない作りなので、
         切り替え → カード側の useEffect の順で問題なく開く。 */
   useEffect(() => {
-    if (openBasicNonce || openCareerNonce) setActiveTab("profile");
-  }, [openBasicNonce, openCareerNonce]);
+    if (openBasicNonce || openHeaderNonce || openCareerNonce) setActiveTab("profile");
+  }, [openBasicNonce, openHeaderNonce, openCareerNonce]);
 
   /* 希望条件は WishesTab が持つ（3-B）。親は**保存済みの結果だけ**を受け取る。
      ⚠️ ここに希望条件の state を戻さないこと。保存の単位はカードで、それはタブ側にある。 */
@@ -535,6 +536,7 @@ export default function ProfileEditor({
             companyLogoInfo={companyLogoInfo}
             followCounts={followCounts}
             openBasicNonce={openBasicNonce}
+            openHeaderNonce={openHeaderNonce}
             openCareerNonce={openCareerNonce}
           />
           {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。

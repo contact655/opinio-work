@@ -721,7 +721,7 @@ export default function ProfileTab({
   notifyGlobalSave,
   companyLogoInfo = [],
   followCounts,
-  openBasicNonce = 0,
+  openBasicNonce = 0, openHeaderNonce = 0,
   openCareerNonce = 0,
 }: {
   owUser: OwUser;
@@ -731,7 +731,10 @@ export default function ProfileTab({
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
   /** ★ヘッダーに出すフォロー数（2026-08-16 / 2-7）。0 の項目は出ない */
   followCounts?: { followers: number; following: number };
+  /** ★「自己紹介を入力する →」から `#about` を編集モードで開く（2026-08-16 / 2-7） */
   openBasicNonce?: number;
+  /** ★「名前を入力する →」からヘッダーを編集モードで開く。名前はヘッダー側にある */
+  openHeaderNonce?: number;
   openCareerNonce?: number;
   /** 写真カードのプレビューに使う色。★保存済みの設定を親から受け取る */
   settings: SettingsState;
@@ -1006,7 +1009,11 @@ export default function ProfileTab({
            移した瞬間にアンマウントする側に変わる。
         ⚠️ **スクロールは編集モードが開いたあと**に呼ぶ。開く前に呼ぶと
            カードの高さが変わって着地位置がずれる。 */
-  const basicCardRef  = useRef<HTMLDivElement>(null);
+  /* ⚠️ **ref は実際の要素に付けること。** 2-7 でカードを作り直したとき
+        `basicCardRef` の付け先が消え、押しても開くだけでスクロールしなくなっていた
+        （2026-08-16 に実測。`scrollAfterPaint(null)` は黙って何もしない）。 */
+  const aboutCardRef  = useRef<HTMLDivElement>(null);
+  const headerCardRef = useRef<HTMLDivElement>(null);
 
   const scrollAfterPaint = (el: HTMLElement | null) => {
     if (!el) return;
@@ -1022,8 +1029,13 @@ export default function ProfileTab({
   useEffect(() => {
     if (!openBasicNonce) return;
     setEditingAbout(true);
-    scrollAfterPaint(basicCardRef.current);
+    scrollAfterPaint(aboutCardRef.current);
   }, [openBasicNonce]);
+  useEffect(() => {
+    if (!openHeaderNonce) return;
+    setEditingHeader(true);
+    scrollAfterPaint(headerCardRef.current);
+  }, [openHeaderNonce]);
   /* 職歴は**モーダル**なのでスクロールしない（画面中央に出る） */
   useEffect(() => {
     if (!openCareerNonce) return;
@@ -1163,7 +1175,7 @@ export default function ProfileTab({
                ⚠️ 自己紹介はここから外し、独立セクション（`#about`）に移した。
                   `/u/[id]` がそうなっているので構造を合わせる。
                ⚠️ 現職・年齢は導出値なので鉛筆の対象外。 */}
-          <div style={{ maxWidth: 680 }}>
+          <div ref={headerCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
             {editingHeader ? (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",
@@ -1353,7 +1365,7 @@ export default function ProfileTab({
           {/* ── 自己紹介（#about）──────────────────────────────────────────
                  ★ヘッダーから外して独立セクションにした（2026-08-16 / 2-7）。
                  `/u/[id]` と同じ位置・同じ見た目。 */}
-          <div style={{ maxWidth: 680 }}>
+          <div ref={aboutCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
             {editingAbout ? (
               <section style={{
                 background: "#fff", border: "1px solid var(--line)",

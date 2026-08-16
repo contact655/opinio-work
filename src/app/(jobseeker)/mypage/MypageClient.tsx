@@ -390,6 +390,7 @@ export default function MypageClient({
   const [profileSaved, setProfileSaved] = useState<ProfileSavedSnapshot | null>(null);
 
   const [openBasicNonce, setOpenBasicNonce] = useState(0);
+  const [openHeaderNonce, setOpenHeaderNonce] = useState(0);
   const [openCareerNonce, setOpenCareerNonce] = useState(0);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
@@ -443,8 +444,11 @@ export default function MypageClient({
           <button
             type="button"
             onClick={() => {
+              /* ⚠️ 行き先は3つに分かれる（2026-08-16 / 2-7 でカードを作り直した）。
+                    名前は**ヘッダー**、自己紹介は**独立セクション**、職歴はモーダル。 */
               if (setupMissing[0].key === "career") setOpenCareerNonce((n) => n + 1);
-              else setOpenBasicNonce((n) => n + 1); // 名前・自己紹介はどちらも基本情報カード
+              else if (setupMissing[0].key === "name") setOpenHeaderNonce((n) => n + 1);
+              else setOpenBasicNonce((n) => n + 1);
             }}
             style={{
             display: "inline-block", padding: "8px 16px",
@@ -639,6 +643,7 @@ export default function MypageClient({
               followCounts={followCounts}
               profileTabExtra={extra}
               openBasicNonce={openBasicNonce}
+              openHeaderNonce={openHeaderNonce}
               openCareerNonce={openCareerNonce}
               onSavedSnapshotChange={setProfileSaved}
             />
