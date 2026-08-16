@@ -29,7 +29,10 @@ import {
 import {
   EducationEditor,
   MediaAppearanceEditor,
+  AchievementEditor,
+  AwardEditor,
   type RoleItem,
+  type ExperienceOption,
 } from "./RecordEditors";
 import {
   type Education,
@@ -39,10 +42,15 @@ import {
   type MediaAppearance,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
-import { StintRecords } from "./StintRecords";
 /* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
       同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
-import { ProfileSocialLinks, ProfileContentLinksSection, ProfileMediaSection } from "@/components/profile/view/ProfileSections";
+import {
+  ProfileSocialLinks,
+  ProfileContentLinksSection,
+  ProfileMediaSection,
+  ProfileAchievementsSection,
+  ProfileAwardsSection,
+} from "@/components/profile/view/ProfileSections";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -991,11 +999,9 @@ export default function ProfileTab({
   const [awards,           setAwards]           = useState<Award[]>(initialAwards);
   const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
-  /* どの職歴にも紐づかない実績・受賞（experience_id が null）。
-     ⚠️ 職歴を削除すると ON DELETE SET NULL でここへ移ってくる。**消さない。** */
-  const orphanAchievements = achievements.filter((a) => !a.experience_id);
-  const orphanAwards       = awards.filter((a) => !a.experience_id);
-  const [showOrphanEditor, setShowOrphanEditor] = useState(false);
+  /* ⚠️ 「その他の実績・受賞」というまとめ方は 2026-08-16 にやめた。
+        実績・受賞が独立セクションになり、紐づけの有無で置き場所を分ける必要が
+        無くなったため（紐づけはフォームのセレクトで見える）。 */
 
   // ── SNS タブの状態（明示保存方式） ──────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(initialSocialLinks);
@@ -1090,6 +1096,24 @@ export default function ProfileTab({
   const [careerAddNonce, setCareerAddNonce] = useState(0);
   const [eduAddNonce, setEduAddNonce] = useState(0);
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
+  /* 数値実績・受賞（2026-08-16 / 2-4）。表示⇄編集は 2-2/2-3 と同じ形 */
+  /* 紐づけセレクトの選択肢。★職歴の表示名だけを渡す（実績側は職歴の中身を知らない）。
+     ⚠️ `initialExperiences` ではなく **`savedExperienceCount` を動かしている一覧**を
+        見たいが、職歴の実体は `CareerHistoryEditor` が持つ。ここでは初期値を使う。
+        職歴を足した直後にセレクトへ出ないのは既知の割り切り（再読み込みで出る）。 */
+  const experienceOptions: ExperienceOption[] = initialExperiences.map((e) => ({
+    id: e.id,
+    label: `${e.displayCompanyName}（${e.startedAt}〜${e.isCurrent ? "現在" : e.endedAt ?? ""}）`,
+  }));
+
+  const [editingAch, setEditingAch] = useState(false);
+  const [editingAchId, setEditingAchId] = useState<string | null>(null);
+  const [deleteAchId, setDeleteAchId] = useState<string | null>(null);
+  const [achAddNonce, setAchAddNonce] = useState(0);
+  const [editingAwd, setEditingAwd] = useState(false);
+  const [editingAwdId, setEditingAwdId] = useState<string | null>(null);
+  const [deleteAwdId, setDeleteAwdId] = useState<string | null>(null);
+  const [awdAddNonce, setAwdAddNonce] = useState(0);
   /* メディア掲載: 表示⇄編集（2026-08-16 / 2-3）。行の鉛筆から来たときは id を持つ */
   const [editingMedia, setEditingMedia] = useState(false);
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
@@ -1418,6 +1442,72 @@ export default function ProfileTab({
 
           </div>
 
+        {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4）。
+               公開プロフィールと同じ**独立した2セクション**。並び順も `/u/[id]` に合わせ、
+               自己紹介（基本情報）の直後・職歴の前に置く。
+            ⚠️ 職歴カードの中に入れ子で戻さないこと。紐づけはフォームのセレクトで選ぶ。 */}
+          <div style={{ maxWidth: 680 }}>
+            <EditableSection
+              title="数値実績"
+              description="定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。"
+              isEditing={editingAch}
+              onStartEdit={() => { setEditingAchId(null); setEditingAch(true); setAchAddNonce((n) => n + 1); }}
+              action="add"
+              actionLabel="数値実績を追加"
+              chrome="none"
+              editContent={
+                <AchievementEditor
+                  achievements={achievements}
+                  setAchievements={setAchievements}
+                  openAddNonce={achAddNonce}
+                  openEditId={editingAchId}
+                  openDeleteId={deleteAchId}
+                  experienceOptions={experienceOptions}
+                  onClosed={() => { setEditingAchId(null); setDeleteAchId(null); setEditingAch(false); }}
+                />
+              }
+            >
+              <ProfileAchievementsSection
+                achievements={achievements}
+                actions={{
+                  onEditRow: (id) => { setEditingAchId(id); setEditingAch(true); },
+                  onDeleteRow: (id) => { setDeleteAchId(id); setEditingAch(true); },
+                  onAdd: () => { setEditingAchId(null); setEditingAch(true); setAchAddNonce((n) => n + 1); },
+                }}
+              />
+            </EditableSection>
+
+            <EditableSection
+              title="受賞・表彰"
+              description="社内表彰・業界アワードなどを登録できます。"
+              isEditing={editingAwd}
+              onStartEdit={() => { setEditingAwdId(null); setEditingAwd(true); setAwdAddNonce((n) => n + 1); }}
+              action="add"
+              actionLabel="受賞・表彰を追加"
+              chrome="none"
+              editContent={
+                <AwardEditor
+                  awards={awards}
+                  setAwards={setAwards}
+                  openAddNonce={awdAddNonce}
+                  openEditId={editingAwdId}
+                  openDeleteId={deleteAwdId}
+                  experienceOptions={experienceOptions}
+                  onClosed={() => { setEditingAwdId(null); setDeleteAwdId(null); setEditingAwd(false); }}
+                />
+              }
+            >
+              <ProfileAwardsSection
+                awards={awards}
+                actions={{
+                  onEditRow: (id) => { setEditingAwdId(id); setEditingAwd(true); },
+                  onDeleteRow: (id) => { setDeleteAwdId(id); setEditingAwd(true); },
+                  onAdd: () => { setEditingAwdId(null); setEditingAwd(true); setAwdAddNonce((n) => n + 1); },
+                }}
+              />
+            </EditableSection>
+          </div>
+
         {/* 職歴・学歴タブ */}
           <div style={{ maxWidth: 680 }}>
 
@@ -1450,53 +1540,11 @@ export default function ProfileTab({
                   setAchievements((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
                   setAwards((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
                 }}
-                renderStintExtras={(experienceId) => (
-                  <StintRecords
-                    experienceId={experienceId}
-                    achievements={achievements}
-                    setAchievements={setAchievements}
-                    awards={awards}
-                    setAwards={setAwards}
-                  />
-                )}
+                /* ⚠️ `renderStintExtras`（職歴カードの中に実績・受賞を入れ子にする差し込み）は
+                      2026-08-16 に外した。実績・受賞は**独立した2セクション**になり、
+                      公開プロフィール（`/u/[id]`）と同じ並びになった。
+                      紐づけはフォームの「紐づける職歴」セレクトで選ぶ。 */
               />
-
-              {/* どの職歴にも紐づいていないもの。★消さずにここへ集める
-                     （職歴を消すと ON DELETE SET NULL でここに移ってくる） */}
-              {(orphanAchievements.length > 0 || orphanAwards.length > 0 || showOrphanEditor) && (
-                <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: 4 }}>
-                    その他の実績・受賞
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
-                    どの職歴にも紐づいていないものです。職歴を削除すると、その職歴の実績・受賞はここに移ります。
-                  </div>
-                  <StintRecords
-                    experienceId={null}
-                    achievements={achievements}
-                    setAchievements={setAchievements}
-                    awards={awards}
-                    setAwards={setAwards}
-                    /* ＋ から開いたときは、そのまま入力欄まで出す（2回押させない）。
-                       既に実績がある場合は showOrphanEditor が false なのでチップ表示のまま。 */
-                    initiallyOpen={showOrphanEditor}
-                  />
-                </div>
-              )}
-              {orphanAchievements.length === 0 && orphanAwards.length === 0 && !showOrphanEditor && (
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowOrphanEditor(true)}
-                    style={{
-                      background: "none", border: "none", padding: 0, cursor: "pointer",
-                      fontSize: 12, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-                    }}
-                  >
-                    ＋ 職歴に紐づかない実績・受賞を追加
-                  </button>
-                </div>
-              )}
             </EditableSection>
             <EditableSection
               title="学歴"

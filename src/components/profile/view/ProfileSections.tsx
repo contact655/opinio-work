@@ -37,6 +37,26 @@ export type RowActions = {
   onAdd?: () => void;
 };
 
+/** 見出し行の「追加」。⚠️ 見た目を各セクションで書き分けない */
+const sectionAddBtn: React.CSSProperties = {
+  fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
+  background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+  display: "flex", alignItems: "center", gap: 4, padding: 0, whiteSpace: "nowrap",
+};
+/** 0件のときの「〇〇を追加する」。⚠️ 本人にだけ出る */
+const emptyAddBtn: React.CSSProperties = {
+  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+  fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+  textDecoration: "underline", textUnderlineOffset: 2,
+};
+function PlusIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
 /** 行の右端に出す鉛筆とゴミ箱。⚠️ `<a>` の**外**に置くこと（アンカーの入れ子は不正） */
 function RowActionButtons({ id, label, actions }: { id: string; label: string; actions: RowActions }) {
   if (!actions.onEditRow && !actions.onDeleteRow) return null;
@@ -73,7 +93,13 @@ function RowActionButtons({ id, label, actions }: { id: string; label: string; a
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
 
 export type AchievementRow = {
-  id: string; title: string; value: string | null; unit: string | null;
+  id: string; title: string;
+  /* ⚠️ **DB は integer**（`ow_user_achievements.value`）。`/u/[id]` は文字列として
+        受けていたが、`/mypage` は数値で持っている。描画は `a.value ?? "—"` の
+        埋め込みだけで、どちらでも同じ文字列になる。**型をどちらかに寄せない**
+        （寄せると片方でキャストが要り、そこで null の扱いを間違える）。 */
+  value: string | number | null;
+  unit: string | null;
   description: string | null; period_start: string | null; period_end: string | null; sort_order: number;
 };
 export type AwardRow = {
@@ -149,10 +175,15 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner }: { aboutMe: strin
 }
 
 // ─── ProfileAchievementsSection ───────────────────────────────────────────────────────────
-export function ProfileAchievementsSection({ achievements }: { achievements: AchievementRow[] }) {
+export function ProfileAchievementsSection({ achievements, actions }: {
+  achievements: AchievementRow[];
+  /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
+  actions?: RowActions;
+}) {
+  const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
   return (
     <>
-      {achievements.length > 0 && (
+      {(achievements.length > 0 || hasActions) && (
         <section style={{
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
@@ -166,7 +197,24 @@ export function ProfileAchievementsSection({ achievements }: { achievements: Ach
               ACHIEVEMENTS
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            {actions?.onAdd && (
+              <button type="button" onClick={actions.onAdd} style={sectionAddBtn}>
+                <PlusIcon />追加
+              </button>
+            )}
           </div>
+
+          {/* 0件で本人のときだけ。`/u/[id]` ではセクションごと出ない */}
+          {achievements.length === 0 && hasActions && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              まだ数値実績を登録していません。
+              {actions?.onAdd && (
+                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
+                  数値実績を追加する
+                </button>
+              )}
+            </p>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "var(--space-3)" }}>
             {achievements.map((a) => (
               <div key={a.id} style={{
@@ -184,7 +232,7 @@ export function ProfileAchievementsSection({ achievements }: { achievements: Ach
                 <div style={{
                   fontFamily: "Inter, sans-serif", fontWeight: 800, color: "var(--royal)",
                   lineHeight: 1, marginBottom: 6,
-                  fontSize: a.value && a.value.length > 4 ? 22 : 30,
+                  fontSize: a.value != null && String(a.value).length > 4 ? 22 : 30,
                 }}>
                   {a.value ?? "—"}
                   {a.unit && (
@@ -200,6 +248,13 @@ export function ProfileAchievementsSection({ achievements }: { achievements: Ach
                   <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5, fontFamily: "Inter, sans-serif", position: "relative" }}>
                     {a.period_start ? a.period_start.slice(0, 7) : ""}
                     {a.period_end ? ` 〜 ${a.period_end.slice(0, 7)}` : a.period_start ? " 〜" : ""}
+                  </div>
+                )}
+                {/* ⚠️ カード型なので右端ではなく**下端**に置く。
+                       `actions` が無ければ描かない＝他人の DOM は不変。 */}
+                {(actions?.onEditRow || actions?.onDeleteRow) && (
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: 6, position: "relative" }}>
+                    <RowActionButtons id={a.id} label={a.title} actions={actions} />
                   </div>
                 )}
               </div>
@@ -226,10 +281,15 @@ export function ProfileAchievementsSection({ achievements }: { achievements: Ach
 }
 
 // ─── ProfileAwardsSection ───────────────────────────────────────────────────────────
-export function ProfileAwardsSection({ awards }: { awards: AwardRow[] }) {
+export function ProfileAwardsSection({ awards, actions }: {
+  awards: AwardRow[];
+  /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
+  actions?: RowActions;
+}) {
+  const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
   return (
     <>
-      {awards.length > 0 && (
+      {(awards.length > 0 || hasActions) && (
         <section style={{
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
@@ -246,7 +306,24 @@ export function ProfileAwardsSection({ awards }: { awards: AwardRow[] }) {
             <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
               {awards.length}件
             </span>
+            {actions?.onAdd && (
+              <button type="button" onClick={actions.onAdd} style={sectionAddBtn}>
+                <PlusIcon />追加
+              </button>
+            )}
           </div>
+
+          {awards.length === 0 && hasActions && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              まだ受賞・表彰を登録していません。
+              {actions?.onAdd && (
+                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
+                  受賞・表彰を追加する
+                </button>
+              )}
+            </p>
+          )}
+
           <div style={{ display: "flex", flexDirection: "column" }}>
             {awards.map((award, i) => (
               <div key={award.id} style={{
@@ -296,6 +373,10 @@ export function ProfileAwardsSection({ awards }: { awards: AwardRow[] }) {
                     </p>
                   )}
                 </div>
+                {/* ⚠️ 行の右端。`actions` が無ければ描かない＝他人の DOM は不変 */}
+                {(actions?.onEditRow || actions?.onDeleteRow) && (
+                  <RowActionButtons id={award.id} label={award.title} actions={actions} />
+                )}
               </div>
             ))}
           </div>

@@ -892,12 +892,6 @@ export function EducationEditor({
 // ─── 実績・受賞タブ — shared helpers ─────────────────────────────────────────
 
 /** "2024-06-01" → "2024年6月" */
-function fmtYM(s: string | null): string {
-  if (!s) return "";
-  const [y, m] = s.split("-");
-  if (!y || !m) return s;
-  return `${y}年${parseInt(m, 10)}月`;
-}
 /** "<input type=month>" value ("2024-06") → "2024-06-01" or null */
 function monthToDate(s: string): string | null {
   return s ? `${s}-01` : null;
@@ -908,24 +902,6 @@ function dateToMonth(s: string | null): string {
 }
 
 // ── shared micro-components ──────────────────────────────────────────────────
-
-function AchieveIconBtn({
-  onClick, title, danger, children,
-}: { onClick: () => void; title?: string; danger?: boolean; children: React.ReactNode }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button type="button" onClick={onClick} title={title}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
-        border: "none",
-        background: hovered ? (danger ? "var(--error-soft)" : "var(--line-soft)") : "transparent",
-        borderRadius: 5, fontSize: "var(--text-sm)",
-        color: danger ? "var(--error)" : "var(--ink-mute)",
-        cursor: "pointer", transition: "background 0.12s", padding: 0, fontFamily: "inherit", flexShrink: 0,
-      }}>{children}</button>
-  );
-}
 
 const aef = (): React.CSSProperties => ({
   width: "100%", border: "1.5px solid var(--line)", borderRadius: 8,
@@ -964,35 +940,56 @@ function AchieveFormActions({ isSaving, justSaved, canSave, onSave, onCancel }: 
     </div>
   );
 }
-function AddSectionBtn({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick}
-      style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px 14px", width: "100%", background: "transparent", border: "1px dashed var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s, color 0.15s" }}>
-      <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>{label}
-    </button>
-  );
-}
+/* ⚠️ `AddSectionBtn`（「＋ 〇〇を追加」）は 2026-08-16 に削除した。
+      追加の入口は公開部品の見出し行の「追加」1つに集約した（ルール⑧）。 */
 
 // ─── AchievementEditor ────────────────────────────────────────────────────────
 
 type AchievementDraft = {
   title: string; value: string; unit: string;
   description: string; period_start: string; period_end: string;
+  /** 紐づける職歴。`""` は未選択（＝ どの職歴にも紐づけない）。2026-08-16 / 2-4 */
+  experience_id: string;
 };
 const EMPTY_ACH_DRAFT: AchievementDraft = {
-  title: "", value: "", unit: "", description: "", period_start: "", period_end: "",
+  title: "", value: "", unit: "", description: "", period_start: "", period_end: "", experience_id: "",
 };
 function draftFromAch(a: Achievement): AchievementDraft {
   return {
     title: a.title, value: a.value !== null ? String(a.value) : "",
     unit: a.unit ?? "", description: a.description ?? "",
     period_start: dateToMonth(a.period_start), period_end: dateToMonth(a.period_end),
+    experience_id: a.experience_id ?? "",
   };
 }
 
+/** 紐づけセレクトの選択肢。★職歴の表示名だけを持つ（この部品は職歴の中身を知らない） */
+export type ExperienceOption = { id: string; label: string };
+
+/** 「紐づける職歴」セレクト。⚠️ 実績・受賞で同じものを使う（2箇所に書かない） */
+function ExperienceSelect({
+  value, onChange, options, disabled,
+}: { value: string; onChange: (v: string) => void; options: ExperienceOption[]; disabled?: boolean }) {
+  if (options.length === 0) return null;
+  return (
+    <div>
+      <label style={ael()}>紐づける職歴（任意）</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} style={aef()}>
+        <option value="">選択しない</option>
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>{o.label}</option>
+        ))}
+      </select>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.7 }}>
+        ⚠️ 職歴を削除しても、この実績は消えません（紐づけだけが外れます）。
+      </div>
+    </div>
+  );
+}
+
 function AchievementForm({
-  draft, onDraftChange, isSaving, justSaved, onSave, onCancel,
-}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; }) {
+  draft, onDraftChange, isSaving, justSaved, onSave, onCancel, experienceOptions = [],
+}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; experienceOptions?: ExperienceOption[]; }) {
   const set = useCallback((k: keyof AchievementDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
   const canSave = !!draft.title.trim() && !isSaving;
   return (
@@ -1033,60 +1030,45 @@ function AchievementForm({
           aria-label="実績の詳細"
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
+      <ExperienceSelect value={draft.experience_id} onChange={(v) => set("experience_id", v)}
+        options={experienceOptions} disabled={isSaving} />
       <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
 
-function AchievementCard({
-  item, onEdit, onDelete,
-}: { item: Achievement; onEdit: () => void; onDelete: () => void; }) {
-  const [hovered, setHovered] = useState(false);
-  const period = [fmtYM(item.period_start), fmtYM(item.period_end)].filter(Boolean).join(" 〜 ");
-  return (
-    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 2, flexWrap: "wrap" }}>
-            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
-            {item.value !== null && (
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--accent)", fontFamily: "Inter, sans-serif" }}>
-                {item.value.toLocaleString()}{item.unit || ""}
-              </span>
-            )}
-          </div>
-          {period && (
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", marginBottom: 2 }}>{period}</div>
-          )}
-          {item.description && (
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
-          <AchieveIconBtn onClick={onEdit} title="編集"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></AchieveIconBtn>
-          <AchieveIconBtn onClick={onDelete} title="削除" danger><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></AchieveIconBtn>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ⚠️ `AchievementCard`（行の表示・34行）は 2026-08-16 に削除した。
+      一覧・鉛筆・ゴミ箱は公開プロフィールと同じ部品が持つ。ここに描き直さないこと。 */
 
+/**
+ * 数値実績の**編集フォームだけ**（2026-08-16 / 2-4）。
+ *
+ * ⚠️ **行の表示をここに書かないこと。** 一覧・鉛筆・ゴミ箱・0件の1行は
+ *    公開プロフィールと同じ `ProfileAchievementsSection` が持つ。
+ * ⚠️ **職歴カードの入れ子をやめた。** 以前は「どの職歴の下で開いたか」で
+ *    `experience_id` を決めていたが、独立セクションになったのでフォームの
+ *    セレクト（`ExperienceSelect`）で選ぶ形にした。
+ */
 export function AchievementEditor({
-  achievements, setAchievements, experienceId, showHeading = true,
+  achievements, setAchievements, openAddNonce, openEditId, openDeleteId, onClosed, experienceOptions = [],
 }: {
   achievements: Achievement[];
   setAchievements: React.Dispatch<React.SetStateAction<Achievement[]>>;
-  /** このエディタが担当する職歴。`null` は「その他」、`undefined` は全件（従来の形） */
-  experienceId?: string | null;
-  /** 職歴カードの中に置くときは見出しを出さない */
-  showHeading?: boolean;
+  /** 見出しの「追加」から追加フォームを開く合図 */
+  openAddNonce?: number;
+  /** 行の鉛筆から編集を開く行の id */
+  openEditId?: string | null;
+  /** 行のゴミ箱から削除確認を開く行の id */
+  openDeleteId?: string | null;
+  /** フォームが閉じたことを親へ知らせる。★親はこれでカードを表示モードへ戻す */
+  onClosed?: () => void;
+  /** 紐づけセレクトの選択肢（職歴） */
+  experienceOptions?: ExperienceOption[];
 }) {
-  /* ⚠️ 絞り込みと、新規作成時に付ける experience_id は**同じ値**から出す。
-        別々に書くと「その職歴の下に追加したのに、別の場所に出る」形になる。 */
-  const scoped = experienceId === undefined
-    ? achievements
-    : achievements.filter((a) => (a.experience_id ?? null) === experienceId);
+  const scoped = achievements;
+  /* ⚠️ `onClosed` を useCallback の依存に入れると呼び出し側の再生成で作り直される。ref に逃がす */
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<AchievementDraft>(EMPTY_ACH_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
@@ -1103,8 +1085,11 @@ export function AchievementEditor({
     setToastVariant(variant); setToastMsg(msg);
   }, []);
 
+  /* ⚠️ 紐づけは**フォームのセレクト**から取る（2026-08-16 / 2-4）。
+        以前は「どの職歴カードの下で開いたか」から決めていたが、独立セクションに
+        なったので、その手がかりが無い。`""` は「紐づけない」＝ null。 */
   const makeBody = (d: AchievementDraft) => ({
-    ...(experienceId === undefined ? {} : { experience_id: experienceId }),
+    experience_id: d.experience_id || null,
     title: d.title.trim(),
     value: d.value !== "" && !isNaN(parseInt(d.value, 10)) ? parseInt(d.value, 10) : null,
     unit: d.unit.trim() || null,
@@ -1129,6 +1114,7 @@ export function AchievementEditor({
       await new Promise((r) => setTimeout(r, 800));
       setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT);
       setEditJustSaved(false);
+      onClosedRef.current?.();  // ★保存できたらカードごと表示モードへ（2-2/2-3 と同じ）
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
   }, [editingId, editDraft, setAchievements, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1148,6 +1134,7 @@ export function AchievementEditor({
       await new Promise((r) => setTimeout(r, 800));
       setAdding(false); setAddDraft(EMPTY_ACH_DRAFT);
       setAddJustSaved(false);
+      onClosedRef.current?.();
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
   }, [addDraft, setAchievements, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1160,46 +1147,46 @@ export function AchievementEditor({
       if (!res.ok) throw new Error();
       setAchievements((prev) => prev.filter((a) => a.id !== deleteTarget.id));
       setDeleteTarget(null); showToast("実績を削除しました");
+      onClosedRef.current?.();
     } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
     finally { setDeleting(false); }
   }, [deleteTarget, setAchievements, showToast]);
 
+  /* ★外から開く（2026-08-16 / 2-4）。公開部品の鉛筆・ゴミ箱・見出しの「追加」が呼ぶ */
+  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  useEffect(() => {
+    if (!openEditId) return;
+    const t = achievements.find((a) => a.id === openEditId);
+    if (t) { setEditingId(openEditId); setEditDraft(draftFromAch(t)); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEditId]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const t = achievements.find((a) => a.id === openDeleteId);
+    if (t) setDeleteTarget(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDeleteId]);
+
   return (
     <div style={{ marginTop: 0 }}>
-      {showHeading && (
-        <>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>数値実績</div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-            定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。
-          </div>
-        </>
-      )}
-      {scoped.map((item, idx) => (
-        <div key={item.id}>
-          {editingId === item.id ? (
-            <AchievementForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
-              onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT); }} />
-          ) : (
-            <AchievementCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAch(item)); }}
-              onDelete={() => setDeleteTarget(item)} />
-          )}
-          {idx < scoped.length - 1 && editingId !== item.id && (
-            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-          )}
-        </div>
+      {/* ★編集フォームだけ。一覧・鉛筆・ゴミ箱・0件の1行は
+             `ProfileAchievementsSection`（公開と共通）が持つ。ここに戻さないこと。 */}
+      {scoped.filter((item) => editingId === item.id).map((item) => (
+        <AchievementForm key={item.id} draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
+          experienceOptions={experienceOptions}
+          onSave={() => { void saveEdit(); }}
+          onCancel={() => { setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT); onClosedRef.current?.(); }} />
       ))}
-      {/* ⚠️ 記入例カードはやめた（2026-08-16）。0件の案内は StintRecords 側の1行に集約 */}
       {adding && (
-        <div style={{ marginTop: scoped.length > 0 ? 12 : 0 }}>
-          <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
-            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_ACH_DRAFT); }} />
-        </div>
+        <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
+          experienceOptions={experienceOptions}
+          onSave={() => { void saveAdd(); }}
+          onCancel={() => { setAdding(false); setAddDraft(EMPTY_ACH_DRAFT); onClosedRef.current?.(); }} />
       )}
-      {!adding && <AddSectionBtn label="数値実績を追加" onClick={() => setAdding(true)} />}
       <ConfirmDialog isOpen={!!deleteTarget} title="実績を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
-        onConfirm={() => { void confirmDelete(); }} onCancel={() => setDeleteTarget(null)} />
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
     </div>
   );
@@ -1207,15 +1194,16 @@ export function AchievementEditor({
 
 // ─── AwardEditor ──────────────────────────────────────────────────────────────
 
-type AwardDraft = { title: string; issuer: string; awarded_at: string; description: string; };
-const EMPTY_AWARD_DRAFT: AwardDraft = { title: "", issuer: "", awarded_at: "", description: "" };
+type AwardDraft = { title: string; issuer: string; awarded_at: string; description: string; experience_id: string; };
+const EMPTY_AWARD_DRAFT: AwardDraft = { title: "", issuer: "", awarded_at: "", description: "", experience_id: "" };
 function draftFromAward(a: Award): AwardDraft {
-  return { title: a.title, issuer: a.issuer ?? "", awarded_at: dateToMonth(a.awarded_at), description: a.description ?? "" };
+  return { title: a.title, issuer: a.issuer ?? "", awarded_at: dateToMonth(a.awarded_at), description: a.description ?? "",
+    experience_id: a.experience_id ?? "" };
 }
 
 function AwardForm({
-  draft, onDraftChange, isSaving, justSaved, onSave, onCancel,
-}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; }) {
+  draft, onDraftChange, isSaving, justSaved, onSave, onCancel, experienceOptions = [],
+}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; experienceOptions?: ExperienceOption[]; }) {
   const set = useCallback((k: keyof AwardDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
   const canSave = !!draft.title.trim() && !isSaving;
   return (
@@ -1242,51 +1230,35 @@ function AwardForm({
           aria-label="受賞の詳細"
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
+      <ExperienceSelect value={draft.experience_id} onChange={(v) => onDraftChange({ ...draft, experience_id: v })}
+        options={experienceOptions} disabled={isSaving} />
       <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
 
-function AwardCard({
-  item, onEdit, onDelete,
-}: { item: Award; onEdit: () => void; onDelete: () => void; }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{item.title}</div>
-          {(item.issuer || item.awarded_at) && (
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 1 }}>
-              {[item.issuer, fmtYM(item.awarded_at)].filter(Boolean).join("　")}
-            </div>
-          )}
-          {item.description && (
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
-          <AchieveIconBtn onClick={onEdit} title="編集"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></AchieveIconBtn>
-          <AchieveIconBtn onClick={onDelete} title="削除" danger><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></AchieveIconBtn>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ⚠️ `AwardCard`（行の表示・28行）は 2026-08-16 に削除した。
+      一覧・鉛筆・ゴミ箱は公開プロフィールと同じ部品が持つ。ここに描き直さないこと。 */
 
+/**
+ * 受賞・表彰の**編集フォームだけ**（2026-08-16 / 2-4）。詳細は `AchievementEditor` と同じ。
+ */
 export function AwardEditor({
-  awards, setAwards, experienceId, showHeading = true,
+  awards, setAwards, openAddNonce, openEditId, openDeleteId, onClosed, experienceOptions = [],
 }: {
   awards: Award[];
   setAwards: React.Dispatch<React.SetStateAction<Award[]>>;
   /** このエディタが担当する職歴。`null` は「その他」、`undefined` は全件（従来の形） */
-  experienceId?: string | null;
-  showHeading?: boolean;
+  openAddNonce?: number;
+  openEditId?: string | null;
+  openDeleteId?: string | null;
+  onClosed?: () => void;
+  experienceOptions?: ExperienceOption[];
 }) {
-  const scoped = experienceId === undefined
-    ? awards
-    : awards.filter((a) => (a.experience_id ?? null) === experienceId);
+  const scoped = awards;
+  /* ⚠️ ref に逃がす理由は AchievementEditor と同じ */
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<AwardDraft>(EMPTY_AWARD_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
@@ -1304,7 +1276,7 @@ export function AwardEditor({
   }, []);
 
   const makeBody = (d: AwardDraft) => ({
-    ...(experienceId === undefined ? {} : { experience_id: experienceId }),
+    experience_id: d.experience_id || null,
     title: d.title.trim(), issuer: d.issuer.trim() || null,
     awarded_at: monthToDate(d.awarded_at), description: d.description.trim() || null,
   });
@@ -1323,7 +1295,7 @@ export function AwardEditor({
       showToast("受賞歴を更新しました");
       setEditJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
-      setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT);
+      setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT); onClosedRef.current?.();
       setEditJustSaved(false);
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
@@ -1342,7 +1314,7 @@ export function AwardEditor({
       showToast("受賞歴を追加しました");
       setAddJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
-      setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT);
+      setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); onClosedRef.current?.();
       setAddJustSaved(false);
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
@@ -1355,47 +1327,45 @@ export function AwardEditor({
       const res = await fetch(`/api/jobseeker/awards/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setAwards((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-      setDeleteTarget(null); showToast("受賞歴を削除しました");
+      setDeleteTarget(null); showToast("受賞歴を削除しました"); onClosedRef.current?.();
     } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
     finally { setDeleting(false); }
   }, [deleteTarget, setAwards, showToast]);
 
+  /* ★外から開く（2026-08-16 / 2-4） */
+  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  useEffect(() => {
+    if (!openEditId) return;
+    const t = awards.find((a) => a.id === openEditId);
+    if (t) { setEditingId(openEditId); setEditDraft(draftFromAward(t)); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEditId]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const t = awards.find((a) => a.id === openDeleteId);
+    if (t) setDeleteTarget(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDeleteId]);
+
   return (
-    <div style={{ marginTop: showHeading ? 36 : 0 }}>
-      {showHeading && (
-        <>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>受賞歴</div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-            社内外のアワード・表彰・コンペ入賞などを登録できます。
-          </div>
-        </>
-      )}
-      {scoped.map((item, idx) => (
-        <div key={item.id}>
-          {editingId === item.id ? (
-            <AwardForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
-              onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT); }} />
-          ) : (
-            <AwardCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromAward(item)); }}
-              onDelete={() => setDeleteTarget(item)} />
-          )}
-          {idx < scoped.length - 1 && editingId !== item.id && (
-            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-          )}
-        </div>
+    <div style={{ marginTop: 0 }}>
+      {/* ★編集フォームだけ。一覧・鉛筆・ゴミ箱・0件の1行は `ProfileAwardsSection` が持つ */}
+      {scoped.filter((item) => editingId === item.id).map((item) => (
+        <AwardForm key={item.id} draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
+          experienceOptions={experienceOptions}
+          onSave={() => { void saveEdit(); }}
+          onCancel={() => { setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT); onClosedRef.current?.(); }} />
       ))}
-      {/* ⚠️ 同上 */}
       {adding && (
-        <div style={{ marginTop: scoped.length > 0 ? 12 : 0 }}>
-          <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
-            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); }} />
-        </div>
+        <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
+          experienceOptions={experienceOptions}
+          onSave={() => { void saveAdd(); }}
+          onCancel={() => { setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); onClosedRef.current?.(); }} />
       )}
-      {!adding && <AddSectionBtn label="受賞歴を追加" onClick={() => setAdding(true)} />}
       <ConfirmDialog isOpen={!!deleteTarget} title="受賞歴を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
-        onConfirm={() => { void confirmDelete(); }} onCancel={() => setDeleteTarget(null)} />
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
     </div>
   );
