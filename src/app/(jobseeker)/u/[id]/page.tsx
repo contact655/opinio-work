@@ -754,7 +754,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                    そこは「この欄が空である」という事実の表示であって督促ではない。 */}
 
             {/* About Me */}
-            <ProfileAboutSection aboutMe={owUser.about_me} viewerIsOwner={viewerIsOwner} />
+            {/* ★`viewerIsOwner` を渡さない（常に false）。空の自己紹介に本人だけ
+                   点線の CTA が出ていたのをやめる。追加は `/mypage` の
+                   「セクションを追加」に集約した（2026-08-16）。 */}
+            <ProfileAboutSection aboutMe={owUser.about_me} viewerIsOwner={false} />
             {/* ── 数値実績 ── */}
             <ProfileAchievementsSection achievements={achievements} />
 
@@ -776,7 +779,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   careers={timelineCareers}
                   educations={[]}
                   future={futureData}
-                  viewerIsOwner={viewerIsOwner}
+                  /* ★本人にも ✎ を出さない（2026-08-16）。編集は `/mypage` に寄せた。
+                     ⚠️ この prop は `MergedTimeline` では **future の描画にしか効かない**
+                        （会社名の伏せ字は `buildTimelineCareerEntriesFromRaw` に
+                        `viewerIsOwner` を渡して既に解決済み。そちらは触らない）。 */
+                  viewerIsOwner={false}
                   collapseAfter={4}
                   birthDate={birthDate}
                 />
@@ -790,7 +797,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   careers={[]}
                   educations={timelineEdus}
                   future={null}
-                  viewerIsOwner={viewerIsOwner}
+                  viewerIsOwner={false}
                   birthDate={birthDate}
                 />
               </ProfileTimelineSection>
@@ -860,7 +867,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* ── OPINIO掲載記事 ── */}
             <ProfileArticlesSection featuredArticles={featuredArticles} />
             {/* ── 発信コンテンツ (外部リンク) ── */}
-            <ProfileContentLinksSection contentLinks={contentLinks} viewerIsOwner={viewerIsOwner} />
+            {/* ★同上。0件のときセクションごと出さない・「＋ 追加」も出さない */}
+            <ProfileContentLinksSection contentLinks={contentLinks} viewerIsOwner={false} />
           {/* ── 在籍企業の募集中求人 ──────────────────────────────────
               2026-08-15 に右サイドバーから本文カラム最下部へ移設した。
 
