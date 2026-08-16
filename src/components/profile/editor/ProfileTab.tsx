@@ -18,7 +18,6 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Toast from "@/components/ui/Toast";
 import {
-  FormSection,
   FormGroup,
   CardSaveFooter,
   CardDoneFooter,
@@ -41,6 +40,9 @@ import {
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { StintRecords } from "./StintRecords";
+/* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
+      同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
+import { ProfileSocialLinks } from "@/components/profile/view/ProfileSections";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -403,22 +405,26 @@ function ProfilePhotoUploader({
   );
 }
 
+/**
+ * SNS の**編集フォームだけ**（2026-08-16 に表示の枝を落とした）。
+ *
+ * ⚠️ **表示（アイコン列・空状態・見出し・説明文）をここに書かないこと。**
+ *    見出しと説明文は `EditableSection`、アイコン列は `ProfileSocialLinks`（公開と共通）、
+ *    0件の1行は `SocialLinksView` が持つ。
+ *    以前はここに `FormSection`（枠＋見出し＋説明文）を描く分岐があったが、
+ *    `EditableSection` の中で使う今は**通らない枝**だったので消した。
+ */
 function SocialLinksEditor({
   socialLinks,
   setSocialLinks,
   footer,
-  hideHeading = false,
 }: {
   socialLinks: SocialLinks;
   setSocialLinks: React.Dispatch<React.SetStateAction<SocialLinks>>;
   /** カード内の右下に置く操作行。⚠️ カードの外に浮かせないために受け取る */
   footer?: React.ReactNode;
-  /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16） */
-  hideHeading?: boolean;
 }) {
-  /* ⚠️ hideHeading のときは FormSection（枠＋見出し）ごと外す。
-        EditableSection が枠と見出しを持つので、二重の枠にしない。 */
-  const body = (
+  return (
     <>
         {SNS_PLATFORMS.map((platform) => {
           const meta = SOCIAL_META[platform];
@@ -464,18 +470,6 @@ function SocialLinksEditor({
         </div>
         {footer}
     </>
-  );
-
-  if (hideHeading) return body;
-  return (
-    <div style={{ maxWidth: 680 }}>
-      <FormSection
-        title="SNS・外部リンク"
-        desc="登録したリンクはプロフィールページに表示されます。"
-      >
-        {body}
-      </FormSection>
-    </div>
   );
 }
 
@@ -777,6 +771,14 @@ function ContentLinksView({
  *    SNS を空にして保存すると `{"x": ""}` になる。docs/todo.md に記録済み）。
  *    キーの有無で見ると「登録あり」に化ける。
  */
+/**
+ * SNS の表示モード。★**公開プロフィール（`/u/[id]`）と同じ部品**を使う（2026-08-16）。
+ *
+ * ⚠️ **ここにアイコン列を書き直さないこと。** 見た目は `ProfileSocialLinks` が持つ。
+ *    以前はピル型のリンク（ラベル付き）を独自に描いており、公開ページと別物だった。
+ * ⚠️ 0件のときだけ /mypage 独自の1行を出す（`/u/[id]` は0件で何も出さない）。
+ *    **これが公開プロフィールと違ってよい唯一の箇所。**
+ */
 function SocialLinksView({
   socialLinks, onStartEdit,
 }: { socialLinks: SocialLinks; onStartEdit: () => void }) {
@@ -800,36 +802,7 @@ function SocialLinksView({
       </p>
     );
   }
-
-  return (
-    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: 10 }}>
-      {filled.map((p) => {
-        const url = (socialLinks[p] ?? "").trim();
-        return (
-          <li key={p}>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={url}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 7,
-                padding: "7px 12px", borderRadius: 100,
-                border: "1px solid var(--line)", background: "#fff",
-                fontSize: 13, fontWeight: 600, color: "var(--ink)", textDecoration: "none",
-                maxWidth: 260, overflow: "hidden",
-              }}
-            >
-              <SocialIcon platform={p} size={16} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {SOCIAL_META[p].label}
-              </span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
-  );
+  return <ProfileSocialLinks socialLinks={socialLinks} />;
 }
 
 /**
@@ -1681,7 +1654,6 @@ export default function ProfileTab({
                   <SocialLinksEditor
                     socialLinks={socialLinks}
                     setSocialLinks={setSocialLinks}
-                    hideHeading
                     /* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。 */
                     footer={
                       <CardSaveFooter

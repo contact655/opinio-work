@@ -16,6 +16,10 @@ import Link from "next/link";
 /* ⚠️ 定数は**素のモジュール**に置く。ここ（"use client"）から export すると、
       サーバーコンポーネントが `PLATFORM_META[x].color` とドットで読めず 500 になる。 */
 import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
+/* ⚠️ `SocialIcon.tsx` は `"use client"` を**持たない**素のモジュール。
+      サーバーコンポーネントからも `SOCIAL_META[x].label` と読めるので、
+      `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
+import { SocialIcon, SOCIAL_META, SNS_PLATFORMS, type SocialPlatform } from "@/components/SocialIcon";
 
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
 
@@ -575,5 +579,35 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { co
 
 
     </>
+  );
+}
+
+// ─── ProfileSocialLinks ───────────────────────────────────────────────────────
+
+/**
+ * SNS アイコン列。`/u/[id]` ではヘッダーの中（フォロー数の下）に出る。
+ *
+ * ⚠️ **並び順は `SNS_PLATFORMS` が持つ。** 呼び出し側で並べ替えないこと。
+ * ⚠️ 空文字のキーは出さない（`{"x": ""}` が残っていた時期の名残。値の truthy で見る）。
+ * ⚠️ 0件のときは**何も描かない**（`/u/[id]` の挙動）。本人向けの空状態は
+ *    呼び出し側（`/mypage`）が出す。
+ */
+export function ProfileSocialLinks({ socialLinks }: { socialLinks: Partial<Record<string, string>> | null | undefined }) {
+  const links = socialLinks ?? {};
+  const activeSocials = SNS_PLATFORMS.filter((k) => links[k] && links[k]!.trim() !== "");
+  if (activeSocials.length === 0) return null;
+  return (
+    <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
+      {activeSocials.map((platform) => {
+        const url = links[platform]!;
+        const label = SOCIAL_META[platform].label;
+        return (
+          <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
+            aria-label={label} title={label} className="sns-icon-link">
+            <SocialIcon platform={platform as SocialPlatform} variant="display" />
+          </a>
+        );
+      })}
+    </div>
   );
 }

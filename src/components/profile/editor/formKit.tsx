@@ -294,7 +294,12 @@ export function EditableSection({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)" }}>{title}</div>
-          {description && (
+          {/* ★**説明文は編集モードだけ**（2026-08-16）。
+                 表示モードは「見出し＋実際の内容」だけにする。公開プロフィール
+                 （`/u/[id]`）と並べたときに、管理画面の案内文があると別物に見える。
+              ⚠️ 「何を書けばよいか」は入力欄の placeholder と、この編集モードの
+                 説明文が担う。表示モードに戻さないこと。 */}
+          {description && isEditing && (
             <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
               {description}
             </div>
@@ -308,7 +313,7 @@ export function EditableSection({
         )}
       </div>
 
-      <div style={{ marginTop: description ? 20 : 16 }}>
+      <div style={{ marginTop: description && isEditing ? 20 : 16 }}>
         {isEditing ? editContent : children}
       </div>
     </section>

@@ -3,6 +3,7 @@ import { permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
 import { canUserPost } from "@/lib/feed/canPost";
@@ -16,12 +17,6 @@ import {
 } from "@/lib/utils/timeline";
 import { getUserAge } from "@/lib/age";
 import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
-import {
-  SocialIcon,
-  type SocialPlatform,
-  SOCIAL_META,
-  SNS_PLATFORMS,
-} from "@/components/SocialIcon";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { FollowCounts } from "@/components/profile/FollowCounts";
@@ -37,6 +32,7 @@ import {
   ProfileMediaSection,
   ProfileArticlesSection,
   ProfileContentLinksSection,
+  ProfileSocialLinks,
 } from "@/components/profile/view/ProfileSections";
 import { PLATFORM_META } from "@/lib/profile/platformMeta";
 
@@ -212,11 +208,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const age = getUserAge(birthDate);
   const ageDisplay = age !== null ? `${age}歳` : null;
 
+  /* ⚠️ 抽出と並び順は `ProfileSocialLinks` が持つ（2026-08-16 に切り出し）。
+        ここで `activeSocials` を作り直さないこと。 */
   const socialLinks = owUser.social_links ?? {};
-  // SNS_PLATFORMS の順序を維持しつつ、値が空文字列でないキーのみ抽出
-  const activeSocials = SNS_PLATFORMS.filter(
-    (k) => socialLinks[k] && socialLinks[k]!.trim() !== ""
-  );
 
   // Fetch experiences + educations + content links + achievements + awards + media in parallel
   const [
@@ -651,20 +645,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       数字が価値の代理指標に見えないようにする）。0 は出ない。 */}
                   <FollowCounts counts={followCounts} />
                 </div>
-                {activeSocials.length > 0 && (
-                  <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-                    {activeSocials.map((platform) => {
-                      const url = socialLinks[platform]!;
-                      const label = SOCIAL_META[platform].label;
-                      return (
-                        <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
-                          aria-label={label} title={label} className="sns-icon-link">
-                          <SocialIcon platform={platform} variant="display" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
+                <ProfileSocialLinks socialLinks={socialLinks} />
               </div>
 
               {/* Main action CTA (right-side) */}
