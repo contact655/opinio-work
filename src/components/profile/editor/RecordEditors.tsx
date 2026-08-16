@@ -11,6 +11,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
+import { ProfileEditModal } from "./ProfileEditModal";
 import {
   type Education,
   type School,
@@ -1233,13 +1234,17 @@ function draftFromMA(m: MediaAppearance): MediaAppearanceDraft {
   };
 }
 
+/**
+ * ★入力欄だけ。**保存行は持たない**（2026-08-17 / フェーズ2）。
+ * 保存・キャンセル・破棄の確認は `ProfileEditModal` のフッターが持つ。
+ * ⚠️ ここに保存ボタンを戻さないこと。モーダルのフッターと2つになる。
+ */
 function MediaAppearanceForm({
-  draft, onDraftChange, isSaving, justSaved, onSave, onCancel,
-}: { draft: MediaAppearanceDraft; onDraftChange: (d: MediaAppearanceDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; }) {
+  draft, onDraftChange, isSaving,
+}: { draft: MediaAppearanceDraft; onDraftChange: (d: MediaAppearanceDraft) => void; isSaving: boolean; }) {
   const set = useCallback((k: keyof MediaAppearanceDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
-  const canSave = !!draft.title.trim() && !isSaving;
   return (
-    <div style={formBox}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label style={ael()}>掲載タイトル *</label>
         <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
@@ -1272,7 +1277,6 @@ function MediaAppearanceForm({
           aria-label="メディア掲載の詳細"
           style={{ ...aef(), resize: "vertical", minHeight: 72 }} />
       </div>
-      <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
@@ -1282,14 +1286,12 @@ function MediaAppearanceForm({
       ここに描き直さないこと。 */
 
 export function MediaAppearanceEditor({
-  mediaAppearances, setMediaAppearances, hideHeading = false, openAddNonce, openEditId, openDeleteId, onClosed,
+  mediaAppearances, setMediaAppearances, openAddNonce, openEditId, openDeleteId, onClosed,
 }: {
-  /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16） */
+  /** ★カードの見出しの「追加」から追加フォームを開く合図（2026-08-16） */
   openAddNonce?: number;
   mediaAppearances: MediaAppearance[];
   setMediaAppearances: React.Dispatch<React.SetStateAction<MediaAppearance[]>>;
-  /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16） */
-  hideHeading?: boolean;
   /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で開かない（2026-08-16 / 2-3） */
   openEditId?: string | null;
   /** ★外（公開部品の行のゴミ箱）から削除確認を開く行の id */
@@ -1307,14 +1309,18 @@ export function MediaAppearanceEditor({
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
 
-  /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
-  /* ⚠️ **行の鉛筆・ゴミ箱から開いたときは追加フォームを出さない**（2026-08-16 / 2-5 で実測）。
-        追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
-        マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
-        4つのエディタすべてが同じ形だったので同時に直した。 */
+  /* 見出しの「追加」から開く合図。
+     ⚠️ **nonce が変わったときだけ開く**（2026-08-17 に実測して直した）。
+        この部品は**常にマウントされている**ので、「他が開いていなければ開く」という
+        副条件を付けると、**編集を保存して id が null に戻った瞬間に再発火する。**
+        実際、行を編集して保存したら、続けて「追加」モーダルが開いた。
+     ⚠️ ref の初期値は現在値。マウントでは開かせない。 */
+  const lastAddNonce = useRef(openAddNonce);
   useEffect(() => {
-    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
-  }, [openAddNonce, openEditId, openDeleteId]);
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
   /* ★外から行の編集を開く（2026-08-16 / 2-3）。公開部品の行の鉛筆が呼ぶ。
      ⚠️ 値が変わるたびに開く。閉じるのは `null` を渡すのではなく、
         フォーム側のキャンセル・保存（`onClosed` で親へ通知）。 */
@@ -1411,45 +1417,54 @@ export function MediaAppearanceEditor({
     finally { setDeleting(false); }
   }, [deleteTarget, setMediaAppearances, showToast]);
 
+  /* ★編集はモーダルで開く（2026-08-17 / フェーズ2）。
+        この部品は**常にマウントされている**（表示は公開部品が持つ）ので、
+        `openAddNonce` / `openEditId` は**値が変わったときだけ**効く。
+        ⚠️ だから親は閉じたときに id を null に戻すこと（`onClosed`）。
+           戻さないと、同じ行の鉛筆を2回続けて押しても2回目が開かない。 */
+  const isEditing = editingId !== null;
+  const modalOpen = isEditing || adding;
+  const draft = isEditing ? editDraft : addDraft;
+  /* ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。開いた瞬間に控えた値と
+        比べると、フォームが整えたぶんまで「変更あり」になる。 */
+  const savedRow = isEditing ? mediaAppearances.find((m) => m.id === editingId) : undefined;
+  const base = savedRow ? draftFromMA(savedRow) : EMPTY_MA_DRAFT;
+  const dirty = !!draft.title.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+  const closeModal = () => {
+    setEditingId(null); setEditDraft(EMPTY_MA_DRAFT);
+    setAdding(false); setAddDraft(EMPTY_MA_DRAFT);
+    onClosedRef.current?.();
+  };
+
   return (
-    <div style={{ marginTop: hideHeading ? 0 : 36 }}>
-      {/* ⚠️ hideHeading のときは EditableSection が同じ見出しを描く。二重にしない */}
-      {!hideHeading && (
-        <>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>メディア掲載</div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-            取材・インタビュー・記事掲載・登壇などを登録できます。
-          </div>
-        </>
-      )}
+    <>
       {/* ★行の一覧はここでは描かない（2026-08-16 / 2-3）。
              一覧・鉛筆・ゴミ箱は公開プロフィールと同じ `ProfileMediaSection` が持つ。
-             ここは**編集フォームだけ**。ここに一覧を戻さないと、
-             同じ見た目が2箇所に生まれる。 */}
-      {mediaAppearances.filter((item) => editingId === item.id).map((item) => (
-        <div key={item.id}>
-          <MediaAppearanceForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
-            onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_MA_DRAFT); onClosed?.(); }} />
-        </div>
-      ))}
-      {/* ⚠️ 0件の1行（「まだメディア掲載を登録していません」）も公開部品側に移した。
-             ここに戻すと表示モードと編集モードで二重になる。 */}
-      {adding && (
-        <div style={{ marginTop: mediaAppearances.length > 0 ? 12 : 0 }}>
-          <MediaAppearanceForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
-            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_MA_DRAFT); onClosedRef.current?.(); }} />
-        </div>
-      )}
-      {/* ⚠️ 0件のときは出さない（理由は学歴と同じ） */}
-      {/* ⚠️ 「＋ メディア掲載を追加」はここから外した（2026-08-16 / 2-3）。
-             追加の入口は**公開部品の見出し行の「追加」1つ**にする。
-             編集モードにこのボタンを残すと、入口が2つになる（ルール⑧）。 */}
+             ⚠️ 0件の1行（「まだメディア掲載を登録していません」）も公開部品側にある。
+             ⚠️ 「＋ メディア掲載を追加」もここには置かない。入口は見出しの「追加」1つ（ルール⑧）。 */}
+      <ProfileEditModal
+        open={modalOpen}
+        title={isEditing ? "メディア掲載を編集" : "メディア掲載を追加"}
+        dirty={dirty}
+        saving={isEditing ? editSaving : addSaving}
+        justSaved={isEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (isEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={closeModal}
+      >
+        <MediaAppearanceForm
+          draft={draft}
+          onDraftChange={isEditing ? setEditDraft : setAddDraft}
+          isSaving={isEditing ? editSaving : addSaving}
+        />
+      </ProfileEditModal>
+
       <ConfirmDialog isOpen={!!deleteTarget} title="メディア掲載を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
-    </div>
+    </>
   );
 }
 

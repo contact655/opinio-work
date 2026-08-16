@@ -1006,8 +1006,7 @@ export default function ProfileTab({
   const [editingAwdId, setEditingAwdId] = useState<string | null>(null);
   const [deleteAwdId, setDeleteAwdId] = useState<string | null>(null);
   const [awdAddNonce, setAwdAddNonce] = useState(0);
-  /* メディア掲載: 表示⇄編集（2026-08-16 / 2-3）。行の鉛筆から来たときは id を持つ */
-  const [editingMedia, setEditingMedia] = useState(false);
+  /* メディア掲載: 編集はモーダル（2026-08-17 / フェーズ2）。行の鉛筆から来たときは id を持つ */
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
   /* ⚠️ 削除は既存の確認ダイアログを使う。エディタ側が持っているので id を渡して開く */
   const [deleteMediaId, setDeleteMediaId] = useState<string | null>(null);
@@ -1108,7 +1107,7 @@ export default function ProfileTab({
     { key: "career",       label: "職歴",            open: () => { setEditingCareerSection(true); setCareerAddNonce((n) => n + 1); } },
     { key: "future",       label: "目指す姿・ありたい未来", open: () => setEditingCareerSection(true) },
     { key: "education",    label: "学歴",            open: () => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); } },
-    { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setEditingMedia(true); setMediaAddNonce((n) => n + 1); } },
+    { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); } },
     { key: "content",      label: "発信コンテンツ",  open: () => { cancelEditLink(); setEditingContent(true); } },
   ] as { key: SectionKey; label: string; open: () => void }[]).filter((sec) => {
     switch (sec.key) {
@@ -1720,45 +1719,32 @@ export default function ProfileTab({
             ⚠️ 4-2 で「実績・受賞」カードは廃止し、数値実績と受賞歴は職歴カードへ移した。
                メディア掲載は個人としての登壇・寄稿・退職後の取材があり、
                在籍先に紐づけられないのでここに残す。 */}
-          {(mediaAppearances.length > 0 || editingMedia) && (
+          {mediaAppearances.length > 0 && (
           <div style={{ maxWidth: 680 }}>
-            {/* ⚠️ 見出しは EditableSection が描く。子は hideHeading で止める（二重にしない） */}
-            <EditableSection
-              title="メディア掲載"
-              description="取材・インタビュー・記事掲載・登壇などを登録できます。"
-              isEditing={editingMedia}
-              onStartEdit={() => { setEditingMediaId(null); setEditingMedia(true); setMediaAddNonce((n) => n + 1); }}
-              action="add"
-              actionLabel="メディア掲載を追加"
-              /* ★表示モードは枠も見出しも公開部品が持つ（2-2 と同じ）。
-                    ここで描くと枠・見出し・「追加」がすべて二重になる。 */
-              chrome="none"
-              editContent={
-                <MediaAppearanceEditor
-                  mediaAppearances={mediaAppearances}
-                  setMediaAppearances={setMediaAppearances}
-                  hideHeading
-                  openAddNonce={mediaAddNonce}
-                  openEditId={editingMediaId}
-                  openDeleteId={deleteMediaId}
-                  /* ★フォームを閉じたらカードごと表示モードへ戻す。
-                        戻さないと「直した行が消えたように見える」（2-2 で踏んだ形）。 */
-                  onClosed={() => { setEditingMediaId(null); setDeleteMediaId(null); setEditingMedia(false); }}
-                />
-              }
-            >
-              {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱・見出しの「追加」だけ足す */}
-              <ProfileMediaSection
-                mediaAppearances={mediaAppearances}
-                actions={{
-                  onEditRow: (id) => { setEditingMediaId(id); setEditingMedia(true); },
-                  onDeleteRow: (id) => { setDeleteMediaId(id); setEditingMedia(true); },
-                  onAdd: () => { setEditingMediaId(null); setEditingMedia(true); setMediaAddNonce((n) => n + 1); },
-                }}
-              />
-            </EditableSection>
+            {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱・見出しの「追加」だけ足す。
+                   編集はモーダル（2026-08-17 / フェーズ2）。 */}
+            <ProfileMediaSection
+              mediaAppearances={mediaAppearances}
+              actions={{
+                onEditRow: (id) => setEditingMediaId(id),
+                onDeleteRow: (id) => setDeleteMediaId(id),
+                onAdd: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); },
+              }}
+            />
           </div>
           )}
+          {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**。
+                 モーダルなので、開いていないあいだは何も描かない。
+                 ⚠️ 常設にしたぶん、`openEditId` は**値が変わったときだけ**効く。
+                    閉じたら `onClosed` で id を null に戻すこと（同じ行を続けて2回開くため）。 */}
+          <MediaAppearanceEditor
+            mediaAppearances={mediaAppearances}
+            setMediaAppearances={setMediaAppearances}
+            openAddNonce={mediaAddNonce}
+            openEditId={editingMediaId}
+            openDeleteId={deleteMediaId}
+            onClosed={() => { setEditingMediaId(null); setDeleteMediaId(null); }}
+          />
 
         {/* ⚠️ 「SNS・外部リンク」カードは 2-7 で**廃止**した（2026-08-16）。
                SNS はヘッダーの中だけに出す。カードを戻すとアイコン列が2箇所になる
@@ -1802,7 +1788,6 @@ export default function ProfileTab({
             saving={linkSaving}
             justSaved={false}
             error={linkError}
-            saveLabel={editingLinkId ? "保存" : "追加する"}
             onSave={() => {
               if (!contentDraft) return;
               void (async () => {
