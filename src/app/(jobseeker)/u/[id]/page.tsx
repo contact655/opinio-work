@@ -5,8 +5,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
-import { PostComposer } from "@/components/profile/PostComposer";
-import { canUserPost } from "@/lib/feed/canPost";
 import { PostCard } from "@/components/profile/PostCard";
 import {
   buildTimelineCareerEntriesFromRaw,
@@ -156,9 +154,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
      ⚠️ 閲覧者の ow_users.id はこの1回だけ引く。以前は :167 と :287 の
         **2箇所で同じ行を別々に引いていた**（admin と session でクライアントが
         違うだけで、取っている行は同一）。 */
-  const [viewerCanPost, followCounts, viewerRowRes, birthRes] = await Promise.all([
-    // 投稿できる人か。オーナー本人のときだけ問い合わせる（他人には出さないので不要）
-    viewerIsOwner ? canUserPost(adminSupabase, owUser.id) : Promise.resolve(false),
+  /* ⚠️ `canUserPost` はここでは引かない（2026-08-17）。投稿フォームを
+        `/mypage` だけにしたので、このページに投稿できるかの判定は要らなくなった。 */
+  const [followCounts, viewerRowRes, birthRes] = await Promise.all([
     // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
     getFollowCounts(owUser.id),
     // 閲覧者自身の ow_users.id（本人の行なので admin で引いても見える範囲は広がらない）
@@ -373,7 +371,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
   /* ★「目指す姿・ありたい未来」（2026-08-16）。本人には未記入でも CTA を出す。
         他人には**テキストがあるときだけ**返る（＝未記入の人の公開ページは変わらない）。 */
-  const futureData = buildFutureData(owUser, viewerIsOwner);
+  /* ★第2引数は**常に false**（2026-08-17）。本人にも「空なら出さない」を適用する。
+        `true` を渡すと本文が空でも `FutureData` が返り、**本人にだけ空の職歴セクションが
+        出る**（見出しと罫線だけの箱）。実測で見つけた。 */
+  const futureData = buildFutureData(owUser, false);
 
   // Current company for sidebar card（company_id の有無は問わない — 在籍中なら表示）
   const currentCareer = timelineCareers.find((c) => c.is_current) ?? null;
@@ -455,7 +456,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
     timelineEdus.length > 0 ? { id: "education", label: "学歴" } : null,
     (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
     contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
-    ((viewerIsOwner && viewerCanPost) || recentPostsTyped.length > 0) ? { id: "activity", label: "投稿" } : null,
+    /* ★本人だけに出す条件をやめた（2026-08-17）。投稿があるときだけ出す。
+          フォームを外したので、投稿0件の本人には飛び先そのものが無い。 */
+    recentPostsTyped.length > 0 ? { id: "activity", label: "投稿" } : null,
   ].filter(Boolean) as { id: string; label: string }[];
 
   // キャリアパスノード用 年表示
@@ -804,8 +807,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
             )}
 
 
-            {/* ── アクティビティ（投稿フォーム + 最近の投稿） ── */}
-            {(viewerIsOwner || recentPostsTyped.length > 0) && (
+            {/* ── アクティビティ（最近の投稿）──
+                   ★投稿フォームと0件の案内は外した（2026-08-17）。他の5つと同じ扱いにする。
+                     **投稿フォームは `/mypage` にもある**ので、消しても投稿する手段は残る
+                     （`/mypage` のプロフィールタブ下端「アクティビティ」。実測で確認）。
+                   ⚠️ **投稿の一覧は残す。** 他人にも出るセクションで、
+                      本人だけに見えるものではない。 */}
+            {recentPostsTyped.length > 0 && (
               <section id="activity" style={{
                 background: "#fff", border: "1px solid var(--line)",
                 borderRadius: 14, padding: "22px 28px", marginBottom: 20,
@@ -826,19 +834,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   )}
                 </div>
 
-                {/* 投稿フォーム（オーナーかつ投稿権限がある人のみ）。
-                    ⚠️ 権限が無い人には「投稿できません」を出さず、静かに出さないだけにする */}
-                {viewerIsOwner && viewerCanPost && (
-                  <PostComposer
-                    avatarColor={avatarColor}
-                    initial={initial}
-                    avatarUrl={owUser.avatar_url}
-                  />
-                )}
-
                 {/* 投稿リスト */}
-                {recentPostsTyped.length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {recentPostsTyped.map((post) => (
                       <PostCard
                         key={post.id}
@@ -853,12 +850,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                         }}
                       />
                     ))}
-                  </div>
-                ) : viewerIsOwner ? (
-                  <div style={{ textAlign: "center", padding: "16px 0 4px", color: "var(--ink-mute)", fontSize: 13 }}>
-                    まだ投稿がありません。近況や知見を発信してみましょう！
-                  </div>
-                ) : null}
+                </div>
               </section>
             )}
 
