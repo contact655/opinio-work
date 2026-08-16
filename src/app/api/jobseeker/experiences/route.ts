@@ -41,7 +41,7 @@ export async function GET() {
           2026-08-06 に authenticated から SELECT 権限を剥奪したので、含めると
           permission denied で職歴一覧が丸ごと空になる。入力UIも既に無い。 */
     /* ⚠️ 列リストは lib/experiences/columns.ts の1箇所に置く。ここに直書きしない。
-          profile/edit/page.tsx と**同じ定数**を見る。割れると
+          mypage/page.tsx と**同じ定数**を見る（2026-08-16 に移設）。割れると
           「片方の経路では保存できるがもう片方では消える」が起きる。
        ⚠️ 理由データ3種（join_reasons / join_reason_primary / leave_reasons）も
           admin でないと読めない。列単位 GRANT を付けていないため

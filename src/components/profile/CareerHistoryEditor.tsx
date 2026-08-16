@@ -974,7 +974,7 @@ function StintForm({
         ⚠️ selectableParent は true。大分類そのものも選べる。
            過去の非IT職は「営業」「販売・サービス」で十分なことが多く、
            子まで選ばせると入力が止まる（求人側は false のままで、こちらだけ許す）。
-        ⚠️ 渡す roles は profile/edit/page.tsx で is_active=true に絞ったうえで
+        ⚠️ 渡す roles は mypage/page.tsx（2026-08-16 に移設）で is_active=true に絞ったうえで
            「現在選択中の職種＋その親」を足し戻したもの。ここでは絞らない。
       */}
       <div>
@@ -1680,7 +1680,7 @@ export default function CareerHistoryEditor({
     visibilitySalary: s.visibilitySalary ?? false,
     /* ⚠️ ここで拾い忘れると、編集して保存した瞬間に値が消える
           （draft の空値がそのまま PUT で送られるため）。
-          サーバー側（profile/edit/page.tsx）の SELECT と対で見ること。 */
+          サーバー側（mypage/page.tsx・2026-08-16 に移設）の SELECT と対で見ること。 */
     prefecture: s.prefecture ?? "",
     remoteWorkStatus: s.remoteWorkStatus ?? "",
     joinReasons: s.joinReasons ?? [],

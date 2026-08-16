@@ -29,7 +29,7 @@ function getResend() {
 
   ② 配信停止が機能していない → ✅ 解消
      ow_profiles.email_weekly_enabled を作り、getWeeklyRecipients が見る。
-     設定 UI は /profile/edit?tab=account（localStorage をやめた）。
+     設定 UI は /mypage?tab=settings（2026-08-16 に /profile/edit から移設）。
 
   ③ 宛先に is_test と実在しないアドレスが混ざる → ✅ 解消
      getWeeklyRecipients に集約。2026-08-10 実測で 39件 → 3名。
