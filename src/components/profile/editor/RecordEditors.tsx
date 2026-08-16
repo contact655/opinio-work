@@ -57,148 +57,6 @@ function draftFromEducation(edu: Education): EducationDraft {
   };
 }
 
-function formatEduPeriod(
-  enrolledAt:  string | null,
-  graduatedAt: string | null,
-  isCurrent:   boolean,
-): string {
-  const fmt = (s: string) => {
-    const [y, m] = s.split("-");
-    return `${y}.${(m ?? "").padStart(2, "0")}`;
-  };
-  const start = enrolledAt  ? fmt(enrolledAt)  : "";
-  const end   = graduatedAt ? fmt(graduatedAt) : "";
-  if (isCurrent) return start ? `${start} 〜 在学中` : "在学中";
-  if (start && end) return `${start} 〜 ${end}`;
-  if (start) return `${start} 〜`;
-  return "";
-}
-
-// ── EduIconButton ─────────────────────────────────────────────────────────────
-
-function EduIconButton({
-  onClick,
-  title,
-  danger,
-  children,
-}: {
-  onClick: () => void;
-  title?: string;
-  danger?: boolean;
-  children: React.ReactNode;
-}) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 26, height: 26,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        border: "none",
-        background: hovered
-          ? danger ? "var(--error-soft)" : "var(--line-soft)"
-          : "transparent",
-        borderRadius: 5,
-        fontSize: "var(--text-sm)",
-        color: danger ? "var(--error)" : "var(--ink-mute)",
-        cursor: "pointer",
-        transition: "background 0.12s",
-        padding: 0,
-        fontFamily: "inherit",
-        flexShrink: 0,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ── EducationCard (display mode) ──────────────────────────────────────────────
-
-function EducationCard({
-  edu,
-  onEdit,
-  onDelete,
-}: {
-  edu: Education;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: "12px 14px",
-        background: "#fff",
-        borderRadius: 8,
-        border: "1px solid var(--line)",
-        position: "relative",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-      }}
-    >
-      {/* Graduation cap icon */}
-      <div style={{
-        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-        background: "linear-gradient(135deg, #7C3AED 0%, #a855f7 100%)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-        </svg>
-      </div>
-
-      {/* Content + controls */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* School name + "在学中" badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-              {edu.school}
-            </span>
-            {edu.is_current && (
-              <span style={{
-                fontSize: 12, fontWeight: 700,
-                color: "var(--success)", background: "var(--success-soft)",
-                borderRadius: 4, padding: "1px 6px",
-                letterSpacing: "0.04em", flexShrink: 0,
-              }}>
-                在学中
-              </span>
-            )}
-          </div>
-          {/* Faculty / Degree */}
-          {(edu.faculty || edu.degree) && (
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 2 }}>
-              {[edu.faculty, edu.degree].filter(Boolean).join(" / ")}
-            </div>
-          )}
-          {/* Period */}
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-            {formatEduPeriod(edu.enrolled_at, edu.graduated_at, edu.is_current)}
-          </div>
-        </div>
-        {/* Controls: ✎ and × on hover */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 1,
-          opacity: hovered ? 1 : 0.45, transition: "opacity 0.15s", flexShrink: 0,
-        }}>
-          <EduIconButton onClick={onEdit} title="編集"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></EduIconButton>
-          <EduIconButton onClick={onDelete} title="削除" danger><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></EduIconButton>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── EducationForm (edit / add mode) ──────────────────────────────────────────
 
 function EducationForm({
@@ -555,7 +413,7 @@ export function EducationEditor({
   setEducations,
   schools,
   hideHeading = false,
-  openAddNonce,
+  openAddNonce, openEditId, openDeleteId, onClosed,
 }: {
   /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16）。値が変わるたびに開く */
   openAddNonce?: number;
@@ -565,8 +423,10 @@ export function EducationEditor({
   /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16）。
       ⚠️ 既定は false なので、他から呼ばれても見た目は変わらない */
   hideHeading?: boolean;
-  /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で閉じる（2026-08-16 / 2-3） */
+  /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で閉じる（2026-08-16 / 2-5） */
   openEditId?: string | null;
+  /** ★外（行のゴミ箱）から削除確認を開く行の id。`null` で閉じる（2026-08-16 / 2-5） */
+  openDeleteId?: string | null;
   /** フォームが閉じたことを親へ知らせる。★親はこれでカードを表示モードへ戻す */
   onClosed?: () => void;
 }) {
@@ -579,7 +439,16 @@ export function EducationEditor({
   const [adding,      setAdding]      = useState(false);
 
   /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
-  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  /* ⚠️ **行の鉛筆・ゴミ箱から開いたときは追加フォームを出さない**（2026-08-16 / 2-5 で実測）。
+        追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
+        マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
+        4つのエディタすべてが同じ形だったので同時に直した。 */
+  useEffect(() => {
+    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
+  }, [openAddNonce, openEditId, openDeleteId]);
+  /* ⚠️ ref に逃がす理由は他のエディタと同じ（依存に入れると作り直される） */
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
   const [addDraft,    setAddDraft]    = useState<EducationDraft>(EMPTY_EDU_DRAFT);
   const [addSaving,   setAddSaving]   = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
@@ -642,6 +511,7 @@ export function EducationEditor({
       setEditingId(null);
       setEditDraft(EMPTY_EDU_DRAFT);
       setEditJustSaved(false);
+      onClosedRef.current?.();  // ★保存できたらカードごと表示モードへ（2-2〜2-4 と同じ）
       // 段階6-8 Phase 3: school_id が null の場合、バナー表示
       if (updated.school_id === null && updated.school.trim().length > 0) {
         setBannerSchoolName(updated.school);
@@ -689,6 +559,7 @@ export function EducationEditor({
       setAdding(false);
       setAddDraft(EMPTY_EDU_DRAFT);
       setAddJustSaved(false);
+      onClosedRef.current?.();
       // 段階6-8 Phase 3: school_id が null の場合、バナー表示
       if (inserted.school_id === null && inserted.school.trim().length > 0) {
         setBannerSchoolName(inserted.school);
@@ -713,12 +584,26 @@ export function EducationEditor({
       setEducations((prev) => prev.filter((e) => e.id !== deleteTarget.id));
       setDeleteTarget(null);
       showToast("学歴を削除しました");
+      onClosedRef.current?.();
     } catch {
       showToast("削除に失敗しました。もう一度お試しください。", "error");
     } finally {
       setDeleting(false);
     }
   }, [deleteTarget, setEducations, showToast]);
+
+  /* ★外（`MergedTimeline` の学歴の行にある鉛筆・ゴミ箱）から開く（2026-08-16 / 2-5）。
+        id は行ごとに変わるので nonce ではなく id そのものを見る。 */
+  useEffect(() => {
+    if (!openEditId) return;
+    const target = educations.find((e) => e.id === openEditId);
+    if (target) startEdit(target);
+  }, [openEditId, educations, startEdit]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const target = educations.find((e) => e.id === openDeleteId);
+    if (target) setDeleteTarget(target);
+  }, [openDeleteId, educations]);
 
   // ── School request banner handlers（段階6-8 Phase 3）──────────────────────────
   const handleBannerSubmit = useCallback(async () => {
@@ -782,51 +667,21 @@ export function EducationEditor({
       )}
 
       {/* Education list */}
-      {educations.map((edu, idx) => (
-        <div key={edu.id}>
-          {editingId === edu.id ? (
-            <EducationForm
-              draft={editDraft}
-              onDraftChange={setEditDraft}
-              isSaving={editSaving}
-              justSaved={editJustSaved}
-              onSave={() => { void saveEdit(); }}
-              onCancel={cancelEdit}
-              schools={schools}
-            />
-          ) : (
-            <EducationCard
-              edu={edu}
-              onEdit={() => startEdit(edu)}
-              onDelete={() => setDeleteTarget(edu)}
-            />
-          )}
-          {/* Divider */}
-          {idx < educations.length - 1 && editingId !== edu.id && (
-            <div style={{ height: 8 }} />
-          )}
-        </div>
+      {/* ★編集フォームだけ（2026-08-16 / 2-5）。一覧・鉛筆・ゴミ箱・0件の1行は
+             公開プロフィールと同じ `MergedTimeline`（学歴の行）が持つ。
+             ここに一覧を戻すと同じ見た目が2箇所に生まれる。 */}
+      {educations.filter((edu) => editingId === edu.id).map((edu) => (
+        <EducationForm
+          key={edu.id}
+          draft={editDraft}
+          onDraftChange={setEditDraft}
+          isSaving={editSaving}
+          justSaved={editJustSaved}
+          onSave={() => { void saveEdit(); }}
+          onCancel={() => { cancelEdit(); onClosedRef.current?.(); }}
+          schools={schools}
+        />
       ))}
-
-      {/* Empty state */}
-      {/* ⚠️ 記入例カードはやめた（2026-08-16）。表示モードでは「登録済みの1件」に見えるため。
-             何を書くかは編集モードの placeholder が担う。 */}
-      {educations.length === 0 && !adding && (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-          まだ学歴を登録していません。
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            style={{
-              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-              textDecoration: "underline", textUnderlineOffset: 2,
-            }}
-          >
-            学歴を追加する
-          </button>
-        </p>
-      )}
 
       {/* Add form */}
       {adding && (
@@ -837,32 +692,10 @@ export function EducationEditor({
             isSaving={addSaving}
             justSaved={addJustSaved}
             onSave={() => { void saveAdd(); }}
-            onCancel={cancelAdd}
+            onCancel={() => { cancelAdd(); onClosedRef.current?.(); }}
             schools={schools}
           />
         </div>
-      )}
-
-      {/* "+ 学歴を追加" button */}
-      {/* ⚠️ 0件のときは出さない。すぐ上の空状態が同じ操作の入口を既に出しているため
-             （同じ操作の入口を2つ縦に並べない。2026-08-16） */}
-      {!adding && educations.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          style={{
-            marginTop: educations.length > 0 ? 10 : 4,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 5, padding: "8px 14px", width: "100%",
-            background: "transparent", border: "1px dashed var(--line)",
-            borderRadius: 8, fontSize: 12, fontWeight: 600,
-            color: "var(--ink-soft)", cursor: "pointer",
-            fontFamily: "inherit", transition: "border-color 0.15s, color 0.15s",
-          }}
-        >
-          <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
-          学歴を追加
-        </button>
       )}
 
       {/* Delete confirmation dialog */}
@@ -878,7 +711,7 @@ export function EducationEditor({
         confirmVariant="danger"
         isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }}
       />
 
       {/* Toast */}
@@ -1153,7 +986,13 @@ export function AchievementEditor({
   }, [deleteTarget, setAchievements, showToast]);
 
   /* ★外から開く（2026-08-16 / 2-4）。公開部品の鉛筆・ゴミ箱・見出しの「追加」が呼ぶ */
-  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  /* ⚠️ **行の鉛筆・ゴミ箱から開いたときは追加フォームを出さない**（2026-08-16 / 2-5 で実測）。
+        追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
+        マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
+        4つのエディタすべてが同じ形だったので同時に直した。 */
+  useEffect(() => {
+    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
+  }, [openAddNonce, openEditId, openDeleteId]);
   useEffect(() => {
     if (!openEditId) return;
     const t = achievements.find((a) => a.id === openEditId);
@@ -1333,7 +1172,13 @@ export function AwardEditor({
   }, [deleteTarget, setAwards, showToast]);
 
   /* ★外から開く（2026-08-16 / 2-4） */
-  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  /* ⚠️ **行の鉛筆・ゴミ箱から開いたときは追加フォームを出さない**（2026-08-16 / 2-5 で実測）。
+        追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
+        マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
+        4つのエディタすべてが同じ形だったので同時に直した。 */
+  useEffect(() => {
+    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
+  }, [openAddNonce, openEditId, openDeleteId]);
   useEffect(() => {
     if (!openEditId) return;
     const t = awards.find((a) => a.id === openEditId);
@@ -1463,7 +1308,13 @@ export function MediaAppearanceEditor({
   onClosedRef.current = onClosed;
 
   /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
-  useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  /* ⚠️ **行の鉛筆・ゴミ箱から開いたときは追加フォームを出さない**（2026-08-16 / 2-5 で実測）。
+        追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
+        マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
+        4つのエディタすべてが同じ形だったので同時に直した。 */
+  useEffect(() => {
+    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
+  }, [openAddNonce, openEditId, openDeleteId]);
   /* ★外から行の編集を開く（2026-08-16 / 2-3）。公開部品の行の鉛筆が呼ぶ。
      ⚠️ 値が変わるたびに開く。閉じるのは `null` を渡すのではなく、
         フォーム側のキャンセル・保存（`onClosed` で親へ通知）。 */

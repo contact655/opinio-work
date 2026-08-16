@@ -42,6 +42,11 @@ import {
   type MediaAppearance,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
+/* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
+      `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
+import MergedTimeline from "@/components/profile/MergedTimeline";
+import { RowActionButtons } from "@/components/profile/view/RowActions";
+import { toTimelineEducationEntries, type RawEducation } from "@/lib/utils/timeline";
 /* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
       同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
 import {
@@ -1095,6 +1100,15 @@ export default function ProfileTab({
   /* 職歴カードの見出し「＋」→ 追加モーダルを開く合図。値が変わるたびに開く */
   const [careerAddNonce, setCareerAddNonce] = useState(0);
   const [eduAddNonce, setEduAddNonce] = useState(0);
+  /* 学歴（2026-08-16 / 2-5）。行の鉛筆・ゴミ箱から編集フォームを開くための id */
+  const [editingEdu,   setEditingEdu]   = useState(false);
+  const [editingEduId, setEditingEduId] = useState<string | null>(null);
+  const [deleteEduId,  setDeleteEduId]  = useState<string | null>(null);
+  /* 年表の行にも、年表に載らない行にも同じものを渡す */
+  const eduActions = {
+    onEditRow:   (id: string) => { setEditingEduId(id); setEditingEdu(true); },
+    onDeleteRow: (id: string) => { setDeleteEduId(id); setEditingEdu(true); },
+  };
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
   /* 数値実績・受賞（2026-08-16 / 2-4）。表示⇄編集は 2-2/2-3 と同じ形 */
   /* 紐づけセレクトの選択肢。★職歴の表示名だけを渡す（実績側は職歴の中身を知らない）。
@@ -1546,24 +1560,71 @@ export default function ProfileTab({
                       紐づけはフォームの「紐づける職歴」セレクトで選ぶ。 */
               />
             </EditableSection>
+            {/* ⚠️ 学歴だけは枠と見出しを `EditableSection` が持つ（`chrome` は既定の "card"）。
+                   公開プロフィールに「学歴」という見出しが無い（職歴と1本の年表になっている）ため、
+                   借りてくる見出しが存在しない。行の見た目だけを公開部品から借りる。 */}
             <EditableSection
               title="学歴"
               description="大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。"
-              /* ★このカードに「編集モード」は無い。編集は行の鉛筆（その場でインライン編集）。
-                    見出しの＋は追加フォームを開くだけ。 */
-              isEditing={false}
-              onStartEdit={() => setEduAddNonce((n) => n + 1)}
+              isEditing={editingEdu}
+              onStartEdit={() => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); }}
               action="add"
               actionLabel="学歴を追加"
-              editContent={null}
+              editContent={
+                <EducationEditor
+                  educations={educations}
+                  setEducations={setEducations}
+                  schools={schools}
+                  hideHeading
+                  openAddNonce={eduAddNonce}
+                  openEditId={editingEduId}
+                  openDeleteId={deleteEduId}
+                  /* ★フォームを閉じたらカードごと表示モードへ戻す（2-2〜2-4 と同じ）。 */
+                  onClosed={() => { setEditingEduId(null); setDeleteEduId(null); setEditingEdu(false); }}
+                />
+              }
             >
-              <EducationEditor
-                educations={educations}
-                setEducations={setEducations}
-                schools={schools}
-                hideHeading
-                openAddNonce={eduAddNonce}
-              />
+              {educations.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                  まだ学歴を登録していません。
+                  <button
+                    type="button"
+                    onClick={() => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); }}
+                    style={{
+                      background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+                      fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+                      textDecoration: "underline", textUnderlineOffset: 2,
+                    }}
+                  >
+                    学歴を追加する
+                  </button>
+                </p>
+              ) : (
+                <>
+                  {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱だけ足す */}
+                  <MergedTimeline
+                    careers={[]}
+                    educations={toTimelineEducationEntries(educations as RawEducation[])}
+                    future={null}
+                    educationActions={eduActions}
+                  />
+                  {/* ⚠️ `toTimelineEducationEntries` は**入学年月が無い行を落とす**（年表に置けないため）。
+                         公開プロフィールでも出ていない。ここで拾わないと、
+                         **本人の画面からも消えて編集も削除もできなくなる**（2026-08-16 / 2-5）。
+                         実データに1件ある（他人の行）。 */}
+                  {educations.filter((e) => !e.enrolled_at).map((e) => (
+                    <div key={e.id} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{e.school}</div>
+                        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.7 }}>
+                          入学年月が未入力のため、公開プロフィールには表示されていません。
+                        </div>
+                      </div>
+                      <RowActionButtons id={e.id} label={e.school} actions={eduActions} />
+                    </div>
+                  ))}
+                </>
+              )}
             </EditableSection>
           </div>
 

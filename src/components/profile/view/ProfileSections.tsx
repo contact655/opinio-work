@@ -20,75 +20,9 @@ import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
       サーバーコンポーネントからも `SOCIAL_META[x].label` と読めるので、
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
 import { SocialIcon, SOCIAL_META, SNS_PLATFORMS, type SocialPlatform } from "@/components/SocialIcon";
-
-/* ── ★本人だけに出す操作の口（2026-08-16 / 2-2 で決めた型）──────────────────
-      `MergedTimeline` の `viewerIsOwner` に揃える。**2-3〜2-6 でも同じ形を使う。**
-
-      ⚠️ **渡さなければ DOM は1バイトも変わらない。** 他人が見る `/u/[id]` の
-         HTML を変えないための約束。ラップ用の `<div>` も、渡されたときだけ足す。
-      ⚠️ 見た目（鉛筆・ゴミ箱の形と大きさ）は `RowActions` が1箇所で持つ。
-         セクションごとに描き直さない。 */
-export type RowActions = {
-  /** 行の鉛筆。渡さなければ鉛筆を出さない */
-  onEditRow?: (id: string) => void;
-  /** 行のゴミ箱。渡さなければ削除を出さない */
-  onDeleteRow?: (id: string) => void;
-  /** 見出しの「追加」。★`/mypage` では同じページなのでリンクではなくボタンにする */
-  onAdd?: () => void;
-};
-
-/** 見出し行の「追加」。⚠️ 見た目を各セクションで書き分けない */
-const sectionAddBtn: React.CSSProperties = {
-  fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
-  background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
-  display: "flex", alignItems: "center", gap: 4, padding: 0, whiteSpace: "nowrap",
-};
-/** 0件のときの「〇〇を追加する」。⚠️ 本人にだけ出る */
-const emptyAddBtn: React.CSSProperties = {
-  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-  fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-  textDecoration: "underline", textUnderlineOffset: 2,
-};
-function PlusIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-/** 行の右端に出す鉛筆とゴミ箱。⚠️ `<a>` の**外**に置くこと（アンカーの入れ子は不正） */
-function RowActionButtons({ id, label, actions }: { id: string; label: string; actions: RowActions }) {
-  if (!actions.onEditRow && !actions.onDeleteRow) return null;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
-      {actions.onEditRow && (
-        <button
-          type="button" className="btn-fixed-size"
-          onClick={() => actions.onEditRow!(id)}
-          aria-label={`${label} を編集`} title="編集"
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-        </button>
-      )}
-      {actions.onDeleteRow && (
-        <button
-          type="button" className="btn-fixed-size"
-          onClick={() => actions.onDeleteRow!(id)}
-          aria-label={`${label} を削除`} title="削除"
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-          </svg>
-        </button>
-      )}
-    </div>
-  );
-}
+/* ⚠️ 行の操作（鉛筆・ゴミ箱）は `MergedTimeline` とも共有する。ここには置かない */
+import { type RowActions, RowActionButtons, sectionAddBtn, emptyAddBtn, PlusIcon } from "./RowActions";
+export type { RowActions };
 
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
 

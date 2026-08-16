@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Briefcase } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
+/* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
+import { type RowActions, RowActionButtons } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
@@ -128,6 +130,15 @@ export interface MergedTimelineProps {
   future?: FutureData | null;
   /** プロフィールオーナー本人が閲覧中かどうか（CTA 表示制御） */
   viewerIsOwner?: boolean;
+  /**
+   * ★行ごとの編集アフォーダンス（鉛筆・ゴミ箱）。`/mypage` だけが渡す。
+   *
+   * ⚠️ **渡さなければ DOM は1バイトも変わらない。** `/u/[id]` は渡さない。
+   * ⚠️ 2-5 では**学歴の行にだけ**出している。職歴は `career` /
+   *    `career-group` / `career-same-company` の**3経路**があり、
+   *    1つ忘れると「並行職のときだけ鉛筆が出ない」形になる。**2-6 でまとめて足す。**
+   */
+  educationActions?: RowActions;
   /** ログイン済みかどうか（false の場合、経歴の詳細説明をゲート） */
   isAuthenticated?: boolean;
   /** この件数を超えた経歴を折りたたむ（未指定の場合は折りたたみなし） */
@@ -1042,6 +1053,7 @@ export default function MergedTimeline({
   educations,
   future,
   viewerIsOwner = false,
+  educationActions,
   isAuthenticated = true,
   collapseAfter,
   birthDate,
@@ -1356,7 +1368,17 @@ export default function MergedTimeline({
                 >
                   <SchoolLogoImg schoolMaster={e.school_master ?? null} size={64} />
                 </div>
-                <EducationContent data={e} />
+                {/* ⚠️ 本人のときだけ。渡されなければ `EducationContent` を裸で置く＝他人の DOM は不変。
+                       ⚠️ `.tl-row` は **2列のグリッド**（80px 1fr）。ここに3つ目の子を置くと
+                          次の行の1列目（アイコン列の下）に回り込む。**同じセルに入れること。** */}
+                {(educationActions?.onEditRow || educationActions?.onDeleteRow) ? (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}><EducationContent data={e} /></div>
+                    <RowActionButtons id={e.id} label={e.school} actions={educationActions} />
+                  </div>
+                ) : (
+                  <EducationContent data={e} />
+                )}
               </div>
             );
           }
