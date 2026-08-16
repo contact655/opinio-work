@@ -306,10 +306,15 @@ export function ProfileAwardsSection({ awards }: { awards: AwardRow[] }) {
 }
 
 // ─── ProfileMediaSection ───────────────────────────────────────────────────────────
-export function ProfileMediaSection({ mediaAppearances }: { mediaAppearances: MediaAppearanceRow[] }) {
+export function ProfileMediaSection({ mediaAppearances, actions }: {
+  mediaAppearances: MediaAppearanceRow[];
+  /** ★本人の編集用。**渡さなければ他人が見る DOM と1バイトも変わらない**（2-2 と同じ型） */
+  actions?: RowActions;
+}) {
+  const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
   return (
     <>
-      {mediaAppearances.length > 0 && (
+      {(mediaAppearances.length > 0 || hasActions) && (
         <section style={{
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
@@ -323,7 +328,36 @@ export function ProfileMediaSection({ mediaAppearances }: { mediaAppearances: Me
               MEDIA
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            {/* ⚠️ 本人のときだけ。`/u/[id]` は `actions` を渡さないので出ない＝DOM 不変 */}
+            {actions?.onAdd && (
+              <button type="button" onClick={actions.onAdd} style={{
+                fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
+                background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 4, padding: 0,
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                追加
+              </button>
+            )}
           </div>
+
+          {/* 0件で本人のときだけ（`/u/[id]` では起きない。`/mypage` の空状態） */}
+          {mediaAppearances.length === 0 && hasActions && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              まだメディア掲載を登録していません。
+              {actions?.onAdd && (
+                <button type="button" onClick={actions.onAdd} style={{
+                  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+                  fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+                  textDecoration: "underline", textUnderlineOffset: 2,
+                }}>
+                  メディア掲載を追加する
+                </button>
+              )}
+            </p>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {mediaAppearances.map((m) => {
               const inner = (
@@ -385,7 +419,8 @@ export function ProfileMediaSection({ mediaAppearances }: { mediaAppearances: Me
                   )}
                 </>
               );
-              return m.url ? (
+              /* ⚠️ 鉛筆・ゴミ箱は `<a>` の**外**。`actions` が無ければラップごと出さない */
+              const row = m.url ? (
                 <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" style={{
                   display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
                   padding: "12px", borderRadius: 10,
@@ -401,6 +436,13 @@ export function ProfileMediaSection({ mediaAppearances }: { mediaAppearances: Me
                   border: "1px solid var(--line)", background: "var(--bg-tint)",
                 }}>
                   {inner}
+                </div>
+              );
+              if (!actions?.onEditRow && !actions?.onDeleteRow) return row;
+              return (
+                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>{row}</div>
+                  <RowActionButtons id={m.id} label={m.title} actions={actions} />
                 </div>
               );
             })}

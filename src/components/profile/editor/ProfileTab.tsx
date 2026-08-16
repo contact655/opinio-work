@@ -42,7 +42,7 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
 import { StintRecords } from "./StintRecords";
 /* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
       同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
-import { ProfileSocialLinks, ProfileContentLinksSection } from "@/components/profile/view/ProfileSections";
+import { ProfileSocialLinks, ProfileContentLinksSection, ProfileMediaSection } from "@/components/profile/view/ProfileSections";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -1090,6 +1090,11 @@ export default function ProfileTab({
   const [careerAddNonce, setCareerAddNonce] = useState(0);
   const [eduAddNonce, setEduAddNonce] = useState(0);
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
+  /* メディア掲載: 表示⇄編集（2026-08-16 / 2-3）。行の鉛筆から来たときは id を持つ */
+  const [editingMedia, setEditingMedia] = useState(false);
+  const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
+  /* ⚠️ 削除は既存の確認ダイアログを使う。エディタ側が持っているので id を渡して開く */
+  const [deleteMediaId, setDeleteMediaId] = useState<string | null>(null);
 
   /* ── 外（ヘッダーカードの促し・右カラムの「あと2つ」）から特定のカードを開く ──
         ⚠️ **`openAddNonce` と同じ形**（nonce を受けて useEffect で開く）。
@@ -1523,17 +1528,35 @@ export default function ProfileTab({
             <EditableSection
               title="メディア掲載"
               description="取材・インタビュー・記事掲載・登壇などを登録できます。"
-              isEditing={false}
-              onStartEdit={() => setMediaAddNonce((n) => n + 1)}
+              isEditing={editingMedia}
+              onStartEdit={() => { setEditingMediaId(null); setEditingMedia(true); setMediaAddNonce((n) => n + 1); }}
               action="add"
               actionLabel="メディア掲載を追加"
-              editContent={null}
+              /* ★表示モードは枠も見出しも公開部品が持つ（2-2 と同じ）。
+                    ここで描くと枠・見出し・「追加」がすべて二重になる。 */
+              chrome="none"
+              editContent={
+                <MediaAppearanceEditor
+                  mediaAppearances={mediaAppearances}
+                  setMediaAppearances={setMediaAppearances}
+                  hideHeading
+                  openAddNonce={mediaAddNonce}
+                  openEditId={editingMediaId}
+                  openDeleteId={deleteMediaId}
+                  /* ★フォームを閉じたらカードごと表示モードへ戻す。
+                        戻さないと「直した行が消えたように見える」（2-2 で踏んだ形）。 */
+                  onClosed={() => { setEditingMediaId(null); setDeleteMediaId(null); setEditingMedia(false); }}
+                />
+              }
             >
-              <MediaAppearanceEditor
+              {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱・見出しの「追加」だけ足す */}
+              <ProfileMediaSection
                 mediaAppearances={mediaAppearances}
-                setMediaAppearances={setMediaAppearances}
-                hideHeading
-                openAddNonce={mediaAddNonce}
+                actions={{
+                  onEditRow: (id) => { setEditingMediaId(id); setEditingMedia(true); },
+                  onDeleteRow: (id) => { setDeleteMediaId(id); setEditingMedia(true); },
+                  onAdd: () => { setEditingMediaId(null); setEditingMedia(true); setMediaAddNonce((n) => n + 1); },
+                }}
               />
             </EditableSection>
           </div>

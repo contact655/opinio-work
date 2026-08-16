@@ -8,7 +8,7 @@
  *    ロジックを直すのはここではなく、次のコミットで行う。
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import {
@@ -565,6 +565,10 @@ export function EducationEditor({
   /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16）。
       ⚠️ 既定は false なので、他から呼ばれても見た目は変わらない */
   hideHeading?: boolean;
+  /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で閉じる（2026-08-16 / 2-3） */
+  openEditId?: string | null;
+  /** フォームが閉じたことを親へ知らせる。★親はこれでカードを表示モードへ戻す */
+  onClosed?: () => void;
 }) {
   // Edit state
   const [editingId,    setEditingId]    = useState<string | null>(null);
@@ -1458,43 +1462,12 @@ function MediaAppearanceForm({
   );
 }
 
-function MediaAppearanceCard({
-  item, onEdit, onDelete,
-}: { item: MediaAppearance; onEdit: () => void; onDelete: () => void; }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ padding: "10px 0", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-            {item.url ? (
-              <a href={item.url} target="_blank" rel="noopener noreferrer"
-                style={{ color: "var(--ink)", textDecoration: "underline", textUnderlineOffset: 2 }}>
-                {item.title}
-              </a>
-            ) : item.title}
-          </div>
-          {(item.media_name || item.appeared_at) && (
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 1 }}>
-              {[item.media_name, fmtYM(item.appeared_at)].filter(Boolean).join("　")}
-            </div>
-          )}
-          {item.description && (
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>{item.description}</div>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0, transition: "opacity 0.15s", flexShrink: 0 }}>
-          <AchieveIconBtn onClick={onEdit} title="編集"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></AchieveIconBtn>
-          <AchieveIconBtn onClick={onDelete} title="削除" danger><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></AchieveIconBtn>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ⚠️ `MediaAppearanceCard`（行の表示・約30行）は 2026-08-16 に削除した。
+      一覧・鉛筆・ゴミ箱は公開プロフィールと同じ `ProfileMediaSection` が持つ。
+      ここに描き直さないこと。 */
 
 export function MediaAppearanceEditor({
-  mediaAppearances, setMediaAppearances, hideHeading = false, openAddNonce,
+  mediaAppearances, setMediaAppearances, hideHeading = false, openAddNonce, openEditId, openDeleteId, onClosed,
 }: {
   /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16） */
   openAddNonce?: number;
@@ -1502,15 +1475,44 @@ export function MediaAppearanceEditor({
   setMediaAppearances: React.Dispatch<React.SetStateAction<MediaAppearance[]>>;
   /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16） */
   hideHeading?: boolean;
+  /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で開かない（2026-08-16 / 2-3） */
+  openEditId?: string | null;
+  /** ★外（公開部品の行のゴミ箱）から削除確認を開く行の id */
+  openDeleteId?: string | null;
+  /** フォームが閉じたことを親へ知らせる。★親はこれでカードを表示モードへ戻す */
+  onClosed?: () => void;
 }) {
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editDraft,    setEditDraft]    = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
   const [editJustSaved, setEditJustSaved] = useState(false);
   const [adding,       setAdding]       = useState(false);
+  /* ⚠️ `onClosed` を useCallback の依存に入れると呼び出し側の再生成で毎回作り直される。
+        ref に逃がす（挙動は変えない）。 */
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
 
   /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
   useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
+  /* ★外から行の編集を開く（2026-08-16 / 2-3）。公開部品の行の鉛筆が呼ぶ。
+     ⚠️ 値が変わるたびに開く。閉じるのは `null` を渡すのではなく、
+        フォーム側のキャンセル・保存（`onClosed` で親へ通知）。 */
+  useEffect(() => {
+    if (!openEditId) return;
+    const target = mediaAppearances.find((m) => m.id === openEditId);
+    if (!target) return;
+    setEditingId(openEditId);
+    setEditDraft(draftFromMA(target));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEditId]);
+  /* ★外から削除確認を開く。⚠️ 確認ダイアログはこのエディタが持っているので、
+        表示側は id を渡すだけにする（同じダイアログを2つ作らない）。 */
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const target = mediaAppearances.find((m) => m.id === openDeleteId);
+    if (target) setDeleteTarget(target);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDeleteId]);
   const [addDraft,     setAddDraft]     = useState<MediaAppearanceDraft>(EMPTY_MA_DRAFT);
   const [addSaving,    setAddSaving]    = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
@@ -1544,6 +1546,10 @@ export function MediaAppearanceEditor({
       await new Promise((r) => setTimeout(r, 800));
       setEditingId(null); setEditDraft(EMPTY_MA_DRAFT);
       setEditJustSaved(false);
+      /* ★保存できたらカードごと表示モードへ戻す（2026-08-16 / 2-3）。
+            戻さないと編集モードの枠が残り、**直した行が画面から消えたように見える**
+            （2-2 の発信コンテンツで踏んだのと同じ形）。 */
+      onClosedRef.current?.();
     } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
     finally { setEditSaving(false); }
   }, [editingId, editDraft, setMediaAppearances, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1563,6 +1569,10 @@ export function MediaAppearanceEditor({
       await new Promise((r) => setTimeout(r, 800));
       setAdding(false); setAddDraft(EMPTY_MA_DRAFT);
       setAddJustSaved(false);
+      /* ★追加も同じ。1件足したら一覧（表示モード）に戻して結果を見せる。
+            ⚠️ 発信コンテンツは「続けて足せる」ために閉じない作りだが、
+               こちらは元から1件ずつ追加する形なので閉じる方に揃える。 */
+      onClosedRef.current?.();
     } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
     finally { setAddSaving(false); }
   }, [addDraft, setMediaAppearances, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1575,6 +1585,7 @@ export function MediaAppearanceEditor({
       if (!res.ok) throw new Error();
       setMediaAppearances((prev) => prev.filter((m) => m.id !== deleteTarget.id));
       setDeleteTarget(null); showToast("メディア掲載を削除しました");
+      onClosedRef.current?.();
     } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
     finally { setDeleting(false); }
   }, [deleteTarget, setMediaAppearances, showToast]);
@@ -1590,49 +1601,32 @@ export function MediaAppearanceEditor({
           </div>
         </>
       )}
-      {mediaAppearances.map((item, idx) => (
+      {/* ★行の一覧はここでは描かない（2026-08-16 / 2-3）。
+             一覧・鉛筆・ゴミ箱は公開プロフィールと同じ `ProfileMediaSection` が持つ。
+             ここは**編集フォームだけ**。ここに一覧を戻さないと、
+             同じ見た目が2箇所に生まれる。 */}
+      {mediaAppearances.filter((item) => editingId === item.id).map((item) => (
         <div key={item.id}>
-          {editingId === item.id ? (
-            <MediaAppearanceForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
-              onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_MA_DRAFT); }} />
-          ) : (
-            <MediaAppearanceCard item={item} onEdit={() => { setEditingId(item.id); setEditDraft(draftFromMA(item)); }}
-              onDelete={() => setDeleteTarget(item)} />
-          )}
-          {idx < mediaAppearances.length - 1 && editingId !== item.id && (
-            <div style={{ height: 1, background: "var(--line-soft)", margin: "2px 0" }} />
-          )}
+          <MediaAppearanceForm draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
+            onSave={() => { void saveEdit(); }} onCancel={() => { setEditingId(null); setEditDraft(EMPTY_MA_DRAFT); onClosed?.(); }} />
         </div>
       ))}
-      {/* ⚠️ 記入例カードはやめた（2026-08-16）。理由は学歴と同じ */}
-      {mediaAppearances.length === 0 && !adding && (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-          まだメディア掲載を登録していません。
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            style={{
-              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-              textDecoration: "underline", textUnderlineOffset: 2,
-            }}
-          >
-            メディア掲載を追加する
-          </button>
-        </p>
-      )}
+      {/* ⚠️ 0件の1行（「まだメディア掲載を登録していません」）も公開部品側に移した。
+             ここに戻すと表示モードと編集モードで二重になる。 */}
       {adding && (
         <div style={{ marginTop: mediaAppearances.length > 0 ? 12 : 0 }}>
           <MediaAppearanceForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
-            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_MA_DRAFT); }} />
+            onSave={() => { void saveAdd(); }} onCancel={() => { setAdding(false); setAddDraft(EMPTY_MA_DRAFT); onClosedRef.current?.(); }} />
         </div>
       )}
       {/* ⚠️ 0件のときは出さない（理由は学歴と同じ） */}
-      {!adding && mediaAppearances.length > 0 && <AddSectionBtn label="メディア掲載を追加" onClick={() => setAdding(true)} />}
+      {/* ⚠️ 「＋ メディア掲載を追加」はここから外した（2026-08-16 / 2-3）。
+             追加の入口は**公開部品の見出し行の「追加」1つ**にする。
+             編集モードにこのボタンを残すと、入口が2つになる（ルール⑧）。 */}
       <ConfirmDialog isOpen={!!deleteTarget} title="メディア掲載を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
-        onConfirm={() => { void confirmDelete(); }} onCancel={() => setDeleteTarget(null)} />
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
     </div>
   );
