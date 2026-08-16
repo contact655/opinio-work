@@ -46,6 +46,7 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
+import { ProfileEditModal } from "./ProfileEditModal";
 import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import {
@@ -1487,48 +1488,46 @@ export default function ProfileTab({
                  入力が1つも無い人がいちばん長いスクロールを強いられていたため
                  （空カード7枚で 4.2画面）。追加の入口は一番下の「セクションを追加」。
               ⚠️ **編集中は必ず出す。** 出さないとフォームごと消えて追加できない。 */}
-          {(hasAbout || editingAbout) && (
+          {/* ★自己紹介（2026-08-17 / モーダル化の1枚目）。
+                 **本文は常に表示のまま。編集はモーダルで開く。**
+                 カードがフォームに化ける形をやめたので、押した場所と入力欄がずれない。 */}
+          {hasAbout && (
           <div ref={aboutCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
-            {editingAbout ? (
-              <section style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 16 }}>自己紹介</div>
-                <FormGroup
-                  label="自己紹介"
-                  hint="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
-                >
-                  <TextareaField
-                    value={basicInfo.aboutMe}
-                    onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
-                    placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
-                    softLimit={200}
-                    rows={5}
-                    ariaLabel="自己紹介"
-                  />
-                </FormGroup>
-                {/* ⚠️ 送るのは `about_me` **1列だけ**。ヘッダー側の保存とは別の呼び出しになるが、
-                       API のパスも送る列も変えていない（`"about_me" in body` のときだけ触る）。 */}
-                <CardSaveFooter
-                  dirty={basicInfo.aboutMe !== initialBasicInfo.aboutMe}
-                  saving={aboutSaving}
-                  justSaved={aboutJustSaved}
-                  error={null}
-                  onSave={handleSaveAbout}
-                  onCancel={() => { setBasicInfo((prev) => ({ ...prev, aboutMe: initialBasicInfo.aboutMe })); setEditingAbout(false); }}
-                />
-              </section>
-            ) : (
-              <ProfileAboutSection
-                aboutMe={initialBasicInfo.aboutMe || null}
-                viewerIsOwner
-                onEdit={() => setEditingAbout(true)}
-              />
-            )}
+            <ProfileAboutSection
+              aboutMe={initialBasicInfo.aboutMe || null}
+              viewerIsOwner
+              onEdit={() => setEditingAbout(true)}
+            />
           </div>
           )}
+
+          <ProfileEditModal
+            open={editingAbout}
+            title="自己紹介"
+            dirty={basicInfo.aboutMe !== initialBasicInfo.aboutMe}
+            saving={aboutSaving}
+            justSaved={aboutJustSaved}
+            error={null}
+            onSave={handleSaveAbout}
+            /* ⚠️ 閉じるときは入力を保存済みの値へ戻す。未保存があるときは
+                  モーダル側が破棄の確認を出すので、ここは戻すだけでよい。 */
+            onClose={() => { setBasicInfo((prev) => ({ ...prev, aboutMe: initialBasicInfo.aboutMe })); setEditingAbout(false); }}
+          >
+            {/* ★説明文はモーダルの中だけに置く（カードには出さない） */}
+            <FormGroup
+              label="自己紹介"
+              hint="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
+            >
+              <TextareaField
+                value={basicInfo.aboutMe}
+                onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
+                placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
+                softLimit={200}
+                rows={5}
+                ariaLabel="自己紹介"
+              />
+            </FormGroup>
+          </ProfileEditModal>
 
         {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4）。
                公開プロフィールと同じ**独立した2セクション**。並び順も `/u/[id]` に合わせ、
