@@ -84,24 +84,33 @@ split_part(split_part(url,'?',1),'#',1)
 
 ---
 
-## 企業ロゴ87件がアップロード済みなのに使われていない
+## ~~企業ロゴ87件がアップロード済みなのに使われていない~~（2026-08-16 対応済み）
 
-**対象**: `ow-uploads` の `companies/logos/`（87ファイル・4.7 MB）と `ow_companies.logo_url`。
+`ow_companies.logo_url` を **Clearbit 76件 → Storage 75件**に付け替えた。
+画面は Google favicon のフォールバックではなく**アップロード済みの実ファイル**を出す。
 
-**なぜ残っているか**: ロゴはアップロードされているのに、`logo_url` は
-**死んだ Clearbit の URL を指したまま**（CLAUDE.md「logo_url は 76社すべて
-`logo.clearbit.com` で、ホストは名前解決すらしない」）。
-画面は `CompanyLogo` が Google favicon にフォールバックして凌いでいる。
+### 残っているもの
 
-⚠️ **「孤児だから消す」ではない。** アップロード済みのロゴを `logo_url` が
-   指すようにするのが本筋。消すと、正しい向きに直す材料が無くなる。
+- **株式会社PKSHA Technology だけ Clearbit URL のまま。** Storage にファイルが無く、
+  かつ **`url`（website）が null** なので、`logo_url` を消すと
+  `CompanyLogo` が favicon 用のドメインを取り出せなくなり頭文字だけになる
+  （いまは死んだ Clearbit URL から `pkshatech.com` を取り出して favicon を出している）。
+  **`url` を埋めてから null にする**のが筋。ロゴを投入してもよい。
+- `logo_url` が null の11社は現状のまま（頭文字＋グラデーション）。
+  うち website があるのは6社なので、そちらは favicon が出る。
+- **実寸が小さいロゴが6社**（32〜70px。96px 枠では甘くなる）。
+  16px 以下は0件なので `CompanyLogo` の「失敗扱い」には入らない。差し替えは別途。
 
-**やるなら**: `companies/logos/{company_id}/` の最新ファイルを `logo_url` に入れる
-migration を書く。⚠️ 企業ごとに対応が取れているかを先に確かめること
-（フォルダ名の company_id が実在するか、1社に複数ある場合どれが最新か）。
-それでも残るファイル（対応する企業が無い等）だけを、上の孤児掃除に回す。
+  | 会社 | 実寸 |
+  |---|---|
+  | アリスタネットワークス / 日本HP | 32×32 |
+  | Slack Japan | 35×34 |
+  | ブラックライン | 48×48 |
+  | パロアルトネットワークス | 57×57 |
+  | Ubie | 70×70 |
 
----
+⚠️ **Storage 側の孤児4件**（`ow_companies` に存在しない company_id のフォルダ）は
+   別件（孤児掃除）。今回は触っていない。
 
 ## RLS が `USING(true)` かつ anon に SELECT がある テーブル ── **個人データは片付いた**（2026-08-16）
 
