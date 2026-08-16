@@ -463,3 +463,41 @@ return { innerWidth, 幅: el.offsetWidth, 親: el.parentElement.clientWidth };
 ⚠️ 症状が「反映されない」系のときは、⑨（`innerWidth`）と合わせて
    **計測環境そのものを疑う**こと。本項と、上の「dev 二重起動」「build と dev の同居」
    （CLAUDE.md）は**どれも同じ形**——**壊れているのは環境で、コードではない。**
+
+### ⑪ `requestAnimationFrame` は発火しないことがある。UI の副作用を載せない
+
+**描画されていないタブ・非表示のペインでは rAF が呼ばれない。**
+「関数は呼ばれているのに、スクロールだけが静かに起きない」形になる。
+
+```tsx
+// ✗ 描画されていないと永久に実行されない
+requestAnimationFrame(() => requestAnimationFrame(() => el.scrollIntoView(...)));
+// ✓ 少し待つ。0ms ではなく、開いて高さが変わったあとに測れる程度
+setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+```
+
+⚠️ **実例（2026-08-16）**: 促しから「カードを開いてスクロール」を作ったとき、
+   カードは開くのに `scrollIntoView` の呼び出しが**0回**だった。
+   原因はプレビューが描画されておらず rAF が発火しなかったこと。
+
+⚠️ **これは計測時だけの話ではない。** 利用者がバックグラウンドタブに置いた場合も同じで、
+   タブを戻すまで副作用が実行されない。**rAF は「描画に合わせたい」ときだけ使い、
+   「必ず起きてほしい処理」を載せない。**
+
+⚠️ 逆に `setTimeout` は「レイアウトが確定しているか」を保証しない。
+   **開いてから測る**必要があるものは、0ms ではなく少し待つこと（上の例は 60ms）。
+
+### 呼ばれたことを確かめる方法
+
+ペインによっては programmatic scroll そのものが効かない（`scrollTo` を呼んでも
+`scrollY` が動かない）。**移動量では確かめられない**ので、呼び出しを記録する。
+
+```js
+const calls=[]; const orig=Element.prototype.scrollIntoView;
+Element.prototype.scrollIntoView=function(o){
+  calls.push({ 中身:(this.innerText||"").split("\n")[0], 入力欄:this.querySelectorAll("input").length });
+  return orig.apply(this, arguments); };
+// …操作…
+Element.prototype.scrollIntoView=orig;
+// 「正しい要素に」「編集モードが開いたあとで」呼ばれたかを見る
+```
