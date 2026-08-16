@@ -45,6 +45,15 @@ export function PlusIcon() {
   );
 }
 
+/** 見出しの鉛筆（セクションまるごとの編集）。行の鉛筆と同じ絵 */
+export function PencilIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 /** 行の右端に出す鉛筆とゴミ箱。⚠️ `<a>` の**外**に置くこと（アンカーの入れ子は不正） */
 export function RowActionButtons({ id, label, actions }: { id: string; label: string; actions: RowActions }) {
   if (!actions.onEditRow && !actions.onDeleteRow) return null;

@@ -45,7 +45,8 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline from "@/components/profile/MergedTimeline";
-import { RowActionButtons } from "@/components/profile/view/RowActions";
+import { RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
+import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import {
   toTimelineEducationEntries, buildTimelineCareerEntriesFromRaw,
   type RawEducation, type RawExperienceRow, type CompanyLogoInfo, type RoleInfo,
@@ -53,12 +54,12 @@ import {
 /* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
       同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
 import {
-  ProfileSocialLinks,
   ProfileContentLinksSection,
   ProfileMediaSection,
   ProfileAchievementsSection,
   ProfileAwardsSection,
   ProfileTimelineSection,
+  ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
@@ -130,6 +131,13 @@ type BasicInfo = {
 
 /** 肩書きの上限。⚠️ DB の CHECK（`ow_users_headline_length`）と同じ値にすること。 */
 const HEADLINE_MAX = 40;
+
+/** 促しの「追加する →」。⚠️ 見た目はリンクだが**ボタン**（同じページのカードを開く） */
+const promoBtn: React.CSSProperties = {
+  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+  fontSize: "inherit", fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+  textDecoration: "underline", textUnderlineOffset: 2,
+};
 
 /** 完成度に渡す「保存済み」の値。★入力中の値を混ぜない */
 export type ProfileSavedSnapshot = {
@@ -682,176 +690,6 @@ function ContentLinkForm({
       2026-08-16 に削除した。**公開プロフィールと同じ `ProfileContentLinksSection`**
       を使う。ここに描き直さないこと。 */
 
-/**
- * SNS の表示モード。★**公開プロフィール（`/u/[id]`）と同じ部品**を使う（2026-08-16）。
- *
- * ⚠️ **ここにアイコン列を書き直さないこと。** 見た目は `ProfileSocialLinks` が持つ。
- *    以前はピル型のリンク（ラベル付き）を独自に描いており、公開ページと別物だった。
- * ⚠️ 0件のときだけ /mypage 独自の1行を出す（`/u/[id]` は0件で何も出さない）。
- *    **これが公開プロフィールと違ってよい唯一の箇所。**
- */
-function SocialLinksView({
-  socialLinks, onStartEdit,
-}: { socialLinks: SocialLinks; onStartEdit: () => void }) {
-  const filled = SNS_PLATFORMS.filter((p) => (socialLinks[p] ?? "").trim().length > 0);
-
-  if (filled.length === 0) {
-    return (
-      <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-        まだ登録されていません。
-        <button
-          type="button"
-          onClick={onStartEdit}
-          style={{
-            background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-            fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-            textDecoration: "underline", textUnderlineOffset: 2,
-          }}
-        >
-          SNS・外部リンクを追加する
-        </button>
-      </p>
-    );
-  }
-  return <ProfileSocialLinks socialLinks={socialLinks} />;
-}
-
-/**
- * プロフィール画像・カバーの表示モード（2026-08-16）。
- *
- * ⚠️ **保存済みの URL だけを受け取る。** アップローダー内部の state を渡さない
- *    （保存が終わっていない画像を「登録済み」に見せない）。
- * ⚠️ 記入例（GhostExample）は足さない。空のときは1行の控えめな文だけ。
- */
-function ProfilePhotoView({
-  avatarUrl, coverPhotoUrl, avatarColor, coverColor, name, onStartEdit,
-}: {
-  avatarUrl: string | null;
-  coverPhotoUrl: string | null;
-  avatarColor: string;
-  coverColor: string;
-  name: string;
-  onStartEdit: () => void;
-}) {
-  const none = !avatarUrl && !coverPhotoUrl;
-  return (
-    <div>
-      <div style={{
-        width: "100%", maxWidth: 360, borderRadius: 12, overflow: "hidden",
-        border: "1px solid var(--line)",
-      }}>
-        <div style={{ height: 90, position: "relative", background: coverPhotoUrl ? undefined : coverColor, overflow: "hidden" }}>
-          {coverPhotoUrl && <Image src={coverPhotoUrl} alt="" fill style={{ objectFit: "cover" }} />}
-        </div>
-        <div style={{ padding: "0 14px 14px", marginTop: -28 }}>
-          <div style={{
-            position: "relative",
-            width: 56, height: 56, borderRadius: "50%",
-            background: avatarUrl ? undefined : avatarColor,
-            overflow: "hidden", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "var(--text-xl)", fontWeight: 600,
-            border: "3px solid #fff", boxShadow: "0 2px 8px rgba(15,23,42,0.1)",
-          }}>
-            {avatarUrl ? <Image src={avatarUrl} alt="" fill style={{ objectFit: "cover" }} /> : (name.charAt(0) || "?")}
-          </div>
-        </div>
-      </div>
-      {none && (
-        <p style={{ margin: "12px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-          まだ写真を登録していません。いまは名前の頭文字と既定の色を表示しています。
-          <button
-            type="button"
-            onClick={onStartEdit}
-            style={{
-              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-              textDecoration: "underline", textUnderlineOffset: 2,
-            }}
-          >
-            写真を追加する
-          </button>
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * 基本情報の表示モード（2026-08-16）。
- *
- * ⚠️ **保存済みの値だけを受け取る。** 入力中の state（`basicInfo`）を渡さないこと。
- *    渡すと「保存していないのに表示が変わる」形になる（3-A-1 と同じ原則）。
- * ⚠️ 空の項目は**行ごと出さない**。「未設定」を並べない（「値が無いことを、
- *    ある値に置き換えない」）。
- * ⚠️ 生年月日は「1990年3月15日（36歳）」の形で出す。**この画面は本人しか見ない**。
- *    公開側（/u/[id] / /people / directory.ts）が年齢だけを出す扱いは変えないこと。
- */
-function BasicInfoView({
-  name, headline, location, aboutMe, birth, onStartEdit,
-}: {
-  name: string;
-  headline: string;
-  location: string;
-  aboutMe: string;
-  birth: { year: string; month: string; day: string };
-  onStartEdit: () => void;
-}) {
-  const age = ageFromBirth(birth);
-  /* ⚠️ **ここは本人だけが見る編集画面**なので、生年月日そのものを出す。
-        公開側（/u/[id] / /people / directory.ts）は**年齢だけ**という扱いを変えないこと。 */
-  const birthLabel =
-    birth.year && birth.month && birth.day
-      ? `${birth.year}年${Number(birth.month)}月${Number(birth.day)}日${age !== null ? `（${age}歳）` : ""}`
-      : null;
-  const rows: { label: string; value: string }[] = [
-    name.trim()     && name !== "ユーザー" ? { label: "名前", value: name } : null,
-    headline.trim() ? { label: "肩書き", value: headline } : null,
-    location.trim() ? { label: "所在地", value: location } : null,
-    birthLabel      ? { label: "生年月日", value: birthLabel } : null,
-  ].filter((r): r is { label: string; value: string } => r !== null);
-
-  if (rows.length === 0 && !aboutMe.trim()) {
-    return (
-      <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-        まだ登録されていません。
-        <button
-          type="button"
-          onClick={onStartEdit}
-          style={{
-            background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-            fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-            textDecoration: "underline", textUnderlineOffset: 2,
-          }}
-        >
-          名前や自己紹介を追加する
-        </button>
-      </p>
-    );
-  }
-
-  return (
-    <div>
-      <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: "10px 20px" }}>
-        {rows.map((r) => (
-          <React.Fragment key={r.label}>
-            <dt style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{r.label}</dt>
-            <dd style={{ margin: 0, fontSize: 14, color: "var(--ink)", minWidth: 0, overflowWrap: "anywhere" }}>{r.value}</dd>
-          </React.Fragment>
-        ))}
-      </dl>
-      {aboutMe.trim() && (
-        <div style={{ marginTop: rows.length > 0 ? 16 : 0, paddingTop: rows.length > 0 ? 16 : 0, borderTop: rows.length > 0 ? "1px solid var(--line-soft)" : "none" }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", marginBottom: 6 }}>自己紹介</div>
-          <p style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-            {aboutMe}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** 生年月日3つから年齢を出す。★揃っていなければ null（「0歳」を出さない） */
 function ageFromBirth({ year, month, day }: { year: string; month: string; day: string }): number | null {
   if (!year || !month || !day) return null;
@@ -882,8 +720,8 @@ export default function ProfileTab({
   onDirtyChange,
   notifyGlobalSave,
   companyLogoInfo = [],
+  followCounts,
   openBasicNonce = 0,
-  openSocialNonce = 0,
   openCareerNonce = 0,
 }: {
   owUser: OwUser;
@@ -891,8 +729,9 @@ export default function ProfileTab({
         ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
   /** ★職歴の表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6） */
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
+  /** ★ヘッダーに出すフォロー数（2026-08-16 / 2-7）。0 の項目は出ない */
+  followCounts?: { followers: number; following: number };
   openBasicNonce?: number;
-  openSocialNonce?: number;
   openCareerNonce?: number;
   /** 写真カードのプレビューに使う色。★保存済みの設定を親から受け取る */
   settings: SettingsState;
@@ -1020,41 +859,10 @@ export default function ProfileTab({
   // 保存済みの値を保持して変更検知（JSON.stringify 比較）
   const [savedSocialLinks, setSavedSocialLinks] = useState<SocialLinks>(initialSocialLinks);
   const [socialSaving,       setSocialSaving]       = useState(false);
-  const [socialJustSaved,    setSocialJustSaved]    = useState(false);
   const [socialToastMsg,     setSocialToastMsg]     = useState<string | null>(null);
-  const [socialToastVariant, setSocialToastVariant] = useState<"default" | "error">("default");
+  const socialToastVariant = "default" as const;
 
   const isSocialDirty = JSON.stringify(socialLinks) !== JSON.stringify(savedSocialLinks);
-
-  /* 保存が成功したときだけ表示モードへ戻す。★失敗時は戻さない（編集モードのままエラー） */
-  useEffect(() => {
-    if (socialJustSaved) setEditingSocial(false);
-  }, [socialJustSaved]);
-
-  const handleSaveSocial = useCallback(async () => {
-    setSocialSaving(true);
-    notifyGlobalSave("saving");
-    try {
-      const res = await fetch("/api/jobseeker/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ social_links: socialLinks }),
-      });
-      if (!res.ok) throw new Error();
-      setSavedSocialLinks(socialLinks); // 保存成功: 次回比較の基準点を更新
-      setSocialToastVariant("default");
-      setSocialToastMsg("SNS リンクを保存しました");
-      setSocialJustSaved(true);
-      notifyGlobalSave("saved");
-      setTimeout(() => setSocialJustSaved(false), 3000);
-    } catch {
-      setSocialToastVariant("error");
-      setSocialToastMsg("保存に失敗しました。もう一度お試しください。");
-      notifyGlobalSave("error");
-    } finally {
-      setSocialSaving(false);
-    }
-  }, [socialLinks, notifyGlobalSave]);
 
   const handleCancelSocial = useCallback(() => {
     setSocialLinks(savedSocialLinks);
@@ -1100,9 +908,12 @@ export default function ProfileTab({
 
   /* 表示 ⇄ 編集（2026-08-16 / LinkedIn 型）。既定は表示モード。
      ⚠️ カードごとに独立させる。複数のカードを同時に開けてよい。 */
-  const [editingBasic, setEditingBasic] = useState(false);
-  const [editingPhoto, setEditingPhoto] = useState(false);
-  const [editingSocial, setEditingSocial] = useState(false);
+  /* ★ヘッダー（写真・カバー・名前・肩書き・所在地・生年月日・SNS）と自己紹介（2026-08-16 / 2-7）。
+        `editingBasic` は「ヘッダーの編集」に置き換えた。促し（`openBasicNonce`）もこちらを開く。 */
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [editingAbout,  setEditingAbout]  = useState(false);
+  const [aboutSaving,    setAboutSaving]    = useState(false);
+  const [aboutJustSaved, setAboutJustSaved] = useState(false);
   const [editingContent, setEditingContent] = useState(false);
   /* 職歴カードの見出し「＋」→ 追加モーダルを開く合図。値が変わるたびに開く */
   const [careerAddNonce, setCareerAddNonce] = useState(0);
@@ -1196,7 +1007,7 @@ export default function ProfileTab({
         ⚠️ **スクロールは編集モードが開いたあと**に呼ぶ。開く前に呼ぶと
            カードの高さが変わって着地位置がずれる。 */
   const basicCardRef  = useRef<HTMLDivElement>(null);
-  const socialCardRef = useRef<HTMLDivElement>(null);
+
   const scrollAfterPaint = (el: HTMLElement | null) => {
     if (!el) return;
     /* ⚠️ **`requestAnimationFrame` に頼らない。** 描画されていないタブ・
@@ -1206,16 +1017,13 @@ export default function ProfileTab({
           着地位置がずれる。 */
     setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
+  /* ⚠️ 促しの行き先は 2-7 で変わった。自己紹介はヘッダーから独立セクションへ移り、
+        SNS はヘッダーの中に入った（SNS カードは廃止）。 */
   useEffect(() => {
     if (!openBasicNonce) return;
-    setEditingBasic(true);
+    setEditingAbout(true);
     scrollAfterPaint(basicCardRef.current);
   }, [openBasicNonce]);
-  useEffect(() => {
-    if (!openSocialNonce) return;
-    setEditingSocial(true);
-    scrollAfterPaint(socialCardRef.current);
-  }, [openSocialNonce]);
   /* 職歴は**モーダル**なのでスクロールしない（画面中央に出る） */
   useEffect(() => {
     if (!openCareerNonce) return;
@@ -1231,7 +1039,7 @@ export default function ProfileTab({
      ⚠️ 失敗時は戻さない（編集モードのままエラーを出す）。`basicJustSaved` は
         `handleSaveBasic` の成功パスでしか true にならない。 */
   useEffect(() => {
-    if (basicJustSaved) setEditingBasic(false);
+    if (basicJustSaved) setEditingHeader(false);
   }, [basicJustSaved]);
 
   const isBasicDirty =
@@ -1240,8 +1048,17 @@ export default function ProfileTab({
     birthMonth !== initialBirthMonth ||
     birthDay   !== initialBirthDay;
 
-  const handleSaveBasic = useCallback(async () => {
+  /* ★ヘッダーの鉛筆で編集する範囲（2026-08-16 / 2-7）。自己紹介は含めない。 */
+  const isHeaderDirty = isBasicDirty || isSocialDirty;
+  /* 年齢は導出値（生年月日から作る）。**保存済みの値**から作る */
+  const headerAge = ageFromBirth({ year: initialBirthYear, month: initialBirthMonth, day: initialBirthDay });
+
+  /* ★ヘッダーの保存（2026-08-16 / 2-7）。名前・肩書き・所在地・生年月日・SNS を
+        **1回の PUT** で送る。自己紹介（`about_me`）は送らない。
+     ⚠️ API は `"キー" in body` でしか列を触らないので、送らない列は動かない。 */
+  const handleSaveHeader = useCallback(async () => {
     setBasicSaving(true);
+    setSocialSaving(true);
     notifyGlobalSave("saving");
     try {
       const birthDate =
@@ -1252,20 +1069,22 @@ export default function ProfileTab({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:             basicInfo.name,
-          headline:         basicInfo.headline,
-          location:         basicInfo.location,
-          about_me:         basicInfo.aboutMe,
-          birth_date:       birthDate,
+          name:         basicInfo.name,
+          headline:     basicInfo.headline,
+          location:     basicInfo.location,
+          birth_date:   birthDate,
+          social_links: socialLinks,
         }),
       });
       if (!res.ok) throw new Error();
-      setInitialBasicInfo(basicInfo);
+      /* ⚠️ 自己紹介は送っていないので、控えも触らない（送った列だけ進める） */
+      setInitialBasicInfo((prev) => ({ ...prev, name: basicInfo.name, headline: basicInfo.headline, location: basicInfo.location }));
       setInitialBirthYear(birthYear);
       setInitialBirthMonth(birthMonth);
       setInitialBirthDay(birthDay);
+      setSavedSocialLinks(socialLinks);
       setBasicToastVariant("default");
-      setBasicToastMsg("基本情報を保存しました");
+      setBasicToastMsg("プロフィールを保存しました");
       setBasicJustSaved(true);
       notifyGlobalSave("saved");
       setTimeout(() => setBasicJustSaved(false), 3000);
@@ -1275,8 +1094,36 @@ export default function ProfileTab({
       notifyGlobalSave("error");
     } finally {
       setBasicSaving(false);
+      setSocialSaving(false);
     }
-  }, [basicInfo, birthYear, birthMonth, birthDay, notifyGlobalSave]);
+  }, [basicInfo, birthYear, birthMonth, birthDay, socialLinks, notifyGlobalSave]);
+
+  /* ★自己紹介の保存。**`about_me` 1列だけ**を送る */
+  const handleSaveAbout = useCallback(async () => {
+    setAboutSaving(true);
+    notifyGlobalSave("saving");
+    try {
+      const res = await fetch("/api/jobseeker/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ about_me: basicInfo.aboutMe }),
+      });
+      if (!res.ok) throw new Error();
+      setInitialBasicInfo((prev) => ({ ...prev, aboutMe: basicInfo.aboutMe }));
+      setBasicToastVariant("default");
+      setBasicToastMsg("自己紹介を保存しました");
+      setAboutJustSaved(true);
+      notifyGlobalSave("saved");
+      setTimeout(() => setAboutJustSaved(false), 3000);
+      setEditingAbout(false);
+    } catch {
+      setBasicToastVariant("error");
+      setBasicToastMsg("保存に失敗しました。もう一度お試しください。");
+      notifyGlobalSave("error");
+    } finally {
+      setAboutSaving(false);
+    }
+  }, [basicInfo.aboutMe, notifyGlobalSave]);
 
   const handleCancelBasic = useCallback(() => {
     setBasicInfo(initialBasicInfo);
@@ -1310,18 +1157,23 @@ export default function ProfileTab({
 
   return (
     <>
-        {/* 基本情報タブ */}
-        {/* ⚠️ 写真は「設定」から「プロフィール」の先頭へ移した（2026-08-15）。
-               アップロードのロジックは触らず、コンポーネントごと移動しただけ。 */}
+        {/* ── ヘッダー（2026-08-16 / 2-7）──────────────────────────────────
+               ★`UserProfileCard` / 「プロフィール画像・カバー」/「基本情報」の3枚を
+                 1つにまとめ、**公開プロフィールと同じ `ProfileHeader`** を使う。
+               ⚠️ 自己紹介はここから外し、独立セクション（`#about`）に移した。
+                  `/u/[id]` がそうなっているので構造を合わせる。
+               ⚠️ 現職・年齢は導出値なので鉛筆の対象外。 */}
           <div style={{ maxWidth: 680 }}>
-            <EditableSection
-              title="プロフィール画像・カバー"
-              description="プロフィールページのヘッダーに表示されます。"
-              isEditing={editingPhoto}
-              onStartEdit={() => setEditingPhoto(true)}
-              action="edit"
-              actionLabel="プロフィール画像・カバーを編集"
-              editContent={<>
+            {editingHeader ? (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>プロフィール</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
+                  写真・名前・肩書き・所在地・生年月日・SNS。プロフィールページの先頭に出ます。
+                </div>
                 <ProfilePhotoUploader
                   owUser={owUser}
                   basicInfoName={basicInfo.name}
@@ -1331,38 +1183,6 @@ export default function ProfileTab({
                   savedAvatarUrl={savedAvatarUrl}
                   savedCoverPhotoUrl={savedCoverPhotoUrl}
                 />
-                {/* ⚠️ 写真は選んだ時点で保存される。「完了」は保存ではなく出口 */}
-                <CardDoneFooter onDone={() => setEditingPhoto(false)} note="写真は選んだ時点で保存されます" />
-              </>}
-            >
-              <ProfilePhotoView
-                avatarUrl={savedAvatarUrl}
-                coverPhotoUrl={savedCoverPhotoUrl}
-                avatarColor={settings.avatarColor}
-                coverColor={settings.coverColor}
-                name={initialBasicInfo.name}
-                onStartEdit={() => setEditingPhoto(true)}
-              />
-            </EditableSection>
-          </div>
-
-          {/* ⚠️ ref は**スクロールの着地点**。外（ヘッダーカードの促し・右カラムの
-                 「あと2つ」）から開いたときにここへ寄せる。 */}
-          <div ref={basicCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
-
-            {/* ── 基本情報（名前・肩書き・所在地・生年月日・自己紹介）────────
-                ⚠️ **自己紹介を別カードに戻さないこと。**（2026-08-15 統合）
-                   保存ボタンは1つで、送る中身も1回の PUT のまま。2枚に分かれていた頃は
-                   **保存ボタンが自己紹介側にしか無く**、基本情報カードの中を探しても
-                   見つからない状態だった（カード境界とボタンの帰属が1対1でなかった）。 */}
-            <EditableSection
-              title="基本情報"
-              description="プロフィールページの先頭に出ます。"
-              isEditing={editingBasic}
-              onStartEdit={() => setEditingBasic(true)}
-              action="edit"
-              actionLabel="基本情報を編集"
-              editContent={<>
               <FormGroup label="名前" htmlFor="pe-name">
                 <input
                   id="pe-name"
@@ -1461,55 +1281,117 @@ export default function ProfileTab({
                   </div>
                 </div>
               </FormGroup>
-
-              <FormGroup
-                label="自己紹介"
-                hint="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
-              >
-                <TextareaField
-                  value={basicInfo.aboutMe}
-                  onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
-                  placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
-                  softLimit={200}
-                  rows={5}
-                  ariaLabel="自己紹介"
+                <SocialLinksEditor socialLinks={socialLinks} setSocialLinks={setSocialLinks} />
+                {/* ⚠️ 保存は**1回の PUT**。名前・肩書き・所在地・生年月日・SNS を一緒に送る
+                       （API は `"キー" in body` でしか触らないので、送らない列は動かない）。 */}
+                <CardSaveFooter
+                  dirty={isHeaderDirty}
+                  saving={basicSaving || socialSaving}
+                  justSaved={basicJustSaved}
+                  error={null}
+                  onSave={handleSaveHeader}
+                  onCancel={() => { handleCancelBasic(); handleCancelSocial(); setEditingHeader(false); }}
                 />
-              </FormGroup>
-
-            {/* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。
-                   ★他のカードと同じ `CardSaveFooter` を使う。未保存の出し方を揃えるため。 */}
-              <CardSaveFooter
-                dirty={isBasicDirty}
-                saving={basicSaving}
-                justSaved={basicJustSaved}
-                error={null}
-                onSave={handleSaveBasic}
-                /* ⚠️ 編集モードの出口はこの「キャンセル」だけ。
-                      入力を保存済みの値へ戻してから表示モードへ戻す
-                      （3-A-3 のキャンセルと同じ挙動。タブを移っても残す仕様ではない）。 */
-                onCancel={() => { handleCancelBasic(); setEditingBasic(false); }}
-              />
-              </>}
-            >
-              {/* 表示モード。★保存済みの値だけを出す（入力中の state を混ぜない） */}
-              <BasicInfoView
+              </section>
+            ) : (
+              <ProfileHeader
                 name={initialBasicInfo.name}
                 headline={initialBasicInfo.headline}
+                initial={initialBasicInfo.name.charAt(0) || "?"}
+                avatarUrl={savedAvatarUrl}
+                avatarColor={settings.avatarColor}
+                coverPhotoUrl={savedCoverPhotoUrl}
+                coverColor={settings.coverColor || settings.avatarColor}
+                ageDisplay={headerAge !== null ? `${headerAge}歳` : null}
                 location={initialBasicInfo.location}
-                aboutMe={initialBasicInfo.aboutMe}
-                birth={{ year: initialBirthYear, month: initialBirthMonth, day: initialBirthDay }}
-                onStartEdit={() => setEditingBasic(true)}
-              />
-            </EditableSection>
-
-            {basicToastMsg && (
-              <Toast
-                message={basicToastMsg}
-                variant={basicToastVariant}
-                onDone={() => setBasicToastMsg(null)}
+                followCounts={followCounts ?? { followers: 0, following: 0 }}
+                socialLinks={savedSocialLinks}
+                currentCareer={timelineCareers.find((c) => c.is_current) ?? null}
+                isCurrentCompanyKnown={!!timelineCareers.find((c) => c.is_current)?.company_id}
+                /* ★促し。`UserProfileCard` にあったものをヘッダーへ移した（2-7）。
+                      ⚠️ リンクにしない。同じページなので `href` では何も起きない。 */
+                promos={<>
+                  {/* ⚠️ 自己紹介の促しはここに置かない（2026-08-16 / 2-7 で実測）。
+                         すぐ下の `#about` セクションが 0件のとき同じ入口を出しており、
+                         **同じ操作の入口が40px 差で2つ縦に並ぶ**（ルール⑧）。 */}
+                  {Object.values(savedSocialLinks).filter(Boolean).length === 0 && (
+                    <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                      SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。
+                      <button type="button" onClick={() => setEditingHeader(true)} style={promoBtn}>追加する →</button>
+                    </p>
+                  )}
+                </>}
+                topRight={
+                  <button
+                    type="button"
+                    onClick={() => setEditingHeader(true)}
+                    aria-label="プロフィールを編集"
+                    title="プロフィールを編集"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "8px 14px", borderRadius: 8,
+                      border: "1px solid var(--line)", background: "#fff",
+                      color: "var(--ink-soft)", fontSize: 13, fontWeight: 600,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    <PencilIcon />
+                    編集
+                  </button>
+                }
               />
             )}
 
+            {basicToastMsg && (
+              <Toast message={basicToastMsg} variant={basicToastVariant} onDone={() => setBasicToastMsg(null)} />
+            )}
+            {socialToastMsg && (
+              <Toast message={socialToastMsg} variant={socialToastVariant} onDone={() => setSocialToastMsg(null)} />
+            )}
+          </div>
+
+          {/* ── 自己紹介（#about）──────────────────────────────────────────
+                 ★ヘッダーから外して独立セクションにした（2026-08-16 / 2-7）。
+                 `/u/[id]` と同じ位置・同じ見た目。 */}
+          <div style={{ maxWidth: 680 }}>
+            {editingAbout ? (
+              <section style={{
+                background: "#fff", border: "1px solid var(--line)",
+                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 16 }}>自己紹介</div>
+                <FormGroup
+                  label="自己紹介"
+                  hint="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
+                >
+                  <TextareaField
+                    value={basicInfo.aboutMe}
+                    onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
+                    placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
+                    softLimit={200}
+                    rows={5}
+                    ariaLabel="自己紹介"
+                  />
+                </FormGroup>
+                {/* ⚠️ 送るのは `about_me` **1列だけ**。ヘッダー側の保存とは別の呼び出しになるが、
+                       API のパスも送る列も変えていない（`"about_me" in body` のときだけ触る）。 */}
+                <CardSaveFooter
+                  dirty={basicInfo.aboutMe !== initialBasicInfo.aboutMe}
+                  saving={aboutSaving}
+                  justSaved={aboutJustSaved}
+                  error={null}
+                  onSave={handleSaveAbout}
+                  onCancel={() => { setBasicInfo((prev) => ({ ...prev, aboutMe: initialBasicInfo.aboutMe })); setEditingAbout(false); }}
+                />
+              </section>
+            ) : (
+              <ProfileAboutSection
+                aboutMe={initialBasicInfo.aboutMe || null}
+                viewerIsOwner
+                onEdit={() => setEditingAbout(true)}
+              />
+            )}
           </div>
 
         {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4）。
@@ -1752,48 +1634,9 @@ export default function ProfileTab({
             </EditableSection>
           </div>
 
-        {/* SNS・発信コンテンツタブ */}
-          <>
-            <div ref={socialCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
-              <EditableSection
-                title="SNS・外部リンク"
-                description="登録したリンクはプロフィールページに表示されます。"
-                isEditing={editingSocial}
-                onStartEdit={() => setEditingSocial(true)}
-                action="edit"
-                actionLabel="SNS・外部リンクを編集"
-                editContent={
-                  /* ⚠️ 見出しは EditableSection が描く。子は hideHeading で止める */
-                  <SocialLinksEditor
-                    socialLinks={socialLinks}
-                    setSocialLinks={setSocialLinks}
-                    /* ⚠️ 保存行はカードの中（右下）。処理・送信内容は変えていない。 */
-                    footer={
-                      <CardSaveFooter
-                        dirty={isSocialDirty}
-                        saving={socialSaving}
-                        justSaved={socialJustSaved}
-                        error={null}
-                        onSave={handleSaveSocial}
-                        /* ★編集モードの出口。入力を保存済みの値へ戻してから閉じる */
-                        onCancel={() => { handleCancelSocial(); setEditingSocial(false); }}
-                      />
-                    }
-                  />
-                }
-              >
-                {/* 表示は**保存済みの値**から。入力中の socialLinks を渡さない */}
-                <SocialLinksView socialLinks={savedSocialLinks} onStartEdit={() => setEditingSocial(true)} />
-              </EditableSection>
-            </div>
-            {socialToastMsg && (
-              <Toast
-                message={socialToastMsg}
-                variant={socialToastVariant}
-                onDone={() => setSocialToastMsg(null)}
-              />
-            )}
-          </>
+        {/* ⚠️ 「SNS・外部リンク」カードは 2-7 で**廃止**した（2026-08-16）。
+               SNS はヘッダーの中だけに出す。カードを戻すとアイコン列が2箇所になる
+               （2-1 で報告した重複がこれで解消した）。編集はヘッダーの鉛筆から。 */}
 
         {/* 発信コンテンツ（SNS・発信タブ内） */}
           <div style={{ maxWidth: 680 }}>

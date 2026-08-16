@@ -9,7 +9,6 @@ import MypageLayout from "./_components/MypageLayout";
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
 import type { ProfileSavedSnapshot } from "@/components/profile/editor/ProfileTab";
 import type { ComponentProps } from "react";
-import UserProfileCard from "@/components/profile/UserProfileCard";
 /* ⚠️ 型だけ使う。経歴タイムラインの描画は 2026-08-16 にここから外した
       （職歴・学歴カードと重複するため）。`MergedTimeline` 本体は `/u/[id]` が使う。 */
 import { type CareerEntry } from "@/components/profile/MergedTimeline";
@@ -141,34 +140,21 @@ function AmbassadorWidget({ memberships }: { memberships: AmbassadorMembership[]
 }
 
 function DashboardView({
-  userId, userName, userInitial, userAvatar,
-  currentRole,
-  userLocation, userAboutMe, userBirthDate, userSocialLinks,
-  followCounts,
+  userId, userInitial, userAvatar,
   userEducations,
   ambassadorMemberships = [],
   schoolPeerCounts = {},
   canPost,
   profileEditorWith,
-  onEditAboutMe,
-  onEditSocials,
 }: {
   /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
   canPost: boolean;
-  /** プロフィール編集（3タブ＋7枚のカード）を描く。
+  /** プロフィール編集（3タブ＋カード群）を描く。
       引数に渡したものは**プロフィールタブの一番下**に入る（母校・アクティビティ） */
   profileEditorWith: (extra: React.ReactNode) => React.ReactNode;
-  /** ヘッダーカードの促しから、該当カードを編集モードで開く */
-  onEditAboutMe: () => void;
-  onEditSocials: () => void;
   userId: string;
-  userName: string; userInitial: string; userAvatar: string;
-  currentRole?: string | null;
-  userLocation?: string | null; userAboutMe?: string | null;
-  userBirthDate?: string | null;
-  userSocialLinks?: Record<string, string> | null;
-  /** フォロワー数 / フォロー中の数。0 の項目は出ない */
-  followCounts?: { followers: number; following: number };
+  userInitial: string;
+  userAvatar: string;
   userEducations?: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
@@ -185,23 +171,10 @@ function DashboardView({
 
   return (
     <div>
-      {/* コンパクトプロフィールカード — Phase ν-6 段階3: 全フィールドインライン編集対応 */}
-      <UserProfileCard
-        onEditAboutMe={onEditAboutMe}
-        onEditSocials={onEditSocials}
-        userId={userId}
-        userName={userName}
-        userInitial={userInitial}
-        userAvatar={userAvatar}
-        currentRole={currentRole}
-        userLocation={userLocation}
-        userAboutMe={userAboutMe}
-        userBirthDate={userBirthDate}
-        
-        userSocialLinks={userSocialLinks}
-        followCounts={followCounts}
-        isMentor={false}
-      />
+      {/* ⚠️ `UserProfileCard`（名前・アバター・現職・SNS の「自分の見え方」カード）は
+             2-7 で**廃止**した（2026-08-16）。同じものを公開プロフィールと同じ
+             `ProfileHeader` で出すようになり、プロフィールタブの先頭にある。
+             ここに戻すと名前もアバターも SNS も2箇所になる（ルール⑧）。 */}
 
       {/* ★プロフィール編集（3タブ＋7枚のカード）。
              母校とアクティビティは**プロフィールタブの中**に入れる。
@@ -401,11 +374,8 @@ export default function MypageClient({
   const userInitial = userName.charAt(0);
   const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
-  // currentRole: 現職の careerEntry から動的に生成（MOCK_USER.currentRole を置き換え）
-  const currentCareer = timelineCareers.find((c) => c.is_current);
-  const currentRole = currentCareer
-    ? `${currentCareer.company_name} · ${currentCareer.role_title ?? currentCareer.role_label}`
-    : null;
+  /* ⚠️ 現職の1行は 2-7 で `ProfileHeader` が自分で組むようになった（2026-08-16）。
+        ここで作って渡すのはやめた。同じ導出を2箇所に置かない。 */
 
   /* ── 促しから「該当カードを編集モードで開く」ための合図 ──────────────────
         ⚠️ **`openAddNonce` と同じ形**（nonce を +1 して受け側の useEffect で開く）。
@@ -420,7 +390,6 @@ export default function MypageClient({
   const [profileSaved, setProfileSaved] = useState<ProfileSavedSnapshot | null>(null);
 
   const [openBasicNonce, setOpenBasicNonce] = useState(0);
-  const [openSocialNonce, setOpenSocialNonce] = useState(0);
   const [openCareerNonce, setOpenCareerNonce] = useState(0);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
@@ -657,29 +626,19 @@ export default function MypageClient({
       {(
         <DashboardView
           userId={owUser?.id ?? ""}
-          userName={userName}
           userInitial={userInitial}
           userAvatar={userAvatar}
-          currentRole={currentRole}
-          userLocation={owUser?.location}
-          userAboutMe={owUser?.about_me}
-          userBirthDate={owUser?.birth_date}
-
-          userSocialLinks={owUser?.social_links as Record<string, string> | null}
-          followCounts={followCounts}
           userEducations={educations}
           canPost={canPost}
           ambassadorMemberships={ambassadorMemberships}
           schoolPeerCounts={schoolPeerCounts}
-          onEditAboutMe={() => setOpenBasicNonce((n) => n + 1)}
-          onEditSocials={() => setOpenSocialNonce((n) => n + 1)}
           profileEditorWith={(extra) => (
             <ProfileEditor
               {...editorProps}
               owUser={owUser}
+              followCounts={followCounts}
               profileTabExtra={extra}
               openBasicNonce={openBasicNonce}
-              openSocialNonce={openSocialNonce}
               openCareerNonce={openCareerNonce}
               onSavedSnapshotChange={setProfileSaved}
             />

@@ -21,7 +21,7 @@ import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
 import { SocialIcon, SOCIAL_META, SNS_PLATFORMS, type SocialPlatform } from "@/components/SocialIcon";
 /* ⚠️ 行の操作（鉛筆・ゴミ箱）は `MergedTimeline` とも共有する。ここには置かない */
-import { type RowActions, RowActionButtons, sectionAddBtn, emptyAddBtn, PlusIcon } from "./RowActions";
+import { type RowActions, RowActionButtons, sectionAddBtn, emptyAddBtn, PlusIcon, PencilIcon } from "./RowActions";
 export type { RowActions };
 
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
@@ -60,7 +60,12 @@ export type FeaturedArticleRow = {
 
 // ─── ProfileAboutSection ───────────────────────────────────────────────────────────
 /** 自己紹介。⚠️ 空のときは本人にだけ「書きましょう」のカードを出す（元の挙動のまま） */
-export function ProfileAboutSection({ aboutMe, viewerIsOwner }: { aboutMe: string | null; viewerIsOwner: boolean }) {
+export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
+  aboutMe: string | null;
+  viewerIsOwner: boolean;
+  /** ★本人の編集用（`/mypage`）。渡さなければ `/u/[id]` の DOM は1バイトも変わらない */
+  onEdit?: () => void;
+}) {
   return (
     <>
       {aboutMe ? (
@@ -74,6 +79,11 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner }: { aboutMe: strin
               自己紹介
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            {onEdit && (
+              <button type="button" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
+                <PencilIcon />
+              </button>
+            )}
           </div>
           <div style={{ paddingLeft: 20, borderLeft: "3px solid var(--accent)" }}>
             <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
@@ -93,14 +103,25 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner }: { aboutMe: strin
           <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", margin: "0 0 12px" }}>
             自己紹介を書いて、あなたのことを伝えましょう
           </p>
-          <Link href="/mypage" style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 18px", borderRadius: 8,
-            background: "var(--royal)", color: "#fff",
-            fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-          }}>
-            プロフィールを編集する →
-          </Link>
+          {onEdit ? (
+            <button type="button" onClick={onEdit} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 18px", borderRadius: 8, border: "none",
+              background: "var(--royal)", color: "#fff", cursor: "pointer",
+              fontSize: "var(--text-sm)", fontWeight: 600, fontFamily: "inherit",
+            }}>
+              自己紹介を書く →
+            </button>
+          ) : (
+            <Link href="/mypage" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 18px", borderRadius: 8,
+              background: "var(--royal)", color: "#fff",
+              fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
+            }}>
+              プロフィールを編集する →
+            </Link>
+          )}
         </section>
       ) : null}
 

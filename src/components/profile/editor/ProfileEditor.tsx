@@ -149,8 +149,8 @@ export default function ProfileEditor({
   initialProfilePrefs = null,
   profileTabExtra,
   companyLogoInfo = [],
+  followCounts,
   openBasicNonce = 0,
-  openSocialNonce = 0,
   openCareerNonce = 0,
   onSavedSnapshotChange,
 }: {
@@ -181,8 +181,9 @@ export default function ProfileEditor({
            押されると、カードは開くのに画面には出ない。 */
   /** ★職歴カードの表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6）。`page.tsx` が配列で渡す */
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
+  /** ★ヘッダーに出すフォロー数（2026-08-16 / 2-7） */
+  followCounts?: { followers: number; following: number };
   openBasicNonce?: number;
-  openSocialNonce?: number;
   openCareerNonce?: number;
   /**
    * **保存に成功したときだけ進む**スナップショットを親へ渡す。
@@ -232,8 +233,8 @@ export default function ProfileEditor({
      ⚠️ タブを切り替えても中身はアンマウントしない作りなので、
         切り替え → カード側の useEffect の順で問題なく開く。 */
   useEffect(() => {
-    if (openBasicNonce || openSocialNonce || openCareerNonce) setActiveTab("profile");
-  }, [openBasicNonce, openSocialNonce, openCareerNonce]);
+    if (openBasicNonce || openCareerNonce) setActiveTab("profile");
+  }, [openBasicNonce, openCareerNonce]);
 
   /* 希望条件は WishesTab が持つ（3-B）。親は**保存済みの結果だけ**を受け取る。
      ⚠️ ここに希望条件の state を戻さないこと。保存の単位はカードで、それはタブ側にある。 */
@@ -532,8 +533,8 @@ export default function ProfileEditor({
             onDirtyChange={setProfileDirty}
             notifyGlobalSave={notifyGlobalSave}
             companyLogoInfo={companyLogoInfo}
+            followCounts={followCounts}
             openBasicNonce={openBasicNonce}
-            openSocialNonce={openSocialNonce}
             openCareerNonce={openCareerNonce}
           />
           {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
