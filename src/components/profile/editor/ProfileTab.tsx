@@ -19,7 +19,6 @@ import { createClient } from "@/lib/supabase/client";
 import Toast from "@/components/ui/Toast";
 import {
   FormGroup,
-  CardSaveFooter,
   TextareaField,
   inputStyle,
   selectStyle,
@@ -140,15 +139,20 @@ const HEADLINE_MAX = 40;
  * ⚠️ **開閉は保存しない**（開くたび閉じた状態から）。覚えると、
  *    次に開いた人が「なぜ開いているのか」を判断できない。
  */
-function CollapsibleRow({ label, state, children }: {
+function CollapsibleRow({ label, state, children, first = false }: {
   label: string;
   /** 行の右に出す現在の状態。「3件」「設定済み」など。**空にしない** */
   state: string;
   children: React.ReactNode;
+  /** ★モーダルの先頭に置くとき true。**上の区切り線を出さない**
+      （モーダルの見出しの下線とくっついて、線が2本並ぶ。2026-08-17） */
+  first?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14 }}>
+    <div style={first
+      ? undefined
+      : { borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14 }}>
       <button
         type="button"
         className="tap-min-h"
@@ -1230,20 +1234,24 @@ export default function ProfileTab({
                   `/u/[id]` がそうなっているので構造を合わせる。
                ⚠️ 現職・年齢は導出値なので鉛筆の対象外。 */}
           <div ref={headerCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
-            {editingHeader ? (
-              <section style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>プロフィール</div>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-                  写真・名前・肩書き・所在地・生年月日・SNS。プロフィールページの先頭に出ます。
-                </div>
+            {/* ★編集はモーダル（2026-08-17 / フェーズ2の最後）。
+                   ⚠️ **保存は今までと同じ1回の PUT**（名前・肩書き・所在地・生年月日・SNS）。
+                      器を変えただけで、送る中身も呼び方も変えていない。 */}
+            <ProfileEditModal
+              open={editingHeader}
+              title="プロフィール"
+              dirty={isHeaderDirty}
+              saving={basicSaving || socialSaving}
+              justSaved={basicJustSaved}
+              error={null}
+              onSave={handleSaveHeader}
+              onClose={() => { handleCancelBasic(); handleCancelSocial(); setEditingHeader(false); }}
+            >
                 {/* ★写真・カバーは既定で閉じる（2026-08-16）。375px で **380px** を占めていて、
                        名前を1文字直すだけでもここを越えないと保存ボタンに届かなかった。
                     ⚠️ 行の右に「設定済み / 未設定」を出す。閉じていても状態は分かるようにする。 */}
                 <CollapsibleRow
+                  first
                   label="写真・カバー"
                   /* ⚠️ 375px で2行に折り返さない長さにする（「プロフィール画像・カバー写真」＋
                         「画像なし・カバーなし」は両方とも折り返していた） */
@@ -1374,19 +1382,9 @@ export default function ProfileTab({
                 >
                   <SocialLinksEditor socialLinks={socialLinks} setSocialLinks={setSocialLinks} />
                 </CollapsibleRow>
-                {/* ⚠️ 保存は**1回の PUT**。名前・肩書き・所在地・生年月日・SNS を一緒に送る
-                       （API は `"キー" in body` でしか触らないので、送らない列は動かない）。 */}
-                <CardSaveFooter
-                  dirty={isHeaderDirty}
-                  saving={basicSaving || socialSaving}
-                  justSaved={basicJustSaved}
-                  error={null}
-                  onSave={handleSaveHeader}
-                  onCancel={() => { handleCancelBasic(); handleCancelSocial(); setEditingHeader(false); }}
-                />
-              </section>
-            ) : (
-              <ProfileHeader
+            </ProfileEditModal>
+
+            <ProfileHeader
                 name={initialBasicInfo.name}
                 headline={initialBasicInfo.headline}
                 initial={initialBasicInfo.name.charAt(0) || "?"}
@@ -1434,7 +1432,6 @@ export default function ProfileTab({
                   </button>
                 }
               />
-            )}
 
             {basicToastMsg && (
               <Toast message={basicToastMsg} variant={basicToastVariant} onDone={() => setBasicToastMsg(null)} />

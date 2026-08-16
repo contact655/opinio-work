@@ -240,103 +240,11 @@ export function TextareaField({
 }
 
 
-/**
- * 表示 → 鉛筆で編集、のカード（2026-08-16 / LinkedIn 型）。
- *
- * ⚠️ **見出し・説明・アクションボタンは必ずこの部品が描く。**
- *    中の子部品（CareerHistoryEditor / EducationEditor / MediaAppearanceEditor /
- *    SocialLinksEditor）は `hideHeading` で自前の見出しを止める。
- *    「見出しを描かないモード」をここに作らないこと。見出しの担当が2箇所に割れる
- *    （4-2 でメディア掲載の見出しが二重に出た形）。
- *
- * ⚠️ モーダルにしない。編集はカードの中で切り替える。
- * ★**編集モードを閉じると `editContent` はアンマウントされる。**
- *   次に開いたときの初期値は、**必ず親の保存済みスナップショットから取る**こと。
- *   SSR 時点のプロップ（`owUser` など）を初期値にしない。
- *   ⚠️ 2026-08-16 に写真カードで実際に踏んだ。アップロード直後に閉じて開き直すと、
- *      内部 state が `owUser.avatar_url`（読み込み時の値）へ戻り、
- *      **いま保存した写真が「未登録」に見えて削除もできなかった。**
- *   ⚠️ 保存に成功したら**親のスナップショットを更新する**（子の内部 state だけ直さない）。
- *      3-A-1 の「完成度は保存済みの値だけから出す」と同じ話が、
- *      表示モードの導入で「編集モードの初期値」にも及んだ。
- *
- * ⚠️ 編集モードから出るのは **`CardSaveFooter` の「保存」「キャンセル」だけ**。
- *    見出し側に「編集をやめる」を置かない（出口が2箇所に散る）。
- *    呼び出し側は footer の `onCancel` に「入力を保存済みの値へ戻す ＋ 表示モードへ戻る」
- *    を合成して渡すこと。
- * ⚠️ 枠は `CARD_STYLE` を使う。新しいカードの見た目を増やさない。
- */
-export function EditableSection({
-  title,
-  description,
-  isEditing,
-  onStartEdit,
-  action = "edit",
-  actionLabel,
-  children,
-  editContent,
-  chrome = "card",
-}: {
-  title: string;
-  description?: string;
-  isEditing: boolean;
-  onStartEdit: () => void;
-  /** edit=鉛筆（1件を直す）/ add=＋（リストに足す） */
-  action?: "edit" | "add";
-  /** ★aria-label。「基本情報を編集」「職歴を追加」のように具体的に書く */
-  actionLabel: string;
-  /** 表示モードの中身 */
-  children: React.ReactNode;
-  /** 編集モードの中身（既存の入力欄一式をそのまま置く） */
-  editContent: React.ReactNode;
-  /**
-   * 表示モードで**枠と見出しを描くか**。
-   *
-   *   card … 従来どおり。カード枠＋見出し＋鉛筆を描く
-   *   none … **何も描かず子だけ出す。** 枠と見出しは子（公開プロフィールの部品）が持ち、
-   *          鉛筆・＋も子の見出し行に置く。
-   *
-   * ⚠️ **編集モードは `chrome` に関係なく従来どおり**（枠＋見出し＋説明文＋フォーム）。
-   *    入力欄が枠の外に浮かないようにするため。
-   *
-   * ⚠️ ★**暫定。全セクションが公開部品に移り終えたら `card` モードは消える**
-   *    （そのとき `chrome` ごと消す）。2モードを恒久的に維持する前提で作らない。
-   */
-  chrome?: "card" | "none";
-}) {
-  /* 表示モードで枠を持たない形。⚠️ 子が枠・見出し・鉛筆をすべて持つ */
-  if (chrome === "none" && !isEditing) return <>{children}</>;
+/* ⚠️ `EditableSection`（表示⇄編集のカード）は 2026-08-17 に削除した。
+      **編集はすべて `ProfileEditModal`（モーダル）で開く**形にしたので、
+      カードがその場でフォームに化ける器は要らなくなった。
+      戻さないこと。戻すと「開いているカードと閉じているカードが混ざる」に逆戻りする。 */
 
-  return (
-    <section style={CARD_STYLE}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)" }}>{title}</div>
-          {/* ★**説明文は編集モードだけ**（2026-08-16）。
-                 表示モードは「見出し＋実際の内容」だけにする。公開プロフィール
-                 （`/u/[id]`）と並べたときに、管理画面の案内文があると別物に見える。
-              ⚠️ 「何を書けばよいか」は入力欄の placeholder と、この編集モードの
-                 説明文が担う。表示モードに戻さないこと。 */}
-          {description && isEditing && (
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6, lineHeight: 1.7 }}>
-              {description}
-            </div>
-          )}
-        </div>
-        {/* ⚠️ **編集中はアクションボタンを描かない。**
-               編集モードの出口は `CardSaveFooter` の「保存」「キャンセル」の2つだけにする。
-               見出し側にも出口を置くと、未保存の入力を捨てる操作が2箇所に散る。 */}
-        {!isEditing && (
-          <SectionActionButton action={action} label={actionLabel} onClick={onStartEdit} />
-        )}
-      </div>
-
-      <div style={{ marginTop: description && isEditing ? 20 : 16 }}>
-        {isEditing ? editContent : children}
-      </div>
-    </section>
-  );
-}
 
 /**
  * 見出し行の右端に出すアイコンボタン（鉛筆 / ＋）。
