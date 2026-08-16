@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Briefcase } from "lucide-react";
 import FutureSectionEditor from "./FutureSectionEditor";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
-import { type RowActions, RowActionButtons } from "./view/RowActions";
+import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
@@ -139,6 +139,16 @@ export interface MergedTimelineProps {
    *    1つ忘れると「並行職のときだけ鉛筆が出ない」形になる。**2-6 でまとめて足す。**
    */
   educationActions?: RowActions;
+  /**
+   * ★職歴の行ごとの編集アフォーダンス。`/mypage` だけが渡す（2026-08-16 / 2-6）。
+   *
+   * ⚠️ **職歴の行は3経路ある**（`career` / `career-group` / `career-same-company`）。
+   *    1つ忘れると「並行職のときだけ鉛筆が出ない」形になる。**3つとも足すこと。**
+   * ⚠️ **企業グループの見出しには鉛筆を置かない。** グループは id を持たない。
+   *    置けるのは「この会社に役割を追加」（`onAddRole`）だけで、これは
+   *    グループ内のどれか1件の id を渡して呼ぶ。
+   */
+  careerActions?: CareerActions;
   /** ログイン済みかどうか（false の場合、経歴の詳細説明をゲート） */
   isAuthenticated?: boolean;
   /** この件数を超えた経歴を折りたたむ（未指定の場合は折りたたみなし） */
@@ -926,7 +936,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
  * CareerContent と同内容だが、padding 規則と border-left は CSS クラスで制御する。
  * H-iii: グループアイコン列はそのまま維持し、各カードの会社名左に 24px 小ロゴを表示する。
  */
-function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntry; isAuthenticated?: boolean }) {
+function ParallelCareerCard({ data, isAuthenticated = true, actions }: { data: CareerEntry; isAuthenticated?: boolean; actions?: CareerActions }) {
   const duration = formatDuration(data.started_at, data.ended_at);
 
   // 小ロゴ 24px（H-iii 方針: 各カード固有の企業アイコン）
@@ -974,10 +984,17 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
   return (
     <div
       className="d2-parallel-card"
-      style={{ flex: 1, padding: "12px 14px 16px", minWidth: 0 }}
+      style={{ flex: 1, padding: "12px 14px 16px", minWidth: 0, position: "relative" }}
     >
+      {/* ⚠️ 3経路のうちの2つ目。渡されなければ描かない＝他人の DOM は不変。
+             ⚠️ 会社名の行に混ぜると「在籍中」バッジが折り返して1行下がる。右上に浮かせる。 */}
+      {actions && (
+        <div style={{ position: "absolute", top: 8, right: 8 }}>
+          <RowActionButtons id={data.id} label={data.company_name} actions={actions} />
+        </div>
+      )}
       {/* Company 名行: 小ロゴ + 会社名 + 雇用形態 + badges */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap", paddingRight: actions ? 56 : 0 }}>
         <SmallLogo />
         {data.company_id ? (
           <Link
@@ -1040,6 +1057,7 @@ function ParallelCareerCard({ data, isAuthenticated = true }: { data: CareerEntr
           <DescriptionGate />
         )
       )}
+      {actions?.onAddRole && <AddRoleLink careerId={data.id} onAddRole={actions.onAddRole} />}
     </div>
   );
 }
@@ -1054,6 +1072,7 @@ export default function MergedTimeline({
   future,
   viewerIsOwner = false,
   educationActions,
+  careerActions,
   isAuthenticated = true,
   collapseAfter,
   birthDate,
@@ -1152,7 +1171,22 @@ export default function MergedTimeline({
                     company_name={c.company_name}
                   />
                 </div>
-                <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
+                {/* ⚠️ `.tl-row` は2列グリッド。鉛筆・ゴミ箱を3つ目の子として置くと
+                       次の行の1列目（アイコン列の下）に回り込む。**同じセルに入れる。**
+                    ⚠️ 渡されなければ `CareerContent` を裸で置く＝他人の DOM は不変 */}
+                {careerActions ? (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 4, minWidth: 0, flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
+                      {careerActions.onAddRole && (
+                        <AddRoleLink careerId={c.id} onAddRole={careerActions.onAddRole} />
+                      )}
+                    </div>
+                    <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />
+                  </div>
+                ) : (
+                  <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
+                )}
               </div>
             );
           }
@@ -1204,7 +1238,7 @@ export default function MergedTimeline({
                   </div>
                   <div className="d2-parallel-inner">
                     {items.map((c) => (
-                      <ParallelCareerCard key={c.id} data={c} isAuthenticated={isAuthenticated} />
+                      <ParallelCareerCard key={c.id} data={c} isAuthenticated={isAuthenticated} actions={careerActions} />
                     ))}
                   </div>
                 </div>
@@ -1310,7 +1344,14 @@ export default function MergedTimeline({
                             zIndex: 1,
                           }} />
 
-                          {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる */}
+                          {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる
+                              ⚠️ 3経路のうちの3つ目。**会社名の見出しではなくポジション行に置く**
+                                 （会社の見出しは id を持たない） */}
+                          {careerActions && (
+                            <span style={{ float: "right", marginLeft: 8 }}>
+                              <RowActionButtons id={c.id} label={`${head.company_name}（${lines.heading}）`} actions={careerActions} />
+                            </span>
+                          )}
                           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35, overflowWrap: "anywhere" }}>
                             {lines.heading}
                             {c.is_current && items.length > 1 && (
@@ -1348,6 +1389,9 @@ export default function MergedTimeline({
                       );
                     })}
                   </div>
+                  {careerActions?.onAddRole && (
+                    <AddRoleLink careerId={head.id} onAddRole={careerActions.onAddRole} />
+                  )}
                 </div>
               </div>
             );

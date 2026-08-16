@@ -756,3 +756,44 @@ export function ProfileSocialLinks({ socialLinks }: { socialLinks: Partial<Recor
     </div>
   );
 }
+
+/**
+ * 職歴・学歴の枠と見出し（2026-08-16 / 2-6 で `u/[id]/page.tsx` から切り出した）。
+ *
+ * ⚠️ **`/u/[id]` に「職歴」「学歴」の見出しは元からあった。** 2-5 のコメントで
+ *    「公開プロフィールに見出しが無い」と書いたのは誤りで、正しくは
+ *    **切り出していなかった**だけ。`page.tsx` に直接書かれていた。
+ *
+ * ⚠️ 中身（年表）は `MergedTimeline` が描く。ここは枠・見出し・アンカーだけ。
+ * ⚠️ `onAdd` を渡さなければ DOM は `page.tsx` にあったものと1バイトも変わらない。
+ */
+export function ProfileTimelineSection({ id, title, onAdd, addLabel, children }: {
+  /** アンカー（`#career` / `#education`）。ページ内ナビが指す */
+  id: string;
+  title: string;
+  /** ★本人の編集用。見出しの「＋」。渡さなければ描かない */
+  onAdd?: () => void;
+  addLabel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} style={{
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+          {title}
+        </span>
+        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        {onAdd && (
+          <button type="button" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
+            <PlusIcon />
+          </button>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}

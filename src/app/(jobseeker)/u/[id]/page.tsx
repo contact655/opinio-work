@@ -30,6 +30,7 @@ import {
   ProfileAchievementsSection,
   ProfileAwardsSection,
   ProfileMediaSection,
+  ProfileTimelineSection,
   ProfileArticlesSection,
   ProfileContentLinksSection,
   ProfileSocialLinks,
@@ -875,20 +876,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* ── 受賞・表彰 ── */}
             <ProfileAwardsSection awards={awards} />
 
-            {/* ── 職歴セクション ── */}
+            {/* ── 職歴セクション ──
+                   ⚠️ 枠・見出しは `ProfileTimelineSection` に切り出した（2026-08-16 / 2-6）。
+                      `/mypage` が同じものを使う。DOM は切り出す前と同一（実測済み）。 */}
             {timelineCareers.length > 0 && (
-              <section id="career" style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    職歴
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                </div>
-
+              <ProfileTimelineSection id="career" title="職歴">
                 <MergedTimeline
                   careers={timelineCareers}
                   educations={[]}
@@ -897,22 +889,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   collapseAfter={4}
                   birthDate={birthDate}
                 />
-              </section>
+              </ProfileTimelineSection>
             )}
 
             {/* ── 学歴セクション ── */}
             {timelineEdus.length > 0 && (
-              <section id="education" style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    学歴
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                </div>
+              <ProfileTimelineSection id="education" title="学歴">
                 <MergedTimeline
                   careers={[]}
                   educations={timelineEdus}
@@ -920,7 +902,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   viewerIsOwner={viewerIsOwner}
                   birthDate={birthDate}
                 />
-              </section>
+              </ProfileTimelineSection>
             )}
 
 

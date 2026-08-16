@@ -37,6 +37,7 @@ import {
   type MediaAppearance,
 } from "./recordTypes";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
+import type { CompanyLogoInfo } from "@/lib/utils/timeline";
 import { hasCareerPreferences } from "@/lib/profile/completion";
 import type { SocialPlatform } from "@/components/SocialIcon";
 
@@ -147,6 +148,7 @@ export default function ProfileEditor({
   desiredRoleOptions,
   initialProfilePrefs = null,
   profileTabExtra,
+  companyLogoInfo = [],
   openBasicNonce = 0,
   openSocialNonce = 0,
   openCareerNonce = 0,
@@ -177,6 +179,8 @@ export default function ProfileEditor({
   /* ── 外から特定のカードを開く合図。値が変わるたびに開く ──────────────
         ⚠️ **プロフィールタブへの切り替えもここでやる。** 別のタブを開いたまま
            押されると、カードは開くのに画面には出ない。 */
+  /** ★職歴カードの表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6）。`page.tsx` が配列で渡す */
+  companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
   openBasicNonce?: number;
   openSocialNonce?: number;
   openCareerNonce?: number;
@@ -527,6 +531,7 @@ export default function ProfileEditor({
             onSavedChange={setProfileSaved}
             onDirtyChange={setProfileDirty}
             notifyGlobalSave={notifyGlobalSave}
+            companyLogoInfo={companyLogoInfo}
             openBasicNonce={openBasicNonce}
             openSocialNonce={openSocialNonce}
             openCareerNonce={openCareerNonce}

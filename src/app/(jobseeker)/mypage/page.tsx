@@ -57,6 +57,10 @@ export default async function MypagePage({
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
   let timelineCareers: CareerEntry[] = [];
+  /* ★職歴カードの表示は `MergedTimeline`（公開部品）が描く。編集で職歴が変わったら
+        クライアント側で `CareerEntry[]` を組み直す必要があるので、その材料を渡す。
+     ⚠️ `Map` は RSC の props を渡れない（直列化できない）。**配列で渡してクライアントで Map に戻す。** */
+  let companyLogoInfo: ({ id: string } & CompanyLogoInfo)[] = [];
   /* ── プロフィール編集にだけ要るもの（2026-08-16 に /profile/edit から移設）── */
   let achievementsRaw: Record<string, unknown>[] = [];
   let awardsRaw: Record<string, unknown>[] = [];
@@ -187,6 +191,8 @@ export default async function MypagePage({
         });
       }
     }
+
+    companyLogoInfo = Array.from(companyInfoById.entries()).map(([id, v]) => ({ id, ...v }));
 
     timelineCareers = buildTimelineCareerEntriesFromRaw(
       (expRows ?? []) as RawExperienceRow[],
@@ -452,6 +458,7 @@ export default async function MypagePage({
       followCounts={followCounts}
       educations={educations}
       timelineCareers={timelineCareers}
+      companyLogoInfo={companyLogoInfo}
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       scoutsBadge={scoutsBadge}

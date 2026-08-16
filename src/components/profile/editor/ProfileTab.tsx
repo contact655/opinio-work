@@ -13,7 +13,7 @@
  *    載せないこと。載せると「保存していないのに完成度が上がる」に戻る。
  */
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Toast from "@/components/ui/Toast";
@@ -46,7 +46,10 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { RowActionButtons } from "@/components/profile/view/RowActions";
-import { toTimelineEducationEntries, type RawEducation } from "@/lib/utils/timeline";
+import {
+  toTimelineEducationEntries, buildTimelineCareerEntriesFromRaw,
+  type RawEducation, type RawExperienceRow, type CompanyLogoInfo, type RoleInfo,
+} from "@/lib/utils/timeline";
 /* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
       同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
 import {
@@ -55,6 +58,7 @@ import {
   ProfileMediaSection,
   ProfileAchievementsSection,
   ProfileAwardsSection,
+  ProfileTimelineSection,
 } from "@/components/profile/view/ProfileSections";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
@@ -877,6 +881,7 @@ export default function ProfileTab({
   onSavedChange,
   onDirtyChange,
   notifyGlobalSave,
+  companyLogoInfo = [],
   openBasicNonce = 0,
   openSocialNonce = 0,
   openCareerNonce = 0,
@@ -884,6 +889,8 @@ export default function ProfileTab({
   owUser: OwUser;
   /* ── 外からカードを開く合図。0 のときは何もしない ────────────────────
         ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
+  /** ★職歴の表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6） */
+  companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
   openBasicNonce?: number;
   openSocialNonce?: number;
   openCareerNonce?: number;
@@ -1099,6 +1106,42 @@ export default function ProfileTab({
   const [editingContent, setEditingContent] = useState(false);
   /* 職歴カードの見出し「＋」→ 追加モーダルを開く合図。値が変わるたびに開く */
   const [careerAddNonce, setCareerAddNonce] = useState(0);
+  /* 職歴（2026-08-16 / 2-6）。表示は公開部品が描くので、保存済みの職歴を親でも持つ。
+     ⚠️ **所有者は `CareerHistoryEditor` のまま**（保存の成否を知っているのは向こう）。
+        ここは `onStintsChange` で受け取った控え。編集用モーダルは常にマウントしておく
+        （アンマウントすると控えが初期値に巻き戻る）。 */
+  const [careerStints, setCareerStints] = useState<Stint[]>(initialExperiences);
+  const [editingCareerId, setEditingCareerId] = useState<string | null>(null);
+  const [deleteCareerId,  setDeleteCareerId]  = useState<string | null>(null);
+  const [addRoleForId,    setAddRoleForId]    = useState<string | null>(null);
+  /* `Stint`（編集用）→ `CareerEntry`（表示用）。`/u/[id]` と同じ関数を通す。
+     ⚠️ 新しく選んだ企業のロゴは `companyLogoInfo` に無い。頭文字＋既定色に落ちるだけで
+        再読み込みすれば正しく出る（`CompanyLogoIcon` が logo_url null を扱える）。 */
+  const timelineCareers = useMemo(() => {
+    const companyMap = new Map<string, CompanyLogoInfo>(companyLogoInfo.map((c) => [c.id, c]));
+    const roleMap = new Map<string, RoleInfo>(
+      roles.map((r) => [r.id, { name: r.name, parent_name: r.parent_id ? (roles.find((p) => p.id === r.parent_id)?.name ?? null) : null }]),
+    );
+    const rows: RawExperienceRow[] = careerStints.map((s) => ({
+      id: s.id,
+      company_id: s.companyId ?? null,
+      company_text: s.companyText ?? null,
+      company_anonymized: s.companyAnonymized ?? null,
+      role_category_id: s.roleCategoryId,
+      role_title: s.roleTitle ?? null,
+      department: s.department ?? null,
+      rank: s.rank ?? null,
+      /* ⚠️ `Stint` は "YYYY-MM"、`CareerEntry` は "YYYY-MM-DD"。1日を足す */
+      started_at: `${s.startedAt}-01`,
+      ended_at: s.isCurrent ? null : (s.endedAt ? `${s.endedAt}-01` : null),
+      is_current: s.isCurrent,
+      description: s.description ?? null,
+      join_reason: s.joinReason ?? null,
+      employment_type: s.employmentType ?? null,
+      visibility_company_profile: s.visibilityCompanyProfile,
+    }));
+    return buildTimelineCareerEntriesFromRaw(rows, roleMap, companyMap, true);
+  }, [careerStints, companyLogoInfo, roles]);
   const [eduAddNonce, setEduAddNonce] = useState(0);
   /* 学歴（2026-08-16 / 2-5）。行の鉛筆・ゴミ箱から編集フォームを開くための id */
   const [editingEdu,   setEditingEdu]   = useState(false);
@@ -1538,52 +1581,80 @@ export default function ProfileTab({
         {/* 職歴・学歴タブ */}
           <div style={{ maxWidth: 680 }}>
 
-            {/* ⚠️ 見出しと「＋」は EditableSection が持つ（2026-08-16）。
-                   `CareerHistoryEditor` は自前の見出しを描いていない（確認済み）。 */}
-            <EditableSection
+            {/* ★枠と見出しは公開プロフィールと同じ部品（2026-08-16 / 2-6）。
+                   `EditableSection` はやめた。`/u/[id]` の「職歴」「学歴」の見出しは
+                   元から `page.tsx` にあり、**切り出していなかっただけ**だった。
+                   ★このカードに「編集モード」は無い。編集も追加も**モーダル**なので、
+                   `CareerHistoryEditor` は常に描いておく。アンマウントすると
+                   `careerStints` の控えが初期値へ巻き戻る。 */}
+            <ProfileTimelineSection
+              id="career"
               title="職歴"
-              description="新しい順に表示されます。会社ごとにまとめて出ます。"
-              /* ★このカードに「編集モード」は無い。編集は行の鉛筆（既存のモーダル）。
-                    見出しの＋は追加モーダルを開くだけなので isEditing は常に false。 */
-              isEditing={false}
-              onStartEdit={() => setCareerAddNonce((n) => n + 1)}
-              action="add"
-              actionLabel="職歴を追加"
-              editContent={null}
+              onAdd={() => setCareerAddNonce((n) => n + 1)}
+              addLabel="職歴を追加"
             >
-              {/* ★実績・受賞は職歴の中に畳む（4-2）。各職歴の下にチップで出す。
-                     独立カードに戻さないこと。どの職歴での話かが分からなくなる。 */}
+              {careerStints.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                  まだ職歴を登録していません。
+                  <button
+                    type="button"
+                    onClick={() => setCareerAddNonce((n) => n + 1)}
+                    style={{
+                      background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+                      fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+                      textDecoration: "underline", textUnderlineOffset: 2,
+                    }}
+                  >
+                    職歴を追加する
+                  </button>
+                </p>
+              ) : (
+                /* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱と
+                      「この会社に役割を追加」だけ足す。
+                   ⚠️ `collapseAfter` は渡さない。`/u/[id]` は4件で畳むが、
+                      畳んだ先の行は**編集できなくなる**。ここは自分の入力欄なので全件出す。 */
+                <MergedTimeline
+                  careers={timelineCareers}
+                  educations={[]}
+                  future={null}
+                  birthDate={owUser?.birth_date}
+                  careerActions={{
+                    onEditRow:   (id) => setEditingCareerId(id),
+                    onDeleteRow: (id) => setDeleteCareerId(id),
+                    onAddRole:   (id) => setAddRoleForId(id),
+                  }}
+                />
+              )}
+              {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6） */}
               <CareerHistoryEditor
                 openAddNonce={careerAddNonce}
+                openEditId={editingCareerId}
+                openDeleteId={deleteCareerId}
+                openAddRoleForCareerId={addRoleForId}
+                onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); }}
+                onStintsChange={setCareerStints}
                 initialExperiences={initialExperiences}
                 roles={roles}
                 roleAliases={roleAliases}
-                birthDate={owUser?.birth_date}
                 onSavedCountChange={setSavedExperienceCount}
                 /* ★職歴を消しても実績は消えない（ON DELETE SET NULL）。手元の state も
-                      同じように null へ落として「その他の実績・受賞」に出す。
-                      これをやらないと、再読み込みするまで画面から消えたように見える。 */
+                      同じように null へ落とす。やらないと再読み込みするまで消えたように見える。 */
                 onExperienceDeleted={(experienceId) => {
                   setAchievements((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
                   setAwards((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
                 }}
-                /* ⚠️ `renderStintExtras`（職歴カードの中に実績・受賞を入れ子にする差し込み）は
-                      2026-08-16 に外した。実績・受賞は**独立した2セクション**になり、
-                      公開プロフィール（`/u/[id]`）と同じ並びになった。
-                      紐づけはフォームの「紐づける職歴」セレクトで選ぶ。 */
               />
-            </EditableSection>
-            {/* ⚠️ 学歴だけは枠と見出しを `EditableSection` が持つ（`chrome` は既定の "card"）。
-                   公開プロフィールに「学歴」という見出しが無い（職歴と1本の年表になっている）ため、
-                   借りてくる見出しが存在しない。行の見た目だけを公開部品から借りる。 */}
-            <EditableSection
+            </ProfileTimelineSection>
+            {/* ★2-5 では枠と見出しを `EditableSection` に持たせていたが、**判断が誤っていた**。
+                   `/u/[id]` の「学歴」の見出しは元からあり、`page.tsx` に直接書かれていた
+                   （＝切り出していなかっただけ）。2-6 で職歴とまとめて切り出して揃えた。 */}
+            <ProfileTimelineSection
+              id="education"
               title="学歴"
-              description="大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。"
-              isEditing={editingEdu}
-              onStartEdit={() => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); }}
-              action="add"
-              actionLabel="学歴を追加"
-              editContent={
+              onAdd={() => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); }}
+              addLabel="学歴を追加"
+            >
+              {editingEdu ? (
                 <EducationEditor
                   educations={educations}
                   setEducations={setEducations}
@@ -1592,12 +1663,10 @@ export default function ProfileTab({
                   openAddNonce={eduAddNonce}
                   openEditId={editingEduId}
                   openDeleteId={deleteEduId}
-                  /* ★フォームを閉じたらカードごと表示モードへ戻す（2-2〜2-4 と同じ）。 */
+                  /* ★フォームを閉じたら表示へ戻す（2-2〜2-5 と同じ）。 */
                   onClosed={() => { setEditingEduId(null); setDeleteEduId(null); setEditingEdu(false); }}
                 />
-              }
-            >
-              {educations.length === 0 ? (
+              ) : educations.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                   まだ学歴を登録していません。
                   <button
@@ -1638,7 +1707,7 @@ export default function ProfileTab({
                   ))}
                 </>
               )}
-            </EditableSection>
+            </ProfileTimelineSection>
           </div>
 
         {/* メディア掲載（★実績・受賞とは別。職歴に属さないので独立カードのまま）

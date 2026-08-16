@@ -78,3 +78,34 @@ export function RowActionButtons({ id, label, actions }: { id: string; label: st
   );
 }
 
+
+/**
+ * 職歴の行の操作。`RowActions` に「この会社に役割を追加」を足したもの（2026-08-16 / 2-6）。
+ *
+ * ⚠️ `onAddRole` は**会社ごと**の入口。引数はその会社の職歴のうち**どれか1件の id**で、
+ *    受け側（`CareerHistoryEditor`）がそこから会社を引き当てる。
+ *    会社のキー文字列を渡さないのは、`MergedTimeline` と `CareerHistoryEditor` が
+ *    別々のキー生成を持っていて、匿名企業の扱いが揃っていないため。
+ */
+export type CareerActions = RowActions & {
+  onAddRole?: (careerId: string) => void;
+};
+
+/** 「＋ この会社に役割を追加」。会社グループの末尾に出す */
+export function AddRoleLink({ careerId, onAddRole }: { careerId: string; onAddRole: (id: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onAddRole(careerId)}
+      style={{
+        marginTop: 10, display: "inline-flex", alignItems: "center", gap: 4,
+        padding: "5px 10px", background: "transparent", border: "1px dashed var(--line)",
+        borderRadius: 8, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
+        cursor: "pointer", fontFamily: "inherit",
+      }}
+    >
+      <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+      この会社に役割を追加
+    </button>
+  );
+}

@@ -14,7 +14,6 @@ import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
-import StoryAccordion from "./StoryAccordion";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 
@@ -91,15 +90,6 @@ function diffInMonths(startYM: string, endYM: string): number {
   const [ey, em] = endYM.split("-").map(Number);
   return Math.max(1, (ey - sy) * 12 + (em - sm) + 1);
 }
-
-function formatDuration(months: number): string {
-  const years = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  if (years === 0) return `${remainingMonths}ヶ月`;
-  if (remainingMonths === 0) return `${years}年`;
-  return `${years}年${remainingMonths}ヶ月`;
-}
-
 function groupKey(s: Stint): string {
   if (s.companyType === "master" && s.companyId) return `m:${s.companyId}`;
   if (s.companyType === "custom" && s.companyText) return `c:${s.companyText}`;
@@ -176,38 +166,6 @@ function groupStints(stints: Stint[]): StintGroup[] {
     if (aHasCurrent !== bHasCurrent) return aHasCurrent ? -1 : 1;
     return b.earliestStart.localeCompare(a.earliestStart);
   });
-}
-
-function isOverlapping(a: StintGroup, b: StintGroup): boolean {
-  const aEnd = a.latestEnd ?? "9999-12";
-  const bEnd = b.latestEnd ?? "9999-12";
-  return a.earliestStart <= bEnd && b.earliestStart <= aEnd;
-}
-
-function buildTimelineRows(groups: StintGroup[]): StintGroup[][] {
-  const rows: StintGroup[][] = [];
-  const placed = new Set<string>();
-  for (let i = 0; i < groups.length; i++) {
-    if (placed.has(groups[i].key)) continue;
-    const row: StintGroup[] = [groups[i]];
-    placed.add(groups[i].key);
-    for (let j = i + 1; j < groups.length; j++) {
-      if (placed.has(groups[j].key)) continue;
-      if (row.length < 2 && isOverlapping(groups[i], groups[j])) {
-        row.push(groups[j]);
-        placed.add(groups[j].key);
-      }
-    }
-    rows.push(row);
-  }
-  return rows;
-}
-
-function formatGroupDateRange(group: StintGroup): string {
-  const fmt = (ym: string) => ym.replace("-", ".");
-  const start = fmt(group.earliestStart);
-  const end = group.latestEnd === null ? "現在" : fmt(group.latestEnd);
-  return `${start} 〜 ${end}`;
 }
 
 type StintDraft = {
@@ -422,13 +380,6 @@ function sortStints(arr: Stint[]): Stint[] {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatPeriod(startedAt: string, endedAt?: string, isCurrent?: boolean): string {
-  const fmt = (ym: string) => ym.replace("-", ".");
-  if (isCurrent) return `${fmt(startedAt)} 〜 現在`;
-  if (endedAt) return `${fmt(startedAt)} 〜 ${fmt(endedAt)}`;
-  return `${fmt(startedAt)} 〜`;
-}
-
 function fieldStyle(): React.CSSProperties {
   return {
     width: "100%",
@@ -503,50 +454,6 @@ function ReasonChip({
 }
 
 // ── IconButton ────────────────────────────────────────────────────────────────
-
-function IconButton({
-  onClick,
-  title,
-  danger,
-  children,
-}: {
-  onClick: () => void;
-  title?: string;
-  danger?: boolean;
-  children: React.ReactNode;
-}) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 26,
-        height: 26,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        border: "none",
-        background: hovered
-          ? danger ? "var(--error-soft)" : "var(--line-soft)"
-          : "transparent",
-        borderRadius: 5,
-        fontSize: 13,
-        color: danger ? "var(--error)" : "var(--ink-mute)",
-        cursor: "pointer",
-        transition: "background 0.12s",
-        padding: 0,
-        fontFamily: "inherit",
-        flexShrink: 0,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 // ── CompanySearch ─────────────────────────────────────────────────────────────
 
@@ -1414,129 +1321,23 @@ function StintForm({
   );
 }
 
-// ── StintCard ─────────────────────────────────────────────────────────────────
-
-function StintCard({
-  stint,
-  onEdit,
-  onDelete,
-  extras,
-}: {
-  stint: Stint & { showCurrentBadge?: boolean };
-  onEdit: () => void;
-  onDelete: () => void;
-  /** 職歴の下に足す差し込み（フェーズ4-2 の実績・受賞）。渡されなければ何も描かない */
-  extras?: React.ReactNode;
-}) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: "12px 14px",
-        background: "#fff",
-        borderRadius: 8,
-        border: "1px solid var(--line)",
-        position: "relative",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Role + 現在 badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-              {stint.roleTitle || stint.roleLabel}
-            </span>
-            {stint.showCurrentBadge && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em", flexShrink: 0 }}>
-                現在
-              </span>
-            )}
-          </div>
-          {/* Period */}
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
-            {formatPeriod(stint.startedAt, stint.endedAt, stint.isCurrent)}
-          </div>
-          {/* Employment type badge */}
-          {stint.employmentType && (
-            <span style={{
-              display: "inline-flex", alignItems: "center",
-              fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              padding: "1px 7px", borderRadius: 100,
-              marginTop: 4,
-            }}>
-              {stint.employmentType}
-            </span>
-          )}
-          {/* Description snippet */}
-          {stint.description && (
-            <div
-              style={{
-                fontSize: 12, fontWeight: 500,
-                color: "var(--ink-soft)",
-                marginTop: 6,
-                paddingLeft: 8,
-                borderLeft: "2px solid var(--line)",
-                lineHeight: 1.65,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {stint.description}
-            </div>
-          )}
-          {/* Join reason snippet */}
-          {stint.joinReason && (
-            <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 4 }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-              </svg>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--purple)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                {stint.joinReason}
-              </span>
-            </div>
-          )}
-        </div>
-        {/* Controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: 1, opacity: hovered ? 1 : 0.45, transition: "opacity 0.15s", flexShrink: 0 }}>
-          <IconButton onClick={onEdit} title="編集">✎</IconButton>
-          <IconButton onClick={onDelete} title="削除" danger>×</IconButton>
-        </div>
-      </div>
-      {/* ストーリーアコーディオン */}
-      <StoryAccordion experienceId={stint.id} />
-      {/* 実績・受賞（4-2）。★ここに直接 UI を書かない。中身は呼び出し側が渡す */}
-      {extras}
-    </div>
-  );
-}
-
 // ── Main: CareerHistoryEditor ─────────────────────────────────────────────────
 
 export default function CareerHistoryEditor({
   initialExperiences = [],
   roles = [],
   roleAliases = {},
-  birthDate,
   onSavedCountChange,
-  renderStintExtras,
   onExperienceDeleted,
-  openAddNonce,
+  openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, onClosed,
+  onStintsChange,
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
   roleAliases?: Record<string, string[]>;
-  birthDate?: string | null;
   /** 保存済みの職歴件数。**API が成功したときだけ**変わる（stints は楽観更新ではなく成功後に更新している）。
       親の完成度がこれを見る。渡さなくても動く。 */
   onSavedCountChange?: (count: number) => void;
-  /** 各職歴の下に差し込むもの（4-2 の実績・受賞）。この部品は中身を知らない */
-  renderStintExtras?: (experienceId: string) => React.ReactNode;
   /** 職歴を削除したときに呼ぶ。★DB 側は ON DELETE SET NULL で実績を残すので、
       呼び出し側は手元の実績・受賞の experience_id も null に落とす必要がある
       （やらないと、再読み込みするまで画面から消えたように見える） */
@@ -1544,19 +1345,37 @@ export default function CareerHistoryEditor({
   /** ★カードの見出しにある「＋」から追加モーダルを開くための合図（2026-08-16）。
       値が変わるたびに開く。⚠️ ref を渡さない（この部品の内部状態を外に晒さないため）。 */
   openAddNonce?: number;
+  /** ★外（公開部品の行の鉛筆）から編集モーダルを開く行の id（2026-08-16 / 2-6） */
+  openEditId?: string | null;
+  /** ★外（行のゴミ箱）から削除確認を開く行の id */
+  openDeleteId?: string | null;
+  /** ★外（会社グループの「この会社に役割を追加」）から開く。値はその会社の職歴の**どれか1件の id** */
+  openAddRoleForCareerId?: string | null;
+  /** モーダルが閉じたことを親へ知らせる */
+  onClosed?: () => void;
+  /** ★保存済みの職歴そのもの。**親が表示（`MergedTimeline`）に使う。**
+      ⚠️ `onSavedCountChange` と同じく `res.ok` の後にしか変わらない。 */
+  onStintsChange?: (stints: Stint[]) => void;
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
 
-  /* 見出しの「＋」から開く。★初回マウント時（undefined / 0）は開かない */
+  /* 見出しの「＋」から開く。★初回マウント時（undefined / 0）は開かない。
+     ⚠️ **nonce は消費しても 0 に戻らない**（`.claude/rules/ui-debugging.md` ⑭）。
+        他の意図（行の鉛筆・ゴミ箱・役割追加）で開いたときは発火させない。 */
   useEffect(() => {
-    if (!openAddNonce) return;
+    if (!openAddNonce || openEditId || openDeleteId || openAddRoleForCareerId) return;
     setAddDraft(EMPTY_DRAFT);
     setAddingForCompanyKey("__new__");
-  }, [openAddNonce]);
+  }, [openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId]);
+
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
 
   /* 保存済み件数を親へ返す。⚠️ 3箇所の setStints はいずれも `res.ok` の後なので、
      ここで通知される件数は「保存済み」を意味する。 */
   useEffect(() => { onSavedCountChange?.(stints.length); }, [stints.length, onSavedCountChange]);
+  /* ★一覧の描画に使うので中身ごと返す（2026-08-16 / 2-6） */
+  useEffect(() => { onStintsChange?.(stints); }, [stints, onStintsChange]);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1674,9 +1493,22 @@ export default function CareerHistoryEditor({
     setEditDraft(draftFromStint(s));
   }, [draftFromStint]);
 
+  /* ★外（公開部品の行）から開く（2026-08-16 / 2-6）。id は行ごとに変わるので nonce ではなく id を見る */
+  useEffect(() => {
+    if (!openEditId) return;
+    const t = stints.find((s) => s.id === openEditId);
+    if (t) startEdit(t);
+  }, [openEditId, stints, startEdit]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const t = stints.find((s) => s.id === openDeleteId);
+    if (t) setDeleteTarget(t);
+  }, [openDeleteId, stints]);
+
   const cancelEdit = useCallback(() => {
     setEditingId(null);
     setEditDraft(EMPTY_DRAFT);
+    onClosedRef.current?.();
   }, []);
 
   const saveEdit = useCallback(async () => {
@@ -1753,6 +1585,7 @@ export default function CareerHistoryEditor({
   const cancelAdd = useCallback(() => {
     setAddingForCompanyKey(null);
     setAddDraft(EMPTY_DRAFT);
+    onClosedRef.current?.();
   }, []);
 
   const saveAdd = useCallback(async () => {
@@ -1845,6 +1678,7 @@ export default function CareerHistoryEditor({
       onExperienceDeleted?.(deleteTarget.id);
       setDeleteTarget(null);
       showToast("職歴を削除しました");
+      onClosedRef.current?.();
     } catch {
       showToast("削除に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -1854,21 +1688,21 @@ export default function CareerHistoryEditor({
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
+  /* ⚠️ `groups` は一覧の描画用ではなく、**「この会社に役割を追加」で会社を引き当てる**ために要る。
+        年区切り・並行在籍の横並びは公開部品が持つので、ここでは組まない。 */
   const groups = groupStints(stints);
-  const rows = buildTimelineRows(groups);
 
-  // 年区切り用ヘルパー
-  function rowStartYear(row: StintGroup[]): number | null {
-    const earliest = row.reduce((e, g) => (g.earliestStart < e ? g.earliestStart : e), row[0].earliestStart);
-    const y = parseInt(earliest.slice(0, 4), 10);
-    return isNaN(y) ? null : y;
-  }
-  function ageAtYear(year: number): number | null {
-    if (!birthDate) return null;
-    const birthYear = parseInt(birthDate.slice(0, 4), 10);
-    const age = year - birthYear;
-    return age > 0 && age < 100 ? age : null;
-  }
+  /* ★外（会社グループの「この会社に役割を追加」）から開く。
+        渡ってくるのは**その会社の職歴のうち1件の id**。会社のキー文字列ではない
+        （`MergedTimeline` とこの部品でキーの作り方が違い、匿名企業で食い違うため）。 */
+  useEffect(() => {
+    if (!openAddRoleForCareerId) return;
+    const g = groups.find((gr) => gr.positions.some((p) => p.id === openAddRoleForCareerId));
+    if (!g) return;
+    setAddDraft(draftFromGroup(g));
+    setAddingForCompanyKey(g.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAddRoleForCareerId]);
 
   return (
     <div>
@@ -1877,213 +1711,9 @@ export default function CareerHistoryEditor({
         @media (max-width: 640px) { .career-row { flex-direction: column; } }
       `}</style>
 
-      {/* グループ一覧（並行在籍は横並び） */}
-      {rows.map((row, rowIdx) => {
-        const year = rowStartYear(row);
-        const prevYear = rowIdx > 0 ? rowStartYear(rows[rowIdx - 1]) : null;
-        const showYearSep = year !== null && year !== prevYear;
-        const age = year !== null ? ageAtYear(year) : null;
-        return (
-        <div key={row.map(g => g.key).join("|")}>
-          {showYearSep && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              margin: rowIdx === 0 ? "0 0 10px" : "4px 0 10px",
-            }}>
-              <div style={{
-                background: "var(--royal-50)",
-                border: "1px solid var(--royal-100)",
-                borderRadius: 100,
-                padding: "2px 9px",
-                fontSize: 12, fontWeight: 700,
-                color: "var(--royal)",
-                fontFamily: "Inter, sans-serif",
-                letterSpacing: "0.04em",
-                whiteSpace: "nowrap",
-              }}>
-                {year}年
-              </div>
-              {age !== null && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
-                  {age}歳
-                </span>
-              )}
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-          )}
-          <div
-            className="career-row"
-            style={{ marginBottom: rowIdx < rows.length - 1 ? 14 : 0 }}
-          >
-          {row.map((group) => {
-            const showBadgeId = group.positions[0]?.isCurrent ? group.positions[0].id : null;
-            const avatarColor = getAvatarColor(group.displayCompanyName);
-            const avatarInitial = group.displayCompanyName.charAt(0);
-
-            return (
-              <div
-                key={group.key}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-                }}
-              >
-                {/* グループヘッダー: アバター + 会社名 + 期間 */}
-                <div
-                  style={{
-                    padding: "16px 18px 12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 8,
-                      background: avatarColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 800,
-                      fontSize: 16,
-                      color: "#fff",
-                      fontFamily: "Inter, sans-serif",
-                      flexShrink: 0,
-                      boxShadow: `0 2px 8px ${avatarColor}55`,
-                    }}
-                  >
-                    {avatarInitial}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3 }}>
-                      {group.displayCompanyName}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
-                        {formatGroupDateRange(group)}
-                      </span>
-                      <span style={{
-                        fontSize: 12, fontWeight: 700,
-                        color: "var(--royal)", background: "var(--royal-50)",
-                        borderRadius: 100, padding: "1px 9px",
-                        fontFamily: "Inter, sans-serif", flexShrink: 0,
-                      }}>
-                        {formatDuration(group.totalMonths)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ポジション群 */}
-                <div style={{ padding: "0 18px 16px" }}>
-                  {group.positions.map((s, pIdx) => (
-                    <div key={s.id} style={{ marginBottom: pIdx < group.positions.length - 1 ? 8 : 0 }}>
-                      <StintCard
-                        stint={{ ...s, showCurrentBadge: s.id === showBadgeId }}
-                        onEdit={() => startEdit(s)}
-                        onDelete={() => setDeleteTarget(s)}
-                        extras={renderStintExtras?.(s.id)}
-                      />
-                    </div>
-                  ))}
-
-                  {/* 「+ このポジションに役割を追加」テキストリンク */}
-                  {(
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddDraft(draftFromGroup(group));
-                        setAddingForCompanyKey(group.key);
-                      }}
-                      style={{
-                        marginTop: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "5px 10px",
-                        background: "var(--royal-50)",
-                        border: "1px dashed var(--royal-100)",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: "var(--royal)",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, lineHeight: 1 }}>+</span>
-                      このポジションに役割を追加
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          </div>
-        </div>
-      );
-      })}
-
-      {/* Empty state
-          ⚠️ 記入例カード（GhostExample）はやめた（2026-08-16）。表示モードでは
-             「登録済みの1件」に見えてしまうため。何を書くかは編集モードの
-             placeholder が担う。文言の型は写真・SNS と揃える。 */}
-      {stints.length === 0 && addingForCompanyKey === null && (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-          まだ職歴を登録していません。
-          <button
-            type="button"
-            onClick={() => { setAddDraft(EMPTY_DRAFT); setAddingForCompanyKey("__new__"); }}
-            style={{
-              background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-              fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-              textDecoration: "underline", textUnderlineOffset: 2,
-            }}
-          >
-            職歴を追加する
-          </button>
-        </p>
-      )}
-
-      {/* 新規会社用「+ 経歴を追加」ボタン */}
-      {/* ⚠️ 0件のときは出さない。すぐ上の空状態が同じ操作の入口を既に出しているため
-             （同じ操作の入口を2つ縦に並べない。2026-08-16） */}
-      {addingForCompanyKey === null && stints.length > 0 && (
-        <button
-          type="button"
-          onClick={() => {
-            setAddDraft(EMPTY_DRAFT);
-            setAddingForCompanyKey("__new__");
-          }}
-          style={{
-            marginTop: stints.length > 0 ? 10 : 4,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 5,
-            padding: "8px 14px",
-            width: "100%",
-            background: "transparent",
-            border: "1px dashed var(--line)",
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--ink-soft)",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
-          経歴を追加
-        </button>
-      )}
+      {/* ★一覧・鉛筆・ゴミ箱・0件の1行・「＋」は公開部品（`MergedTimeline`）が持つ（2026-08-16 / 2-6）。
+             ここはモーダル（追加・編集フォーム）と削除確認だけ。
+             一覧を戻すと同じ見た目が2箇所に生まれる。 */}
 
       {/* フォームモーダル（編集・追加共通） */}
       {(editingId !== null || addingForCompanyKey !== null) && (
@@ -2162,7 +1792,7 @@ export default function CareerHistoryEditor({
         confirmVariant="danger"
         isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }}
       />
 
       {/* Toast */}
