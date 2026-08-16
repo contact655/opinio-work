@@ -602,11 +602,36 @@ useEffect(() => { if (openAddNonce) setAdding(true); }, [openAddNonce]);
 `EditableSection` の `editContent` にいて、表示モードではアンマウントされるため）。
 
 ```tsx
-// ✓ 別の意図で開いたときは発火させない
+// △ 当時の対処。アンマウントする側なら効くが、**常設にすると別の事故になる**（下記）
 useEffect(() => {
   if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
 }, [openAddNonce, openEditId, openDeleteId]);
 ```
+
+#### ★発火条件に他の state を混ぜない（2026-08-17 に実測して追記）
+
+**nonce は「値が変わったとき」だけ発火させる。**
+副条件を足すと、**その state が変わった瞬間に、nonce がまだ立っていることで再発火する。**
+
+上のガードを持ったままメディア掲載を常設（モーダル化）にしたところ、
+**行編集を保存して `openEditId` が null に戻った瞬間**に発火し、
+**「編集を保存 → 続けて追加モーダルが開く」**が起きた。
+nonce は消費しても 0 に戻らないので、副条件の側がいつでも引き金になれる。
+
+```tsx
+// ✓ 値が変わったときだけ開く。副条件は要らない
+const lastAddNonce = useRef(openAddNonce);
+useEffect(() => {
+  if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+  lastAddNonce.current = openAddNonce;
+  setAdding(true);
+}, [openAddNonce]);
+```
+
+⚠️ **ref の初期値は現在値にする。** そうすればマウントでは開かないので、
+   アンマウントする側でも常設でも同じコードで足りる。
+   ⑭の前半（受け側がアンマウントするか）と後半（副条件が引き金になる）は
+   **同じ nonce の別の面**。片方だけ直すと、置き場所を変えたときにもう片方が出る。
 
 #### 確かめ方（コードを読むだけでは判定できない）
 
