@@ -242,12 +242,17 @@ function DashboardView({
   schoolPeerCounts = {},
   canPost,
   profileEditorWith,
+  onEditAboutMe,
+  onEditSocials,
 }: {
   /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
   canPost: boolean;
   /** プロフィール編集（3タブ＋7枚のカード）を描く。
       引数に渡したものは**プロフィールタブの一番下**に入る（母校・アクティビティ） */
   profileEditorWith: (extra: React.ReactNode) => React.ReactNode;
+  /** ヘッダーカードの促しから、該当カードを編集モードで開く */
+  onEditAboutMe: () => void;
+  onEditSocials: () => void;
   userId: string;
   userName: string; userInitial: string; userAvatar: string;
   currentRole?: string | null;
@@ -274,6 +279,8 @@ function DashboardView({
     <div>
       {/* コンパクトプロフィールカード — Phase ν-6 段階3: 全フィールドインライン編集対応 */}
       <UserProfileCard
+        onEditAboutMe={onEditAboutMe}
+        onEditSocials={onEditSocials}
         userId={userId}
         userName={userName}
         userInitial={userInitial}
@@ -693,6 +700,15 @@ export default function MypageClient({
     : null;
 
   const [activeView] = useState<ActiveView>("dashboard");
+
+  /* ── 促しから「該当カードを編集モードで開く」ための合図 ──────────────────
+        ⚠️ **`openAddNonce` と同じ形**（nonce を +1 して受け側の useEffect で開く）。
+           新しい仕組みを作らない。
+        ⚠️ 押しても何も起きないリンクにしないこと。移設前は `/profile/edit` へ
+           飛ばしていたが、移設後は**同じページ**なので無反応になった（2026-08-16）。 */
+  const [openBasicNonce, setOpenBasicNonce] = useState(0);
+  const [openSocialNonce, setOpenSocialNonce] = useState(0);
+  const [openCareerNonce, setOpenCareerNonce] = useState(0);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
   const [scoutBannerSaving, setScoutBannerSaving] = useState(false);
@@ -707,11 +723,11 @@ export default function MypageClient({
      ⚠️ バナー本文と同じ3つを見る。文言と条件がズレると、
         「あと1つ」と書いてあるのに何を入れればいいか分からない状態になる。
      ⚠️ tab はすべて /profile/edit の VALID_TABS に実在するキー。 */
-  const setupMissing: { label: string; tab: string }[] = [
-    { label: "名前",     tab: "profile",  done: !!userName && userName !== "ユーザー" },
-    { label: "自己紹介", tab: "profile",  done: !!owUser?.about_me && owUser.about_me.trim().length > 0 },
-    { label: "職歴",     tab: "profile", done: (timelineCareers?.length ?? 0) > 0 },
-  ].filter((x) => !x.done).map(({ label, tab }) => ({ label, tab }));
+  const setupMissing: { label: string; key: "name" | "aboutMe" | "career" }[] = [
+    { key: "name" as const,    label: "名前",     done: !!userName && userName !== "ユーザー" },
+    { key: "aboutMe" as const, label: "自己紹介", done: !!owUser?.about_me && owUser.about_me.trim().length > 0 },
+    { key: "career" as const,  label: "職歴",     done: (timelineCareers?.length ?? 0) > 0 },
+  ].filter((x) => !x.done).map(({ label, key }) => ({ label, key }));
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -733,14 +749,22 @@ export default function MypageClient({
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
             あと{setupMissing.length}つ、{setupMissing.map((m) => m.label).join("・")}を入力すると公開できます。
           </div>
-          <a href={`/mypage?tab=${setupMissing[0].tab}`} style={{
+          {/* ⚠️ **リンクにしない。** 移設後は同じページなので `href` では何も起きない。
+                 足りていない項目の**先頭**に対応するカードを開く。 */}
+          <button
+            type="button"
+            onClick={() => {
+              if (setupMissing[0].key === "career") setOpenCareerNonce((n) => n + 1);
+              else setOpenBasicNonce((n) => n + 1); // 名前・自己紹介はどちらも基本情報カード
+            }}
+            style={{
             display: "inline-block", padding: "8px 16px",
             background: "var(--royal)", color: "#fff",
-            borderRadius: 8, fontSize: 12, fontWeight: 700,
-            textDecoration: "none",
+            border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
           }}>
             {setupMissing[0].label}を入力する →
-          </a>
+          </button>
         </div>
       )}
 
@@ -927,8 +951,17 @@ export default function MypageClient({
           canPost={canPost}
           ambassadorMemberships={ambassadorMemberships}
           schoolPeerCounts={schoolPeerCounts}
+          onEditAboutMe={() => setOpenBasicNonce((n) => n + 1)}
+          onEditSocials={() => setOpenSocialNonce((n) => n + 1)}
           profileEditorWith={(extra) => (
-            <ProfileEditor {...editorProps} owUser={owUser} profileTabExtra={extra} />
+            <ProfileEditor
+              {...editorProps}
+              owUser={owUser}
+              profileTabExtra={extra}
+              openBasicNonce={openBasicNonce}
+              openSocialNonce={openSocialNonce}
+              openCareerNonce={openCareerNonce}
+            />
           )}
         />
       )}

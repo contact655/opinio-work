@@ -997,8 +997,16 @@ export default function ProfileTab({
   onSavedChange,
   onDirtyChange,
   notifyGlobalSave,
+  openBasicNonce = 0,
+  openSocialNonce = 0,
+  openCareerNonce = 0,
 }: {
   owUser: OwUser;
+  /* ── 外からカードを開く合図。0 のときは何もしない ────────────────────
+        ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
+  openBasicNonce?: number;
+  openSocialNonce?: number;
+  openCareerNonce?: number;
   /** 写真カードのプレビューに使う色。★保存済みの設定を親から受け取る */
   settings: SettingsState;
   roles: RoleItem[];
@@ -1211,6 +1219,38 @@ export default function ProfileTab({
   const [eduAddNonce, setEduAddNonce] = useState(0);
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
 
+  /* ── 外（ヘッダーカードの促し・右カラムの「あと2つ」）から特定のカードを開く ──
+        ⚠️ **`openAddNonce` と同じ形**（nonce を受けて useEffect で開く）。
+           新しい仕組みを作らない。
+        ⚠️ **スクロールは編集モードが開いたあと**に呼ぶ。開く前に呼ぶと
+           カードの高さが変わって着地位置がずれる。 */
+  const basicCardRef  = useRef<HTMLDivElement>(null);
+  const socialCardRef = useRef<HTMLDivElement>(null);
+  const scrollAfterPaint = (el: HTMLElement | null) => {
+    if (!el) return;
+    /* ⚠️ **`requestAnimationFrame` に頼らない。** 描画されていないタブ・
+          非表示のプレビューでは rAF が発火せず、**スクロールだけが静かに起きない**
+          （2026-08-16 に実測。カードは開くのに scrollIntoView が呼ばれなかった）。
+       ⚠️ 0ms ではなく少し待つ。**編集モードが開いて高さが変わったあと**に測らないと
+          着地位置がずれる。 */
+    setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+  useEffect(() => {
+    if (!openBasicNonce) return;
+    setEditingBasic(true);
+    scrollAfterPaint(basicCardRef.current);
+  }, [openBasicNonce]);
+  useEffect(() => {
+    if (!openSocialNonce) return;
+    setEditingSocial(true);
+    scrollAfterPaint(socialCardRef.current);
+  }, [openSocialNonce]);
+  /* 職歴は**モーダル**なのでスクロールしない（画面中央に出る） */
+  useEffect(() => {
+    if (!openCareerNonce) return;
+    setCareerAddNonce((n) => n + 1);
+  }, [openCareerNonce]);
+
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
@@ -1335,7 +1375,9 @@ export default function ProfileTab({
             </EditableSection>
           </div>
 
-          <div style={{ maxWidth: 680 }}>
+          {/* ⚠️ ref は**スクロールの着地点**。外（ヘッダーカードの促し・右カラムの
+                 「あと2つ」）から開いたときにここへ寄せる。 */}
+          <div ref={basicCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
 
             {/* ── 基本情報（名前・肩書き・所在地・生年月日・自己紹介）────────
                 ⚠️ **自己紹介を別カードに戻さないこと。**（2026-08-15 統合）
@@ -1626,7 +1668,7 @@ export default function ProfileTab({
 
         {/* SNS・発信コンテンツタブ */}
           <>
-            <div style={{ maxWidth: 680 }}>
+            <div ref={socialCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
               <EditableSection
                 title="SNS・外部リンク"
                 description="登録したリンクはプロフィールページに表示されます。"

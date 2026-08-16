@@ -31,6 +31,17 @@ export type UserProfileCardProps = {
   /** フォロワー数 / フォロー中の数。0 の項目は出ない（FollowCounts 側で落とす） */
   followCounts?: { followers: number; following: number };
   isMentor: boolean;
+  /* ⚠️ 促しは**リンクにしない**。移設後は同じページなので `href` では何も起きない
+        （2026-08-16 に実際にそうなっていた）。該当カードを編集モードで開く。 */
+  onEditAboutMe?: () => void;
+  onEditSocials?: () => void;
+};
+
+/** 促しの「追加する →」。⚠️ 見た目はリンクだが**ボタン**（同じページのカードを開く） */
+const promoBtn: React.CSSProperties = {
+  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+  fontSize: "inherit", fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
+  textDecoration: "underline", textUnderlineOffset: 2,
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -75,6 +86,8 @@ export default function UserProfileCard({
   userSocialLinks,
   followCounts,
   isMentor,
+  onEditAboutMe,
+  onEditSocials,
 }: UserProfileCardProps) {
 
   const initial = userInitial || userName?.charAt(0) || "?";
@@ -198,10 +211,12 @@ export default function UserProfileCard({
           background: "var(--bg-tint)", border: "1px dashed var(--line)",
           fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "center",
         }}>
-          {/* ⚠️ 「追加する →」のリンクを外した（2026-08-16）。移設後は**同じページ**を
-                 指すだけの無反応なリンクになっていた。入力欄はすぐ下の
-                 「基本情報」カードにある。 */}
-          自己紹介はまだ登録されていません。下の「基本情報」から入力できます。
+          自己紹介が未設定です。
+          {onEditAboutMe && (
+            <button type="button" onClick={onEditAboutMe} style={promoBtn}>
+              追加する →
+            </button>
+          )}
         </div>
       )}
 
@@ -233,8 +248,12 @@ export default function UserProfileCard({
         </div>
       ) : (
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-          {/* ⚠️ 同上。入力欄は下の「SNS・外部リンク」カードにある */}
-          SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。下の「SNS・外部リンク」から登録できます。
+          SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。
+          {onEditSocials && (
+            <button type="button" onClick={onEditSocials} style={promoBtn}>
+              追加する →
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -147,6 +147,9 @@ export default function ProfileEditor({
   desiredRoleOptions,
   initialProfilePrefs = null,
   profileTabExtra,
+  openBasicNonce = 0,
+  openSocialNonce = 0,
+  openCareerNonce = 0,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -170,6 +173,12 @@ export default function ProfileEditor({
   desiredRoleOptions?: RoleItem[];
   /** プロフィールタブの一番下に足すもの（`/mypage` が母校・アクティビティを渡す） */
   profileTabExtra?: React.ReactNode;
+  /* ── 外から特定のカードを開く合図。値が変わるたびに開く ──────────────
+        ⚠️ **プロフィールタブへの切り替えもここでやる。** 別のタブを開いたまま
+           押されると、カードは開くのに画面には出ない。 */
+  openBasicNonce?: number;
+  openSocialNonce?: number;
+  openCareerNonce?: number;
   initialProfilePrefs?: {
     // ⚠️ job_type / desired_work_style / experience_years は受け取らない。
     //    希望職種は ow_profile_desired_roles、勤務スタイルは desired_work_styles、
@@ -204,6 +213,13 @@ export default function ProfileEditor({
   }, [activeTab]);
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+
+  /* 外からカードを開かれたら、プロフィールタブに切り替える（開いていなければ）。
+     ⚠️ タブを切り替えても中身はアンマウントしない作りなので、
+        切り替え → カード側の useEffect の順で問題なく開く。 */
+  useEffect(() => {
+    if (openBasicNonce || openSocialNonce || openCareerNonce) setActiveTab("profile");
+  }, [openBasicNonce, openSocialNonce, openCareerNonce]);
 
   /* 希望条件は WishesTab が持つ（3-B）。親は**保存済みの結果だけ**を受け取る。
      ⚠️ ここに希望条件の state を戻さないこと。保存の単位はカードで、それはタブ側にある。 */
@@ -494,6 +510,9 @@ export default function ProfileEditor({
             onSavedChange={setProfileSaved}
             onDirtyChange={setProfileDirty}
             notifyGlobalSave={notifyGlobalSave}
+            openBasicNonce={openBasicNonce}
+            openSocialNonce={openSocialNonce}
+            openCareerNonce={openCareerNonce}
           />
           {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
                  タブの外に置くと「転職の希望」「設定」を開いたときにも出てしまう。 */}
