@@ -107,7 +107,7 @@ export default function FutureSectionEditor({
 
         {/* ✎ 編集 button — visible to owner when text exists and not editing */}
         {viewerIsOwner && hasText && !isEditing && (
-          <button
+          <button className="tap-min-h"
             type="button"
             onClick={handleStartEdit}
             style={{
@@ -267,6 +267,7 @@ export default function FutureSectionEditor({
           ) : viewerIsOwner ? (
             /* Empty state CTA — click to enter edit mode */
             <button
+              className="tap-min-h"
               type="button"
               onClick={handleStartEdit}
               style={{

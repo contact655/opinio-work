@@ -485,6 +485,8 @@ export default function ProfileEditor({
               rel="noopener noreferrer"
               aria-label="公開プロフィールを見る（新しいタブで開く）"
               title="公開プロフィールを見る"
+              /* ⚠️ 767px 以下では高さを 44px にする（既定は 28px）。アイコンは 12px のまま */
+              className="tap-min-h tap-target"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "7px 12px", borderRadius: 8,

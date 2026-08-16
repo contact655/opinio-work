@@ -26,6 +26,15 @@ export type RowActions = {
 };
 
 /** 見出し行の「追加」。⚠️ 見た目を各セクションで書き分けない */
+/**
+ * 見出しの右端に出す「＋」/「＋ 追加」。
+ *
+ * ⚠️ **ラベルの有無で当たり判定の大きさが変わらないようにする**（2026-08-16）。
+ *    職歴・学歴は `<PlusIcon/>` だけを渡すので、`padding: 0` のままだと
+ *    **11×36px** しかなかった（ラベルのある他4セクションは 39×36px）。
+ *    同じ style を共有しているのに3.5倍違う状態だった。
+ *    幅の確保は `.tap-target`（767px 以下で 44×44）に任せる。**アイコンは大きくしない。**
+ */
 export const sectionAddBtn: React.CSSProperties = {
   fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
   background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -58,10 +67,12 @@ export function PencilIcon() {
 export function RowActionButtons({ id, label, actions }: { id: string; label: string; actions: RowActions }) {
   if (!actions.onEditRow && !actions.onDeleteRow) return null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+    /* ⚠️ `gap` は 767px 以下で 8px になる（`.tap-row`）。2px のままだと
+          44px の当たり判定どうしが重なり、削除と編集を押し間違える */
+    <div className="tap-row" style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
       {actions.onEditRow && (
         <button
-          type="button" className="btn-fixed-size"
+          type="button" className="btn-fixed-size tap-target"
           onClick={() => actions.onEditRow!(id)}
           aria-label={`${label} を編集`} title="編集"
           style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
@@ -73,7 +84,7 @@ export function RowActionButtons({ id, label, actions }: { id: string; label: st
       )}
       {actions.onDeleteRow && (
         <button
-          type="button" className="btn-fixed-size"
+          type="button" className="btn-fixed-size tap-target"
           onClick={() => actions.onDeleteRow!(id)}
           aria-label={`${label} を削除`} title="削除"
           style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}

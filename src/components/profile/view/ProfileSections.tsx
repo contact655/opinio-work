@@ -80,7 +80,7 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {onEdit && (
-              <button type="button" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
+              <button type="button" className="tap-target tap-target-end" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
                 <PencilIcon />
               </button>
             )}
@@ -104,7 +104,7 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
             自己紹介を書いて、あなたのことを伝えましょう
           </p>
           {onEdit ? (
-            <button type="button" onClick={onEdit} style={{
+            <button type="button" onClick={onEdit} className="tap-min-h" style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "8px 18px", borderRadius: 8, border: "none",
               background: "var(--royal)", color: "#fff", cursor: "pointer",
@@ -153,7 +153,7 @@ export function ProfileAchievementsSection({ achievements, actions }: {
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {actions?.onAdd && (
-              <button type="button" onClick={actions.onAdd} style={sectionAddBtn}>
+              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
             )}
@@ -262,7 +262,7 @@ export function ProfileAwardsSection({ awards, actions }: {
               {awards.length}件
             </span>
             {actions?.onAdd && (
-              <button type="button" onClick={actions.onAdd} style={sectionAddBtn}>
+              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
             )}
@@ -366,11 +366,10 @@ export function ProfileMediaSection({ mediaAppearances, actions }: {
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 本人のときだけ。`/u/[id]` は `actions` を渡さないので出ない＝DOM 不変 */}
             {actions?.onAdd && (
-              <button type="button" onClick={actions.onAdd} style={{
-                fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
-                background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 4, padding: 0,
-              }}>
+              /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
+                    複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
+                    （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
+              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -594,11 +593,10 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
             {/* ⚠️ `/mypage` では同じページなので**リンクにしない**（押しても何も起きない）。
                    `onAdd` が渡されたときだけボタンにする。 */}
             {viewerIsOwner && (actions?.onAdd ? (
-              <button type="button" onClick={actions.onAdd} style={{
-                fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
-                background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 4, padding: 0,
-              }}>
+              /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
+                    複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
+                    （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
+              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -809,7 +807,7 @@ export function ProfileTimelineSection({ id, title, onAdd, addLabel, children }:
         </span>
         <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
         {onAdd && (
-          <button type="button" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
+          <button type="button" className="tap-target tap-target-end" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
             <PlusIcon />
           </button>
         )}

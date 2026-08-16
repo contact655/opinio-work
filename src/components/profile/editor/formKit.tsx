@@ -354,7 +354,10 @@ export function SectionActionButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="btn-fixed-size"
+      /* ⚠️ 767px 以下では当たり判定を 44×44 にする（丸の描画は 32px のまま）。
+            `.tap-target` は min-width / min-height だけを足すので、
+            width/height 32 の丸い枠線は変わらない */
+      className="btn-fixed-size tap-target"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}

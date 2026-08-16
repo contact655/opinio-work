@@ -206,6 +206,31 @@ button, [role="button"] {
   min-height: 0;
 }
 
+/* ── タップ対象（2026-08-16）──────────────────────────────────────────────────
+   指で押す最小の目安は 44×44px。アイコンだけのボタンは 11〜27px しかなく、
+   鉛筆とゴミ箱は 2px 間隔で並んでいた（削除と編集を押し間違える）。
+
+   ⚠️ **アイコンの描画サイズは変えない。当たり判定だけ広げる。**
+   ⚠️ **767px 以下だけに効かせる。** デスクトップ（マウス）は今の見た目のまま。
+      幅の広い画面でボタンだけ大きくすると、行の詰まり方が変わってしまう。 */
+@media (max-width: 767px) {
+  /* 行の鉛筆・ゴミ箱、見出しの「追加」など、アイコン中心の小さなボタン */
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* ⚠️ 見出しの右端にある「＋」は**アイコンの位置を動かさない**。
+        当たり判定だけ左へ伸ばす（中央寄せにすると ＋ が内側にずれる）。 */
+  .tap-target-end { justify-content: flex-end; }
+  /* 隣り合う対象の間隔。2px では 44px の判定どうしが重なる */
+  .tap-row { gap: 8px !important; }
+  /* テキスト付きのボタン・リンクは高さだけ足りていないことが多い */
+  .tap-min-h { min-height: 44px; }
+}
+
 /* Prevent text size bump on iOS landscape */
 @media screen and (max-width: 768px) {
   html { -webkit-text-size-adjust: 100%; }

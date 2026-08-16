@@ -1340,6 +1340,8 @@ export default function ProfileTab({
                     onClick={() => setEditingHeader(true)}
                     aria-label="プロフィールを編集"
                     title="プロフィールを編集"
+                    /* ⚠️ 767px 以下では高さを 44px にする（既定は 40px） */
+                    className="tap-min-h"
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "8px 14px", borderRadius: 8,
