@@ -4,6 +4,15 @@
  * Clearbit URL に変更した logo_url を Supabase Storage の実ファイルURLに戻す。
  * Storage 内の companies/logos/{id}/logo.{ext} を HEAD リクエストで確認し、
  * 存在するものを logo_url に設定する。
+ *
+ * ⚠️ **このスクリプトは `logo.<ext>` 決め打ちなので、8件を拾えない**（2026-08-16 実測）。
+ *    `companies/logos` の87ファイルのうち **79件が `logo.<ext>`（一括投入スクリプト由来）**、
+ *    残り **8件は `<13桁タイムスタンプ>.<ext>`**（画面のアップローダー
+ *    = `buildLogoStoragePath` 由来）。後者はこのスクリプトでは見つからない。
+ *
+ * ⚠️ **全件を対象にするなら Storage を `list()` で走査すること。**
+ *    ファイル名の形で選ばず、`updated_at` が最新のものを採る
+ *    （同じ company_id に複数ある会社が3社ある）。
  */
 
 import { createClient } from '@supabase/supabase-js';
