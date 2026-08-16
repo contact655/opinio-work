@@ -3,20 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { canUserPost } from "@/lib/feed/canPost";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import MypageClient from "./MypageClient";
-import type {
-  Bookmark,
-  CasualMeeting,
-  CasualMeetingStatus,
-} from "@/app/mypage/mockMypageData";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import {
   buildTimelineCareerEntriesFromRaw,
   type RawExperienceRow,
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 /* ⚠️ プロフィール編集の中身は 2026-08-16 に `/profile/edit` からここへ移した。
       取得もこのファイルに寄せる。**2ページで同じ行を別々に引かない。** */
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
@@ -344,153 +337,12 @@ export default async function MypagePage({
     }
   }
 
-  // Fetch bookmarks for company and job
-  let companyBookmarks: Bookmark[] = [];
-  let jobBookmarks: Bookmark[] = [];
-  if (owUser) {
-    // Fetch all bookmark rows for this user (company + job)
-    const { data: bmarks } = await supabase
-      .from("ow_bookmarks")
-      .select("id, target_id, target_type")
-      .eq("user_id", owUser.id)
-      .in("target_type", ["company", "job"])
-      .order("created_at", { ascending: false });
-
-    if (bmarks && bmarks.length > 0) {
-      const companyBmarks = bmarks.filter((b) => b.target_type === "company");
-      const jobBmarks = bmarks.filter((b) => b.target_type === "job");
-
-      /* ⚠️ 「気になる企業」と「気になる求人」は互いに独立。
-            2026-08-09 まで順番に await していたので1往復ぶん無駄だった。
-            片方が0件なら、そちら側は問い合わせずに null を返す。 */
-      const [bmCompaniesRes, bmJobsRes] = await Promise.all([
-        companyBmarks.length > 0
-          ? supabase
-              .from("ow_companies")
-              .select("id, slug, name, industry, employee_count, phase")
-              .in("id", companyBmarks.map((b) => b.target_id as string))
-          : Promise.resolve({ data: null }),
-        jobBmarks.length > 0
-          ? supabase
-              .from("ow_jobs")
-              .select("id, title, job_category, company_id")
-              .in("id", jobBmarks.map((b) => b.target_id as string))
-          : Promise.resolve({ data: null }),
-      ]);
-
-      // ── Company bookmarks ──
-      {
-        const companies = bmCompaniesRes.data;
-        if (companies) {
-          const companyMap = new Map(companies.map((c) => [c.id, c]));
-          companyBookmarks = companyBmarks
-            .map((b): Bookmark | null => {
-              const c = companyMap.get(b.target_id as string);
-              if (!c) return null;
-              const meta = [c.industry, formatEmployeeCount(c.employee_count)]
-                .filter(Boolean).join(" / ");
-              return {
-                id: b.id as string, type: "company",
-                title: c.name as string, meta,
-                badge_label: (c.industry as string) ?? "企業",
-                href: `/companies/${c.slug ?? c.id}`,
-              };
-            })
-            .filter((b): b is Bookmark => b !== null);
-        }
-      }
-
-      // ── Job bookmarks ──
-      {
-        const jobs = bmJobsRes.data;
-        if (jobs) {
-          /* 職種の表示は会社呼称 ?? 標準職種名。
-             ⚠️ ow_company_job_roles の RLS は「その会社の管理者だけ」なので、
-                ここのユーザーセッションのクライアントでは引けない。admin を使う。
-             ⚠️ 会社呼称と会社名はどちらも jobs にぶら下がるだけで互いに参照しない
-                ので、まとめて1往復にする（2026-08-09）。 */
-          const jobCompanyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
-          const [roleLabels, { data: companies }] = await Promise.all([
-            fetchJobRoleLabels(jobs.map((j) => j.id as string)),
-            supabase.from("ow_companies").select("id, name").in("id", jobCompanyIds),
-          ]);
-          const companyNameMap = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
-          const jobMap = new Map(jobs.map((j) => [j.id, j]));
-          jobBookmarks = jobBmarks
-            .map((b): Bookmark | null => {
-              const j = jobMap.get(b.target_id as string);
-              if (!j) return null;
-              const companyName = companyNameMap.get(j.company_id as string) ?? "";
-              return {
-                id: b.id as string, type: "job",
-                title: j.title as string,
-                meta: [companyName, roleLabels.get(j.id as string)?.label].filter(Boolean).join(" / "),
-                badge_label: roleLabels.get(j.id as string)?.label ?? "求人",
-                href: `/jobs/${j.id}`,
-              };
-            })
-            .filter((b): b is Bookmark => b !== null);
-        }
-      }
-    }
-  }
-
-  // Fetch casual meetings with company logo info
-  let casualMeetings: CasualMeeting[] = [];
-  if (owUser) {
-    const { data: meetings } = await supabase
-      .from("ow_casual_meetings")
-      .select("id, company_id, job_id, status, created_at")
-      .eq("user_id", owUser.id)
-      .order("created_at", { ascending: false });
-
-    if (meetings && meetings.length > 0) {
-      const companyIdSet = new Set(meetings.map((m) => m.company_id as string));
-      const companyIds = Array.from(companyIdSet);
-      const jobIds = meetings
-        .filter((m) => m.job_id)
-        .map((m) => m.job_id as string);
-
-      /* ⚠️ 企業と求人はどちらも meetings からぶら下がるだけで、互いに参照しない。
-            2026-08-09 まで順番に await していたので1往復ぶん無駄だった。 */
-      const [{ data: companies }, jobsRes] = await Promise.all([
-        supabase
-          .from("ow_companies")
-          .select("id, name, logo_gradient, logo_letter")
-          .in("id", companyIds),
-        jobIds.length > 0
-          ? supabase.from("ow_jobs").select("id, title").in("id", jobIds)
-          : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null }),
-      ]);
-
-      const jobMap = new Map<string, string>();
-      for (const j of jobsRes.data ?? []) {
-        jobMap.set(j.id as string, j.title as string);
-      }
-
-      const companyMap = new Map((companies ?? []).map((c) => [c.id as string, c]));
-      const FALLBACK_GRADIENT = "linear-gradient(135deg, var(--royal), #3B5FD9)";
-
-      casualMeetings = meetings.map((m): CasualMeeting => {
-        const c = companyMap.get(m.company_id as string);
-        const appliedAt = (m.created_at ? new Date(m.created_at as string) : new Date())
-          .toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
-          .replace(/\//g, ".");
-        return {
-          id: m.id as string,
-          company_id: m.company_id as string,
-          company_name: (c?.name as string) ?? "—",
-          company_initial: (c?.logo_letter as string) ?? (c?.name as string)?.charAt(0) ?? "?",
-          company_gradient: (c?.logo_gradient as string) ?? FALLBACK_GRADIENT,
-          job_title: m.job_id
-            ? (jobMap.get(m.job_id as string) ?? "カジュアル面談")
-            : "カジュアル面談",
-          applied_at: appliedAt,
-          status: (m.status as CasualMeetingStatus) ?? "pending",
-        };
-      });
-    }
-  }
+  /* ⚠️ ブックマークとカジュアル面談の取得を 2026-08-16 に削除した。
+        右カラムの2枚（最近の申込・ブックマーク）と SPA ビューごと消えたので、
+        **この画面では1件も使わない**。一覧は `/mypage/bookmarks`
+        `/mypage/applications` が自分で引く。
+        ⚠️ 消したのは ow_bookmarks / ow_companies×2 / ow_jobs×2 /
+           ow_casual_meetings / fetchJobRoleLabels の**7本**。 */
 
   /* ow_profiles — 希望条件 + スカウト設定 + オンボーディング。
      ⚠️ `ow_profiles.user_id` は **auth.users.id**（ow_users.id ではない）。
@@ -600,9 +452,6 @@ export default async function MypagePage({
       followCounts={followCounts}
       educations={educations}
       timelineCareers={timelineCareers}
-      companyBookmarks={companyBookmarks}
-      jobBookmarks={jobBookmarks}
-      casualMeetings={casualMeetings}
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       scoutsBadge={scoutsBadge}

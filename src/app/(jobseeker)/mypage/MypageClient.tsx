@@ -13,12 +13,6 @@ import UserProfileCard from "@/components/profile/UserProfileCard";
       （職歴・学歴カードと重複するため）。`MergedTimeline` 本体は `/u/[id]` が使う。 */
 import { type CareerEntry } from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
-import {
-  STATUS_LABEL,
-  type CasualMeeting,
-  type Bookmark,
-} from "@/app/mypage/mockMypageData";
-import { StatusPill } from "@/components/common/StatusPill";
 
 /* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
       `/mypage` が編集フォームにそのまま渡すので、片方に列を足してもう片方に
@@ -28,28 +22,10 @@ type OwUser = ComponentProps<typeof ProfileEditor>["owUser"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ActiveView =
-  | "dashboard"
-  | "casual"
-  | "bookmarks";
-
-// ─── Shared: Status Pill ──────────────────────────────────────────────────────
-// 共通 StatusPill を使用。STATUS_LABEL でドメイン固有ラベルを上書きする。
-
-function MypageStatusPill({
-  statusKey,
-  label,
-}: {
-  statusKey: string;
-  label?: string;
-}) {
-  const text = label ?? STATUS_LABEL[statusKey] ?? undefined;
-  return (
-    <StatusPill variant={statusKey}>
-      {text}
-    </StatusPill>
-  );
-}
+/* ⚠️ 「申込」「ブックマーク」の SPA ビュー（`ActiveView`）は 2026-08-16 に削除した。
+      右カラムの「すべて見る →」を外した時点で**到達不能**になっており、
+      同じ内容は `/mypage/applications` `/mypage/bookmarks` にある（実測 200）。
+      ⚠️ `MypageLayout` の `activeKey` はこれとは別物。混同しないこと。 */
 
 // ─── Shared: Section block ────────────────────────────────────────────────────
 
@@ -88,75 +64,6 @@ function SectionBlock({
       </div>
       {children}
     </section>
-  );
-}
-
-// ─── Shared: Request item (casual meeting / mentor reservation row) ───────────
-
-function RequestItem({
-  avatar, title, meta, statusKey, statusLabel,
-  onClick,
-}: {
-  avatar: React.ReactNode;
-  title: string;
-  meta: React.ReactNode;
-  statusKey: string;
-  statusLabel?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: "grid", gridTemplateColumns: "40px 1fr auto",
-        gap: 14, alignItems: "center",
-        padding: "12px 14px",
-        background: "var(--bg-tint)", border: "1px solid var(--line)",
-        borderRadius: 10, cursor: onClick ? "pointer" : "default",
-        transition: "all 0.2s",
-      }}
-      className="request-item-row"
-    >
-      {avatar}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-          {title}
-        </div>
-        <div style={{ fontSize: "var(--text-xs)", color: "var(--ink-soft)", lineHeight: 1.5 }}>{meta}</div>
-      </div>
-      <MypageStatusPill statusKey={statusKey} label={statusLabel} />
-    </div>
-  );
-}
-
-function CompanyAvatar({ initial, gradient }: { initial: string; gradient: string }) {
-  return (
-    <div style={{
-      width: 40, height: 40, borderRadius: 8, background: gradient,
-      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "var(--text-md)", flexShrink: 0,
-    }}>
-      {initial}
-    </div>
-  );
-}
-
-
-// ─── Right column: Recent activity card ──────────────────────────────────────
-
-function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc?: string }) {
-  return (
-    <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--ink-mute)", fontSize: "var(--text-sm)" }}>
-      <div style={{
-        width: 48, height: 48, background: "var(--bg-tint)", color: "var(--ink-mute)",
-        borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-        margin: "0 auto 10px",
-      }}>
-        {icon}
-      </div>
-      <div style={{ fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>{title}</div>
-      {desc && <div>{desc}</div>}
-    </div>
   );
 }
 
@@ -444,203 +351,6 @@ function DashboardView({
   );
 }
 
-// ─── VIEW: Casual meetings ────────────────────────────────────────────────────
-
-// ─── Casual meeting step indicator ────────────────────────────────────────────
-
-const CASUAL_STEPS = ["申込完了", "企業確認中", "日程調整", "面談実施"] as const;
-
-function getStepIndex(status: string): number {
-  if (status === "pending") return 0;
-  if (status === "company_contacted") return 1;
-  if (status === "scheduled") return 2;
-  if (status === "completed") return 3;
-  return -1; // declined or unknown
-}
-
-function CasualMeetingSteps({ status }: { status: string }) {
-  if (status === "declined") {
-    return (
-      <div style={{
-        paddingLeft: 54, paddingTop: 4, paddingBottom: 2,
-        fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
-        fontFamily: "Inter, sans-serif",
-      }}>
-        見送り
-      </div>
-    );
-  }
-  const activeStep = getStepIndex(status);
-  if (activeStep < 0) return null;
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 0,
-      paddingLeft: 54, paddingTop: 5, paddingBottom: 2,
-    }}>
-      {CASUAL_STEPS.map((label, i) => (
-        <div key={label} style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-            <div style={{
-              width: 6, height: 6, borderRadius: "50%",
-              background: i <= activeStep ? "var(--royal)" : "var(--line)",
-              flexShrink: 0,
-            }} />
-            <span style={{
-              fontSize: 12, color: i <= activeStep ? "var(--royal)" : "var(--ink-mute)",
-              fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
-              fontWeight: i === activeStep ? 700 : 400,
-            }}>
-              {label}
-            </span>
-          </div>
-          {i < CASUAL_STEPS.length - 1 && (
-            <div style={{
-              width: 18, height: 1,
-              background: i < activeStep ? "var(--royal)" : "var(--line)",
-              marginBottom: 14, flexShrink: 0,
-            }} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CasualView({ casualMeetings }: { casualMeetings: CasualMeeting[] }) {
-  const statusMeta: Record<string, string> = {
-    pending: "通常 3営業日以内に連絡",
-    company_contacted: "企業から連絡あり",
-    scheduled: "",
-    completed: "実施済",
-    declined: "お断りの連絡",
-  };
-
-  return (
-    <div>
-      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-        カジュアル面談
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        あなたが申し込んだカジュアル面談の一覧と、それぞれのステータスを確認できます。
-      </p>
-      <SectionBlock
-        title="申込一覧" titleEn="All Applications"
-        right={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>全 {casualMeetings.length} 件</span>}
-      >
-        {casualMeetings.length === 0 ? (
-          <div style={{ padding: "var(--space-2) 0" }}>
-            <EmptyState
-              icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>}
-              title="申し込みはまだありません"
-              desc="気になる企業にカジュアル面談を申し込んでみましょう"
-            />
-            <div style={{ textAlign: "center", marginTop: "var(--space-3)" }}>
-              <Link href="/companies" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "9px 20px", borderRadius: 8,
-                background: "linear-gradient(135deg, var(--warm), #FBBF24)",
-                color: "#fff", fontSize: 12, fontWeight: 700,
-                textDecoration: "none", boxShadow: "0 2px 8px rgba(245,158,11,0.25)",
-              }}>
-                企業を探す →
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {casualMeetings.map((m: CasualMeeting) => (
-              <div key={m.id}>
-                <RequestItem
-                  avatar={<CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />}
-                  title={`${m.company_name} · ${m.job_title}`}
-                  meta={
-                    <span>
-                      {m.applied_at} 申込
-                      {m.scheduled_at
-                        ? <span style={{ color: "var(--ink-mute)" }}> · {m.scheduled_at}</span>
-                        : statusMeta[m.status]
-                        ? <span style={{ color: "var(--ink-mute)" }}> · {statusMeta[m.status]}</span>
-                        : null}
-                    </span>
-                  }
-                  statusKey={m.status}
-                />
-                <CasualMeetingSteps status={m.status} />
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionBlock>
-    </div>
-  );
-}
-
-// ─── VIEW: Bookmarks ──────────────────────────────────────────────────────────
-
-function BookmarkGrid({ items }: { items: Bookmark[] }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "var(--space-3)" }}>
-      {items.map((bk) => (
-        <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
-          <div style={{
-            background: "#fff", border: "1px solid var(--line)",
-            borderRadius: 10, padding: "14px 16px", height: "100%",
-            transition: "all 0.2s",
-          }} className="bookmark-card-hover">
-            <div style={{
-              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
-              color: "var(--ink-mute)", letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: 6,
-            }}>
-              {bk.badge_label}
-            </div>
-            <div style={{
-              fontSize: 12, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5, marginBottom: 8,
-              display: "-webkit-box", WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical", overflow: "hidden",
-            } as React.CSSProperties}>
-              {bk.title}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5 }}>{bk.meta}</div>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function BookmarksView({ companyBookmarks, jobBookmarks }: { companyBookmarks: Bookmark[]; jobBookmarks: Bookmark[] }) {
-  const sections = [
-    { title: "企業", titleEn: "Companies", items: companyBookmarks },
-    { title: "求人", titleEn: "Jobs", items: jobBookmarks },
-  ];
-  return (
-    <div>
-      <h1 style={{ fontFamily: 'var(--font-noto-serif)', fontWeight: 500, fontSize: 26, color: "var(--ink)", marginBottom: 8, letterSpacing: "0.02em" }}>
-        ブックマーク
-      </h1>
-      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 32, lineHeight: 1.8 }}>
-        あなたがブックマークした企業・求人を一覧できます。
-      </p>
-      {sections.map((sec) => (
-        <SectionBlock
-          key={sec.title} title={sec.title} titleEn={sec.titleEn}
-          right={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{sec.items.length} 件</span>}
-        >
-          {sec.items.length === 0 ? (
-            <EmptyState
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>}
-              title={`ブックマークした${sec.title}はありません`}
-            />
-          ) : (
-            <BookmarkGrid items={sec.items} />
-          )}
-        </SectionBlock>
-      ))}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type AmbassadorMembership = { id: string; company_id: string; company_name: string; role_title: string | null; display_consent: boolean };
@@ -654,9 +364,6 @@ export default function MypageClient({
   followCounts,
   educations = [],
   timelineCareers = [],
-  companyBookmarks,
-  jobBookmarks,
-  casualMeetings,
   conversationsBadge,
   applicationsBadge,
   scoutsBadge,
@@ -678,9 +385,9 @@ export default function MypageClient({
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
   timelineCareers?: CareerEntry[];
-  companyBookmarks: Bookmark[];
-  jobBookmarks: Bookmark[];
-  casualMeetings: CasualMeeting[];
+  /* ⚠️ `companyBookmarks` / `jobBookmarks` / `casualMeetings` は 2026-08-16 に外した。
+        SPA ビューごと消えたため。**取得も `page.tsx` から消してある。**
+        一覧は `/mypage/bookmarks` `/mypage/applications` が自分で引く。 */
   conversationsBadge?: number;
   applicationsBadge?: number;
   scoutsBadge?: number;
@@ -698,8 +405,6 @@ export default function MypageClient({
   const currentRole = currentCareer
     ? `${currentCareer.company_name} · ${currentCareer.role_title ?? currentCareer.role_label}`
     : null;
-
-  const [activeView] = useState<ActiveView>("dashboard");
 
   /* ── 促しから「該当カードを編集モードで開く」ための合図 ──────────────────
         ⚠️ **`openAddNonce` と同じ形**（nonce を +1 して受け側の useEffect で開く）。
@@ -857,11 +562,11 @@ export default function MypageClient({
 
   return (
     <MypageLayout
-      activeKey={activeView}
+      activeKey="dashboard"
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       scoutsBadge={scoutsBadge}
-      rightColumn={activeView === "dashboard" ? dashboardRightColumn : undefined}
+      rightColumn={dashboardRightColumn}
     >
       {/* ウェルカムバナー（新規登録直後） */}
       {isNewUser && !welcomeDismissed && (
@@ -934,7 +639,7 @@ export default function MypageClient({
 
 
 
-      {activeView === "dashboard" && (
+      {(
         <DashboardView
           userId={owUser?.id ?? ""}
           userName={userName}
@@ -965,8 +670,6 @@ export default function MypageClient({
           )}
         />
       )}
-      {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}
-      {activeView === "bookmarks" && <BookmarksView companyBookmarks={companyBookmarks} jobBookmarks={jobBookmarks} />}
 
       <style>{`
         .request-item-row:hover { border-color: var(--royal-100) !important; background: #fff !important; }
