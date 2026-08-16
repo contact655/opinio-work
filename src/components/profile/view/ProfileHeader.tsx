@@ -62,6 +62,19 @@ export function ProfileHeader({
 }) {
   return (
     <>
+  {/* ⚠️ **モバイル調整はこの部品が持つ**（2026-08-16 に `u/[id]/page.tsx` から移設）。
+         ページ側に置くと、同じ部品を使うもう一方（`/mypage`）に効かない。
+         実際そうなっていて、`/mypage` だけカバー200px・アバター120px・名前30px だった。
+      ⚠️ 子孫セレクタの記号と引用符を使わない（hydration mismatch になる）。 */}
+  <style>{`
+    @media (max-width: 960px) {
+      .profile-cover { height: 140px !important; }
+      .profile-avatar { width: 88px !important; height: 88px !important; font-size: 32px !important; }
+      .profile-avatar-wrap { margin-top: -44px !important; }
+      .profile-name { font-size: 22px !important; }
+      .profile-header-body { padding: 0 20px 24px !important; }
+    }
+  `}</style>
   {/* Cover + Avatar header — full width above grid */}
   <div style={{
     background: "#fff", border: "1px solid var(--line)",

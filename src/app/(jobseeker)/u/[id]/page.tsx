@@ -488,12 +488,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
         .profile-grid {
           display: block;
         }
+        /* ⚠️ ヘッダー本体（cover / avatar / name / header-body）のモバイル調整は
+              ProfileHeader へ移した（2026-08-16）。ここに書き戻さないこと。
+              マークアップは 2-7 で共通化したのに CSS だけこちらに残っていて、
+              /mypage のヘッダーだけカバー200px・アバター120px・名前30px になっていた。
+           ⚠️ 下の profile-header-cta は、このページが actions に渡すボタンの分。
+              ProfileHeader のマークアップには無いのでここに残す。 */
         @media (max-width: 960px) {
-          .profile-cover { height: 140px !important; }
-          .profile-avatar { width: 88px !important; height: 88px !important; font-size: 32px !important; }
-          .profile-avatar-wrap { margin-top: -44px !important; }
-          .profile-name { font-size: 22px !important; }
-          .profile-header-body { padding: 0 20px 24px !important; }
           .profile-header-cta { font-size: 12px !important; padding: 8px 14px !important; }
         }
         .u-sidebar-link:hover { box-shadow: 0 4px 12px rgba(15,23,42,0.10) !important; }
