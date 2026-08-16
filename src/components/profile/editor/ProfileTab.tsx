@@ -1593,6 +1593,9 @@ export default function ProfileTab({
                     careers={[]}
                     educations={toTimelineEducationEntries(educations as RawEducation[])}
                     future={null}
+                    /* ⚠️ `birthDate` を渡す。渡さないと年マーカーに年齢が出ず、
+                          `/u/[id]` の学歴（「2014 19歳」）と食い違う（2026-08-16 の通しで発見） */
+                    birthDate={owUser?.birth_date}
                     educationActions={eduActions}
                   />
                   {/* ⚠️ `toTimelineEducationEntries` は**入学年月が無い行を落とす**（年表に置けないため）。
