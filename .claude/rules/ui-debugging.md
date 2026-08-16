@@ -593,3 +593,42 @@ useEffect(() => {
 
 ⚠️ **置き場所を変えたら判定も変わる。** 表示⇄編集の切り出しで部品を `editContent` へ
    移すときは、同時にこのガードを入れること。
+
+### ⑮ ★非表示のプレビューでは `loading="lazy"` の画像が読み込まれない
+
+`complete: false` / `naturalWidth: 0` になる。**「画像が出ていない」と読み違える。**
+
+⚠️ rAF・smooth scroll と同じ系統（**環境が原因で静かに起きない**。⑪⑭と同じ根）。
+   画像が本当に出るかを測るなら、**`eager` に変えて取り直してから**測る。
+
+```js
+// 測る前に lazy を外して読ませる
+[...document.querySelectorAll('img')].forEach(i => {
+  if (i.loading === 'lazy') { i.loading = 'eager'; const s = i.src; i.src = ''; i.src = s; }
+});
+await new Promise(r => setTimeout(r, 2000));
+// ここで complete / naturalWidth を見る
+```
+
+⚠️ **実例（2026-08-16 / 企業ロゴの付け替え）**: 付け替えた直後の企業詳細で
+   `complete:false naturalWidth:0` を見て「表示されていない」と書きかけた。
+   `eager` にして取り直したら **512×512 で成功**していた。
+
+⚠️ `naturalWidth` は**画像の実寸**。CSS 上の表示サイズではない（⑧の「16px 以下は
+   失敗扱い」の判定と同じ値を見ること）。
+
+### ⑯ ★キャッシュ越しに見て「変わっていない」と判断しない
+
+**データを直したのに画面が変わらないときは、まずキャッシュの有無を疑う。**
+
+⚠️ **実例（2026-08-16）**: 企業ロゴを Storage に付け替えたあと、`/companies` は
+   すぐ切り替わったのに **`/jobs` だけ Google favicon のままに見えた**。
+   原因は `getJobs` の `unstable_cache`（**revalidate 300**）で、
+   **データではなくキャッシュ**。5分後に再取得したら入れ替わっていた。
+
+⚠️ 「1つの画面だけ古い」は**キャッシュの典型的な出方**。同じデータを出す画面が
+   2つ以上あるなら、**両方を見て食い違いの有無を確かめる**（片方だけ見ると
+   データが間違っていると誤診する）。
+
+→ 層の切り分け（静的レンダリング / fetch キャッシュ / `unstable_cache`）と
+   応答ヘッダでの確かめ方は [.claude/skills/nextjs-caching/SKILL.md](../skills/nextjs-caching/SKILL.md)
