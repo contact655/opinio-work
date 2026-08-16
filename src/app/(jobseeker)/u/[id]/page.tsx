@@ -10,6 +10,7 @@ import { canUserPost } from "@/lib/feed/canPost";
 import { PostCard } from "@/components/profile/PostCard";
 import {
   buildTimelineCareerEntriesFromRaw,
+  buildFutureData,
   toTimelineEducationEntries,
   type RawExperienceRow,
   type RawEducation,
@@ -370,6 +371,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
     viewerIsOwner,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
+  /* ★「目指す姿・ありたい未来」（2026-08-16）。本人には未記入でも CTA を出す。
+        他人には**テキストがあるときだけ**返る（＝未記入の人の公開ページは変わらない）。 */
+  const futureData = buildFutureData(owUser, viewerIsOwner);
 
   // Current company for sidebar card（company_id の有無は問わない — 在籍中なら表示）
   const currentCareer = timelineCareers.find((c) => c.is_current) ?? null;
@@ -759,12 +763,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* ── 職歴セクション ──
                    ⚠️ 枠・見出しは `ProfileTimelineSection` に切り出した（2026-08-16 / 2-6）。
                       `/mypage` が同じものを使う。DOM は切り出す前と同一（実測済み）。 */}
-            {timelineCareers.length > 0 && (
+            {/* ⚠️ **`future` は職歴側にだけ渡す**（2026-08-16）。学歴側にも渡すと2回出る。
+                   位置は `/mypage` と同じ（`buildTimeline` が future を常に先頭に置く）。
+                ⚠️ 職歴0件でも `futureData` があればセクションを出す。出さないと
+                   「入力できるのに誰にも見えない」状態が、職歴の無い人だけに残る。
+                   他人が見るとき `buildFutureData` は「空なら null」を返すので、
+                   **未記入の人の公開ページは1バイトも変わらない**（実測で確認）。 */}
+            {(timelineCareers.length > 0 || futureData) && (
               <ProfileTimelineSection id="career" title="職歴">
                 <MergedTimeline
                   careers={timelineCareers}
                   educations={[]}
-                  future={null}
+                  future={futureData}
                   viewerIsOwner={viewerIsOwner}
                   collapseAfter={4}
                   birthDate={birthDate}
