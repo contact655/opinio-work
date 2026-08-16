@@ -1598,27 +1598,32 @@ export default function ProfileTab({
                   }}
                 />
               )}
-              {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6） */}
-              <CareerHistoryEditor
-                openAddNonce={careerAddNonce}
-                openEditId={editingCareerId}
-                openDeleteId={deleteCareerId}
-                openAddRoleForCareerId={addRoleForId}
-                onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); }}
-                onStintsChange={setCareerStints}
-                initialExperiences={initialExperiences}
-                roles={roles}
-                roleAliases={roleAliases}
-                onSavedCountChange={setSavedExperienceCount}
-                /* ★職歴を消しても実績は消えない（ON DELETE SET NULL）。手元の state も
-                      同じように null へ落とす。やらないと再読み込みするまで消えたように見える。 */
-                onExperienceDeleted={(experienceId) => {
-                  setAchievements((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
-                  setAwards((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
-                }}
-              />
             </ProfileTimelineSection>
             )}
+            {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
+                   ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
+                      中に置くと、職歴0件のときは**この部品ごと描かれていない**ので、
+                      「セクションを追加 → 職歴」で nonce を上げても受け手がいない
+                      （マウントと同時に届いた nonce は初期値として飲み込まれる）。 */}
+            <CareerHistoryEditor
+              openAddNonce={careerAddNonce}
+              openEditId={editingCareerId}
+              openDeleteId={deleteCareerId}
+              openAddRoleForCareerId={addRoleForId}
+              onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); }}
+              onStintsChange={setCareerStints}
+              initialExperiences={initialExperiences}
+              roles={roles}
+              roleAliases={roleAliases}
+              onSavedCountChange={setSavedExperienceCount}
+              /* ★職歴を消しても実績は消えない（ON DELETE SET NULL）。手元の state も
+                    同じように null へ落とす。やらないと再読み込みするまで消えたように見える。 */
+              onExperienceDeleted={(experienceId) => {
+                setAchievements((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
+                setAwards((prev) => prev.map((a) => a.experience_id === experienceId ? { ...a, experience_id: null } : a));
+              }}
+            />
+
             {/* ★2-5 では枠と見出しを `EditableSection` に持たせていたが、**判断が誤っていた**。
                    `/u/[id]` の「学歴」の見出しは元からあり、`page.tsx` に直接書かれていた
                    （＝切り出していなかっただけ）。2-6 で職歴とまとめて切り出して揃えた。 */}

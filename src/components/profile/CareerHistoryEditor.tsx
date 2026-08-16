@@ -14,6 +14,7 @@ import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
+import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 
@@ -738,13 +739,27 @@ function CompanySearch({
 
 // ── StintForm ─────────────────────────────────────────────────────────────────
 
+/**
+ * ★この職歴を保存してよいか（2026-08-17 / フェーズ2）。
+ * **フォームとモーダルのフッターが同じ判定を見るために関数へ出した。**
+ * ⚠️ 片方だけに書くと「赤字は出ていないのに保存が押せない」がまた起きる。
+ */
+export function canSaveStint(draft: StintDraft): boolean {
+  const startedAt = draftStartedAt(draft);
+  const endedAt = draftEndedAt(draft);
+  const periodInvalid = !draft.isCurrent && !!endedAt && !!startedAt && startedAt > endedAt;
+  const descOver = draft.description.length > 500;
+  return !!draft.companyName.trim() && !!draft.roleCategoryId && !!startedAt && !descOver && !periodInvalid;
+}
+
+/**
+ * ★入力欄だけ。**保存行は持たない**（2026-08-17 / フェーズ2）。
+ * 保存・閉じる・破棄の確認は `ProfileEditModal` のフッターが持つ。
+ */
 function StintForm({
   draft,
   onDraftChange,
   isSaving,
-  justSaved,
-  onSave,
-  onCancel,
   roles,
   roleAliases,
   companyLocked = false,
@@ -752,9 +767,6 @@ function StintForm({
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
   isSaving: boolean;
-  justSaved?: boolean;
-  onSave: () => void;
-  onCancel: () => void;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   /** role_id → 別名。検索でヒットさせるために使う（ow_role_aliases） */
   roleAliases?: Record<string, string[]>;
@@ -827,10 +839,6 @@ function StintForm({
         必須にしていた頃は、勤務地と無関係な編集（役職を直すだけ等）まで保存できず、
         オンボーディング直後の人が全員そこで詰まっていた。
         行き止まりを作っても入力は増えない。通してから誘う。 */
-  const isValid = !!draft.companyName.trim() && !!draft.roleCategoryId && !!startedAt;
-  const canSave = isValid && !descOver && !periodInvalid && !isSaving;
-  const effectivelyDisabled = !canSave || !!justSaved;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Company name + anon toggle */}
@@ -1293,30 +1301,6 @@ function StintForm({
              戻すときは、ここに戻すのではなく「職歴全体をどう見せるか」の1設定として
              設定タブに置くこと（1件ずつ選ばせると、選び忘れが同意なき公開になる）。 */}
 
-      {/* Action buttons */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-          style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}
-        >
-          キャンセル
-        </button>
-        <button
-          type="button"
-          onClick={effectivelyDisabled ? undefined : onSave}
-          disabled={effectivelyDisabled}
-          style={{
-            padding: "7px 18px", minWidth: 130,
-            background: justSaved ? "var(--success)" : canSave ? "var(--royal)" : "var(--ink-mute)",
-            color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
-            cursor: effectivelyDisabled ? "default" : "pointer", fontFamily: "inherit", transition: "background 0.2s",
-          }}
-        >
-          {isSaving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
-        </button>
-      </div>
     </div>
   );
 }
@@ -1362,11 +1346,16 @@ export default function CareerHistoryEditor({
   /* 見出しの「＋」から開く。★初回マウント時（undefined / 0）は開かない。
      ⚠️ **nonce は消費しても 0 に戻らない**（`.claude/rules/ui-debugging.md` ⑭）。
         他の意図（行の鉛筆・ゴミ箱・役割追加）で開いたときは発火させない。 */
+  /* ⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭・2026-08-17）。
+        副条件（`!openEditId` など）を混ぜると、**その id が null に戻った瞬間に**
+        nonce がまだ立っていることで再発火し、編集を閉じた直後に追加が開く。 */
+  const lastAddNonce = useRef(openAddNonce);
   useEffect(() => {
-    if (!openAddNonce || openEditId || openDeleteId || openAddRoleForCareerId) return;
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
     setAddDraft(EMPTY_DRAFT);
     setAddingForCompanyKey("__new__");
-  }, [openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId]);
+  }, [openAddNonce]);
 
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
@@ -1654,16 +1643,9 @@ export default function CareerHistoryEditor({
     }
   }, [addDraft, stints.length, cancelAdd, showToast]);
 
-  // Escape キーでモーダルを閉じる
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (editingId !== null) cancelEdit();
-      else if (addingForCompanyKey !== null) cancelAdd();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [editingId, addingForCompanyKey, cancelEdit, cancelAdd]);
+  /* ⚠️ Esc の処理は `ProfileEditModal` が持つ（2026-08-17）。**ここに置かない。**
+        自前のモーダルをやめたあとも残っていて、**未保存でも確認を出さずに閉じていた**
+        （モーダル側の確認より先に window で拾って閉じてしまう）。 */
 
   // ── Delete handlers ──────────────────────────────────────────────────────────
   const confirmDelete = useCallback(async () => {
@@ -1704,6 +1686,23 @@ export default function CareerHistoryEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAddRoleForCareerId]);
 
+  /* ★モーダルに渡す値（2026-08-17）。
+        ⚠️ 差分の基準は**いま保存されている職歴**（ルール⑦）。
+           「この会社に役割を追加」は会社名だけ埋まった状態で開くので、
+           その状態を基準にする（開いた瞬間に保存が押せないように）。
+        ⚠️ 保存できるかの判定（必須・期間の前後・文字数）は `canSaveStint` に集約した。 */
+  const careerIsEditing = editingId !== null;
+  const careerDraft = careerIsEditing ? editDraft : addDraft;
+  const careerBase = careerIsEditing
+    ? (() => { const st = stints.find((x) => x.id === editingId); return st ? draftFromStint(st) : EMPTY_DRAFT; })()
+    : (() => {
+        const g = addingForCompanyKey && addingForCompanyKey !== "__new__"
+          ? groups.find((gr) => gr.key === addingForCompanyKey) : undefined;
+        return g ? draftFromGroup(g) : EMPTY_DRAFT;
+      })();
+  const careerDirty = canSaveStint(careerDraft)
+    && JSON.stringify(careerDraft) !== JSON.stringify(careerBase);
+
   return (
     <div>
       <style>{`
@@ -1715,61 +1714,28 @@ export default function CareerHistoryEditor({
              ここはモーダル（追加・編集フォーム）と削除確認だけ。
              一覧を戻すと同じ見た目が2箇所に生まれる。 */}
 
-      {/* フォームモーダル（編集・追加共通） */}
-      {(editingId !== null || addingForCompanyKey !== null) && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {/* バックドロップ */}
-          <div
-            onClick={editingId !== null ? cancelEdit : cancelAdd}
-            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }}
-          />
-          {/* モーダルカード */}
-          <div style={{
-            position: "relative", zIndex: 1, background: "#fff",
-            borderRadius: 16, width: "min(760px, 96vw)", maxHeight: "92vh",
-            overflow: "hidden", display: "flex", flexDirection: "column",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
-          }}>
-            {/* ヘッダー */}
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
-                {editingId !== null ? "職歴を編集" : "職歴を追加"}
-              </div>
-              <button
-                onClick={editingId !== null ? cancelEdit : cancelAdd}
-                style={{ width: 28, height: 28, border: "none", background: "var(--line-soft)", borderRadius: 6, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-soft)", flexShrink: 0 }}
-              >×</button>
-            </div>
-            {/* ボディ（スクロール可能） */}
-            <div style={{ overflow: "auto", flex: 1, padding: "20px 24px" }}>
-              {editingId !== null ? (
-                <StintForm
-                  draft={editDraft}
-                  onDraftChange={setEditDraft}
-                  isSaving={editSaving}
-                  justSaved={editJustSaved}
-                  onSave={() => { void saveEdit(); }}
-                  onCancel={cancelEdit}
-                  roles={roles}
-                  roleAliases={roleAliases}
-                />
-              ) : (
-                <StintForm
-                  draft={addDraft}
-                  onDraftChange={setAddDraft}
-                  isSaving={addSaving}
-                  justSaved={addJustSaved}
-                  onSave={() => { void saveAdd(); }}
-                  onCancel={cancelAdd}
-                  roles={roles}
-                  roleAliases={roleAliases}
-                  companyLocked={addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ★フォームモーダル（編集・追加共通）。
+             2026-08-17 に自前のモーダルをやめ、他のセクションと同じ
+             `ProfileEditModal` に寄せた（保存は右下の1つだけ・破棄の確認つき）。 */}
+      <ProfileEditModal
+        open={careerIsEditing || addingForCompanyKey !== null}
+        title={careerIsEditing ? "職歴を編集" : addingForCompanyKey && addingForCompanyKey !== "__new__" ? "この会社に役割を追加" : "職歴を追加"}
+        dirty={careerDirty}
+        saving={careerIsEditing ? editSaving : addSaving}
+        justSaved={careerIsEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (careerIsEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={() => { if (careerIsEditing) cancelEdit(); else cancelAdd(); }}
+      >
+        <StintForm
+          draft={careerDraft}
+          onDraftChange={careerIsEditing ? setEditDraft : setAddDraft}
+          isSaving={careerIsEditing ? editSaving : addSaving}
+          roles={roles}
+          roleAliases={roleAliases}
+          companyLocked={!careerIsEditing && addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
+        />
+      </ProfileEditModal>
 
       {/* Delete confirmation dialog */}
       <ConfirmDialog
