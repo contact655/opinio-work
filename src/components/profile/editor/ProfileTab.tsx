@@ -1137,6 +1137,19 @@ export default function ProfileTab({
   /* ── 外（ヘッダーカードの促し・右カラムの「あと2つ」）から特定のカードを開く ──
         ⚠️ **`openAddNonce` と同じ形**（nonce を受けて useEffect で開く）。
            新しい仕組みを作らない。
+
+        ⚠️ **nonce は消費しても 0 に戻らない。** だから「受け側がアンマウントするか」で
+           意味が変わる（2026-08-16 に実測）。
+
+           | 受け側 | アンマウントするか | 結果 |
+           |---|---|---|
+           | この `ProfileTab`（`openBasicNonce` / `openSocialNonce` / `openCareerNonce`） | **しない**（`ProfileEditor` が `display:none` で残す） | 安全 |
+           | `CareerHistoryEditor`（`careerAddNonce`） | **しない**（カードの children にいる） | 安全 |
+           | 学歴・実績・受賞・メディア掲載（`openAddNonce`） | **する**（`editContent` にいる） | **一度追加を使うと、次に鉛筆・ゴミ箱で開いたとき追加フォームまで開いていた**（修正済み） |
+
+        ⚠️ **`CareerHistoryEditor` を `editContent` に移すときは、同じガードを入れること**
+           （`openEditId` / `openDeleteId` が立っているときは追加を開かない）。
+           移した瞬間にアンマウントする側に変わる。
         ⚠️ **スクロールは編集モードが開いたあと**に呼ぶ。開く前に呼ぶと
            カードの高さが変わって着地位置がずれる。 */
   const basicCardRef  = useRef<HTMLDivElement>(null);
