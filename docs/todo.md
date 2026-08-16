@@ -315,19 +315,16 @@ migration を書く。⚠️ 企業ごとに対応が取れているかを先に
 
 ---
 
-## /mypage に「将来やりたいこと」が出ない（2026-08-16 記録・2-6 のあとにやる）
+## ~~/mypage に「将来やりたいこと」が出ない~~（2026-08-16 対応済み）
 
-`ow_users.future_aspirations`。**`/u/[id]` では本人に ✎ が出て編集できる**
-（`MergedTimeline` → `FutureSectionEditor`）が、`/mypage` には出ていない。
+`/mypage` の職歴カードの年表の先頭に出るようにした（`buildFutureData` を渡す）。
+編集は既存の `FutureSectionEditor` がそのまま担う。**`EditableSection` では包んでいない**
+（包むと鉛筆が2つになる）。職歴0件でも年表を描くようにした（future がそこにあるため）。
 
-`/mypage` がプロフィール本体になった今、**この項目だけ編集の場所が別**になっている。
-
-### 対処（★2-6 のあとに単独コミットで）
-
-- `/mypage` にも `future` を渡す（いまは `future={null}`。2-5 で ✎ の重複を避けるため）
-- ⚠️ **`EditableSection` で包まない。** 既存の `FutureSectionEditor` が編集を丸ごと
-  担っているので、包むと**鉛筆が2つ**になる（`.claude/rules/ui-debugging.md` ⑧）
-- `/u/[id]` と同じ位置（タイムラインの先頭）に置く
+⚠️ **`/u/[id]` は今も `future={null}`。** 記録した時点の「`/u/[id]` では本人に ✎ が出る」は
+   誤りで、**公開プロフィールにも出ていない**（2026-08-16 に実測）。
+   公開側に出すかどうかは未判断（出すと `future_aspirations` を入れている2名の
+   公開ページの見た目が変わる）。**今回は触っていない。**
 
 ---
 

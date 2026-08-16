@@ -46,6 +46,7 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
+import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import {
   toTimelineEducationEntries, buildTimelineCareerEntriesFromRaw,
@@ -1487,8 +1488,8 @@ export default function ProfileTab({
               onAdd={() => setCareerAddNonce((n) => n + 1)}
               addLabel="職歴を追加"
             >
-              {careerStints.length === 0 ? (
-                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              {careerStints.length === 0 && (
+                <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                   まだ職歴を登録していません。
                   <button
                     type="button"
@@ -1502,7 +1503,10 @@ export default function ProfileTab({
                     職歴を追加する
                   </button>
                 </p>
-              ) : (
+              )}
+              {/* ⚠️ 職歴が0件でも描く。**「将来やりたいこと」がこの中にある**ため
+                     （`MergedTimeline` は future が無ければ何も描かずに null を返す）。 */}
+              {(
                 /* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱と
                       「この会社に役割を追加」だけ足す。
                    ⚠️ `collapseAfter` は渡さない。`/u/[id]` は4件で畳むが、
@@ -1510,7 +1514,14 @@ export default function ProfileTab({
                 <MergedTimeline
                   careers={timelineCareers}
                   educations={[]}
-                  future={null}
+                  /* ★「将来やりたいこと」（2026-08-16）。年表の**先頭**に出る（`buildTimeline` が
+                        future を常に先頭に置く）。編集は `FutureSectionEditor` が丸ごと担うので、
+                     ⚠️ `EditableSection` や `ProfileTimelineSection` で包まない（鉛筆が2つになる）。 */
+                  future={buildFutureData(
+                    { name: initialBasicInfo.name, avatar_color: settings.avatarColor, future_aspirations: owUser?.future_aspirations ?? null },
+                    true,
+                  )}
+                  viewerIsOwner
                   birthDate={owUser?.birth_date}
                   careerActions={{
                     onEditRow:   (id) => setEditingCareerId(id),
