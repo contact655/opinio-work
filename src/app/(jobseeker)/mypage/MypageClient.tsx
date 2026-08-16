@@ -461,9 +461,12 @@ export default function MypageClient({
         </div>
       )}
 
-      {/* スカウト設定未完了 */}
+      {/* スカウト設定未完了
+          ⚠️ **モバイルでは先頭に出す**（`.mypage-mobile-first`）。設定できないまま
+             スカウトが届かないほうが、公開が遅れるより重い。
+             ★控えを本文側に作らない。同じ要素を order で動かすだけ。 */}
       {scoutBannerVisible && (
-        <div style={{
+        <div className="mypage-mobile-first" style={{
           background: "linear-gradient(135deg, #FEF9C3 0%, #FEF3C7 100%)",
           border: "1.5px solid #FCD34D", borderRadius: 12,
           padding: "14px 16px",
@@ -526,9 +529,12 @@ export default function MypageClient({
                         同じ場所へ行くだけだった（`.claude/rules/ui-debugging.md` ⑧）
              ⚠️ **`ow_bookmarks` / `ow_casual_meetings` の取得は消していない。**
                 本文の「申込」「ブックマーク」ビュー（activeView）が使う。 */}
-      {/* 採用担当者・企業の方向け導線 */}
+      {/* 採用担当者・企業の方向け導線
+          ⚠️ **モバイルでは出さない**（求職者のモバイル画面には要らない）。
+             ★ここで消す。本文側に「モバイル用の控え」を作らない。 */}
       <a
         href="/biz/auth"
+        className="mypage-hide-mobile"
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "12px 16px",

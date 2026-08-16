@@ -277,11 +277,25 @@ export default function MypageLayout({
           .mypage-narrow-only { display: block; }
         }
 
-        /* Mobile: show tab bar, hide sidebar grid */
+        /* Mobile: show tab bar, hide left sidebar
+           ★右カラムは**消さない**（2026-08-16）。消していたせいで、公開促進と
+             スカウト設定がモバイルからは一切見えなかった（代わりの導線も無かった）。
+           ⚠️ **控えを本文側に作らない。** グリッドを縦並びの flex に切り替えて、
+             同じ要素を order で本文の上へ動かす。同じ内容を2箇所に持つと、
+             片方だけ直る形の不具合になる（/profile/edit の完成度バーで一度やった）。 */
         @media (max-width: 767px) {
           .mypage-mobile-tabbar { display: block !important; }
-          .mypage-desktop-grid  { display: block !important; grid-template-columns: none !important; }
-          .mypage-left-aside, .mypage-right-aside { display: none !important; }
+          .mypage-desktop-grid  { display: flex !important; flex-direction: column !important; grid-template-columns: none !important; }
+          .mypage-left-aside { display: none !important; }
+          .mypage-right-aside {
+            order: -1;
+            position: static !important; height: auto !important; overflow: visible !important;
+            border-left: none !important; padding: 16px 16px 0 !important;
+          }
+          /* 右カラムのうち**モバイルでは出さないもの**。ここで消す（本文側に控えを作らない） */
+          .mypage-hide-mobile { display: none !important; }
+          /* モバイルは「設定できないままスカウトが届かない」ほうが重いので先に出す */
+          .mypage-mobile-first { order: -1; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
         }
       `}</style>
