@@ -16,7 +16,6 @@ import {
   type RawExperienceRow,
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
-import { hasCareerPreferences } from "@/lib/profile/completion";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 /* ⚠️ プロフィール編集の中身は 2026-08-16 に `/profile/edit` からここへ移した。
       取得もこのファイルに寄せる。**2ページで同じ行を別々に引かない。** */
@@ -494,11 +493,8 @@ export default async function MypagePage({
   }
 
   /* ow_profiles — 希望条件 + スカウト設定 + オンボーディング。
-     ⚠️ 判定は lib/profile/completion.ts の hasCareerPreferences() に寄せる。
-        ここに条件を書き足すと編集フォーム側と食い違う。
      ⚠️ `ow_profiles.user_id` は **auth.users.id**（ow_users.id ではない）。
      ⚠️ 希望職種の件数は上で引いた `desiredRoleIds` の長さから出す。**数え直さない。** */
-  let hasPrefs = false;
   let showScoutBanner = false;
   let profilePrefs: {
     desired_work_styles: string[] | null;
@@ -517,7 +513,6 @@ export default async function MypagePage({
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
-    hasPrefs = hasCareerPreferences({ ...(profile ?? {}), desiredRoleCount: desiredRoleIds.length });
     // オンボーディング完了済みだが scout_enabled 未設定の場合バナー表示
     showScoutBanner = profile?.onboarding_completed === true && profile?.scout_enabled == null;
     if (profile) {
@@ -534,12 +529,8 @@ export default async function MypagePage({
     }
   }
 
-  /* 実績（数値実績・受賞歴・メディア掲載）と発信コンテンツの件数。
-     ⚠️ **数え直さない。** 上で行ごと引いてあるので長さを使う。
-        以前は /mypage が count(head:true) で4本、/profile/edit が行で4本を
-        別々に引いていた（同じ行を8本で取っていた）。 */
-  const certOrAchievementCount = achievementsRaw.length + awardsRaw.length + mediaAppearancesRaw.length;
-  const contentLinkCount = contentLinksRaw.length;
+  /* ⚠️ 実績・受賞・メディア・発信コンテンツの**件数はもう使わない**（2026-08-16）。
+        完成度バーを外したため。行そのものは編集フォームが使うので取得は残す。 */
 
   // Fetch notification badge counts
   let conversationsBadge = 0;
@@ -615,9 +606,6 @@ export default async function MypagePage({
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       scoutsBadge={scoutsBadge}
-      hasCareerPreferences={hasPrefs}
-      certOrAchievementCount={certOrAchievementCount}
-      contentLinkCount={contentLinkCount}
       isNewUser={isNewUser}
       ambassadorMemberships={ambassadorMemberships}
       showScoutBanner={showScoutBanner}

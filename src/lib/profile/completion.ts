@@ -25,7 +25,7 @@
  *    ラベルだけ「実績・受賞」に変えた。
  */
 
-export type CompletionInput = {
+type CompletionInput = {
   hasName: boolean;
   hasAboutMe: boolean;
   /** 肩書き1行（40字）。⚠️ 名前の直下に出るので、自己紹介より先に読まれる */
@@ -83,43 +83,35 @@ export function hasCareerPreferences(p: {
   );
 }
 
-export type ScoreItem = {
-  key: keyof CompletionInput | string;
-  label: string;
-  done: boolean;
-  weight: number;
-  hint: string;
-  /** `/profile/edit` のタブキー（素の値）。
-   *  ⚠️ 先頭に `#` を付けないこと。2026-08-10 まで "#career" のようなハッシュで
-   *     持っており、`/profile/edit#career` へ飛ばしていた。ページは `?tab=` しか
-   *     見ないため、**どの項目を押しても「基本情報」に着地していた**。
-   *  ⚠️ 値は ProfileEditClient の VALID_TABS に実在するキーだけ。 */
-  tab: string;
-};
+/* ⚠️ **完成度バー（100点満点）は 2026-08-16 に廃止した。**
+      `ScoreItem` / `buildItems` / `calcCompletion` と `ProfileCompletionBar.tsx` を削除。
+      プロフィール本体が `/mypage` に出るようになり、タブの「未設定」バッジが
+      同じ役割を果たすため。
 
-function buildItems(d: CompletionInput): ScoreItem[] {
-  return [
-    { key: "avatar",   label: "プロフィール画像",       done: d.hasAvatar,                      weight: 11, hint: "写真を追加する",              tab: "profile" },
-    { key: "name",     label: "名前",                  done: d.hasName,                        weight: 8,  hint: "名前を入力する",              tab: "profile" },
-    /* ⚠️ 合計100は変えない。自己紹介 12 → 8 に分け、肩書きへ 4 を回した。
-          一覧やスカウトで先に読まれるのは名前の直下の1行なので、そちらに配点を持たせる。 */
-    { key: "headline", label: "肩書き（1行）",          done: d.hasHeadline,                    weight: 4,  hint: "肩書きを1行で書く",          tab: "profile" },
-    { key: "aboutMe",  label: "自己紹介",              done: d.hasAboutMe,                     weight: 8,  hint: "自己紹介を書く",              tab: "profile" },
-    { key: "location", label: "所在地",                done: d.hasLocation,                    weight: 4,  hint: "所在地を設定する",            tab: "profile" },
-    { key: "birth",    label: "生年月日",              done: d.hasBirthDate,                   weight: 4,  hint: "生年月日を入力する",          tab: "profile" },
-    { key: "career",   label: "職歴",                  done: d.experienceCount >= 1,            weight: 30, hint: "職歴を追加する",              tab: "profile" },
-    { key: "edu",      label: "学歴",                  done: d.educationCount >= 1,             weight: 10, hint: "学歴を追加する",              tab: "profile" },
-    { key: "prefs",    label: "希望条件",              done: d.hasPreferences,                  weight: 15, hint: "希望職種・勤務スタイルを入力する", tab: "wishes" },
-    { key: "certs",    label: "実績・受賞",            done: d.certOrAchievementCount >= 1,    weight: 3,  hint: "実績や受賞歴を追加する",      tab: "profile" },
-    { key: "social",   label: "SNS・発信",             done: d.socialOrContentCount >= 1,      weight: 3,  hint: "SNSリンクや発信コンテンツを追加する", tab: "profile" },
-  ];
-}
+   ⚠️ **配点表は `docs/todo.md` に書き写してある**（職歴30 / 希望条件15 / 画像11 /
+      学歴10 / 名前8 / 自己紹介8 / 肩書き4 / 所在地4 / 生年月日4 / 実績3 / SNS3 = 100）。
+      議論して決めた配分なので、戻すときは数字を作り直さずそこから拾うこと。
 
-export function calcCompletion(d: CompletionInput): { score: number; items: ScoreItem[] } {
-  const items = buildItems(d);
-  const score = items.reduce((acc, it) => acc + (it.done ? it.weight : 0), 0);
-  return { score, items };
-}
+   ⚠️ **下の `calcPublicScore` は現役**（`/people` の並び順）。消さないこと。
+      そのため**配点そのものは残っている**（`ITEM_WEIGHTS`）。消えたのは
+      「100点満点の合計を出して画面に並べる」ほうだけ。 */
+
+/** 項目 → 配点。⚠️ `calcPublicScore` が使う。合計は100（廃止した完成度バーと同じ表） */
+const ITEM_WEIGHTS: { key: string; weight: number; done: (d: CompletionInput) => boolean }[] = [
+  { key: "avatar",   weight: 11, done: (d) => d.hasAvatar },
+  { key: "name",     weight: 8,  done: (d) => d.hasName },
+  /* ⚠️ 自己紹介は元は 12。一覧やスカウトで先に読まれるのは名前の直下の1行なので、
+        8 に下げて**肩書きへ 4 を回した**。合計100は変えない。 */
+  { key: "headline", weight: 4,  done: (d) => d.hasHeadline },
+  { key: "aboutMe",  weight: 8,  done: (d) => d.hasAboutMe },
+  { key: "location", weight: 4,  done: (d) => d.hasLocation },
+  { key: "birth",    weight: 4,  done: (d) => d.hasBirthDate },
+  { key: "career",   weight: 30, done: (d) => d.experienceCount >= 1 },
+  { key: "edu",      weight: 10, done: (d) => d.educationCount >= 1 },
+  { key: "prefs",    weight: 15, done: (d) => d.hasPreferences },
+  { key: "certs",    weight: 3,  done: (d) => d.certOrAchievementCount >= 1 },
+  { key: "social",   weight: 3,  done: (d) => d.socialOrContentCount >= 1 },
+];
 
 /**
  * 公開一覧の並び順に使う項目。
@@ -144,7 +136,7 @@ export type PublicCompletionInput = Omit<CompletionInput, "hasPreferences" | "ha
 
 export function calcPublicScore(d: PublicCompletionInput): number {
   // 除外する2項目には固定値を渡す。PUBLIC_KEYS に含まれないので結果に影響しない。
-  const items = buildItems({ ...d, hasPreferences: false, hasBirthDate: false });
+  const full: CompletionInput = { ...d, hasPreferences: false, hasBirthDate: false };
   const allow = new Set<string>(PUBLIC_KEYS);
-  return items.reduce((acc, it) => acc + (allow.has(String(it.key)) && it.done ? it.weight : 0), 0);
+  return ITEM_WEIGHTS.reduce((acc, it) => acc + (allow.has(it.key) && it.done(full) ? it.weight : 0), 0);
 }

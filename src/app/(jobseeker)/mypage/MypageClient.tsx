@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
@@ -19,7 +19,6 @@ import {
   type Bookmark,
 } from "@/app/mypage/mockMypageData";
 import { StatusPill } from "@/components/common/StatusPill";
-import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 
 /* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
       `/mypage` が編集フォームにそのまま渡すので、片方に列を足してもう片方に
@@ -144,52 +143,6 @@ function CompanyAvatar({ initial, gradient }: { initial: string; gradient: strin
 
 
 // ─── Right column: Recent activity card ──────────────────────────────────────
-
-function RecentActivityItem({
-  avatar, companyName, jobTitle, kind, appliedAt, statusKey,
-}: {
-  avatar: React.ReactNode;
-  companyName: string;
-  jobTitle: string;
-  kind: string;
-  appliedAt: string;
-  statusKey: string;
-}) {
-  const truncStyle: React.CSSProperties = {
-    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-  };
-  return (
-    <div
-      style={{
-        display: "flex", flexDirection: "column", gap: 6,
-        padding: "12px 14px",
-        background: "var(--bg-tint)", border: "1px solid var(--line)",
-        borderRadius: 10, transition: "all 0.2s",
-      }}
-      className="request-item-row"
-    >
-      {/* アバター + テキスト列 */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0 }}>
-        <div style={{ flexShrink: 0 }}>{avatar}</div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ ...truncStyle, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-            {companyName}
-          </div>
-          <div style={{ ...truncStyle, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 2 }}>
-            {jobTitle}
-          </div>
-          <div style={{ ...truncStyle, fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
-            {kind} · {appliedAt}
-          </div>
-        </div>
-      </div>
-      {/* ステータスバッジ: 独立行 */}
-      <div>
-        <MypageStatusPill statusKey={statusKey} />
-      </div>
-    </div>
-  );
-}
 
 function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc?: string }) {
   return (
@@ -700,9 +653,6 @@ export default function MypageClient({
   conversationsBadge,
   applicationsBadge,
   scoutsBadge,
-  hasCareerPreferences = false,
-  certOrAchievementCount = 0,
-  contentLinkCount = 0,
   isNewUser = false,
   ambassadorMemberships = [],
   showScoutBanner = false,
@@ -727,11 +677,6 @@ export default function MypageClient({
   conversationsBadge?: number;
   applicationsBadge?: number;
   scoutsBadge?: number;
-  hasCareerPreferences?: boolean;
-  /** 数値実績＋受賞歴＋メディア掲載の合計。★固定値を書かない（page.tsx で数える） */
-  certOrAchievementCount?: number;
-  /** 発信コンテンツ（ow_user_content_links）の件数。同上 */
-  contentLinkCount?: number;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   showScoutBanner?: boolean;
@@ -747,41 +692,17 @@ export default function MypageClient({
     ? `${currentCareer.company_name} · ${currentCareer.role_title ?? currentCareer.role_label}`
     : null;
 
-  const [activeView, setActiveView] = useState<ActiveView>("dashboard");
+  const [activeView] = useState<ActiveView>("dashboard");
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
   const [scoutBannerSaving, setScoutBannerSaving] = useState(false);
   // ⚠️ モックの isMentor は使わない。実データ（owUser.is_mentor）で判定する
 
-  const navigate = useCallback((v: ActiveView) => {
-    setActiveView(v);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  // Build recentActivity from real Supabase data (sorted by applied_at desc, top 3)
-  const recentActivity: {
-    id: string;
-    avatar: React.ReactNode;
-    companyName: string;
-    jobTitle: string;
-    kind: string;
-    appliedAt: string;
-    statusKey: string;
-  }[] = [
-    ...casualMeetings.map((m) => ({
-      id: `cm-${m.id}`,
-      avatar: <CompanyAvatar initial={m.company_initial} gradient={m.company_gradient} />,
-      companyName: m.company_name,
-      jobTitle: m.job_title,
-      kind: "カジュアル面談",
-      appliedAt: `${m.applied_at} 申込`,
-      statusKey: m.status,
-    })),
-  ]
-    .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
-    .slice(0, 3);
-
-
+  /* ⚠️ **`activeView` を切り替える導線が無くなった**（2026-08-16）。
+        `casual` / `bookmarks` ビューへ入る唯一の入口は右カラムの
+        「最近の申込」「ブックマーク」の**すべて見る →**で、そのカードごと外したため。
+        同じ内容は左メニューの `/mypage/applications` `/mypage/bookmarks` にあり、
+        そちらが本体。**ビューの実装は指示により残している**（消すかどうかは別途判断）。 */
   /* 公開に必要な3点のうち、まだ埋まっていないもの。
      ⚠️ バナー本文と同じ3つを見る。文言と条件がズレると、
         「あと1つ」と書いてあるのに何を入れればいいか分からない状態になる。
@@ -881,135 +802,13 @@ export default function MypageClient({
         </div>
       )}
 
-      {/* プロフィール完成度バー */}
-      {(() => {
-        const completionData: CompletionInput = {
-          hasName:               !!userName && userName !== "ユーザー",
-          hasHeadline:           !!owUser?.headline && String(owUser.headline).trim().length > 0,
-          hasAboutMe:            !!owUser?.about_me && owUser.about_me.trim().length > 0,
-          hasLocation:           !!owUser?.location && owUser.location.trim().length > 0,
-          hasBirthDate:          !!owUser?.birth_date,
-          hasAvatar:             !!owUser?.avatar_url,
-          experienceCount:       timelineCareers?.length ?? 0,
-          educationCount:        educations?.length ?? 0,
-          hasPreferences:        hasCareerPreferences,
-          // 資格は 2026-08-04 に廃止。実績・受賞・メディア掲載は page.tsx が数えて渡す
-          certOrAchievementCount,
-          socialOrContentCount:  contentLinkCount + Object.values((owUser?.social_links as Record<string, unknown>) ?? {}).filter(Boolean).length,
-        };
-        return <ProfileCompletionBar data={completionData} mode="mypage" />;
-      })()}
-
-      {/* 最近の申込 */}
-      <div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
-          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>最近の申込</span>
-          <button
-            type="button"
-            onClick={() => navigate("casual")}
-            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
-          >
-            すべて見る →
-          </button>
-        </div>
-        {recentActivity.length === 0 ? (
-          <div style={{ padding: "var(--space-4) 0", textAlign: "center" }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "var(--warm-soft)", color: "#B45309",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 8px",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだ申込はありません</div>
-            <Link href="/companies" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-              企業を探す →
-            </Link>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            {recentActivity.map((item) => (
-              <RecentActivityItem
-                key={item.id}
-                avatar={item.avatar}
-                companyName={item.companyName}
-                jobTitle={item.jobTitle}
-                kind={item.kind}
-                appliedAt={item.appliedAt}
-                statusKey={item.statusKey}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ブックマーク */}
-      <div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
-          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>ブックマーク</span>
-          <button
-            type="button"
-            onClick={() => navigate("bookmarks")}
-            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, border: "none", background: "none", cursor: "pointer" }}
-          >
-            すべて見る →
-          </button>
-        </div>
-        {companyBookmarks.length === 0 ? (
-          <div style={{ padding: "var(--space-3) 0", textAlign: "center" }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "var(--bg-tint)", color: "var(--ink-mute)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 8px",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>まだブックマークがありません</div>
-            <Link href="/companies" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-              企業を見る →
-            </Link>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            {companyBookmarks.slice(0, 3).map((bk) => (
-              <Link key={bk.id} href={bk.href} style={{ textDecoration: "none" }}>
-                <div
-                  style={{
-                    background: "#fff", border: "1px solid var(--line)",
-                    borderRadius: 10, padding: "10px 14px", cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  className="bookmark-card-hover"
-                >
-                  <div style={{
-                    fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
-                    color: "var(--ink-mute)", letterSpacing: "0.1em",
-                    textTransform: "uppercase", marginBottom: 4,
-                  }}>
-                    {bk.badge_label}
-                  </div>
-                  <div style={{
-                    fontSize: 12, fontWeight: 600, color: "var(--ink)",
-                    lineHeight: 1.5,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-                  } as React.CSSProperties}>
-                    {bk.title}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-
+      {/* ⚠️ 「プロフィール完成度」「最近の申込」「ブックマーク」を外した（2026-08-16）。
+             ・完成度 … プロフィール本体が同じページに出るようになり、
+                        タブの「未設定」バッジが同じ役割を果たす
+             ・最近の申込 / ブックマーク … 左メニューの「応募管理」「ブックマーク」と
+                        同じ場所へ行くだけだった（`.claude/rules/ui-debugging.md` ⑧）
+             ⚠️ **`ow_bookmarks` / `ow_casual_meetings` の取得は消していない。**
+                本文の「申込」「ブックマーク」ビュー（activeView）が使う。 */}
       {/* 採用担当者・企業の方向け導線 */}
       <a
         href="/biz/auth"
