@@ -1373,78 +1373,18 @@ function StintForm({
            入力欄が無いので、保存時は既存値がそのまま送られる（下の toMan 参照）。
       */}
 
-      {/* 公開設定 */}
-      <div style={{
-        background: "var(--bg-tint)",
-        border: "1px solid var(--line)",
-        borderRadius: 10,
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
-          公開設定（この職歴を、どの画面に出すか）
-        </div>
+      {/* ⚠️ **「公開設定（この職歴を、どの画面に出すか）」の入力欄は 2026-08-16 に外した。**
+             `visibilityCompany` / `visibilityCompanyProfile` / `visibilityReason` の
+             **列とデータは残している**。入力欄が無いので、保存時は
+             `draft` が持つ既存値がそのまま送られる（年収の `visibility_salary` と同じ扱い）。
 
-        {/* 会社名公開設定（2カラム） */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 12 }}>
-              キャリア軌跡ページ・企業ページ
-            </label>
-            <select
-              value={draft.visibilityCompany}
-              onChange={(e) => set("visibilityCompany", e.target.value as "real" | "masked" | "hidden")}
-              disabled={isSaving}
-              style={{ ...fieldStyle() }}
-            >
-              <option value="real">実名で表示する</option>
-              <option value="masked">業界・規模で表示する</option>
-              <option value="hidden">含めない</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ ...labelStyle(), marginBottom: 4, fontSize: 12 }}>プロフィールページ</label>
-            <select
-              value={draft.visibilityCompanyProfile}
-              onChange={(e) => set("visibilityCompanyProfile", e.target.value as "real" | "masked" | "hidden")}
-              disabled={isSaving}
-              style={{ ...fieldStyle() }}
-            >
-              <option value="real">実名で表示する</option>
-              <option value="masked">業界・規模で表示する</option>
-              <option value="hidden">含めない</option>
-            </select>
-          </div>
-        </div>
+          ⚠️ **画面側のフィルタは生きている。** `queries.ts` は
+             `visibility_company = 'hidden'` の職歴を企業ページの現役社員 / OB・OG から
+             除外し、`directory.ts` は社名の出し方に使う。**消さないこと。**
 
-        {/* 掲載先の説明: 「企業ページ」が何を指すか明示しないと同意なき公開になる */}
-        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-          「実名で表示する」を選ぶと、その企業の紹介ページ（現役社員 / OB・OG セクション）に
-          あなたのお名前が掲載されます。「含めない」を選ぶと、どちらのページにも掲載されません。
-        </p>
-
-        {/* 入社理由を公開するか */}
-        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-          <div
-            onClick={() => set("visibilityReason", !draft.visibilityReason)}
-            style={{
-              width: 36, height: 20, borderRadius: 10, flexShrink: 0,
-              background: draft.visibilityReason ? "var(--royal)" : "var(--line)",
-              position: "relative", cursor: "pointer", transition: "background 0.2s",
-            }}
-          >
-            <div style={{
-              position: "absolute", top: 2, left: draft.visibilityReason ? 18 : 2,
-              width: 16, height: 16, borderRadius: "50%",
-              background: "#fff", transition: "left 0.2s",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-            }} />
-          </div>
-          <span style={{ fontSize: 13, color: "var(--ink)" }}>入社理由を公開する</span>
-        </label>
-      </div>
+          ⚠️ ★入力欄が無い＝**本人が掲載を断る手段が無い**。掲載可否を本人が選べる形に
+             戻すときは、ここに戻すのではなく「職歴全体をどう見せるか」の1設定として
+             設定タブに置くこと（1件ずつ選ばせると、選び忘れが同意なき公開になる）。 */}
 
       {/* Action buttons */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
