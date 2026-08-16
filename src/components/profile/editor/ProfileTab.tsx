@@ -498,8 +498,12 @@ function SocialLinksEditor({
         {SNS_PLATFORMS.map((platform) => {
           const meta = SOCIAL_META[platform];
           return (
+            /* ★767px 以下は縦積み（アイコン＋ラベルの行 → 全幅の入力欄）。
+                  横並びのままだと入力欄が 157px しか残らず、**URL の末尾しか見えない**。
+                  デスクトップの横並びは変えない（`.sns-row` / `.sns-input` の CSS で出し分け）。 */
             <div
               key={platform}
+              className="sns-row"
               style={{
                 display: "flex", alignItems: "center", gap: "var(--space-3)",
                 marginBottom: 14,
@@ -522,6 +526,7 @@ function SocialLinksEditor({
               {/* URL 入力欄 */}
               <input
                 type="url"
+                className="sns-input"
                 value={socialLinks[platform] ?? ""}
                 onChange={(e) => setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))}
                 placeholder={meta.placeholder}

@@ -155,13 +155,18 @@ export default function MypageLayout({
         position: "sticky", top: topOffset, zIndex: 40,
         display: "none", // hidden on desktop via CSS below
       }}>
-        <div style={{ display: "flex", minWidth: "max-content", padding: "0 16px" }}>
+        {/* ★アイコンを上・ラベルを下の2段組にして、5項目を等幅で収める（2026-08-16）。
+               横並び1段では中身 502px に対して枠が 375px しかなく、
+               **「ブックマーク」が初期表示で完全に隠れていた**（`overflow-x: auto`
+               なのでスクロールはできるが、あることに気づけない）。
+            ⚠️ `minWidth: max-content` をやめる。これがあると等幅にならない。 */}
+        <div style={{ display: "flex", padding: "0 4px" }}>
           {[
-            { key: "dashboard",      label: "ホーム",        href: "/mypage" },
-            { key: "applications",   label: "応募管理",      href: "/mypage/applications" },
-            { key: "scouts",         label: "スカウト",      href: "/mypage/scouts" },
-            { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations" },
-            { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks" },
+            { key: "dashboard",      label: "ホーム",        href: "/mypage",               icon: Icons.dashboard },
+            { key: "applications",   label: "応募管理",      href: "/mypage/applications",  icon: Icons.application },
+            { key: "scouts",         label: "スカウト",      href: "/mypage/scouts",        icon: Icons.inbox },
+            { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
+            { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
           ].map((item) => {
             const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
             const badge =
@@ -175,22 +180,32 @@ export default function MypageLayout({
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "12px 16px", fontSize: 13, fontWeight: isActive ? 700 : 500,
+                  /* ★5等分。375px なら1項目 75px 前後に収まる */
+                  flex: "1 1 0", minWidth: 0,
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                  padding: "6px 2px", fontSize: 10, fontWeight: isActive ? 700 : 500,
                   color: isActive ? "var(--royal)" : "var(--ink-soft)",
                   borderBottom: isActive ? "2px solid var(--royal)" : "2px solid transparent",
                   textDecoration: "none", whiteSpace: "nowrap",
                   transition: "color 0.15s",
                 }}
               >
+                {/* バッジはアイコンの右上に重ねる（1段目に置くと等幅が崩れる） */}
+                <span style={{ position: "relative", display: "flex", lineHeight: 0 }}>
+                  {item.icon}
+                  {/* ⚠️ `badge &&` にしない。**`badge` が 0 のとき React は `0` を描く**
+                         （2026-08-16 に実測。ラベルの横に「0」が出ていた）。
+                         左のサイドバー（38行目）は最初から `!== undefined` で書けている。 */}
+                  {badge !== undefined && badge > 0 && (
+                    <span style={{
+                      position: "absolute", top: -6, left: 10,
+                      background: "var(--error)", color: "#fff",
+                      borderRadius: 100, fontSize: 10, fontWeight: 700,
+                      padding: "0 4px", fontFamily: "Inter, sans-serif", lineHeight: "14px",
+                    }}>{badge}</span>
+                  )}
+                </span>
                 {item.label}
-                {badge && badge > 0 && (
-                  <span style={{
-                    background: "var(--error)", color: "#fff",
-                    borderRadius: 100, fontSize: 12, fontWeight: 700,
-                    padding: "1px 5px", fontFamily: "Inter, sans-serif",
-                  }}>{badge}</span>
-                )}
               </a>
             );
           })}

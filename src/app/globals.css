@@ -231,6 +231,23 @@ button, [role="button"] {
   .tap-min-h { min-height: 44px; }
 }
 
+/* ── SNS の入力欄（2026-08-16）────────────────────────────────────────────────
+   横並び（アイコン＋ラベル82px＋入力欄）だと 375px で入力欄が **157px** しか残らず、
+   URL を貼ると末尾しか見えない。767px 以下だけ縦積みにして全幅にする。
+   ⚠️ デスクトップの横並びは変えない。 */
+@media (max-width: 767px) {
+  .sns-row {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  /* ⚠️ `!important` が要る。入力欄には `flex: 1` が**インラインで**付いており、
+        クラスの `flex-basis` では勝てない（2026-08-16 に実測。157px のままだった）。 */
+  .sns-input {
+    flex-basis: 100% !important;
+    min-width: 0;
+  }
+}
+
 /* Prevent text size bump on iOS landscape */
 @media screen and (max-width: 768px) {
   html { -webkit-text-size-adjust: 100%; }
