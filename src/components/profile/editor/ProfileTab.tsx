@@ -20,7 +20,6 @@ import Toast from "@/components/ui/Toast";
 import {
   FormGroup,
   CardSaveFooter,
-  EditableSection,
   TextareaField,
   inputStyle,
   selectStyle,
@@ -979,13 +978,12 @@ export default function ProfileTab({
   }, [careerStints, companyLogoInfo, roles]);
   const [eduAddNonce, setEduAddNonce] = useState(0);
   /* 学歴（2026-08-16 / 2-5）。行の鉛筆・ゴミ箱から編集フォームを開くための id */
-  const [editingEdu,   setEditingEdu]   = useState(false);
   const [editingEduId, setEditingEduId] = useState<string | null>(null);
   const [deleteEduId,  setDeleteEduId]  = useState<string | null>(null);
   /* 年表の行にも、年表に載らない行にも同じものを渡す */
   const eduActions = {
-    onEditRow:   (id: string) => { setEditingEduId(id); setEditingEdu(true); },
-    onDeleteRow: (id: string) => { setDeleteEduId(id); setEditingEdu(true); },
+    onEditRow:   (id: string) => setEditingEduId(id),
+    onDeleteRow: (id: string) => setDeleteEduId(id),
   };
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
   /* 数値実績・受賞（2026-08-16 / 2-4）。表示⇄編集は 2-2/2-3 と同じ形 */
@@ -998,11 +996,9 @@ export default function ProfileTab({
     label: `${e.displayCompanyName}（${e.startedAt}〜${e.isCurrent ? "現在" : e.endedAt ?? ""}）`,
   }));
 
-  const [editingAch, setEditingAch] = useState(false);
   const [editingAchId, setEditingAchId] = useState<string | null>(null);
   const [deleteAchId, setDeleteAchId] = useState<string | null>(null);
   const [achAddNonce, setAchAddNonce] = useState(0);
-  const [editingAwd, setEditingAwd] = useState(false);
   const [editingAwdId, setEditingAwdId] = useState<string | null>(null);
   const [deleteAwdId, setDeleteAwdId] = useState<string | null>(null);
   const [awdAddNonce, setAwdAddNonce] = useState(0);
@@ -1102,11 +1098,11 @@ export default function ProfileTab({
   /** 未入力のセクションだけを並べる。★入力済みは本文に出ているので一覧に入れない（二重になる） */
   const emptySections = ([
     { key: "about",        label: "自己紹介",        open: () => setEditingAbout(true) },
-    { key: "achievements", label: "数値実績",        open: () => { setEditingAchId(null); setEditingAch(true); setAchAddNonce((n) => n + 1); } },
-    { key: "awards",       label: "受賞・表彰",      open: () => { setEditingAwdId(null); setEditingAwd(true); setAwdAddNonce((n) => n + 1); } },
+    { key: "achievements", label: "数値実績",        open: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); } },
+    { key: "awards",       label: "受賞・表彰",      open: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); } },
     { key: "career",       label: "職歴",            open: () => { setEditingCareerSection(true); setCareerAddNonce((n) => n + 1); } },
     { key: "future",       label: "目指す姿・ありたい未来", open: () => setEditingCareerSection(true) },
-    { key: "education",    label: "学歴",            open: () => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); } },
+    { key: "education",    label: "学歴",            open: () => { setEditingEduId(null); setEduAddNonce((n) => n + 1); } },
     { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); } },
     { key: "content",      label: "発信コンテンツ",  open: () => { cancelEditLink(); setEditingContent(true); } },
   ] as { key: SectionKey; label: string; open: () => void }[]).filter((sec) => {
@@ -1501,69 +1497,47 @@ export default function ProfileTab({
                自己紹介（基本情報）の直後・職歴の前に置く。
             ⚠️ 職歴カードの中に入れ子で戻さないこと。紐づけはフォームのセレクトで選ぶ。 */}
           <div style={{ maxWidth: 680 }}>
-            {(achievements.length > 0 || editingAch) && (
-            <EditableSection
-              title="数値実績"
-              description="定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。"
-              isEditing={editingAch}
-              onStartEdit={() => { setEditingAchId(null); setEditingAch(true); setAchAddNonce((n) => n + 1); }}
-              action="add"
-              actionLabel="数値実績を追加"
-              chrome="none"
-              editContent={
-                <AchievementEditor
-                  achievements={achievements}
-                  setAchievements={setAchievements}
-                  openAddNonce={achAddNonce}
-                  openEditId={editingAchId}
-                  openDeleteId={deleteAchId}
-                  experienceOptions={experienceOptions}
-                  onClosed={() => { setEditingAchId(null); setDeleteAchId(null); setEditingAch(false); }}
-                />
-              }
-            >
+            {achievements.length > 0 && (
               <ProfileAchievementsSection
                 achievements={achievements}
                 actions={{
-                  onEditRow: (id) => { setEditingAchId(id); setEditingAch(true); },
-                  onDeleteRow: (id) => { setDeleteAchId(id); setEditingAch(true); },
-                  onAdd: () => { setEditingAchId(null); setEditingAch(true); setAchAddNonce((n) => n + 1); },
+                  onEditRow: (id) => setEditingAchId(id),
+                  onDeleteRow: (id) => setDeleteAchId(id),
+                  onAdd: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); },
                 }}
               />
-            </EditableSection>
             )}
+            {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダルなので何も描かない）。
+                   ⚠️ 閉じたら id を null に戻すこと。同じ行を続けて2回開くために要る。 */}
+            <AchievementEditor
+              achievements={achievements}
+              setAchievements={setAchievements}
+              openAddNonce={achAddNonce}
+              openEditId={editingAchId}
+              openDeleteId={deleteAchId}
+              experienceOptions={experienceOptions}
+              onClosed={() => { setEditingAchId(null); setDeleteAchId(null); }}
+            />
 
-            {(awards.length > 0 || editingAwd) && (
-            <EditableSection
-              title="受賞・表彰"
-              description="社内表彰・業界アワードなどを登録できます。"
-              isEditing={editingAwd}
-              onStartEdit={() => { setEditingAwdId(null); setEditingAwd(true); setAwdAddNonce((n) => n + 1); }}
-              action="add"
-              actionLabel="受賞・表彰を追加"
-              chrome="none"
-              editContent={
-                <AwardEditor
-                  awards={awards}
-                  setAwards={setAwards}
-                  openAddNonce={awdAddNonce}
-                  openEditId={editingAwdId}
-                  openDeleteId={deleteAwdId}
-                  experienceOptions={experienceOptions}
-                  onClosed={() => { setEditingAwdId(null); setDeleteAwdId(null); setEditingAwd(false); }}
-                />
-              }
-            >
+            {awards.length > 0 && (
               <ProfileAwardsSection
                 awards={awards}
                 actions={{
-                  onEditRow: (id) => { setEditingAwdId(id); setEditingAwd(true); },
-                  onDeleteRow: (id) => { setDeleteAwdId(id); setEditingAwd(true); },
-                  onAdd: () => { setEditingAwdId(null); setEditingAwd(true); setAwdAddNonce((n) => n + 1); },
+                  onEditRow: (id) => setEditingAwdId(id),
+                  onDeleteRow: (id) => setDeleteAwdId(id),
+                  onAdd: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); },
                 }}
               />
-            </EditableSection>
             )}
+            <AwardEditor
+              awards={awards}
+              setAwards={setAwards}
+              openAddNonce={awdAddNonce}
+              openEditId={editingAwdId}
+              openDeleteId={deleteAwdId}
+              experienceOptions={experienceOptions}
+              onClosed={() => { setEditingAwdId(null); setDeleteAwdId(null); }}
+            />
           </div>
 
         {/* 職歴・学歴タブ */}
@@ -1648,31 +1622,19 @@ export default function ProfileTab({
             {/* ★2-5 では枠と見出しを `EditableSection` に持たせていたが、**判断が誤っていた**。
                    `/u/[id]` の「学歴」の見出しは元からあり、`page.tsx` に直接書かれていた
                    （＝切り出していなかっただけ）。2-6 で職歴とまとめて切り出して揃えた。 */}
-            {(educations.length > 0 || editingEdu) && (
+            {educations.length > 0 && (
             <ProfileTimelineSection
               id="education"
               title="学歴"
-              onAdd={() => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); }}
+              onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
               addLabel="学歴を追加"
             >
-              {editingEdu ? (
-                <EducationEditor
-                  educations={educations}
-                  setEducations={setEducations}
-                  schools={schools}
-                  hideHeading
-                  openAddNonce={eduAddNonce}
-                  openEditId={editingEduId}
-                  openDeleteId={deleteEduId}
-                  /* ★フォームを閉じたら表示へ戻す（2-2〜2-5 と同じ）。 */
-                  onClosed={() => { setEditingEduId(null); setDeleteEduId(null); setEditingEdu(false); }}
-                />
-              ) : educations.length === 0 ? (
+              {educations.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                   まだ学歴を登録していません。
                   <button
                     type="button"
-                    onClick={() => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); }}
+                    onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
                     style={{
                       background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
                       fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
@@ -1713,6 +1675,17 @@ export default function ProfileTab({
               )}
             </ProfileTimelineSection>
             )}
+            {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダル）。
+                   学校マスタへの追加リクエストのバナーもこの中から出る。 */}
+            <EducationEditor
+              educations={educations}
+              setEducations={setEducations}
+              schools={schools}
+              openAddNonce={eduAddNonce}
+              openEditId={editingEduId}
+              openDeleteId={deleteEduId}
+              onClosed={() => { setEditingEduId(null); setDeleteEduId(null); }}
+            />
           </div>
 
         {/* メディア掲載（★実績・受賞とは別。職歴に属さないので独立カードのまま）

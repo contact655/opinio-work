@@ -60,21 +60,19 @@ function draftFromEducation(edu: Education): EducationDraft {
 
 // ── EducationForm (edit / add mode) ──────────────────────────────────────────
 
+/**
+ * ★入力欄だけ。**保存行は持たない**（2026-08-17 / フェーズ2）。
+ * 保存・閉じる・破棄の確認は `ProfileEditModal` のフッターが持つ。
+ */
 function EducationForm({
   draft,
   onDraftChange,
   isSaving,
-  justSaved,
-  onSave,
-  onCancel,
   schools,
 }: {
   draft: EducationDraft;
   onDraftChange: (d: EducationDraft) => void;
   isSaving: boolean;
-  justSaved?: boolean;
-  onSave: () => void;
-  onCancel: () => void;
   schools: School[];
 }) {
   const set = useCallback(
@@ -82,9 +80,6 @@ function EducationForm({
       onDraftChange({ ...draft, [key]: val }),
     [draft, onDraftChange],
   );
-
-  const canSave = !!draft.school.trim() && !isSaving;
-  const effectivelyDisabled = !canSave || !!justSaved;
 
   const ef = (): React.CSSProperties => ({
     width: "100%", border: "1.5px solid transparent", borderRadius: 8,
@@ -103,13 +98,7 @@ function EducationForm({
   };
 
   return (
-    <div style={{
-      background: "var(--bg-tint)",
-      border: "1.5px solid var(--royal)",
-      borderRadius: 10, padding: "var(--space-4)",
-      display: "flex", flexDirection: "column", gap: 14,
-      boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
-    }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* 学校名 — Phase 5: datalist コンボボックス */}
       <div>
         <label htmlFor="edu-school" style={el()}>学校名 *</label>
@@ -263,30 +252,6 @@ function EducationForm({
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: 2 }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-          style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}
-        >
-          キャンセル
-        </button>
-        <button
-          type="button"
-          onClick={effectivelyDisabled ? undefined : onSave}
-          disabled={effectivelyDisabled}
-          style={{
-            padding: "7px 18px", minWidth: 130,
-            background: justSaved ? "var(--success)" : canSave ? "var(--royal)" : "var(--ink-mute)",
-            color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
-            cursor: effectivelyDisabled ? "default" : "pointer", fontFamily: "inherit", transition: "background 0.2s",
-          }}
-        >
-          {isSaving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
-        </button>
-      </div>
     </div>
   );
 }
@@ -413,7 +378,6 @@ export function EducationEditor({
   educations,
   setEducations,
   schools,
-  hideHeading = false,
   openAddNonce, openEditId, openDeleteId, onClosed,
 }: {
   /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16）。値が変わるたびに開く */
@@ -421,9 +385,6 @@ export function EducationEditor({
   educations: Education[];
   setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
   schools: School[];  // 段階6-7 Phase 1: ProfileEditClient トップレベルから受け取る
-  /** ★見出しを描かない。`EditableSection` が描くときに true（2026-08-16）。
-      ⚠️ 既定は false なので、他から呼ばれても見た目は変わらない */
-  hideHeading?: boolean;
   /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で閉じる（2026-08-16 / 2-5） */
   openEditId?: string | null;
   /** ★外（行のゴミ箱）から削除確認を開く行の id。`null` で閉じる（2026-08-16 / 2-5） */
@@ -439,14 +400,17 @@ export function EducationEditor({
   // Add state
   const [adding,      setAdding]      = useState(false);
 
-  /* 見出しの「＋」から開く合図。★初回マウント時（undefined / 0）は開かない */
-  /* ⚠️ **行の鉛筆・ゴミ箱から開いたときは追加フォームを出さない**（2026-08-16 / 2-5 で実測）。
-        追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
-        マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
-        4つのエディタすべてが同じ形だったので同時に直した。 */
+  /* 見出しの「追加」から開く合図。
+  /* ⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭・2026-08-17）。
+        `!openEditId` のような副条件を混ぜると、**その state が戻った瞬間に**
+        nonce がまだ立っていることで再発火する（編集を保存 → 続けて追加が開く）。
+        ref の初期値を現在値にしておけば、マウントでも開かない。 */
+  const lastAddNonce = useRef(openAddNonce);
   useEffect(() => {
-    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
-  }, [openAddNonce, openEditId, openDeleteId]);
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
   /* ⚠️ ref に逃がす理由は他のエディタと同じ（依存に入れると作り直される） */
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
@@ -640,20 +604,21 @@ export function EducationEditor({
     setBannerError("");
   }, []);
 
+  /* ★編集はモーダル（2026-08-17 / フェーズ2）。この部品は**常にマウントされている**。
+        ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。
+        ⚠️ 常設なので `openEditId` は値が変わったときだけ効く。
+           閉じたら親が id を null に戻すこと（同じ行を続けて2回開くため）。 */
+  const eduIsEditing = editingId !== null;
+  const eduModalOpen = eduIsEditing || adding;
+  const eduDraft = eduIsEditing ? editDraft : addDraft;
+  const eduSavedRow = eduIsEditing ? educations.find((e) => e.id === editingId) : undefined;
+  const eduBase = eduSavedRow ? draftFromEducation(eduSavedRow) : EMPTY_EDU_DRAFT;
+  const eduDirty = !!eduDraft.school.trim() && JSON.stringify(eduDraft) !== JSON.stringify(eduBase);
+
   return (
-    <div style={{ marginTop: hideHeading ? 0 : "var(--space-8)" }}>
-      {/* Section header — フラット（職歴と同じ構造、白カードなし）
-          ⚠️ hideHeading のときは EditableSection が同じ見出しを描く。二重にしない */}
-      {!hideHeading && (
-        <>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)", marginBottom: 6 }}>
-            学歴
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-            大学・大学院・専門学校・高校などを登録できます。新しい順に入力することをおすすめします。
-          </div>
-        </>
-      )}
+    <>
+      {/* ⚠️ 見出しはここでは描かない（2026-08-17）。`/u/[id]` と同じ
+             `ProfileTimelineSection` が持つ。ここに戻すと 0件のときも見出しが出る。 */}
       {/* School request banner（段階6-8 Phase 3）— 教育リストの上に表示 */}
       {bannerSchoolName && (
         <SchoolRequestBanner
@@ -667,37 +632,26 @@ export function EducationEditor({
         />
       )}
 
-      {/* Education list */}
       {/* ★編集フォームだけ（2026-08-16 / 2-5）。一覧・鉛筆・ゴミ箱・0件の1行は
              公開プロフィールと同じ `MergedTimeline`（学歴の行）が持つ。
              ここに一覧を戻すと同じ見た目が2箇所に生まれる。 */}
-      {educations.filter((edu) => editingId === edu.id).map((edu) => (
+      <ProfileEditModal
+        open={eduModalOpen}
+        title={eduIsEditing ? "学歴を編集" : "学歴を追加"}
+        dirty={eduDirty}
+        saving={eduIsEditing ? editSaving : addSaving}
+        justSaved={eduIsEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (eduIsEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={() => { cancelEdit(); cancelAdd(); onClosedRef.current?.(); }}
+      >
         <EducationForm
-          key={edu.id}
-          draft={editDraft}
-          onDraftChange={setEditDraft}
-          isSaving={editSaving}
-          justSaved={editJustSaved}
-          onSave={() => { void saveEdit(); }}
-          onCancel={() => { cancelEdit(); onClosedRef.current?.(); }}
+          draft={eduDraft}
+          onDraftChange={eduIsEditing ? setEditDraft : setAddDraft}
+          isSaving={eduIsEditing ? editSaving : addSaving}
           schools={schools}
         />
-      ))}
-
-      {/* Add form */}
-      {adding && (
-        <div style={{ marginTop: educations.length > 0 ? 12 : 0 }}>
-          <EducationForm
-            draft={addDraft}
-            onDraftChange={setAddDraft}
-            isSaving={addSaving}
-            justSaved={addJustSaved}
-            onSave={() => { void saveAdd(); }}
-            onCancel={() => { cancelAdd(); onClosedRef.current?.(); }}
-            schools={schools}
-          />
-        </div>
-      )}
+      </ProfileEditModal>
 
       {/* Delete confirmation dialog */}
       <ConfirmDialog
@@ -719,7 +673,7 @@ export function EducationEditor({
       {toastMsg && (
         <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -748,32 +702,8 @@ const ael = (): React.CSSProperties => ({
   color: "var(--ink-mute)", letterSpacing: "0.08em",
   textTransform: "uppercase", marginBottom: 4,
 });
-const formBox: React.CSSProperties = {
-  background: "var(--bg-tint)", border: "1.5px solid var(--royal)", borderRadius: 10, padding: "var(--space-4)",
-  display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 0 0 3px rgba(0,35,102,0.06)",
-};
-function AchieveFormActions({ isSaving, justSaved, canSave, onSave, onCancel }: {
-  isSaving: boolean; justSaved?: boolean; canSave: boolean; onSave: () => void; onCancel: () => void;
-}) {
-  const effectivelyDisabled = !canSave || !!justSaved;
-  return (
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: 2 }}>
-      <button type="button" onClick={onCancel} disabled={isSaving}
-        style={{ padding: "7px 16px", background: "#fff", color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isSaving ? "default" : "pointer", fontFamily: "inherit", opacity: isSaving ? 0.5 : 1 }}>
-        キャンセル
-      </button>
-      <button type="button" onClick={effectivelyDisabled ? undefined : onSave} disabled={effectivelyDisabled}
-        style={{
-          padding: "7px 18px", minWidth: 130,
-          background: justSaved ? "var(--success)" : canSave ? "var(--royal)" : "var(--ink-mute)",
-          color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
-          cursor: effectivelyDisabled ? "default" : "pointer", fontFamily: "inherit", transition: "background 0.2s",
-        }}>
-        {isSaving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
-      </button>
-    </div>
-  );
-}
+/** ★モーダルの中の入力欄の並び。**枠は持たない**（モーダルが枠） */
+const formCol: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12 };
 /* ⚠️ `AddSectionBtn`（「＋ 〇〇を追加」）は 2026-08-16 に削除した。
       追加の入口は公開部品の見出し行の「追加」1つに集約した（ルール⑧）。 */
 
@@ -821,13 +751,13 @@ function ExperienceSelect({
   );
 }
 
+/** ★入力欄だけ。保存行は `ProfileEditModal` のフッターが持つ（2026-08-17） */
 function AchievementForm({
-  draft, onDraftChange, isSaving, justSaved, onSave, onCancel, experienceOptions = [],
-}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; experienceOptions?: ExperienceOption[]; }) {
+  draft, onDraftChange, isSaving, experienceOptions = [],
+}: { draft: AchievementDraft; onDraftChange: (d: AchievementDraft) => void; isSaving: boolean; experienceOptions?: ExperienceOption[]; }) {
   const set = useCallback((k: keyof AchievementDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
-  const canSave = !!draft.title.trim() && !isSaving;
   return (
-    <div style={formBox}>
+    <div style={formCol}>
       <div>
         <label style={ael()}>タイトル（実績の名称）*</label>
         <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
@@ -866,7 +796,6 @@ function AchievementForm({
       </div>
       <ExperienceSelect value={draft.experience_id} onChange={(v) => set("experience_id", v)}
         options={experienceOptions} disabled={isSaving} />
-      <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
@@ -991,9 +920,16 @@ export function AchievementEditor({
         追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
         マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
         4つのエディタすべてが同じ形だったので同時に直した。 */
+  /* ⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭・2026-08-17）。
+        `!openEditId` のような副条件を混ぜると、**その state が戻った瞬間に**
+        nonce がまだ立っていることで再発火する（編集を保存 → 続けて追加が開く）。
+        ref の初期値を現在値にしておけば、マウントでも開かない。 */
+  const lastAddNonce = useRef(openAddNonce);
   useEffect(() => {
-    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
-  }, [openAddNonce, openEditId, openDeleteId]);
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
   useEffect(() => {
     if (!openEditId) return;
     const t = achievements.find((a) => a.id === openEditId);
@@ -1007,28 +943,47 @@ export function AchievementEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openDeleteId]);
 
+    /* ★編集はモーダル（2026-08-17 / フェーズ2）。この部品は**常にマウントされている**。
+        ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。
+        ⚠️ 常設なので `openEditId` は値が変わったときだけ効く。
+           閉じたら親が id を null に戻すこと（同じ行を続けて2回開くため）。 */
+  const isEditing = editingId !== null;
+  const draft = isEditing ? editDraft : addDraft;
+  const savedRow = isEditing ? scoped.find((a) => a.id === editingId) : undefined;
+  const base = savedRow ? draftFromAch(savedRow) : EMPTY_ACH_DRAFT;
+  const dirty = !!draft.title.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+
   return (
-    <div style={{ marginTop: 0 }}>
+    <>
       {/* ★編集フォームだけ。一覧・鉛筆・ゴミ箱・0件の1行は
              `ProfileAchievementsSection`（公開と共通）が持つ。ここに戻さないこと。 */}
-      {scoped.filter((item) => editingId === item.id).map((item) => (
-        <AchievementForm key={item.id} draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
+      <ProfileEditModal
+        open={isEditing || adding}
+        title={isEditing ? "数値実績を編集" : "数値実績を追加"}
+        dirty={dirty}
+        saving={isEditing ? editSaving : addSaving}
+        justSaved={isEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (isEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={() => {
+          setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT);
+          setAdding(false); setAddDraft(EMPTY_ACH_DRAFT);
+          onClosedRef.current?.();
+        }}
+      >
+        <AchievementForm
+          draft={draft}
+          onDraftChange={isEditing ? setEditDraft : setAddDraft}
+          isSaving={isEditing ? editSaving : addSaving}
           experienceOptions={experienceOptions}
-          onSave={() => { void saveEdit(); }}
-          onCancel={() => { setEditingId(null); setEditDraft(EMPTY_ACH_DRAFT); onClosedRef.current?.(); }} />
-      ))}
-      {adding && (
-        <AchievementForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
-          experienceOptions={experienceOptions}
-          onSave={() => { void saveAdd(); }}
-          onCancel={() => { setAdding(false); setAddDraft(EMPTY_ACH_DRAFT); onClosedRef.current?.(); }} />
-      )}
+        />
+      </ProfileEditModal>
       <ConfirmDialog isOpen={!!deleteTarget} title="実績を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
-    </div>
+    </>
   );
 }
 
@@ -1041,13 +996,13 @@ function draftFromAward(a: Award): AwardDraft {
     experience_id: a.experience_id ?? "" };
 }
 
+/** ★入力欄だけ。保存行は `ProfileEditModal` のフッターが持つ（2026-08-17） */
 function AwardForm({
-  draft, onDraftChange, isSaving, justSaved, onSave, onCancel, experienceOptions = [],
-}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; justSaved?: boolean; onSave: () => void; onCancel: () => void; experienceOptions?: ExperienceOption[]; }) {
+  draft, onDraftChange, isSaving, experienceOptions = [],
+}: { draft: AwardDraft; onDraftChange: (d: AwardDraft) => void; isSaving: boolean; experienceOptions?: ExperienceOption[]; }) {
   const set = useCallback((k: keyof AwardDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
-  const canSave = !!draft.title.trim() && !isSaving;
   return (
-    <div style={formBox}>
+    <div style={formCol}>
       <div>
         <label style={ael()}>受賞名 *</label>
         <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
@@ -1072,7 +1027,6 @@ function AwardForm({
       </div>
       <ExperienceSelect value={draft.experience_id} onChange={(v) => onDraftChange({ ...draft, experience_id: v })}
         options={experienceOptions} disabled={isSaving} />
-      <AchieveFormActions isSaving={isSaving} justSaved={justSaved} canSave={canSave} onSave={onSave} onCancel={onCancel} />
     </div>
   );
 }
@@ -1177,9 +1131,16 @@ export function AwardEditor({
         追加を1回でも使うと nonce が 0 でなくなるので、次にこのエディタが
         マウントされた瞬間（＝鉛筆やゴミ箱で開いたとき）に追加フォームまで開いてしまう。
         4つのエディタすべてが同じ形だったので同時に直した。 */
+  /* ⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭・2026-08-17）。
+        `!openEditId` のような副条件を混ぜると、**その state が戻った瞬間に**
+        nonce がまだ立っていることで再発火する（編集を保存 → 続けて追加が開く）。
+        ref の初期値を現在値にしておけば、マウントでも開かない。 */
+  const lastAddNonce = useRef(openAddNonce);
   useEffect(() => {
-    if (openAddNonce && !openEditId && !openDeleteId) setAdding(true);
-  }, [openAddNonce, openEditId, openDeleteId]);
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
   useEffect(() => {
     if (!openEditId) return;
     const t = awards.find((a) => a.id === openEditId);
@@ -1193,27 +1154,46 @@ export function AwardEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openDeleteId]);
 
+    /* ★編集はモーダル（2026-08-17 / フェーズ2）。この部品は**常にマウントされている**。
+        ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。
+        ⚠️ 常設なので `openEditId` は値が変わったときだけ効く。
+           閉じたら親が id を null に戻すこと（同じ行を続けて2回開くため）。 */
+  const isEditing = editingId !== null;
+  const draft = isEditing ? editDraft : addDraft;
+  const savedRow = isEditing ? scoped.find((a) => a.id === editingId) : undefined;
+  const base = savedRow ? draftFromAward(savedRow) : EMPTY_AWARD_DRAFT;
+  const dirty = !!draft.title.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+
   return (
-    <div style={{ marginTop: 0 }}>
+    <>
       {/* ★編集フォームだけ。一覧・鉛筆・ゴミ箱・0件の1行は `ProfileAwardsSection` が持つ */}
-      {scoped.filter((item) => editingId === item.id).map((item) => (
-        <AwardForm key={item.id} draft={editDraft} onDraftChange={setEditDraft} isSaving={editSaving} justSaved={editJustSaved}
+      <ProfileEditModal
+        open={isEditing || adding}
+        title={isEditing ? "受賞・表彰を編集" : "受賞・表彰を追加"}
+        dirty={dirty}
+        saving={isEditing ? editSaving : addSaving}
+        justSaved={isEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (isEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={() => {
+          setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT);
+          setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT);
+          onClosedRef.current?.();
+        }}
+      >
+        <AwardForm
+          draft={draft}
+          onDraftChange={isEditing ? setEditDraft : setAddDraft}
+          isSaving={isEditing ? editSaving : addSaving}
           experienceOptions={experienceOptions}
-          onSave={() => { void saveEdit(); }}
-          onCancel={() => { setEditingId(null); setEditDraft(EMPTY_AWARD_DRAFT); onClosedRef.current?.(); }} />
-      ))}
-      {adding && (
-        <AwardForm draft={addDraft} onDraftChange={setAddDraft} isSaving={addSaving} justSaved={addJustSaved}
-          experienceOptions={experienceOptions}
-          onSave={() => { void saveAdd(); }}
-          onCancel={() => { setAdding(false); setAddDraft(EMPTY_AWARD_DRAFT); onClosedRef.current?.(); }} />
-      )}
+        />
+      </ProfileEditModal>
       <ConfirmDialog isOpen={!!deleteTarget} title="受賞歴を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
-    </div>
+    </>
   );
 }
 
@@ -1244,7 +1224,7 @@ function MediaAppearanceForm({
 }: { draft: MediaAppearanceDraft; onDraftChange: (d: MediaAppearanceDraft) => void; isSaving: boolean; }) {
   const set = useCallback((k: keyof MediaAppearanceDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={formCol}>
       <div>
         <label style={ael()}>掲載タイトル *</label>
         <input type="text" value={draft.title} onChange={(e) => set("title", e.target.value)}
