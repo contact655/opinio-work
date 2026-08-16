@@ -20,7 +20,6 @@ import Toast from "@/components/ui/Toast";
 import {
   FormGroup,
   CardSaveFooter,
-  CardDoneFooter,
   EditableSection,
   TextareaField,
   inputStyle,
@@ -581,24 +580,25 @@ const draftFromLink = (l: ContentLink): LinkDraft => ({
  *    SSR 時点のプロップを渡すと、保存した値が開き直しで消える
  *    （`.claude/rules/ui-debugging.md` ⑦）。
  */
-function ContentLinkForm({
-  heading, initial, submitLabel, saving, error, onSubmit, onCancel,
-}: {
-  heading: string;
+function ContentLinkForm({ initial, onDraftChange }: {
   initial: LinkDraft;
-  submitLabel: string;
-  saving: boolean;
-  error: string | null;
-  onSubmit: (draft: LinkDraft) => void;
-  /** 省略すると「キャンセル」を出さない（追加フォームはカードの「完了」が出口） */
-  onCancel?: () => void;
+  /** ★入力を親へ返す。**保存はモーダルのフッターがする**ので、これが無いと何も届かない */
+  onDraftChange: (d: LinkDraft) => void;
 }) {
   const [draft, setDraft] = useState<LinkDraft>(initial);
   const [ogpFetching, setOgpFetching] = useState(false);
   const [ogpFetched, setOgpFetched] = useState(false);
 
-  const set = <K extends keyof LinkDraft>(k: K, v: LinkDraft[K]) =>
-    setDraft((d) => ({ ...d, [k]: v }));
+  const set = <K extends keyof LinkDraft>(k: K, v: LinkDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
+  /* ⚠️ ref に逃がす。依存に入れると下の effect が毎回動く */
+  const onDraftChangeRef = useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
+  /* ★入力を親へ返す（2026-08-17）。モーダルのフッターが保存するために要る。
+        ⚠️ **effect で返すこと。** `setDraft` の更新関数の中で親の state を触ると、
+           別のコンポーネントを描画中に更新することになり React が警告を出す。
+        ⚠️ **`draft` を見ること。** 個々の `set` に足すと、`setDraft` を直に呼んでいる
+           URL 欄と OGP 取得の2箇所が漏れる（実際に漏れていた）。 */
+  useEffect(() => { onDraftChangeRef.current?.(draft); }, [draft]);
 
   /* URL を離れたときに OGP を取りに行く。★埋まっている項目は上書きしない
      （編集で開いたときに、本人が書いたタイトルを消さないため） */
@@ -626,12 +626,8 @@ function ContentLinkForm({
     }
   };
 
-  const disabled = saving || !draft.url.trim();
-
   return (
-    <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "16px" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>{heading}</div>
-
+    <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>URL *</label>
@@ -695,41 +691,6 @@ function ContentLinkForm({
           />
         </div>
 
-        {error && (
-          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", margin: 0 }}>{error}</p>
-        )}
-
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            type="button"
-            onClick={() => onSubmit(draft)}
-            disabled={disabled}
-            style={{
-              padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-              background: disabled ? "var(--bg-tint)" : "var(--royal)",
-              color: disabled ? "var(--ink-mute)" : "#fff",
-              border: "none", cursor: disabled ? "default" : "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {saving ? "保存中..." : submitLabel}
-          </button>
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={saving}
-              style={{
-                padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                background: "#fff", color: "var(--ink-soft)",
-                border: "1px solid var(--line)", cursor: saving ? "default" : "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              キャンセル
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -811,6 +772,11 @@ export default function ProfileTab({
   const [addFormNonce, setAddFormNonce] = useState(0);
   const [linkSaving, setLinkSaving] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  /* ★モーダルのフッターが保存するための控え（2026-08-17）。フォームから流れてくる。
+        ⚠️ 差分の基準は**開いた直後に控えた値ではなく、いま保存されている行**にする。
+           控える形にすると、フォームが自分で初期値を整えた（URL から platform を決める等）
+           ぶんまで「変更あり」になる。 */
+  const [contentDraft, setContentDraft] = useState<LinkDraft | null>(null);
 
   /* ⚠️ `linkSaving` / `linkError` を追加と編集で共有している。
         **同時に出るフォームは常に1つ**（行を編集している間は追加フォームを出さない）
@@ -842,6 +808,7 @@ export default function ProfileTab({
       const inserted: ContentLink = await res.json();
       setContentLinks((prev) => [...prev, inserted]);
       setAddFormNonce((n) => n + 1); // 入力欄を空に戻す（フォームを作り直す）
+      return true;
     } catch {
       setLinkError("通信エラーが発生しました");
     } finally {
@@ -875,6 +842,7 @@ export default function ProfileTab({
       const updated: ContentLink = await res.json();
       setContentLinks((prev) => prev.map((l) => (l.id === id ? updated : l)));
       setEditingLinkId(null);
+      return true;
       /* ★行の編集は保存したら**カードごと表示モードに戻す**（2026-08-16）。
             戻さないと「新しいコンテンツを追加」のフォームが出たままになり、
             直したはずの行が画面から消えたように見える（実測で確認）。
@@ -1797,83 +1765,63 @@ export default function ProfileTab({
                （2-1 で報告した重複がこれで解消した）。編集はヘッダーの鉛筆から。 */}
 
         {/* 発信コンテンツ（SNS・発信タブ内） */}
-          {(contentLinks.length > 0 || editingContent) && (
+          {contentLinks.length > 0 && (
           <div style={{ maxWidth: 680 }}>
-            {/* ⚠️ 色付きバナーにしない（2026-08-15）。カードの desc に混ぜて1行にする。
-                   1画面に色付きバナーを2つ以上出さない。 */}
-            <EditableSection
-              title="発信コンテンツ"
-              description="note・Zenn・YouTube・Speaker Deck・GitHub など、外部で発信しているコンテンツのURLを登録できます。繋ぐと、あなたの考え方が企業に伝わり、価値観マッチが起きやすくなります。"
-              isEditing={editingContent}
-              /* ⚠️ 見出しの＋は「追加」。行編集が開いたままだと追加フォームが出ないので閉じる */
-              onStartEdit={() => { cancelEditLink(); setEditingContent(true); }}
-              action="add"
-              actionLabel="発信コンテンツを追加"
-              /* ★表示モードは枠も見出しも公開部品が持つ（2026-08-16）。
-                    ここで描くと**枠・見出し・「追加」がすべて二重**になる（実測で確認）。 */
-              chrome="none"
-              editContent={<>
-              {/* ★編集モードは**フォームだけ**（2026-08-16）。行の一覧は出さない。
-                     一覧（と行の鉛筆・ゴミ箱）は表示モードの
-                     `ProfileContentLinksSection` が持つ。ここに戻さないこと。
-                  ⚠️ 行の鉛筆から来たときは、その行のフォームだけを出す。 */}
-              {editingLinkId !== null && (() => {
-                const link = contentLinks.find((l) => l.id === editingLinkId);
-                if (!link) return null;
-                return (
-                  /* ★key に id を付けて、開くたびに保存済みの行から作り直す
-                        （閉じるとアンマウントされるため。ルール⑦） */
-                  <ContentLinkForm
-                    key={link.id}
-                    heading="このコンテンツを編集"
-                    initial={draftFromLink(link)}
-                    submitLabel="保存"
-                    saving={linkSaving}
-                    error={linkError}
-                    onSubmit={(draft) => { void handleUpdateContentLink(link.id, draft); }}
-                    onCancel={cancelEditLink}
-                  />
-                );
-              })()}
-
-
-              {/* 新規追加フォーム。
-                  ⚠️ 行を編集している間は出さない（編集対象は常に1つ。入力欄が2組並ばない） */}
-              {editingLinkId === null && (
-                <ContentLinkForm
-                  key={addFormNonce}
-                  heading="新しいコンテンツを追加"
-                  initial={EMPTY_LINK_DRAFT}
-                  submitLabel="追加する"
-                  saving={linkSaving}
-                  error={linkError}
-                  onSubmit={(draft) => { void handleAddContentLink(draft); }}
-                />
-              )}
-              {/* ⚠️ 「追加する」を押した時点で保存される。完了は出口だけ（API を呼ばない）。
-                     行編集の出口は行内のキャンセル／保存なので、ここは追加の話しかしない。 */}
-              <CardDoneFooter
-                onDone={() => { cancelEditLink(); setEditingContent(false); }}
-                note="追加した時点で保存されます"
-              />
-              </>}
-            >
-              {/* ★表示は**公開プロフィールと同じ部品**（2026-08-16）。
-                     行の鉛筆・ゴミ箱・見出しの「追加」だけを `actions` で足す。
-                  ⚠️ 0件の空状態も部品側が持っている（`viewerIsOwner` の例外）。
-                     `/mypage` 独自の1行を足すと**同じ場所への入口が2つ**になる（ルール⑧）。 */}
-              <ProfileContentLinksSection
-                contentLinks={contentLinks}
-                viewerIsOwner
-                actions={{
-                  onEditRow: (id) => { startEditLink(id); setEditingContent(true); },
-                  onDeleteRow: (id) => { void handleDeleteContentLink(id); },
-                  onAdd: () => { cancelEditLink(); setEditingContent(true); },
-                }}
-              />
-            </EditableSection>
+            {/* ★表示は**公開プロフィールと同じ部品**。編集はモーダル（2026-08-17 / フェーズ2）。
+                   行の鉛筆・ゴミ箱・見出しの「追加」だけを `actions` で足す。 */}
+            <ProfileContentLinksSection
+              contentLinks={contentLinks}
+              viewerIsOwner
+              actions={{
+                onEditRow: (id) => { startEditLink(id); setEditingContent(true); },
+                onDeleteRow: (id) => { void handleDeleteContentLink(id); },
+                onAdd: () => { cancelEditLink(); setEditingContent(true); },
+              }}
+            />
           </div>
           )}
+
+          {/* ★発信コンテンツの編集モーダル。追加と行編集で同じ器を使う。
+                 ⚠️ 行編集のときは `key` に id を付けて、開くたびに保存済みの行から
+                    作り直す（ルール⑦）。追加のときは `addFormNonce` で作り直す。 */}
+          {(() => {
+            /* 差分の基準。行編集なら保存済みの行、追加なら空 */
+            const base = editingLinkId
+              ? contentLinks.find((l) => l.id === editingLinkId)
+              : undefined;
+            const initial = base ? draftFromLink(base) : EMPTY_LINK_DRAFT;
+            /* ⚠️ URL が空のあいだは押させない。インライン時代の `disabled` と同じ意味 */
+            const dirty = !!contentDraft
+              && !!contentDraft.url.trim()
+              && JSON.stringify(contentDraft) !== JSON.stringify(initial);
+            return (
+          <ProfileEditModal
+            open={editingContent}
+            title={editingLinkId ? "発信コンテンツを編集" : "発信コンテンツを追加"}
+            dirty={dirty}
+            saving={linkSaving}
+            justSaved={false}
+            error={linkError}
+            saveLabel={editingLinkId ? "保存" : "追加する"}
+            onSave={() => {
+              if (!contentDraft) return;
+              void (async () => {
+                const ok = editingLinkId
+                  ? await handleUpdateContentLink(editingLinkId, contentDraft)
+                  : await handleAddContentLink(contentDraft);
+                if (ok) { cancelEditLink(); setContentDraft(null); setEditingContent(false); }
+              })();
+            }}
+            onClose={() => { cancelEditLink(); setContentDraft(null); setEditingContent(false); }}
+          >
+            <ContentLinkForm
+              key={base ? base.id : `add-${addFormNonce}`}
+              initial={initial}
+              onDraftChange={setContentDraft}
+            />
+          </ProfileEditModal>
+            );
+          })()}
 
           {/* ── ★セクションを追加（2026-08-16）────────────────────────────────
                  0件のセクションはカードごと出さないので、**追加の入口はここ1つ**。
