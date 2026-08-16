@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Json } from "@/lib/supabase/types";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
+/* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
+      **中身は書き換えていない**（置き場所を変えただけ）。 */
+import ProfileEditor from "@/components/profile/editor/ProfileEditor";
+import type { ComponentProps } from "react";
 import UserProfileCard from "@/components/profile/UserProfileCard";
-import MergedTimeline, { type CareerEntry } from "@/components/profile/MergedTimeline";
+/* ⚠️ 型だけ使う。経歴タイムラインの描画は 2026-08-16 にここから外した
+      （職歴・学歴カードと重複するため）。`MergedTimeline` 本体は `/u/[id]` が使う。 */
+import { type CareerEntry } from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
-import {
-  toTimelineEducationEntries,
-  type RawEducation,
-} from "@/lib/utils/timeline";
 import {
   STATUS_LABEL,
   type CasualMeeting,
@@ -20,19 +21,11 @@ import {
 import { StatusPill } from "@/components/common/StatusPill";
 import { ProfileCompletionBar, type CompletionInput } from "@/components/profile/ProfileCompletionBar";
 
-type OwUser = {
-  id: string;
-  name: string;
-  avatar_color: string | null;
-  avatar_url: string | null;
-  cover_color: string | null;
-  about_me: string | null;
-  birth_date: string | null;
-  location: string | null;
-  social_links: Json | null;
-  headline: string | null;
-  future_aspirations: string | null;
-} | null;
+/* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
+      `/mypage` が編集フォームにそのまま渡すので、片方に列を足してもう片方に
+      足し忘れると、その列が編集画面で空になり**保存した瞬間に消える**。
+      型が別々に2つあるのは、片方をアプリ側の import で汚さないため。 */
+type OwUser = ComponentProps<typeof ProfileEditor>["owUser"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -291,13 +284,17 @@ function DashboardView({
   currentRole,
   userLocation, userAboutMe, userBirthDate, userSocialLinks,
   followCounts,
-  userEducations, timelineCareers,
+  userEducations,
   ambassadorMemberships = [],
   schoolPeerCounts = {},
   canPost,
+  profileEditorWith,
 }: {
   /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
   canPost: boolean;
+  /** プロフィール編集（3タブ＋7枚のカード）を描く。
+      引数に渡したものは**プロフィールタブの一番下**に入る（母校・アクティビティ） */
+  profileEditorWith: (extra: React.ReactNode) => React.ReactNode;
   userId: string;
   userName: string; userInitial: string; userAvatar: string;
   currentRole?: string | null;
@@ -312,14 +309,13 @@ function DashboardView({
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  timelineCareers?: CareerEntry[];
   ambassadorMemberships?: AmbassadorMembership[];
   schoolPeerCounts?: Record<string, number>;
 }) {
-  // MergedTimeline 用データ整形（/mypage は常に本人なので viewerIsOwner = true）
-  const timelineEdus = toTimelineEducationEntries((userEducations ?? []) as RawEducation[]);
-  const hasMergedTimeline =
-    (timelineCareers?.length ?? 0) > 0 || timelineEdus.length > 0;
+  /* ⚠️ **経歴タイムライン（MergedTimeline）はここから外した**（2026-08-16）。
+        職歴カード・学歴カードが同じ内容を出しており、そちらは編集もできる上位互換。
+        同じものを2箇所に出さない（`.claude/rules/ui-debugging.md` ⑧と同じ話）。
+        ⚠️ `MergedTimeline` 自体は消していない。`/u/[id]`（公開プロフィール）が使う。 */
 
   return (
     <div>
@@ -339,6 +335,11 @@ function DashboardView({
         isMentor={false}
       />
 
+      {/* ★プロフィール編集（3タブ＋7枚のカード）。
+             母校とアクティビティは**プロフィールタブの中**に入れる。
+             タブの外に出すと「転職の希望」「設定」でも出てしまう。 */}
+      {profileEditorWith(
+        <>
       {/* ── あなたの母校 ── */}
       {(() => {
         const schoolEdus = (userEducations ?? []).filter(
@@ -452,18 +453,6 @@ function DashboardView({
         );
       })()}
 
-      {/* 経歴タイムライン（キャリア + 学歴を統合表示） */}
-      {hasMergedTimeline && (
-        <SectionBlock title="経歴" titleEn="TIMELINE">
-          <MergedTimeline
-            careers={timelineCareers ?? []}
-            educations={timelineEdus}
-            future={null}
-            viewerIsOwner={true}
-          />
-        </SectionBlock>
-      )}
-
       {/* ── アクティビティ投稿フォーム ──
           ⚠️ 投稿できない人にはセクションごと出さない（2026-08-05）。
              コンポーザーがセクションの中身そのものなので、コンポーザーだけ消すと
@@ -488,6 +477,8 @@ function DashboardView({
 
       {/* 面談対応者の設定（登録がある場合のみ表示） */}
       <AmbassadorWidget memberships={ambassadorMemberships} />
+        </>
+      )}
 
     </div>
   );
@@ -694,6 +685,9 @@ function BookmarksView({ companyBookmarks, jobBookmarks }: { companyBookmarks: B
 
 type AmbassadorMembership = { id: string; company_id: string; company_name: string; role_title: string | null; display_consent: boolean };
 
+/** `ProfileEditor` にそのまま渡すプロップ。★親で1つずつ数え直さない */
+type ProfileEditorProps = Omit<ComponentProps<typeof ProfileEditor>, "owUser">;
+
 export default function MypageClient({
   canPost,
   owUser,
@@ -713,6 +707,7 @@ export default function MypageClient({
   ambassadorMemberships = [],
   showScoutBanner = false,
   schoolPeerCounts = {},
+  ...editorProps
 }: {
   /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
   canPost: boolean;
@@ -741,7 +736,7 @@ export default function MypageClient({
   ambassadorMemberships?: AmbassadorMembership[];
   showScoutBanner?: boolean;
   schoolPeerCounts?: Record<string, number>;
-}) {
+} & ProfileEditorProps) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
   const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
@@ -1130,10 +1125,12 @@ export default function MypageClient({
           userSocialLinks={owUser?.social_links as Record<string, string> | null}
           followCounts={followCounts}
           userEducations={educations}
-          timelineCareers={timelineCareers}
           canPost={canPost}
           ambassadorMemberships={ambassadorMemberships}
           schoolPeerCounts={schoolPeerCounts}
+          profileEditorWith={(extra) => (
+            <ProfileEditor {...editorProps} owUser={owUser} profileTabExtra={extra} />
+          )}
         />
       )}
       {activeView === "casual" && <CasualView casualMeetings={casualMeetings} />}

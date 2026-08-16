@@ -1,19 +1,33 @@
 "use client";
 
+/**
+ * プロフィール編集の本体（3タブ ＋ カード）。
+ *
+ * ⚠️ **レイアウトを持たない。** `MypageLayout` は呼び出し側が用意する。
+ *    2026-08-16 に `/profile/edit` から `/mypage` へ引っ越したとき、
+ *    ここが自前でレイアウトを描いていると `/mypage` の中に二重に入れ子になった。
+ *
+ * ⚠️ 置き場所は `src/components/profile/editor/`。
+ *    **`edit` という名前にしない。** `/profile/edit` は 2026-08-16 に
+ *    リダイレクトだけの薄いルートになったので、ディレクトリ名がルートと
+ *    対応していると次に読む人が誤解する。
+ *
+ * ⚠️ 中身（タブ・カード・EditableSection・保存の呼び方）は引っ越しで
+ *    **1行も変えていない**。変えたのは置き場所と、レイアウトを外したことだけ。
+ */
+
 import { useState, useCallback, useEffect } from "react";
 import type { Json } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
-import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
-import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import Tabs, { type TabItem } from "./Tabs";
-import WishesTab from "./_components/WishesTab";
-import SettingsTab from "./_components/SettingsTab";
-import ProfileTab, { type ProfileSavedSnapshot } from "./_components/ProfileTab";
+import WishesTab from "./WishesTab";
+import SettingsTab from "./SettingsTab";
+import ProfileTab, { type ProfileSavedSnapshot } from "./ProfileTab";
 /* ⚠️ カード・入力欄の共通部品は formKit に移した（3-B / 2026-08-15）。中身は変えていない。 */
 import {
   /* ⚠️ 元から RecordEditors 側（切り出した範囲）で export されていた型。移動先から import する。 */
   type RoleItem,
-} from "./_components/RecordEditors";
+} from "./RecordEditors";
 /* ⚠️ 型は親と RecordEditors の両方が使う。親に置くと循環 import になる。 */
 import {
   type Education,
@@ -21,7 +35,7 @@ import {
   type Achievement,
   type Award,
   type MediaAppearance,
-} from "./_components/recordTypes";
+} from "./recordTypes";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { hasCareerPreferences } from "@/lib/profile/completion";
 import type { SocialPlatform } from "@/components/SocialIcon";
@@ -114,7 +128,7 @@ const PROFILE_TABS: TabItem[] = [
 
 /* ⚠️ SocialLinksEditor も ProfileTab へ移した（3-B）。 */
 
-export default function ProfileEditClient({
+export default function ProfileEditor({
   owUser,
   authEmail,
   initialEducations,
@@ -132,6 +146,7 @@ export default function ProfileEditClient({
   initialDesiredRoleIds = [],
   desiredRoleOptions,
   initialProfilePrefs = null,
+  profileTabExtra,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -153,6 +168,8 @@ export default function ProfileEditClient({
   initialDesiredRoleIds?: string[];
   /** 希望職種ピッカーの候補。**職歴の roles とは母集団が違う**（is_it_saas で絞る） */
   desiredRoleOptions?: RoleItem[];
+  /** プロフィールタブの一番下に足すもの（`/mypage` が母校・アクティビティを渡す） */
+  profileTabExtra?: React.ReactNode;
   initialProfilePrefs?: {
     // ⚠️ job_type / desired_work_style / experience_years は受け取らない。
     //    希望職種は ow_profile_desired_roles、勤務スタイルは desired_work_styles、
@@ -328,24 +345,7 @@ export default function ProfileEditClient({
         見てよいのは `profileSaved` と `wishesHasPrefs` に限る。 */
 
   return (
-    <MypageMockProvider>
-      {/* ⚠️ **このページは右カラムを渡さない**（2026-08-16）。
-             `MypageLayout` は `rightColumn` の有無で自動的に2カラムになるので、
-             CSS は触っていない。
-             外した2枚と、その行き先:
-               「プロフィール完成度」 … `/mypage` に同じものがある。編集画面では
-                                        タブの「未設定」バッジが同じ役割を果たす
-               「企業からの見え方」   … 設定タブ（公開範囲）に本体がある。
-                                        ここに置くと同じ説明が2箇所に出る
-             「公開プロフィールを見る」だけはタブ行の右端にボタンで残す。 */}
-      <MypageLayout
-        activeKey="profile"
-        breadcrumb={[
-          { label: "OPINIO", href: "/" },
-          { label: "マイページ", href: "/mypage" },
-          { label: "プロフィール" },
-        ]}
-      >
+    <>
 
         {/* ── ウェルカムバナー（新規登録後 ?welcome=1 のみ表示） ─────────────── */}
         {isWelcome && !welcomeDismissed && (
@@ -495,6 +495,9 @@ export default function ProfileEditClient({
             onDirtyChange={setProfileDirty}
             notifyGlobalSave={notifyGlobalSave}
           />
+          {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
+                 タブの外に置くと「転職の希望」「設定」を開いたときにも出てしまう。 */}
+          {profileTabExtra}
         </div>
         )}
 
@@ -515,6 +518,9 @@ export default function ProfileEditClient({
             onDirtyChange={setWishesDirty}
             notifyGlobalSave={notifyGlobalSave}
           />
+          {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
+                 タブの外に置くと「転職の希望」「設定」を開いたときにも出てしまう。 */}
+          {profileTabExtra}
         </div>
         )}
 
@@ -553,7 +559,6 @@ export default function ProfileEditClient({
           }
         `}</style>
 
-      </MypageLayout>
-    </MypageMockProvider>
+    </>
   );
 }

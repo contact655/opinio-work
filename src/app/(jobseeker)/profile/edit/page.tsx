@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import ProfileEditClient from "./ProfileEditClient";
+import ProfileEditor from "@/components/profile/editor/ProfileEditor";
+import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
+import { MypageMockProvider } from "@/app/(jobseeker)/mypage/_components/MypageMockContext";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 
@@ -322,8 +324,20 @@ export default async function ProfileEditPage({
     };
   });
 
+  /* ⚠️ **この包みはフェーズ2で消える**（2026-08-16）。中身は `/mypage` へ移したので、
+        このルートはリダイレクトだけになる。ここでレイアウトを足しているのは、
+        引っ越しの途中でも `/profile/edit` が壊れないようにするためだけ。 */
   return (
-    <ProfileEditClient
+    <MypageMockProvider>
+      <MypageLayout
+        activeKey="profile"
+        breadcrumb={[
+          { label: "OPINIO", href: "/" },
+          { label: "マイページ", href: "/mypage" },
+          { label: "プロフィール" },
+        ]}
+      >
+    <ProfileEditor
       owUser={owUser}
       authEmail={user.email ?? ""}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -343,5 +357,7 @@ export default async function ProfileEditPage({
       initialDesiredRoleIds={desiredRoleIds}
       initialProfilePrefs={profilePrefs}
     />
+      </MypageLayout>
+    </MypageMockProvider>
   );
 }
