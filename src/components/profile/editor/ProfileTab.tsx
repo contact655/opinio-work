@@ -133,6 +133,49 @@ type BasicInfo = {
 /** 肩書きの上限。⚠️ DB の CHECK（`ow_users_headline_length`）と同じ値にすること。 */
 const HEADLINE_MAX = 40;
 
+/**
+ * 編集フォームの中で、縦を大きく取るブロックを折りたたむ行（2026-08-16）。
+ *
+ * ⚠️ **閉じているせいで「入っていない」と誤解されないようにする。**
+ *    行の右に必ず現在の状態（件数 / 設定済み）を出すこと。
+ * ⚠️ **開閉は保存しない**（開くたび閉じた状態から）。覚えると、
+ *    次に開いた人が「なぜ開いているのか」を判断できない。
+ */
+function CollapsibleRow({ label, state, children }: {
+  label: string;
+  /** 行の右に出す現在の状態。「3件」「設定済み」など。**空にしない** */
+  state: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14 }}>
+      <button
+        type="button"
+        className="tap-min-h"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          width: "100%", padding: "6px 0", background: "none", border: "none",
+          cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>{state}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+               style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {open && <div style={{ marginTop: 12 }}>{children}</div>}
+    </div>
+  );
+}
+
 /** 促しの「追加する →」。⚠️ 見た目はリンクだが**ボタン**（同じページのカードを開く） */
 const promoBtn: React.CSSProperties = {
   background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
@@ -1228,15 +1271,30 @@ export default function ProfileTab({
                 <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
                   写真・名前・肩書き・所在地・生年月日・SNS。プロフィールページの先頭に出ます。
                 </div>
-                <ProfilePhotoUploader
-                  owUser={owUser}
-                  basicInfoName={basicInfo.name}
-                  settings={settings}
-                  onAvatarSaved={setSavedAvatarUrl}
-                  onCoverSaved={setSavedCoverPhotoUrl}
-                  savedAvatarUrl={savedAvatarUrl}
-                  savedCoverPhotoUrl={savedCoverPhotoUrl}
-                />
+                {/* ★写真・カバーは既定で閉じる（2026-08-16）。375px で **380px** を占めていて、
+                       名前を1文字直すだけでもここを越えないと保存ボタンに届かなかった。
+                    ⚠️ 行の右に「設定済み / 未設定」を出す。閉じていても状態は分かるようにする。 */}
+                <CollapsibleRow
+                  label="写真・カバー"
+                  /* ⚠️ 375px で2行に折り返さない長さにする（「プロフィール画像・カバー写真」＋
+                        「画像なし・カバーなし」は両方とも折り返していた） */
+                  state={
+                    savedAvatarUrl && savedCoverPhotoUrl ? "設定済み"
+                    : savedAvatarUrl ? "画像のみ"
+                    : savedCoverPhotoUrl ? "カバーのみ"
+                    : "未設定"
+                  }
+                >
+                  <ProfilePhotoUploader
+                    owUser={owUser}
+                    basicInfoName={basicInfo.name}
+                    settings={settings}
+                    onAvatarSaved={setSavedAvatarUrl}
+                    onCoverSaved={setSavedCoverPhotoUrl}
+                    savedAvatarUrl={savedAvatarUrl}
+                    savedCoverPhotoUrl={savedCoverPhotoUrl}
+                  />
+                </CollapsibleRow>
               <FormGroup label="名前" htmlFor="pe-name">
                 <input
                   id="pe-name"
@@ -1335,7 +1393,18 @@ export default function ProfileTab({
                   </div>
                 </div>
               </FormGroup>
-                <SocialLinksEditor socialLinks={socialLinks} setSocialLinks={setSocialLinks} />
+                {/* ★SNS 7欄も既定で閉じる。375px で **430px**（欄388px＋注記）を占めていた。
+                    ⚠️ **入力済みの件数を行に出す。** 閉じているせいで
+                       「入っていない」と誤解されないようにする。 */}
+                <CollapsibleRow
+                  label="SNS・外部リンク"
+                  state={(() => {
+                    const n = Object.values(socialLinks).filter((v) => v && v.trim()).length;
+                    return n > 0 ? `${n}件` : "未設定";
+                  })()}
+                >
+                  <SocialLinksEditor socialLinks={socialLinks} setSocialLinks={setSocialLinks} />
+                </CollapsibleRow>
                 {/* ⚠️ 保存は**1回の PUT**。名前・肩書き・所在地・生年月日・SNS を一緒に送る
                        （API は `"キー" in body` でしか触らないので、送らない列は動かない）。 */}
                 <CardSaveFooter
