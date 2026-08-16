@@ -929,6 +929,9 @@ export default function ProfileTab({
   const [editingCareerId, setEditingCareerId] = useState<string | null>(null);
   const [deleteCareerId,  setDeleteCareerId]  = useState<string | null>(null);
   const [addRoleForId,    setAddRoleForId]    = useState<string | null>(null);
+  /* ★職歴カードを「追加のために開いている」状態（2026-08-16）。
+        職歴は0件でもカードを出さないので、追加モーダルの置き場所が要る。 */
+  const [editingCareerSection, setEditingCareerSection] = useState(false);
   /* `Stint`（編集用）→ `CareerEntry`（表示用）。`/u/[id]` と同じ関数を通す。
      ⚠️ 新しく選んだ企業のロゴは `companyLogoInfo` に無い。頭文字＋既定色に落ちるだけで
         再読み込みすれば正しく出る（`CompanyLogoIcon` が logo_url null を扱える）。 */
@@ -1065,6 +1068,44 @@ export default function ProfileTab({
   const isHeaderDirty = isBasicDirty || isSocialDirty;
   /* 年齢は導出値（生年月日から作る）。**保存済みの値**から作る */
   const headerAge = ageFromBirth({ year: initialBirthYear, month: initialBirthMonth, day: initialBirthDay });
+
+  /* ── ★空のセクションは出さない（2026-08-16）─────────────────────────────
+        `/u/[id]` は0件のセクションを出さない。`/mypage` だけが7枚の空カードを積んでいて、
+        **入力が1つも無い人がいちばん長いスクロール**になっていた（4.2画面）。
+        「本人には出す（そこからしか追加できない）」の役目は
+        一番下の「セクションを追加」が引き継ぐ。
+
+     ⚠️ ヘッダー（写真・名前・SNS）は**対象外**。0件という概念が無く、
+        プロフィールの本体そのものなので常に出す。
+     ⚠️ 「目指す姿・ありたい未来」は職歴カードの中にあるので、**職歴が0件でも
+        本文があればカードを出す**。無ければ一覧から選んで開く。 */
+  const hasAbout = !!initialBasicInfo.aboutMe?.trim();
+  const hasFutureText = !!owUser?.future_aspirations?.trim();
+
+  type SectionKey = "about" | "achievements" | "awards" | "career" | "future" | "education" | "media" | "content";
+  /** 未入力のセクションだけを並べる。★入力済みは本文に出ているので一覧に入れない（二重になる） */
+  const emptySections = ([
+    { key: "about",        label: "自己紹介",        open: () => setEditingAbout(true) },
+    { key: "achievements", label: "数値実績",        open: () => { setEditingAchId(null); setEditingAch(true); setAchAddNonce((n) => n + 1); } },
+    { key: "awards",       label: "受賞・表彰",      open: () => { setEditingAwdId(null); setEditingAwd(true); setAwdAddNonce((n) => n + 1); } },
+    { key: "career",       label: "職歴",            open: () => { setEditingCareerSection(true); setCareerAddNonce((n) => n + 1); } },
+    { key: "future",       label: "目指す姿・ありたい未来", open: () => setEditingCareerSection(true) },
+    { key: "education",    label: "学歴",            open: () => { setEditingEduId(null); setEditingEdu(true); setEduAddNonce((n) => n + 1); } },
+    { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setEditingMedia(true); setMediaAddNonce((n) => n + 1); } },
+    { key: "content",      label: "発信コンテンツ",  open: () => { cancelEditLink(); setEditingContent(true); } },
+  ] as { key: SectionKey; label: string; open: () => void }[]).filter((sec) => {
+    switch (sec.key) {
+      case "about":        return !hasAbout;
+      case "achievements": return achievements.length === 0;
+      case "awards":       return awards.length === 0;
+      case "career":       return careerStints.length === 0;
+      case "future":       return !hasFutureText;
+      case "education":    return educations.length === 0;
+      case "media":        return mediaAppearances.length === 0;
+      case "content":      return contentLinks.length === 0;
+    }
+  });
+  const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
 
   /* ★ヘッダーの保存（2026-08-16 / 2-7）。名前・肩書き・所在地・生年月日・SNS を
         **1回の PUT** で送る。自己紹介（`about_me`）は送らない。
@@ -1368,6 +1409,11 @@ export default function ProfileTab({
           {/* ── 自己紹介（#about）──────────────────────────────────────────
                  ★ヘッダーから外して独立セクションにした（2026-08-16 / 2-7）。
                  `/u/[id]` と同じ位置・同じ見た目。 */}
+          {/* ★0件のセクションはカードごと出さない（2026-08-16）。
+                 入力が1つも無い人がいちばん長いスクロールを強いられていたため
+                 （空カード7枚で 4.2画面）。追加の入口は一番下の「セクションを追加」。
+              ⚠️ **編集中は必ず出す。** 出さないとフォームごと消えて追加できない。 */}
+          {(hasAbout || editingAbout) && (
           <div ref={aboutCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
             {editingAbout ? (
               <section style={{
@@ -1408,12 +1454,14 @@ export default function ProfileTab({
               />
             )}
           </div>
+          )}
 
         {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4）。
                公開プロフィールと同じ**独立した2セクション**。並び順も `/u/[id]` に合わせ、
                自己紹介（基本情報）の直後・職歴の前に置く。
             ⚠️ 職歴カードの中に入れ子で戻さないこと。紐づけはフォームのセレクトで選ぶ。 */}
           <div style={{ maxWidth: 680 }}>
+            {(achievements.length > 0 || editingAch) && (
             <EditableSection
               title="数値実績"
               description="定量的な成果を登録できます。売上達成率・顧客獲得数・コスト削減など。"
@@ -1443,7 +1491,9 @@ export default function ProfileTab({
                 }}
               />
             </EditableSection>
+            )}
 
+            {(awards.length > 0 || editingAwd) && (
             <EditableSection
               title="受賞・表彰"
               description="社内表彰・業界アワードなどを登録できます。"
@@ -1473,6 +1523,7 @@ export default function ProfileTab({
                 }}
               />
             </EditableSection>
+            )}
           </div>
 
         {/* 職歴・学歴タブ */}
@@ -1484,6 +1535,7 @@ export default function ProfileTab({
                    ★このカードに「編集モード」は無い。編集も追加も**モーダル**なので、
                    `CareerHistoryEditor` は常に描いておく。アンマウントすると
                    `careerStints` の控えが初期値へ巻き戻る。 */}
+            {(careerStints.length > 0 || hasFutureText || editingCareerSection) && (
             <ProfileTimelineSection
               id="career"
               title="職歴"
@@ -1552,9 +1604,11 @@ export default function ProfileTab({
                 }}
               />
             </ProfileTimelineSection>
+            )}
             {/* ★2-5 では枠と見出しを `EditableSection` に持たせていたが、**判断が誤っていた**。
                    `/u/[id]` の「学歴」の見出しは元からあり、`page.tsx` に直接書かれていた
                    （＝切り出していなかっただけ）。2-6 で職歴とまとめて切り出して揃えた。 */}
+            {(educations.length > 0 || editingEdu) && (
             <ProfileTimelineSection
               id="education"
               title="学歴"
@@ -1618,12 +1672,14 @@ export default function ProfileTab({
                 </>
               )}
             </ProfileTimelineSection>
+            )}
           </div>
 
         {/* メディア掲載（★実績・受賞とは別。職歴に属さないので独立カードのまま）
             ⚠️ 4-2 で「実績・受賞」カードは廃止し、数値実績と受賞歴は職歴カードへ移した。
                メディア掲載は個人としての登壇・寄稿・退職後の取材があり、
                在籍先に紐づけられないのでここに残す。 */}
+          {(mediaAppearances.length > 0 || editingMedia) && (
           <div style={{ maxWidth: 680 }}>
             {/* ⚠️ 見出しは EditableSection が描く。子は hideHeading で止める（二重にしない） */}
             <EditableSection
@@ -1661,12 +1717,14 @@ export default function ProfileTab({
               />
             </EditableSection>
           </div>
+          )}
 
         {/* ⚠️ 「SNS・外部リンク」カードは 2-7 で**廃止**した（2026-08-16）。
                SNS はヘッダーの中だけに出す。カードを戻すとアイコン列が2箇所になる
                （2-1 で報告した重複がこれで解消した）。編集はヘッダーの鉛筆から。 */}
 
         {/* 発信コンテンツ（SNS・発信タブ内） */}
+          {(contentLinks.length > 0 || editingContent) && (
           <div style={{ maxWidth: 680 }}>
             {/* ⚠️ 色付きバナーにしない（2026-08-15）。カードの desc に混ぜて1行にする。
                    1画面に色付きバナーを2つ以上出さない。 */}
@@ -1742,6 +1800,70 @@ export default function ProfileTab({
               />
             </EditableSection>
           </div>
+          )}
+
+          {/* ── ★セクションを追加（2026-08-16）────────────────────────────────
+                 0件のセクションはカードごと出さないので、**追加の入口はここ1つ**。
+              ⚠️ 未入力のものだけを並べる。入力済みは本文に出ているので入れない
+                 （同じ場所への入口が2つになる。ルール⑧）。
+              ⚠️ 全部埋まったらボタンごと消える。 */}
+          {emptySections.length > 0 && (
+            <div style={{ maxWidth: 680, marginBottom: 20 }}>
+              {!sectionPickerOpen ? (
+                <button
+                  type="button"
+                  className="tap-min-h"
+                  onClick={() => setSectionPickerOpen(true)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    width: "100%", padding: "12px 16px",
+                    background: "transparent", border: "1.5px dashed var(--line)",
+                    borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 13, fontWeight: 700, color: "var(--ink-soft)",
+                  }}
+                >
+                  <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+                  セクションを追加
+                </button>
+              ) : (
+                <section style={{
+                  background: "#fff", border: "1px solid var(--line)",
+                  borderRadius: 14, padding: "20px 24px",
+                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>セクションを追加</span>
+                    <button
+                      type="button" className="tap-target"
+                      onClick={() => setSectionPickerOpen(false)}
+                      aria-label="閉じる" title="閉じる"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 18, lineHeight: 1, padding: 4, fontFamily: "inherit" }}
+                    >×</button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {emptySections.map((sec) => (
+                      <button
+                        key={sec.key}
+                        type="button"
+                        className="tap-min-h"
+                        onClick={() => { sec.open(); setSectionPickerOpen(false); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          width: "100%", padding: "12px 14px", textAlign: "left",
+                          background: "var(--bg-tint)", border: "1px solid var(--line)",
+                          borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                          fontSize: 14, fontWeight: 600, color: "var(--ink)",
+                        }}
+                      >
+                        <span style={{ fontSize: 15, lineHeight: 1, color: "var(--royal)" }}>+</span>
+                        {sec.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
     </>
   );
 }
