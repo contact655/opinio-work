@@ -112,6 +112,12 @@ function AuthPageInner() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  /* ★遷移が始まらない／遅いときの逃げ道（2026-08-16）。
+        ⚠️ **`loading` は戻さない**（戻すと二重送信できてしまう）。
+           代わりに「まだ切り替わらない場合はこちら」を出す。
+           本番の遷移先はコールドスタートで実測 4.9秒（暖まると 0.7秒）かかることがあり、
+           その間ボタンは「ログイン中...」のままなので、**固まったように見える**。 */
+  const [slowRedirect, setSlowRedirect] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
@@ -181,7 +187,10 @@ function AuthPageInner() {
           body: JSON.stringify({ role: "candidate" }),
         }).catch(() => {});
         const dest = nextUrl || "/companies";
-        router.push(`/onboarding?next=${encodeURIComponent(dest)}`);
+        /* ★ログインと同じ理由でフルナビゲーション（2026-08-16）。
+              `/onboarding` は `getUser()` で弾いて `/auth?next=/onboarding` に戻すので、
+              書きたてのセッションが通らないと**この画面に戻ってきて固まる**。 */
+        window.location.assign(`/onboarding?next=${encodeURIComponent(dest)}`);
         return;
       }
 
@@ -223,8 +232,27 @@ function AuthPageInner() {
       return;
     }
 
-    router.push(nextUrl === "/" ? "/companies" : nextUrl);
-    router.refresh();
+    /*
+      ★**フルナビゲーションで遷移する**（`router.push` を使わない。2026-08-16）。
+
+      ⚠️ **`router.push` だと「ログイン中...」から進まなくなることがある。**
+         ログイン直後の遷移先が認証必須（`/u/` `/people` `/biz` など。middleware の
+         `needsAuth`）だと、クライアント遷移の**最初の RSC リクエスト**が
+         書きたてのセッションで通らなかった瞬間に middleware が
+         `/auth?next=...` へ差し戻す。**差し戻し先はいま居るこのページ**なので、
+         URL も画面も変わらず、`loading` を戻す道も無いのでボタンが固まったまま残る
+         （2026-08-16 に `/u/[id]` 宛てで実際に起きた。ログイン自体は成功していて、
+          `auth.users.last_sign_in_at` は更新されていた）。
+
+      ⚠️ `router.refresh()` を直後に呼んでいたのも外す。進行中の遷移と競合する。
+
+      フルナビゲーションなら、ブラウザが必ず新しい cookie を載せて middleware を
+      通し直すので、この差し戻しが起きない。SPA 的な速さは失うが、
+      **ログインの1回だけ**なので割に合う。
+    */
+    const dest = nextUrl === "/" ? "/companies" : nextUrl;
+    setSlowRedirect(dest);
+    window.location.assign(dest);
   };
 
   /**
@@ -673,6 +701,16 @@ function AuthPageInner() {
                 >
                   {loading ? "ログイン中..." : "ログイン"}
                 </button>
+
+                {/* ★遷移待ちの逃げ道。**ログイン自体は成功している**ので、
+                       ここから先に進めなくなるのを防ぐ。 */}
+                {slowRedirect && (
+                  <p style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7, textAlign: "center" }}>
+                    ログインしました。画面が切り替わらない場合は{" "}
+                    <a href={slowRedirect} style={{ color: "var(--royal)", fontWeight: 700 }}>こちらから移動</a>
+                    してください。
+                  </p>
+                )}
               </form>
 
               {/* マジックリンク */}
