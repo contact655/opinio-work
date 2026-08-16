@@ -174,7 +174,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
        この画面で集めたデータがそのまま使えなくなる。
        LinkedIn / Wantedly にも社名を伏せる設定は無く、実名が前提になっている。
 
-       公開範囲を変えたい人は `/profile/edit?tab=profile` の経歴ごとの
+       公開範囲を変えたい人は `/mypage?tab=profile` の経歴ごとの
        「会社名の公開設定」でいつでも変えられる（`CareerHistoryEditor` の
        `visibilityCompany` / `visibilityCompanyProfile`）。
        **列も編集UIも消していない。** 入口では既定の `real` で保存するだけ。
@@ -360,7 +360,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", opacity: 0.7, flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
-              <a href="/profile/edit" style={{
+              <a href="/mypage" style={{
                 display: "flex", alignItems: "center", gap: 14, padding: "14px 18px",
                 background: "var(--bg-tint)", border: "1px solid var(--line)",
                 color: "var(--ink-soft)", borderRadius: 12, textDecoration: "none",

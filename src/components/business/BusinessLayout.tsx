@@ -260,7 +260,7 @@ export function BusinessLayout({
                 {tenantName && <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{tenantName}</div>}
               </div>
               <Link
-                href="/profile/edit"
+                href="/mypage"
                 onClick={() => setAvatarOpen(false)}
                 style={{
                   display: "block", padding: "10px 16px",

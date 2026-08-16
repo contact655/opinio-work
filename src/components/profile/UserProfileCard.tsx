@@ -1,8 +1,8 @@
-// UserProfileCard — /mypage ダッシュボード表示専用カード
-// ν-8 段階6-1 コミット D: 編集ロジック全削除、SNS 7種化、スキルタグ追加、編集導線追加
-// 編集は /profile/edit を正とし、このコンポーネントは表示のみ担当する。
+// UserProfileCard — /mypage の先頭に置く「自分の見え方」カード（表示のみ）
+//
+// ⚠️ 編集は**すぐ下のカード**が担う（2026-08-16 に /profile/edit から /mypage へ移設）。
+//    ここに編集導線を戻さないこと。同じページの中で入口が二重になる。
 
-import Link from "next/link";
 import { FollowCounts } from "@/components/profile/FollowCounts";
 import {
   SocialIcon,
@@ -15,7 +15,9 @@ import { getUserAge } from "@/lib/age";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type UserProfileCardProps = {
-  userId: string;
+  /* ⚠️ `userId` は 2026-08-16 に不要になった（右上の「公開」ボタンを外したため）。
+     プロップは残す。呼び出し側は1箇所だけだが、公開ページへの導線を戻すときに要る。 */
+  userId?: string;
   userName: string;
   userInitial: string;
   userAvatar: string;
@@ -63,7 +65,6 @@ function MetaItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function UserProfileCard({
-  userId,
   userName,
   userInitial,
   userAvatar,
@@ -95,52 +96,13 @@ export default function UserProfileCard({
         position: "relative",
       }}
     >
-      {/* ── 編集導線（右上） ─────────────────────────────────────────────── */}
-      <div style={{ position: "absolute", top: 20, right: 20, display: "flex", alignItems: "center", gap: 6 }}>
-        {/* プロフィール編集（プライマリ） */}
-        <Link
-          href="/profile/edit"
-          style={{
-            display: "flex", alignItems: "center", gap: 5,
-            fontSize: 12, fontWeight: 600, color: "#fff",
-            textDecoration: "none",
-            padding: "6px 14px", borderRadius: 8,
-            background: "var(--royal)",
-            boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
-            transition: "opacity 0.15s",
-          }}
-          aria-label="プロフィールを編集"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-          </svg>
-          編集
-        </Link>
-        {/* 公開ページ（セカンダリ） */}
-        <Link
-          href={`/u/${userId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "flex", alignItems: "center", gap: 4,
-            fontSize: 12, fontWeight: 600, color: "var(--ink-mute)",
-            textDecoration: "none",
-            padding: "5px 10px", borderRadius: 8,
-            border: "1px solid var(--line)",
-            background: "var(--bg-tint)",
-            transition: "opacity 0.15s",
-          }}
-          aria-label="公開プロフィールを見る"
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          公開
-        </Link>
-      </div>
+      {/* ⚠️ **右上のボタン2つ（編集 / 公開）は 2026-08-16 に外した。**
+             ・「編集」… このカードのすぐ下がインライン編集の本体になったので、
+                        押しても同じページに留まるだけのボタンになっていた
+             ・「公開」… タブ行の右端に「公開プロフィールを見る」がある。
+                        同じ場所への入口を2つ並べない（`.claude/rules/ui-debugging.md` ⑧）
+             ⚠️ 下の自己紹介・SNS の「追加する →」は残す。**別の場所（該当カード）へ
+                案内するもの**で、上の2つとは役割が違う。 */}
 
       {/* ── アバター + 基本情報 ──────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 18 }}>
@@ -236,10 +198,10 @@ export default function UserProfileCard({
           background: "var(--bg-tint)", border: "1px dashed var(--line)",
           fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "center",
         }}>
-          自己紹介が未設定です。
-          <Link href="/profile/edit" style={{ color: "var(--royal)", marginLeft: 6, fontWeight: 600 }}>
-            追加する →
-          </Link>
+          {/* ⚠️ 「追加する →」のリンクを外した（2026-08-16）。移設後は**同じページ**を
+                 指すだけの無反応なリンクになっていた。入力欄はすぐ下の
+                 「基本情報」カードにある。 */}
+          自己紹介はまだ登録されていません。下の「基本情報」から入力できます。
         </div>
       )}
 
@@ -271,10 +233,8 @@ export default function UserProfileCard({
         </div>
       ) : (
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-          SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。{" "}
-          <Link href="/profile/edit?tab=profile" style={{ color: "var(--royal)", fontWeight: 600 }}>
-            追加する →
-          </Link>
+          {/* ⚠️ 同上。入力欄は下の「SNS・外部リンク」カードにある */}
+          SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。下の「SNS・外部リンク」から登録できます。
         </div>
       )}
     </div>

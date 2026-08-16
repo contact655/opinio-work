@@ -55,7 +55,7 @@ export default async function SalaryPage() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link
-              href="/profile/edit"
+              href="/mypage"
               style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "12px 24px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 2px 12px rgba(0,35,102,0.25)" }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

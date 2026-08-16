@@ -118,7 +118,7 @@ function EmptyState() {
         プロフィールに経歴や希望条件を入れておくと、企業から見つけてもらいやすくなります。
       </p>
       <Link
-        href="/profile/edit"
+        href="/mypage"
         style={{
           display: "inline-block",
           padding: "10px 20px",

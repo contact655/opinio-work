@@ -812,7 +812,7 @@ export default function MypageClient({
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
             あと{setupMissing.length}つ、{setupMissing.map((m) => m.label).join("・")}を入力すると公開できます。
           </div>
-          <a href={`/profile/edit?tab=${setupMissing[0].tab}`} style={{
+          <a href={`/mypage?tab=${setupMissing[0].tab}`} style={{
             display: "inline-block", padding: "8px 16px",
             background: "var(--royal)", color: "#fff",
             borderRadius: 8, fontSize: 12, fontWeight: 700,

@@ -161,7 +161,7 @@ function buildWelcomeHtml(name: string): string {
             </table>
 
             <p style="margin:0 0 24px">
-              <a href="https://opinio.jp/profile/edit?welcome=1" style="${btn}">プロフィールを設定する →</a>
+              <a href="https://opinio.jp/mypage?welcome=1" style="${btn}">プロフィールを設定する →</a>
             </p>
 
             <div style="background:#eff3fc;border-radius:8px;padding:14px 18px;border-left:3px solid #002366">

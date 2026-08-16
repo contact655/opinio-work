@@ -726,7 +726,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 ) : null}
 
                 {viewerIsOwner ? (
-                  <Link href="/profile/edit" className="profile-header-cta" style={{
+                  <Link href="/mypage" className="profile-header-cta" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "8px 18px", borderRadius: 8,
                     border: "1.5px solid var(--line)", background: "#fff",
@@ -922,7 +922,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", margin: "0 0 12px" }}>
                   自己紹介を書いて、あなたのことを伝えましょう
                 </p>
-                <Link href="/profile/edit" style={{
+                <Link href="/mypage" style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "8px 18px", borderRadius: 8,
                   background: "var(--royal)", color: "#fff",
@@ -1372,7 +1372,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </span>
                   <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                   {viewerIsOwner && (
-                    <Link href="/profile/edit" style={{
+                    <Link href="/mypage" style={{
                       fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
                       textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
                     }}>
@@ -1393,7 +1393,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 10px" }}>
                       note・Zenn・YouTube等の発信URLを登録しましょう
                     </p>
-                    <Link href="/profile/edit" style={{
+                    <Link href="/mypage" style={{
                       display: "inline-flex", alignItems: "center", gap: 5,
                       padding: "7px 16px", borderRadius: 8,
                       background: "var(--royal-50)", border: "1px solid var(--royal-100)",

@@ -81,9 +81,9 @@ export async function getWeeklyRecipients(supabase: SupabaseClient<any, any, any
  * メール末尾の配信停止リンク。
  *
  * ⚠️ 2026-08-10 まで `/mypage` を指していたが、そこに設定 UI は無い。
- *    実際の場所は `/profile/edit` の「アカウント」タブ。
+ *    実際の場所は `/mypage` の「設定」タブ（2026-08-16 に /profile/edit から移設）。
  *    **リンク先を変えるときは、そのタブが実在するか確かめること。**
  */
 export function unsubscribeUrl(baseUrl: string): string {
-  return `${baseUrl}/profile/edit?tab=settings`;
+  return `${baseUrl}/mypage?tab=settings`;
 }

@@ -250,7 +250,7 @@ function generateWeeklyEmail(
       <h1 style="font-size:20px;font-weight:600;margin-bottom:4px">希望条件に合う求人が届いています</h1>
       <p style="color:#6b7280;font-size:14px;margin-bottom:20px">
         あなたが登録した希望条件に合う求人を${recs.length}件お送りします。
-        条件は<a href="${BASE_URL}/profile/edit?tab=wishes" style="color:#059669">プロフィール編集</a>からいつでも変更できます。
+        条件は<a href="${BASE_URL}/mypage?tab=wishes" style="color:#059669">プロフィール編集</a>からいつでも変更できます。
       </p>
       ${jobsHtml}
       <div style="border-top:1px solid #e5e7eb;padding-top:16px;margin-top:20px">

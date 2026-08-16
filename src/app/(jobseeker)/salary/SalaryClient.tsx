@@ -233,7 +233,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
               完全匿名・無料・1分で完了
             </p>
             <Link
-              href="/profile/edit"
+              href="/mypage"
               style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 2px 12px rgba(0,35,102,0.2)" }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -350,7 +350,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
             匿名で報告するだけで、IT/SaaS業界全体の<br />透明な年収情報が広がります。
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/profile/edit" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+            <Link href="/mypage" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
               年収を報告する（1分・無料）
             </Link>
             <Link href="/jobs" style={{ display: "inline-block", padding: "12px 20px", borderRadius: 100, background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)" }}>

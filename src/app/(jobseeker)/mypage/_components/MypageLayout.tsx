@@ -162,7 +162,6 @@ export default function MypageLayout({
             { key: "scouts",         label: "スカウト",      href: "/mypage/scouts" },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations" },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks" },
-            { key: "profile",        label: "プロフィール",  href: "/profile/edit" },
           ].map((item) => {
             const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
             const badge =
@@ -226,16 +225,9 @@ export default function MypageLayout({
           </nav>
 
 
-          <div style={{
-            fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
-            color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
-            padding: "20px 24px 8px",
-          }}>
-            アカウント
-          </div>
-          <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.user} label="プロフィール" active={activeKey === "profile" || activeKey === "settings"} href="/profile/edit" />
-          </nav>
+          {/* ⚠️ 「アカウント > プロフィール」は 2026-08-16 に削除した。
+                 プロフィールの中身は「ホーム」（/mypage）そのものになったので、
+                 同じ場所へ行く入口が2つ並んでいた（ルール⑧）。 */}
         </aside>
 
         {/* メインコンテンツ */}

@@ -137,7 +137,7 @@ export function ProfileCompletionBar({
                 → {label}
               </button>
             ) : (
-              <a key={it.key} href={`/profile/edit?tab=${it.tab}`} style={style}>
+              <a key={it.key} href={`/mypage?tab=${it.tab}`} style={style}>
                 → {label}
               </a>
             );
