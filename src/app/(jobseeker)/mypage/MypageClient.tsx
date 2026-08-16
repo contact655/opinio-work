@@ -7,6 +7,7 @@ import MypageLayout from "./_components/MypageLayout";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
+import type { ProfileSavedSnapshot } from "@/components/profile/editor/ProfileTab";
 import type { ComponentProps } from "react";
 import UserProfileCard from "@/components/profile/UserProfileCard";
 /* ⚠️ 型だけ使う。経歴タイムラインの描画は 2026-08-16 にここから外した
@@ -411,6 +412,13 @@ export default function MypageClient({
            新しい仕組みを作らない。
         ⚠️ 押しても何も起きないリンクにしないこと。移設前は `/profile/edit` へ
            飛ばしていたが、移設後は**同じページ**なので無反応になった（2026-08-16）。 */
+  /* ★「あと N つ」は**保存済みスナップショット**から出す（2026-08-16）。
+        SSR のプロップだけを見ていた頃は、保存しても**リロードするまで
+        数字が減らなかった**（実測で確認）。
+        ⚠️ 入力中の値は流れてこない（`ProfileEditor` が保存成功時にだけ進める）。
+           流すと、保存していないのに N が減る。 */
+  const [profileSaved, setProfileSaved] = useState<ProfileSavedSnapshot | null>(null);
+
   const [openBasicNonce, setOpenBasicNonce] = useState(0);
   const [openSocialNonce, setOpenSocialNonce] = useState(0);
   const [openCareerNonce, setOpenCareerNonce] = useState(0);
@@ -428,10 +436,17 @@ export default function MypageClient({
      ⚠️ バナー本文と同じ3つを見る。文言と条件がズレると、
         「あと1つ」と書いてあるのに何を入れればいいか分からない状態になる。
      ⚠️ tab はすべて /profile/edit の VALID_TABS に実在するキー。 */
+  /* ⚠️ スナップショットが届く前（初回描画）は SSR のプロップで判定する。
+        `ProfileEditor` はマウント直後に同じ値を流してくるので、切り替わっても
+        数字は変わらない。 */
+  const savedName    = profileSaved ? profileSaved.name    : (owUser?.name ?? "");
+  const savedAboutMe = profileSaved ? profileSaved.aboutMe : (owUser?.about_me ?? "");
+  const savedCareerCount = profileSaved ? profileSaved.experienceCount : (timelineCareers?.length ?? 0);
+
   const setupMissing: { label: string; key: "name" | "aboutMe" | "career" }[] = [
-    { key: "name" as const,    label: "名前",     done: !!userName && userName !== "ユーザー" },
-    { key: "aboutMe" as const, label: "自己紹介", done: !!owUser?.about_me && owUser.about_me.trim().length > 0 },
-    { key: "career" as const,  label: "職歴",     done: (timelineCareers?.length ?? 0) > 0 },
+    { key: "name" as const,    label: "名前",     done: !!savedName && savedName !== "ユーザー" },
+    { key: "aboutMe" as const, label: "自己紹介", done: savedAboutMe.trim().length > 0 },
+    { key: "career" as const,  label: "職歴",     done: savedCareerCount > 0 },
   ].filter((x) => !x.done).map(({ label, key }) => ({ label, key }));
 
   const dashboardRightColumn = (
@@ -666,6 +681,7 @@ export default function MypageClient({
               openBasicNonce={openBasicNonce}
               openSocialNonce={openSocialNonce}
               openCareerNonce={openCareerNonce}
+              onSavedSnapshotChange={setProfileSaved}
             />
           )}
         />

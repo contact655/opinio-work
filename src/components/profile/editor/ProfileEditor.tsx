@@ -150,6 +150,7 @@ export default function ProfileEditor({
   openBasicNonce = 0,
   openSocialNonce = 0,
   openCareerNonce = 0,
+  onSavedSnapshotChange,
 }: {
   owUser: OwUser;
   authEmail: string;
@@ -179,6 +180,15 @@ export default function ProfileEditor({
   openBasicNonce?: number;
   openSocialNonce?: number;
   openCareerNonce?: number;
+  /**
+   * **保存に成功したときだけ進む**スナップショットを親へ渡す。
+   *
+   * ⚠️ `/mypage` の右カラム「あと N つ」がこれを見る。
+   *    ★**入力中の state を親へ流さないこと。** 流すと、保存していないのに
+   *    「あと1つ」に減る（2026-08-15 に完成度バーで決めた「保存済みの値だけから
+   *    算出する」と同じ話）。
+   */
+  onSavedSnapshotChange?: (snapshot: ProfileSavedSnapshot) => void;
   initialProfilePrefs?: {
     // ⚠️ job_type / desired_work_style / experience_years は受け取らない。
     //    希望職種は ow_profile_desired_roles、勤務スタイルは desired_work_styles、
@@ -298,6 +308,13 @@ export default function ProfileEditor({
     socialOrContentCount:   initialContentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
   });
   const [profileDirty, setProfileDirty] = useState(false);
+
+  /* 保存済みスナップショットを親（`/mypage` の右カラム）へ渡す。
+     ⚠️ マウント時にも1度流れる。初期値は SSR のプロップから作った同じ値なので、
+        親が持っている値と食い違わない。 */
+  useEffect(() => {
+    onSavedSnapshotChange?.(profileSaved);
+  }, [profileSaved, onSavedSnapshotChange]);
 
   /* ── 未保存の変更 ─────────────────────────────────────────────────────────
         ⚠️ 確認を出すのは**ページ離脱のときだけ**。タブ切替では出さない
