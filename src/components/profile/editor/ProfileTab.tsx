@@ -42,7 +42,7 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
 import { StintRecords } from "./StintRecords";
 /* ⚠️ 表示は**公開プロフィールと同じ部品**を使う（2026-08-16）。
       同じ見た目を2箇所に書かない。片方だけ直る状態を作らない。 */
-import { ProfileSocialLinks } from "@/components/profile/view/ProfileSections";
+import { ProfileSocialLinks, ProfileContentLinksSection } from "@/components/profile/view/ProfileSections";
 import { LOCATIONS } from "@/lib/profile/mockProfileData";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -661,116 +661,10 @@ function ContentLinkForm({
 }
 
 /** 発信コンテンツ1行の読み取り表示（表示モードと編集モードの一覧で共用） */
-function ContentLinkRow({
-  link, onEdit, onDelete,
-}: { link: ContentLink; onEdit: () => void; onDelete: () => void }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "flex-start", gap: "var(--space-3)",
-      padding: "12px 14px", borderRadius: 10,
-      border: "1px solid var(--line)", background: "var(--bg-tint)",
-    }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 2 }}>
-          {PLATFORM_OPTIONS.find((p) => p.value === link.platform)?.label ?? link.platform ?? "Web"}
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {link.title || link.url}
-        </div>
-        <a
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={link.url}
-          style={{
-            fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
-            display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}
-        >
-          {link.url}
-        </a>
-      </div>
-      {/* ⚠️ 入口は行あたり2つだけ（鉛筆＝編集 / ゴミ箱＝削除）。
-             「編集」の文字ボタンを重ねて置かない（ルール⑧） */}
-      <button
-        type="button"
-        onClick={onEdit}
-        className="btn-fixed-size"
-        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
-        aria-label={`${link.title || link.url} を編集`}
-        title="編集"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        onClick={onDelete}
-        className="btn-fixed-size"
-        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 4, flexShrink: 0 }}
-        aria-label={`${link.title || link.url} を削除`}
-        title="削除"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-        </svg>
-      </button>
-    </div>
-  );
-}
+/* ⚠️ 発信コンテンツの表示（`ContentLinksView` / `ContentLinkRow`・110行）は
+      2026-08-16 に削除した。**公開プロフィールと同じ `ProfileContentLinksSection`**
+      を使う。ここに描き直さないこと。 */
 
-/**
- * 発信コンテンツの表示モード（2026-08-16）。
- *
- * ⚠️ 0件のときは**1行の空状態**（2026-08-16 に記入例カードから変更）。
- *    表示モードでは記入例が「登録済みの1件」に見えるため、7枚とも1行に統一した。
- * ⚠️ 一覧は親の `contentLinks`（API の戻り値で更新される state）から描く。
- *    SSR 時点のプロップ（`initialContentLinks`）を直接見ない。
- */
-function ContentLinksView({
-  links, onEdit, onDelete, onStartAdd,
-}: { links: ContentLink[]; onEdit: (id: string) => void; onDelete: (id: string) => void; onStartAdd: () => void }) {
-  if (links.length === 0) {
-    return (
-      <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-        まだ発信コンテンツを登録していません。
-        <button
-          type="button"
-          onClick={onStartAdd}
-          style={{
-            background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-            fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-            textDecoration: "underline", textUnderlineOffset: 2,
-          }}
-        >
-          発信コンテンツを追加する
-        </button>
-      </p>
-    );
-  }
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      {links.map((link) => (
-        <ContentLinkRow
-          key={link.id}
-          link={link}
-          onEdit={() => onEdit(link.id)}
-          onDelete={() => onDelete(link.id)}
-        />
-      ))}
-    </div>
-  );
-}
-
-/**
- * SNS・外部リンクの表示モード（2026-08-16）。
- *
- * ⚠️ **空かどうかは「値が入っているか」で判定する。キーの有無で判定しない。**
- *    保存済みの `social_links` には空文字のキーが残ることがある（既知の不具合。
- *    SNS を空にして保存すると `{"x": ""}` になる。docs/todo.md に記録済み）。
- *    キーの有無で見ると「登録あり」に化ける。
- */
 /**
  * SNS の表示モード。★**公開プロフィール（`/u/[id]`）と同じ部品**を使う（2026-08-16）。
  *
@@ -1069,6 +963,11 @@ export default function ProfileTab({
       const updated: ContentLink = await res.json();
       setContentLinks((prev) => prev.map((l) => (l.id === id ? updated : l)));
       setEditingLinkId(null);
+      /* ★行の編集は保存したら**カードごと表示モードに戻す**（2026-08-16）。
+            戻さないと「新しいコンテンツを追加」のフォームが出たままになり、
+            直したはずの行が画面から消えたように見える（実測で確認）。
+         ⚠️ 追加のときは閉じない（続けて足せるように。出口は「完了」）。 */
+      setEditingContent(false);
     } catch {
       setLinkError("通信エラーが発生しました");
     } finally {
@@ -1694,35 +1593,33 @@ export default function ProfileTab({
               onStartEdit={() => { cancelEditLink(); setEditingContent(true); }}
               action="add"
               actionLabel="発信コンテンツを追加"
+              /* ★表示モードは枠も見出しも公開部品が持つ（2026-08-16）。
+                    ここで描くと**枠・見出し・「追加」がすべて二重**になる（実測で確認）。 */
+              chrome="none"
               editContent={<>
-              {/* 既存リスト。★行ごとに鉛筆で編集に変わる（フォームは追加と同じものを使う） */}
-              {contentLinks.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 20 }}>
-                  {contentLinks.map((link) => (
-                    editingLinkId === link.id ? (
-                      /* ★key に id を付けて、開くたびに保存済みの行から作り直す
-                            （閉じるとアンマウントされるため。ルール⑦） */
-                      <ContentLinkForm
-                        key={link.id}
-                        heading="このコンテンツを編集"
-                        initial={draftFromLink(link)}
-                        submitLabel="保存"
-                        saving={linkSaving}
-                        error={linkError}
-                        onSubmit={(draft) => { void handleUpdateContentLink(link.id, draft); }}
-                        onCancel={cancelEditLink}
-                      />
-                    ) : (
-                      <ContentLinkRow
-                        key={link.id}
-                        link={link}
-                        onEdit={() => startEditLink(link.id)}
-                        onDelete={() => { void handleDeleteContentLink(link.id); }}
-                      />
-                    )
-                  ))}
-                </div>
-              )}
+              {/* ★編集モードは**フォームだけ**（2026-08-16）。行の一覧は出さない。
+                     一覧（と行の鉛筆・ゴミ箱）は表示モードの
+                     `ProfileContentLinksSection` が持つ。ここに戻さないこと。
+                  ⚠️ 行の鉛筆から来たときは、その行のフォームだけを出す。 */}
+              {editingLinkId !== null && (() => {
+                const link = contentLinks.find((l) => l.id === editingLinkId);
+                if (!link) return null;
+                return (
+                  /* ★key に id を付けて、開くたびに保存済みの行から作り直す
+                        （閉じるとアンマウントされるため。ルール⑦） */
+                  <ContentLinkForm
+                    key={link.id}
+                    heading="このコンテンツを編集"
+                    initial={draftFromLink(link)}
+                    submitLabel="保存"
+                    saving={linkSaving}
+                    error={linkError}
+                    onSubmit={(draft) => { void handleUpdateContentLink(link.id, draft); }}
+                    onCancel={cancelEditLink}
+                  />
+                );
+              })()}
+
 
               {/* 新規追加フォーム。
                   ⚠️ 行を編集している間は出さない（編集対象は常に1つ。入力欄が2組並ばない） */}
@@ -1745,12 +1642,18 @@ export default function ProfileTab({
               />
               </>}
             >
-              {/* 表示モード */}
-              <ContentLinksView
-                links={contentLinks}
-                onEdit={(id) => { startEditLink(id); setEditingContent(true); }}
-                onDelete={handleDeleteContentLink}
-                onStartAdd={() => { cancelEditLink(); setEditingContent(true); }}
+              {/* ★表示は**公開プロフィールと同じ部品**（2026-08-16）。
+                     行の鉛筆・ゴミ箱・見出しの「追加」だけを `actions` で足す。
+                  ⚠️ 0件の空状態も部品側が持っている（`viewerIsOwner` の例外）。
+                     `/mypage` 独自の1行を足すと**同じ場所への入口が2つ**になる（ルール⑧）。 */}
+              <ProfileContentLinksSection
+                contentLinks={contentLinks}
+                viewerIsOwner
+                actions={{
+                  onEditRow: (id) => { startEditLink(id); setEditingContent(true); },
+                  onDeleteRow: (id) => { void handleDeleteContentLink(id); },
+                  onAdd: () => { cancelEditLink(); setEditingContent(true); },
+                }}
               />
             </EditableSection>
           </div>

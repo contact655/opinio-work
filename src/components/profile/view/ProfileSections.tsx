@@ -21,6 +21,55 @@ import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
 import { SocialIcon, SOCIAL_META, SNS_PLATFORMS, type SocialPlatform } from "@/components/SocialIcon";
 
+/* ── ★本人だけに出す操作の口（2026-08-16 / 2-2 で決めた型）──────────────────
+      `MergedTimeline` の `viewerIsOwner` に揃える。**2-3〜2-6 でも同じ形を使う。**
+
+      ⚠️ **渡さなければ DOM は1バイトも変わらない。** 他人が見る `/u/[id]` の
+         HTML を変えないための約束。ラップ用の `<div>` も、渡されたときだけ足す。
+      ⚠️ 見た目（鉛筆・ゴミ箱の形と大きさ）は `RowActions` が1箇所で持つ。
+         セクションごとに描き直さない。 */
+export type RowActions = {
+  /** 行の鉛筆。渡さなければ鉛筆を出さない */
+  onEditRow?: (id: string) => void;
+  /** 行のゴミ箱。渡さなければ削除を出さない */
+  onDeleteRow?: (id: string) => void;
+  /** 見出しの「追加」。★`/mypage` では同じページなのでリンクではなくボタンにする */
+  onAdd?: () => void;
+};
+
+/** 行の右端に出す鉛筆とゴミ箱。⚠️ `<a>` の**外**に置くこと（アンカーの入れ子は不正） */
+function RowActionButtons({ id, label, actions }: { id: string; label: string; actions: RowActions }) {
+  if (!actions.onEditRow && !actions.onDeleteRow) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+      {actions.onEditRow && (
+        <button
+          type="button" className="btn-fixed-size"
+          onClick={() => actions.onEditRow!(id)}
+          aria-label={`${label} を編集`} title="編集"
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+        </button>
+      )}
+      {actions.onDeleteRow && (
+        <button
+          type="button" className="btn-fixed-size"
+          onClick={() => actions.onDeleteRow!(id)}
+          aria-label={`${label} を削除`} title="削除"
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
 
 export type AchievementRow = {
@@ -442,7 +491,12 @@ export function ProfileArticlesSection({ featuredArticles }: { featuredArticles:
 }
 
 // ─── ProfileContentLinksSection ───────────────────────────────────────────────────────────
-export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { contentLinks: ContentLinkRow[]; viewerIsOwner: boolean }) {
+export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, actions }: {
+  contentLinks: ContentLinkRow[];
+  viewerIsOwner: boolean;
+  /** ★本人の編集用。**渡さなければ他人が見る DOM と1バイトも変わらない** */
+  actions?: RowActions;
+}) {
   return (
     <>
       {(contentLinks.length > 0 || viewerIsOwner) && (
@@ -459,7 +513,20 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { co
               CONTENT
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            {viewerIsOwner && (
+            {/* ⚠️ `/mypage` では同じページなので**リンクにしない**（押しても何も起きない）。
+                   `onAdd` が渡されたときだけボタンにする。 */}
+            {viewerIsOwner && (actions?.onAdd ? (
+              <button type="button" onClick={actions.onAdd} style={{
+                fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
+                background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 4, padding: 0,
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                追加
+              </button>
+            ) : (
               <Link href="/mypage" style={{
                 fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
                 textDecoration: "none", display: "flex", alignItems: "center", gap: 4,
@@ -469,7 +536,7 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { co
                 </svg>
                 追加
               </Link>
-            )}
+            ))}
           </div>
 
           {contentLinks.length === 0 && viewerIsOwner && (
@@ -481,14 +548,25 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { co
               <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 10px" }}>
                 note・Zenn・YouTube等の発信URLを登録しましょう
               </p>
-              <Link href="/mypage" style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "7px 16px", borderRadius: 8,
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                color: "var(--royal)", fontSize: 12, fontWeight: 600, textDecoration: "none",
-              }}>
-                コンテンツを追加する →
-              </Link>
+              {actions?.onAdd ? (
+                <button type="button" onClick={actions.onAdd} style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "7px 16px", borderRadius: 8,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  color: "var(--royal)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  コンテンツを追加する →
+                </button>
+              ) : (
+                <Link href="/mypage" style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "7px 16px", borderRadius: 8,
+                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  color: "var(--royal)", fontSize: 12, fontWeight: 600, textDecoration: "none",
+                }}>
+                  コンテンツを追加する →
+                </Link>
+              )}
             </div>
           )}
 
@@ -496,7 +574,10 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { co
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {contentLinks.map((link) => {
               const meta = PLATFORM_META[link.platform ?? "other"] ?? PLATFORM_META.other;
-              return (
+              /* ⚠️ 鉛筆・ゴミ箱は `<a>` の**外**に置く（アンカーの入れ子は不正で、
+                    クリックも取り合いになる）。`actions` が無いときは
+                    ラップ用の `<div>` ごと出さない＝他人の DOM は変わらない。 */
+              const row = (
                 <a
                   key={link.id}
                   href={link.url}
@@ -571,6 +652,13 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner }: { co
                     <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                   </svg>
                 </a>
+              );
+              if (!actions?.onEditRow && !actions?.onDeleteRow) return row;
+              return (
+                <div key={link.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>{row}</div>
+                  <RowActionButtons id={link.id} label={link.title || link.url} actions={actions} />
+                </div>
               );
             })}
           </div>

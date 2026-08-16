@@ -275,6 +275,7 @@ export function EditableSection({
   actionLabel,
   children,
   editContent,
+  chrome = "card",
 }: {
   title: string;
   description?: string;
@@ -288,7 +289,24 @@ export function EditableSection({
   children: React.ReactNode;
   /** 編集モードの中身（既存の入力欄一式をそのまま置く） */
   editContent: React.ReactNode;
+  /**
+   * 表示モードで**枠と見出しを描くか**。
+   *
+   *   card … 従来どおり。カード枠＋見出し＋鉛筆を描く
+   *   none … **何も描かず子だけ出す。** 枠と見出しは子（公開プロフィールの部品）が持ち、
+   *          鉛筆・＋も子の見出し行に置く。
+   *
+   * ⚠️ **編集モードは `chrome` に関係なく従来どおり**（枠＋見出し＋説明文＋フォーム）。
+   *    入力欄が枠の外に浮かないようにするため。
+   *
+   * ⚠️ ★**暫定。全セクションが公開部品に移り終えたら `card` モードは消える**
+   *    （そのとき `chrome` ごと消す）。2モードを恒久的に維持する前提で作らない。
+   */
+  chrome?: "card" | "none";
 }) {
+  /* 表示モードで枠を持たない形。⚠️ 子が枠・見出し・鉛筆をすべて持つ */
+  if (chrome === "none" && !isEditing) return <>{children}</>;
+
   return (
     <section style={CARD_STYLE}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
