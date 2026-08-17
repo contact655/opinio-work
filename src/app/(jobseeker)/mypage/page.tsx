@@ -25,6 +25,10 @@ export default async function MypagePage({
         どこにも無く（/profile/start が存在しないため）、到達不能だった。 */
   searchParams?: { welcome?: string; tab?: string };
 }) {
+  /* ⚠️ 旧 `?tab=` の転送は **`src/middleware.ts`** で返す（サーバーが 307 を返すため）。
+        ここに書くと `/mypage/loading.tsx` の Suspense 境界の内側になり、
+        HTTP 200 のままクライアント側の遷移になる。**2箇所に書かないこと。** */
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -427,7 +431,6 @@ export default async function MypagePage({
       showScoutBanner={showScoutBanner}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */
-      initialTab={searchParams?.tab}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialEducations={educations as any}
       initialSocialLinks={(owUser?.social_links as Record<string, string> | null) ?? {}}

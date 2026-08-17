@@ -669,7 +669,7 @@ function ListingStatusPanel({
       </p>
 
       <a
-        href="/mypage?tab=profile"
+        href="/mypage"
         style={{
           alignSelf: "flex-start",
           padding: "8px 18px",

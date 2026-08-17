@@ -31,80 +31,9 @@ export const CARD_FOOTER_STYLE: React.CSSProperties = {
   borderTop: "1px solid var(--line-soft)",
 };
 
-/**
- * カード内の保存行（保存 / キャンセル / 状態 / エラー）。
- *
- * ⚠️ 希望条件のカードはこれを使う。②基本情報・⑦SNS と**同じ形・同じ文言**にすること。
- *    片方だけ言い回しが違うと「押した結果が同じか」を利用者が判断できない。
- */
-export function CardSaveFooter({
-  dirty, saving, justSaved, error, onSave, onCancel,
-}: {
-  dirty: boolean; saving: boolean; justSaved: boolean;
-  /** API が返したエラー文。★どの項目が不正かを含むので、丸めずそのまま出す */
-  error: string | null;
-  onSave: () => void; onCancel: () => void;
-}) {
-  const locked = !dirty || saving || justSaved;
-  /* ⚠️ **キャンセルは「変更が無いとき」も押せるようにする。**（2026-08-16）
-        `EditableSection` では、キャンセルが**編集モードの唯一の出口**になった。
-        `locked` で無効にすると、何も入力していないカードを開いたときに
-        **閉じる手段が無くなる**（実測で踏んだ）。押せないのは保存中と保存直後だけ。 */
-  const cancelLocked = saving || justSaved;
-  return (
-    <>
-      {error && (
-        <div role="alert" style={{
-          marginTop: 16, padding: "10px 14px", borderRadius: 8,
-          background: "var(--error-soft, #FEF2F2)", border: "1px solid #FECACA",
-          fontSize: 12, fontWeight: 600, color: "var(--error)",
-        }}>
-          {error}
-        </div>
-      )}
-      <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
-        {/* ⚠️ 未保存であることは**画面に出す**。タブ切替では確認を出さない方針なので
-               （移動しても入力は消えない）、気づく手段はここと、タブ名の「未保存」印。 */}
-        {dirty ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--royal)" }}>
-            <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", display: "inline-block" }} />
-            未保存の変更があります
-          </span>
-        ) : (
-          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>このカードだけを保存します</span>
-        )}
-        <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={cancelLocked}
-            style={{
-              padding: "10px 20px", fontSize: "var(--text-sm)", fontWeight: 600,
-              background: "#fff", color: "var(--ink-soft)",
-              border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit",
-              cursor: cancelLocked ? "default" : "pointer", opacity: cancelLocked ? 0.5 : 1,
-            }}
-          >
-            キャンセル
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={locked}
-            style={{
-              padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 140,
-              background: justSaved ? "var(--success)" : locked ? "var(--ink-mute)" : "var(--royal)",
-              color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit",
-              cursor: locked ? "default" : "pointer", transition: "background 0.2s",
-            }}
-          >
-            {saving ? "保存中…" : justSaved ? "✓ 保存しました" : "保存"}
-          </button>
-        </span>
-      </div>
-    </>
-  );
-}
+/* ⚠️ `CardSaveFooter`（カードの中の保存・キャンセル行）は 2026-08-17 に削除した。
+      **編集はすべて `ProfileEditModal` で開き、保存はモーダルのフッター1つ**になったため。
+      戻すと「同じ画面に保存ボタンが2つ」に逆戻りする。 */
 
 export function FormSection({
   title, desc, children,
@@ -372,4 +301,3 @@ export function CollapsibleRow({ label, state, children, first = false, defaultO
     </div>
   );
 }
-

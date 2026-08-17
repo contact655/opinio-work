@@ -19,9 +19,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Json } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
-import Tabs, { type TabItem } from "./Tabs";
-import WishesTab from "./WishesTab";
-import SettingsTab from "./SettingsTab";
 import ProfileTab, { type ProfileSavedSnapshot } from "./ProfileTab";
 /* ⚠️ カード・入力欄の共通部品は formKit に移した（3-B / 2026-08-15）。中身は変えていない。 */
 import {
@@ -38,7 +35,6 @@ import {
 } from "./recordTypes";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import type { CompanyLogoInfo } from "@/lib/utils/timeline";
-import { hasCareerPreferences } from "@/lib/profile/completion";
 import type { SocialPlatform } from "@/components/SocialIcon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,22 +61,9 @@ type ContentLink = {
   sort_order: number;
 };
 
-/* タブは3枚（2026-08-15 に7枚から再編）。
-   ⚠️ 旧7値は `LEGACY_TAB_MAP` で解決する。`?tab=` を持つメールやブックマークが
-      既にあるので、旧値で来ても既定タブに落とさない。 */
-/* ⚠️ 型名は `ProfileTabKey`。`ProfileTab` はタブの**コンポーネント**（3-B）。 */
-type ProfileTabKey = "profile" | "wishes" | "settings";
-
-/** 旧 `?tab=` の値 → 新タブ。**消さないこと。** */
-const LEGACY_TAB_MAP: Record<string, ProfileTabKey> = {
-  basic: "profile",
-  career: "profile",
-  certs_achievements: "profile",
-  socials_content: "profile",
-  preferences: "wishes",
-  privacy: "settings",
-  account: "settings",
-};
+/* ⚠️ タブ（`ProfileTabKey` / `LEGACY_TAB_MAP`）は 2026-08-17 に削除した。
+      旧 `?tab=` の値は **`/mypage` の page.tsx が転送で受ける**。
+      ここに対応表を戻さないこと（転送先が2箇所に割れる）。 */
 
 type OwUser = {
   id: string;
@@ -115,11 +98,8 @@ const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, var(--royal), #3B5FD9, #81
 
 /* ⚠️ ProfilePhotoUploader は ProfileTab へ移した（3-B）。 */
 
-const PROFILE_TABS: TabItem[] = [
-  { key: "profile",  label: "プロフィール" },
-  { key: "wishes",   label: "転職の希望" },
-  { key: "settings", label: "設定" },
-];
+/* ⚠️ `PROFILE_TABS` と `Tabs` は 2026-08-17 に削除した（フェーズ4-3）。
+      プロフィールは1枚の縦長。タブを戻さないこと。 */
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -140,7 +120,6 @@ export default function ProfileEditor({
   initialContentLinks,
   roles,
   roleAliases = {},
-  initialTab,
   isWelcome = false,
   initialScoutEnabled = null,
   initialDesiredRoleIds = [],
@@ -165,8 +144,6 @@ export default function ProfileEditor({
   roles: RoleItem[];
   /** role_id → 別名[]。職種の検索セレクトでヒットさせる（ow_role_aliases） */
   roleAliases?: Record<string, string[]>;
-  /** `?tab=` の値。不正な値は無視して既定タブを開く */
-  initialTab?: string;
   isWelcome?: boolean;
   initialScoutEnabled?: boolean | null;
   /** 希望職種（ow_profile_desired_roles）。本人が選んだ role_id（展開前） */
@@ -206,49 +183,18 @@ export default function ProfileEditor({
     desired_phase: string[] | null;
   } | null;
 }) {
-  const VALID_TABS: ProfileTabKey[] = ["profile", "wishes", "settings"];
-  /* ⚠️ 旧値（basic / career / ...）で来ても対応表で解決する。既定に落とさない。 */
-  const resolvedInitialTab: ProfileTabKey =
-    VALID_TABS.includes(initialTab as ProfileTabKey) ? (initialTab as ProfileTabKey)
-    : (initialTab && LEGACY_TAB_MAP[initialTab]) ? LEGACY_TAB_MAP[initialTab]
-    : "profile";
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>(resolvedInitialTab);
-
-  /* ── タブの遅延マウント（★一度開いたら二度と外さない）───────────────────
-        ⚠️ アンマウントする形に戻さないこと。3-B の2条件が壊れる:
-           ① 保存していない入力がタブ切替で消える
-           ② 開くたびに再取得が走る（設定タブの email-settings、学歴の schools）
-        開くまでマウントしないのは、初回描画で3タブ分を描かないため。
-        設定タブは mount 時に `/api/jobseeker/email-settings` を1本引くので、
-        プロフィールを見に来ただけの人にその1本を負わせない。 */
-  const [mountedTabs, setMountedTabs] = useState<Set<ProfileTabKey>>(() => new Set([resolvedInitialTab]));
-  useEffect(() => {
-    setMountedTabs((prev) => (prev.has(activeTab) ? prev : new Set(prev).add(activeTab)));
-  }, [activeTab]);
+  /* ⚠️ タブの state（`activeTab` / `mountedTabs` / `VALID_TABS`）は
+        2026-08-17 に削除した。`?tab=` は `/mypage` 側で転送する。 */
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
-  /* 外からカードを開かれたら、プロフィールタブに切り替える（開いていなければ）。
-     ⚠️ タブを切り替えても中身はアンマウントしない作りなので、
-        切り替え → カード側の useEffect の順で問題なく開く。 */
-  useEffect(() => {
-    if (openBasicNonce || openHeaderNonce || openCareerNonce) setActiveTab("profile");
-  }, [openBasicNonce, openHeaderNonce, openCareerNonce]);
+  /* ⚠️ 「外から開かれたらプロフィールタブへ切り替える」は不要になった（タブが無い）。 */
 
   /* 希望条件は WishesTab が持つ（3-B）。親は**保存済みの結果だけ**を受け取る。
      ⚠️ ここに希望条件の state を戻さないこと。保存の単位はカードで、それはタブ側にある。 */
-  const [wishesHasPrefs, setWishesHasPrefs] = useState<boolean>(
-    hasCareerPreferences({
-      desiredRoleCount:    initialDesiredRoleIds.length,
-      desired_work_styles: initialProfilePrefs?.desired_work_styles ?? null,
-      desired_prefectures: initialProfilePrefs?.desired_prefectures ?? null,
-      desired_salary_min:  initialProfilePrefs?.desired_salary_min ?? null,
-      desired_salary_max:  initialProfilePrefs?.desired_salary_max ?? null,
-      transfer_timing:     initialProfilePrefs?.transfer_timing ?? null,
-      desired_phase:       initialProfilePrefs?.desired_phase ?? null,
-    })
-  );
-  const [wishesDirty, setWishesDirty] = useState(false);
+  /* ⚠️ 希望条件の「設定済み」判定（`wishesHasPrefs`）は 2026-08-17 に削除した。
+        タブ名の印の代わりに**ボックスの要約が現在値を出す**。
+        `hasCareerPreferences` は `/mypage` の別の場所で現役なので残っている。 */
 
   // ── グローバル保存ステータス（全タブ共通のインジケーター用） ─────────────
   // isSaving: いずれかのタブで保存中, justSaved: 直近3秒以内に保存完了
@@ -290,7 +236,7 @@ export default function ProfileEditor({
   /* 保存済みの公開設定。写真カードのプレビューが見る。
      ⚠️ 右カラムの「企業からの見え方」は 2026-08-16 に外した（本体は設定タブにある）。 */
   const [savedSettings, setSavedSettings] = useState<SettingsState>(initialSettingsForTab);
-  const [settingsDirty, setSettingsDirty] = useState(false);
+  /* ⚠️ `settingsDirty` は削除（設定タブが無い）。公開範囲はボックスのモーダルで保存する。 */
 
 
   // ── スキルタブの状態 ─────────────────────────────────────────────────────
@@ -324,16 +270,9 @@ export default function ProfileEditor({
            （移動しても入力は消えない）。カードごとに扱いを変えないこと。
         ⚠️ 希望条件の内訳はタブ側が持つ。親は「未保存があるか」だけを受け取る。 */
 
-  /* ⚠️ **タブ切替では確認を出さない**（2026-08-15）。移動しても入力は消えないので、
-        確認する理由が無い。未保存であることは
-        「カードのフッターの表示」と「タブ名の『未保存』印」で伝える。
-        確認を出すのはページ離脱のときだけ。あちらは実際に失われる。 */
-  const requestTabChange = useCallback((tab: ProfileTabKey) => {
-    setActiveTab(tab);
-  }, []);
-
-  /* ⚠️ 文言はブラウザが決める（差し替えられない）。出すか出さないかだけを制御する。 */
-  const hasDirty = profileDirty || wishesDirty || settingsDirty;
+  /* ページを離れるときだけ確認を出す。**モーダルの中身は閉じると失われる**ため。
+     ⚠️ 文言はブラウザが決める（差し替えられない）。出すか出さないかだけを制御する。 */
+  const hasDirty = profileDirty;
   useEffect(() => {
     if (!hasDirty) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
@@ -341,44 +280,14 @@ export default function ProfileEditor({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [hasDirty]);
 
-  // ── タブ完成度（各タブにデータがあれば green dot） ─────────────────────────
-  /* ⚠️ **条件をタブ側に書き足さない。** 7枚のときの判定をそのまま OR で束ねるだけにする。
-        新しい基準を作ると、完成度の判定と食い違う。 */
-  const tabCompletion: Record<ProfileTabKey, boolean> = {
-    /* ⚠️ 完成度と同じく**保存済みの値だけ**を見る。入力中の state を混ぜると
-          打ち始めた瞬間にドットが点く（保存していないのに「設定済み」に見える）。 */
-    profile:
-      !!(profileSaved.name.trim() || profileSaved.aboutMe.trim()) ||
-      profileSaved.experienceCount > 0 || profileSaved.educationCount > 0 ||
-      profileSaved.certOrAchievementCount > 0 || profileSaved.socialOrContentCount > 0,
-    wishes:   wishesHasPrefs,
-    /* 公開設定・アカウントは既定値で成立しているので、常に「設定済み」。 */
-    settings: true,
-  };
+  /* ⚠️ タブの完成度（`tabCompletion`）・未保存（`tabDirty`）・
+        `profileTabsWithCompletion` は 2026-08-17 に削除した（タブが無い）。
+        **「未設定」の印はヘッダー下のボックスの要約が代わりを務める**（値そのものを出す）。
 
-
-  /* タブごとの未保存。★「未設定」とは別物。判定はカードの dirty をそのまま束ねるだけ。 */
-  const tabDirty: Record<ProfileTabKey, boolean> = {
-    profile:  profileDirty,
-    wishes:   wishesDirty,
-    settings: settingsDirty,
-  };
-
-  const profileTabsWithCompletion = PROFILE_TABS.map((tab) => ({
-    ...tab,
-    completed: tabCompletion[tab.key as ProfileTabKey],
-    dirty: tabDirty[tab.key as ProfileTabKey],
-  }));
-
-  /* ⚠️ **完成度バーはこのページから外した**（2026-08-16。フェーズ3）。
-        `/mypage` に同じものがあり、編集画面ではタブの「未設定」バッジが
-        同じ役割を果たすため。`src/lib/profile/completion.ts` は残っている
-        （`/mypage` と、すぐ上の `tabCompletion` が使う）。
-
-     ⚠️ **ここに完成度を戻すときは、「保存済みの値」だけから作ること。**
-        入力中の state を混ぜると保存していないのに % が上がり、読み込み時の
-        プロップを見ると保存したのに % が動かない（2026-08-15 に3項目が実際にそうだった）。
-        見てよいのは `profileSaved` と `wishesHasPrefs` に限る。 */
+     ⚠️ **完成度バーもこのページには無い**（2026-08-16 に外した）。
+        戻すときは「保存済みの値」だけから作ること。入力中の state を混ぜると
+        保存していないのに % が上がる（2026-08-15 に3項目が実際にそうだった）。
+        `src/lib/profile/completion.ts` は `/mypage` の別の場所で現役。 */
 
   return (
     <>
@@ -468,54 +377,15 @@ export default function ProfileEditor({
 
         </div>
 
-        {/* ── タブナビゲーション ──────────────────────────────────────────────── */}
-        {/* ⚠️ 「公開プロフィールを見る」は**この1つだけ**。幅で出し分けない
-               （右カラムと `.mypage-narrow-only` に2つ持っていたのをやめた）。 */}
-        <Tabs
-          tabs={profileTabsWithCompletion}
-          activeTab={activeTab}
-          onTabChange={(key) => requestTabChange(key as ProfileTabKey)}
-          trailing={owUser?.id ? (
-            <a
-              href={`/u/${owUser.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="公開プロフィールを見る（新しいタブで開く）"
-              title="公開プロフィールを見る"
-              /* ⚠️ 767px 以下では高さを 44px にする（既定は 28px）。アイコンは 12px のまま */
-              className="tap-min-h tap-target"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "7px 12px", borderRadius: 8,
-                border: "1px solid var(--line)", background: "#fff",
-                fontSize: 12, fontWeight: 700, color: "var(--royal)",
-                textDecoration: "none", whiteSpace: "nowrap",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              {/* ⚠️ 768px 未満ではラベルを隠す（アイコンだけ）。
-                     176px あるとタブ行の残りが155pxになり、3つのタブが横スクロールに
-                     追いやられる（375px で実測）。**導線の数は変えない。**
-                     読み上げは `aria-label` が担うので、視覚的にだけ隠す。 */}
-              <span className="public-profile-label">公開プロフィールを見る</span>
-              <style>{`
-                .public-profile-label { display: none; }
-                @media (min-width: 768px) { .public-profile-label { display: inline; } }
-              `}</style>
-            </a>
-          ) : undefined}
-        />
+        {/* ⚠️ アクション行（「セクションを追加」「公開プロフィールを見る」）は
+               `ProfileTab` の先頭に移した（2026-08-17 / フェーズ4-3）。
+               **ここに戻すと同じ導線が2つになる**（ルール⑧）。 */}
 
         {/* ── タブコンテンツ ──────────────────────────────────────────────────── */}
 
         {/* プロフィールタブ（3-B で別ファイルへ切り出し。中身は移しただけ）
             ⚠️ display:none で残す。アンマウントすると未保存の入力がタブ切替で消える。 */}
-        {mountedTabs.has("profile") && (
-        <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
+        <div>
           <ProfileTab
             owUser={owUser}
             settings={savedSettings}
@@ -551,57 +421,15 @@ export default function ProfileEditor({
             }}
             onVisibilitySaved={(v) => setSavedSettings((prev) => ({ ...prev, visibility: v }))}
           />
-          {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
-                 タブの外に置くと「転職の希望」「設定」を開いたときにも出てしまう。 */}
+          {/* 母校・アクティビティ（プロフィールの下端） */}
           {profileTabExtra}
         </div>
-        )}
 
-
-
-        {/* 転職の希望タブ（3-B で別ファイルへ切り出し）
-            ⚠️ display:none で残す。アンマウントすると未保存の入力がタブ切替で消える。 */}
-        {mountedTabs.has("wishes") && (
-        <div style={{ display: activeTab === "wishes" ? "block" : "none" }}>
-          <WishesTab
-            roles={roles}
-            roleAliases={roleAliases}
-            desiredRoleOptions={desiredRoleOptions}
-            initialDesiredRoleIds={initialDesiredRoleIds}
-            initialProfilePrefs={initialProfilePrefs}
-            initialExperiences={initialExperiences}
-            onHasPrefsChange={setWishesHasPrefs}
-            onDirtyChange={setWishesDirty}
-            notifyGlobalSave={notifyGlobalSave}
-          />
-          {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
-                 タブの外に置くと「転職の希望」「設定」を開いたときにも出てしまう。 */}
-          {profileTabExtra}
-        </div>
-        )}
-
-
-
-
-        {/* アカウント設定タブ（動作） */}
-        {/* ══════════════════════════════════════════════════════════════════
-            公開設定タブ
-        ══════════════════════════════════════════════════════════════════ */}
-        {/* 設定タブ（3-B で別ファイルへ切り出し。中身は移しただけ）
-            ⚠️ display:none で残す。アンマウントするとメール通知設定の取得が
-               タブを開くたびに走り、未保存の公開設定も消える。 */}
-        {mountedTabs.has("settings") && (
-        <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
-          <SettingsTab
-            initialSettings={initialSettingsForTab}
-            initialScoutEnabled={initialScoutEnabled}
-            initialExperiences={initialExperiences}
-            onSettingsChange={setSavedSettings}
-            onDirtyChange={setSettingsDirty}
-            notifyGlobalSave={notifyGlobalSave}
-          />
-        </div>
-        )}
+        {/* ⚠️ 「転職の希望」タブ（`WishesTab`）と「設定」タブ（`SettingsTab`）は
+               2026-08-17 に削除した。行き先は
+               **希望条件・公開範囲・スカウト・転職検討状況 → ヘッダー下のボックス**、
+               **ログイン情報・メール通知・アカウント削除 → `/mypage/settings`**。
+               ここに戻すと、同じ列を触る画面が2つに戻る。 */}
 
         {/* ══════════════════════════════════════════════════════════════════
             アカウントタブ

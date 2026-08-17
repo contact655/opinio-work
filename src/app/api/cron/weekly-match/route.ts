@@ -29,7 +29,7 @@ function getResend() {
 
   ② 配信停止が機能していない → ✅ 解消
      ow_profiles.email_weekly_enabled を作り、getWeeklyRecipients が見る。
-     設定 UI は /mypage?tab=settings（2026-08-16 に /profile/edit から移設）。
+     設定 UI は /mypage/settings（2026-08-17 にタブから独立ページへ）。
 
   ③ 宛先に is_test と実在しないアドレスが混ざる → ✅ 解消
      getWeeklyRecipients に集約。2026-08-10 実測で 39件 → 3名。
@@ -250,7 +250,7 @@ function generateWeeklyEmail(
       <h1 style="font-size:20px;font-weight:600;margin-bottom:4px">希望条件に合う求人が届いています</h1>
       <p style="color:#6b7280;font-size:14px;margin-bottom:20px">
         あなたが登録した希望条件に合う求人を${recs.length}件お送りします。
-        条件は<a href="${BASE_URL}/mypage?tab=wishes" style="color:#059669">プロフィール編集</a>からいつでも変更できます。
+        条件は<a href="${BASE_URL}/mypage" style="color:#059669">プロフィール編集</a>からいつでも変更できます。
       </p>
       ${jobsHtml}
       <div style="border-top:1px solid #e5e7eb;padding-top:16px;margin-top:20px">

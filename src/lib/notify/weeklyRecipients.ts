@@ -85,5 +85,7 @@ export async function getWeeklyRecipients(supabase: SupabaseClient<any, any, any
  *    **リンク先を変えるときは、そのタブが実在するか確かめること。**
  */
 export function unsubscribeUrl(baseUrl: string): string {
-  return `${baseUrl}/mypage?tab=settings`;
+  /* ⚠️ 2026-08-17 に `/mypage?tab=settings` から変えた（タブを畳んだため）。
+     過去に送ったメールは `?tab=settings` のままなので、`/mypage` 側の転送も消さないこと。 */
+  return `${baseUrl}/mypage/settings`;
 }

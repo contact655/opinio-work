@@ -25,6 +25,24 @@ const APPLY_RE = /^\/jobs\/[^/]+\/apply\/?$/;
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  /* ★旧 `?tab=` の転送（2026-08-17 / フェーズ4-3）。**ここで返すこと。**
+     ⚠️ ページ側の `redirect()` だと **HTTP は 200 のまま**になる
+        （`/mypage/loading.tsx` の Suspense 境界の内側で起きるため、
+        シェルが先に流れてクライアント側の遷移になる）。
+        配信停止リンクはメールから踏まれるので、**サーバーが 307 を返す形にする。**
+     ⚠️ 知らない値でも `/mypage` に落とす。404 にしない。
+        過去のメールとブックマークが行き先を失うほうが害が大きい。 */
+  if (pathname === "/mypage" && request.nextUrl.searchParams.has("tab")) {
+    const tab = request.nextUrl.searchParams.get("tab");
+    const url = request.nextUrl.clone();
+    url.search = "";
+    /* 設定タブの中身は `/mypage/settings` へ移した。旧7値の privacy / account も同じ。 */
+    url.pathname = (tab === "settings" || tab === "privacy" || tab === "account")
+      ? "/mypage/settings"
+      : "/mypage";
+    return NextResponse.redirect(url);
+  }
+
   // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
   const needsAuth =
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||

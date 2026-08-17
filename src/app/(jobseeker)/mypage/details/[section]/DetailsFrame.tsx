@@ -22,7 +22,7 @@ export function DetailsFrame({ title, onAdd, addLabel, children, hideOwnHeading 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
       <Link
-        href="/mypage?tab=profile"
+        href="/mypage"
         className="tap-target"
         aria-label="プロフィールに戻る"
         style={{

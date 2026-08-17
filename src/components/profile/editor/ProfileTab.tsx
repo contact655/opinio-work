@@ -48,6 +48,7 @@ import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
 import CareerIntentBox, { type IntentPrefs } from "./CareerIntentBox";
 import { CollapsibleRow } from "./formKit";
+import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
 import { ContentLinksEditor, type ContentLink } from "./ContentLinksEditor";
 import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
@@ -670,6 +671,17 @@ export default function ProfileTab({
   /* ★本体に出す職歴は**表示単位で4つまで**（2026-08-17 / フェーズ3）。
         同じ会社の複数の役割は1つのまとまりとして数える。
      ⚠️ 切るのは `MergedTimeline` と同じ並べ替えを通したあと。 */
+  /* ★社会人経験年数。**保存済みの職歴から毎回その場で計算する**（列は読まない）。
+        ⚠️ `careerStints` を見る（`initialExperiences` ではなく）。
+           職歴を足したら再読み込みなしで追随する。 */
+  const oldestCareerStart = useMemo(() => {
+    const starts = careerStints.map((e) => e.startedAt).filter(Boolean);
+    return starts.length > 0 ? starts.reduce((a, b) => (a < b ? a : b)) : null;
+  }, [careerStints]);
+  const totalExperience = useMemo(
+    () => calcTotalExperience(careerStints.map((e) => e.startedAt)),
+    [careerStints],
+  );
   const shownCareers = useMemo(
     () => limitCareersForDisplay(timelineCareers, ROWS_ON_PROFILE.experience),
     [timelineCareers],
@@ -939,6 +951,98 @@ export default function ProfileTab({
 
   return (
     <>
+        {/* ── ★アクション行（2026-08-17 / フェーズ4-3）──────────────────────
+               タブバーを畳んだので、ページの操作はこの1行にまとめる。
+            ⚠️ 「公開プロフィールを見る」は**この1つだけ**。幅で出し分けない。 */}
+        <div style={{
+          maxWidth: 680, display: "flex", alignItems: "center", justifyContent: "flex-end",
+          gap: 8, marginBottom: 12, flexWrap: "wrap",
+        }}>
+          {emptySections.length > 0 && (
+            <button
+              type="button"
+              className="tap-min-h"
+              onClick={() => setSectionPickerOpen((v) => !v)}
+              aria-expanded={sectionPickerOpen}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "7px 12px", borderRadius: 8,
+                border: "1px dashed var(--line)", background: "#fff",
+                fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              }}
+            >
+              <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+              セクションを追加
+            </button>
+          )}
+          {owUser?.id && (
+            <a
+              href={`/u/${owUser.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="公開プロフィールを見る（新しいタブで開く）"
+              title="公開プロフィールを見る"
+              className="tap-min-h"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "7px 12px", borderRadius: 8,
+                border: "1px solid var(--line)", background: "#fff",
+                fontSize: 12, fontWeight: 700, color: "var(--royal)",
+                textDecoration: "none", whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              公開プロフィールを見る
+            </a>
+          )}
+        </div>
+
+        {/* 「セクションを追加」を押したときの一覧。★アクション行のすぐ下に出す */}
+        {sectionPickerOpen && emptySections.length > 0 && (
+          <div style={{ maxWidth: 680, marginBottom: 16 }}>
+<section style={{
+                  background: "#fff", border: "1px solid var(--line)",
+                  borderRadius: 14, padding: "20px 24px",
+                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>セクションを追加</span>
+                    <button
+                      type="button" className="tap-target"
+                      onClick={() => setSectionPickerOpen(false)}
+                      aria-label="閉じる" title="閉じる"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 18, lineHeight: 1, padding: 4, fontFamily: "inherit" }}
+                    >×</button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {emptySections.map((sec) => (
+                      <button
+                        key={sec.key}
+                        type="button"
+                        className="tap-min-h"
+                        onClick={() => { sec.open(); setSectionPickerOpen(false); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          width: "100%", padding: "12px 14px", textAlign: "left",
+                          background: "var(--bg-tint)", border: "1px solid var(--line)",
+                          borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                          fontSize: 14, fontWeight: 600, color: "var(--ink)",
+                        }}
+                      >
+                        <span style={{ fontSize: 15, lineHeight: 1, color: "var(--royal)" }}>+</span>
+                        {sec.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+          </div>
+        )}
+
         {/* ── ヘッダー（2026-08-16 / 2-7）──────────────────────────────────
                ★`UserProfileCard` / 「プロフィール画像・カバー」/「基本情報」の3枚を
                  1つにまとめ、**公開プロフィールと同じ `ProfileHeader`** を使う。
@@ -1288,6 +1392,24 @@ export default function ProfileTab({
               manageHref="/mypage/details/experience"
               manageLabel="職歴を編集"
             >
+              {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
+                     「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
+                  ⚠️ **`ow_profiles.experience_years` は読んでいない。** あの列は
+                     2026-08-07 に入力欄を廃止したまま残っている死蔵の列（49件中6件に値。読み手0）。
+                     ここに出すのは**職歴の最も古い開始日からその場で計算した値**。
+                  ⚠️ 職歴が0件なら `calcTotalExperience` が null を返すので出さない
+                     （「0年」と出さない。CLAUDE.md「データ表示の原則」）。
+                  ⚠️ `/u/[id]` には出さない。**`ProfileTimelineSection` の children は
+                     `/mypage` だけが渡す**ので、公開側の DOM は変わらない。 */}
+              {totalExperience && (
+                <p style={{ margin: "0 0 14px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+                  社会人経験
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: "0 4px" }}>
+                    {totalExperience.label}
+                  </span>
+                  （{formatYmLabel(oldestCareerStart)} から）
+                </p>
+              )}
               {careerStints.length === 0 && (
                 <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                   まだ職歴を登録していません。
@@ -1487,68 +1609,10 @@ export default function ProfileTab({
             openAddNonce={contentAddNonce}
           />
 
-          {/* ── ★セクションを追加（2026-08-16）────────────────────────────────
-                 0件のセクションはカードごと出さないので、**追加の入口はここ1つ**。
-              ⚠️ 未入力のものだけを並べる。入力済みは本文に出ているので入れない
-                 （同じ場所への入口が2つになる。ルール⑧）。
-              ⚠️ 全部埋まったらボタンごと消える。 */}
-          {emptySections.length > 0 && (
-            <div style={{ maxWidth: 680, marginBottom: 20 }}>
-              {!sectionPickerOpen ? (
-                <button
-                  type="button"
-                  className="tap-min-h"
-                  onClick={() => setSectionPickerOpen(true)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    width: "100%", padding: "12px 16px",
-                    background: "transparent", border: "1.5px dashed var(--line)",
-                    borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
-                    fontSize: 13, fontWeight: 700, color: "var(--ink-soft)",
-                  }}
-                >
-                  <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
-                  セクションを追加
-                </button>
-              ) : (
-                <section style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "20px 24px",
-                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>セクションを追加</span>
-                    <button
-                      type="button" className="tap-target"
-                      onClick={() => setSectionPickerOpen(false)}
-                      aria-label="閉じる" title="閉じる"
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 18, lineHeight: 1, padding: 4, fontFamily: "inherit" }}
-                    >×</button>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {emptySections.map((sec) => (
-                      <button
-                        key={sec.key}
-                        type="button"
-                        className="tap-min-h"
-                        onClick={() => { sec.open(); setSectionPickerOpen(false); }}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 8,
-                          width: "100%", padding: "12px 14px", textAlign: "left",
-                          background: "var(--bg-tint)", border: "1px solid var(--line)",
-                          borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
-                          fontSize: 14, fontWeight: 600, color: "var(--ink)",
-                        }}
-                      >
-                        <span style={{ fontSize: 15, lineHeight: 1, color: "var(--royal)" }}>+</span>
-                        {sec.label}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          )}
+          {/* ⚠️ 「セクションを追加」は 2026-08-17（フェーズ4-3）に**ヘッダーの上のアクション行へ移した**。
+                 下端に戻さないこと（空のセクションを出さない作りなので、
+                 入力が何も無い人は下端まで進む理由が無い）。 */}
+
     </>
   );
 }
