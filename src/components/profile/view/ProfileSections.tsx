@@ -818,7 +818,7 @@ export function ProfileSocialLinks({ socialLinks }: { socialLinks: Partial<Recor
  * ⚠️ 中身（年表）は `MergedTimeline` が描く。ここは枠・見出し・アンカーだけ。
  * ⚠️ `onAdd` を渡さなければ DOM は `page.tsx` にあったものと1バイトも変わらない。
  */
-export function ProfileTimelineSection({ id, title, onAdd, addLabel, manageHref, manageLabel, children }: {
+export function ProfileTimelineSection({ id, title, onAdd, addLabel, manageHref, manageLabel, emptyUsesPencil = false, children }: {
   /** アンカー（`#career` / `#education`）。ページ内ナビが指す */
   id: string;
   title: string;
@@ -829,6 +829,12 @@ export function ProfileTimelineSection({ id, title, onAdd, addLabel, manageHref,
       ⚠️ 行ごとの鉛筆はここでは出さない。**1件ずつ触るのは一覧ページの仕事**。 */
   manageHref?: string;
   manageLabel?: string;
+  /** ★0件のとき、見出しのアイコンを**鉛筆1つ**にする（2026-08-17）。
+      押すと `onAdd`（追加モーダル）が開く。
+      ⚠️ 0件で ＋、1件以上で ✎ だと**同じ見出し行の記号が状態で入れ替わる**。
+         「転職の希望」ボックスは常に ✎ なので、そこと揃わない。
+      ⚠️ 一覧ページへは送らない。行が無いので空の画面に着くだけ。 */
+  emptyUsesPencil?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -844,7 +850,7 @@ export function ProfileTimelineSection({ id, title, onAdd, addLabel, manageHref,
         <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
         {onAdd && (
           <button type="button" className="tap-target" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
-            <PlusIcon />
+            {emptyUsesPencil ? <PencilIcon /> : <PlusIcon />}
           </button>
         )}
         {manageHref && (

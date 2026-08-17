@@ -1393,6 +1393,8 @@ export default function ProfileTab({
               /* ★行ごとの操作は一覧ページへ（2026-08-17 / フェーズ3） */
               manageHref={careerStints.length > 0 ? "/mypage/details/experience" : undefined}
               manageLabel="職歴を編集"
+              /* ★0件のときは鉛筆1つにする（記号を「転職の希望」ボックスと揃える） */
+              emptyUsesPencil={careerStints.length === 0}
             >
               {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
                      「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
@@ -1493,6 +1495,7 @@ export default function ProfileTab({
               /* ★行ごとの鉛筆・ゴミ箱は本体から外し、一覧ページに寄せた（2026-08-17 / フェーズ3） */
               manageHref={educations.length > 0 ? "/mypage/details/education" : undefined}
               manageLabel="学歴を編集"
+              emptyUsesPencil={educations.length === 0}
             >
               {educations.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
