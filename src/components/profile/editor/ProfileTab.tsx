@@ -658,9 +658,8 @@ export default function ProfileTab({
   const [editingCareerId, setEditingCareerId] = useState<string | null>(null);
   const [deleteCareerId,  setDeleteCareerId]  = useState<string | null>(null);
   const [addRoleForId,    setAddRoleForId]    = useState<string | null>(null);
-  /* ★職歴カードを「追加のために開いている」状態（2026-08-16）。
-        職歴は0件でもカードを出さないので、追加モーダルの置き場所が要る。 */
-  const [editingCareerSection, setEditingCareerSection] = useState(false);
+  /* ⚠️ `editingCareerSection` は 2026-08-17 に削除した。
+        職歴セクションは**0件でも常に描かれる**ので、「追加のために開いている状態」が要らなくなった。 */
   /* `Stint`（編集用）→ `CareerEntry`（表示用）。`/u/[id]` と同じ関数を通す。
      ⚠️ 新しく選んだ企業のロゴは `companyLogoInfo` に無い。頭文字＋既定色に落ちるだけで
         再読み込みすれば正しく出る（`CompanyLogoIcon` が logo_url null を扱える）。 */
@@ -814,17 +813,19 @@ export default function ProfileTab({
      ⚠️ 「目指す姿・ありたい未来」は職歴カードの中にあるので、**職歴が0件でも
         本文があればカードを出す**。無ければ一覧から選んで開く。 */
   const hasAbout = !!initialBasicInfo.aboutMe?.trim();
-  const hasFutureText = !!owUser?.future_aspirations?.trim();
+  /* ⚠️ `hasFutureText` は参照0になった（2026-08-17）。職歴セクションが常時出るので、
+        「目指す姿があるからカードを出す」という判定が不要になった。 */
 
-  type SectionKey = "about" | "achievements" | "awards" | "career" | "future" | "education" | "media" | "content";
+  /* ⚠️ **職歴・学歴・目指す姿は候補に入れない**（2026-08-17）。
+        職歴と学歴は0件でも枠が出るようになり、目指す姿はその職歴セクションの中に
+        CTA（「✦ 目指す姿を書いてみる」）が常に出る。
+        候補にも出すと**同じ操作への入口が2つ**になる（ルール⑧）。 */
+  type SectionKey = "about" | "achievements" | "awards" | "media" | "content";
   /** 未入力のセクションだけを並べる。★入力済みは本文に出ているので一覧に入れない（二重になる） */
   const emptySections = ([
     { key: "about",        label: "自己紹介",        open: () => setEditingAbout(true) },
     { key: "achievements", label: "数値実績",        open: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); } },
     { key: "awards",       label: "受賞・表彰",      open: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); } },
-    { key: "career",       label: "職歴",            open: () => { setEditingCareerSection(true); setCareerAddNonce((n) => n + 1); } },
-    { key: "future",       label: "目指す姿・ありたい未来", open: () => setEditingCareerSection(true) },
-    { key: "education",    label: "学歴",            open: () => { setEditingEduId(null); setEduAddNonce((n) => n + 1); } },
     { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); } },
     { key: "content",      label: "発信コンテンツ",  open: () => setContentAddNonce((n) => n + 1) },
   ] as { key: SectionKey; label: string; open: () => void }[]).filter((sec) => {
@@ -832,9 +833,6 @@ export default function ProfileTab({
       case "about":        return !hasAbout;
       case "achievements": return achievements.length === 0;
       case "awards":       return awards.length === 0;
-      case "career":       return careerStints.length === 0;
-      case "future":       return !hasFutureText;
-      case "education":    return educations.length === 0;
       case "media":        return mediaAppearances.length === 0;
       case "content":      return contentLinks.length === 0;
     }
@@ -1381,14 +1379,19 @@ export default function ProfileTab({
                    ★このカードに「編集モード」は無い。編集も追加も**モーダル**なので、
                    `CareerHistoryEditor` は常に描いておく。アンマウントすると
                    `careerStints` の控えが初期値へ巻き戻る。 */}
-            {(careerStints.length > 0 || hasFutureText || editingCareerSection) && (
+            {/* ★職歴と学歴は**0件でも枠を出す**（2026-08-17）。
+                   キャリアの土台なので、空でも「ここに入る」と分かる場所を残す。
+                   他の5つ（自己紹介・数値実績・受賞・メディア掲載・発信コンテンツ）は
+                   いまどおり「セクションを追加」に集約する。
+                ⚠️ **0件のときは ✎ を出さない。** 一覧ページに送っても空の画面に着くだけ。
+                   1件でも入れば ＋ と ✎ の2つに戻る。 */}
             <ProfileTimelineSection
               id="career"
               title="職歴"
               onAdd={() => setCareerAddNonce((n) => n + 1)}
               addLabel="職歴を追加"
               /* ★行ごとの操作は一覧ページへ（2026-08-17 / フェーズ3） */
-              manageHref="/mypage/details/experience"
+              manageHref={careerStints.length > 0 ? "/mypage/details/experience" : undefined}
               manageLabel="職歴を編集"
             >
               {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
@@ -1454,7 +1457,6 @@ export default function ProfileTab({
                 />
               )}
             </ProfileTimelineSection>
-            )}
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
                       中に置くと、職歴0件のときは**この部品ごと描かれていない**ので、
@@ -1482,14 +1484,14 @@ export default function ProfileTab({
             {/* ★2-5 では枠と見出しを `EditableSection` に持たせていたが、**判断が誤っていた**。
                    `/u/[id]` の「学歴」の見出しは元からあり、`page.tsx` に直接書かれていた
                    （＝切り出していなかっただけ）。2-6 で職歴とまとめて切り出して揃えた。 */}
-            {educations.length > 0 && (
+            {/* ★学歴も 0件で枠を出す（職歴と同じ理由）。✎ は1件以上のときだけ。 */}
             <ProfileTimelineSection
               id="education"
               title="学歴"
               onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
               addLabel="学歴を追加"
               /* ★行ごとの鉛筆・ゴミ箱は本体から外し、一覧ページに寄せた（2026-08-17 / フェーズ3） */
-              manageHref="/mypage/details/education"
+              manageHref={educations.length > 0 ? "/mypage/details/education" : undefined}
               manageLabel="学歴を編集"
             >
               {educations.length === 0 ? (
@@ -1532,7 +1534,6 @@ export default function ProfileTab({
                 </>
               )}
             </ProfileTimelineSection>
-            )}
             {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダル）。
                    学校マスタへの追加リクエストのバナーもこの中から出る。 */}
             <EducationEditor
