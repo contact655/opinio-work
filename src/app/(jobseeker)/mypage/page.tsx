@@ -320,7 +320,8 @@ export default async function MypagePage({
   /* ow_profiles — 希望条件 + スカウト設定 + オンボーディング。
      ⚠️ `ow_profiles.user_id` は **auth.users.id**（ow_users.id ではない）。
      ⚠️ 希望職種の件数は上で引いた `desiredRoleIds` の長さから出す。**数え直さない。** */
-  let showScoutBanner = false;
+  /* ⚠️ `showScoutBanner` は 2026-08-17 に削除した（右カラムのバナーごと）。
+        未選択であることはヘッダー下のボックスが「スカウト｜未選択」で出す。 */
   let profilePrefs: {
     desired_work_styles: string[] | null;
     desired_prefectures: string[] | null;
@@ -333,12 +334,11 @@ export default async function MypagePage({
   if (owUser) {
     const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
-      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, onboarding_completed, scout_enabled")
+      /* ⚠️ `onboarding_completed` はバナーの判定に使っていたが、バナーごと消した（2026-08-17）。 */
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
-    // オンボーディング完了済みだが scout_enabled 未設定の場合バナー表示
-    showScoutBanner = profile?.onboarding_completed === true && profile?.scout_enabled == null;
     if (profile) {
       profilePrefs = {
         desired_work_styles: profile.desired_work_styles ?? null,
@@ -428,7 +428,6 @@ export default async function MypagePage({
       scoutsBadge={scoutsBadge}
       isNewUser={isNewUser}
       ambassadorMemberships={ambassadorMemberships}
-      showScoutBanner={showScoutBanner}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

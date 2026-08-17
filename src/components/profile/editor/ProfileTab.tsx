@@ -756,36 +756,30 @@ export default function ProfileTab({
   /* ⚠️ **ref は実際の要素に付けること。** 2-7 でカードを作り直したとき
         `basicCardRef` の付け先が消え、押しても開くだけでスクロールしなくなっていた
         （2026-08-16 に実測。`scrollAfterPaint(null)` は黙って何もしない）。 */
-  const aboutCardRef  = useRef<HTMLDivElement>(null);
-  const headerCardRef = useRef<HTMLDivElement>(null);
+  /* ⚠️ カードの ref は 2026-08-17 に外した（スクロールしなくなったため）。
+        `#about` / `#career` などのアンカーは残っている（ページ内ナビが使う）。 */
 
-  const scrollAfterPaint = (el: HTMLElement | null) => {
-    if (!el) return;
-    /* ⚠️ **`requestAnimationFrame` に頼らない。** 描画されていないタブ・
-          非表示のプレビューでは rAF が発火せず、**スクロールだけが静かに起きない**
-          （2026-08-16 に実測。カードは開くのに scrollIntoView が呼ばれなかった）。
-       ⚠️ 0ms ではなく少し待つ。**編集モードが開いて高さが変わったあと**に測らないと
-          着地位置がずれる。 */
-    setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-  };
   /* ⚠️ 促しの行き先は 2-7 で変わった。自己紹介はヘッダーから独立セクションへ移り、
         SNS はヘッダーの中に入った（SNS カードは廃止）。 */
+  /* ⚠️ **スクロールはしない**（2026-08-17）。編集がすべてモーダルになり、
+        画面中央に出るようになったため。`scrollAfterPaint` は参照0になったので消した。
+        背景はモーダルが `overflow:hidden` で固定するので、動かしても見えない。 */
   useEffect(() => {
     if (!openBasicNonce) return;
     setEditingAbout(true);
-    scrollAfterPaint(aboutCardRef.current);
   }, [openBasicNonce]);
   useEffect(() => {
     if (!openHeaderNonce) return;
+    setHeaderFocusSns(false);
     setEditingHeader(true);
-    scrollAfterPaint(headerCardRef.current);
   }, [openHeaderNonce]);
-  /* 職歴は**モーダル**なのでスクロールしない（画面中央に出る） */
   useEffect(() => {
     if (!openCareerNonce) return;
     setCareerAddNonce((n) => n + 1);
   }, [openCareerNonce]);
 
+  /** ★SNS の促しから開いたか。true のときヘッダーのモーダルで SNS の行を開く */
+  const [headerFocusSns, setHeaderFocusSns] = useState(false);
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
@@ -1049,7 +1043,7 @@ export default function ProfileTab({
                ⚠️ 自己紹介はここから外し、独立セクション（`#about`）に移した。
                   `/u/[id]` がそうなっているので構造を合わせる。
                ⚠️ 現職・年齢は導出値なので鉛筆の対象外。 */}
-          <div ref={headerCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
+          <div style={{ maxWidth: 680 }}>
             {/* ★編集はモーダル（2026-08-17 / フェーズ2の最後）。
                    ⚠️ **保存は今までと同じ1回の PUT**（名前・肩書き・所在地・生年月日・SNS）。
                       器を変えただけで、送る中身も呼び方も変えていない。 */}
@@ -1190,6 +1184,8 @@ export default function ProfileTab({
                     ⚠️ **入力済みの件数を行に出す。** 閉じているせいで
                        「入っていない」と誤解されないようにする。 */}
                 <CollapsibleRow
+                  /* ★SNS の促しから開いたときだけ開いた状態にする（2026-08-17） */
+                  defaultOpen={headerFocusSns}
                   label="SNS・外部リンク"
                   state={(() => {
                     const n = Object.values(socialLinks).filter((v) => v && v.trim()).length;
@@ -1223,14 +1219,17 @@ export default function ProfileTab({
                   {Object.values(savedSocialLinks).filter(Boolean).length === 0 && (
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                       SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。
-                      <button type="button" onClick={() => setEditingHeader(true)} style={promoBtn}>追加する →</button>
+                      {/* ★押した人は「SNS を足したい」ので、**SNS の行を開いた状態で**モーダルを出す
+                             （2026-08-17 に実測して直した。畳んだまま開くと、
+                             押したのに何も起きていないように見える）。 */}
+                      <button type="button" onClick={() => { setHeaderFocusSns(true); setEditingHeader(true); }} style={promoBtn}>追加する →</button>
                     </p>
                   )}
                 </>}
                 topRight={
                   <button
                     type="button"
-                    onClick={() => setEditingHeader(true)}
+                    onClick={() => { setHeaderFocusSns(false); setEditingHeader(true); }}
                     aria-label="プロフィールを編集"
                     title="プロフィールを編集"
                     /* ⚠️ 767px 以下では高さを 44px にする（既定は 40px） */
@@ -1286,7 +1285,7 @@ export default function ProfileTab({
                  **本文は常に表示のまま。編集はモーダルで開く。**
                  カードがフォームに化ける形をやめたので、押した場所と入力欄がずれない。 */}
           {hasAbout && (
-          <div ref={aboutCardRef} style={{ maxWidth: 680, scrollMarginTop: 80 }}>
+          <div style={{ maxWidth: 680 }}>
             <ProfileAboutSection
               aboutMe={initialBasicInfo.aboutMe || null}
               viewerIsOwner

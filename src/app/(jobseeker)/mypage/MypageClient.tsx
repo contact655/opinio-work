@@ -343,7 +343,6 @@ export default function MypageClient({
   scoutsBadge,
   isNewUser = false,
   ambassadorMemberships = [],
-  showScoutBanner = false,
   schoolPeerCounts = {},
   ...editorProps
 }: {
@@ -367,7 +366,6 @@ export default function MypageClient({
   scoutsBadge?: number;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
-  showScoutBanner?: boolean;
   schoolPeerCounts?: Record<string, number>;
 } & ProfileEditorProps) {
   const userName = owUser?.name ?? "ユーザー";
@@ -393,8 +391,6 @@ export default function MypageClient({
   const [openHeaderNonce, setOpenHeaderNonce] = useState(0);
   const [openCareerNonce, setOpenCareerNonce] = useState(0);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
-  const [scoutBannerVisible, setScoutBannerVisible] = useState(showScoutBanner);
-  const [scoutBannerSaving, setScoutBannerSaving] = useState(false);
   // ⚠️ モックの isMentor は使わない。実データ（owUser.is_mentor）で判定する
 
   /* ⚠️ **`activeView` を切り替える導線が無くなった**（2026-08-16）。
@@ -461,66 +457,12 @@ export default function MypageClient({
         </div>
       )}
 
-      {/* スカウト設定未完了
-          ⚠️ **モバイルでは先頭に出す**（`.mypage-mobile-first`）。設定できないまま
-             スカウトが届かないほうが、公開が遅れるより重い。
-             ★控えを本文側に作らない。同じ要素を order で動かすだけ。 */}
-      {scoutBannerVisible && (
-        <div className="mypage-mobile-first" style={{
-          background: "linear-gradient(135deg, #FEF9C3 0%, #FEF3C7 100%)",
-          border: "1.5px solid #FCD34D", borderRadius: 12,
-          padding: "14px 16px",
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
-            📬 スカウト設定が未完了です
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#78350F", lineHeight: 1.6, marginBottom: 10 }}>
-            企業からのスカウトを受け取るか設定してください。
-          </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button
-              type="button"
-              disabled={scoutBannerSaving}
-              onClick={async () => {
-                setScoutBannerSaving(true);
-                try {
-                  await fetch("/api/jobseeker/scout-settings", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ scout_enabled: true }),
-                  });
-                  setScoutBannerVisible(false);
-                } finally { setScoutBannerSaving(false); }
-              }}
-              style={{
-                padding: "7px 14px", background: "#D97706", color: "#fff",
-                border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700,
-                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
-              }}
-            >受け取る</button>
-            <button
-              type="button"
-              disabled={scoutBannerSaving}
-              onClick={async () => {
-                setScoutBannerSaving(true);
-                try {
-                  await fetch("/api/jobseeker/scout-settings", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ scout_enabled: false }),
-                  });
-                  setScoutBannerVisible(false);
-                } finally { setScoutBannerSaving(false); }
-              }}
-              style={{
-                padding: "7px 14px", background: "none", color: "#92400E",
-                border: "1.5px solid #FCD34D", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                cursor: scoutBannerSaving ? "wait" : "pointer", fontFamily: "inherit",
-              }}
-            >受け取らない</button>
-          </div>
-        </div>
-      )}
+      {/* ⚠️ 「スカウト設定が未完了です」バナーは 2026-08-17（フェーズ5）に外した。
+             ヘッダー下の「転職の希望」ボックスが**現在値（「未選択」）を出し、
+             ✎ から直せる**ようになり、**同じ設定への入口が2つ**になっていた（ルール⑧）。
+          ⚠️ 促し自体を消したわけではない。ボックスの要約が
+             「スカウト｜未選択」と灰色で出るので、未設定であることは読める。
+          ⚠️ `showScoutBanner` プロップと `/mypage` 側の判定も外した。 */}
 
       {/* ⚠️ 「プロフィール完成度」「最近の申込」「ブックマーク」を外した（2026-08-16）。
              ・完成度 … プロフィール本体が同じページに出るようになり、
