@@ -167,6 +167,11 @@ export default function MypageLayout({
             { key: "scouts",         label: "スカウト",      href: "/mypage/scouts",        icon: Icons.inbox },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
+            /* ★設定（2026-08-17 / フェーズ4-1）。
+                  ⚠️ **モバイルにも出す。** 左のサイドバーは 960px 未満で消えるので、
+                     ここに無いと**スマホから設定に行く手段が1つも無くなる**。
+                     6項目でも 375px で1項目 62px、ラベルは10pxなので収まる（実測）。 */
+            { key: "settings",       label: "設定",          href: "/mypage/settings",      icon: Icons.settings },
           ].map((item) => {
             const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
             const badge =
@@ -180,7 +185,7 @@ export default function MypageLayout({
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 style={{
-                  /* ★5等分。375px なら1項目 75px 前後に収まる */
+                  /* ★等幅。375px なら6項目で1項目 62px 前後に収まる */
                   flex: "1 1 0", minWidth: 0,
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                   padding: "6px 2px", fontSize: 10, fontWeight: isActive ? 700 : 500,
@@ -239,10 +244,19 @@ export default function MypageLayout({
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
           </nav>
 
-
           {/* ⚠️ 「アカウント > プロフィール」は 2026-08-16 に削除した。
                  プロフィールの中身は「ホーム」（/mypage）そのものになったので、
                  同じ場所へ行く入口が2つ並んでいた（ルール⑧）。 */}
+          <div style={{
+            fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+            color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
+            padding: "24px 24px 10px",
+          }}>
+            アカウント
+          </div>
+          <nav style={{ display: "flex", flexDirection: "column" }}>
+            <SidebarItem icon={Icons.settings} label="設定" active={activeKey === "settings"} href="/mypage/settings" />
+          </nav>
         </aside>
 
         {/* メインコンテンツ */}

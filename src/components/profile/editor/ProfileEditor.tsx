@@ -131,7 +131,6 @@ const PROFILE_TABS: TabItem[] = [
 
 export default function ProfileEditor({
   owUser,
-  authEmail,
   initialEducations,
   initialSocialLinks,
   initialAchievements,
@@ -155,7 +154,7 @@ export default function ProfileEditor({
   onSavedSnapshotChange,
 }: {
   owUser: OwUser;
-  authEmail: string;
+  /* ⚠️ `authEmail` は 2026-08-17 に外した（ログイン情報は `/mypage/settings` へ移動）。 */
   initialEducations: Education[];
   initialSocialLinks: SocialLinks;
   initialAchievements: Achievement[];
@@ -581,7 +580,6 @@ export default function ProfileEditor({
         {mountedTabs.has("settings") && (
         <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
           <SettingsTab
-            authEmail={authEmail}
             initialSettings={initialSettingsForTab}
             initialScoutEnabled={initialScoutEnabled}
             initialExperiences={initialExperiences}

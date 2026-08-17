@@ -415,7 +415,6 @@ export default async function MypagePage({
     <MypageClient
       canPost={canPost}
       owUser={owUser}
-      authEmail={user.email ?? ""}
       followCounts={followCounts}
       educations={educations}
       timelineCareers={timelineCareers}
