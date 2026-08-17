@@ -205,7 +205,6 @@ export default function ProfileEditor({
     desired_salary_max: number | null;
     transfer_timing: string | null;
     desired_phase: string[] | null;
-    worry: string | null;
   } | null;
 }) {
   const VALID_TABS: ProfileTabKey[] = ["profile", "wishes", "settings"];
@@ -248,7 +247,6 @@ export default function ProfileEditor({
       desired_salary_max:  initialProfilePrefs?.desired_salary_max ?? null,
       transfer_timing:     initialProfilePrefs?.transfer_timing ?? null,
       desired_phase:       initialProfilePrefs?.desired_phase ?? null,
-      worry:               initialProfilePrefs?.worry ?? null,
     })
   );
   const [wishesDirty, setWishesDirty] = useState(false);

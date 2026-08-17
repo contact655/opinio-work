@@ -20,7 +20,6 @@ import {
   DESIRED_WORK_STYLES,
   TRANSFER_TIMINGS,
   DESIRED_PHASES,
-  WORRIES,
   SALARY_MAX_MAN,
   MAX_DESIRED_ROLES,
 } from "@/lib/constants/careerPreferences";
@@ -30,7 +29,7 @@ import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
 import { hasCareerPreferences } from "@/lib/profile/completion";
 
 /** 希望条件のカード。★保存の単位。ここに無いものはカードとして存在しない */
-export type PrefCardKey = "roles" | "location" | "salary" | "phase" | "worry";
+export type PrefCardKey = "roles" | "location" | "salary" | "phase";
 type PrefCardState = { saving: boolean; saved: boolean; error: string | null };
 
 /** 希望条件の保存済みスナップショット。キー名は career-preferences API の body と揃える
@@ -43,7 +42,6 @@ type SavedPrefs = {
   desired_salary_max: number | null;
   transfer_timing: string | null;
   desired_phase: string[] | null;
-  worry: string | null;
 };
 
 export type ProfilePrefsInput = {
@@ -53,7 +51,6 @@ export type ProfilePrefsInput = {
   desired_salary_max: number | null;
   transfer_timing: string | null;
   desired_phase: string[] | null;
-  worry: string | null;
 } | null;
 
 export default function WishesTab({
@@ -90,7 +87,6 @@ export default function WishesTab({
   const [prefSalaryMin, setPrefSalaryMin] = useState(initialProfilePrefs?.desired_salary_min?.toString() ?? "");
   const [prefSalaryMax, setPrefSalaryMax] = useState(initialProfilePrefs?.desired_salary_max?.toString() ?? "");
   const [prefTiming, setPrefTiming] = useState(initialProfilePrefs?.transfer_timing ?? "");
-  const [prefWorry, setPrefWorry] = useState(initialProfilePrefs?.worry ?? "");
   const [prefPhase, setPrefPhase] = useState<string[]>(initialProfilePrefs?.desired_phase ?? []);
   /* カードごとの保存状態。★1つにまとめない。まとめると、あるカードを保存したときに
      全カードのフッターが「保存しました」になる。 */
@@ -99,7 +95,6 @@ export default function WishesTab({
     location: { saving: false, saved: false, error: null },
     salary:   { saving: false, saved: false, error: null },
     phase:    { saving: false, saved: false, error: null },
-    worry:    { saving: false, saved: false, error: null },
   });
   const prefSavedTimers = useRef<Partial<Record<PrefCardKey, ReturnType<typeof setTimeout>>>>({});
 
@@ -114,7 +109,6 @@ export default function WishesTab({
     desired_salary_max:  initialProfilePrefs?.desired_salary_max ?? null,
     transfer_timing:     initialProfilePrefs?.transfer_timing ?? null,
     desired_phase:       initialProfilePrefs?.desired_phase ?? null,
-    worry:               initialProfilePrefs?.worry ?? null,
   });
 
   /* カードごとの未保存判定。★配列は順序を無視して比べる（選ぶ順で dirty にしない）。 */
@@ -131,7 +125,6 @@ export default function WishesTab({
       (prefSalaryMin ? parseInt(prefSalaryMin, 10) : null) !== savedPrefs.desired_salary_min ||
       (prefSalaryMax ? parseInt(prefSalaryMax, 10) : null) !== savedPrefs.desired_salary_max,
     phase:    !sameSet(prefPhase, savedPrefs.desired_phase),
-    worry:    (prefWorry || null) !== savedPrefs.worry,
   };
 
   /* 希望条件が1つでも入っているか。**判定は completion.ts の1本に寄せる。**
@@ -144,7 +137,6 @@ export default function WishesTab({
     desired_salary_max:  savedPrefs.desired_salary_max,
     transfer_timing:     savedPrefs.transfer_timing,
     desired_phase:       savedPrefs.desired_phase,
-    worry:               savedPrefs.worry,
   });
 
   /** role_id → 職種名。希望職種チップの表示に使う */
@@ -200,10 +192,8 @@ export default function WishesTab({
         };
       case "phase":
         return { desired_phase: prefPhase.length > 0 ? prefPhase : null };
-      case "worry":
-        return { worry: prefWorry || null };
     }
-  }, [prefRoleIds, prefPrefectures, prefWorkStyles, prefTiming, prefSalaryMin, prefSalaryMax, prefPhase, prefWorry]);
+  }, [prefRoleIds, prefPrefectures, prefWorkStyles, prefTiming, prefSalaryMin, prefSalaryMax, prefPhase]);
 
   const savePrefCard = useCallback(async (card: PrefCardKey) => {
     const patch = buildPrefPatch(card);
@@ -257,9 +247,6 @@ export default function WishesTab({
         break;
       case "phase":
         setPrefPhase(savedPrefs.desired_phase ?? []);
-        break;
-      case "worry":
-        setPrefWorry(savedPrefs.worry ?? "");
         break;
     }
   }, [savedPrefs]);
@@ -505,32 +492,9 @@ export default function WishesTab({
               />
             </FormSection>
 
-            <FormSection
-              title="今一番の悩み・相談テーマ"
-              desc="メンター相談やカジュアル面談のマッチングに使われます。"
-            >
-              <FormGroup label="今一番の悩み" htmlFor="pe-worry">
-                <select
-                  id="pe-worry"
-                  value={prefWorry}
-                  onChange={(e) => setPrefWorry(e.target.value)}
-                  style={selectStyle()}
-                >
-                  <option value="">未設定</option>
-                  {WORRIES.map((w) => (
-                    <option key={w} value={w}>{w}</option>
-                  ))}
-                </select>
-              </FormGroup>
-              <CardSaveFooter
-                dirty={prefCardDirty.worry}
-                saving={prefCardState.worry.saving}
-                justSaved={prefCardState.worry.saved}
-                error={prefCardState.worry.error}
-                onSave={() => { void savePrefCard("worry"); }}
-                onCancel={() => cancelPrefCard("worry")}
-              />
-            </FormSection>
+            {/* ⚠️ 「今一番の悩み」（`ow_profiles.worry`）は 2026-08-17 に撤去した。
+                   読み手が1つも無かった（マッチング・スカウト・企業側・運営画面のどこも見ていない）。
+                   **列とデータは残してある。** 詳細は docs/todo.md。 */}
 
             <div style={{
               padding: "14px 18px", background: "var(--royal-50)",

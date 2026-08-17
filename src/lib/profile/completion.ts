@@ -69,7 +69,6 @@ export function hasCareerPreferences(p: {
   desired_salary_max?: number | null;
   transfer_timing?: string | null;
   desired_phase?: string[] | null;
-  worry?: string | null;
 }): boolean {
   return Boolean(
     (p.desiredRoleCount ?? 0) > 0 ||
@@ -78,9 +77,11 @@ export function hasCareerPreferences(p: {
     p.desired_salary_min != null ||
     p.desired_salary_max != null ||
     p.transfer_timing ||
-    (p.desired_phase && p.desired_phase.length > 0) ||
-    p.worry
+    (p.desired_phase && p.desired_phase.length > 0)
   );
+  /* ⚠️ `worry` は 2026-08-17 に判定から外した。入力欄も API の受け口も無くなったので、
+        これを見続けると「もう入力できない値」で達成扱いになる人が残る。
+        実測: 49件中3件がこれだけで達成扱いだった（達成 6件 → 3件）。 */
 }
 
 /* ⚠️ **完成度バー（100点満点）は 2026-08-16 に廃止した。**

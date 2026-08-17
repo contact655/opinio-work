@@ -6,7 +6,6 @@ import {
   VALID_DESIRED_WORK_STYLES,
   VALID_TRANSFER_TIMINGS,
   VALID_DESIRED_PHASES,
-  VALID_WORRIES,
   SALARY_MAX_MAN,
   MAX_DESIRED_ROLES,
 } from "@/lib/constants/careerPreferences";
@@ -56,7 +55,6 @@ export async function PUT(req: Request) {
     transfer_timing?: string | null;
     transfer_timing_updated_at?: string | null;
     desired_phase?: string[] | null;
-    worry?: string | null;
     updated_at?: string | null;
   } = {};
 
@@ -117,9 +115,10 @@ export async function PUT(req: Request) {
     return uniq.length > 0 ? uniq : null;
   }
 
+  /* ⚠️ `worry` の受け口は 2026-08-17 に外した（読み手が1つも無かった）。
+        列は残っているが、**ここで受けない＝もう新しい値は入らない**。 */
   for (const [key, allowed] of [
     ["transfer_timing", VALID_TRANSFER_TIMINGS],
-    ["worry", VALID_WORRIES],
   ] as const) {
     if (!(key in body)) continue;
     const v = readEnum(key, allowed);

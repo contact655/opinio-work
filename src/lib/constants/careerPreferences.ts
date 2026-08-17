@@ -63,15 +63,9 @@ export const TRANSFER_TIMINGS = [
 /** 興味のある企業フェーズ（複数選択）。値＝表示ラベル */
 export const DESIRED_PHASES = ["シリーズA", "シリーズB", "シリーズC", "上場"] as const;
 
-/** 今一番の悩み・相談テーマ。値＝表示ラベル */
-export const WORRIES = [
-  "転職すべきか迷っている",
-  "年収を大幅に上げたい",
-  "外資・グローバル企業に行きたい",
-  "キャリアチェンジを考えている",
-  "スタートアップに興味がある",
-  "まず話を聞いてみたい",
-] as const;
+/* ⚠️ `WORRIES` / `VALID_WORRIES`（今一番の悩み）は 2026-08-17 に削除した。
+      `ow_profiles.worry` を読む画面が1つも無かったため（入力欄と API の受け口も撤去）。
+      **列とデータは残してある。** 戻すときは読み手を先に決めること。 */
 
 // ─── 検証用の Set（API から使う）─────────────────────────────────────────────
 
@@ -83,8 +77,6 @@ export const VALID_DESIRED_WORK_STYLES = new Set<string>([
 export const VALID_TRANSFER_TIMINGS = new Set<string>(TRANSFER_TIMINGS.map((o) => o.value));
 
 export const VALID_DESIRED_PHASES = new Set<string>(DESIRED_PHASES);
-
-export const VALID_WORRIES = new Set<string>(WORRIES);
 
 /** 希望年収（万円）の上限。UI の max と API の検証が共有する */
 export const SALARY_MAX_MAN = 9999;

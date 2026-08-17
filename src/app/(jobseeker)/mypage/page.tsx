@@ -361,13 +361,12 @@ export default async function MypagePage({
     desired_salary_max: number | null;
     transfer_timing: string | null;
     desired_phase: string[] | null;
-    worry: string | null;
     scout_enabled: boolean | null;
   } | null = null;
   if (owUser) {
     const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
-      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, worry, onboarding_completed, scout_enabled")
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, onboarding_completed, scout_enabled")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
@@ -381,7 +380,6 @@ export default async function MypagePage({
         desired_salary_max:  profile.desired_salary_max ?? null,
         transfer_timing:     profile.transfer_timing ?? null,
         desired_phase:       profile.desired_phase ?? null,
-        worry:               profile.worry ?? null,
         scout_enabled:       profile.scout_enabled ?? null,
       };
     }
