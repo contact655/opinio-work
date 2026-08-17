@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 /**
  * 行ごとの編集アフォーダンス（鉛筆・ゴミ箱）と、その受け取り口。
  *
@@ -127,5 +129,38 @@ export function AddRoleLink({ careerId, onAddRole }: { careerId: string; onAddRo
       <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
       この会社に役割を追加
     </button>
+  );
+}
+
+/**
+ * セクションの下に出す「すべて表示 →」（2026-08-17 / フェーズ3）。
+ *
+ * ⚠️ **N件以下のときは出さないこと。** 押しても同じ行しか出ないリンクになる。
+ * ⚠️ 判定は「**画面に出した数 < 保存されている数**」で行う。件数そのものではない。
+ *    年表に載らない行（入学年月が無い学歴など）は表示から落ちるので、
+ *    件数で比べると「4件だから出さない」のに1件見えていない状態が作れる。
+ */
+export function SectionShowAll({ href, label, hiddenCount }: {
+  href: string;
+  /** 「学歴」「職歴」など。読み上げ用の文に使う */
+  label: string;
+  hiddenCount: number;
+}) {
+  return (
+    <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>
+      <Link
+        href={href}
+        className="tap-min-h"
+        aria-label={`${label}をすべて表示（他${hiddenCount}件）`}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none",
+        }}
+      >
+        すべて表示
+        <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>（他{hiddenCount}件）</span>
+        <span aria-hidden="true">→</span>
+      </Link>
+    </div>
   );
 }

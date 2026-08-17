@@ -42,7 +42,8 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline from "@/components/profile/MergedTimeline";
-import { RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
+import { SectionShowAll, PencilIcon } from "@/components/profile/view/RowActions";
+import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
@@ -984,11 +985,18 @@ export default function ProfileTab({
   /* 学歴（2026-08-16 / 2-5）。行の鉛筆・ゴミ箱から編集フォームを開くための id */
   const [editingEduId, setEditingEduId] = useState<string | null>(null);
   const [deleteEduId,  setDeleteEduId]  = useState<string | null>(null);
-  /* 年表の行にも、年表に載らない行にも同じものを渡す */
-  const eduActions = {
-    onEditRow:   (id: string) => setEditingEduId(id),
-    onDeleteRow: (id: string) => setDeleteEduId(id),
-  };
+  /* ★本体に出す学歴は**新しい順に4件まで**（2026-08-17 / フェーズ3）。
+        残りと、年表に載らない行（入学年月なし）は `/mypage/details/education` が持つ。
+     ⚠️ 「すべて表示」の判定は**画面に出した数と保存されている数の差**で出す。
+        件数だけで比べると、年表に落ちた行があるときに「4件だから出さない」のに
+        1件見えていない状態が作れる。 */
+  const shownEducations = toTimelineEducationEntries(educations as RawEducation[])
+    /* ⚠️ **新しい順に並べてから切る。** 元の並びは `sort_order`（古い順に入っていることが多い）で、
+          そのまま切ると**いちばん新しい学歴が本体から消える**（実測で踏んだ）。
+          年表は内部で新しい順に並べ替えるので、切る前の順序は年表の見た目に出てこない。 */
+    .slice()
+    .sort((a, b) => b.enrolled_at.localeCompare(a.enrolled_at))
+    .slice(0, ROWS_ON_PROFILE.education);
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
   /* 数値実績・受賞（2026-08-16 / 2-4）。表示⇄編集は 2-2/2-3 と同じ形 */
   /* 紐づけセレクトの選択肢。★職歴の表示名だけを渡す（実績側は職歴の中身を知らない）。
@@ -1630,6 +1638,9 @@ export default function ProfileTab({
               title="学歴"
               onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
               addLabel="学歴を追加"
+              /* ★行ごとの鉛筆・ゴミ箱は本体から外し、一覧ページに寄せた（2026-08-17 / フェーズ3） */
+              manageHref="/mypage/details/education"
+              manageLabel="学歴を編集"
             >
               {educations.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
@@ -1648,31 +1659,26 @@ export default function ProfileTab({
                 </p>
               ) : (
                 <>
-                  {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱だけ足す */}
+                  {/* ★表示は公開プロフィールと同じ部品。**行の操作は渡さない**（2026-08-17 / フェーズ3）。
+                         1件ずつ触るのは `/mypage/details/education` の仕事。 */}
                   <MergedTimeline
                     careers={[]}
-                    educations={toTimelineEducationEntries(educations as RawEducation[])}
+                    educations={shownEducations}
                     future={null}
                     /* ⚠️ `birthDate` を渡す。渡さないと年マーカーに年齢が出ず、
                           `/u/[id]` の学歴（「2014 19歳」）と食い違う（2026-08-16 の通しで発見） */
                     birthDate={owUser?.birth_date}
-                    educationActions={eduActions}
                   />
-                  {/* ⚠️ `toTimelineEducationEntries` は**入学年月が無い行を落とす**（年表に置けないため）。
-                         公開プロフィールでも出ていない。ここで拾わないと、
-                         **本人の画面からも消えて編集も削除もできなくなる**（2026-08-16 / 2-5）。
-                         実データに1件ある（他人の行）。 */}
-                  {educations.filter((e) => !e.enrolled_at).map((e) => (
-                    <div key={e.id} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{e.school}</div>
-                        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.7 }}>
-                          入学年月が未入力のため、公開プロフィールには表示されていません。
-                        </div>
-                      </div>
-                      <RowActionButtons id={e.id} label={e.school} actions={eduActions} />
-                    </div>
-                  ))}
+                  {/* ⚠️ 入学年月が無い行・N件を超えた行はここには出ない。
+                         **拾うのは `/mypage/details/education`**（下の「すべて表示」から行ける）。
+                         ここに戻すと本体が一覧ページと同じものになる。 */}
+                  {educations.length > shownEducations.length && (
+                    <SectionShowAll
+                      href="/mypage/details/education"
+                      label="学歴"
+                      hiddenCount={educations.length - shownEducations.length}
+                    />
+                  )}
                 </>
               )}
             </ProfileTimelineSection>

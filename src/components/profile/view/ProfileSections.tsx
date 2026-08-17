@@ -786,13 +786,17 @@ export function ProfileSocialLinks({ socialLinks }: { socialLinks: Partial<Recor
  * ⚠️ 中身（年表）は `MergedTimeline` が描く。ここは枠・見出し・アンカーだけ。
  * ⚠️ `onAdd` を渡さなければ DOM は `page.tsx` にあったものと1バイトも変わらない。
  */
-export function ProfileTimelineSection({ id, title, onAdd, addLabel, children }: {
+export function ProfileTimelineSection({ id, title, onAdd, addLabel, manageHref, manageLabel, children }: {
   /** アンカー（`#career` / `#education`）。ページ内ナビが指す */
   id: string;
   title: string;
   /** ★本人の編集用。見出しの「＋」。渡さなければ描かない */
   onAdd?: () => void;
   addLabel?: string;
+  /** ★本人の編集用。見出しの「✎」→ 一覧ページ（2026-08-17 / フェーズ3）。
+      ⚠️ 行ごとの鉛筆はここでは出さない。**1件ずつ触るのは一覧ページの仕事**。 */
+  manageHref?: string;
+  manageLabel?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -807,9 +811,14 @@ export function ProfileTimelineSection({ id, title, onAdd, addLabel, children }:
         </span>
         <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
         {onAdd && (
-          <button type="button" className="tap-target tap-target-end" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
+          <button type="button" className="tap-target" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
             <PlusIcon />
           </button>
+        )}
+        {manageHref && (
+          <Link href={manageHref} className="tap-target tap-target-end" aria-label={manageLabel ?? `${title}を編集`} title={manageLabel ?? `${title}を編集`} style={sectionAddBtn}>
+            <PencilIcon />
+          </Link>
         )}
       </div>
       {children}
