@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 /**
  * /profile/edit のカード・入力欄の共通部品。
@@ -322,3 +322,54 @@ export function CardDoneFooter({ onDone, note }: { onDone: () => void; note?: st
     </div>
   );
 }
+
+/**
+ * 編集フォームの中で、縦を大きく取るブロックを折りたたむ行（2026-08-16）。
+ *
+ * ⚠️ **閉じているせいで「入っていない」と誤解されないようにする。**
+ *    行の右に必ず現在の状態（件数 / 設定済み）を出すこと。
+ * ⚠️ **開閉は保存しない**（開くたび閉じた状態から）。覚えると、
+ *    次に開いた人が「なぜ開いているのか」を判断できない。
+ */
+export function CollapsibleRow({ label, state, children, first = false, defaultOpen = false }: {
+  label: string;
+  /** 行の右に出す現在の状態。「3件」「設定済み」など。**空にしない** */
+  state: string;
+  children: React.ReactNode;
+  /** ★モーダルの先頭に置くとき true。**上の区切り線を出さない**
+      （モーダルの見出しの下線とくっついて、線が2本並ぶ。2026-08-17） */
+  first?: boolean;
+  /** ★既定で開いておく（2026-08-17）。**最初に読ませたい行だけ** true にする */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState<boolean>(defaultOpen);
+  return (
+    <div style={first
+      ? undefined
+      : { borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14 }}>
+      <button
+        type="button"
+        className="tap-min-h"
+        onClick={() => setOpen((v: boolean) => !v)}
+        aria-expanded={open}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          width: "100%", padding: "6px 0", background: "none", border: "none",
+          cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>{state}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+               style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {open && <div style={{ marginTop: 12 }}>{children}</div>}
+    </div>
+  );
+}
+

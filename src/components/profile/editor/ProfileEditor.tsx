@@ -537,6 +537,19 @@ export default function ProfileEditor({
             openBasicNonce={openBasicNonce}
             openHeaderNonce={openHeaderNonce}
             openCareerNonce={openCareerNonce}
+            /* ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2） */
+            initialScoutEnabled={initialScoutEnabled}
+            desiredRoleOptions={desiredRoleOptions}
+            initialIntentPrefs={{
+              desired_role_ids:    initialDesiredRoleIds,
+              desired_prefectures: initialProfilePrefs?.desired_prefectures ?? null,
+              desired_work_styles: initialProfilePrefs?.desired_work_styles ?? null,
+              transfer_timing:     initialProfilePrefs?.transfer_timing ?? null,
+              desired_salary_min:  initialProfilePrefs?.desired_salary_min ?? null,
+              desired_salary_max:  initialProfilePrefs?.desired_salary_max ?? null,
+              desired_phase:       initialProfilePrefs?.desired_phase ?? null,
+            }}
+            onVisibilitySaved={(v) => setSavedSettings((prev) => ({ ...prev, visibility: v }))}
           />
           {/* ⚠️ プロフィールタブの**下端**に置くもの（母校・アクティビティ）。
                  タブの外に置くと「転職の希望」「設定」を開いたときにも出てしまう。 */}

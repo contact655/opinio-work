@@ -46,6 +46,8 @@ import { stintsToCareerEntries } from "./careerTimeline";
 import { SectionShowAll, PencilIcon } from "@/components/profile/view/RowActions";
 import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
+import CareerIntentBox, { type IntentPrefs } from "./CareerIntentBox";
+import { CollapsibleRow } from "./formKit";
 import { ContentLinksEditor, type ContentLink } from "./ContentLinksEditor";
 import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
@@ -106,53 +108,9 @@ type BasicInfo = {
 /** 肩書きの上限。⚠️ DB の CHECK（`ow_users_headline_length`）と同じ値にすること。 */
 const HEADLINE_MAX = 40;
 
-/**
- * 編集フォームの中で、縦を大きく取るブロックを折りたたむ行（2026-08-16）。
- *
- * ⚠️ **閉じているせいで「入っていない」と誤解されないようにする。**
- *    行の右に必ず現在の状態（件数 / 設定済み）を出すこと。
- * ⚠️ **開閉は保存しない**（開くたび閉じた状態から）。覚えると、
- *    次に開いた人が「なぜ開いているのか」を判断できない。
- */
-function CollapsibleRow({ label, state, children, first = false }: {
-  label: string;
-  /** 行の右に出す現在の状態。「3件」「設定済み」など。**空にしない** */
-  state: string;
-  children: React.ReactNode;
-  /** ★モーダルの先頭に置くとき true。**上の区切り線を出さない**
-      （モーダルの見出しの下線とくっついて、線が2本並ぶ。2026-08-17） */
-  first?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={first
-      ? undefined
-      : { borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14 }}>
-      <button
-        type="button"
-        className="tap-min-h"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-          width: "100%", padding: "6px 0", background: "none", border: "none",
-          cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>{state}</span>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5"
-               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-               style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </span>
-      </button>
-      {open && <div style={{ marginTop: 12 }}>{children}</div>}
-    </div>
-  );
-}
+/* ⚠️ `CollapsibleRow` は 2026-08-17 に `formKit.tsx` へ移した
+      （転職の希望のモーダルでも使うため）。ここに書き戻さない。 */
+
 
 /** 促しの「追加する →」。⚠️ 見た目はリンクだが**ボタン**（同じページのカードを開く） */
 const promoBtn: React.CSSProperties = {
@@ -564,6 +522,11 @@ export default function ProfileTab({
   onDirtyChange,
   notifyGlobalSave,
   companyLogoInfo = [],
+  /* ── ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2）────────── */
+  initialScoutEnabled = null,
+  initialIntentPrefs,
+  desiredRoleOptions,
+  onVisibilitySaved,
   followCounts,
   openBasicNonce = 0, openHeaderNonce = 0,
   openCareerNonce = 0,
@@ -573,6 +536,14 @@ export default function ProfileTab({
         ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
   /** ★職歴の表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6） */
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
+  /** スカウトを受け取るか。`null` は未選択 */
+  initialScoutEnabled?: boolean | null;
+  /** 希望条件。**ボックスのモーダルが編集する** */
+  initialIntentPrefs?: IntentPrefs;
+  /** 希望職種の候補（IT/SaaS で絞ったもの） */
+  desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  /** 公開範囲が保存できたら親へ返す（写真カードのプレビューが見る） */
+  onVisibilitySaved?: (v: "public" | "login_only" | "private") => void;
   /** ★ヘッダーに出すフォロー数（2026-08-16 / 2-7）。0 の項目は出ない */
   followCounts?: { followers: number; following: number };
   /** ★「自己紹介を入力する →」から `#about` を編集モードで開く（2026-08-16 / 2-7） */
@@ -1181,6 +1152,24 @@ export default function ProfileTab({
               <Toast message={socialToastMsg} variant={socialToastVariant} onDone={() => setSocialToastMsg(null)} />
             )}
           </div>
+
+          {/* ── ★転職の希望（ヘッダーの直下・2026-08-17 / フェーズ4-2）──────────
+                 公開範囲 / スカウト設定 / 転職検討状況 の**現在値**を要約で出し、
+                 ✎ で7項目のモーダルを開く。
+              ⚠️ タブ「転職の希望」「設定」はフェーズ4-3 で畳む。それまでは
+                 同じ列を触る画面が2つある（意図的な過渡状態）。 */}
+          {initialIntentPrefs && (
+            <CareerIntentBox
+              initialVisibility={settings.visibility}
+              initialIsOpenToWork={settings.isOpenToWork}
+              initialScoutEnabled={initialScoutEnabled}
+              initialPrefs={initialIntentPrefs}
+              roles={roles}
+              roleAliases={roleAliases}
+              desiredRoleOptions={desiredRoleOptions}
+              onVisibilityChange={onVisibilitySaved}
+            />
+          )}
 
           {/* ── 自己紹介（#about）──────────────────────────────────────────
                  ★ヘッダーから外して独立セクションにした（2026-08-16 / 2-7）。
