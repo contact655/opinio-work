@@ -25,7 +25,20 @@ export type RowActions = {
   onDeleteRow?: (id: string) => void;
   /** 見出しの「追加」。★`/mypage` では同じページなのでリンクではなくボタンにする */
   onAdd?: () => void;
+  /** ★見出しの「✎」→ 一覧ページ（2026-08-17 / フェーズ3）。
+      **本体では行ごとの鉛筆を出さず、1件ずつ触るのは一覧ページに寄せる。** */
+  manageHref?: string;
+  manageLabel?: string;
 };
+
+/** 見出しの右端に出す「✎」（一覧ページへのリンク）。⚠️ 見た目を各セクションで書き分けない */
+export function SectionManageLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="tap-target tap-target-end" aria-label={label} title={label} style={sectionAddBtn}>
+      <PencilIcon />
+    </Link>
+  );
+}
 
 /** 見出し行の「追加」。⚠️ 見た目を各セクションで書き分けない */
 /**

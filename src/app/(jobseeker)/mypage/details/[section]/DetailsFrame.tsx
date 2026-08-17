@@ -9,11 +9,15 @@ import { sectionAddBtn, PlusIcon } from "@/components/profile/view/RowActions";
  * 中身は **戻る矢印 / 見出し / ＋ / 全行** だけ。
  * ⚠️ ここに説明文・プロモ・右カラムを足さないこと。**行を触るためだけのページ**にする。
  */
-export function DetailsFrame({ title, onAdd, addLabel, children }: {
+export function DetailsFrame({ title, onAdd, addLabel, children, hideOwnHeading = false }: {
   title: string;
   onAdd: () => void;
   addLabel: string;
   children: React.ReactNode;
+  /** ★中の部品が自分で枠と見出しと「追加」を描くとき true（2026-08-17）。
+      ⚠️ 数値実績・受賞・メディア掲載・発信コンテンツは公開部品が枠ごと持っている。
+         ここでも描くと**枠が二重・見出しが二重・「追加」が2つ**になる（ルール⑧）。 */
+  hideOwnHeading?: boolean;
 }) {
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
@@ -33,23 +37,25 @@ export function DetailsFrame({ title, onAdd, addLabel, children }: {
         プロフィール
       </Link>
 
-      <section style={{
-        background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 14, padding: "24px 28px",
-        boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <h1 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0, whiteSpace: "nowrap" }}>
-            {title}
-          </h1>
-          <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-          <button type="button" className="tap-target tap-target-end" onClick={onAdd}
-                  aria-label={addLabel} title={addLabel} style={sectionAddBtn}>
-            <PlusIcon />
-          </button>
-        </div>
-        {children}
-      </section>
+      {hideOwnHeading ? children : (
+        <section style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "24px 28px",
+          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <h1 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0, whiteSpace: "nowrap" }}>
+              {title}
+            </h1>
+            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <button type="button" className="tap-target tap-target-end" onClick={onAdd}
+                    aria-label={addLabel} title={addLabel} style={sectionAddBtn}>
+              <PlusIcon />
+            </button>
+          </div>
+          {children}
+        </section>
+      )}
     </div>
   );
 }

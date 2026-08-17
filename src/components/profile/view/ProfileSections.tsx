@@ -21,7 +21,7 @@ import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
 import { SocialIcon, SOCIAL_META, SNS_PLATFORMS, type SocialPlatform } from "@/components/SocialIcon";
 /* ⚠️ 行の操作（鉛筆・ゴミ箱）は `MergedTimeline` とも共有する。ここには置かない */
-import { type RowActions, RowActionButtons, sectionAddBtn, emptyAddBtn, PlusIcon, PencilIcon } from "./RowActions";
+import { type RowActions, RowActionButtons, SectionManageLink, SectionShowAll, sectionAddBtn, emptyAddBtn, PlusIcon, PencilIcon } from "./RowActions";
 export type { RowActions };
 
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
@@ -130,10 +130,12 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
 }
 
 // ─── ProfileAchievementsSection ───────────────────────────────────────────────────────────
-export function ProfileAchievementsSection({ achievements, actions }: {
+export function ProfileAchievementsSection({ achievements, actions, showAll }: {
   achievements: AchievementRow[];
   /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
   actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」（2026-08-17 / フェーズ3）。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
 }) {
   const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
   return (
@@ -153,9 +155,12 @@ export function ProfileAchievementsSection({ achievements, actions }: {
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {actions?.onAdd && (
-              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
+            )}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
             )}
           </div>
 
@@ -229,6 +234,9 @@ export function ProfileAchievementsSection({ achievements, actions }: {
               ))}
             </div>
           )}
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
         </section>
       )}
     </>
@@ -236,10 +244,12 @@ export function ProfileAchievementsSection({ achievements, actions }: {
 }
 
 // ─── ProfileAwardsSection ───────────────────────────────────────────────────────────
-export function ProfileAwardsSection({ awards, actions }: {
+export function ProfileAwardsSection({ awards, actions, showAll }: {
   awards: AwardRow[];
   /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
   actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」（2026-08-17 / フェーズ3）。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
 }) {
   const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
   return (
@@ -262,9 +272,12 @@ export function ProfileAwardsSection({ awards, actions }: {
               {awards.length}件
             </span>
             {actions?.onAdd && (
-              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
+            )}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
             )}
           </div>
 
@@ -335,6 +348,9 @@ export function ProfileAwardsSection({ awards, actions }: {
               </div>
             ))}
           </div>
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
         </section>
       )}
     </>
@@ -342,10 +358,12 @@ export function ProfileAwardsSection({ awards, actions }: {
 }
 
 // ─── ProfileMediaSection ───────────────────────────────────────────────────────────
-export function ProfileMediaSection({ mediaAppearances, actions }: {
+export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
   mediaAppearances: MediaAppearanceRow[];
   /** ★本人の編集用。**渡さなければ他人が見る DOM と1バイトも変わらない**（2-2 と同じ型） */
   actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」（2026-08-17 / フェーズ3）。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
 }) {
   const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
   return (
@@ -369,12 +387,15 @@ export function ProfileMediaSection({ mediaAppearances, actions }: {
               /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
                     複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
                     （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
-              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 追加
               </button>
+            )}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
             )}
           </div>
 
@@ -482,6 +503,9 @@ export function ProfileMediaSection({ mediaAppearances, actions }: {
               );
             })}
           </div>
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
         </section>
       )}
 
@@ -568,11 +592,13 @@ export function ProfileArticlesSection({ featuredArticles }: { featuredArticles:
 }
 
 // ─── ProfileContentLinksSection ───────────────────────────────────────────────────────────
-export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, actions }: {
+export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, actions, showAll }: {
   contentLinks: ContentLinkRow[];
   viewerIsOwner: boolean;
   /** ★本人の編集用。**渡さなければ他人が見る DOM と1バイトも変わらない** */
   actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」（2026-08-17 / フェーズ3）。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
 }) {
   return (
     <>
@@ -596,7 +622,7 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
               /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
                     複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
                     （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
-              <button type="button" className="tap-target tap-target-end" onClick={actions.onAdd} style={sectionAddBtn}>
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -613,6 +639,9 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
                 追加
               </Link>
             ))}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
+            )}
           </div>
 
           {contentLinks.length === 0 && viewerIsOwner && (
@@ -738,6 +767,9 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
               );
             })}
           </div>
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
         </section>
       )}
 

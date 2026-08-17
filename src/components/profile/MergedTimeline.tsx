@@ -436,6 +436,37 @@ function groupSameCompanyEntries(entries: RenderEntry[]): RenderEntry[] {
   return result;
 }
 
+/**
+ * ★本体（`/mypage`）に出す職歴を、**表示単位で N 個**に絞る（2026-08-17 / フェーズ3）。
+ *
+ * ⚠️ **「行」ではなく「表示単位」で数える。** 同じ会社の複数の役割は1つのまとまりとして
+ *    描かれるので、3件入っていても **1** と数える。行で数えると、
+ *    1社しか無い人のカードが上限に達して「すべて表示」が出てしまう。
+ *
+ * ⚠️ **並べ替えは `MergedTimeline` と同じ関数を通す。** 呼び出し側で
+ *    `slice` すると、`sort_order` のまま切って**いちばん新しい職歴が消える**
+ *    （学歴で実際に踏んだ形）。
+ *
+ * 返すのは「絞った職歴の配列」と「隠した表示単位の数」。
+ */
+export function limitCareersForDisplay(
+  careers: CareerEntry[],
+  limit: number,
+): { careers: CareerEntry[]; hiddenUnits: number } {
+  const units = groupSameCompanyEntries(
+    groupParallelEntries(buildTimeline(careers, [], false, buildParallelMap(careers))),
+  );
+  if (units.length <= limit) return { careers, hiddenUnits: 0 };
+  const ids = new Set<string>();
+  for (const u of units.slice(0, limit)) {
+    if (u.kind === "career") ids.add(u.data.id);
+    else if (u.kind === "career-group" || u.kind === "career-same-company") {
+      for (const item of u.items) ids.add(item.id);
+    }
+  }
+  return { careers: careers.filter((c) => ids.has(c.id)), hiddenUnits: units.length - limit };
+}
+
 // ─── Badge sub-components ─────────────────────────────────────────────────────
 
 function CurrentBadge() {
