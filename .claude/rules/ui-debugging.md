@@ -700,4 +700,25 @@ await new Promise(r => setTimeout(r, 2000));
 grep -n "buildFutureData(owUser, false)" src/app/\(jobseeker\)/u/\[id\]/page.tsx
 ```
 
+#### ★「入ったか」だけでなく「消えていないか」も見る（2026-08-17 追記）
+
+**差分では、意図せず消えた1行が「変更した箇所」として自然に見えてしまう。**
+足した行は目で追えるが、**後の置換で巻き込まれて消えた行**は、
+その周辺をどのみち書き換えているので差分の中に埋もれる。
+
+⚠️ **実例（2026-08-17 / フェーズ3）**: 6セクションの見出しに ✎ をまとめて足したあと、
+   **職歴だけ ✎ が付いていなかった**。後の置換がその塊ごと上書きしていた。
+   `git diff` を読んでも気づけず、**画面でアイコンを数えて**見つけた。
+
+**確実なのは、画面で数えること。** 同じ形の要素を作ったなら、同じ数だけあるはず。
+
+```js
+// 6セクションの見出しに ＋ と ✎ が1つずつあるか
+[...document.querySelectorAll("section")].map(s => {
+  const head = s.children[0];
+  return s.innerText.split("\n")[0] + ": " +
+    [...head.querySelectorAll("a,button")].map(b => b.getAttribute("aria-label")).join(",");
+});
+```
+
 ⚠️ ⑬⑯と同じ話。**「やったつもり」を検証で潰す。**
