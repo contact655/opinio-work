@@ -55,12 +55,16 @@ const AGE_OPTIONS = [
   { value: "60s", label: "60代", min: 60, max: 69 },
 ];
 
+/* ★並べ替えは2つだけ（2026-08-18）。
+      「プロフィール順」（publicScore 降順）と「経験が長い順」を外した。
+   ⚠️ **サーバー側の既定の並び（publicScore 降順）は残っている。**
+      外したのは選択肢で、`getAmbassadorDirectory` が返す順序は変えていない。
+      既定を「新着順」にしたので、初期表示はその順に並べ替えられる。 */
 const SORT_OPTIONS = [
-  { value: "profile", label: "プロフィール順" },
   { value: "newest",  label: "新着順" },
-  /* ⚠️ カードに年数を出さなくなったので（2026-08-08）、ラベルで並び順の意味を示す。
-        値 "exp" は URL などに出ないローカル state なので変えていない。 */
-  { value: "exp",     label: "経験が長い順" },
+  /* 「プロフィールを最後に直した順」。⚠️ 職歴・学歴を足しても動かない
+        （`ow_users` の行が変わったときだけ。directory.ts の `updatedAt` 参照）。 */
+  { value: "updated", label: "更新順" },
 ];
 
 // ── FilterChip ────────────────────────────────────────────────────────
@@ -390,7 +394,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
   /* 外資系。⚠️ **これまでの職歴に1社でもあればヒット**（現職に限らない）。
      判定は directory.ts の `hasForeignExperience` に集約している。 */
   const [foreign, setForeign] = useState("");
-  const [sort, setSort] = useState("profile");
+  /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
+  const [sort, setSort] = useState("newest");
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -434,22 +439,18 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
   }, [ambassadors, role, age, foreign, keyword, roleSlugToId]);
 
   const sorted = useMemo(() => {
-    // 既定（プロフィール順）はサーバー側で publicScore 降順に並べてあるのでそのまま。
-    if (sort === "newest") {
-      return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
-    }
-    if (sort === "exp") {
-      // ⚠️ 以前ここは createdAt 降順で、「新着順」と同じ結果を返していた（2026-08-04 修正）。
-      //    実際の経験月数（最初の職歴の開始〜現在）で並べる。
-      //    職歴が無い人は算出できないので、0 扱いにせず必ず末尾に置く。
+    if (sort === "updated") {
+      /* ⚠️ 値が無い人は末尾に置く。0 扱いにして先頭へ来ると
+            「最近直した人」の並びとして誤って読める。 */
       return [...filtered].sort((a, b) => {
-        if (a.experienceMonths == null && b.experienceMonths == null) return 0;
-        if (a.experienceMonths == null) return 1;
-        if (b.experienceMonths == null) return -1;
-        return b.experienceMonths - a.experienceMonths;
+        if (!a.updatedAt && !b.updatedAt) return 0;
+        if (!a.updatedAt) return 1;
+        if (!b.updatedAt) return -1;
+        return b.updatedAt.localeCompare(a.updatedAt);
       });
     }
-    return filtered;
+    // 既定は「新着順」（登録日の降順）
+    return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   }, [filtered, sort]);
 
   /* ⚠️ `foreign` を必ず含めること（2026-08-15 修正）。

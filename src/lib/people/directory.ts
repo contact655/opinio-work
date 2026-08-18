@@ -118,6 +118,16 @@ export type DirectoryPerson = {
    */
   age: number | null;
   createdAt: string | null;
+  /**
+   * プロフィールを最後に更新した日時（`ow_users.updated_at`）。「更新順」の並べ替えに使う。
+   *
+   * ⚠️ **動くのは `ow_users` の行が変わったときだけ**（名前・肩書き・自己紹介・SNS・
+   *    公開範囲など）。職歴や学歴を足しても `ow_users` は触らないので動かない。
+   *    「プロフィール本体を直した順」であって「何かを追加した順」ではない。
+   * ⚠️ `PUT /api/jobseeker/profile` が毎回書いている（実測: 15件中15件に値あり、
+   *    うち4件は created_at と異なる）。
+   */
+  updatedAt: string | null;
 };
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
@@ -172,7 +182,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     .from("ow_users")
     /* ⚠️ birth_date は authenticated から SELECT 権限を剥がしてあるので admin で引く。
        ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, can_casual_meeting, birth_date");
+    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at, can_casual_meeting, birth_date");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -184,6 +194,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
     headline: string | null; about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
+    updated_at: string | null;
     can_casual_meeting: boolean | null; birth_date: string | null;
   };
 
@@ -367,6 +378,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       experienceMonths,
       age: getUserAge(u.birth_date),
       createdAt: u.created_at,
+      updatedAt: u.updated_at,
     };
   });
 
