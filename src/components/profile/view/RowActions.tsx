@@ -177,3 +177,37 @@ export function SectionShowAll({ href, label, hiddenCount }: {
     </div>
   );
 }
+
+/**
+ * セクションの下に置く**丸い ＋**（2026-08-17）。
+ *
+ * 0件のセクションで「〇〇を追加する」という文中リンクの代わりに使う。
+ * ⚠️ **中央に置く。** 文の中に混ぜると、読む文と押す物が同じ行に並んで区別しにくい。
+ * ⚠️ 見出しの ✎ と役割が重なるが、**押した先は同じ追加モーダル**なので入口は2つのまま
+ *    （文中リンク → この ＋ に置き換えただけ。ルール⑧の数は変わらない）。
+ */
+export function SectionAddCircle({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        title={label}
+        className="btn-fixed-size"
+        style={{
+          width: 44, height: 44, borderRadius: "50%",
+          border: "1.5px dashed var(--line)", background: "#fff",
+          color: "var(--royal)", cursor: "pointer", fontFamily: "inherit",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "border-color 0.15s, background 0.15s",
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+    </div>
+  );
+}

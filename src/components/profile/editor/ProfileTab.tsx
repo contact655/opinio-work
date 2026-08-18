@@ -43,7 +43,7 @@ import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHist
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline, { limitCareersForDisplay } from "@/components/profile/MergedTimeline";
 import { stintsToCareerEntries } from "./careerTimeline";
-import { SectionShowAll, PencilIcon } from "@/components/profile/view/RowActions";
+import { SectionShowAll, SectionAddCircle, PencilIcon } from "@/components/profile/view/RowActions";
 import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
 import CareerIntentBox, { type IntentPrefs } from "./CareerIntentBox";
@@ -1414,20 +1414,12 @@ export default function ProfileTab({
                   （{formatYmLabel(oldestCareerStart)} から）
                 </p>
               )}
+              {/* ⚠️ 文中リンク（「職歴を追加する」）はやめた（2026-08-17）。
+                     読む文と押す物が同じ行に並んで区別しにくかった。
+                     **追加はカードの下の丸い ＋** に寄せる。 */}
               {careerStints.length === 0 && (
                 <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                   まだ職歴を登録していません。
-                  <button
-                    type="button"
-                    onClick={() => setCareerAddNonce((n) => n + 1)}
-                    style={{
-                      background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-                      fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-                      textDecoration: "underline", textUnderlineOffset: 2,
-                    }}
-                  >
-                    職歴を追加する
-                  </button>
                 </p>
               )}
               {/* ⚠️ 職歴が0件でも描く。**「将来やりたいこと」がこの中にある**ため
@@ -1450,6 +1442,9 @@ export default function ProfileTab({
                   viewerIsOwner
                   birthDate={owUser?.birth_date}
                 />
+              )}
+              {careerStints.length === 0 && (
+                <SectionAddCircle label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
               )}
               {shownCareers.hiddenUnits > 0 && (
                 <SectionShowAll
@@ -1498,20 +1493,12 @@ export default function ProfileTab({
               emptyUsesPencil={educations.length === 0}
             >
               {educations.length === 0 ? (
-                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                  まだ学歴を登録していません。
-                  <button
-                    type="button"
-                    onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
-                    style={{
-                      background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-                      fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-                      textDecoration: "underline", textUnderlineOffset: 2,
-                    }}
-                  >
-                    学歴を追加する
-                  </button>
-                </p>
+                <>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                    まだ学歴を登録していません。
+                  </p>
+                  <SectionAddCircle label="学歴を追加" onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }} />
+                </>
               ) : (
                 <>
                   {/* ★表示は公開プロフィールと同じ部品。**行の操作は渡さない**（2026-08-17 / フェーズ3）。
