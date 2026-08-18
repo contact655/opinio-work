@@ -254,23 +254,9 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
   );
 }
 
-/**
- * 年齢。
- *
- * ⚠️ 2026-08-08 に経験年数の表示から置き換えた。
- *    経験年数は「経験が長い順」の並べ替えとして残っている（カードには出さない）。
- *
- * 表記は /u/[id] に揃える（`32歳`）。値は directory.ts が
- * ow_users.birth_date から getUserAge() で出したものをそのまま使う。
- *
- * ⚠️ 値が無ければ**行ごと出さない**。「—」も「非公開」も出さない。
- *    ⚠️ 高さを minHeight で確保しないこと。年齢は任意入力で欠けるほうが普通なので、
- *       空行のぶんだけカードが伸びる（役職のように全員に必ずあるものとは違う）。
- */
-function CardFacts({ card }: { card: AmbassadorCard }) {
-  if (card.age == null) return null;
-  return <div className="ppl-facts">{card.age}歳</div>;
-}
+/* ⚠️ `CardFacts`（カードの年齢表示）は 2026-08-18 に削除した。
+      **カードに年齢は出さない。** `card.age` は「年齢」フィルタが使うので残っている
+      （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
 // ── グリッドカード ────────────────────────────────────────────────────
 function GridCard({ card, myUserId, followedUserIds }: {
@@ -321,11 +307,14 @@ function GridCard({ card, myUserId, followedUserIds }: {
         <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3 }}>
           {card.name}
         </div>
-        {/* ⚠️ 役職が無いときに「—」を出さない。値が無いことを、ある値に置き換えない。
-               高さは minHeight で揃える。 */}
-        <div className="ppl-role">{role}</div>
+        {/* ★並びは **名前 → 会社 → 職種**（2026-08-18）。
+               どこの人かが先に読めるほうが、一覧をなぞるときに探しやすい。
+            ⚠️ 役職が無いときに「—」を出さない。値が無いことを、ある値に置き換えない。
+               高さは minHeight で揃える。
+            ⚠️ **年齢はカードに出さない**（2026-08-18 に外した）。
+               `card.age` は「年齢」フィルタが今も使っているので、取得は残っている。 */}
         <AffiliationBlock card={card} />
-        <CardFacts card={card} />
+        <div className="ppl-role">{role}</div>
       </div>
 
       {/* CTAボタン
@@ -537,16 +526,17 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
            役職は2行までにクランプする。自己申告の役職名は部署名を含んで長く、
            5列時のカード幅（235px）に1行で収まらないことがあるため。
            途中で切り詰めない（切れた役職名は誤読のもとになる）。 */
+        /* ★会社が先、職種が後（2026-08-18）。余白は会社の下に持たせる */
         .ppl-role {
           font-size: 13px; color: var(--ink-soft); line-height: 1.5;
-          margin-bottom: 10px; min-height: 20px;
+          min-height: 20px;
           display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
           overflow: hidden; overflow-wrap: anywhere;
         }
         .ppl-company {
           display: flex; align-items: center; justify-content: center; gap: 7px;
           font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35;
-          overflow-wrap: anywhere;
+          margin-bottom: 6px; overflow-wrap: anywhere;
         }
         /* 自己申告の所属。企業ロゴを付けない = 承認済みと区別が付く */
         .ppl-company-self { font-weight: 500; color: var(--ink-soft); }
@@ -566,11 +556,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
           background: var(--bg-tint); border: 1px solid var(--line-soft);
           border-radius: 4px; padding: 1px 5px; line-height: 1.4;
         }
-        /* 経験年数。並べ替えの軸をカード上でも見えるようにする */
-        .ppl-facts {
-          margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
-          line-height: 1.5; overflow-wrap: anywhere;
-        }
+        /* ⚠️ .ppl-facts（年齢）は 2026-08-18 に削除した。カードには出さない。
+              ⚠️ この style はテンプレートリテラルなので、コメントにバッククォートを書かないこと。 */
         .ppl-grid-card:hover {
           box-shadow: 0 8px 32px rgba(0,35,102,0.12);
           transform: translateY(-3px);
