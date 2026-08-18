@@ -35,7 +35,7 @@ export type CompanySearchParams = {
   industry?: string;   // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
   foreign?: boolean;   // 外資系のみ表示
   salaryMin?: number;  // 平均年収下限（万円）
-  sort?: string;       // "newest" | "jobs" | "employees" | "salary"
+  sort?: string;       // "newest" | "employees" | "salary" | "disclosure"（"jobs" は 2026-08-18 に廃止）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
   offset?: number;
@@ -64,7 +64,7 @@ export async function searchCompanies(
 
   // ── DB側ページネーションを使うか判定
   // hiring / foreign / salaryMin / クライアントソート フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const clientSideSort = params.sort === "jobs" || params.sort === "salary" || params.sort === "disclosure";
+  const clientSideSort = params.sort === "salary" || params.sort === "disclosure";
   const useDbPagination = !params.hiring && !params.foreign && !params.salaryMin && params.phase !== "外資系" && !clientSideSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
@@ -286,10 +286,10 @@ export async function searchCompanies(
     totalCount = filteredCompanies.length;
   }
 
-  // client-side ソート（jobs / salary / disclosure）
-  if (params.sort === "jobs") {
-    filteredCompanies = [...filteredCompanies].sort((a, b) => (b.job_count ?? 0) - (a.job_count ?? 0));
-  } else if (params.sort === "salary") {
+  /* client-side ソート（salary / disclosure）
+     ⚠️ "jobs"（募集中あり優先）は 2026-08-18 に廃止した。「募集あり」フィルタと同じ用途。
+        知らない値は下の分岐に入らず、DB 側の既定（updated_at 降順）のまま返る。 */
+  if (params.sort === "salary") {
     /* ⚠️ **求人由来の計算値のみで並べる（2026-08-11）。**
           `avg_salary` へのフォールバック（parseSalary）は関数ごと削除した。
           出典の無い機械投入値だったうえ、"700万円〜" を 0.07 と換算しており

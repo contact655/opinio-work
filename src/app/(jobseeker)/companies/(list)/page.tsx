@@ -240,14 +240,13 @@ export default async function CompaniesPage({ searchParams }: Props) {
             <div>
               {isListView || isGridView ? (
                 <>
-                  {/* #10: sort=jobs の場合はアプリ側で補完ソート（求人数はDB側で計算できないため） */}
                   {(() => {
-                    // #10: DB側でソート済み（updated_at DESC for "newest", employee_count DESC for "employees"）
-                    // "jobs" のみアプリ側で補完（job_count は集計値のため DB ソート不可）
+                    // DB側でソート済み（updated_at DESC for "newest", employee_count DESC for "employees"）
+                    /* ⚠️ "jobs"（募集中あり優先）は 2026-08-18 に廃止した。
+                          「募集あり」フィルタと同じ用途で、入口が2つあった（ルール⑧）。 */
                     const paged = allCompaniesResult.companies.map(c => ({
                       ...c,
                     }));
-                    if (sort === "jobs") paged.sort((a, b) => b.job_count - a.job_count);
                     if (sort === "disclosure") {
                       // reality_disclosure が null でないものを上位に
                       paged.sort((a, b) => {

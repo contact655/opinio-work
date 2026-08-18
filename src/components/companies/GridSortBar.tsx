@@ -13,15 +13,10 @@ const SORT_OPTIONS = [
       </svg>
     ),
   },
-  {
-    value: "jobs",
-    label: "募集中あり優先",
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-      </svg>
-    ),
-  },
+  /* ⚠️ 「募集中あり優先」（value: "jobs"）は 2026-08-18 に外した。
+        検索バーの「募集あり」フィルタと**同じことを別の形で言っていた**（ルール⑧）。
+        しかも公開求人を持つ企業は 79社中1社なので、並べ替えても動くのは1社だけだった。
+     ⚠️ 旧 URL の `?sort=jobs` は既定（updated_at 降順＝新着順）に落ちる。壊れない。 */
   {
     value: "salary",
     label: "年収高い順",
