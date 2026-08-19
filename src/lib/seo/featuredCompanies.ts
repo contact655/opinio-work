@@ -72,17 +72,23 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
   };
 
   if (basis === "jobs" || basis === "content") {
-    const { data } = await db
+    /* ⚠️ **error を捨てない**（2026-08-20 / 段階2）。ここは anon キー（`createPublicClient`）で、
+        列単位 GRANT を剥がした表を1列でも select すると **403 が丸ごと返る**。
+        `?? []` で受けていると **「0件」として静かに素通りする**。
+        CLAUDE.md「★403 は『0件』として静かに素通りする」参照。 */
+    const { data, error } = await db
       .from("ow_jobs")
       .select("company_id")
       .eq("status", "published").eq("is_test", false);
+    if (error) console.error("[featuredCompanies] ow_jobs:", error.message);
     for (const r of data ?? []) add(r.company_id as string | null);
   }
   if (basis === "articles" || basis === "content") {
-    const { data } = await db
+    const { data, error } = await db
       .from("ow_articles")
       .select("company_id")
       .eq("is_published", true);
+    if (error) console.error("[featuredCompanies] ow_articles:", error.message);
     for (const r of data ?? []) add(r.company_id as string | null);
   }
 

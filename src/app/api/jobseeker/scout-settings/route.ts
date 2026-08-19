@@ -13,8 +13,10 @@ export async function GET() {
   const admin = createAdminClient();
   const [profileResult, blockedResult, manualBlocksResult] = await Promise.all([
     admin.from("ow_profiles").select("scout_enabled").eq("user_id", user.id).maybeSingle(),
-    // get_blocked_companies(candidate_id) → {company_id, company_name, block_reason}
-    admin.rpc("get_blocked_companies", { candidate_id: user.id }),
+    /* ⚠️ 引数名は関数と**完全に一致**させる。RPC は名前が違うだけで 404（PGRST202）になる。
+          2026-08-20 まで `candidate_id` で呼んでおり、**ずっと404だった**。
+          関数側も規約に合わせて `p_auth_user_id` に改名済み（20260820200000）。 */
+    admin.rpc("get_blocked_companies", { p_auth_user_id: user.id }),
     // manual blocks — need the id for DELETE
     admin.from("ow_scout_blocks").select("id, company_id").eq("candidate_id", user.id),
   ]);

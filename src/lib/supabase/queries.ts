@@ -1005,10 +1005,15 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
 
   const supabase = createClient();
 
-  const { data: expRows } = await supabase
+  /* ⚠️ **error を捨てない**（2026-08-20 / 段階2）。未ログインではこの session クライアントは
+        **anon として飛ぶ**。`ow_users` は anon の SELECT を23列に絞ってあるので、
+        埋め込みに許可外の列を1つ足すと **403 が丸ごと返り、`!expRows` で静かに空になる**。
+        CLAUDE.md「★403 は『0件』として静かに素通りする」参照。 */
+  const { data: expRows, error: expError } = await supabase
     .from("ow_experiences")
     .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test)")
     .in("role_category_id", roleIds);
+  if (expError) console.error("[getJobPositionMembers] ow_experiences+ow_users:", expError.message);
 
   if (!expRows || expRows.length === 0) return [];
 
@@ -1207,11 +1212,14 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
   const taggedUserIds = (data ?? []).map((r: any) => r.tagged_user_id).filter((id: unknown): id is string => !!id);
   const userMap = new Map<string, { id: string; name: string }>();
   if (taggedUserIds.length > 0) {
-    const { data: users } = await supabase
+    /* ⚠️ `ow_users` は列単位 GRANT の表。列を足すときは GRANT も要る（CLAUDE.md）。
+          admin クライアントなので 403 にはならないが、**error は受ける**。 */
+    const { data: users, error: usersError } = await supabase
       .from("ow_users")
       .select("id, name")
       .in("id", taggedUserIds)
       .eq("is_test", false);
+    if (usersError) console.error("[getCompanyPhotos] ow_users:", usersError.message);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (users ?? []).forEach((u: any) => userMap.set(u.id as string, { id: u.id as string, name: (u.name as string) ?? "" }));
   }
@@ -1264,11 +1272,12 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
   const userIds = adminRows.map((r) => r.user_id as string).filter(Boolean);
   if (userIds.length === 0) return [];
 
-  const { data: userRows } = await supabase
+  const { data: userRows, error: userRowsError } = await supabase
     .from("ow_users")
     .select("id, name, avatar_color, catchphrase")
     .in("id", userIds)
     .eq("is_test", false);
+  if (userRowsError) console.error("[getCompanyRecruiters] ow_users:", userRowsError.message);
 
   const userMap = new Map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

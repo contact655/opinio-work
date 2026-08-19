@@ -378,10 +378,22 @@ split_part(split_part(url,'?',1),'#',1)
 
 | 段 | 対象 | 状態 |
 |---|---|---|
-| **1** | 上の**危険度 中・高の3件**に `console.error` を足す | ✅ **2026-08-20 実施** |
-| 2 | **anon キー経路**（`createPublicClient`）と、**列単位 GRANT を剥がした表**を触るクエリ | 未着手。403 が0件に化ける形で、CLAUDE.md が既に警告している経路 |
-| 3 | `auth_is_admin` の16件 | 直すより**1箇所に集約**するほうが筋（`lib/auth/isAdmin.ts` が既にある）。別タスク |
-| 4 | 残りの `.from()` 264件 | **一括では直さない。** 「新しく書くときは error を受ける」を規約にして、触ったついでに直す |
+| **1** | 危険度 中・高の3件に `console.error` を足す | ✅ **2026-08-20 実施** |
+| **2** | **anon キー経路**と**列単位 GRANT を剥がした表**を触るクエリ | ✅ **2026-08-20 実施**（6箇所。下） |
+| 3 | `auth_is_admin` の16件 | **やらない**と決めた。fail-closed で実害が無く、直すより `lib/auth/isAdmin.ts` に集約するほうが筋。集約は別タスク |
+| 4 | 残りの `.from()` 264件 | **やらない**と決めた。「新しく書くときは error を受ける」を規約にして、触ったついでに直す |
+
+### 段階2で直した6箇所（2026-08-20）
+
+| 場所 | クライアント | なぜ危ないか |
+|---|---|---|
+| `api/companies/batch/route.ts` の Promise.all 3本 | **anon**（`createPublicClient`） | `ow_users` を埋め込んでおり、許可外の列が1つ入ると403が丸ごと返る |
+| `lib/seo/featuredCompanies.ts` の `ow_jobs` / `ow_articles` | **anon** | sitemap・LP の母集団が黙って0件になる |
+| `lib/supabase/queries.ts` の `getJobPositionMembers` | session（**未ログインでは anon**） | `ow_users` の埋め込み。403 が `!expRows` で空になる |
+| 同 `getCompanyPhotos` / `getCompanyRecruiters` の `ow_users` | admin | 403 にはならないが、列単位 GRANT の表なので揃えた |
+
+⚠️ `companies/(list)/page.tsx` の在籍メンバー取得は**元から error を見ていた**
+（2026-08-05 に同じ形で踏んでいるため）。
 
 ⚠️ 規約は CLAUDE.md「Supabase の呼び出しで error を捨てない」に書いた。
 
@@ -408,7 +420,7 @@ split_part(split_part(url,'?',1),'#',1)
 | `approve_school_request` / `reject_school_request(p_approved_by)` | auth で受け、**関数内で `ow_users.auth_id` から解決**して書く | ✅ |
 | `rebuild_ow_transitions()` / `update_company_member_counts()` | 引数なし | ✅ |
 
-### ❌ `get_blocked_companies(p_candidate_id)` ── 未修正。**2つ壊れている**
+### ~~❌ `get_blocked_companies(p_candidate_id)` ── 2つ壊れている~~（2026-08-20 に両方修正）
 
 **① 空間が混ざっている**（`can_send_scout` と同じ形）
 
@@ -438,9 +450,26 @@ admin.rpc("get_blocked_companies", { candidate_id: user.id })  // ← 関数の�
 **404 が「ブロック企業0件」として静かに素通りしている。**
 スカウト設定画面の「ブロック中の企業」は**常に空**。
 
-**直すときは2つ同時に。** 片方だけ直すと、もう片方の不具合が表に出るだけになる。
-⚠️ 直すと**在籍企業がブロック一覧に出るようになる**（今まで見えていなかったものが増える）。
-   件数を実測して報告すること。
+**★修正済み（`20260820200000`）。2つ同時に直した。**
+
+- 空間 … `ow_users` を join して `u.auth_id = p_auth_user_id` で引く
+- 引数名 … 規約に合わせて **`p_auth_user_id`** に改名し、**呼び出し側も同じ名前に**した
+- ★**「在籍企業」は現職だけ**にした。同日 `can_send_scout` を「現在在籍していない」に
+  変えたので、**この一覧が同じ基準でないと「ブロック中と出ているのにスカウトが届く」**になる
+
+**実測（2026-08-20）**
+
+| | |
+|---|---|
+| 旧の引数名 `candidate_id` で呼ぶ | **404 `PGRST202`**（＝これまでずっとこれ） |
+| 新の引数名 `p_auth_user_id` で呼ぶ | **200** |
+| ブロックが1件以上出る実ユーザー | **6人**（内訳: `company_id` 一致 4 / 自由入力の名寄せ一致 2） |
+| 手動ブロック | 0件（`ow_scout_blocks` が空） |
+| API 応答（is_test の企業アカウント） | `blocks` に「株式会社セールスフォース・ジャパン / experience」が**1件返るようになった**（従来は `[]`） |
+
+⚠️ **画面での確認はできていない。** この API の唯一の読み手 `SettingsTab.tsx` は
+   2026-08-17 にタブごと外れており、**ブロック一覧を出す画面が現在どこにも無い**。
+   置き場を決めること（`/mypage/settings` に公開範囲と一緒に置くのが自然）。
 
 ### この形が見つけにくい理由（次に読む人へ）
 

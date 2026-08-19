@@ -19,8 +19,16 @@ export async function GET(req: NextRequest) {
   const supabase = createPublicClient();
 
   // 企業データ + 求人カウントを並列取得
-  const [{ data: rawCompanies }, { data: activeJobs }, { data: experienceData }] =
-    await Promise.all([
+  /* ⚠️ **error を捨てない**（2026-08-20 / 段階2）。ここは anon キー（`createPublicClient`）。
+        `ow_users` は 2026-08-19 に anon の SELECT を**23列に絞った**ので、
+        埋め込みに1列でも許可外を混ぜると **403 が丸ごと返る**。
+        `?? []` で受けているため **「0件」として静かに素通りする**。
+        CLAUDE.md「★403 は『0件』として静かに素通りする」参照。 */
+  const [
+    { data: rawCompanies, error: companiesError },
+    { data: activeJobs, error: jobsError },
+    { data: experienceData, error: expError },
+  ] = await Promise.all([
       /* ⚠️ ここは**詳細の軸**（filterVisibleCompaniesStrict）。ディレクトリではない。
             この API は「最近見た企業」（RecentlyViewedSection）専用で、
             利用者が既に詳細ページに到達した企業を id 指定で引き直すだけ。
@@ -46,6 +54,10 @@ export async function GET(req: NextRequest) {
         .eq("is_current", true)
         .in("company_id", idList),
     ]);
+
+  if (companiesError) console.error("[companies/batch] ow_companies:", companiesError.message);
+  if (jobsError)      console.error("[companies/batch] ow_jobs:", jobsError.message);
+  if (expError)       console.error("[companies/batch] ow_experiences+ow_users:", expError.message);
 
   // 求人カウントマップ
   const jobCountMap: Record<string, number> = {};
