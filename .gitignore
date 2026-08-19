@@ -50,3 +50,6 @@ supabase/.temp/
 
 # Lazyweb (デザイン調査の作業用ディレクトリ。スクリーンショット等で数十MBになる)
 .lazyweb/
+
+# 作業前ダンプ（scripts/dump-tables.sh）。**本番データなのでコミットしない**
+.dumps/
