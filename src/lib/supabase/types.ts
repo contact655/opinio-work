@@ -6535,6 +6535,7 @@ export type Database = {
           photo_url: string | null
           scout_enabled: boolean | null
           skills: string[] | null
+          stance_updated_at: string | null
           tools: string[] | null
           transfer_timing: string | null
           transfer_timing_updated_at: string | null
@@ -6563,6 +6564,7 @@ export type Database = {
           photo_url?: string | null
           scout_enabled?: boolean | null
           skills?: string[] | null
+          stance_updated_at?: string | null
           tools?: string[] | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
@@ -6591,6 +6593,7 @@ export type Database = {
           photo_url?: string | null
           scout_enabled?: boolean | null
           skills?: string[] | null
+          stance_updated_at?: string | null
           tools?: string[] | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
@@ -8715,7 +8718,7 @@ export type Database = {
         }[]
       }
       get_blocked_companies: {
-        Args: { p_candidate_id: string }
+        Args: { p_auth_user_id: string }
         Returns: {
           block_reason: string
           company_id: string
@@ -8746,10 +8749,6 @@ export type Database = {
         }[]
       }
       get_tenant_id: { Args: never; Returns: string }
-      has_worked_at_company: {
-        Args: { p_company_id: string; p_user_id: string }
-        Returns: boolean
-      }
       is_solicitation_blocked: {
         Args: { p_candidate_id: string }
         Returns: boolean

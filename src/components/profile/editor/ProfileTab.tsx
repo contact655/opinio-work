@@ -526,8 +526,10 @@ export default function ProfileTab({
   onDirtyChange,
   notifyGlobalSave,
   companyLogoInfo = [],
-  /* ── ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2）────────── */
-  initialScoutEnabled = null,
+  /* ── ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2）──────────
+        ⚠️ `initialScoutEnabled` は 2026-08-20 に受け取るのをやめた。
+           スカウトの可否は右カラムの `StanceCard` が持つ（`MypageClient` が
+           `editorProps` から直接読む）。**ここに戻すと同じ列を2箇所で触ることになる。** */
   initialIntentPrefs,
   desiredRoleOptions,
   onVisibilitySaved,
@@ -540,8 +542,6 @@ export default function ProfileTab({
         ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
   /** ★職歴の表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6） */
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
-  /** スカウトを受け取るか。`null` は未選択 */
-  initialScoutEnabled?: boolean | null;
   /** 希望条件。**ボックスのモーダルが編集する** */
   initialIntentPrefs?: IntentPrefs;
   /** 希望職種の候補（IT/SaaS で絞ったもの） */
@@ -1269,7 +1269,6 @@ export default function ProfileTab({
             <CareerIntentBox
               initialVisibility={settings.visibility}
               initialIsOpenToWork={settings.isOpenToWork}
-              initialScoutEnabled={initialScoutEnabled}
               initialPrefs={initialIntentPrefs}
               roles={roles}
               roleAliases={roleAliases}

@@ -121,7 +121,10 @@ export default function ProfileEditor({
   roles,
   roleAliases = {},
   isWelcome = false,
-  initialScoutEnabled = null,
+  /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
+        右カラムの StanceCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
+        まだ渡してくるので、型としては残す。 */
+  initialScoutEnabled: _initialScoutEnabled = null,
   initialDesiredRoleIds = [],
   desiredRoleOptions,
   initialProfilePrefs = null,
@@ -408,7 +411,6 @@ export default function ProfileEditor({
             openHeaderNonce={openHeaderNonce}
             openCareerNonce={openCareerNonce}
             /* ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2） */
-            initialScoutEnabled={initialScoutEnabled}
             desiredRoleOptions={desiredRoleOptions}
             initialIntentPrefs={{
               desired_role_ids:    initialDesiredRoleIds,

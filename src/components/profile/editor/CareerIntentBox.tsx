@@ -27,7 +27,7 @@ import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
  *    | 系統 | 何を保存するか |
  *    |---|---|
  *    | `PUT /api/jobseeker/profile` | 公開範囲・転職検討状況 |
- *    | `PUT /api/jobseeker/scout-settings` | スカウトを受け取るか |
+ *    | ~~`PUT /api/jobseeker/scout-settings`~~ | **2026-08-20 に右カラムの StanceCard へ移した** |
  *    | `PUT /api/jobseeker/career-preferences` | 希望職種・勤務地・勤務スタイル・時期・年収・フェーズ |
  *
  * ⚠️ ★**1回の「保存」で3系統を呼ぶ。失敗しても成功したものは残す。**
@@ -65,14 +65,15 @@ function SummaryRow({ label, value, muted }: { label: string; value: string; mut
 }
 
 export default function CareerIntentBox({
-  initialVisibility, initialIsOpenToWork, initialScoutEnabled,
+  initialVisibility, initialIsOpenToWork,
   initialPrefs, roles, roleAliases, desiredRoleOptions,
   onVisibilityChange,
 }: {
   initialVisibility: Visibility;
   initialIsOpenToWork: boolean;
-  /** `null` は「まだ選んでいない」。⚠️ `can_send_scout()` は null を false 扱いにする */
-  initialScoutEnabled: boolean | null;
+  /* ⚠️ `initialScoutEnabled` は 2026-08-20 に外した。スカウトの可否は
+        右カラムの `StanceCard` が `ow_profiles.scout_enabled` を直接持つ。
+        **ここに戻すと同じ列を触る画面が2つになる。** */
   initialPrefs: IntentPrefs;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   roleAliases: Record<string, string[]>;
@@ -84,7 +85,6 @@ export default function CareerIntentBox({
   const [saved, setSaved] = useState({
     visibility: initialVisibility,
     isOpenToWork: initialIsOpenToWork,
-    scoutEnabled: initialScoutEnabled,
     prefs: initialPrefs,
   });
 
@@ -96,7 +96,6 @@ export default function CareerIntentBox({
   /* 編集中の値 */
   const [visibility, setVisibility] = useState<Visibility>(saved.visibility);
   const [isOpenToWork, setIsOpenToWork] = useState(saved.isOpenToWork);
-  const [scoutEnabled, setScoutEnabled] = useState<boolean | null>(saved.scoutEnabled);
   const [roleIds, setRoleIds] = useState<string[]>(saved.prefs.desired_role_ids);
   const [prefectures, setPrefectures] = useState<string[]>(saved.prefs.desired_prefectures ?? []);
   const [workStyles, setWorkStyles] = useState<string[]>(saved.prefs.desired_work_styles ?? []);
@@ -119,7 +118,6 @@ export default function CareerIntentBox({
   const resetToSaved = useCallback(() => {
     setVisibility(saved.visibility);
     setIsOpenToWork(saved.isOpenToWork);
-    setScoutEnabled(saved.scoutEnabled);
     setRoleIds(saved.prefs.desired_role_ids);
     setPrefectures(saved.prefs.desired_prefectures ?? []);
     setWorkStyles(saved.prefs.desired_work_styles ?? []);
@@ -132,7 +130,6 @@ export default function CareerIntentBox({
 
   /* ── 変更の有無を**系統ごと**に持つ。保存で呼ぶのは変わった系統だけ ────────── */
   const profileDirty = visibility !== saved.visibility || isOpenToWork !== saved.isOpenToWork;
-  const scoutDirty = scoutEnabled !== saved.scoutEnabled;
   const prefsPatch = useMemo(() => ({
     desired_role_ids:    roleIds,
     desired_prefectures: prefectures.length > 0 ? prefectures : null,
@@ -151,7 +148,7 @@ export default function CareerIntentBox({
     desired_salary_max:  saved.prefs.desired_salary_max,
     desired_phase:       saved.prefs.desired_phase,
   });
-  const dirty = profileDirty || scoutDirty || prefsDirty;
+  const dirty = profileDirty || prefsDirty;
 
   const handleSave = useCallback(() => {
     void (async () => {
@@ -172,17 +169,6 @@ export default function CareerIntentBox({
           next.isOpenToWork = isOpenToWork;
           onVisibilityChange?.(visibility);
         } catch { failed.push("公開範囲・転職検討状況"); }
-      }
-
-      if (scoutDirty) {
-        try {
-          const res = await fetch("/api/jobseeker/scout-settings", {
-            method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scout_enabled: scoutEnabled }),
-          });
-          if (!res.ok) throw new Error();
-          next.scoutEnabled = scoutEnabled;
-        } catch { failed.push("スカウト設定"); }
       }
 
       if (prefsDirty) {
@@ -223,23 +209,21 @@ export default function CareerIntentBox({
       setJustSaved(true);
       setTimeout(() => { setJustSaved(false); setOpen(false); }, 800);
     })();
-  }, [saved, profileDirty, scoutDirty, prefsDirty, visibility, isOpenToWork, scoutEnabled, prefsPatch, onVisibilityChange]);
+  }, [saved, profileDirty, prefsDirty, visibility, isOpenToWork, prefsPatch, onVisibilityChange]);
 
   /* ── 文言。★値そのものを出す ─────────────────────────────────────────────
         ⚠️ **ボックスの要約は「保存済みの値」、モーダルの行は「編集中の値」**を出す。
            モーダルの中で保存済みを出すと、いま選んだのと違う値が畳んだ行に残り、
            **選んだはずの値が消えたように見える**（実測で踏んだ）。 */
   const visLabel = (v: Visibility) => PROFILE_VISIBILITY_OPTIONS.find((o) => o.value === v)?.label ?? v;
-  const scoutLabel = (v: Visibility, e: boolean | null) =>
-    v === "private" ? "非公開のため届きません"
-    : e === true ? "スカウトを受け取る"
-    : e === false ? "スカウトを受け取らない"
-    : "未選択";
-  const openToWorkLabel = (b: boolean) => (b ? "転職検討中" : "いまは考えていない");
+  /* ★否定形をやめた（2026-08-20 / B-3）。**列は触っていない**。`is_open_to_work` の
+        true/false に対する**表示文言だけ**を変えている。
+     ⚠️ 「いまは考えていない」は、サービス側から「あなたは対象外です」と言っているのと同じ。
+        OPINIO は転職しない人も主役なので、同じ状態を**参加している言葉**で書く。
+     ⚠️ 右カラムの `StanceCard` と**同じ文言**にすること（片方だけ直すとズレる）。 */
+  const openToWorkLabel = (b: boolean) => (b ? "積極的に探している" : "情報収集として");
 
   const visibilityLabel = visLabel(saved.visibility);
-  const isPrivate = saved.visibility === "private";
-  const scoutText = scoutLabel(saved.visibility, saved.scoutEnabled);
   const openToWorkText = openToWorkLabel(saved.isOpenToWork);
 
   return (
@@ -268,8 +252,7 @@ export default function CareerIntentBox({
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <SummaryRow label="公開範囲" value={visibilityLabel} />
-          <SummaryRow label="スカウト" value={scoutText} muted={isPrivate || saved.scoutEnabled === null} />
-          <SummaryRow label="転職検討" value={openToWorkText} muted={!saved.isOpenToWork} />
+                    <SummaryRow label="転職について" value={openToWorkText} muted={!saved.isOpenToWork} />
         </div>
       </section>
 
@@ -319,33 +302,9 @@ export default function CareerIntentBox({
           </div>
         </CollapsibleRow>
 
-        <CollapsibleRow defaultOpen label="スカウト設定" state={scoutLabel(visibility, scoutEnabled)}>
-          {visibility === "private" ? (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              非公開のあいだ、企業からのスカウトは届きません。
-            </p>
-          ) : (
-            <div style={{ display: "flex", gap: 8 }}>
-              {[{ v: true, label: "受け取る" }, { v: false, label: "受け取らない" }].map((o) => (
-                <button
-                  key={String(o.v)}
-                  type="button"
-                  onClick={() => setScoutEnabled(o.v)}
-                  className="tap-min-h"
-                  style={{
-                    flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-                    border: `1.5px solid ${scoutEnabled === o.v ? "var(--royal)" : "var(--line)"}`,
-                    background: scoutEnabled === o.v ? "var(--royal-50)" : "#fff",
-                    color: scoutEnabled === o.v ? "var(--royal)" : "var(--ink-soft)",
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </CollapsibleRow>
+        {/* ★「スカウト設定」の行は 2026-08-20 に**右カラムの「声をかけられてもよいか」へ移した**。
+               ⚠️ ここに戻さないこと。同じ列（`ow_profiles.scout_enabled`）を触る画面が2つになる。
+               ⚠️ 画面に「スカウト」という言葉を出さない方針にも合わせている。 */}
 
         <CollapsibleRow defaultOpen label="転職検討状況" state={openToWorkLabel(isOpenToWork)}>
           <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>

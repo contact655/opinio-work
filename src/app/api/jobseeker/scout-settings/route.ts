@@ -64,11 +64,45 @@ export async function PUT(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { data: existing } = await admin.from("ow_profiles").select("id").eq("user_id", user.id).maybeSingle();
+  const { data: existing, error: existingError } = await admin
+    .from("ow_profiles")
+    .select("id, scout_enabled")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existingError) console.error("[scout-settings] ow_profiles select:", existingError.message);
+
+  const now = new Date().toISOString();
+
+  /* ★`stance_updated_at` は**値が実際に変わったときだけ**入れる（2026-08-20）。
+     ⚠️ `transfer_timing_updated_at`（2026-08-07）とまったく同じ作りにしてある。
+        同じ意味の列で書き方が2通りになるほうが害が大きい。
+     ⚠️ **同じ値を選び直しても更新しない。** 「いつ意思表示したか」を出すための列なので、
+        押し直しただけで新しくなると「昨日答えた人」と区別がつかなくなる。
+     ⚠️ trigger にしない（この表には trigger が1本も無い）。 */
   if (existing) {
-    await admin.from("ow_profiles").update({ scout_enabled, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+    const changed = existing.scout_enabled !== scout_enabled;
+    const { error } = await admin
+      .from("ow_profiles")
+      .update({
+        scout_enabled,
+        updated_at: now,
+        ...(changed ? { stance_updated_at: now } : {}),
+      })
+      .eq("user_id", user.id);
+    if (error) {
+      console.error("[scout-settings] ow_profiles update:", error.message);
+      return NextResponse.json({ error: "save failed" }, { status: 500 });
+    }
   } else {
-    await admin.from("ow_profiles").insert({ user_id: user.id, scout_enabled });
+    /* 行が無い＝初めて答える。**未選択(null)を保存しに来た場合は日時を入れない**
+       （「答えた」ことにならないため）。 */
+    const { error } = await admin
+      .from("ow_profiles")
+      .insert({ user_id: user.id, scout_enabled, ...(scout_enabled === null ? {} : { stance_updated_at: now }) });
+    if (error) {
+      console.error("[scout-settings] ow_profiles insert:", error.message);
+      return NextResponse.json({ error: "save failed" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

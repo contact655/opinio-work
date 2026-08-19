@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
+import StanceCard from "@/components/profile/editor/StanceCard";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
@@ -417,6 +418,16 @@ export default function MypageClient({
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      {/* ★「声をかけられてもよいか」（2026-08-20 / フェーズB）。
+             ⚠️ **右カラムの先頭に置く。** 767px 以下では右カラムごと `order: -1` で
+                本文の上に来るので、モバイルでは最初に目に入る。
+             ⚠️ `ow_profiles.scout_enabled` を**そのまま**読み書きする。主スイッチ用の列は作らない。
+             ⚠️ 「転職について」は**表示だけ**。編集は本文の「転職の希望」に1つだけ置く。 */}
+      <StanceCard
+        initialScoutEnabled={(editorProps as { initialScoutEnabled?: boolean | null }).initialScoutEnabled ?? null}
+        openToWorkLabel={owUser?.is_open_to_work ? "積極的に探している" : "情報収集として"}
+      />
+
       {/* プロフィール公開促進
           ⚠️ 2026-08-10 まで `/profile/start` を指していたが、**そのページは存在せず 404** だった。
              しかも表示条件の `ow_users.profile_setup_at` は**書くコードがどこにも無く**
