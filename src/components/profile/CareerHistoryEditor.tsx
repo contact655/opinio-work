@@ -934,78 +934,6 @@ function StintForm({
       </div>
 
 
-      {/* 役職 */}
-      <div>
-        <label style={labelStyle()}>役職</label>
-        <select
-          value={draft.rank}
-          onChange={(e) => set("rank", e.target.value)}
-          disabled={isSaving}
-          style={fieldStyle()}
-        >
-          {RANK_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* 雇用形態 */}
-      <div>
-        <label style={labelStyle()}>雇用形態</label>
-        <select
-          value={draft.employmentType}
-          onChange={(e) => set("employmentType", e.target.value)}
-          disabled={isSaving}
-          style={fieldStyle()}
-        >
-          {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/*
-        社内での呼び方（ow_experiences.role_title）
-
-        ⚠️ 2026-08-06 に定義を「社内での呼び方」に一本化した。
-           それまでの説明文は「M2、シニアアソシエイトなど社内で規定されているグレード・等級名」で、
-           等級を入れさせる文面だった。等級は隣の役職セレクト（rank）の守備範囲であり、
-           2つの軸が1つの欄に混ざっていた。実データでも部署名が混入している
-           （例:「金融営業本部 営業第1部 / 法人営業（アカウント営業）」）。
-        ⚠️ 保存先カラム（role_title）は変えていない。既存データの移行もしていない。
-           定義を先に正して、これから入る値をきれいにするのが目的。
-        ⚠️ この欄はフェーズ2で「会社独自の呼称」を集める入口になる。
-           ow_company_job_roles（company_id + name + standard_role_id）が受け皿。
-      */}
-      <div>
-        <label style={labelStyle()}>社内での呼び方（任意）</label>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
-          社内で使われている呼称を入力してください（例: アカウントエグゼクティブ、CXデザイナー）
-        </div>
-        <input
-          type="text"
-          value={draft.roleTitle}
-          onChange={(e) => set("roleTitle", e.target.value)}
-          placeholder="例: アカウントエグゼクティブ"
-          disabled={isSaving}
-          style={fieldStyle()}
-        />
-      </div>
-
-      {/* 部署名 */}
-      <div>
-        <label style={labelStyle()}>部署名（任意）</label>
-        <input
-          type="text"
-          value={draft.department}
-          onChange={(e) => set("department", e.target.value)}
-          placeholder="例: エンタープライズ営業本部"
-          disabled={isSaving}
-          style={fieldStyle()}
-          maxLength={100}
-        />
-      </div>
-
       {/* Period — 年/月 separate selects */}
       <div>
         <label style={labelStyle()}>入社年月<RequiredMark /></label>
@@ -1107,7 +1035,7 @@ function StintForm({
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
-              入社と退職の背景
+              この会社を選んだ理由と、離れた理由
             </span>
             <span
               style={{
@@ -1123,9 +1051,14 @@ function StintForm({
               この内容は公開されません
             </span>
           </div>
+          {/* ⚠️ **まだ無い機能を約束しない**（2026-08-20）。
+                 一度「同じ選び方をした人や会社が見つかるようになります」と書いたが、
+                 サジェストは未実装で、集計も閾値（退職5件・入社3件）を満たす企業が
+                 **現時点で0社**。最初に入力してくれた人の信用を落とすので差し替えた。
+              ⚠️ **サジェストが実際に動いたら、ここを書き換える。**
+                 そのときは「何ができるようになるか」を書いてよい。 */}
           <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-            答えると、同じ選び方をした人や会社が見つかるようになります。
-            あなた以外には表示されません。企業にも、ほかの登録者にも出ません。
+            あなた以外には表示されません。企業ごとの傾向を集計するために使います。
           </p>
         </div>
 
@@ -1256,6 +1189,83 @@ function StintForm({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ★役職 / 雇用形態 / 社内での呼び方 / 部署名 は、
+            2026-08-20 に「この会社を選んだ理由と、離れた理由」の**下**へ移した。
+            どれも無くても職歴として成立する補助項目で、これらが上にあると
+            背景ブロックが約2画面ぶん下に沈んでいた（実測 836px）。
+         ⚠️ **表示順を変えただけ。** 送信内容・必須判定・バリデーションには触っていない。 */}
+      {/* 役職 */}
+      <div>
+        <label style={labelStyle()}>役職</label>
+        <select
+          value={draft.rank}
+          onChange={(e) => set("rank", e.target.value)}
+          disabled={isSaving}
+          style={fieldStyle()}
+        >
+          {RANK_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* 雇用形態 */}
+      <div>
+        <label style={labelStyle()}>雇用形態</label>
+        <select
+          value={draft.employmentType}
+          onChange={(e) => set("employmentType", e.target.value)}
+          disabled={isSaving}
+          style={fieldStyle()}
+        >
+          {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/*
+        社内での呼び方（ow_experiences.role_title）
+
+        ⚠️ 2026-08-06 に定義を「社内での呼び方」に一本化した。
+           それまでの説明文は「M2、シニアアソシエイトなど社内で規定されているグレード・等級名」で、
+           等級を入れさせる文面だった。等級は隣の役職セレクト（rank）の守備範囲であり、
+           2つの軸が1つの欄に混ざっていた。実データでも部署名が混入している
+           （例:「金融営業本部 営業第1部 / 法人営業（アカウント営業）」）。
+        ⚠️ 保存先カラム（role_title）は変えていない。既存データの移行もしていない。
+           定義を先に正して、これから入る値をきれいにするのが目的。
+        ⚠️ この欄はフェーズ2で「会社独自の呼称」を集める入口になる。
+           ow_company_job_roles（company_id + name + standard_role_id）が受け皿。
+      */}
+      <div>
+        <label style={labelStyle()}>社内での呼び方（任意）</label>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
+          社内で使われている呼称を入力してください（例: アカウントエグゼクティブ、CXデザイナー）
+        </div>
+        <input
+          type="text"
+          value={draft.roleTitle}
+          onChange={(e) => set("roleTitle", e.target.value)}
+          placeholder="例: アカウントエグゼクティブ"
+          disabled={isSaving}
+          style={fieldStyle()}
+        />
+      </div>
+
+      {/* 部署名 */}
+      <div>
+        <label style={labelStyle()}>部署名（任意）</label>
+        <input
+          type="text"
+          value={draft.department}
+          onChange={(e) => set("department", e.target.value)}
+          placeholder="例: エンタープライズ営業本部"
+          disabled={isSaving}
+          style={fieldStyle()}
+          maxLength={100}
+        />
       </div>
 
       {/*
