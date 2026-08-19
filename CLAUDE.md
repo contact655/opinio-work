@@ -974,9 +974,12 @@ Opinio は有料職業紹介事業の許可事業者（13-ユ-316441）なので
 ⚠️ **トリガーにしない。** 遷移は隣接ペアなので職歴を1行足すと前後も作り直しになり、
    `age_at_move` は `birth_date` 依存（職歴と無関係に後から入る）で拾えない。
 
-⚠️ **`is_role_change` / `is_industry_change` は boolean ではなく3値**
+⚠️ **`role_change` / `industry_change` は boolean ではなく3値**
    （`changed` / `unchanged` / `unknown`）。自由入力の企業は業種が引けないので `unknown`。
    **2値に潰すと「異業界に転職した人」が静かに少なく出る。**
+   ⚠️ 2026-08-20 に `is_` を外した（実データ5行・参照コード0のうちに）。
+      `is_` だと boolean と読まれ、`if (t.is_industry_change)` で
+      **`'unchanged'` も truthy** になる。**`=== "changed"` で比べること。**
 
 ⚠️ **`age_at_move` で絞る機能を作らない。** 算出できるのは実ユーザー14人中4人だけ。
    主軸は `years_of_experience_at_move`。年齢での絞り込みを企業に出さない方針とも揃える。

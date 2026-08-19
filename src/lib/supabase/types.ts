@@ -7313,9 +7313,9 @@ export type Database = {
           from_industry: string | null
           from_role_category_id: string | null
           id: string
-          is_industry_change: string
-          is_role_change: string
+          industry_change: string
           moved_at: string
+          role_change: string
           to_company_id: string | null
           to_company_text: string | null
           to_industry: string | null
@@ -7331,9 +7331,9 @@ export type Database = {
           from_industry?: string | null
           from_role_category_id?: string | null
           id?: string
-          is_industry_change: string
-          is_role_change: string
+          industry_change: string
           moved_at: string
+          role_change: string
           to_company_id?: string | null
           to_company_text?: string | null
           to_industry?: string | null
@@ -7349,9 +7349,9 @@ export type Database = {
           from_industry?: string | null
           from_role_category_id?: string | null
           id?: string
-          is_industry_change?: string
-          is_role_change?: string
+          industry_change?: string
           moved_at?: string
+          role_change?: string
           to_company_id?: string | null
           to_company_text?: string | null
           to_industry?: string | null
