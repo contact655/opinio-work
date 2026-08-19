@@ -1429,6 +1429,94 @@ phase は「企業グループとしてのステージ」を表す。
 
 ---
 
+## ⚠️ DB 関数の書き方（2026-08-20 確立。`can_send_scout` の事故から）
+
+### ① 引数名で**どちらの空間か**を示す
+
+`auth.uid()`（＝`auth.users.id`）と `ow_users.id` は別物なのに、
+**どちらも uuid なので型では区別できない。** 取り違えても `tsc` も lint も通り、
+実行時エラーも出ず、**条件が1つ静かに効かなくなるだけ**になる。
+
+```sql
+-- ✗ どちらの空間か分からない
+create function can_send_scout(p_company_id uuid, p_candidate_id uuid)
+
+-- ✓ 名前で示す
+create function can_send_scout(p_company_id uuid, p_auth_user_id uuid)
+create function get_public_career_steps(p_ow_user_id uuid)
+```
+
+**`p_auth_user_id` / `p_ow_user_id` を使う。**
+⚠️ **新しく作る関数はこの規約に従う。既存の関数は今回は改名していない**
+   （影響範囲を調べてから判断する。`docs/todo.md` に残してある）。
+
+### ② 空間を渡し間違えたら**実行時に落とす**（`create_conversation` が手本）
+
+```sql
+-- ow_users 空間の id を受けるなら、auth.uid() と一致することを必ず確かめる
+IF NOT EXISTS (
+  SELECT 1 FROM ow_users WHERE id = p_ow_user_id AND auth_id = auth.uid()
+) THEN
+  RAISE EXCEPTION 'unauthorized: p_ow_user_id does not match auth.uid()'
+    USING ERRCODE = '42501';
+END IF;
+```
+
+⚠️ **①と組み合わせて初めて効く。** 名前だけでは間違いを止められないし、
+   アサートだけでは「どちらを渡すのが正しいか」が読む人に伝わらない。
+
+⚠️ SECURITY DEFINER の関数で**本人確認をこのアサートに任せている**なら、
+   外すと誰でも他人のぶんを操作できる。**消さないこと。**
+
+### ③ 1つの関数の中で**両方の空間を混ぜない**
+
+混ざっているかは、関数の本文が参照している列の FK で判定できる。
+洗い出しのクエリは `docs/todo.md`「user_id の空間取り違え」に置いてある。
+
+⚠️ **CLAUDE.md に警告があっても防げなかった**（`can_send_scout` が1本すり抜けた）。
+   **文章では防げない。** 実データで数えること。
+
+### ④ 関数を消す前に、**本文まで検索する**
+
+⚠️ `has_worked_at_company` は **src からの呼び出し0件**だったが、
+   **DB の中に呼び出し元が2つあった**（`guard_salary_insert` / `guard_review_insert`）。
+   FK では追えない。**関数の本文を検索して初めて分かる。**
+
+```sql
+select proname from pg_proc
+ where pronamespace='public'::regnamespace
+   and pg_get_functiondef(oid) ~ '\m対象の関数名\M';
+```
+
+（結局その2つも死んでいた——対象の表が DROP 済みで trigger が0本だった——ので
+3本まとめて落とした: `20260820180000`）
+
+## ⚠️ Supabase の呼び出しで error を捨てない（2026-08-20 追記）
+
+**`?? []` は権限エラーもRPCの404も「0件」に化けさせる。**
+2026-08-19 に anon の 403 で、2026-08-20 に RPC の `PGRST202`（引数名違い）で
+**同じ形を2回踏んだ。**
+
+```ts
+// ✗ 404 も 403 も「0件」になる
+const { data } = await admin.rpc("get_blocked_companies", { candidate_id: id });
+const blocks = data ?? [];
+
+// ✓ 最低限 console.error は出す
+const { data, error } = await admin.rpc("get_blocked_companies", { p_auth_user_id: id });
+if (error) console.error("[scout-settings] get_blocked_companies:", error.message);
+```
+
+⚠️ **RPC は引数名が違うだけで 404 になる**（`PGRST202`）。
+   関数側が `p_candidate_id` なら、呼ぶ側も `p_candidate_id` でなければ**関数が見つからない**。
+
+⚠️ **fail-closed なら握りつぶしてよい、ではない。** `auth_is_admin` は
+   失敗しても「管理者ではない」に倒れるので実害は無いが、
+   **落ちていることに気づけない**のは同じ。新しく書くときは error を受ける。
+
+→ 既存の握りつぶしの棚卸しと、段階的に直す計画は
+   [docs/todo.md](docs/todo.md)「Supabase 呼び出しの error 握りつぶし」
+
 ## ⚠️ テーブル・カラム・関数を DROP するときのチェックリスト
 
 **FK を見ただけでは足りない。PL/pgSQL の本体は Postgres が依存として追跡しない。**

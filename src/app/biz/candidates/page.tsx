@@ -171,10 +171,13 @@ export default async function CandidatesPage() {
     eligibleUsers.map(async (u: any) => {
       const authId = u.auth_id as string | null;
       if (!authId) return false;
-      const { data } = await adminClient.rpc("can_send_scout", {
+      /* ⚠️ error を捨てない（2026-08-20）。失敗すると `data !== true` で
+            **その候補者が黙って一覧から消える**（fail-closed だが気づけない）。 */
+      const { data, error } = await adminClient.rpc("can_send_scout", {
         p_company_id: ctx.tenantId,
         p_candidate_id: authId,
       });
+      if (error) console.error("[candidates] can_send_scout:", error.message);
       return data === true;
     })
   );

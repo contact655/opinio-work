@@ -19,6 +19,17 @@ export async function GET() {
     admin.from("ow_scout_blocks").select("id, company_id").eq("candidate_id", user.id),
   ]);
 
+  /* ⚠️ **error を捨てない**（2026-08-20）。ここは `?? []` で受けているので、
+        RPC が 404（PGRST202・引数名違い）でも権限エラーでも「0件」に見える。
+        実際 `candidate_id` という名前で呼んでいて **404 のまま素通りしていた**
+        （関数の引数は `p_candidate_id`）。直すのは別タスクだが、まず**見えるようにする**。 */
+  if (blockedResult.error) {
+    console.error("[scout-settings] get_blocked_companies:", blockedResult.error.message);
+  }
+  if (manualBlocksResult.error) {
+    console.error("[scout-settings] ow_scout_blocks:", manualBlocksResult.error.message);
+  }
+
   // Build a lookup: company_id → block record id (for manual blocks)
   const manualBlockIdMap = new Map<string, string>();
   for (const row of (manualBlocksResult.data ?? [])) {

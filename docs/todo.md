@@ -349,6 +349,45 @@ split_part(split_part(url,'?',1),'#',1)
 
 ⚠️ **今回は実装しない。** まず A を1回手で回して、実際に戻せるかを確かめるのが先。
 
+## Supabase 呼び出しの error 握りつぶし（2026-08-20 棚卸し・段階的に直す）
+
+`?? []` が RPC の 404 を「0件」に化けさせた。**anon の 403 が `?? []` で素通りするのと
+同じ形で、2度目**（1度目は 2026-08-19）。
+
+### 規模（実測 2026-08-20）
+
+| | 件数 |
+|---|---|
+| `.rpc(...)` の呼び出し | **24**（うち **error を受けていない 19**） |
+| `.from(...)` の分割代入 | **533**（うち **error を受けていない 264**） |
+| `data ?? []` / `data ?? null` | **131** |
+
+⚠️ **264件を一斉に直すのは割に合わない。** 大半は admin クライアントの読みで、
+失敗しても実害の無いものが多い。**危ない形だけ順に潰す。**
+
+### 内訳（RPC 19件）
+
+| 種類 | 件数 | 危険度 |
+|---|---|---|
+| `auth_is_admin` | **16** | 低。失敗すると「管理者ではない」に倒れる（**fail-closed**） |
+| `can_send_scout`（`/biz/candidates`） | 1 | 中。失敗すると**その候補者が黙って一覧から消える** |
+| `get_blocked_companies`（`/api/jobseeker/scout-settings`） | 1 | **高**。404 が「ブロック0件」に化けていた |
+| `ow_scout_blocks` の直読み（同上） | 1 | 中 |
+
+### 段階（案）
+
+| 段 | 対象 | 状態 |
+|---|---|---|
+| **1** | 上の**危険度 中・高の3件**に `console.error` を足す | ✅ **2026-08-20 実施** |
+| 2 | **anon キー経路**（`createPublicClient`）と、**列単位 GRANT を剥がした表**を触るクエリ | 未着手。403 が0件に化ける形で、CLAUDE.md が既に警告している経路 |
+| 3 | `auth_is_admin` の16件 | 直すより**1箇所に集約**するほうが筋（`lib/auth/isAdmin.ts` が既にある）。別タスク |
+| 4 | 残りの `.from()` 264件 | **一括では直さない。** 「新しく書くときは error を受ける」を規約にして、触ったついでに直す |
+
+⚠️ 規約は CLAUDE.md「Supabase の呼び出しで error を捨てない」に書いた。
+
+⚠️ **`get_blocked_companies` の本体（引数名違い＋空間の混在）はまだ直していない。**
+   下の節を参照。今回はログを出しただけで、**画面の挙動は変わっていない**。
+
 ## ★user_id の空間取り違え ── 関数を全件洗った結果（2026-08-20 実測・1件は未修正）
 
 `can_send_scout` が1本すり抜けていたので、**public の関数を全件突き合わせた**。
@@ -362,7 +401,7 @@ split_part(split_part(url,'?',1),'#',1)
 |---|---|---|
 | `can_send_scout(p_company_id, p_candidate_id)` | auth | ✅ **2026-08-20 に修正済み**（`ow_users` を join） |
 | **`get_blocked_companies(p_candidate_id)`** | auth（呼び出し側が `user.id` を渡す） | ❌ **同じ形の混在。未修正**（下） |
-| `has_worked_at_company(p_user_id, p_company_id)` | **ow_users で一貫** | ⚠️ **呼び出し元が src に0件**（死んでいる）。使うときに auth_id を渡すと静かに false になる |
+| ~~`has_worked_at_company(p_user_id, p_company_id)`~~ | ow_users で一貫 | ✅ **2026-08-20 に DROP**（`20260820180000`）。src からの呼び出しは0件、DB 内の呼び出し元2つ（`guard_salary_insert` / `guard_review_insert`）も**対象表が DROP 済みで trigger 0本**＝3本まとめて死んでいた |
 | `get_public_career_steps(p_user_id)` | ow_users で一貫（`auth.uid()` は `ow_users.auth_id` 経由で橋渡し） | ✅ |
 | `create_conversation(p_kind, p_candidate_user_id, …)` | ow_users で一貫 | ✅ **手本**。不一致なら `42501` を投げる明示アサートがある |
 | `auth_is_company_admin` / `auth_is_company_member(target_company_id)` | 引数は company | ✅ |
