@@ -64,9 +64,14 @@ type Props = {
 
 /*
   ⚠️ 2026-08-06 に compact / members を受け取るのをやめた。どちらも使っていなかった。
-     /companies の一覧は CompanyCardList に移っており、このカードの呼び出し元は
-     GenreCarousel だけ。そこでは members も compact も渡していない。
-     MemberPreview 型はここで export しているので型自体は残す（CompanyCardList が使う）。
+     /companies の一覧は CompanyCardList に移っている。
+
+  ⚠️ **2026-08-20 時点で、このカード本体を描画している画面は無い。**
+     唯一の呼び出し元だった `GenreCarousel` を同日削除したため
+     （その GenreCarousel も、呼び出し元の GenreSection が消えたあと孤児として残っていた）。
+     **ファイルごと消していないのは `MemberPreview` 型が生きているから**で、
+     `CompanyCardList` と `RecentlyViewedSection` がここから import している。
+     消すなら**先に型の置き場を決める**こと（docs/todo.md に手順あり）。
 */
 export function CompanyCardCompact({ company }: Props) {
   // ロゴエリアのグラデーション — DB の logo_gradient を優先使用

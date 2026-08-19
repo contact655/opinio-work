@@ -10,7 +10,8 @@ import React, { useState } from "react";
  *    **そのまま移した**もの。中身は変えていない。
  */
 
-export const CARD_STYLE: React.CSSProperties = {
+/* ⚠️ 外に出さない（2026-08-20）。使うのはこのファイルの FormSection だけ。 */
+const CARD_STYLE: React.CSSProperties = {
   background: "#fff", border: "1px solid var(--line)",
   borderRadius: 14, padding: "28px 32px", marginBottom: 20,
 };
@@ -20,16 +21,8 @@ export const CARD_STYLE: React.CSSProperties = {
  * ⚠️ 中の部品が自前の見出しを描くもの（職歴 / 学歴 / 実績3種）に使う。
  *    `FormSection` で包むと見出しが二重になる。
  */
-export function Card({ children }: { children: React.ReactNode }) {
-  return <section style={CARD_STYLE}>{children}</section>;
-}
 
 /** カード内の右下に置く操作行（保存・キャンセル）。⚠️ カードの外に浮かせない。 */
-export const CARD_FOOTER_STYLE: React.CSSProperties = {
-  display: "flex", justifyContent: "flex-end", alignItems: "center",
-  gap: "var(--space-2)", marginTop: 20, paddingTop: 16,
-  borderTop: "1px solid var(--line-soft)",
-};
 
 /* ⚠️ `CardSaveFooter`（カードの中の保存・キャンセル行）は 2026-08-17 に削除した。
       **編集はすべて `ProfileEditModal` で開き、保存はモーダルのフッター1つ**になったため。
@@ -181,47 +174,6 @@ export function TextareaField({
  * ⚠️ `.btn-fixed-size` を付ける。globals.css の `min-height: 36px` が
  *    正方形ボタンを縦長に潰すため（ui-debugging.md）。
  */
-export function SectionActionButton({
-  action, label, onClick,
-}: { action: "edit" | "add"; label: string; onClick: () => void }) {
-  const [hovered, setHovered] = React.useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      /* ⚠️ 767px 以下では当たり判定を 44×44 にする（丸の描画は 32px のまま）。
-            `.tap-target` は min-width / min-height だけを足すので、
-            width/height 32 の丸い枠線は変わらない */
-      className="btn-fixed-size tap-target"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
-      style={{
-        flexShrink: 0,
-        width: 32, height: 32, borderRadius: "50%",
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        background: hovered ? "var(--royal-50)" : "transparent",
-        border: `1px solid ${hovered ? "var(--royal-100)" : "var(--line)"}`,
-        color: hovered ? "var(--royal)" : "var(--ink-mute)",
-        cursor: "pointer", transition: "background 0.15s, color 0.15s, border-color 0.15s",
-      }}
-    >
-      {action === "edit" ? (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      )}
-    </button>
-  );
-}
 
 /**
  * 即時保存のカード（写真・発信コンテンツ）の出口。
@@ -231,26 +183,6 @@ export function SectionActionButton({
  * ⚠️ 見た目（上罫線＋右寄せ）は `CardSaveFooter` と揃える。
  *    出口の位置を7枚で同じにするため、見出し側には戻さない。
  */
-export function CardDoneFooter({ onDone, note }: { onDone: () => void; note?: string }) {
-  return (
-    <div style={{ ...CARD_FOOTER_STYLE, justifyContent: "space-between" }}>
-      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-        {note ?? "変更はすぐに保存されます"}
-      </span>
-      <button
-        type="button"
-        onClick={onDone}
-        style={{
-          padding: "10px var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 600, minWidth: 120,
-          background: "var(--royal)", color: "#fff",
-          border: "none", borderRadius: 8, fontFamily: "inherit", cursor: "pointer",
-        }}
-      >
-        完了
-      </button>
-    </div>
-  );
-}
 
 /**
  * 編集フォームの中で、縦を大きく取るブロックを折りたたむ行（2026-08-16）。

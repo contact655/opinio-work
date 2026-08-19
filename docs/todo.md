@@ -478,28 +478,64 @@ trigger が無かった時期のもの。内訳は
 
 ---
 
-## 変更前から未使用のエクスポート3件（2026-08-16 記録・今回の作業とは無関係）
+## ~~変更前から未使用のエクスポート3件~~（2026-08-20 に判断・**残す**）
 
-**参照0だが消していない。** フェーズ3（右カラム削除）で数えたときに見つかったもので、
-`git stash` して**変更前も0件だった**ことを確認済み。つまり今回の作業が原因ではない。
+`PROFILE_VISIBILITY_VALUES` / `ProfileVisibility` / `PublicCompletionInput` の3つ。
+**外から参照されていないのは事実だが、消さないと決めた。**
 
-| エクスポート | 置き場 |
+理由: 3つとも**同じファイルの中で使われている**うえ、いずれも
+**export されている値・関数の型の面**にあたる。
+
+| エクスポート | 中での役割 |
 |---|---|
-| `PROFILE_VISIBILITY_VALUES` | `src/lib/constants/profileVisibility.ts` |
-| `ProfileVisibility`（型） | 同上。`PROFILE_VISIBILITY_OPTIONS` の型注釈**内**では使っている |
-| `PublicCompletionInput`（型） | `src/lib/profile/completion.ts` |
+| `PROFILE_VISIBILITY_VALUES` | `ProfileVisibility` 型の元（`typeof ...[number]`） |
+| `ProfileVisibility` | `PROFILE_VISIBILITY_OPTIONS[].value` の型 |
+| `PublicCompletionInput` | **export している** `calcPublicScore()` の引数の型 |
 
-⚠️ `ProfileVisibility` は同じファイル内で使われているので、**消すなら型注釈も書き換えが要る。**
-   「参照0」は**ファイルの外からの参照**の話。
+⚠️ 消すと、呼び出し側が `Parameters<typeof calcPublicScore>[0]` のような書き方を
+   強いられる。**「参照0」だけを根拠に型の面を閉じない。**
 
-⚠️ `PROFILE_VISIBILITY_OPTIONS.line`（各値に添える1行）も読み手がいなくなった。
-   こちらはフェーズ3で読み手（右カラムの「企業からの見え方」）を消したため。
-   文言は残してある。
+⚠️ `PROFILE_VISIBILITY_OPTIONS.line`（各値に添える1行）は読み手がいないままだが、
+   文言として残す判断も据え置き（2026-08-16 の記録どおり）。
 
-⚠️ **同時に消さないこと。** 由来が違う（今回の作業由来か、元からか）ので、
-   消すなら別のコミットで、それぞれの理由を書くこと。
+## ★StoryAccordion（2,111行）が事故で孤児になっている（2026-08-20 発見・要判断）
 
----
+**経歴ストーリー（`ow_experience_stories`）の編集UIが、画面から到達できない。**
+
+`git log -S` で追ったところ、参照が外れたのは
+**`e80616ad`「職歴を公開プロフィールと同じ年表にする（2-6）」**（2026-08-16）。
+`CareerHistoryEditor` の自前一覧（229行）を `MergedTimeline` に差し替えたとき、
+その中で描いていた `<StoryAccordion experienceId={stint.id} />` **ごと消えた**。
+コミットメッセージに StoryAccordion の話は無く、**機能を畳む判断はされていない。**
+
+| | |
+|---|---|
+| ファイル | `src/components/profile/StoryAccordion.tsx`（**2,111行**） |
+| 参照 | **0**（2026-08-20 実測） |
+| DB | `ow_experience_stories` / `ow_story_sections` とも**0行**。RLS は `20260816130000` で own+admin に締めた |
+| Storage | `ow_uploads_can_write` の③が `{auth.uid()}/experience-stories/…` を許可しており、**コメントに「アプリ側（StoryAccordion）がこのパスで書いている」と書いてある** |
+
+⚠️ **今回の掃除では消していない。** 2,111行の機能まるごとの去就は、
+   dead code の整理ではなく**製品の判断**だから。決めるのは次の2つ。
+
+1. **戻す**なら、職歴カードのどこから開くかを決めて `MergedTimeline` 側に導線を足す
+2. **畳む**なら、ファイルだけでなく **Storage ポリシー③のコメントと、
+   `ow_experience_stories` / `ow_story_sections` の扱い**も一緒に決める
+   （どちらも0行なので、DROP するかは別途）
+
+## CompanyCardCompact は本体が未使用・型だけ生きている（2026-08-20 記録）
+
+`GenreCarousel` を削除した結果、**このカードを描画している画面が無くなった。**
+それでもファイルを残しているのは、`MemberPreview` 型を
+`CompanyCardList` と `RecentlyViewedSection` が import しているため。
+
+消すときの手順（今回はやらない）:
+
+1. `MemberPreview` の置き場を決める（`components/companies/types.ts` など）
+2. `CompanyCardList` / `RecentlyViewedSection` の import を差し替える
+3. ⚠️ `app/(jobseeker)/companies/(list)/page.tsx` には**同じ形の型がローカル定義**で
+   もう1つある（14行目）。**そこも同じ置き場に寄せる**か、寄せない理由を書く
+4. `CompanyCardCompact.tsx` を削除
 
 ## social_links に URL 形式の検証が無い（2026-08-16 記録・未着手）
 

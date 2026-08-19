@@ -48,7 +48,7 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           .search-results-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
         }
 
-        /* genre-card は GenreCarousel のスタイル定義に依存しているため、ここでも定義する。
+        /* genre-card は globals.css にも定義があるが、ここでも定義する（絞り込み結果の枠内で完結させるため）。
 
            ⚠️ このコメントに 山括弧 と 二重引用符 を書かないこと。
               JSX の style タグの中身は**サーバーだけが実体参照へ変換する**ため、
