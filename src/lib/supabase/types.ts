@@ -7304,6 +7304,127 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_transitions: {
+        Row: {
+          age_at_move: number | null
+          built_at: string
+          from_company_id: string | null
+          from_company_text: string | null
+          from_industry: string | null
+          from_role_category_id: string | null
+          id: string
+          is_industry_change: string
+          is_role_change: string
+          moved_at: string
+          to_company_id: string | null
+          to_company_text: string | null
+          to_industry: string | null
+          to_role_category_id: string | null
+          user_id: string
+          years_of_experience_at_move: number | null
+        }
+        Insert: {
+          age_at_move?: number | null
+          built_at?: string
+          from_company_id?: string | null
+          from_company_text?: string | null
+          from_industry?: string | null
+          from_role_category_id?: string | null
+          id?: string
+          is_industry_change: string
+          is_role_change: string
+          moved_at: string
+          to_company_id?: string | null
+          to_company_text?: string | null
+          to_industry?: string | null
+          to_role_category_id?: string | null
+          user_id: string
+          years_of_experience_at_move?: number | null
+        }
+        Update: {
+          age_at_move?: number | null
+          built_at?: string
+          from_company_id?: string | null
+          from_company_text?: string | null
+          from_industry?: string | null
+          from_role_category_id?: string | null
+          id?: string
+          is_industry_change?: string
+          is_role_change?: string
+          moved_at?: string
+          to_company_id?: string | null
+          to_company_text?: string | null
+          to_industry?: string | null
+          to_role_category_id?: string | null
+          user_id?: string
+          years_of_experience_at_move?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_transitions_from_company_id_fkey"
+            columns: ["from_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_from_company_id_fkey"
+            columns: ["from_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_from_company_id_fkey"
+            columns: ["from_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_from_role_category_id_fkey"
+            columns: ["from_role_category_id"]
+            isOneToOne: false
+            referencedRelation: "ow_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_to_company_id_fkey"
+            columns: ["to_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_to_company_id_fkey"
+            columns: ["to_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_to_company_id_fkey"
+            columns: ["to_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_to_role_category_id_fkey"
+            columns: ["to_role_category_id"]
+            isOneToOne: false
+            referencedRelation: "ow_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_transitions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_user_achievements: {
         Row: {
           created_at: string
@@ -8640,6 +8761,7 @@ export type Database = {
       normalize_company_name: { Args: { p_name: string }; Returns: string }
       ow_uploads_can_write: { Args: { object_name: string }; Returns: boolean }
       purge_old_page_views: { Args: never; Returns: undefined }
+      rebuild_ow_transitions: { Args: never; Returns: number }
       reject_school_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: {

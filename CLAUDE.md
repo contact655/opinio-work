@@ -559,6 +559,33 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
 - **列単位 GRANT を剥がすと、剥奪列が select に1つでも入ったクエリが丸ごと 403 になる。**
   ページは HTTP 200 のまま中身だけが静かに空になる。
 
+- **★`migration repair` を使ったら、通し実行で検証するまでが1セット（2026-08-20 確立）。**
+  `supabase db push` が**本体は COMMIT したのに台帳への INSERT で落ちた**とき、
+  `supabase migration repair --status applied <version>` で台帳を合わせることになる。
+  このとき**修正後のファイルは一度も通しで実行されていない**ので、
+  **使い捨てDBに当てて通ることを確かめる**こと。
+
+  ⚠️ **ただしこのリポジトリの migration 群は、最初から通しでは走らない**（2026-08-20 実測）。
+  使い捨ての Postgres に112本を順に当てたところ **OK 54 / FAIL 58**。
+  失敗の大半は**設計どおり**で、データ migration が
+  「対象が想定件数と違う → 中止」と自分で止まる（本番の行数を前提にしている）。
+  企業データは migration ではなく `supabase/seeds/` から入るため、
+  **schema と data が1本の鎖になっていない。**
+
+  → したがって検証は「全部通す」ではなく、**対象のファイルが OK 行に出るか**で見る。
+
+  ```bash
+  docker run -d --name pgtest -e POSTGRES_PASSWORD=postgres -p 55432:5432 supabase/postgres:17.4.1.075
+  for f in supabase/migrations/*.sql; do
+    docker exec -i pgtest psql -U postgres -v ON_ERROR_STOP=1 -q < "$f" \
+      && echo "OK   $(basename $f)" || echo "FAIL $(basename $f)"
+  done
+  docker rm -f pgtest
+  ```
+
+  ⚠️ `supabase start` は使えない（`config.toml` が無く、seed も通らない）。
+     使うなら `supabase init` した後に消すこと。**リポジトリに残さない。**
+
 - **★ポリシー式は「実行ユーザーの権限」で評価される。**
   ある表から SELECT を剥がすと、**その表を副問い合わせしている RLS ポリシーを持つ
   “無関係な表”が丸ごと 403 になる**（PostgreSQL: CREATE POLICY / Notes
@@ -929,6 +956,38 @@ Opinio は有料職業紹介事業の許可事業者（13-ユ-316441）なので
 
 ⚠️ **両方に値があり、年が食い違っている実ユーザーが1人いる**（2026-08-19 実測）。
    **データは書き換えていない。** どちらが本人の申告か確認が要る → docs/todo.md
+
+---
+
+## ⚠️ ow_transitions は導出テーブル。直接 INSERT しない（2026-08-20 追加）
+
+「会社が変わった隣接ペア」を WHERE 句で引けるようにするための表。
+**バッチで全件洗い替えする導出データ**で、アプリからは書かない。
+
+| | |
+|---|---|
+| 洗い替え | `select public.rebuild_ow_transitions();`（**冪等**。戻り値は行数） |
+| 実行 | **いまは手動のみ。** cron もトリガーも張っていない |
+| 権限 | **anon / authenticated に GRANT しない。** 読むのは admin クライアントだけ |
+| RLS | 有効。**ポリシーは1本も無い**（誰にも開いていないので書くべきものが無い） |
+
+⚠️ **トリガーにしない。** 遷移は隣接ペアなので職歴を1行足すと前後も作り直しになり、
+   `age_at_move` は `birth_date` 依存（職歴と無関係に後から入る）で拾えない。
+
+⚠️ **`is_role_change` / `is_industry_change` は boolean ではなく3値**
+   （`changed` / `unchanged` / `unknown`）。自由入力の企業は業種が引けないので `unknown`。
+   **2値に潰すと「異業界に転職した人」が静かに少なく出る。**
+
+⚠️ **`age_at_move` で絞る機能を作らない。** 算出できるのは実ユーザー14人中4人だけ。
+   主軸は `years_of_experience_at_move`。年齢での絞り込みを企業に出さない方針とも揃える。
+
+⚠️ **洗い替えの `DELETE` に `WHERE true` を必ず書く。** Supabase は `safeupdate` が有効で、
+   WHERE の無い DELETE は PostgREST 経由で 21000 になる。
+   **SQL で直接呼ぶと通るので、RPC で1回叩くまで気づけない**（2026-08-20 に踏んだ）。
+
+実測（2026-08-20 / 本番）: 隣接ペア9 → **会社が変わる5行**（両側マスタ4 / 自由入力を含む1）。
+3値の内訳は changed×changed 2 / changed×unchanged 1 / unchanged×unchanged 1 / changed×unknown 1。
+2回流して内容ハッシュ一致。
 
 ---
 
