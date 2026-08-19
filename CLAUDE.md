@@ -516,7 +516,7 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
   |---|---|---|
   | `ow_users` | 30 / 32 | **23 / 32**（2026-08-19〜） |
   | `ow_experiences` | 26 / 35 | 権限なし |
-  | `ow_career_profiles` | 7 / 9 | テーブルレベル |
+  | `ow_career_profiles` | 7 / 9 | **5 / 9**（2026-08-20〜） |
 
   ⚠️ **`ow_users` は anon も列単位**（2026-08-19）。**anon から落とした9列**:
 
@@ -530,6 +530,11 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
      **`?? []` で受けている呼び出し側では「0件」として静かに素通りする。**
      必要になったら、**先に「GRANT を足すか」を判断する**（勝手に select を足さない）。
      経緯は `20260819100000_ow_users_anon_column_grants.sql`。
+
+  ⚠️ **`ow_career_profiles` も anon は列単位**（2026-08-20）。**anon から落とした4列**:
+     `birth_year` `gender` `created_at` `updated_at`。
+     残しているのは `id` `user_id` `headline` `years_of_experience` `is_published` の5列。
+     経緯は `20260820090000_career_profiles_anon_column_grants.sql`。
 
   ⚠️ **これ以外の `ow_*` はテーブルレベル**なので、列を足せばそのまま読める。
   ⚠️ `ow_companies` は逆に **UPDATE** が列単位（テーブルレベルを落としてある）。
@@ -577,11 +582,20 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
      and pg_get_expr(p.polqual,p.polrelid) ~ '\mow_users\M';
   ```
 
-  ⚠️ **migration の中で実際に `SET LOCAL ROLE anon` して全部引く**こと。
-  失敗すればトランザクションごとロールバックされ、壊れた状態が本番に残らない。
-  ⚠️ **ロールの切り替えと復帰はトップレベルに書く。`DO $$` の中でやらない**
-  （中で `RESET ROLE` しても戻らず、CLI の `schema_migrations` への INSERT が
-  42501 で落ちる。2026-08-19 に実際に踏んだ）。
+  ⚠️ **★migration の中でロールを切り替えないこと（2026-08-20 訂正）。**
+  `SET LOCAL ROLE anon` を書くと、**GRANT は COMMIT されるのに
+  CLI の `INSERT INTO supabase_migrations.schema_migrations` が 42501 で落ちる**
+  ——つまり「適用されたのに記録が残らない」状態になり、
+  `supabase migration repair --status applied <version>` が要る。
+  2026-08-19 に1回踏み、「`DO $$` の中で `RESET ROLE` したのが悪い」と考えて
+  2026-08-20 に**トップレベルへ移したが、同じように落ちた**
+  （`current_user = session_user` のアサートは通っているのに、である）。
+  **原因は未特定。分かっているのは「書くと落ちる」ことだけ。**
+
+  代わりに、
+  ① migration では `has_column_privilege` / `has_table_privilege` で列ごとにアサートし、
+  ② **適用後に anon キーで PostgREST を直接叩いて status を見る**（401 か 200 か）。
+  ⚠️ ②を省かない。①は catalog を見ているだけで、実際の応答は確かめていない。
 
 - **★403 は「0件」として静かに素通りする。** 呼び出し側の大半が `data ?? []` で
   受けているため、権限エラーは**空の一覧**にしか見えない。
@@ -853,6 +867,68 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 ⚠️ 2026-08-05 時点で `/mypage` だけこの `isPublished` を渡し忘れており、
 非公開企業に在籍する人の職歴が本番で 404 に飛ぶリンクになっていた。
 新しく企業リンクを作るときは、上のどちらかの経路に乗せること。
+
+---
+
+## ⚠️ 年齢は詳細だけ。一覧に出さず、年齢で絞り込ませない（2026-08-20 確立）
+
+### 決めたこと
+
+| | |
+|---|---|
+| **生年月日の正** | **`ow_users.birth_date`**（フル日付）。実ユーザー14人中4人が入力済み |
+| 年齢を出してよい場所 | **`/u/[id]` の詳細だけ**（本人の `/mypage` のタイムライン年マーカーを除く） |
+| 一覧 | **出さない**（`/people` / `/companies/[id]` の社員 / `/biz/candidates` / `/biz/meetings` のカード） |
+| 企業側の絞り込み | **年齢ではなく「社会人年数」**（`/biz/candidates`） |
+
+### なぜ絞り込みを年齢にしないか
+
+**労働施策総合推進法9条で、募集・採用時の年齢制限は原則禁止。**
+表示だけなら各社もしているが、**年齢で絞り込む機能**は禁止行為を直接手助けする形になる。
+Opinio は有料職業紹介事業の許可事業者（13-ユ-316441）なので一段リスクが高い。
+「経験年数で絞る」は職務要件なので性質が違う。
+
+⚠️ 撤去前の年齢絞り込みは `if (!c.birthYear) return false` で、
+**生年月日が未入力の10人（実ユーザー14人中）を無条件に落としていた。**
+法令以前に機能として壊れていた。**社会人年数の絞り込みでは未算出の人を落とさない。**
+
+### ★守り方は「規約」ではなく「型」
+
+⚠️ **一覧用の型から `age` / `birthYear` を落としてある。** 型に無ければ表示も絞り込みも
+**書けない**。コメントで「一覧に出すな」と書く方式は過去に守られていない。
+
+| 型 | 状態 |
+|---|---|
+| `lib/people/directory.ts` の `PeopleCard` | `age` **なし**（`birth_date` も取らない） |
+| `lib/supabase/queries.ts` の `CompanyEmployee` | `birthYear` **なし**（select からも外した） |
+| `biz/candidates` の `Candidate` | `birthYear` **なし**。代わりに `tenureMonths` |
+
+⚠️ `lib/business/meetings.ts` の `applicantAge` だけは**残している**。
+   詳細（`MeetingDetailPanel`）が使うため。**一覧の `MeetingCard` からは外した。**
+
+### 年齢の計算は `lib/age.ts` の `getUserAge()` に一本化する
+
+⚠️ **年を引くだけの実装を書かないこと。** 誕生日前の人が1歳上に出る。
+2026-08-20 以前は5つに割れており、`/biz/candidates` の表示は **`2026 - birthYear`**
+と**年がハードコード**されていた（2027年になると全員1歳若く出る）。
+
+⚠️ 例外は `MergedTimeline` の `calcAgeAtYear` だけ。あれは「**その年**の年齢」を出すので
+   誕生日到来の判定は仕様上不要。
+
+### 社会人年数は都度計算する
+
+`lib/profile/tenure.ts` の `calcTotalExperience`（最も古い `started_at` から算出）。
+⚠️ **列にもトリガーにもしない。** 職歴を1件足した瞬間に変わる値なので、保存すると必ず古くなる
+（`ow_profiles.experience_years` を自動計算に置き換えた 2026-08-07 と同じ理由）。
+⚠️ **職歴0件は `null`（未算出）。「0年」で埋めない**（新卒と未登録が区別できなくなる）。
+
+### `ow_career_profiles.birth_year` は参照しない
+
+**生年は `ow_users.birth_date` の1系統に決めた。**
+`ow_career_profiles.birth_year` は表示にも集計にも使わない（anon の GRANT も 2026-08-20 に外した）。
+
+⚠️ **両方に値があり、年が食い違っている実ユーザーが1人いる**（2026-08-19 実測）。
+   **データは書き換えていない。** どちらが本人の申告か確認が要る → docs/todo.md
 
 ---
 

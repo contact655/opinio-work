@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserAge } from "@/lib/age";
+
 import { useState, useTransition } from "react";
 import { bulkSetVisibility, bulkDeleteUsers } from "./actions";
 import { CanCasualMeetingToggle } from "./CanCasualMeetingToggle";
@@ -48,15 +50,6 @@ function formatRelative(iso: string | null | undefined): string {
   return `${Math.floor(days / 365)}年前`;
 }
 
-function getUserAge(birthDate: string | null): number | null {
-  if (!birthDate) return null;
-  const today = new Date();
-  const dob = new Date(birthDate);
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return age;
-}
 
 type ConfirmState =
   | { type: "private"; ids: string[] }

@@ -302,6 +302,24 @@ split_part(split_part(url,'?',1),'#',1)
 | ③ | — | `careerReasons.ts` のコメント「DB 側でも GRANT を付けていないので admin 以外読めない」は **`ow_experience_gaps` については誤り**。同テーブルは `authenticated` に SELECT/INSERT/UPDATE/DELETE があり RLS で本人に絞っている（**2026-08-19 に当該コメントは修正済み**）。正しいのは `ow_experiences` の3列のほう |
 | ④ | 「UI / API / DB の CHECK を3つ揃える」 | `ow_experiences.employment_type` に CHECK が無い（上の節） |
 
+## 生年が2箇所にあり、年が食い違っている実ユーザーが1人（2026-08-20 記録・本人確認が必要）
+
+**データは書き換えていない。** どちらが本人の申告か分からないため。
+
+| | 実測（2026-08-19） |
+|---|---|
+| `ow_users.birth_date` と `ow_career_profiles.birth_year` の**両方**を持つ人 | **1** |
+| そのうち**年が一致しない**人 | **1**（1件中1件） |
+| その人の属性 | `is_test = false`（実ユーザー）／`ow_career_profiles.is_published = true` |
+
+⚠️ **正は `ow_users.birth_date`** と決めた（CLAUDE.md）。`birth_year` は表示にも集計にも
+使わず、anon の GRANT も外した（`20260820090000`）ので、**実害は出ない状態にはなっている。**
+
+やること: 本人に確認して `ow_users.birth_date` を正す **か**、
+`ow_career_profiles.birth_year` の列ごと落とす（1行しか使っていない）。
+⚠️ **確認せずに片方へ揃えない。** どちらが正しいか分からないまま上書きすると、
+   「推測値の投入」になる（CLAUDE.md「値が無いことを、ある値に置き換えない」の同型）。
+
 ## 希望勤務地（`desired_prefectures`）がマッチングに使われていない（2026-08-15 記録）
 
 **対象**: `ow_profiles.desired_prefectures`（2026-08-15 のフェーズ2で追加）。

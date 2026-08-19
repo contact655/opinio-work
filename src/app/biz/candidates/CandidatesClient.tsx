@@ -4,13 +4,35 @@ import { useState, useMemo } from "react";
 import { describeFreshness, STALE_AFTER_MONTHS } from "@/lib/profile/freshness";
 import { DESIRED_WORK_STYLE_LABELS } from "@/lib/constants/careerPreferences";
 
+/**
+ * 社会人年数の帯（2026-08-20）。**年齢の帯の置き換え。**
+ *
+ * ⚠️ 元は `ow_experiences` の最も古い `started_at` から `calcTotalExperience` で
+ *    その都度算出している（page.tsx）。列にもトリガーにもしない。
+ */
+const TENURE_BANDS = [
+  { value: "lt1",  label: "1年未満",   minMonths: 0,   maxMonths: 11 },
+  { value: "1to3", label: "1〜3年",    minMonths: 12,  maxMonths: 35 },
+  { value: "3to5", label: "3〜5年",    minMonths: 36,  maxMonths: 59 },
+  { value: "5to10", label: "5〜10年",  minMonths: 60,  maxMonths: 119 },
+  { value: "gte10", label: "10年以上", minMonths: 120, maxMonths: Number.MAX_SAFE_INTEGER },
+] as const;
+
+/** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
+function formatTenure(months: number | null): string | null {
+  if (months == null) return null;
+  if (months < 12) return "社会人1年未満";
+  return `社会人${Math.floor(months / 12)}年`;
+}
+
 type Candidate = {
   id: string;
   name: string;
   location: string | null;
   isMentor: boolean;
   isOpenToWork: boolean;
-  birthYear: number | null;
+  /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
+  tenureMonths: number | null;
   currentRole: string | null;
   currentCompany: string | null;
   employmentType: string | null;
@@ -169,8 +191,15 @@ export default function CandidatesClient({
   const [includeNoSalary, setIncludeNoSalary] = useState(true);
 
   // ── 属性 ────────────────────────────────────────────────────────────
-  const [ageMin, setAgeMin] = useState(0);
-  const [ageMax, setAgeMax] = useState(0);
+  /* ★年齢の絞り込みは 2026-08-20 に撤去した。社会人年数に置き換えている。
+     ⚠️ **年齢の select や birthYear をここに戻さないこと。**
+        労働施策総合推進法9条で募集・採用時の年齢制限は原則禁止で、
+        **年齢で絞り込む機能**は禁止行為を直接手助けする形になる（有料職業紹介の許可事業者）。
+        「経験年数で絞る」は職務要件なので性質が違う。
+     ⚠️ 撤去前の実装は `if (!c.birthYear) return false` で、
+        生年月日が未入力の10人（実ユーザー14人中）を**無条件に落としていた**。
+        同じ失敗を繰り返さないため、未算出の人は落とさない（下の tenureBand）。 */
+  const [tenureBand, setTenureBand] = useState("");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
 
   // ── その他 ──────────────────────────────────────────────────────────
@@ -283,16 +312,18 @@ export default function CandidatesClient({
 
     if (phase) list = list.filter((c) => c.desiredPhase?.includes(phase));
 
-    // 年齢レンジ
-    if (ageMin > 0 || ageMax > 0) {
-      const now = new Date().getFullYear();
-      list = list.filter((c) => {
-        if (!c.birthYear) return false;
-        const age = now - c.birthYear;
-        if (ageMin > 0 && age < ageMin) return false;
-        if (ageMax > 0 && age > ageMax) return false;
-        return true;
-      });
+    /* 社会人年数
+       ⚠️ **未算出（職歴0件）の人は落とさない。** 落とすと「絞り込んだ瞬間に
+          候補者が激減する」という、年齢絞り込みで起きていたのと同じ形になる。
+          何名が年数不明のまま残っているかは、一覧の上に注記で出している。 */
+    if (tenureBand) {
+      const band = TENURE_BANDS.find((b) => b.value === tenureBand);
+      if (band) {
+        list = list.filter((c) => {
+          if (c.tenureMonths == null) return true; // 未算出は通す
+          return c.tenureMonths >= band.minMonths && c.tenureMonths <= band.maxMonths;
+        });
+      }
     }
 
     // 居住地（OR・前方一致）
@@ -315,9 +346,15 @@ export default function CandidatesClient({
   }, [
     candidates, q, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
     phase, hideAlreadyScouted,
-    ageMin, ageMax, selectedPrefectures,
+    tenureBand, selectedPrefectures,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
+
+  /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
+  const unknownTenureCount = useMemo(
+    () => filtered.filter((c) => c.tenureMonths == null).length,
+    [filtered]
+  );
 
   const jobTypeFilterActive = topRoleId !== null;
   const activeFilterCount = [
@@ -329,8 +366,7 @@ export default function CandidatesClient({
     phase,
     selectedEmploymentTypes.length ? "x" : "",
     hideAlreadyScouted ? "x" : "",
-    ageMin > 0 ? "x" : "",
-    ageMax > 0 ? "x" : "",
+    tenureBand ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
@@ -345,8 +381,7 @@ export default function CandidatesClient({
     setPhase("");
     setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
-    setAgeMin(0);
-    setAgeMax(0);
+    setTenureBand("");
     setSelectedPrefectures([]);
     setSalaryMin(0);
     setIncludeNoSalary(true);
@@ -549,30 +584,23 @@ export default function CandidatesClient({
 
       {/* ── 属性 ──────────────────────────────────────────────────────── */}
       <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>年齢</SidebarLabel>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <select
-            value={ageMin}
-            onChange={(e) => setAgeMin(Number(e.target.value))}
-            style={{ flex: 1, height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
-          >
-            <option value={0}>下限なし</option>
-            {[20,22,25,28,30,32,35,38,40,45,50].map((v) => (
-              <option key={v} value={v}>{v}歳</option>
-            ))}
-          </select>
-          <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>〜</span>
-          <select
-            value={ageMax}
-            onChange={(e) => setAgeMax(Number(e.target.value))}
-            style={{ flex: 1, height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
-          >
-            <option value={0}>上限なし</option>
-            {[25,28,30,32,35,38,40,45,50,55,60].map((v) => (
-              <option key={v} value={v}>{v}歳</option>
-            ))}
-          </select>
-        </div>
+        <SidebarLabel>社会人年数</SidebarLabel>
+        <select
+          value={tenureBand}
+          onChange={(e) => setTenureBand(e.target.value)}
+          style={{ width: "100%", height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
+        >
+          <option value="">指定なし</option>
+          {TENURE_BANDS.map((b) => (
+            <option key={b.value} value={b.value}>{b.label}</option>
+          ))}
+        </select>
+        {tenureBand && unknownTenureCount > 0 && (
+          /* ⚠️ 黙って減らさない・黙って混ぜない。**何名が年数不明のまま残っているか**を出す。 */
+          <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.5, color: "var(--ink-mute)" }}>
+            職歴が未登録の {unknownTenureCount} 名は年数を算出できないため、そのまま表示しています。
+          </div>
+        )}
 
         {uniquePrefectures.length > 0 && (
           <div style={{ marginTop: 12 }}>
@@ -733,7 +761,7 @@ export default function CandidatesClient({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map((c) => {
-                const age = c.birthYear ? (2026 - c.birthYear) : null;
+                const tenure = formatTenure(c.tenureMonths);
                 const grad = getGradient(c.id);
                 return (
                   <div key={c.id}
@@ -765,8 +793,10 @@ export default function CandidatesClient({
                         {/* 名前 + 年齢 + バッジ */}
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                           <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{c.name}</span>
-                          {age && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>{age}歳</span>
+                          {/* ⚠️ **年齢は出さない**（2026-08-20）。一覧に年齢を出さない方針。
+                                 出すのは職務要件として意味のある社会人年数だけ。 */}
+                          {tenure && (
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>
                           )}
                           {c.isOpenToWork && (
                             <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #6EE7B7" }}>転職検討中</span>

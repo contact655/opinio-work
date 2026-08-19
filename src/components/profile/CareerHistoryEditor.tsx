@@ -1191,6 +1191,49 @@ function StintForm({
         </div>
       </div>
 
+      {/* ★「選んだ理由を、自分の言葉で」— 2026-08-20 にここへ移した。
+             それまではフォームの最下部にあり、上の理由チップと**同じことを2回聞く**形だった。
+             理由ブロックの直下に置いて、チップの補足であることを位置で示す。
+
+          ⚠️ **ラベルを「補足」にしない。** 何の補足か分からず、結局チップと同じ内容が書かれる。
+             「自分の言葉で」＝チップでは表せない具体的な経緯を書く欄だと分かる言い方にする。
+
+          ⚠️ ★**紫バッジ「公開プロフィールに表示」は必ず残す。**
+             すぐ上のチップ群は緑バッジ「この内容は公開されません」で、
+             **公開範囲が正反対のものが隣り合っている。**
+             バッジを外すと、非公開のつもりで公開の欄に書かれる。
+             2つのバッジが同時に目に入る配置になっていることを画面で確認すること。 */}
+      <div>
+        <label style={labelStyle()}>
+          <span>選んだ理由を、自分の言葉で（任意）</span>
+          <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
+            公開プロフィールに表示
+          </span>
+        </label>
+        {/* ⚠️ ★バッジだけでは足りない（2026-08-20 実測）。
+               緑バッジ（この内容は公開されません）と紫バッジは **1,138px 離れており**、
+               1280px の本文表示領域（688px）に**同時には入らない**。
+               入力する瞬間に「ここは公開される」と分かるよう、1行で言い直す。 */}
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 6 }}>
+          上の選択肢と違い、この欄に書いた内容は公開プロフィールに出ます。
+        </div>
+        <textarea
+          aria-label="選んだ理由を、自分の言葉で"
+          value={draft.joinReason}
+          onChange={(e) => set("joinReason", e.target.value)}
+          placeholder="例: 面接の帰り道に、ここでならあと10年やれると思った"
+          disabled={isSaving}
+          rows={2}
+          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7, borderColor: "var(--purple-soft)" }}
+        />
+        {/* ⚠️ 300字は UI / POST / PUT の3つで揃えている（2026-08-20）。
+               以前は UI 300 / PUT 2000 / POST 5000 と3つとも違い、
+               画面の警告を無視すれば黙って長い文が保存できた。 */}
+        <div style={{ fontSize: 12, fontWeight: 600, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+          {draft.joinReason.length > 300 ? `${draft.joinReason.length - 300} 文字超過` : `残り ${300 - draft.joinReason.length} 文字`}
+        </div>
+      </div>
+
       {/* ★役職 / 雇用形態 / 社内での呼び方 / 部署名 は、
             2026-08-20 に「この会社を選んだ理由と、離れた理由」の**下**へ移した。
             どれも無くても職歴として成立する補助項目で、これらが上にあると
@@ -1340,28 +1383,6 @@ function StintForm({
         />
         <div style={{ fontSize: 12, fontWeight: 600, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
           {descOver ? `${descLen - 500} 文字超過` : `残り ${500 - descLen} 文字`}
-        </div>
-      </div>
-
-      {/* Join reason (なぜこの会社を選んだか) */}
-      <div>
-        <label style={labelStyle()}>
-          <span>なぜこの会社を選んだか（任意）</span>
-          <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
-            公開プロフィールに表示
-          </span>
-        </label>
-        <textarea
-          aria-label="なぜこの会社を選んだか"
-          value={draft.joinReason}
-          onChange={(e) => set("joinReason", e.target.value)}
-          placeholder="例: 〇〇な課題を解決したくて。前職でできなかった〇〇に挑戦するため"
-          disabled={isSaving}
-          rows={2}
-          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7, borderColor: "var(--purple-soft)" }}
-        />
-        <div style={{ fontSize: 12, fontWeight: 600, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
-          {draft.joinReason.length > 300 ? `${draft.joinReason.length - 300} 文字超過` : `残り ${300 - draft.joinReason.length} 文字`}
         </div>
       </div>
 

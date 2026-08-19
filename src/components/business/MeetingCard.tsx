@@ -75,8 +75,11 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
             {m.applicantName}
           </div>
+          {/* ⚠️ **年齢（`m.applicantAge`）は出さない**（2026-08-20）。
+                 ここは面談の**一覧カード**で、一覧に年齢は出さない方針。
+                 詳細（`MeetingDetailPanel`）には出してよい。 */}
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-            {m.applicantAge} · {m.applicantCurrentCompany} 在籍中
+            {m.applicantCurrentCompany} 在籍中
           </div>
         </div>
 

@@ -49,6 +49,7 @@ import { ProfileEditModal } from "./ProfileEditModal";
 import CareerIntentBox, { type IntentPrefs } from "./CareerIntentBox";
 import { CollapsibleRow } from "./formKit";
 import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
+import { getUserAge } from "@/lib/age";
 import { ContentLinksEditor, type ContentLink } from "./ContentLinksEditor";
 import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
@@ -493,17 +494,19 @@ function SocialLinksEditor({
       2026-08-16 に削除した。**公開プロフィールと同じ `ProfileContentLinksSection`**
       を使う。ここに描き直さないこと。 */
 
-/** 生年月日3つから年齢を出す。★揃っていなければ null（「0歳」を出さない） */
+/**
+ * 生年月日3つ（入力中の年/月/日）から年齢を出す。★揃っていなければ null（「0歳」を出さない）
+ *
+ * ⚠️ **計算は `lib/age.ts` の `getUserAge()` に任せる**（2026-08-20）。
+ *    年齢の計算式をアプリ内に複数持たない。以前はここに独自の実装があり、
+ *    他にも「年を引くだけ」で誕生日前の人を1歳上に出す実装が3つあった。
+ */
 function ageFromBirth({ year, month, day }: { year: string; month: string; day: string }): number | null {
   if (!year || !month || !day) return null;
   const y = Number(year), m = Number(month), d = Number(day);
   if (!y || !m || !d) return null;
-  const today = new Date();
-  let age = today.getFullYear() - y;
-  const beforeBirthday =
-    today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d);
-  if (beforeBirthday) age -= 1;
-  return age >= 0 && age < 130 ? age : null;
+  const age = getUserAge(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+  return age !== null && age < 130 ? age : null;
 }
 
 export default function ProfileTab({
@@ -1131,7 +1134,10 @@ export default function ProfileTab({
 
               <FormGroup
                 label="生年月日"
-                hint="生年月日を入力すると年齢が自動で計算され、プロフィールページと登録ユーザー一覧に表示されます。入力しない場合は年齢非公開となります。"
+                /* ⚠️ 実態と合わせる（2026-08-20）。カードの年齢は 2026-08-18 に外し、
+                       「年齢」フィルタも 2026-08-20 に撤去した。
+                       **一覧に出ると書いたままにしない。** */
+                hint="プロフィールの詳細ページにのみ年齢が表示されます。一覧には出ません。入力しない場合は年齢非公開となります。"
               >
                 <div style={{ display: "flex", gap: "var(--space-2)" }}>
                   {/* 年 */}

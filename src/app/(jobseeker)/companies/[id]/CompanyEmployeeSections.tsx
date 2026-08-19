@@ -42,21 +42,22 @@ type AmbassadorInfo = { memberId: string };
 
 // ─── Employee Sections ────────────────────────────────────────────────────────
 
-// 生年から現在の年齢を計算
-function calcAge(birthYear: number | null): number | null {
-  if (!birthYear) return null;
-  return new Date().getFullYear() - birthYear;
-}
+/* ★年齢は出さない（2026-08-20）。
+   ⚠️ 一覧（現役社員・OB/OG のカード）に年齢を出さないと決めた。
+      **`CompanyEmployee` の型からも `birthYear` を落としてある**ので、
+      ここで年齢を出そうとしても書けない。コメントで「出すな」と書く方式は
+      過去に守られていないため、型で落としている。
+   ⚠️ 年齢を出してよいのは**詳細ページ（`/u/[id]`）だけ**。
+      その1箇所は `lib/age.ts` の `getUserAge()` を通す。
+      ここにあった `calcAge` は年を引くだけで、誕生日前の人を1歳上に出していた。 */
 
 // 現役社員・OB/OG 共通の統一カードレイアウト
 function EmployeeCardInner({
   employee,
-  age,
   badge,
   subInfo,
 }: {
   employee: CompanyEmployee;
-  age: number | null;
   badge?: React.ReactNode;
   subInfo?: React.ReactNode;
 }) {
@@ -86,11 +87,6 @@ function EmployeeCardInner({
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
             {employee.name}
           </span>
-          {age !== null && (
-            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
-              {age}歳
-            </span>
-          )}
           {badge}
         </div>
         {/* 2行目: 職種のみ（部署階層は表示しない） */}
@@ -117,7 +113,6 @@ function EmployeeCard({
   companyId?: string;
 }) {
   const isAmbassador = !!ambassadorInfo;
-  const age = calcAge(employee.birthYear);
 
   const badge = isAmbassador ? (
     <span style={{
@@ -138,7 +133,7 @@ function EmployeeCard({
       }}>
         <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
           style={{ display: "flex", textDecoration: "none" }}>
-          <EmployeeCardInner employee={employee} age={age} badge={badge} />
+          <EmployeeCardInner employee={employee} badge={badge} />
         </a>
         <Link
           href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
@@ -165,7 +160,7 @@ function EmployeeCard({
         textDecoration: "none",
       }}
     >
-      <EmployeeCardInner employee={employee} age={age} badge={badge} />
+      <EmployeeCardInner employee={employee} badge={badge} />
     </a>
   );
 }
@@ -513,7 +508,6 @@ function CurrentEmployeesSection({
 // ─── AlumniCard ──────────────────────────────────────────────────────────────
 
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
-  const age = calcAge(employee.birthYear);
 
   function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
     if (!startedAt || !endedAt) return null;
@@ -576,7 +570,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
         maxWidth: 380,
       }}
     >
-      <EmployeeCardInner employee={alumniEmployee} age={age} badge={badge} subInfo={subInfo} />
+      <EmployeeCardInner employee={alumniEmployee} badge={badge} subInfo={subInfo} />
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginLeft: 6 }}>
         <polyline points="9 18 15 12 9 6"/>
       </svg>

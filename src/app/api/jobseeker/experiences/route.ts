@@ -238,7 +238,9 @@ export async function POST(req: Request) {
   const roleTitle  = typeof body.role_title  === "string" ? body.role_title.slice(0, 100)  : null;
   const department = typeof body.department  === "string" ? body.department.slice(0, 100)  : null;
   const description = typeof body.description === "string" ? body.description.slice(0, 5000) : null;
-  const joinReason  = typeof body.join_reason  === "string" ? body.join_reason.slice(0, 5000)  : null;
+  /* ⚠️ 300字。UI（CareerHistoryEditor）と PUT と**同じ値**にしてある（2026-08-20）。
+        以前は UI 300 / PUT 2000 / POST 5000 と3つとも違った。 */
+  const joinReason  = typeof body.join_reason  === "string" ? body.join_reason.slice(0, 300)   : null;
 
   /* ⚠️ 年月は正規化してから入れる。以前は無検証で `-01` を足しており、
         形式が違うと date のパースエラーで 500 になっていた（educations と同じ形）。 */

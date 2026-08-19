@@ -4,6 +4,7 @@ import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { createClient } from "@/lib/supabase/server";
 import { PlacementTermsPanel } from "./PlacementTermsPanel";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { calcTotalExperience } from "@/lib/profile/tenure";
 import CandidatesClient from "./CandidatesClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -116,11 +117,16 @@ export default async function CandidatesPage() {
   // scout_enabled=true ユーザーの auth_id 一覧
   const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
 
-  // ow_users 取得（birth_date・is_open_to_work を取得）
+  /* ow_users 取得。
+     ⚠️ **`birth_date` は取らない**（2026-08-20）。候補者一覧に年齢を出さず、
+        年齢での絞り込みもしないと決めたため。取ってしまうと、いつでも書ける状態が残る。
+        絞り込みは「社会人年数」（下の tenureMonths）で行う。
+        理由: 労働施策総合推進法9条で募集・採用時の年齢制限は原則禁止。
+        表示だけなら各社もしているが、**年齢で絞り込む機能**は禁止行為を直接手助けする形になる。 */
   const { data: rawUsers, error: rawUsersError } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
-        .select("id, name, location, is_mentor, is_open_to_work, birth_date, created_at, auth_id")
+        .select("id, name, location, is_mentor, is_open_to_work, created_at, auth_id")
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
@@ -182,6 +188,28 @@ export default async function CandidatesPage() {
         .eq("is_current", true)
     : { data: [] };
 
+  /* ★社会人年数の元データ（2026-08-20）。
+     ⚠️ 上の `currentExps` は `is_current=true` だけなので使えない。
+        社会人年数は**すべての職歴のうち最も古い started_at** から出す。
+     ⚠️ **その都度計算する。列にもトリガーにもしない。**
+        職歴を1件足した瞬間に変わる値なので、保存すると必ず古くなる
+        （`ow_profiles.experience_years` を自動計算に置き換えた 2026-08-07 と同じ理由）。 */
+  const { data: allExpStarts } = userIds.length > 0
+    ? await adminClient
+        .from("ow_experiences")
+        .select("user_id, started_at")
+        .in("user_id", userIds)
+    : { data: [] };
+
+  const startedAtsByUser = new Map<string, string[]>();
+  for (const e of allExpStarts ?? []) {
+    const uid = (e as { user_id: string }).user_id;
+    const st = (e as { started_at: string | null }).started_at;
+    if (!st) continue;
+    if (!startedAtsByUser.has(uid)) startedAtsByUser.set(uid, []);
+    startedAtsByUser.get(uid)!.push(st);
+  }
+
   const currentExpByUser = new Map<string, {
     role_title: string | null;
     role_category_id: string | null;
@@ -237,7 +265,10 @@ export default async function CandidatesPage() {
         location: (u.location as string) || null,
         isMentor: (u.is_mentor as boolean) || false,
         isOpenToWork: (u.is_open_to_work as boolean) || false,
-        birthYear: (u.birth_date as string) ? new Date(u.birth_date as string).getFullYear() : null,
+        /* ⚠️ 職歴が0件なら `calcTotalExperience` が null を返す。**0年で埋めない**
+              （新卒と未登録が同じになる。CLAUDE.md「値が無いことを、ある値に置き換えない」）。
+              絞り込み側は null を落とさず、そのまま表示する。 */
+        tenureMonths: calcTotalExperience(startedAtsByUser.get(u.id as string) ?? [])?.months ?? null,
         currentRole: currentExp?.role_title ?? null,
         currentCompany: currentExp?.company ?? null,
         employmentType: currentExp?.employment_type ?? null,

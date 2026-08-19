@@ -1304,7 +1304,9 @@ export type CompanyEmployee = {
   avatarInitial: string;
   avatarGradient: string;
   avatarUrl: string | null; // プロフィール写真
-  birthYear: number | null; // 生年（年齢計算用）
+  /* ⚠️ **`birthYear` は 2026-08-20 に落とした。戻さないこと。**
+        企業ページの社員カードは一覧であり、一覧に年齢は出さない方針。
+        型に無ければ表示も絞り込みも書けない（コメントでの禁止は守られていない実績がある）。 */
   roleTitle: string | null;
   startedAt: string | null; // "YYYY-MM" 形式
   endedAt: string | null;   // "YYYY-MM" 形式、OB のみ使用
@@ -1360,7 +1362,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility, birth_date)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", true)
     .neq("visibility_company", "hidden");
@@ -1378,7 +1380,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility, birth_date)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .neq("visibility_company", "hidden")
@@ -1436,7 +1438,6 @@ export async function getCompanyEmployees(companyId: string): Promise<{
         ? `linear-gradient(135deg, ${hex}99, ${hex})`
         : "linear-gradient(135deg, var(--royal), #3B5FD9)",
       avatarUrl: (u?.avatar_url as string | null) ?? null,
-      birthYear: u?.birth_date ? parseInt((u.birth_date as string).slice(0, 4)) : null,
       roleTitle: (row.role_title as string | null) ?? null,
       startedAt: startedAt ? (startedAt as string).slice(0, 7) : null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,

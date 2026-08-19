@@ -129,7 +129,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: s(body.description, 5000),
-      join_reason: s(body.join_reason, 2000),
+      /* ⚠️ 300字。UI と POST と同じ値（2026-08-20） */
+      join_reason: s(body.join_reason, 300),
       employment_type: employmentType,
       visibility_company: visibilityCompany,
       visibility_company_profile: visibilityCompanyProfile,

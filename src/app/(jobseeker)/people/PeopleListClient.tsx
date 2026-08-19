@@ -47,13 +47,10 @@ const ROLE_OPTIONS = [
   { value: "exec",      label: "経営・CxO" },
 ];
 
-const AGE_OPTIONS = [
-  { value: "20s", label: "20代", min: 20, max: 29 },
-  { value: "30s", label: "30代", min: 30, max: 39 },
-  { value: "40s", label: "40代", min: 40, max: 49 },
-  { value: "50s", label: "50代", min: 50, max: 59 },
-  { value: "60s", label: "60代", min: 60, max: 69 },
-];
+/* ★年齢の選択肢（AGE_OPTIONS）と「年齢」フィルタは 2026-08-20 に撤去した。
+   ⚠️ **一覧に年齢を出さないだけでなく、年齢で絞り込ませない。**
+      カードの表示は 2026-08-18 に外していたが、フィルタだけが残っていた。
+      `PeopleCard` の型からも `age` を落としてあるので、書こうとしても書けない。 */
 
 /* ★並べ替えは2つだけ（2026-08-18）。
       「プロフィール順」（publicScore 降順）と「経験が長い順」を外した。
@@ -259,7 +256,8 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
 }
 
 /* ⚠️ `CardFacts`（カードの年齢表示）は 2026-08-18 に削除した。
-      **カードに年齢は出さない。** `card.age` は「年齢」フィルタが使うので残っている
+      **カードに年齢は出さない。** 2026-08-20 に「年齢」フィルタも撤去したので、
+      `age` は型からも消してある
       （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
 // ── グリッドカード ────────────────────────────────────────────────────
@@ -316,7 +314,7 @@ function GridCard({ card, myUserId, followedUserIds }: {
             ⚠️ 役職が無いときに「—」を出さない。値が無いことを、ある値に置き換えない。
                高さは minHeight で揃える。
             ⚠️ **年齢はカードに出さない**（2026-08-18 に外した）。
-               `card.age` は「年齢」フィルタが今も使っているので、取得は残っている。 */}
+               2026-08-20 に「年齢」フィルタも外し、型からも落とした。 */}
         <AffiliationBlock card={card} />
         <div className="ppl-role">{role}</div>
       </div>
@@ -375,22 +373,11 @@ function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string,
   if (!id) return true;          // slug が解決できない = 絞り込まない（黙って0件にしない）
   return card.topRoleId === id;
 }
-function matchAge(card: AmbassadorCard, v: string): boolean {
-  if (!v) return true;
-  /* ⚠️ 年齢の元は ow_users.birth_date ひとつ（directory.ts で getUserAge 済み）。
-        カードの表示と同じ値を見る。2026-08-08 まで表示は無く、ここだけが
-        ow_career_profiles.birth_year を見ていた（対象5人中1人にしか入っていなかった）。
-     ⚠️ 年を引き算しないこと。誕生日前かどうかで1歳ずれる。 */
-  if (card.age == null) return false;
-  const opt = AGE_OPTIONS.find((o) => o.value === v);
-  return opt ? card.age >= opt.min && card.age <= opt.max : true;
-}
 
 // ── PeopleListClient ─────────────────────────────────────────────────
 export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followedUserIds }: Props) {
   const [role, setRole] = useState("");
 
-  const [age, setAge] = useState("");
   /* 外資系。⚠️ **これまでの職歴に1社でもあればヒット**（現職に限らない）。
      判定は directory.ts の `hasForeignExperience` に集約している。 */
   const [foreign, setForeign] = useState("");
@@ -420,7 +407,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchRole(a, role, roleSlugToId)) return false;
-      if (!matchAge(a, age)) return false;
       if (foreign === "yes" && !a.hasForeignExperience) return false;
       if (!q) return true;
       // 検索対象。学歴の人は学校名で引けるようにする
@@ -436,7 +422,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
         (a.roleName ?? "").toLowerCase().includes(q)
       );
     });
-  }, [ambassadors, role, age, foreign, keyword, roleSlugToId]);
+  }, [ambassadors, role, foreign, keyword, roleSlugToId]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -457,10 +443,10 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
         以前は両方から漏れており、**外資系だけを選ぶと「✕ すべてクリア」が出ず、
         他の条件と一緒にクリアしても外資系だけ残っていた。**
         絞り込みを1つ足したら、この2つにも足す。 */
-  const hasFilter = !!(keyword || role || age || foreign);
+  const hasFilter = !!(keyword || role || foreign);
 
   function clearAll() {
-    setKeyword(""); setRole(""); setAge(""); setForeign("");
+    setKeyword(""); setRole(""); setForeign("");
   }
 
   if (ambassadors.length === 0) {
@@ -645,7 +631,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             {/* モバイル: フィルタトグル */}
             <button
               type="button"
-              className={`ppl-filter-toggle${(role || age || foreign) ? " active" : ""}`}
+              className={`ppl-filter-toggle${(role || foreign) ? " active" : ""}`}
               onClick={() => setFiltersExpanded(!filtersExpanded)}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -657,7 +643,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             {/* フィルタチップ */}
             <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
-              <FilterChip label="年齢" value={age} options={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setAge(v ?? ""); setOpenChip(null); }} isOpen={openChip === "age"} onToggle={() => toggleChip("age")} />
               {/* ⚠️ 並びは 職種 → 年齢 → 外資系。
                   外資系は **押すだけのトグル**。`/companies` と同じ `.foreign-toggle` を使う。
                   ⚠️ FilterChip（ドロップダウン）に戻さないこと。2026-08-15 まで

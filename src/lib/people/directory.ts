@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUserAge } from "@/lib/age";
 import { calcPublicScore } from "@/lib/profile/completion";
 import {
   resolveExperienceCompanyLabel,
@@ -107,16 +106,11 @@ export type DirectoryPerson = {
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
   experienceMonths: number | null;
-  /**
-   * 年齢。**ow_users.birth_date から /u/[id] と同じ getUserAge() で出す。**
-   * 未入力なら null（＝本人が年齢を出していない。呼び出し側は行ごと消すこと）。
-   *
-   * ⚠️ 2026-08-08 まで ow_career_profiles.birth_year を見ていたが、そちらは
-   *    **アプリから書く経路が存在せず**、対象5人中1人にしか入っていなかった。
-   *    本人が /profile/edit で入力できるのは birth_date のほうで、そちらは4人に入っている。
-   *    年齢の元は1つに保つこと（表示とフィルタで別のソースを見ない）。
-   */
-  age: number | null;
+  /* ★`age` は 2026-08-20 に落とした。**戻さないこと。**
+        `/people` は一覧であり、一覧に年齢は出さない・年齢で絞り込ませない方針。
+        型に無ければ表示も絞り込みも書けない（コメントでの禁止は守られていない実績がある）。
+        年齢を出してよいのは詳細ページ（`/u/[id]`）だけで、そこは `lib/age.ts` の
+        `getUserAge()` を通す。 */
   createdAt: string | null;
   /**
    * プロフィールを最後に更新した日時（`ow_users.updated_at`）。「更新順」の並べ替えに使う。
@@ -180,9 +174,9 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
 
   const { data: userRows, error } = await db
     .from("ow_users")
-    /* ⚠️ birth_date は authenticated から SELECT 権限を剥がしてあるので admin で引く。
+    /* ⚠️ **birth_date は取らない**（2026-08-20）。一覧に年齢を出さない・年齢で絞り込まないため。
        ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at, can_casual_meeting, birth_date");
+    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at, can_casual_meeting");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -195,7 +189,7 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
     headline: string | null; about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
     updated_at: string | null;
-    can_casual_meeting: boolean | null; birth_date: string | null;
+    can_casual_meeting: boolean | null;
   };
 
   const visible = ((userRows ?? []) as UserRow[]).filter((u) => {
@@ -376,7 +370,6 @@ export async function getDirectoryPeople(isLoggedIn: boolean): Promise<Directory
       canCasualMeeting: u.can_casual_meeting === true,
       publicScore,
       experienceMonths,
-      age: getUserAge(u.birth_date),
       createdAt: u.created_at,
       updatedAt: u.updated_at,
     };
