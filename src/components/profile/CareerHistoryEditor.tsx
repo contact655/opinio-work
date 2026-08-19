@@ -9,6 +9,8 @@ import {
   LEAVE_REASONS,
   GAP_AXES,
   GAP_RATINGS,
+  REASON_MAX,
+  groupReasonsByAxis,
 } from "@/lib/constants/careerReasons";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import Image from "next/image";
@@ -294,10 +296,23 @@ const EMPTY_DRAFT: StintDraft = {
 // ── 勤務地・理由データの送信ヘルパー ─────────────────────────────────────────
 
 /**
+ * 「離れた理由」を出す／送る条件（2026-08-19）。
+ *
+ * ⚠️ **`is_current` ではなく「終了日が入っているか」で判定する。**
+ *    `is_current = false` でも終了日が空の行は作れる（終了日は必須にしていない）。
+ *    「離れた理由」は**終了した在籍**についての設問なので、終了日を基準にする。
+ *    画面の出し分けと保存 body が**必ず同じ関数**を見るようにしてある。
+ *    割れると「画面に出ていないのに保存される」「選んだのに送られない」が起きる。
+ */
+export function hasLeftCompany(d: StintDraft): boolean {
+  return !d.isCurrent && !!draftEndedAt(d);
+}
+
+/**
  * 保存 body 用。**編集と追加で同じ関数を使う。**
  * 片方にだけ書くと「追加時は保存されるが編集すると消える」が起きる。
  *
- * ⚠️ 現職には退職理由を送らない。画面にも出していないので、
+ * ⚠️ 終了日が無い在籍には退職理由を送らない。画面にも出していないので、
  *    「現職に切り替えたら退職理由が残っていた」を作らない。
  */
 function buildReasonBody(d: StintDraft): Record<string, unknown> {
@@ -306,7 +321,7 @@ function buildReasonBody(d: StintDraft): Record<string, unknown> {
     remote_work_status: d.remoteWorkStatus || null,
     join_reasons: d.joinReasons,
     join_reason_primary: d.joinReasonPrimary || null,
-    leave_reasons: d.isCurrent ? [] : d.leaveReasons,
+    leave_reasons: hasLeftCompany(d) ? d.leaveReasons : [],
     gaps: Object.entries(d.gaps).map(([axis, rating]) => ({ axis, rating })),
   };
 }
@@ -318,7 +333,7 @@ function optimisticReasonFields(d: StintDraft): Partial<Stint> {
     remoteWorkStatus: d.remoteWorkStatus || undefined,
     joinReasons: d.joinReasons,
     joinReasonPrimary: d.joinReasonPrimary || undefined,
-    leaveReasons: d.isCurrent ? [] : d.leaveReasons,
+    leaveReasons: hasLeftCompany(d) ? d.leaveReasons : [],
     gaps: Object.entries(d.gaps).map(([axis, rating]) => ({ axis, rating })),
   };
 }
@@ -772,6 +787,9 @@ function StintForm({
   roleAliases?: Record<string, string[]>;
   companyLocked?: boolean;
 }) {
+  /** 上限（`REASON_MAX`）に当たったことを伝える短い注記。次の操作で消える（2026-08-19）。 */
+  const [limitNote, setLimitNote] = useState<null | "join" | "leave">(null);
+
   const set = useCallback(
     (key: keyof StintDraft, val: string | boolean) =>
       onDraftChange({ ...draft, [key]: val }),
@@ -786,6 +804,16 @@ function StintForm({
   const toggleReason = useCallback(
     (key: "joinReasons" | "leaveReasons", value: string) => {
       const cur = draft[key];
+      /* ⚠️ 上限に達していたら**選ばせない**（2026-08-19）。
+            既存の選択を押し出す形にすると、利用者が選んだものが黙って消える。
+            代わりに短い注記を出す。注記は次の操作で消える。
+            ⚠️ 同じ上限を API（parseReasonFields）と DB の CHECK でも見ている。
+               ここだけ直すと「選べないのに保存はできる」形になる。 */
+      if (!cur.includes(value) && cur.length >= REASON_MAX) {
+        setLimitNote(key === "joinReasons" ? "join" : "leave");
+        return;
+      }
+      setLimitNote(null);
       const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
       if (key === "joinReasons") {
         const primary =
@@ -1046,6 +1074,191 @@ function StintForm({
       </div>
 
       {/*
+        入社・退職の背景（選択式）
+
+        ⚠️ **すべて非公開。** 本人と集計にしか使わない。公開トグルは出さない。
+
+        ⚠️ **位置は「会社・職種・期間」の直下**（2026-08-19 に自由記述の上から移した）。
+           それまではフォームの下から2番目にあり、追加モーダルでは本文 2,105px
+           （1280px 幅）のうち **1,086px 目**＝約2画面ぶん下だった。実データが0件
+           だった主因はここだと判断している。**チップは入力負荷が軽いので、
+           重い自由記述（業務内容・なぜこの会社を選んだか）より前に置く。**
+
+        ⚠️ **見出しに「任意」と書かない。** 任意と書かれた項目は飛ばされる。
+           代わりに「答えると何が起きるか」を1行で書く。
+
+        ⚠️ 軸（仕事の中身・裁量・役割…）は**小見出しとして置くだけ**。
+           押して降りる階層にしない。**タップ対象は選択肢だけ**にする。
+
+        ⚠️ 選べるのは `REASON_MAX`（3つ）まで。**同じ上限を API と DB の CHECK でも見る**
+           （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
+      */}
+      <div
+        style={{
+          background: "var(--bg-tint)",
+          border: "1px solid var(--line)",
+          borderRadius: 10,
+          padding: "14px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
+              入社と退職の背景
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--success)",
+                background: "var(--success-soft)",
+                padding: "2px 8px",
+                borderRadius: 100,
+                letterSpacing: "0.03em",
+              }}
+            >
+              この内容は公開されません
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+            答えると、同じ選び方をした人や会社が見つかるようになります。
+            あなた以外には表示されません。企業にも、ほかの登録者にも出ません。
+          </p>
+        </div>
+
+        {/* 入社理由（軸ごと・3つまで） */}
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+            この会社に入った理由
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10 }}>
+            {REASON_MAX}つまで選べます（{draft.joinReasons.length} / {REASON_MAX}）
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {groupReasonsByAxis(JOIN_REASONS).map((g) => (
+              /* ⚠️ 軸のラベルとチップを横並びにしない。狭い画面でラベルを固定幅にすると
+                    はみ出しの原因になる（CLAUDE.md「横はみ出しは flex-shrink: 0 を疑う」）。 */
+              <div key={g.axis} style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
+                  {g.axisLabel}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+                  {g.options.map((o) => (
+                    <ReasonChip
+                      key={o.value}
+                      label={o.label}
+                      active={draft.joinReasons.includes(o.value)}
+                      disabled={isSaving}
+                      onClick={() => toggleReason("joinReasons", o.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {limitNote === "join" && (
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 8 }}>
+              {REASON_MAX}つまでです。ほかを外してから選んでください。
+            </div>
+          )}
+        </div>
+
+        {/* 決め手（選んだ理由の中から1つ） */}
+        {draft.joinReasons.length > 0 && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+              その中で、いちばんの決め手は
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {JOIN_REASONS.filter((o) => draft.joinReasons.includes(o.value)).map((o) => (
+                <ReasonChip
+                  key={o.value}
+                  label={o.label}
+                  active={draft.joinReasonPrimary === o.value}
+                  disabled={isSaving}
+                  /* もう一度押すと未選択に戻す */
+                  onClick={() => set("joinReasonPrimary", draft.joinReasonPrimary === o.value ? "" : o.value)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 退職理由 — ★終了日がある在籍にだけ出す（現職・終了日未入力には出さない） */}
+        {hasLeftCompany(draft) && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+              この会社を離れた理由
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10 }}>
+              {REASON_MAX}つまで選べます（{draft.leaveReasons.length} / {REASON_MAX}）
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {groupReasonsByAxis(LEAVE_REASONS).map((g) => (
+                <div key={g.axis} style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
+                    {g.axisLabel}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+                    {g.options.map((o) => (
+                      <ReasonChip
+                        key={o.value}
+                        label={o.label}
+                        active={draft.leaveReasons.includes(o.value)}
+                        disabled={isSaving}
+                        onClick={() => toggleReason("leaveReasons", o.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {limitNote === "leave" && (
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 8 }}>
+                {REASON_MAX}つまでです。ほかを外してから選んでください。
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 入社前後のギャップ（6軸 × 3択。未回答可） */}
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+            入る前の想像と、実際のギャップ
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
+            答えたい項目だけで大丈夫です。選んだものをもう一度押すと未回答に戻ります。
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {GAP_AXES.map((axis) => (
+              /* ⚠️ ラベルとチップを横並びにしない。狭い画面でラベルを固定幅にすると
+                    はみ出しの原因になる（CLAUDE.md「横はみ出しは flex-shrink: 0 を疑う」）。
+                    縦積みなら幅の取り合いが起きない。 */
+              <div key={axis.value} style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
+                  {axis.label}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+                  {GAP_RATINGS.map((r) => (
+                    <ReasonChip
+                      key={r.value}
+                      label={r.label}
+                      active={draft.gaps[axis.value] === r.value}
+                      disabled={isSaving}
+                      onClick={() => setGap(axis.value, r.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/*
         勤務地・勤務形態
         ⚠️ 本人の**居住地**（ow_users.location）とは別物。ここは「その期間どこで働いたか」。
         ⚠️ **どの経歴でも任意。** 現職も含めて必須にしない（2026-08-13 に方針変更）。
@@ -1117,142 +1330,6 @@ function StintForm({
         />
         <div style={{ fontSize: 12, fontWeight: 600, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
           {descOver ? `${descLen - 500} 文字超過` : `残り ${500 - descLen} 文字`}
-        </div>
-      </div>
-
-      {/*
-        入社・退職の背景（選択式）
-        ⚠️ **すべて非公開。** 本人と集計にしか使わない。公開トグルは出さない。
-        ⚠️ 選択式をこの位置（自由記述の**上**）に置く。自由記述は撤去予定で、
-           並存は一時的なもの。上下を入れ替えないこと。
-        ⚠️ すべて任意。押すだけで済む形にし、自由記述欄は作らない。
-      */}
-      <div
-        style={{
-          background: "var(--bg-tint)",
-          border: "1px solid var(--line)",
-          borderRadius: 10,
-          padding: "14px 16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
-              入社・退職の背景（すべて任意）
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--success)",
-                background: "var(--success-soft)",
-                padding: "2px 8px",
-                borderRadius: 100,
-                letterSpacing: "0.03em",
-              }}
-            >
-              この内容は公開されません
-            </span>
-          </div>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-            あなた以外には表示されません。企業にも、ほかの登録者にも出ません。
-            どの会社にどんな傾向があるかを集計するためだけに使います。
-          </p>
-        </div>
-
-        {/* 入社理由（複数選択可） */}
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-            この会社に入った理由（複数選べます）
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {JOIN_REASONS.map((o) => (
-              <ReasonChip
-                key={o.value}
-                label={o.label}
-                active={draft.joinReasons.includes(o.value)}
-                disabled={isSaving}
-                onClick={() => toggleReason("joinReasons", o.value)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* 決め手（選んだ理由の中から1つ） */}
-        {draft.joinReasons.length > 0 && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-              その中で、いちばんの決め手は
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {JOIN_REASONS.filter((o) => draft.joinReasons.includes(o.value)).map((o) => (
-                <ReasonChip
-                  key={o.value}
-                  label={o.label}
-                  active={draft.joinReasonPrimary === o.value}
-                  disabled={isSaving}
-                  /* もう一度押すと未選択に戻す */
-                  onClick={() => set("joinReasonPrimary", draft.joinReasonPrimary === o.value ? "" : o.value)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 退職理由 — 現職には出さない */}
-        {!draft.isCurrent && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-              この会社を離れた理由（複数選べます）
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {LEAVE_REASONS.map((o) => (
-                <ReasonChip
-                  key={o.value}
-                  label={o.label}
-                  active={draft.leaveReasons.includes(o.value)}
-                  disabled={isSaving}
-                  onClick={() => toggleReason("leaveReasons", o.value)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 入社前後のギャップ（6軸 × 3択。未回答可） */}
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-            入る前の想像と、実際のギャップ
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-            答えたい項目だけで大丈夫です。選んだものをもう一度押すと未回答に戻ります。
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {GAP_AXES.map((axis) => (
-              /* ⚠️ ラベルとチップを横並びにしない。狭い画面でラベルを固定幅にすると
-                    はみ出しの原因になる（CLAUDE.md「横はみ出しは flex-shrink: 0 を疑う」）。
-                    縦積みなら幅の取り合いが起きない。 */
-              <div key={axis.value} style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
-                  {axis.label}
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
-                  {GAP_RATINGS.map((r) => (
-                    <ReasonChip
-                      key={r.value}
-                      label={r.label}
-                      active={draft.gaps[axis.value] === r.value}
-                      disabled={isSaving}
-                      onClick={() => setGap(axis.value, r.value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 

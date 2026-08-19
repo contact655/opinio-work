@@ -11,16 +11,59 @@
  *    どれか1つでも忘れると「選べるのに保存できない」か
  *    「保存できるのに絞れない」のどちらかになる。
  *
- * ⚠️ **値は英字スラッグで固定。削除と改名はしない（追加のみ）。**
- *    日本語ラベルを後から変えても過去データと繋がるようにするため。
+ * ── ★スラッグの扱い（2026-08-19 に一度だけ作り直した）────────────────────
+ * ⚠️ **値は英字スラッグで固定。ここから先は削除も改名もしない（追加のみ）。**
+ *    2026-08-19 に軸を揃えるため**入社・退職のスラッグをまとめて作り直した**。
+ *    これができたのは、その時点で `join_reasons` / `join_reason_primary` /
+ *    `leave_reasons` / `ow_experience_gaps` が**実データ0件**だったから。
+ *    **1件でも入った後は二度とやらない**（過去の回答が意味を失う）。
  *    ラベルを変えるのは自由。value を変えると DB の CHECK と既存行が壊れる。
+ *    旧→新の対応表は `20260819140000_career_reasons_axes_and_limit.sql` に残してある。
+ *
+ * ── ★並び順（2026-08-19 に確定。以後変えない）─────────────────────────────
+ * ⚠️ **上に置いた選択肢ほど選ばれやすい。** 並び順を後から変えると、
+ *    選択率の変化が「利用者の傾向が変わった」のか「位置を変えたから」なのか
+ *    区別できなくなる。**軸の順も、軸の中の順も、この並びで固定する。**
+ *
+ *    軸の並びは「転職の意思決定で先に語られる順」に置いた：
+ *      仕事の中身 → 裁量・役割 → 人・組織 → 待遇 → 働き方 → 会社の状態 → 個人の事情
+ *    各軸の中は「仕事に近いもの → 条件に近いもの」。
+ *    決めた日: 2026-08-19。
+ *
+ * ── ★入社側と退職側で軸を対応させている ───────────────────────────────────
+ * 「裁量を決め手に入った人の何%が、裁量を理由に辞めているか」を出すため、
+ * **同じ軸・同じスラッグを両側に置いている**（11個が共通）。
+ * 片側にしか無いのは3つだけ:
+ *   入社のみ `stability`（知名度・安定性）
+ *   退職のみ `management`（マネジメント・上司）/ `restructure`（会社都合・組織変更）
+ * ⚠️ **新しい選択肢を足すときは、対になる側があるかを必ず考えること。**
+ *    片側だけ足すと、その軸の突き合わせができなくなる。
+ *
+ * ── ★軸は DB に持たせない ─────────────────────────────────────────────────
+ * ⚠️ `axis` は**このファイルにしか無い**。DB は選択肢スラッグだけを保存する。
+ *    軸は後から切り方を変える前提なので、CHECK に入れると変更のたびに migration が要る。
+ *    **軸を変えても選択肢IDが不変**であることが、集計をやり直せる条件になる。
+ *
+ * ── ★順位（rank）は持たない ───────────────────────────────────────────────
+ * ⚠️ **`rank` 列は作らない。`join_reasons` は `text[]` のままにする。**
+ *    選択は3つまでの**等重み**で、順位は取らない。タップ順は「重要度の順」ではなく
+ *    「目に入った順」になるため、順位として読むと誤る。
+ *    そのうえで「いちばんの決め手」だけは `join_reason_primary` で**明示的に1つ**選ばせる。
+ *    3つ上限なので3択にしかならず、負担も小さい。
+ *    順位が要ると分かったら、そのとき別テーブル（experience_id, reason, rank）に
+ *    切り出す。**先回りして配列を jsonb や別テーブルにしない。**
  *
  * ── 公開範囲 ───────────────────────────────────────────────────────────────
  * ⚠️ **理由データ3種（入社理由 / 退職理由 / ギャップ）は非公開。本人と集計のみ。**
  *    他ユーザー・企業には一切出さない。/u/[id] /people 企業詳細 スカウト
  *    /biz/candidates のどこにも出さないこと。
- *    DB 側でも GRANT を付けていないので、admin クライアント以外からは読めない
- *    （20260811184225_experience_location_and_reasons.sql）。
+ *
+ * ⚠️ 権限の実態は**受け皿ごとに違う**（2026-08-19 実測）。
+ *    `ow_experiences` の3列  … `authenticated` は SELECT **不可** / UPDATE 可。
+ *                                読むには admin クライアントが要る。
+ *    `ow_experience_gaps`    … `authenticated` に SELECT/INSERT/UPDATE/DELETE があり、
+ *                                RLS（`ow_experience_gaps_own_manage`）で本人に絞っている。
+ *    （20260811184225_experience_location_and_reasons.sql）
  *
  * ⚠️ 既存の `ow_experiences.join_reason`（自由記述・公開トグル visibility_reason つき）
  *    とは**別物**。あちらは撤去予定だが、このファイルは関与しない。
@@ -29,17 +72,46 @@
 import { PREFECTURES } from "@/lib/utils/location";
 import { VALID_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 
+// ── 軸 ────────────────────────────────────────────────────────────────────────
+
+/**
+ * 選択肢をまとめる軸。**UI の小見出しにしか使わない。DB には保存しない。**
+ *
+ * ⚠️ 軸は**タップ対象にしない**。押して降りる階層を作ると、選ぶまでの手数が増える。
+ *    見出しとして置くだけで、押せるのは選択肢だけ。
+ */
+export const REASON_AXES = [
+  { value: "work",     label: "仕事の中身" },
+  { value: "role",     label: "裁量・役割" },
+  { value: "org",      label: "人・組織" },
+  { value: "pay",      label: "待遇" },
+  { value: "worklife", label: "働き方" },
+  { value: "company",  label: "会社の状態" },
+  { value: "personal", label: "個人の事情" },
+] as const;
+
+export type ReasonAxis = (typeof REASON_AXES)[number]["value"];
+
+export type ReasonOption = { value: string; label: string; axis: ReasonAxis };
+
+/** 選べる上限。**UI / API / DB の CHECK の3層が同じ値を見る。** */
+export const REASON_MAX = 3;
+
 // ── 入社理由 ──────────────────────────────────────────────────────────────────
 
-export const JOIN_REASONS = [
-  { value: "business",   label: "事業内容・プロダクト" },
-  { value: "autonomy",   label: "裁量・ポジション" },
-  { value: "people",     label: "面接で会った人" },
-  { value: "salary",     label: "年収・待遇" },
-  { value: "growth",     label: "事業の成長性" },
-  { value: "work_style", label: "働き方" },
-  { value: "skills",     label: "身につくスキル" },
-  { value: "stability",  label: "知名度・安定性" },
+export const JOIN_REASONS: readonly ReasonOption[] = [
+  { value: "job_content", label: "事業内容・プロダクト",     axis: "work" },
+  { value: "skills",      label: "身につくスキル",           axis: "work" },
+  { value: "autonomy",    label: "裁量の大きさ",             axis: "role" },
+  { value: "position",    label: "ポジション・役割",         axis: "role" },
+  { value: "people",      label: "一緒に働く人",             axis: "org" },
+  { value: "culture",     label: "組織のカルチャー",         axis: "org" },
+  { value: "salary",      label: "年収・待遇",               axis: "pay" },
+  { value: "evaluation",  label: "評価・昇進の仕組み",       axis: "pay" },
+  { value: "work_style",  label: "働き方（場所・時間）",     axis: "worklife" },
+  { value: "growth",      label: "事業の成長性",             axis: "company" },
+  { value: "stability",   label: "知名度・安定性",           axis: "company" },
+  { value: "personal",    label: "タイミング・個人の事情",   axis: "personal" },
 ] as const;
 
 export const JOIN_REASON_LABELS: Record<string, string> =
@@ -50,25 +122,45 @@ export const VALID_JOIN_REASONS = new Set<string>(JOIN_REASONS.map((o) => o.valu
 // ── 退職理由 ──────────────────────────────────────────────────────────────────
 
 /**
- * ⚠️ `salary` と `work_style` は入社理由にも同じ value がある。
- *    別の列に入る別の集合なので衝突しない。ラベル辞書を共通化しないこと
- *    （"年収・待遇" と "給与・待遇" で文言が違う）。
+ * ⚠️ 11個のスラッグは**入社側と共通**（軸を突き合わせるため）。別の列に入るので衝突しない。
+ *    **ラベル辞書は共通化しないこと。** 同じ `growth` でも
+ *    入社は「事業の成長性」、退職は「事業の先行き」で、言い方が違う。
  */
-export const LEAVE_REASONS = [
-  { value: "salary",        label: "給与・待遇" },
-  { value: "evaluation",    label: "評価のされ方・昇進" },
-  { value: "management",    label: "マネジメント・組織体制" },
-  { value: "outlook",       label: "事業の先行き" },
-  { value: "job_fit",       label: "仕事内容が合わない・伸び代" },
-  { value: "work_style",    label: "働き方" },
-  { value: "relationships", label: "人間関係" },
-  { value: "company",       label: "会社都合・組織変更" },
+export const LEAVE_REASONS: readonly ReasonOption[] = [
+  { value: "job_content", label: "仕事内容が合わなかった",       axis: "work" },
+  { value: "skills",      label: "スキルの伸び代が無かった",     axis: "work" },
+  { value: "autonomy",    label: "裁量が小さかった",             axis: "role" },
+  { value: "position",    label: "ポジション・役割が変わった",   axis: "role" },
+  { value: "people",      label: "一緒に働く人",                 axis: "org" },
+  { value: "culture",     label: "組織のカルチャー",             axis: "org" },
+  { value: "management",  label: "マネジメント・上司",           axis: "org" },
+  { value: "salary",      label: "年収・待遇",                   axis: "pay" },
+  { value: "evaluation",  label: "評価のされ方・昇進",           axis: "pay" },
+  { value: "work_style",  label: "働き方（場所・時間）",         axis: "worklife" },
+  { value: "growth",      label: "事業の先行き",                 axis: "company" },
+  { value: "restructure", label: "会社都合・組織変更",           axis: "company" },
+  { value: "personal",    label: "個人の事情（家庭・健康など）", axis: "personal" },
 ] as const;
 
 export const LEAVE_REASON_LABELS: Record<string, string> =
   Object.fromEntries(LEAVE_REASONS.map((o) => [o.value, o.label]));
 
 export const VALID_LEAVE_REASONS = new Set<string>(LEAVE_REASONS.map((o) => o.value));
+
+/**
+ * 軸ごとにまとめる。**並び順は `REASON_AXES` と各配列の順をそのまま使う**
+ * （UI 側で sort し直さないこと。並び順を固定した意味が無くなる）。
+ * 選択肢が1つも無い軸は返さない。
+ */
+export function groupReasonsByAxis(
+  options: readonly ReasonOption[]
+): { axis: ReasonAxis; axisLabel: string; options: ReasonOption[] }[] {
+  return REASON_AXES.map((a) => ({
+    axis: a.value,
+    axisLabel: a.label,
+    options: options.filter((o) => o.axis === a.value),
+  })).filter((g) => g.options.length > 0);
+}
 
 // ── 入社前後のギャップ ────────────────────────────────────────────────────────
 
@@ -145,6 +237,9 @@ function isBlankish(v: unknown): boolean {
  * ⚠️ **不正値を黙って捨てない。** 1つでも知らない値があればエラーを返す。
  *    落とした値を握り潰すと、利用者には「保存できたのに消えている」に見える
  *    （CLAUDE.md「入力させたのに保存しない UI を作らない」）。
+ *
+ * ⚠️ **上限を超えたときも黙って切らない。** 先頭3つだけ保存すると、
+ *    利用者が選んだはずのものが理由なく消える。400 で返して UI に出す。
  */
 function parseSlugArray(
   raw: unknown,
@@ -165,6 +260,9 @@ function parseSlugArray(
     if (seen.has(v)) continue;
     seen.add(v);
     out.push(v);
+  }
+  if (out.length > REASON_MAX) {
+    return { ok: false, message: `${fieldLabel}は${REASON_MAX}つまで選べます。` };
   }
   // 空配列は「未回答」と同じ扱いにする。'{}' を保存すると
   // 「選ばなかった」と「答えていない」が集計で区別できなくなる

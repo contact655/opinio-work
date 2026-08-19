@@ -256,6 +256,52 @@ split_part(split_part(url,'?',1),'#',1)
    `ow_users` を参照する FK 45列のうち29列が `ON DELETE CASCADE` なので、
    **消し方を間違えると別の表まで巻き込む。**
 
+## `ow_experiences.employment_type` に CHECK が無い（2026-08-19 記録・未着手）
+
+**「UI / API / DB の CHECK を3つ揃える」（CLAUDE.md・2026-08-07 確立）が
+確立された当の列で、経歴側だけ揃っていない。**
+
+| | 実測（2026-08-19） |
+|---|---|
+| `ow_experiences.employment_type` の CHECK | **0本** |
+| `ow_jobs.employment_type` の CHECK | 1本 |
+
+許可値は `src/lib/constants/careerOptions.ts` の `EMPLOYMENT_TYPES`（経歴用）と
+`JOB_EMPLOYMENT_TYPES`（求人用）で**別集合**。経歴側だけ DB のガードが無いので、
+綴りが1文字ずれた値が入っても**エラーにならず、フィルタから静かに消える**。
+
+⚠️ **CHECK を張る前に既存値を数えること。** 定数に無い値が既に入っていれば、
+   その migration は全件ロールバックされる。
+
+## 自由入力の企業名を `company_id` に寄せる導線（2026-08-19 記録・未着手）
+
+**回答者には何も求めない。運営側の作業として寄せる。**
+
+| | 実測（2026-08-19 / 実ユーザー18件） |
+|---|---|
+| `company_id` あり（マスタ紐づけ） | 13（72.2%） |
+| `company_text` のみ（自由入力） | **5（27.8%）** |
+| 自由入力の異なり社名 | 5（重複なし） |
+
+入社の決め手・退職理由の集計は `company_id` を辿るので、**自由入力の27.8%は集計に乗らない**。
+表記ゆれを名寄せして集計に入れると**別会社を1社として数える事故**が起きるため、
+集計側では落とし、**運営が `ow_companies.normalized_name` / `canonical_company_id`
+（既にある運営用の列）で寄せる**。
+
+⚠️ **入力UIで「マスタから選んでください」と強制しないこと。** 入口が重くなる。
+   オンボーディングで自由入力を許した判断と揃える。
+
+## CLAUDE.md と実測の差分（2026-08-19 / フェーズA調査で判明・未反映）
+
+**本文を直すときにまとめて当てる。**
+
+| # | CLAUDE.md の記述 | 実測（2026-08-19） |
+|---|---|---|
+| ① | 職種のトップレベルは「**17件**」（2026-08-10 実測） | **18件**（`parent_id is null` かつ `merged_into_id is null` かつ `is_active`） |
+| ② | 「`ow_experiences` 14件 / 実人数5人」（2026-08-10） | **19件**（実ユーザー18件） |
+| ③ | — | `careerReasons.ts` のコメント「DB 側でも GRANT を付けていないので admin 以外読めない」は **`ow_experience_gaps` については誤り**。同テーブルは `authenticated` に SELECT/INSERT/UPDATE/DELETE があり RLS で本人に絞っている（**2026-08-19 に当該コメントは修正済み**）。正しいのは `ow_experiences` の3列のほう |
+| ④ | 「UI / API / DB の CHECK を3つ揃える」 | `ow_experiences.employment_type` に CHECK が無い（上の節） |
+
 ## 希望勤務地（`desired_prefectures`）がマッチングに使われていない（2026-08-15 記録）
 
 **対象**: `ow_profiles.desired_prefectures`（2026-08-15 のフェーズ2で追加）。
