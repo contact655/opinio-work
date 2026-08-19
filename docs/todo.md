@@ -200,6 +200,62 @@ split_part(split_part(url,'?',1),'#',1)
 ⚠️ ただし `ow_company_office_photos` は**企業側が書ける**表なので、
    書き込みポリシー（誰がアップロードできるか）は別途の関心事。読みは公開でよい。
 
+## `ow_users` を副問い合わせしているポリシーを SECURITY DEFINER 関数にする（2026-08-19 記録・未着手）
+
+**2026-08-19 に `ow_users` の anon 露出を塞いだ（`20260819100000`）が、
+採ったのは「列単位 GRANT に置き替える」案。anon の SELECT 権限そのものは残っている。**
+
+### なぜ全部剥がせなかったか
+
+ポリシー式は**実行ユーザーの権限で評価される**（PostgreSQL: CREATE POLICY / Notes）。
+`REVOKE SELECT ON ow_users FROM anon` を単純にやると、
+**ポリシー式の中で `ow_users` を副問い合わせしている15表**が、anon から丸ごと403になる。
+
+| | 実測（2026-08-19） |
+|---|---|
+| 対象の表 | **15**（`ow_bookmarks` `ow_career_profiles` `ow_casual_meetings` `ow_company_join_requests` `ow_company_posts` `ow_conversation_messages` `ow_conversation_participants` `ow_conversations` `ow_job_applications` **`ow_jobs`** `ow_matches` `ow_mentor_reservations` `ow_notifications` `ow_user_follows` `ow_user_recommendations`） |
+| ポリシー本数 | **19** |
+| ポリシーが参照する `ow_users` の列 | `id`(37本) / `auth_id`(35本) / `visibility`(2本) の3つだけ |
+
+⚠️ とりわけ **`ow_jobs`**（`ow_jobs_company_admin_manage` が FOR ALL / PUBLIC）。
+   `/companies` の「募集中 N件」「募集あり」・sitemap・LP が anon キーでここを読む。
+   **403 は `?? []` で受けているので、画面は落ちず数字だけが静かに消える。**
+
+### やること
+
+19本のポリシーの `IN (SELECT ow_users.id FROM ow_users WHERE auth_id = auth.uid())` を、
+既存の SECURITY DEFINER 関数 **`public.auth_ow_user_id()`**（anon 実行可）に置き換える。
+関数は所有者権限で走るので、呼ぶ側に `ow_users` の SELECT 権限が要らなくなる。
+そのうえで anon から SELECT を完全に剥がす。
+
+⚠️ **「anon は revoke / authenticated は grant / RLS で絞る」（CLAUDE.md）に戻すのが本来の形。**
+   いまは anon にも23列を配っているので、`ow_users_public_read`（`visibility='public'`）が
+   anon にも効く状態が残っている。
+
+⚠️ **やるときは、19本を1本ずつ。** ポリシーの意味が変わっていないことを
+   anon / 非admin / 本人 / admin の4者で毎回測る（CLAUDE.md「最低3者で実測する」）。
+   migration には `SET LOCAL ROLE anon` で15表を全部引く事後チェックを入れる
+   （`20260819100000` と同じ形。**ロール切り替えはトップレベルに書く**）。
+
+## `ow_profiles` に孤児が20件（2026-08-19 記録・今回は対処しない）
+
+`ow_profiles.user_id`（**auth 空間**）に対応する `ow_users` の行が無いものが**20件**。
+
+| | 実測（2026-08-19） |
+|---|---|
+| `ow_profiles` | 49 |
+| うち `ow_users` に対応が無い | **20** |
+| `ow_users` | 35 |
+
+⚠️ 週次メールの宛先を数えたとき（2026-08-10）に見えていたのと同じ20件。
+   `getWeeklyRecipients()` が「`ow_users` に対応なし＝20件」として除外しており、
+   **除外が効いているので実害は出ていない。**
+
+⚠️ **消す前に、なぜ生まれたかを先に特定すること。** 本番で auth ユーザーを消した痕跡なのか、
+   検証で作って消したものなのかで扱いが変わる（CLAUDE.md「本番で検証用アカウントを作らない」）。
+   `ow_users` を参照する FK 45列のうち29列が `ON DELETE CASCADE` なので、
+   **消し方を間違えると別の表まで巻き込む。**
+
 ## 希望勤務地（`desired_prefectures`）がマッチングに使われていない（2026-08-15 記録）
 
 **対象**: `ow_profiles.desired_prefectures`（2026-08-15 のフェーズ2で追加）。

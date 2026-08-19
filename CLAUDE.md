@@ -512,11 +512,24 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
 - **SELECT を列単位で配っているテーブルの一覧**（2026-08-15 実測）。
   ここに載っているテーブルに列を足したら、**`grant select (列名)` を同じ migration に書く。**
 
-  | テーブル | 読める列 / 全列 |
-  |---|---|
-  | `ow_users` | 30 / 32 |
-  | `ow_experiences` | 26 / 35 |
-  | `ow_career_profiles` | 7 / 9 |
+  | テーブル | authenticated | anon |
+  |---|---|---|
+  | `ow_users` | 30 / 32 | **23 / 32**（2026-08-19〜） |
+  | `ow_experiences` | 26 / 35 | 権限なし |
+  | `ow_career_profiles` | 7 / 9 | テーブルレベル |
+
+  ⚠️ **`ow_users` は anon も列単位**（2026-08-19）。**anon から落とした9列**:
+
+  ```
+  email  birth_date  statistics_opt_out  auth_linked_at
+  profile_setup_at  mentor_registered_at  is_system  created_at  updated_at
+  ```
+
+  ⚠️ **anon キーの経路（`createPublicClient` / 未ログインの `createClient`）で
+     この9列を select しないこと。** 1列でも入るとクエリが丸ごと403になり、
+     **`?? []` で受けている呼び出し側では「0件」として静かに素通りする。**
+     必要になったら、**先に「GRANT を足すか」を判断する**（勝手に select を足さない）。
+     経緯は `20260819100000_ow_users_anon_column_grants.sql`。
 
   ⚠️ **これ以外の `ow_*` はテーブルレベル**なので、列を足せばそのまま読める。
   ⚠️ `ow_companies` は逆に **UPDATE** が列単位（テーブルレベルを落としてある）。
@@ -540,6 +553,40 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
 - **新しいテーブルには GRANT を必ず書く。** 既定では anon も authenticated も権限が付かない。
 - **列単位 GRANT を剥がすと、剥奪列が select に1つでも入ったクエリが丸ごと 403 になる。**
   ページは HTTP 200 のまま中身だけが静かに空になる。
+
+- **★ポリシー式は「実行ユーザーの権限」で評価される。**
+  ある表から SELECT を剥がすと、**その表を副問い合わせしている RLS ポリシーを持つ
+  “無関係な表”が丸ごと 403 になる**（PostgreSQL: CREATE POLICY / Notes
+  「users ... must be able to access any tables or functions referenced in the expression
+  or they will simply receive a permission denied error」）。
+
+  ⚠️ 2026-08-19 に `ow_users` で実際に踏みかけた。単純な
+  `REVOKE SELECT ON ow_users FROM anon` は、**anon が読める15表**
+  （`ow_jobs` `ow_career_profiles` ほか）を巻き添えにする。とりわけ `ow_jobs` は
+  `/companies` の「募集中 N件」・「募集あり」・sitemap・LP が通る経路。
+  **列単位 GRANT に置き換えれば**、ポリシーが参照する列（`id` / `auth_id` / `visibility`）の
+  権限が残るのでポリシーは評価でき、機微列だけ返らない。
+
+  **剥がす前に、その表を参照しているポリシーを数えること。**
+
+  ```sql
+  select c.relname, p.polname from pg_policy p join pg_class c on c.oid=p.polrelid
+   where c.relnamespace='public'::regnamespace and p.polcmd in ('r','*')
+     and (p.polroles='{0}'::oid[] or 'anon'::regrole = any(p.polroles))
+     and has_table_privilege('anon', c.oid,'SELECT')
+     and pg_get_expr(p.polqual,p.polrelid) ~ '\mow_users\M';
+  ```
+
+  ⚠️ **migration の中で実際に `SET LOCAL ROLE anon` して全部引く**こと。
+  失敗すればトランザクションごとロールバックされ、壊れた状態が本番に残らない。
+  ⚠️ **ロールの切り替えと復帰はトップレベルに書く。`DO $$` の中でやらない**
+  （中で `RESET ROLE` しても戻らず、CLI の `schema_migrations` への INSERT が
+  42501 で落ちる。2026-08-19 に実際に踏んだ）。
+
+- **★403 は「0件」として静かに素通りする。** 呼び出し側の大半が `data ?? []` で
+  受けているため、権限エラーは**空の一覧**にしか見えない。
+  **anon 経路を新しく足して空が返ったら、まず権限を疑うこと**（データが無いと決めつけない）。
+  切り分けは PostgREST を直に叩いて status を見る（403/401 は `{"code":"42501"}` を返す）。
 - **`ow_companies` に列を足したら、その列の GRANT を migration に必ず書く。**
   このテーブルは**テーブルレベルの UPDATE を落として列単位で配り直している**ので、
   新しい列は**生まれた時点で書き込めない**（`authenticated` から更新すると 403）。
