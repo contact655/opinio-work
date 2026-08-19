@@ -105,7 +105,10 @@ export const metadata: Metadata = {
       { url: "/icons/pwa/icon-192.png", type: "image/png", sizes: "192x192" },
       { url: "/icons/pwa/icon-512.png", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: "/favicon-16x16.png",
+    /* ⚠️ **存在しないファイルを指さない。** 2026-08-20 まで `/favicon-16x16.png` を
+          指していたが public/ に無く、**全ページで 404**（訪問者全員が毎回1回叩く）。
+          `/favicon.ico`（src/app/favicon.ico）は実在するのでそれを指す。 */
+    shortcut: "/favicon.ico",
     apple: { url: "/icons/pwa/icon-192.png", sizes: "192x192" },
   },
   appleWebApp: {

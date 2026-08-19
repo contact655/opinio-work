@@ -7,7 +7,7 @@
  *  - offline fallback → /offline
  */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `opinio-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `opinio-images-${CACHE_VERSION}`;
 const PAGE_CACHE = `opinio-pages-${CACHE_VERSION}`;
@@ -17,14 +17,20 @@ const ALL_CACHES = [STATIC_CACHE, IMAGE_CACHE, PAGE_CACHE];
 // ── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(PAGE_CACHE)
-      .then((cache) =>
-        cache.addAll(["/", "/companies", "/jobs", "/offline"])
+    caches.open(PAGE_CACHE).then((cache) =>
+      /* ⚠️ **addAll を使わない。** addAll は1件でも 404 なら**全体を reject** する。
+            2026-08-20 まで `/offline` が存在せず（本番で 404 を実測）、
+            そのせいで `/` も `/companies` も `/jobs` も**1つもキャッシュされていなかった**。
+            `.catch()` があるので install 自体は成功し、**失敗に気づけない形**だった。
+         → 1件ずつ add して、落ちたものだけ捨てる。 */
+      Promise.all(
+        ["/", "/companies", "/jobs", "/offline"].map((path) =>
+          cache.add(path).catch((e) => {
+            console.warn("[SW] プリキャッシュ失敗:", path, e && e.message);
+          })
+        )
       )
-      .catch(() => {
-        // オフラインインストール時は失敗しても続行
-      })
+    )
   );
   // 旧 SW を即座に置き換え
   self.skipWaiting();
@@ -78,8 +84,19 @@ self.addEventListener("fetch", (event) => {
 
   // ── ③ HTML ナビゲーション（NetworkFirst）
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
-    event.respondWith(networkFirstWithOfflineFallback(request));
+    /* ⚠️ **本人にしか見えないページを Cache Storage に残さない**（2026-08-20）。
+          `/mypage` などをキャッシュすると、ログアウト後や共有端末でも
+          オフライン時に中身を取り出せてしまう。オフラインの見た目より優先する。
+          キャッシュしないだけで、オフライン時の案内は従来どおり出す。 */
+    event.respondWith(networkFirstWithOfflineFallback(request, !isPrivateUrl(url)));
     return;
+  }
+
+  /* ⚠️ **API と RSC ペイロードはキャッシュしない**（2026-08-20）。
+        どちらも本人向けの中身を含む。`/api/jobseeker/*` を保存すると
+        個人情報が端末に残り、古い応答を返す事故のもとにもなる。 */
+  if (url.pathname.startsWith("/api/") || url.searchParams.has("_rsc") || isPrivateUrl(url)) {
+    return; // 何もしない＝ブラウザの通常のネットワーク処理に任せる
   }
 
   // ── ④ その他（NetworkFirst シンプル）
@@ -149,10 +166,18 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-async function networkFirstWithOfflineFallback(request) {
+/** 本人にしか見えないページか。**キャッシュに残してよいかの判定にだけ使う。**
+ *
+ * ⚠️ ここに載っていない公開ページ（/ /companies /jobs /articles など）だけを保存する。
+ * ⚠️ 認証の判定には使わない。SW はセッションを見ていない。 */
+function isPrivateUrl(url) {
+  return /^\/(mypage|biz|admin|agent|u|people|onboarding|auth|profile)(\/|$)/.test(url.pathname);
+}
+
+async function networkFirstWithOfflineFallback(request, allowCache) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    if (response.ok && allowCache) {
       const cache = await caches.open(PAGE_CACHE);
       cache.put(request, response.clone());
     }
