@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 import type { CompanyForCarousel } from "@/types/genre";
-import type { MemberPreview } from "./CompanyCardCompact";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 // フェーズバッジ色（コンパクト版）
@@ -34,7 +33,7 @@ export function RecentlyViewedSection() {
     const ids = companyItems.map((c) => c.id).join(",");
     fetch(`/api/companies/batch?ids=${ids}`)
       .then((r) => r.json())
-      .then(({ companies: data }: { companies: CompanyForCarousel[]; membersByCompany: Record<string, MemberPreview[]> }) => {
+      .then(({ companies: data }: { companies: CompanyForCarousel[] }) => {
         setCompanies(data ?? []);
         setLoaded(true);
       })

@@ -361,12 +361,21 @@ export default async function MypagePage({
   let scoutsBadge = 0;
   if (owUser) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [{ count: convCount }, { count: appCount }, { count: scoutCount }] = await Promise.all([
+    /* ⚠️ **存在しない列で数えない。** 2026-08-20 まで `company_user_id` と `updated_at` で
+          引いており、`ow_conversations` にはどちらも無いため **毎回 400**
+          （本番ログで24時間に19件）。`count` は null になり `?? 0` が受けるので、
+          **バッジは常に 0**。新着メッセージに一生気づけない状態だった。
+       ⚠️ 実在する列は id / kind / stage / company_id / mentor_user_id /
+          candidate_user_id / status / last_message_at / created_at の9つだけ。
+       ⚠️ 参加者は候補者側と**メンター側の両方**を見る。求職者が「話を聞かれる側」に
+          なる会話（DM）は `mentor_user_id` に入る。
+       ⚠️ **error を捨てない。** 捨てていたから2026-08-12 以降ずっと気づけなかった。 */
+    const [{ count: convCount, error: convError }, { count: appCount, error: appError }, { count: scoutCount, error: scoutError }] = await Promise.all([
       supabase
         .from("ow_conversations")
         .select("id", { count: "exact", head: true })
-        .or(`candidate_user_id.eq.${owUser.id},company_user_id.eq.${owUser.id}`)
-        .gt("updated_at", sevenDaysAgo),
+        .or(`candidate_user_id.eq.${owUser.id},mentor_user_id.eq.${owUser.id}`)
+        .gt("last_message_at", sevenDaysAgo),
       supabase
         .from("ow_job_applications")
         .select("id", { count: "exact", head: true })
@@ -382,6 +391,9 @@ export default async function MypagePage({
         .eq("candidate_id", user.id)
         .eq("status", "sent"),
     ]);
+    if (convError)  console.error("[mypage] 会話バッジ:", convError.message);
+    if (appError)   console.error("[mypage] 応募バッジ:", appError.message);
+    if (scoutError) console.error("[mypage] スカウトバッジ:", scoutError.message);
     conversationsBadge = convCount ?? 0;
     applicationsBadge = appCount ?? 0;
     scoutsBadge = scoutCount ?? 0;
