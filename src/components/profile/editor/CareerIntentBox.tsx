@@ -6,7 +6,6 @@ import { CollapsibleRow, FormGroup, selectStyle, inputStyle } from "./formKit";
 import { PencilIcon } from "@/components/profile/view/RowActions";
 import { CheckPillGroup, type CheckPillOption } from "@/components/ui/CheckPillGroup";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
-import { PROFILE_VISIBILITY_OPTIONS } from "@/lib/constants/profileVisibility";
 import {
   DESIRED_WORK_STYLES, TRANSFER_TIMINGS, DESIRED_PHASES, SALARY_MAX_MAN,
 } from "@/lib/constants/careerPreferences";
@@ -47,8 +46,6 @@ export type IntentPrefs = {
   desired_phase: string[] | null;
 };
 
-type Visibility = "public" | "login_only" | "private";
-
 const MAX_DESIRED_ROLES = 5;
 
 /** 要約の1行。⚠️ 値そのものを出す */
@@ -65,11 +62,9 @@ function SummaryRow({ label, value, muted }: { label: string; value: string; mut
 }
 
 export default function CareerIntentBox({
-  initialVisibility, initialIsOpenToWork,
+  initialIsOpenToWork,
   initialPrefs, roles, roleAliases, desiredRoleOptions,
-  onVisibilityChange,
 }: {
-  initialVisibility: Visibility;
   initialIsOpenToWork: boolean;
   /* ⚠️ `initialScoutEnabled` は 2026-08-20 に外した。スカウトの可否は
         右カラムの `StanceCard` が `ow_profiles.scout_enabled` を直接持つ。
@@ -78,12 +73,9 @@ export default function CareerIntentBox({
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   roleAliases: Record<string, string[]>;
   desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  /** 保存できた公開範囲を親へ返す（写真カードのプレビュー等が見る） */
-  onVisibilityChange?: (v: Visibility) => void;
 }) {
   /* ★保存済みの値。要約はここだけを見る（ルール⑦） */
   const [saved, setSaved] = useState({
-    visibility: initialVisibility,
     isOpenToWork: initialIsOpenToWork,
     prefs: initialPrefs,
   });
@@ -94,7 +86,6 @@ export default function CareerIntentBox({
   const [error, setError] = useState<string | null>(null);
 
   /* 編集中の値 */
-  const [visibility, setVisibility] = useState<Visibility>(saved.visibility);
   const [isOpenToWork, setIsOpenToWork] = useState(saved.isOpenToWork);
   const [roleIds, setRoleIds] = useState<string[]>(saved.prefs.desired_role_ids);
   const [prefectures, setPrefectures] = useState<string[]>(saved.prefs.desired_prefectures ?? []);
@@ -116,7 +107,6 @@ export default function CareerIntentBox({
 
   /** 開き直したときに保存済みの値へ戻す（ルール⑦） */
   const resetToSaved = useCallback(() => {
-    setVisibility(saved.visibility);
     setIsOpenToWork(saved.isOpenToWork);
     setRoleIds(saved.prefs.desired_role_ids);
     setPrefectures(saved.prefs.desired_prefectures ?? []);
@@ -129,7 +119,7 @@ export default function CareerIntentBox({
   }, [saved]);
 
   /* ── 変更の有無を**系統ごと**に持つ。保存で呼ぶのは変わった系統だけ ────────── */
-  const profileDirty = visibility !== saved.visibility || isOpenToWork !== saved.isOpenToWork;
+  const profileDirty = isOpenToWork !== saved.isOpenToWork;
   const prefsPatch = useMemo(() => ({
     desired_role_ids:    roleIds,
     desired_prefectures: prefectures.length > 0 ? prefectures : null,
@@ -162,13 +152,13 @@ export default function CareerIntentBox({
         try {
           const res = await fetch("/api/jobseeker/profile", {
             method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ visibility, is_open_to_work: isOpenToWork }),
+            /* ⚠️ `visibility` は送らない。設定ページが持つ（2026-08-20 / B-2）。
+                  ここで送ると、設定ページで変えた値をこの保存が巻き戻す。 */
+            body: JSON.stringify({ is_open_to_work: isOpenToWork }),
           });
           if (!res.ok) throw new Error();
-          next.visibility = visibility;
           next.isOpenToWork = isOpenToWork;
-          onVisibilityChange?.(visibility);
-        } catch { failed.push("公開範囲・転職検討状況"); }
+        } catch { failed.push("転職について"); }
       }
 
       if (prefsDirty) {
@@ -209,13 +199,12 @@ export default function CareerIntentBox({
       setJustSaved(true);
       setTimeout(() => { setJustSaved(false); setOpen(false); }, 800);
     })();
-  }, [saved, profileDirty, prefsDirty, visibility, isOpenToWork, prefsPatch, onVisibilityChange]);
+  }, [saved, profileDirty, prefsDirty, isOpenToWork, prefsPatch]);
 
   /* ── 文言。★値そのものを出す ─────────────────────────────────────────────
         ⚠️ **ボックスの要約は「保存済みの値」、モーダルの行は「編集中の値」**を出す。
            モーダルの中で保存済みを出すと、いま選んだのと違う値が畳んだ行に残り、
            **選んだはずの値が消えたように見える**（実測で踏んだ）。 */
-  const visLabel = (v: Visibility) => PROFILE_VISIBILITY_OPTIONS.find((o) => o.value === v)?.label ?? v;
   /* ★否定形をやめた（2026-08-20 / B-3）。**列は触っていない**。`is_open_to_work` の
         true/false に対する**表示文言だけ**を変えている。
      ⚠️ 「いまは考えていない」は、サービス側から「あなたは対象外です」と言っているのと同じ。
@@ -223,7 +212,6 @@ export default function CareerIntentBox({
      ⚠️ 右カラムの `StanceCard` と**同じ文言**にすること（片方だけ直すとズレる）。 */
   const openToWorkLabel = (b: boolean) => (b ? "積極的に探している" : "情報収集として");
 
-  const visibilityLabel = visLabel(saved.visibility);
   const openToWorkText = openToWorkLabel(saved.isOpenToWork);
 
   return (
@@ -251,7 +239,6 @@ export default function CareerIntentBox({
           </button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <SummaryRow label="公開範囲" value={visibilityLabel} />
                     <SummaryRow label="転職について" value={openToWorkText} muted={!saved.isOpenToWork} />
         </div>
       </section>
@@ -278,29 +265,10 @@ export default function CareerIntentBox({
                **スクロールなしで全7行が見える**。3つ開くと 1,009px になり、
                下の4行を見るのにスクロールが要る。
             ⚠️ **畳んでも現在値は行の右に出る**（`state`）。読むために開く必要は無い。 */}
-        <CollapsibleRow first label="公開範囲" state={visLabel(visibility)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {PROFILE_VISIBILITY_OPTIONS.map((o) => (
-              <label key={o.value} style={{
-                display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer",
-                padding: "10px 12px", borderRadius: 10,
-                border: `1.5px solid ${visibility === o.value ? "var(--royal)" : "var(--line)"}`,
-                background: visibility === o.value ? "var(--royal-50)" : "#fff",
-              }}>
-                <input
-                  type="radio" name="intent-visibility" value={o.value}
-                  checked={visibility === o.value}
-                  onChange={() => setVisibility(o.value)}
-                  style={{ marginTop: 3 }}
-                />
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{o.label}</span>
-                  <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, marginTop: 2 }}>{o.desc}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </CollapsibleRow>
+        {/* ★「公開範囲」の行は 2026-08-20 に **`/mypage/settings` へ移した**。
+               ⚠️ ここに戻さないこと。同じ列（`ow_users.visibility`）を触る画面が2つになる。
+               ⚠️ 公開範囲は「未ログインから見えるか」を決める唯一のスイッチなので**消してはいない**。 */}
+
 
         {/* ★「スカウト設定」の行は 2026-08-20 に**右カラムの「声をかけられてもよいか」へ移した**。
                ⚠️ ここに戻さないこと。同じ列（`ow_profiles.scout_enabled`）を触る画面が2つになる。

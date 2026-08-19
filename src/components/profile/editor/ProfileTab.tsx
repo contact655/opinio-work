@@ -532,7 +532,10 @@ export default function ProfileTab({
            `editorProps` から直接読む）。**ここに戻すと同じ列を2箇所で触ることになる。** */
   initialIntentPrefs,
   desiredRoleOptions,
-  onVisibilitySaved,
+  /* ⚠️ `onVisibilitySaved` は受け取るが使わない（2026-08-20 / B-2）。
+        公開範囲は `/mypage/settings` が持つ。呼び出し元（ProfileEditor）が
+        まだ渡してくるので、型としては残す。 */
+  onVisibilitySaved: _onVisibilitySaved,
   followCounts,
   openBasicNonce = 0, openHeaderNonce = 0,
   openCareerNonce = 0,
@@ -1267,13 +1270,11 @@ export default function ProfileTab({
                  同じ列を触る画面が2つある（意図的な過渡状態）。 */}
           {initialIntentPrefs && (
             <CareerIntentBox
-              initialVisibility={settings.visibility}
               initialIsOpenToWork={settings.isOpenToWork}
               initialPrefs={initialIntentPrefs}
               roles={roles}
               roleAliases={roleAliases}
               desiredRoleOptions={desiredRoleOptions}
-              onVisibilityChange={onVisibilitySaved}
             />
           )}
 

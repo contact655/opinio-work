@@ -737,3 +737,31 @@ grep -n "buildFutureData(owUser, false)" src/app/\(jobseeker\)/u/\[id\]/page.tsx
 ```
 
 ⚠️ ⑬⑯と同じ話。**「やったつもり」を検証で潰す。**
+
+### ⑱ ★grep が 0件のときは、**検索が効いていること**を先に確かめる
+
+**zsh では `--include=*.ts` がグロブに食われて `no matches found` になり、
+grep 自体が走らないことがある。** その状態で「0件だった」と読むと、
+**調べていないものを『無い』と報告する**ことになる。
+
+⚠️ **実例（2026-08-20）**: `grep -rn "rightColumn" src --include="*.tsx"` が
+   `MypageLayout` の行しか返さず、「`rightColumn` を渡す画面は0件」と報告した。
+   **実際は `MypageClient.tsx` が渡していた**（右カラムは元から描画されていた）。
+   同じ日に `--include` 由来の `no matches found` を何度も出しており、
+   **エラーが出た grep と出なかった grep を区別していなかった。**
+
+**0件を根拠にする前に、同じ条件で「1件は当たるはず」の語を投げる。**
+
+```bash
+# ✗ これだけで「0件」と結論しない
+grep -rn "rightColumn" src --include="*.tsx"
+
+# ✓ 検索が効いていることを確かめてから読む（必ず1件は当たる語で）
+grep -rn "export default" src --include="*.tsx" | head -1   # 出なければ grep が走っていない
+# あるいは --include を使わない形にする
+grep -rn "rightColumn" src | grep -E "\.tsx?:"
+```
+
+⚠️ これは「**0件は証明にならない**」（CLAUDE.md「0件を読むときは、起きなかった0か
+   起こせなかった0かを分ける」）と**同じ種類**の誤り。
+   あちらはデータの0件、こちらは**検索結果の0件**。
