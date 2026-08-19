@@ -349,6 +349,57 @@ split_part(split_part(url,'?',1),'#',1)
 
 ⚠️ **今回は実装しない。** まず A を1回手で回して、実際に戻せるかを確かめるのが先。
 
+## ★can_send_scout() の「自社在籍者を除外する」条件が効いていない（2026-08-20 実測・要判断）
+
+**原因は user_id の空間取り違え。** 関数は `p_candidate_id` を **auth 空間**として受け取るが、
+在籍歴のチェックだけ **ow_users 空間の列**と突き合わせているため、**必ず一致しない**。
+
+| 条件 | 参照する列 | その列の空間 | FK | 効くか |
+|---|---|---|---|---|
+| ① スカウト同意 `scout_enabled` | `ow_profiles.user_id` | auth | → `auth.users(id)` | ✅ |
+| ② **その企業に在籍したことがない** | **`ow_experiences.user_id`** | **ow_users** | → `ow_users(id)` | ❌ **効かない** |
+| ③ 手動ブロック | `ow_scout_blocks.candidate_id` | auth | → `auth.users(id)` | ✅（行0件） |
+| ④ 転職勧奨の禁止期間 | `ow_placements.candidate_id`（`is_solicitation_blocked`） | auth | → `auth.users(id)` | ✅（行0件） |
+
+⚠️ **壊れているのは②だけ。**①③④は空間が合っている。
+
+### 実害（本番実測・株式会社セールスフォース・ジャパンで確認）
+
+| | 実測（2026-08-20） |
+|---|---|
+| 候補者プール（`scout_enabled = true` の実ユーザー） | **11** |
+| うち Salesforce の**現職** | **1** |
+| うち Salesforce の**元社員** | **1** |
+| `can_send_scout(Salesforce, auth_id)` が true になる人数 | **11**（＝**2人とも除外されていない**） |
+| 参考: 同じ人を `ow_users.id` で呼ぶと | **0**（＝②はそちらの空間でだけ効く） |
+
+**→ `/biz/candidates` は canSend でフィルタしているので、この2人は自社の検索結果に出ている。**
+**採用担当の検索結果に自社の現職社員が出て、スカウトも送れる状態。**
+
+### 直し方（未実施）
+
+`ow_experiences` に auth 空間の列は無いので、**関数側で join する**のが最小。
+
+```sql
+and not exists (
+  select 1 from ow_experiences e
+  join ow_users u on u.id = e.user_id
+  where u.auth_id = p_candidate_id
+    and e.company_id = p_company_id
+)
+-- company_text 側（正規化社名で突き合わせるほう）も同じ join が要る
+```
+
+⚠️ **直すと候補者一覧から人が減る。** 減った人数を必ず実測して報告すること
+（「黙って減らさない」）。Salesforce では 11 → 9 になる見込み。
+
+⚠️ **これは「判定ロジックの変更」ではなく、書かれている意図どおりに動かす修正。**
+   関数のコメントには最初から「2. その企業に在籍したことがない」と書いてある。
+
+⚠️ **同じ形の取り違えが他にもないか。** `p_candidate_id` を受け取る関数と、
+   `candidate_id` / `user_id` を持つ表の空間は
+   [docs/user-id-spaces.md](user-id-spaces.md) で必ず確かめること。
+
 ## ★migration は復旧手段ではない（2026-08-20 確立・要判断）
 
 **`supabase/migrations/` を最初から流し直しても、このDBは再現できない。**
