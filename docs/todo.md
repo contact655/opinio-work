@@ -349,6 +349,93 @@ split_part(split_part(url,'?',1),'#',1)
 
 ⚠️ **今回は実装しない。** まず A を1回手で回して、実際に戻せるかを確かめるのが先。
 
+## ★user_id の空間取り違え ── 関数を全件洗った結果（2026-08-20 実測・1件は未修正）
+
+`can_send_scout` が1本すり抜けていたので、**public の関数を全件突き合わせた**。
+手順は「関数の本体が参照している `user_id` / `candidate_id` 系の列を拾い、
+**その列の FK が `auth.users` か `ow_users` か**を見て、
+1つの引数が両空間の列と比べられていないかを数える」。
+
+### 結果
+
+| 関数 | 引数 | 判定 |
+|---|---|---|
+| `can_send_scout(p_company_id, p_candidate_id)` | auth | ✅ **2026-08-20 に修正済み**（`ow_users` を join） |
+| **`get_blocked_companies(p_candidate_id)`** | auth（呼び出し側が `user.id` を渡す） | ❌ **同じ形の混在。未修正**（下） |
+| `has_worked_at_company(p_user_id, p_company_id)` | **ow_users で一貫** | ⚠️ **呼び出し元が src に0件**（死んでいる）。使うときに auth_id を渡すと静かに false になる |
+| `get_public_career_steps(p_user_id)` | ow_users で一貫（`auth.uid()` は `ow_users.auth_id` 経由で橋渡し） | ✅ |
+| `create_conversation(p_kind, p_candidate_user_id, …)` | ow_users で一貫 | ✅ **手本**。不一致なら `42501` を投げる明示アサートがある |
+| `auth_is_company_admin` / `auth_is_company_member(target_company_id)` | 引数は company | ✅ |
+| `approve_school_request` / `reject_school_request(p_approved_by)` | auth で受け、**関数内で `ow_users.auth_id` から解決**して書く | ✅ |
+| `rebuild_ow_transitions()` / `update_company_member_counts()` | 引数なし | ✅ |
+
+### ❌ `get_blocked_companies(p_candidate_id)` ── 未修正。**2つ壊れている**
+
+**① 空間が混ざっている**（`can_send_scout` と同じ形）
+
+```sql
+from ow_experiences e ... where e.user_id = p_candidate_id   -- ow_users 空間
+...
+from ow_scout_blocks b ... where b.candidate_id = p_candidate_id  -- auth 空間
+```
+
+呼び出し側（`/api/jobseeker/scout-settings`）は `user.id`（**auth**）を渡すので、
+**在籍企業のぶんは一度も返っていない**。手動ブロックだけが返る形。
+
+**② 呼び出し側の引数名が違う → そもそも 404 になっている**
+
+```ts
+admin.rpc("get_blocked_companies", { candidate_id: user.id })  // ← 関数の引数は p_candidate_id
+```
+
+実測（service role で PostgREST を直接叩いた）:
+
+| 渡した引数名 | 応答 |
+|---|---|
+| `candidate_id`（アプリと同じ） | **404 `PGRST202`**「no matches were found」 |
+| `p_candidate_id`（正しい） | 200 `[]` |
+
+⚠️ ルートは `blockedResult.data ?? []` で受けているため、
+**404 が「ブロック企業0件」として静かに素通りしている。**
+スカウト設定画面の「ブロック中の企業」は**常に空**。
+
+**直すときは2つ同時に。** 片方だけ直すと、もう片方の不具合が表に出るだけになる。
+⚠️ 直すと**在籍企業がブロック一覧に出るようになる**（今まで見えていなかったものが増える）。
+   件数を実測して報告すること。
+
+### この形が見つけにくい理由（次に読む人へ）
+
+- **tsc も lint も通る。** 型は uuid どうしで一致する
+- **エラーも出ない。** 条件が1つ静かに効かなくなるだけ
+- **RPC の引数名違いは 404 だが、`?? []` で受けていると0件と区別がつかない**
+- ⚠️ **実データで数えるまで見つからない。** CLAUDE.md に警告があっても防げていなかった
+  （文章では防げない、が今回の結論）
+
+### 見つけ方（このクエリを残す）
+
+```sql
+with spaces as (
+  select c.relname tbl, a.attname col,
+    case when d.confrelid='auth.users'::regclass then 'auth'
+         when d.confrelid='public.ow_users'::regclass then 'ow_users' end sp
+  from pg_attribute a
+  join pg_class c on c.oid=a.attrelid and c.relnamespace='public'::regnamespace and c.relkind='r'
+  join pg_constraint d on d.conrelid=a.attrelid and d.contype='f' and a.attnum=any(d.conkey)
+  where a.attnum>0 and not a.attisdropped
+    and d.confrelid in ('auth.users'::regclass,'public.ow_users'::regclass)
+)
+select p.proname, string_agg(distinct s.sp,' + ') as 空間,
+       string_agg(distinct s.tbl||'.'||s.col||'('||s.sp||')', ', ') as 内訳
+from pg_proc p join spaces s
+  on pg_get_functiondef(p.oid) ~ ('\m'||s.tbl||'\M')
+ and pg_get_functiondef(p.oid) ~ ('\m'||s.col||'\M')
+where p.pronamespace='public'::regnamespace and p.prokind='f'
+group by p.proname having count(distinct s.sp) > 1;
+```
+
+⚠️ これは**候補を挙げるだけ**。橋渡し（`ow_users.auth_id` で解決している）も引っかかるので、
+   **1本ずつ本体を読んで判定する**こと。
+
 ## ~~can_send_scout() の「自社在籍者を除外する」条件が効いていない~~（2026-08-20 に修正済み）
 
 **原因は user_id の空間取り違え。** 関数は `p_candidate_id` を **auth 空間**として受け取るが、
