@@ -560,13 +560,22 @@ function AuthPageInner() {
                 <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 6 }}>
                   登録すると、企業からのスカウトを受け取る設定になります。プロフィール編集の「公開設定」からいつでもオフにできます。
                 </p>
-                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 6, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
-                  当社は、お預かりした情報を匿名化・統計化した上で、職種別の待遇水準等として公表することがあります（
-                  <a href="/terms#統計的利用" target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink-mute)", textDecoration: "underline" }}>
-                    利用規約 第13条の4
-                  </a>
-                  ）。統計利用の停止をご希望の場合は、お問い合わせ窓口までご連絡ください。
-                </p>
+                {/*
+                  ⚠️ **統計的利用の告知は 2026-08-21 に画面から外した。**
+                     消してよいと判断した根拠は、**利用規約 第13条の4 に必要事項が揃っている**こと:
+                       ・対象情報（職種 / 業種 / 経験年数 / 勤務地 / 年収 / 転職前後の変化 / 応募の経過）
+                       ・目的（待遇水準の提供 / 労働市場の調査・公表 / サービス改善）
+                       ・個人が識別されないよう十分な件数で集計し、**僅少なら公表しない**
+                       ・**停止を請求できることと、その窓口（第23条）**
+                     上の「利用規約およびプライバシーポリシーに同意したものとみなします」で
+                     包括的に同意を取っているため、画面に再掲しなくても伝達経路は残る
+                     （LinkedIn / Wantedly も登録画面は包括同意の1行だけ。2026-08-21 に実物を確認）。
+
+                  ⚠️ **規約 第13条の4 を削る・薄めるときは、この判断ごと見直すこと。**
+                     画面から消したぶん、**規約が唯一の告知**になっている。
+                  ⚠️ `ow_users.statistics_opt_out` の列は 2026-08-21 時点で**アプリから未配線**。
+                     停止の請求は規約どおり「窓口へ連絡」＝手動運用が前提。
+                */}
               </form>
             </>
           )}
