@@ -7899,6 +7899,7 @@ export type Database = {
           updated_at: string
           username: string | null
           visibility: string
+          welcome_sent_at: string | null
         }
         Insert: {
           about_me?: string | null
@@ -7933,6 +7934,7 @@ export type Database = {
           updated_at?: string
           username?: string | null
           visibility?: string
+          welcome_sent_at?: string | null
         }
         Update: {
           about_me?: string | null
@@ -7967,6 +7969,7 @@ export type Database = {
           updated_at?: string
           username?: string | null
           visibility?: string
+          welcome_sent_at?: string | null
         }
         Relationships: []
       }

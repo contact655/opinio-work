@@ -3,6 +3,7 @@ import type { Database } from "@/lib/supabase/types";
 import { addUserRole } from "@/lib/roles";
 import { notify } from "@/lib/notify/email";
 import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * メールリンク / OAuth で認証が成立した直後の共通後処理。
@@ -92,28 +93,76 @@ export async function jobseekerDestination(params: {
 
   const needsOnboarding = !profile?.onboarding_completed;
 
-  // ── ウェルカムメール (新規ユーザーのみ、best-effort) ──────────────────
-  if (isNewUser && session.user.email) {
-    const userName: string =
-      session.user.user_metadata?.name
-      ?? session.user.user_metadata?.full_name
-      ?? session.user.email.split("@")[0]
-      ?? "さん";
-    notify({
-      to: session.user.email,
-      subject: "【OPINIO】ようこそ！OPINIO へ登録完了しました",
-      html: buildWelcomeHtml(userName),
-    }).catch((e: unknown) => {
-      console.error(`${logPrefix} welcome email failed:`, e);
-    });
+  /* ── ウェルカムメール（best-effort）────────────────────────────────────
+     ★**判断は `isNewUser` ではなく `ow_users.welcome_sent_at`。**
+
+     ⚠️ 2026-08-20 まで `isNewUser`（＝`resolveOrLinkOwUser` が `'created'` を返したか）で
+        判断していたが、**一度も送られていなかった。**
+        登録した瞬間にトリガー `on_auth_user_created` が `ow_users` を **auth_id 付きで**
+        作るため、`/auth/confirm` の時点では必ず `'existing'` になる。
+        つまり `'created'` は事実上発生しない。
+
+     ⚠️ **「行があるか」を冪等キーにしない。** 行はトリガーが先に作る。
+        **「送ったか」**を持つ列で判断する。
+
+     ── 二重送信と送り逃しの両方を防ぐ ──────────────────────────────────
+     ① `welcome_sent_at IS NULL` の行だけを **UPDATE で先に確保**する
+        （同時に2本走っても、行を取れるのは片方だけ）
+     ② 送信に失敗したら **NULL に戻す**（次の認証で再挑戦できる）
+     ⚠️ 「送ってから記録」にしない。同時実行で二重に送る。
+     ⚠️ 「記録して終わり」にもしない。失敗したら永久に送られなくなる。
+
+     ⚠️ `createAdminClient` を使う。`welcome_sent_at` は列単位 GRANT の対象外
+        （anon / authenticated からは読めない）なので、利用者のセッションでは触れない。 */
+  if (session.user.email) {
+    const admin = createAdminClient();
+    const { data: claimed, error: claimError } = await admin
+      .from("ow_users")
+      .update({ welcome_sent_at: new Date().toISOString() })
+      .eq("auth_id", session.user.id)
+      .is("welcome_sent_at", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      console.error(`${logPrefix} welcome claim failed:`, claimError.message);
+    } else if (claimed) {
+      const userName: string =
+        session.user.user_metadata?.name
+        ?? session.user.user_metadata?.full_name
+        ?? session.user.email.split("@")[0]
+        ?? "さん";
+      await notify({
+        to: session.user.email,
+        subject: "【OPINIO】ようこそ！OPINIO へ登録完了しました",
+        html: buildWelcomeHtml(userName),
+      }).catch(async (e: unknown) => {
+        console.error(`${logPrefix} welcome email failed:`, e);
+        /* 送れなかったので確保を解除する。次の認証で再挑戦する。 */
+        await admin
+          .from("ow_users")
+          .update({ welcome_sent_at: null })
+          .eq("id", claimed.id)
+          .then(({ error }) => {
+            if (error) console.error(`${logPrefix} welcome claim rollback failed:`, error.message);
+          });
+      });
+    }
   }
 
   if (needsOnboarding) {
     return `${origin}/onboarding?next=${encodeURIComponent(next)}`;
   }
 
-  // 新規ユーザーはウェルカムバナー付きで着地させる。
-  // 行き先の指定が無い（既定の /companies）ときだけ。指定があればそちらを優先する。
+  /* 新規ユーザーはウェルカムバナー付きで着地させる。
+     行き先の指定が無い（既定の /companies）ときだけ。指定があればそちらを優先する。
+
+     ⚠️ **`isNewUser` は実質いつも false**（上のウェルカムメールのコメント参照）。
+        トリガーが先に `ow_users` を作るので `'created'` にならない。
+        したがって**この分岐にはまず入らない**。
+        さらに、その手前の `needsOnboarding` で新規は `/onboarding` へ行くため、
+        「新規なのにオンボーディング済み」という到達しにくい組み合わせが前提になっている。
+        バナーを本当に出したいなら、ウェルカムメールと同じく**別の印**で判断すること。 */
   if (isNewUser && next === "/companies") {
     return `${origin}/mypage?welcome=1`;
   }
