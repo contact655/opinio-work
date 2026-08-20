@@ -55,7 +55,9 @@ export async function GET(req: NextRequest) {
           企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
     query = query.or(
       `name.ilike.%${safeQ}%,name_en.ilike.%${safeQ}%,` +
-      `brand_name.ilike.%${safeQ}%,slug.ilike.%${safeQ}%`
+      `brand_name.ilike.%${safeQ}%,slug.ilike.%${safeQ}%,` +
+      /* 読み仮名（2026-08-21）。カタカナで打たれたときに拾う。画面には出さない */
+      `search_aliases.ilike.%${safeQ}%`
     );
   }
 

@@ -87,6 +87,8 @@ export async function searchCompanies(
               企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
         q = q.or(
           `name.ilike.${p},name_en.ilike.${p},brand_name.ilike.${p},slug.ilike.${p},` +
+          /* 読み仮名（2026-08-21）。カタカナで打たれたときに拾う。画面には出さない */
+          `search_aliases.ilike.${p},` +
           `description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`
         );
       }

@@ -79,9 +79,12 @@ export async function GET(req: Request) {
               実測: 「Cisco」で検索すると**シスコ本体は出ず、説明文に Cisco を含む競合2社だけ**が出た。
            ⚠️ 検索できる場所は3つある（ヘッダーのサジェスト / `/companies` の一覧 /
               企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
+        /* ⚠️ `search_aliases` は**読み仮名**（2026-08-21）。社名が英字の28社を
+              カタカナで打っても引けるようにするための列で、**画面には出さない**。 */
         .or(
           `name.ilike.${pattern},name_en.ilike.${pattern},` +
-          `brand_name.ilike.${pattern},slug.ilike.${pattern}`
+          `brand_name.ilike.${pattern},slug.ilike.${pattern},` +
+          `search_aliases.ilike.${pattern}`
         )
     ).limit(4),
     supabase

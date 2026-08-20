@@ -2719,6 +2719,7 @@ export type Database = {
           saas_category_id: string | null
           salary_raise_frequency: string | null
           salary_review_times: number | null
+          search_aliases: string | null
           selection_count: number | null
           selection_flow: string[] | null
           show_fit_negatives: boolean
@@ -2872,6 +2873,7 @@ export type Database = {
           saas_category_id?: string | null
           salary_raise_frequency?: string | null
           salary_review_times?: number | null
+          search_aliases?: string | null
           selection_count?: number | null
           selection_flow?: string[] | null
           show_fit_negatives?: boolean
@@ -3025,6 +3027,7 @@ export type Database = {
           saas_category_id?: string | null
           salary_raise_frequency?: string | null
           salary_review_times?: number | null
+          search_aliases?: string | null
           selection_count?: number | null
           selection_flow?: string[] | null
           show_fit_negatives?: boolean
