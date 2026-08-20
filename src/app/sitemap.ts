@@ -54,12 +54,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
-    {
-      url: `${baseUrl}/biz`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.45,
-    },
+    /* ⚠️ **`/biz` は sitemap に入れない**（2026-08-20 に外した）。
+          企業向けLPは `/business`（上の行）で、`/biz` は**常に 307 で
+          `/biz/auth` へ転送するだけ**のルート。しかも `/biz/auth` は
+          robots.ts で Disallow しているので、**「載せて → 転送して → 拒否する」**
+          という矛盾した案内になっていた（本番で実測）。
+       ⚠️ robots.ts の `allow: ["/", "/biz"]` のコメントは「企業向けLP」と書いているが、
+          実体は `/business` に移っている。allow 自体は無害なので残してある。 */
     {
       url: `${baseUrl}/contact`,
       lastModified: new Date(),
