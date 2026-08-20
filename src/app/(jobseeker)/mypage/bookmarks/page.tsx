@@ -4,6 +4,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import BookmarksClient, { type Bookmark } from "./BookmarksClient";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import type { Metadata } from "next";
+
+/* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
+      「IT/SaaS業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
+      見分けがつかない。2026-08-20 の実測で /mypage 配下の3ページが該当した。
+   ⚠️ `absolute` にする（ルートの template が `| OPINIO` を足すため）。 */
+export const metadata: Metadata = {
+  title: { absolute: "保存した企業・募集 | OPINIO" },
+  robots: { index: false, follow: false },
+};
+
 
 export const dynamic = "force-dynamic";
 

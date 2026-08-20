@@ -2,6 +2,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ApplicationsClient, { type Application } from "./ApplicationsClient";
+import type { Metadata } from "next";
+
+/* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
+      「IT/SaaS業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
+      見分けがつかない。2026-08-20 の実測で /mypage 配下の3ページが該当した。
+   ⚠️ `absolute` にする（ルートの template が `| OPINIO` を足すため）。 */
+export const metadata: Metadata = {
+  title: { absolute: "応募した募集 | OPINIO" },
+  robots: { index: false, follow: false },
+};
+
 
 export const dynamic = "force-dynamic";
 

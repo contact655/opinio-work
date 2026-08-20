@@ -8,7 +8,10 @@ import { canUserPost } from "@/lib/feed/canPost";
 import { getCompaniesForList } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
-  title: "投稿 | OPINIO",
+  /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
+          `template: "%s | OPINIO"`（app/layout.tsx）が後ろに足すので、
+          素の `title` に書くと **「… | OPINIO | OPINIO」** になる。実測で3ページ該当した。 */
+  title: { absolute: "投稿 | OPINIO" },
   description: "IT/SaaS業界で働く人たちの投稿",
 };
 

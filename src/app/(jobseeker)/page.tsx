@@ -34,7 +34,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = `IT/SaaS業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。完全無料・営業電話なし。`;
 
   return {
-    title: "OPINIO — IT/SaaS業界の企業と求人を探す",
+    /* ⚠️ `absolute` にする。素の title だと「… | OPINIO」が足されて OPINIO が2回出る。 */
+    title: { absolute: "OPINIO — IT/SaaS業界の企業と求人を探す" },
     description,
     openGraph: {
       title: "OPINIO — IT/SaaS業界の企業と求人を探す",

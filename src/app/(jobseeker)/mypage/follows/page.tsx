@@ -7,7 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { FollowsClient, type FollowedCompany, type FollowedUser } from "./FollowsClient";
 
 export const metadata: Metadata = {
-  title: "フォロー中 | OPINIO",
+  /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
+          `template: "%s | OPINIO"`（app/layout.tsx）が後ろに足すので、
+          素の `title` に書くと **「… | OPINIO | OPINIO」** になる。実測で3ページ該当した。 */
+  title: { absolute: "フォロー中 | OPINIO" },
   robots: { index: false, follow: false },
 };
 
