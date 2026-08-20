@@ -1531,6 +1531,26 @@ migration 適用のたびに `npm run gen:types` を実行してコミットす�
 → 関数・ビュー・ポリシーの全文検索クエリ、「参照先が実在するか」の定期突き合わせ、
    baseline とダンプ手順は [.claude/skills/db-safety/SKILL.md](.claude/skills/db-safety/SKILL.md)
 
+## ⚠️ 「存在しない列で引いていないか」は静的に数えられる（2026-08-20 確立）
+
+**列名を1つ間違えると PostgREST は 400 を返すが、`?? 0` / `?? []` で受けている側では
+「0件」として静かに素通りする。** 2026-08-20 に本番ログで19件/24時間の 400 を見つけた
+（`/mypage` の未読バッジが `ow_conversations.company_user_id` と `updated_at` で数えており、
+**どちらの列も存在しない**。バッジは常に 0 で、新着メッセージに気づけない状態だった）。
+
+同じ形は**型定義と突き合わせれば機械的に見つかる**。`src/lib/supabase/types.ts` の
+`Row` からテーブル→列を作り、`.from("x")` の直後にある
+`.eq/.gt/.in/.or/.order/.select` の列名を照合する。
+
+⚠️ **0件だったときは、検出器が効いていることを先に確かめる**（ルール⑱）。
+   直す前のファイルを `git show <commit>^:<path>` で取り出し、
+   **既知のバグを検出できるか**を見てから「0件」と言う。
+   2026-08-20 はこの手順で 2/2 を再現検出できることを確かめてから本体を通した（結果0件）。
+
+⚠️ **型の間違い（uuid の列に slug を渡す等）はこの方法では見つからない。**
+   同日に見つかった「最近見た企業が常に空」（localStorage の slug を uuid として引いて 22P02）は
+   **本番ログでしか気づけなかった**。静的検査とログの両方を見ること。
+
 ## 📏 件数・統計値の記載ルール
 
 **テーブルの件数・統計値を書くときは必ず取得日を併記すること。**
@@ -2171,6 +2191,59 @@ ESLint も `npx next lint --dir src` は `.next` を書き換えない。
 
 → 各項目の計測スクリプトと実測値は [.claude/rules/ui-debugging.md](.claude/rules/ui-debugging.md)
    （`.tsx` / `.jsx` / `.css` を扱うとき自動で読み込まれる）
+
+### ⚠️ Supabase Auth の呼び出しは「中断」だけでは止まらない（2026-08-20 実証）
+
+**`AbortController` で中断しても、`@supabase/auth-js` は再試行ループに入って約28秒かかる。**
+
+`fetch.js` は **fetch の失敗をすべて `AuthRetryableFetchError` に変換**する
+（「fetch failed, likely due to a network or CORS error」）。**AbortError もここに入る。**
+`_refreshAccessToken` はそれを再試行対象と見なし、200 / 400 / 800 … と
+**`AUTO_REFRESH_TICK_DURATION_MS = 30秒`** まで回し続ける。
+中断済みの signal を使い回すので、1回ごとに即失敗して即座に次を積む。
+
+| | middleware が返るまで |
+|---|---|
+| 中断（abort）だけ | **27.9秒** |
+| 期限（`Promise.race`）＋中断 | **2.5秒** |
+
+⚠️ **Vercel の middleware 上限は25秒。** つまり中断だけを掛けた状態は、
+   詰まったときに**必ず 504 になる**。2026-08-20 の実測で、期限切れトークンのまま
+   公開ページへ同時10本 → **6本が 504**。
+
+→ **中断はソケットを閉じるために残し、返る時刻は `Promise.race` で決める。**
+   実体は [src/lib/supabase/middleware.ts](src/lib/supabase/middleware.ts)。
+
+### ⚠️ 429 は「未ログイン」に化ける。突然ログアウトの正体（2026-08-20）
+
+`@supabase/auth-js` の `NETWORK_ERROR_CODES` は **500〜530 だけ**で、
+**429 は再試行対象に入っていない**。即エラーになり `user = null` で返るため、
+middleware はそれを「未ログイン」と読んで `/auth` へ飛ばす。
+
+本番ログの実例（2026-08-19 18:36:30〜34）:
+`POST /auth/v1/token?grant_type=refresh_token` が **5秒間に21本、全部 429**。
+すべて Vercel Edge Functions（＝middleware）由来。
+アクセストークンが切れた状態で、ページ本体＋プリフェッチ＋API が同時に飛ぶと起きる。
+
+⚠️ **GoTrue 自体は同時リフレッシュに強い**（実測: 同じトークンで同時20本 → 全部 200・0.8秒。
+   15秒後の再利用も 200）。**競合そのものは原因ではない。** 効いているのは IP 単位の上限。
+
+→ **一時的な失敗（429 / 5xx / 上限超過）だけ、250ms 後に1回だけ引き直す。**
+   「そもそもログインしていない」で引き直さないこと（未ログインの全員に待ちを作る）。
+
+⚠️ **`?? []` や `user = null` に倒す設計は、この種の失敗を全部「未ログイン」「0件」に見せる。**
+   CLAUDE.md「★403 は『0件』として静かに素通りする」と同じ根。
+
+### ⚠️ 認証の判定はページではなく middleware に置く（ソフト200）
+
+`loading.tsx` を持つページで `redirect()` すると、**Suspense 境界の内側**で起きるため
+**HTTP は 200 のままシェルが流れる**。
+
+2026-08-20 の実測: 未ログインで `/mypage` `/mypage/settings` `/mypage/scouts`
+`/mypage/conversations` `/mypage/bookmarks` が**すべて 200・66KB**を返していた。
+2026-08-05 に casual-meeting / apply で踏んだのと**同じ形**。
+
+→ 認証が要るパスは `src/middleware.ts` の `needsAuth` に足す。**ページ側の redirect だけに頼らない。**
 
 ### ⚠️ 「サイトが遅い」の実体は3層ある（2026-08-13 本番実測）
 
