@@ -46,7 +46,33 @@ export default function UpdatePasswordPage() {
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
-      setError("更新に失敗しました。リンクの有効期限が切れている可能性があります。");
+      /* ⚠️ **失敗の理由をひとまとめにしない**（2026-08-20）。
+            以前は何が起きても「リンクの有効期限が切れている可能性があります」と出していた。
+            実際に多いのは**同じパスワードを入れた**ケースで、そのとき利用者は
+            リンクのせいだと思って**もう一度メールを送り直し、また同じ失敗を繰り返す**。
+            原因と違う案内は、直せる人まで詰まらせる。
+         ⚠️ 判定は `code` を優先し、無いときだけ本文で見る。
+            Supabase の code は `same_password` / `weak_password` /
+            `session_not_found` / `over_request_rate_limit`。 */
+      const code = (updateError as { code?: string }).code ?? "";
+      const msg = updateError.message ?? "";
+      if (code === "same_password" || /different password|same.*password/i.test(msg)) {
+        setError("いま設定されているパスワードと同じです。別のパスワードを入力してください。");
+      } else if (code === "weak_password" || /weak|strength/i.test(msg)) {
+        setError("パスワードが簡単すぎます。文字の種類を増やすか、長くしてください。");
+      } else if (code === "over_request_rate_limit" || /rate limit|too many/i.test(msg)) {
+        setError("試行が多すぎます。少し時間をおいてからもう一度お試しください。");
+      } else if (
+        code === "session_not_found" || code === "otp_expired" ||
+        /session|expired|invalid/i.test(msg)
+      ) {
+        setError("リンクの有効期限が切れています。お手数ですが、もう一度パスワード再設定をやり直してください。");
+      } else {
+        /* ⚠️ 分からないものは**分からないと出す**。原因を決めつけない。
+              原因はコンソールに残す（利用者には見せない）。 */
+        console.error("[update-password] 想定外の失敗:", code, msg);
+        setError("更新できませんでした。しばらく待ってからもう一度お試しください。");
+      }
       setLoading(false);
       return;
     }
