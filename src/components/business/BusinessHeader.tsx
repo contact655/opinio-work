@@ -8,10 +8,12 @@ import { Menu, X } from "lucide-react";
  * ⚠️ アンカー先が /business に実在することを必ず確かめてから足すこと。
  *    2026-08-21 まで「強み」が `#pricing` を指していたが、そんな id はページに無く、
  *    押しても何も起きなかった（scrollIntoView が `if (el)` で握り潰していた）。
+ *    同日、料金セクションに `id="pricing"` を作って実体を与え、項目名も「料金」にした。
  */
 const NAV_LINKS = [
-  { href: "#flow", label: "導入の流れ" },
-  { href: "#faq",  label: "FAQ" },
+  { href: "#pricing", label: "料金" },
+  { href: "#flow",    label: "導入の流れ" },
+  { href: "#faq",     label: "FAQ" },
 ];
 
 export function BusinessHeader() {

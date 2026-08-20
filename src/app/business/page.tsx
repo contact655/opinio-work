@@ -12,6 +12,7 @@ export const revalidate = 600;
  * ═══ 企業向けLP ═══════════════════════════════════════════════════════════
  *
  * ⚠️ **このページで約束してよいのは「無料で置ける」ことだけ。**
+ *    有料プランは 02 料金セクションで「準備中」とだけ書く（内訳も金額も書かない）。
  *
  * 2026-08-21 に全面的に作り直した。それ以前は「即戦力がもう登録しています」
  * 「メンター面談を経た本気層」「編集部が直接ヒアリングしてプロフィールを整えます」
@@ -26,8 +27,10 @@ export const revalidate = 600;
  *
  * ⚠️ **金額と成果報酬に触れないこと。** 掲載が無料であることまでは
  *    /terms/business 第4条1項に定めがあるので書いてよい。
- *    成功報酬（第8条・理論年収×15%）は料金方針が確定していないため、
- *    「発生する」とも「発生しない」とも書かない。**規約へのリンクで代える。**
+ *    ⚠️ **料金の方針は確定している（月額のみ・成果報酬ゼロ）。書けない理由は方針ではなく、
+ *       公開中の規約がまだ成功報酬を定めたままだから**（第4条2項・第8条・第4条の2第3項）。
+ *       **規約改定が終わるまでは、金額もプラン内訳も「成果報酬は発生しません」も書けない。**
+ *       改定が済んだら、ここと 02 料金セクションのコメントを同時に見直すこと。
  *
  * ⚠️ **「審査なし」と書かないこと（2026-08-21 実測）。**
  *    自己登録した企業は `is_published: false` で作られ
@@ -311,11 +314,137 @@ export default async function ForCompaniesPage() {
           </div>
         </section>
 
-        {/* ─── 02 導入の流れ ─── */}
-        <section id="flow" style={sectionStyle("var(--bg-tint)")}>
+        {/* ─── 02 料金 ─── */}
+        {/*
+          ⚠️ **金額を書かないこと。** プランの金額は決まっているが、
+             公開中の /terms/business と両立していないため出せない。
+             第4条2項「利用企業に発生する費用は、第8条に定める成功報酬のみ」／
+             第8条「成功報酬 ＝ 理論年収 × 15％」／
+             第4条の2第3項「有料プランを利用した場合であっても成功報酬は別途発生します」。
+             **規約改定が終わるまでは金額もプラン内訳も書けない。**
+
+          ⚠️ あわせて次も書かないこと。**どれも書いた時点で守れない約束になる。**
+             ・「成果報酬は発生しません」「月額のみ」… 上記のとおり規約と矛盾する
+             ・スカウト通数・検索の種別・「月3名まで」等の内訳 … 実装が無い
+             ・「何人採用しても追加費用はかかりません」 … 規約上は成功報酬が発生する状態
+
+          ⚠️ 逆に、**無料側の4項目は断定してよい**（2026-08-21 実測）。
+             求人・社員・アンバサダーのいずれにも件数/人数の上限は実装されていない。
+             掲載が無料であることは規約第4条1項に定めがある。
+        */}
+        <section id="pricing" style={sectionStyle("var(--bg-tint)")}>
+          <div style={innerStyle}>
+            <div style={{ marginBottom: 44 }}>
+              <SectionLabel>02 / 料金</SectionLabel>
+              <h2 style={{
+                fontFamily: "var(--font-noto-serif)", fontSize: "clamp(21px, 3.5vw, 32px)",
+                fontWeight: 500, color: "var(--ink)", marginBottom: 16, lineHeight: 1.4,
+              }}>
+                <span style={{ display: "inline-block" }}>「出す」は無料。</span>
+                <span style={{ display: "inline-block" }}>「取りに行く」から有料です。</span>
+              </h2>
+              <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.9, maxWidth: 620 }}>
+                自社の情報を置いて、応募を受け取るところまでは費用がかかりません。
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 16 }}>
+              {[
+                {
+                  key: "free",
+                  label: "無料でできること",
+                  badge: null,
+                  items: [
+                    "企業ページの作成・公開",
+                    "求人掲載（件数の上限なし）",
+                    /* ⚠️ 「社員の登録」と書かない。企業は社員を登録できない。
+                          求職者が職歴にその企業を入れると自動で載り、企業側は
+                          非表示にできるだけ（/api/biz/hidden-experiences）。
+                          企業が招くのは「話せる人」だけ（/api/biz/ambassador/invite）。 */
+                    "社員・OB/OGの掲載（人数の上限なし）",
+                    "応募の受付",
+                  ],
+                  bg: "#fff",
+                  border: "var(--royal-100)",
+                  dashed: false,
+                  accent: "var(--success)",
+                  itemColor: "var(--ink)",
+                },
+                {
+                  key: "paid",
+                  label: "有料プランでできること",
+                  badge: "準備中",
+                  items: [
+                    "応募者の詳細閲覧",
+                    "候補者の検索",
+                    "スカウトの送信",
+                  ],
+                  bg: "transparent",
+                  border: "var(--ink-mute)",
+                  dashed: true,
+                  accent: "var(--ink-mute)",
+                  itemColor: "var(--ink-soft)",
+                },
+              ].map(({ key, label, badge, items, bg, border, dashed, accent, itemColor }) => (
+                <div key={key} style={{
+                  padding: "28px 26px", background: bg,
+                  border: `1.5px ${dashed ? "dashed" : "solid"} ${border}`, borderRadius: 16,
+                  display: "flex", flexDirection: "column",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
+                    {badge && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                        background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A",
+                        whiteSpace: "nowrap",
+                      }}>{badge}</span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 13, flex: 1 }}>
+                    {items.map((t) => (
+                      <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }}>
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span style={{ fontSize: 14, color: itemColor, lineHeight: 1.7 }}>{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{
+              marginTop: 20, padding: "18px 22px",
+              background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 16, flexWrap: "wrap",
+            }}>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>
+                有料プランは準備中です。公開時にご案内します。
+              </p>
+              <a href="mailto:contact@opinio.co.jp" style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "11px 22px", background: "#fff", color: "var(--royal)",
+                border: "1.5px solid var(--royal-100)", borderRadius: 9,
+                fontSize: 13, fontWeight: 700, textDecoration: "none",
+                whiteSpace: "nowrap", flexShrink: 0,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                料金について問い合わせる
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 03 導入の流れ ─── */}
+        <section id="flow" style={sectionStyle("#fff")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <SectionLabel>02 / 導入の流れ</SectionLabel>
+              <SectionLabel>03 / 導入の流れ</SectionLabel>
               <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)" }}>
                 登録から求人公開まで
               </h2>
@@ -361,7 +490,7 @@ export default async function ForCompaniesPage() {
               ].map(({ step, icon, title, body }, i, arr) => (
                 <React.Fragment key={step}>
                   <div style={{
-                    padding: "24px 20px", background: "#fff",
+                    padding: "24px 20px", background: "var(--bg-tint)",
                     borderRadius: 12, border: "1px solid var(--line)",
                     height: "100%", display: "flex", flexDirection: "column",
                   }}>
@@ -385,7 +514,7 @@ export default async function ForCompaniesPage() {
         </section>
 
         {/* ─── FAQ ─── */}
-        <section id="faq" style={sectionStyle("#fff")}>
+        <section id="faq" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
               <div style={{
@@ -404,14 +533,14 @@ export default async function ForCompaniesPage() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/*
-                ⚠️ 金額と成果報酬をここに書かないこと。料金方針が未確定のため。
+                ⚠️ 金額と成果報酬をここに書かないこと（理由は 02 料金セクションのコメント）。
                    規約へのリンクを外さない（無料の範囲だけ書いて他を伏せると、
                    書かないことによって誤解させることになる）。
               */}
-              <FaqItem q="掲載は本当に無料ですか？">
-                求人情報の掲載は無料です。掲載件数・掲載期間・職種を問わず、掲載そのものに費用は発生しません。
-                企業ページの開設も同様です。今後、追加の機能を有料でご提供する場合は、事前に個別のご案内をいたします。
-                採用が決まったときの取扱いを含む取引条件の全文は{" "}
+              <FaqItem q="費用はかかりますか？">
+                企業ページの作成、求人の掲載、応募の受け取りまでは無料です。
+                候補者検索やスカウトなどの有料プランは準備中で、公開時にご案内します。
+                取引条件の全文は{" "}
                 <Link href="/terms/business" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
                   掲載・人材紹介利用規約
                 </Link>
