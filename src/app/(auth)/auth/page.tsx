@@ -746,17 +746,12 @@ function AuthPageInner() {
           </div>
         </div>
 
-        {/* Trust strip */}
-        <div style={{ maxWidth: 420, margin: "0 auto", width: "100%", padding: "20px 0 8px" }}>
-          <div style={{
-            display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap",
-            fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
-          }}>
-            {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
-              <span key={t}>{t}</span>
-            ))}
-          </div>
-        </div>
+        {/* ⚠️ **トラスト行（✓完全無料 / ✓営業電話なし / ✓メール登録のみ）は 2026-08-20 に削除した。**
+               `mode` の外に置いていたため **ログインタブにも出ており**、
+               すでにアカウントを持っている人に登録の売り文句を見せていた。
+               ⚠️ **戻さないこと。** 同じコピーは登録を促す文脈にだけ残してある:
+                 ・`(jobseeker)/feed/(list)/FeedClient.tsx`（未ログイン向けの登録CTAの中）
+                 ・`components/jobseeker/JobseekerFooter.tsx`（サイト共通フッター） */}
 
         {/* ⑨ Minimal footer — copyright + legal links only */}
         <div style={{ textAlign: "center", padding: "24px 0 20px", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>

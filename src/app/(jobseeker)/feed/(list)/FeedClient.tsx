@@ -1465,7 +1465,9 @@ function FeedSidebar({
       {myUserId === null ? (
         <div style={PANEL_STYLE}>
           {/* 文言は LP の最終CTA（LandingPage.tsx の h2 と FinalCta のゲスト用本文）と
-              /auth のトラスト行から流用している。ここで新しいコピーを作らないこと。 */}
+              元は /auth のトラスト行から流用したもの。**2026-08-20 に /auth 側は削除した**
+              （ログインタブにも出ていたため）。ここは未ログイン向けの登録CTAなので残す。
+              ⚠️ ここで新しいコピーを作らないこと。フッター（JobseekerFooter）と同じ3点に揃える。 */}
           <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
           <p style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
             登録すると、気になる企業を保存して比べられます。新しい求人が出たときの通知も受け取れます。
