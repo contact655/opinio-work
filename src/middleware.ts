@@ -52,6 +52,17 @@ export async function middleware(request: NextRequest) {
     // ⚠️ 完全一致にしないこと。/people/role/[slug] の7ページも同じ個人情報を出す。
     //    2026-07-13 の 7dd4eff4 では === "/people" だったため子が素通りしていた（2026-08-04 修正）。
     pathname === "/people" || pathname.startsWith("/people/") ||
+    /* ⚠️ **`/mypage` 配下もここで弾く**（2026-08-20）。
+          ページ側の `redirect()` だけだと **HTTP は 200 のまま**になる
+          （`/mypage/loading.tsx` の Suspense 境界の内側で起きるため、
+          シェルが先に流れてクライアント側の遷移になる）。
+          実測: 未ログインで `/mypage` `/mypage/settings` `/mypage/scouts`
+          `/mypage/conversations` `/mypage/bookmarks` がすべて **200・66KB**を返し、
+          **ヘッダーとフッターが一瞬見えてから**ログイン画面へ飛んでいた。
+          個人情報は載っていないが、状態としては「入れたように見える」ので直す。
+       ⚠️ casual-meeting / apply を 2026-08-05 にここへ移したのと同じ理由。
+          **認証の判定は middleware に一元化する。** */
+    pathname === "/mypage" || pathname.startsWith("/mypage/") ||
     // ⚠️ 申し込み系はページ側でも redirect しているが、middleware でも弾く。
     //    ページ側の redirect() だけだと HTTP は 200 のまま（Suspense 境界の内側で
     //    起きるため）で、ステータスを見る側からは「誰でも開ける」ように見える。
