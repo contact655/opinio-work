@@ -719,7 +719,9 @@ function AuthPageInner() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const s = {
   formSide: {
-    padding: "72px 28px 0",
+    /* ⚠️ 上下の余白は**対称**にする（2026-08-20）。
+          以前は `72px 28px 0` で上だけ厚く、下が 0 だった。 */
+    padding: "40px 28px",
     display: "flex",
     flexDirection: "column",
     background: "#fff",
@@ -729,9 +731,16 @@ const s = {
 
   formWrap: {
     maxWidth: 420,
-    margin: "0 auto",
     width: "100%",
-    flex: 1,
+    /* ★**`margin: auto` で縦中央に置く**（2026-08-20）。
+       ⚠️ 以前は `flex: 1` で**伸びた領域の上端にカードが貼り付き**、
+          下に大きな空白ができていた（1280×900 のログインタブで実測。
+          カード上端 72px / 下端 836px）。
+       ⚠️ **`justify-content: center` を使わないこと。** 中身が画面より高いとき
+          （新規登録タブは 1280×900 で 127px はみ出す）**上が切れて読めなくなる**。
+          `margin: auto` は余白があるときだけ効き、足りなければ 0 に潰れて
+          上端から始まる＝**切れない**。 */
+    margin: "auto",
   } as React.CSSProperties,
 
   // ⑦ Mode tabs — active is solid royal
