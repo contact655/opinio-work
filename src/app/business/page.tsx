@@ -1,11 +1,61 @@
 import type { Metadata } from "next";
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 600;
+
+/*
+ * ═══ 企業向けLP ═══════════════════════════════════════════════════════════
+ *
+ * ⚠️ **このページで約束してよいのは「無料で置ける」ことだけ。**
+ *
+ * 2026-08-21 に全面的に作り直した。それ以前は「即戦力がもう登録しています」
+ * 「メンター面談を経た本気層」「編集部が直接ヒアリングしてプロフィールを整えます」
+ * を主張していたが、実データの裏付けが1つも無かった（削除の経緯は同日のコミット）。
+ *
+ * ⚠️ **次の主張を書き足さないこと。** どれも 2026-08-21 時点で実体が無い。
+ *   ・候補者の質・量（IT/SaaS の職歴を持つ外部実ユーザーは1人）
+ *   ・応募が来ること（ow_job_applications は0行）
+ *   ・スカウト（SCOUT_SENDING_ENABLED 未設定で停止中）
+ *   ・カジュアル面談の実績（ow_casual_meetings は0行）
+ *   ・メンター（機能が存在しない。ow_users.is_mentor は書き込み経路0件の死列）
+ *
+ * ⚠️ **金額と成果報酬に触れないこと。** 掲載が無料であることまでは
+ *    /terms/business 第4条1項に定めがあるので書いてよい。
+ *    成功報酬（第8条・理論年収×15%）は料金方針が確定していないため、
+ *    「発生する」とも「発生しない」とも書かない。**規約へのリンクで代える。**
+ *
+ * ⚠️ **「審査なし」と書かないこと（2026-08-21 実測）。**
+ *    自己登録した企業は `is_published: false` で作られ
+ *    （api/biz/companies/route.ts）、`is_published` が true になるまで
+ *    求人を published にできない（api/biz/jobs/[id]/route.ts が 403 を返す）。
+ *    以前の「登録は1分・審査なし」「登録後すぐに求人を公開できます」は誤り。
+ *
+ * ── スクリーンショット ──────────────────────────────────────────────────
+ * /images/lp-business/*.webp。**ライブプレビューにしない**（求職者向けLPと同じ理由）。
+ *
+ *   company-page-v2.webp     2688×2084  viewport 1440 / clip x=48 y=1250 w=1344 h=1042
+ *   company-page-sm-v2.webp   800×1720  viewport  440 / clip x=20 y=1600 w=400  h=860
+ *   job-form-v2.webp         1820×1400  viewport 1440 / clip x=490 y=626 w=910 h=700
+ *   job-form-sm-v2.webp       480×816   viewport 1440 / clip x=246 y=126 w=240 h=408
+ *
+ * ⚠️ **切り出し幅 c と表示幅 d は 0.77 ≦ d/c ≦ 1.3 に収める**
+ *    （根拠は ProductShot.tsx のコメント）。表示幅を変えるなら撮り直すこと。
+ * ⚠️ **差し替えるときはファイル名の連番を上げる（v1 → v2）。**
+ *    Next の画像最適化は元パスをキーにするので、同名だと古いバイト列が配信され続ける。
+ *
+ * ⚠️ **撮り直すときは写り込みを必ず確認する。** 実在ユーザーの氏名・所属・在籍期間が
+ *    入ってはいけない（LPは公開かつインデックス対象）。現在の4枚は検査済みで0件。
+ *    ・企業ページの「現役社員」枠は**入れない**。実データは社内のダミーが大半。
+ *    ・/biz/candidates は**使わない**。出るのは13人全員がダミーか運営本人。
+ *    ・求人フォームの上部は**入れない**。プレースホルダーが
+ *      「例：プロダクトマネージャー（タイミーキャリアプラス）」で、実在他社名が写る。
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
 
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS採用プラットフォーム | OPINIO for Business" },
@@ -37,12 +87,12 @@ function CrossItem({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
       <span style={{ color: "var(--ink-mute)", marginTop: 1, flexShrink: 0 }}>✕</span>
-      <span style={{ fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.6 }}>{children}</span>
+      <span style={{ fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.7 }}>{children}</span>
     </div>
   );
 }
 
-function FaqItem({ q, a }: { q: string; a: string }) {
+function FaqItem({ q, children }: { q: string; children: React.ReactNode }) {
   return (
     <details style={{
       background: "#fff", borderRadius: 12,
@@ -54,56 +104,63 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         cursor: "pointer", listStyle: "none", userSelect: "none",
       }}>
         <span style={{ color: "var(--royal)", flexShrink: 0 }}>Q.</span>
-        <span style={{ flex: 1 }}>{q}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>{q}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2, opacity: 0.4 }}>
           <polyline points="6 9 12 15 18 9"/>
         </svg>
       </summary>
       <div style={{
-        padding: "16px 24px 20px 60px", fontSize: 14, color: "var(--ink-soft)",
-        lineHeight: 1.8, borderTop: "1px solid var(--line-soft)",
+        padding: "16px 24px 22px", fontSize: 14, color: "var(--ink-soft)",
+        lineHeight: 1.9, borderTop: "1px solid var(--line-soft)",
       }}>
-        {a}
+        {children}
       </div>
     </details>
   );
 }
 
-function MidCtaBanner({ href, label, sub, variant = "royal" }: { href: string; label: string; sub: string; variant?: "royal" | "warm" }) {
-  const isWarm = variant === "warm";
+/**
+ * プロダクトの実画面。広い画面と狭い画面で別ファイルを出し分ける。
+ * ⚠️ 片方だけ差し替えないこと（狭い側だけ古い画面が残る）。
+ */
+function Shot({ wide, narrow, alt, narrowMaxWidth }: {
+  wide: { src: string; w: number; h: number };
+  narrow: { src: string; w: number; h: number };
+  alt: string;
+  /* ⚠️ 狭幅の切り出しが小さい画像で使う。指定しないと 390px 幅いっぱい（340px）まで
+        引き伸ばされ、切り出し幅に対する倍率が 1.3 を超えてぼやける。
+        job-form-sm は切り出しが 240px しかないので 300 に抑えている（1.25倍）。 */
+  narrowMaxWidth?: number;
+}) {
+  /* ⚠️ 広い側と狭い側で**枠ごと分ける**。1つの枠に2枚入れて maxWidth を掛けると、
+        広い画面の枠まで狭められる（レスポンシブで変えたい値をインラインに書かない）。 */
+  const frame: React.CSSProperties = {
+    borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden",
+    background: "#fff", boxShadow: "0 4px 20px rgba(0,35,102,0.07)",
+    maxWidth: "100%",
+  };
   return (
-    <div style={{
-      padding: "28px 32px",
-      background: isWarm
-        ? "linear-gradient(135deg, #FFF7E0 0%, #FFFBEB 100%)"
-        : "linear-gradient(135deg, var(--royal-50) 0%, #f0f4ff 100%)",
-      border: isWarm ? "1.5px solid #FDE68A" : "1.5px solid var(--royal-100)",
-      borderRadius: 16,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      flexWrap: "wrap",
-      gap: 16,
-    }}>
-      <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: 13, color: isWarm ? "#92400E" : "var(--ink-soft)" }}>{sub}</div>
+    <>
+      <div className="hidden md:block" style={frame}>
+        <Image
+          src={wide.src} alt={alt} width={wide.w} height={wide.h}
+          sizes="(min-width: 1180px) 1100px, 92vw"
+          style={{ width: "100%", height: "auto" }}
+        />
       </div>
-      <Link href={href} style={{
-        display: "inline-flex", alignItems: "center", gap: 7,
-        padding: "13px 26px",
-        background: isWarm ? "#D97706" : "var(--royal)", color: "#fff",
-        borderRadius: 9, fontSize: 13, fontWeight: 700,
-        textDecoration: "none", whiteSpace: "nowrap",
-        boxShadow: isWarm ? "0 3px 12px rgba(217,119,6,0.30)" : "0 3px 10px rgba(0,35,102,0.2)",
-        flexShrink: 0,
-      }}>
-        企業を新規登録
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M5 12h14M13 5l7 7-7 7"/>
-        </svg>
-      </Link>
-    </div>
+      <div
+        className="block md:hidden"
+        style={narrowMaxWidth
+          ? { ...frame, maxWidth: narrowMaxWidth, marginLeft: "auto", marginRight: "auto" }
+          : frame}
+      >
+        <Image
+          src={narrow.src} alt={alt} width={narrow.w} height={narrow.h}
+          sizes={narrowMaxWidth ? `${narrowMaxWidth}px` : "92vw"}
+          style={{ width: "100%", height: "auto" }}
+        />
+      </div>
+    </>
   );
 }
 
@@ -121,184 +178,154 @@ export default async function ForCompaniesPage() {
     background: bg, padding: "80px 24px",
   });
   const innerStyle: React.CSSProperties = { maxWidth: 900, margin: "0 auto" };
+  /* ⚠️ 実画面のスクショはここに置く。900 だと切り出し(1344px)を 0.67 倍まで
+        縮めることになり、文字が読めなくなる（0.77 を下回る）。 */
+  const wideInnerStyle: React.CSSProperties = { maxWidth: 1100, margin: "0 auto" };
 
   return (
     <>
       <BusinessHeader />
       <main style={{ paddingTop: 60 }}>
 
-        {/* ─── 04 EASY START ─── */}
-        <section id="easy-start" style={sectionStyle("#fff")}>
-          <div style={innerStyle}>
-            <SectionLabel>04 / EASY START</SectionLabel>
-            <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)", marginBottom: 16, lineHeight: 1.3 }}>
-              まず、試してみてください。
-            </h2>
-            <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.85, marginBottom: 48, maxWidth: 540 }}>
-              導入ハードルはほとんどありません。<br />
-              既存の採用活動と並行して始められます。
+        {/* ─── FV ─── */}
+        <section style={{
+          background: "linear-gradient(180deg, var(--royal-50) 0%, #fff 100%)",
+          borderTop: "1px solid var(--line)",
+          padding: "88px 24px 76px",
+        }}>
+          <div style={{ ...innerStyle, textAlign: "center" }}>
+            <h1 style={{
+              fontFamily: "var(--font-noto-serif)",
+              fontSize: "clamp(27px, 5vw, 44px)", fontWeight: 500,
+              color: "var(--ink)", lineHeight: 1.35, marginBottom: 20,
+            }}>
+              {/* ⚠️ 和文は文節を無視してどこでも改行される。390px で「無 / 料で。」に
+                     割れたので、割りたくない塊を inline-block で包んでいる。 */}
+              <span style={{ display: "inline-block" }}>求人も、</span>
+              <span style={{ display: "inline-block" }}>企業ページも、</span>
+              <span style={{ display: "inline-block" }}>無料で。</span>
+            </h1>
+            <p style={{
+              fontSize: "clamp(14px, 2vw, 17px)", color: "var(--ink-soft)",
+              lineHeight: 1.9, marginBottom: 36, maxWidth: 640,
+              marginLeft: "auto", marginRight: "auto",
+            }}>
+              IT/SaaS業界に特化したキャリアプラットフォームです。<br className="hidden sm:inline" />
+              企業ページの開設と求人掲載に費用はかかりません。
             </p>
 
-            {/* 4 points */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 52 }}>
-              {[
-                {
-                  num: "1",
-                  title: "登録は1分・審査なし",
-                  body: "メールアドレスだけで完了。すぐに候補者プールを閲覧できます。",
-                  color: "var(--royal)",
-                  bg: "var(--royal-50)",
-                  border: "var(--royal-100)",
-                },
-                {
-                  num: "2",
-                  title: "既存媒体と並行できる",
-                  body: "乗り換え不要。リクナビ・ビズリーチなど既存媒体と並行してご利用いただけます。",
-                  color: "var(--success)",
-                  bg: "var(--success-soft)",
-                  border: "#A7F3D0",
-                },
-                {
-                  num: "3",
-                  title: "営業電話・自動課金なし",
-                  body: "プッシュ型の営業は一切ありません。お問い合わせはメールのみです。",
-                  color: "#7C3AED",
-                  bg: "#F3E8FF",
-                  border: "#DDD6FE",
-                },
-                {
-                  num: "4",
-                  title: "合わなければ、やめられる",
-                  body: "縛りは一切ありません。いつでも退会・停止できます。",
-                  color: "#D97706",
-                  bg: "#FEF3C7",
-                  border: "#FDE68A",
-                },
-              ].map(({ num, title, body, color, bg, border }) => (
-                <div key={num} style={{
-                  padding: "22px 18px", background: bg,
-                  border: `1.5px solid ${border}`, borderRadius: 14,
-                }}>
-                  <div style={{
-                    fontFamily: "Inter, sans-serif", fontSize: 32, fontWeight: 800,
-                    color: color, opacity: 0.2, lineHeight: 1, marginBottom: 12,
-                  }}>{num}</div>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.4 }}>{title}</h3>
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7 }}>{body}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Persona cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
-              {[
-                {
-                  label: "スタートアップ",
-                  stage: "Series A〜B",
-                  color: "var(--royal)",
-                  bg: "var(--royal-50)",
-                  border: "var(--royal-100)",
-                  icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                    </svg>
-                  ),
-                  points: ["即戦力でスモールチームを強化したい", "採用リスクを最小化して始めたい", "SaaS営業・CS人材が欲しい"],
-                },
-                {
-                  label: "ミドル〜大手",
-                  stage: "上場 / 300名以上",
-                  color: "#7C3AED",
-                  bg: "#F3E8FF",
-                  border: "#DDD6FE",
-                  icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                    </svg>
-                  ),
-                  points: ["新規事業部門に特化した採用をしたい", "既存媒体と並行して質を上げたい", "採用ミスマッチを減らしたい"],
-                },
-                {
-                  label: "外資・グローバル",
-                  stage: "IT/SaaS外資",
-                  color: "var(--success)",
-                  bg: "var(--success-soft)",
-                  border: "#A7F3D0",
-                  icon: (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                    </svg>
-                  ),
-                  points: ["外資IT・SaaSで働きたい人材にリーチしたい", "日本市場に詳しい即戦力が欲しい", "業界特化のメディア露出で認知を高めたい"],
-                },
-              ].map(({ label, stage, color, bg, border, icon, points }) => (
-                <div key={label} style={{
-                  padding: "22px 20px",
-                  background: bg, border: `1.5px solid ${border}`,
-                  borderRadius: 14,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 9, background: "#fff", border: `1px solid ${border}`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
-                      {icon}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{label}</div>
-                      <div style={{ fontSize: 12, color, fontWeight: 600 }}>{stage}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {points.map((p) => (
-                      <div key={p} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                        <span style={{ color, fontWeight: 700, fontSize: 12, flexShrink: 0, marginTop: 2 }}>✓</span>
-                        <span style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5 }}>{p}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 向いていない場合 */}
             <div style={{
-              padding: "22px 28px", background: "var(--bg-tint)",
-              border: "1px solid var(--line)", borderRadius: 14, marginBottom: 40,
+              display: "flex", gap: 12, justifyContent: "center",
+              flexWrap: "wrap", alignItems: "center",
             }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 14 }}>
-                （参考）不向きな場合
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 32px" }}>
-                {[
-                  "採用ボリュームを最大化したい",
-                  "短期決戦で多数の候補者にスカウトを送りたい",
-                  "IT/SaaS以外の業界での採用が中心",
-                ].map((item) => <CrossItem key={item}>{item}</CrossItem>)}
-              </div>
-              <p style={{ marginTop: 14, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                ミスマッチを防ぐため、当社の強みを正直にお伝えしています。
-              </p>
+              <Link href={bizCtaHref} style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "15px 34px", background: "var(--royal)", color: "#fff",
+                borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none",
+                boxShadow: "0 4px 16px rgba(0,35,102,0.22)",
+              }}>
+                無料で企業登録
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
+              </Link>
+              <a href="mailto:contact@opinio.co.jp" style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "15px 28px", background: "#fff", color: "var(--royal)",
+                border: "1.5px solid var(--royal-100)", borderRadius: 10,
+                fontSize: 15, fontWeight: 700, textDecoration: "none",
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                相談する
+              </a>
             </div>
 
-            <MidCtaBanner
-              href={bizCtaHref}
-              variant="warm"
-              label="貴社に合う人材が登録されているか確認する"
-              sub="登録後すぐに候補者プールにアクセスできます"
-            />
+            {/*
+              ⚠️ 数字バッジは置かない（2026-08-21 の判断）。
+                 公開企業84社は大半が運営が作成したもので、
+                 「84社が使っている」の意味にならない。
+            */}
           </div>
         </section>
 
-        {/* ─── 導入の流れ ─── */}
+        {/* ─── 01 できること ─── */}
+        <section id="can" style={sectionStyle("#fff")}>
+          <div style={wideInnerStyle}>
+            <div style={{ maxWidth: 640, marginBottom: 56 }}>
+              <SectionLabel>01 / できること</SectionLabel>
+              <h2 style={{
+                fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)",
+                fontWeight: 500, color: "var(--ink)", marginBottom: 16, lineHeight: 1.35,
+              }}>
+                自社の情報を、置いておける場所。
+              </h2>
+              <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+                企業ページと求人を、費用をかけずに公開できます。<br />
+                既存の採用媒体と並行して使えます。
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 64 }}>
+              {[
+                {
+                  num: "01",
+                  title: "企業ページをつくる",
+                  body: "事業内容・製品・導入事例・拠点・資本関係などを載せられます。求職者は登録なしで読めます。",
+                  wide:   { src: "/images/lp-business/company-page-v2.webp", w: 2688, h: 2084 },
+                  narrow: { src: "/images/lp-business/company-page-sm-v2.webp", w: 800, h: 1720 },
+                  alt: "OPINIO の企業ページ。主な製品・サービスと導入事例が並び、右側に業界・資本区分・親会社・従業員数などの企業情報が表示されている。",
+                },
+                {
+                  num: "02",
+                  title: "求人を出す",
+                  body: "掲載は無料で、件数にも期間にも制限はありません。雇用形態・業態タグ・技術スタックなどを選んで作成します。",
+                  wide:   { src: "/images/lp-business/job-form-v2.webp", w: 1820, h: 1400 },
+                  narrow: { src: "/images/lp-business/job-form-sm-v2.webp", w: 480, h: 816 },
+                  narrowMaxWidth: 300,
+                  alt: "OPINIO の求人作成画面。業態タグと技術スタックを選択肢から選べる。",
+                },
+              ].map(({ num, title, body, wide, narrow, alt, narrowMaxWidth }) => (
+                <div key={num}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+                    <span style={{
+                      fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 800,
+                      color: "var(--royal)", letterSpacing: "0.08em", flexShrink: 0,
+                    }}>{num}</span>
+                    <h3 style={{ fontSize: "clamp(17px, 2.6vw, 20px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>
+                      {title}
+                    </h3>
+                  </div>
+                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 22, maxWidth: 620 }}>
+                    {body}
+                  </p>
+                  <Shot wide={wide} narrow={narrow} alt={alt} narrowMaxWidth={narrowMaxWidth} />
+                </div>
+              ))}
+            </div>
+
+            <p style={{ marginTop: 24, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+              ※ 画面は実際のものです。掲載内容は変わることがあります。
+            </p>
+          </div>
+        </section>
+
+        {/* ─── 02 導入の流れ ─── */}
         <section id="flow" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <SectionLabel>導入の流れ</SectionLabel>
+              <SectionLabel>02 / 導入の流れ</SectionLabel>
               <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)" }}>
                 登録から求人公開まで
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_28px_1fr] items-stretch">
+            {/*
+              ⚠️ 「候補者から応募が届く」をステップに置かないこと。
+                 ow_job_applications は0行で、一度も発生していない（2026-08-21 実測）。
+            */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch">
               {[
                 {
                   step: "STEP 1",
@@ -307,40 +334,34 @@ export default async function ForCompaniesPage() {
                       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
                   ),
-                  title: "企業を新規登録",
-                  body: "メールアドレスだけで1分。審査なし、すぐに始められます。",
-                  mockup: (
-                    <div style={{ background: "var(--royal-50)", borderRadius: 7, padding: "8px 10px", marginTop: 10, border: "1px solid var(--royal-100)" }}>
-                      <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 4 }}>企業情報を入力</div>
-                      <div style={{ height: 6, background: "var(--royal-100)", borderRadius: 3, width: "70%", marginBottom: 4 }} />
-                      <div style={{ height: 6, background: "var(--royal-100)", borderRadius: 3, width: "50%" }} />
-                    </div>
-                  ),
+                  title: "企業を登録",
+                  body: "メールアドレスだけで完了します。入力は1分ほどで、すぐに企業ページの編集を始められます。",
                 },
                 {
                   step: "STEP 2",
+                  icon: (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>
+                    </svg>
+                  ),
+                  title: "企業ページを整える",
+                  body: "事業内容・製品・拠点などを入力します。この間に運営が内容を確認します（通常2〜3営業日）。",
+                },
+                {
+                  step: "STEP 3",
                   icon: (
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                       <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
                   ),
-                  title: "求人を作成・公開",
-                  body: "何件でも、何ヶ月でも掲載可能。「公開」ボタンで即反映。",
-                  mockup: (
-                    <div style={{ background: "var(--royal-50)", borderRadius: 7, padding: "8px 10px", marginTop: 10, border: "1px solid var(--royal-100)" }}>
-                      <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, marginBottom: 4 }}>求人プレビュー</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ height: 6, background: "var(--royal-100)", borderRadius: 3, width: "60%" }} />
-                        <div style={{ padding: "2px 7px", background: "var(--royal)", borderRadius: 4, fontSize: 12, color: "#fff", fontWeight: 700 }}>公開</div>
-                      </div>
-                    </div>
-                  ),
+                  title: "求人を公開",
+                  body: "確認が済むと求人を公開できます。掲載は無料で、件数にも期間にも制限はありません。",
                 },
-              ].map(({ step, icon, title, body, mockup }, i) => (
+              ].map(({ step, icon, title, body }, i, arr) => (
                 <React.Fragment key={step}>
                   <div style={{
-                    padding: "22px 18px", background: "#fff",
+                    padding: "24px 20px", background: "#fff",
                     borderRadius: 12, border: "1px solid var(--line)",
                     height: "100%", display: "flex", flexDirection: "column",
                   }}>
@@ -350,11 +371,11 @@ export default async function ForCompaniesPage() {
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
                       {icon}
                     </div>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6, lineHeight: 1.4 }}>{title}</h3>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7, flex: 1 }}>{body}</p>
-                    {mockup}
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.4 }}>{title}</h3>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, flex: 1 }}>{body}</p>
                   </div>
-                  {i < 1 && (
+                  {/* ⚠️ 矢印は「最後の1枚以外」。段数を変えたら grid-cols も一緒に直す */}
+                  {i < arr.length - 1 && (
                     <div className="hidden md:flex items-center justify-center" style={{ color: "var(--ink-mute)", fontSize: 18 }}>→</div>
                   )}
                 </React.Fragment>
@@ -380,30 +401,63 @@ export default async function ForCompaniesPage() {
               </h2>
               <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7 }}>採用担当者からよくいただく質問に、正直にお答えします。</p>
             </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <FaqItem
-                q="登録からどのくらいで採用できますか？"
-                a="求人公開後、登録済みの人材データベースからマッチした候補者に通知が届きます。最初のコンタクトは早ければ登録翌日から発生するケースもあります。採用完了までの期間は職種・条件によって異なりますが、スカウトを送らないため候補者の本気度が高く、選考がスムーズに進む傾向があります。"
-              />
-              <FaqItem
-                q="営業電話はかかってきますか？"
-                a="ございません。ご質問やご相談はサイト内のフォーム、またはメール（contact@opinio.co.jp）からのみ承ります。"
-              />
-              <FaqItem
-                q="どのような業界・職種に対応していますか？"
-                a="現在は IT/SaaS 業界に特化しています。登録ユーザーはSaaS営業・カスタマーサクセス・プロダクトマネージャー・エンジニア・インサイドセールス・マーケターなどIT業界経験者が中心です。IT/SaaS以外の業界での採用にはあまり向いていません。"
-              />
-              <FaqItem
-                q="登録に審査はありますか？すぐに始められますか？"
-                a="審査はございません。セルフサーブ型で、登録後すぐに求人を公開できます。入力フォームに企業情報・求人内容を登録し「公開する」ボタンを押すだけです（1〜5分程度）。"
-              />
-              <FaqItem
-                q="OPINIO編集部の取材記事は必ず書いてもらえますか？"
-                a="掲載企業すべてが対象ではなく、OPINIOが特にフィットすると判断した企業様を編集部からご提案しています。記事取材をご希望の場合は、ダッシュボードからお問い合わせください。"
-              />
+              {/*
+                ⚠️ 金額と成果報酬をここに書かないこと。料金方針が未確定のため。
+                   規約へのリンクを外さない（無料の範囲だけ書いて他を伏せると、
+                   書かないことによって誤解させることになる）。
+              */}
+              <FaqItem q="掲載は本当に無料ですか？">
+                求人情報の掲載は無料です。掲載件数・掲載期間・職種を問わず、掲載そのものに費用は発生しません。
+                企業ページの開設も同様です。今後、追加の機能を有料でご提供する場合は、事前に個別のご案内をいたします。
+                採用が決まったときの取扱いを含む取引条件の全文は{" "}
+                <Link href="/terms/business" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
+                  掲載・人材紹介利用規約
+                </Link>
+                {" "}に定めています。ご不明な点は contact@opinio.co.jp までお問い合わせください。
+              </FaqItem>
+
+              <FaqItem q="どのような業界・職種に対応していますか？">
+                IT/SaaS 業界に特化しています。掲載企業も IT/SaaS 業界に絞っており、
+                職種は SaaS 営業・カスタマーサクセス・インサイドセールス・プロダクトマネージャー・
+                エンジニア・マーケターなどが中心です。IT/SaaS 以外の業界での採用には向いていません。
+              </FaqItem>
+
+              <FaqItem q="営業電話はかかってきますか？">
+                かかってきません。ご質問・ご相談はメール（contact@opinio.co.jp）でのみ承っています。
+                自動で課金が始まることもありません。
+              </FaqItem>
+
+              {/*
+                ⚠️ 「審査なし」と書かないこと。自己登録した企業は is_published=false で作られ、
+                   運営が確認するまで求人を published にできない（403 で弾かれる）。
+              */}
+              <FaqItem q="登録に審査はありますか？すぐに始められますか？">
+                登録自体はメールアドレスだけで完了し、その場で企業ページの編集を始められます。
+                ただし求人を公開するには運営による内容の確認が必要で、通常2〜3営業日いただいています。
+                確認が済めば、以降は「公開」の操作だけで反映されます。
+              </FaqItem>
+
+              <FaqItem q="OPINIO が向いていないのは、どのような場合ですか？">
+                <span style={{ display: "block", marginBottom: 14 }}>
+                  次のような場合は、あまりお役に立てません。ミスマッチを防ぐため正直にお伝えしています。
+                </span>
+                <span style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <CrossItem>短期間で採用数を最大化したい</CrossItem>
+                  {/*
+                    ⚠️ 「スカウトを送りたい」を残さないこと。スカウト送信は
+                       SCOUT_SENDING_ENABLED 未設定で停止中（2026-08-21）。
+                       再開したらこの一文を直す。
+                  */}
+                  <CrossItem>候補者へのスカウト送信を主な手段にしたい（スカウト送信機能は現在ご利用いただけません）</CrossItem>
+                  <CrossItem>IT/SaaS 以外の業界での採用が中心</CrossItem>
+                </span>
+              </FaqItem>
             </div>
+
             <div style={{ textAlign: "center", marginTop: 36 }}>
-              <p style={{ fontSize: 14, color: "var(--ink-mute)" }}>
+              <p style={{ fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                 その他のご質問は{" "}
                 <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)", textDecoration: "underline" }}>
                   contact@opinio.co.jp
@@ -423,59 +477,53 @@ export default async function ForCompaniesPage() {
         }}>
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 40%)" }} />
           <div style={{ maxWidth: 600, margin: "0 auto", position: "relative" }}>
-            <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 500, color: "#fff", lineHeight: 1.3, marginBottom: 16 }}>
-              いい人が、もう登録しています。
+            <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(25px, 4vw, 40px)", fontWeight: 500, color: "#fff", lineHeight: 1.35, marginBottom: 16 }}>
+              掲載は無料です。<br className="sm:hidden" />まず置いてみてください。
             </h2>
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, marginBottom: 44 }}>
-              候補者プールをのぞいてみることから始めてください。
+              企業ページをつくるところから始められます。
             </p>
             <Link href={bizCtaHref} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "16px 44px", background: "#fff", color: "var(--royal)", borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.24), 0 2px 8px rgba(0,0,0,0.16)" }}>
-              企業を新規登録
+              無料で企業登録
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
             </Link>
+            {/* ⚠️ 「入社まで費用なし（成果報酬制）」を戻さないこと（2026-08-21 に削除） */}
             <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
-              {["既存媒体と並行可能"].map((txt) => (
+              {["求人掲載は無料", "既存媒体と並行可能"].map((txt) => (
                 <div key={txt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {txt}
                 </div>
               ))}
-              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>まず相談する</a>
+              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>相談する</a>
             </div>
           </div>
         </section>
 
-        {/* Mobile sticky */}
+        {/*
+          Mobile sticky
+          ⚠️ ボタンは1本だけにする（2026-08-21）。FV に主CTAと副CTAが並んでいるため、
+             ここにも2本置くと同じボタンが画面内に重複する。
+        */}
         <div className="md:hidden" style={{
           position: "fixed", bottom: 0, left: 0, right: 0,
           background: "rgba(255,255,255,0.97)",
           backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
           borderTop: "1px solid var(--line)",
           padding: "10px 14px", paddingBottom: "calc(10px + env(safe-area-inset-bottom))",
-          zIndex: 50, display: "flex", gap: 8,
+          zIndex: 50,
         }}>
-          <a href="mailto:contact@opinio.co.jp" style={{
-            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            padding: "13px 12px", border: "1.5px solid var(--royal)",
-            background: "#fff", color: "var(--royal)",
-            borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            まず相談する
-          </a>
           <Link href={bizCtaHref} style={{
-            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-            padding: "13px 12px", background: "var(--royal)", color: "#fff",
-            borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "14px 12px", background: "var(--royal)", color: "#fff",
+            borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
             boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
           }}>
             企業を新規登録
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
           </Link>
         </div>
-        <div className="md:hidden" style={{ height: 72 }} />
+        <div className="md:hidden" style={{ height: 76 }} />
 
       </main>
       <JobseekerFooter />

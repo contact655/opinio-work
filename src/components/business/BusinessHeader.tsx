@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
+/*
+ * ⚠️ アンカー先が /business に実在することを必ず確かめてから足すこと。
+ *    2026-08-21 まで「強み」が `#pricing` を指していたが、そんな id はページに無く、
+ *    押しても何も起きなかった（scrollIntoView が `if (el)` で握り潰していた）。
+ */
 const NAV_LINKS = [
-  { href: "#pricing",  label: "強み" },
-  { href: "#flow",     label: "導入の流れ" },
-  { href: "#faq",      label: "FAQ" },
+  { href: "#flow", label: "導入の流れ" },
+  { href: "#faq",  label: "FAQ" },
 ];
 
 export function BusinessHeader() {
