@@ -119,7 +119,6 @@ function AuthPageInner() {
            その間ボタンは「ログイン中...」のままなので、**固まったように見える**。 */
   const [slowRedirect, setSlowRedirect] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [resendMessage, setResendMessage] = useState("");
 
@@ -291,26 +290,6 @@ function AuthPageInner() {
     setResendMessage(`${email} に確認メールを再送しました。`);
   };
 
-  const handleMagicLink = async () => {
-    if (!email) { setError("メールアドレスを入力してください"); return; }
-    setLoading(true);
-    setError("");
-    setAuthErrorCode(null);
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: confirmRedirectTo(location.origin, nextUrl || "/companies"),
-      },
-    });
-    if (otpError) {
-      setError(otpError.message);
-      setLoading(false);
-      return;
-    }
-    setMagicLinkSent(true);
-    setLoading(false);
-  };
 
   // ── Email confirmation sent state ──
   if (done) {
@@ -595,23 +574,6 @@ function AuthPageInner() {
           {/* ── LOGIN ── */}
           {mode === "login" && (
             <>
-              {magicLinkSent ? (
-                <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                  </div>
-                  <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
-                    ログインリンクを送りました
-                  </h2>
-                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-                    <strong>{email}</strong> にメールを送信しました。<br />
-                    リンクをクリックしてログインしてください。
-                  </p>
-                  <button type="button" onClick={() => setMagicLinkSent(false)} style={{ ...s.submitBtn, width: "auto", padding: "10px 28px", background: "var(--bg-tint)", color: "var(--ink)", boxShadow: "none", border: "1px solid var(--line)" }}>
-                    戻る
-                  </button>
-                </div>
-              ) : (
               <>
               <div style={{ marginBottom: 24 }}>
                 <h1 style={s.formTitle}>おかえりなさい。</h1>
@@ -667,8 +629,14 @@ function AuthPageInner() {
                     <label style={{ ...s.label, marginBottom: 0 }} htmlFor="login-password">
                       パスワード
                     </label>
-                    <a href="/auth/reset-password" style={{ fontSize: 12, color: "var(--royal)", fontWeight: 500 }}>
-                      お忘れですか？
+                    {/* ⚠️ **これが唯一のパスワード復旧の導線**（2026-08-20）。
+                           以前は下に「メールでログインリンクを受け取る」もあったが削除した。
+                           12px・細字だと見つけられない（作った本人が見落とした）ので、
+                           **文言を最後まで書き、サイズと太さを上げてある**。小さく戻さないこと。
+                        ⚠️ `resetPasswordForEmail` はパスワード未設定の人にも使える。
+                           Google だけで登録した人の復旧もここが受け持つ。 */}
+                    <a href="/auth/reset-password" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700 }}>
+                      パスワードをお忘れですか？
                     </a>
                   </div>
                   <div style={{ position: "relative" }}>
@@ -713,23 +681,7 @@ function AuthPageInner() {
                 )}
               </form>
 
-              {/* マジックリンク */}
-              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--line)", textAlign: "center" }}>
-                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginBottom: 10 }}>
-                  パスワードを設定していない方・お忘れの方
-                </p>
-                <button
-                  type="button"
-                  onClick={handleMagicLink}
-                  disabled={loading}
-                  style={{ background: "none", border: "1.5px solid var(--royal-100)", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
-                >
-                  📧 メールでログインリンクを受け取る
-                </button>
-              </div>
-
               </>
-              )}
             </>
           )}
 
