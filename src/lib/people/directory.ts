@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcPublicScore } from "@/lib/profile/completion";
 import {
@@ -169,7 +170,38 @@ type MemberRow = {
   } | null;
 };
 
-export async function getDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerson[]> {
+/**
+ * ★一覧の中身をキャッシュする（2026-08-20）。
+ *
+ * ── なぜ ───────────────────────────────────────────────────────────────────
+ * **`/people` の「初回だけ遅い」の正体は、クエリの重さではなく最初の接続コスト。**
+ * 同じ10本のクエリを連続で走らせた実測（東京→東京）:
+ *
+ *     1回目 5,154ms → 2回目 450ms → 3回目 98ms
+ *
+ * 本番の実測（3.74秒 → 1.77 → 0.53）と形が一致する。
+ * サーバーレスは**冷えたところから始まる**ので、低トラフィックのページでは
+ * 利用者にとって毎回が1回目になる。
+ *
+ * → 結果をキャッシュしておけば、**冷えたサーバーがDBに触らずに済む**。
+ *   ISR 化のような大改修をしなくてもここだけで効く。
+ *
+ * ⚠️ **鮮度は5分。** 新しい登録者が一覧に出るまで最大5分かかる。
+ *    ディレクトリなので許容する（求人一覧 `getJobs` も同じ 300 秒）。
+ * ⚠️ **本人ごとの情報をここに入れないこと。** フォロー状態や自分の id は
+ *    呼び出し側（page.tsx）がリクエストごとに引いている。混ぜると他人に見える。
+ * ⚠️ `isLoggedIn` は引数なのでキャッシュキーに含まれる（true/false で別々に持つ）。
+ *    実際には middleware が `/people` をログイン必須にしているので true 側しか使われない。
+ * ⚠️ `unstable_cache` は戻り値を JSON 化する。`DirectoryPerson` は素の配列・
+ *    オブジェクトだけなので往復できる（Map / Set を足さないこと）。
+ */
+export const getDirectoryPeople = unstable_cache(
+  async (isLoggedIn: boolean): Promise<DirectoryPerson[]> => fetchDirectoryPeople(isLoggedIn),
+  ["directory-people"],
+  { revalidate: 300, tags: ["directory-people"] }
+);
+
+async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerson[]> {
   const db = createAdminClient();
 
   const { data: userRows, error } = await db
