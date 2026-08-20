@@ -186,8 +186,16 @@ type MemberRow = {
  * → 結果をキャッシュしておけば、**冷えたサーバーがDBに触らずに済む**。
  *   ISR 化のような大改修をしなくてもここだけで効く。
  *
- * ⚠️ **鮮度は5分。** 新しい登録者が一覧に出るまで最大5分かかる。
- *    ディレクトリなので許容する（求人一覧 `getJobs` も同じ 300 秒）。
+ * ⚠️ **鮮度は30分。5分では効かない**（2026-08-20 実測）。
+ *    このページは訪問がまばらなので、**5分だと次の人が来る頃には期限切れ**になり、
+ *    結局その人がDBを引き直すことになる（本番で導入直後の初回が 6.24秒だった）。
+ *    ねらいは「冷えたサーバーがDBに触らずに済むこと」なので、
+ *    **期限は訪問の間隔より長くないと意味がない。**
+ *    登録は週に数人なので、30分古い一覧で困る場面が無い。
+ * ⚠️ 求人一覧（`getJobs`）が 300 秒なのは、公開/非公開の反映を早くしたいため。
+ *    **同じ値に揃える必要はない。** 何が古くなるかで決める。
+ * ⚠️ 早く反映したくなったら期限を縮めるのではなく、
+ *    `revalidateTag("directory-people")` を登録・プロフィール更新の経路から呼ぶこと。
  * ⚠️ **本人ごとの情報をここに入れないこと。** フォロー状態や自分の id は
  *    呼び出し側（page.tsx）がリクエストごとに引いている。混ぜると他人に見える。
  * ⚠️ `isLoggedIn` は引数なのでキャッシュキーに含まれる（true/false で別々に持つ）。
@@ -198,7 +206,7 @@ type MemberRow = {
 export const getDirectoryPeople = unstable_cache(
   async (isLoggedIn: boolean): Promise<DirectoryPerson[]> => fetchDirectoryPeople(isLoggedIn),
   ["directory-people"],
-  { revalidate: 300, tags: ["directory-people"] }
+  { revalidate: 1800, tags: ["directory-people"] }
 );
 
 async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerson[]> {
