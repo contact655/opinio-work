@@ -78,7 +78,17 @@ export async function searchCompanies(
         const safeWord = word.replace(/[(),"\\]/g, "");
         if (!safeWord) continue;
         const p = `%${safeWord}%`;
-        q = q.or(`name.ilike.${p},description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`);
+        /* ★**社名は「和名・英語名・ブランド名・slug」の4つで引く**（2026-08-20）。
+           ⚠️ 和名（`name`）だけで引くと、**英語名で検索した人には見つからない**。
+              このサイトの社名は「アドビ株式会社」「シスコシステムズ合同会社」のように
+              カタカナで入っており、公開79社のうち **50社は英語名の綴りが `name` に無い**。
+              実測: 「Cisco」で検索すると**シスコ本体は出ず、説明文に Cisco を含む競合2社だけ**が出た。
+           ⚠️ 検索できる場所は3つある（ヘッダーのサジェスト / `/companies` の一覧 /
+              企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
+        q = q.or(
+          `name.ilike.${p},name_en.ilike.${p},brand_name.ilike.${p},slug.ilike.${p},` +
+          `description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`
+        );
       }
     }
     if (params.phase && params.phase !== "外資系") {
