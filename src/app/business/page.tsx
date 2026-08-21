@@ -5,14 +5,16 @@ import Image from "next/image";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { createClient } from "@/lib/supabase/server";
+import { PAID_PLAN_MONTHLY_FEE } from "@/lib/constants/plans";
 
 export const revalidate = 600;
 
 /*
  * ═══ 企業向けLP ═══════════════════════════════════════════════════════════
  *
- * ⚠️ **このページで約束してよいのは「無料で置ける」ことだけ。**
- *    有料プランは 02 料金セクションで「準備中」とだけ書く（内訳も金額も書かない）。
+ * ⚠️ **約束してよいのは、無料の範囲と有料プランの3機能だけ。**
+ *    金額は `PAID_PLAN_MONTHLY_FEE`（lib/constants/plans.ts）から出す。
+ *    **このファイルに数字を書かない。**
  *
  * 2026-08-21 に全面的に作り直した。それ以前は「即戦力がもう登録しています」
  * 「メンター面談を経た本気層」「編集部が直接ヒアリングしてプロフィールを整えます」
@@ -25,12 +27,14 @@ export const revalidate = 600;
  *   ・カジュアル面談の実績（ow_casual_meetings は0行）
  *   ・メンター（機能が存在しない。ow_users.is_mentor は書き込み経路0件の死列）
  *
- * ⚠️ **金額を書かないこと。** 掲載が無料であることは
- *    /terms/listing 第4条1項に定めがあるので書いてよい。
- *    ⚠️ **2026-08-21 に規約を改定し、掲載サービスの成功報酬は廃止した**
- *       （/terms/listing 第4条2項・第6条3項）。規約との矛盾は解消済み。
- *       **それでも金額・プラン内訳は書かない。** 有料プランが未実装で、
- *       書くと提供できない約束になるため。実装ができてから別タスクで載せる。
+ * ⚠️ **金額は定数から出す。ここに数字を書かない**（LPと運営画面で二重に持たない）。
+ *    掲載が無料であることは /terms/listing 第4条1項に定めがある。
+ *    **「成果報酬は発生しません」も書いてよい**（2026-08-21 の規約改定以降。
+ *    第4条2項「費用は有料プランの利用料金のみ」／第6条3項「人数にかかわらず費用が
+ *    発生しない」と一致する）。
+ *
+ * ⚠️ **スカウト送信を有料プランの機能として書かないこと。**
+ *    SCOUT_SENDING_ENABLED で停止中で、`PLAN_FEATURES` からも外してある。
  *
  * ⚠️ **「審査なし」と書かないこと（2026-08-21 実測）。**
  *    自己登録した企業は `is_published: false` で作られ
@@ -316,23 +320,28 @@ export default async function ForCompaniesPage() {
 
         {/* ─── 02 料金 ─── */}
         {/*
-          ⚠️ **金額を書かないこと。** プランの金額は決まっているが、
-             **有料プランがまだ実装されていない**（候補者検索もスカウトも
-             課金の導線が無い）。金額と内訳を出すと、提供できない約束になる。
+          ⚠️ **金額は `PAID_PLAN_MONTHLY_FEE` から出す。ここに数字を書かないこと。**
+             LPと運営画面で二重に持つと、片方だけ直したときに表示と請求が食い違う。
 
-          ⚠️ 規約との矛盾は 2026-08-21 に解消した。掲載サービスの成功報酬は
-             /terms/listing から廃止済み（第4条2項・第6条3項）。
-             **「成果報酬は発生しません」と書くことは規約上は可能になったが、
-             金額そのものは実装ができるまで出さない。**
+          ⚠️ **「成果報酬は発生しません」は書いてよい**（2026-08-21 の規約改定以降）。
+             /terms/listing 第4条2項「費用は有料プランの利用料金のみ」と
+             第6条3項「当社の人材紹介サービスによらずに採用した場合は
+             人数にかかわらず費用が発生しない」に一致する。
 
-          ⚠️ あわせて次も書かないこと。**どれも書いた時点で守れない約束になる。**
-             ・「成果報酬は発生しません」「月額のみ」… 上記のとおり規約と矛盾する
-             ・スカウト通数・検索の種別・「月3名まで」等の内訳 … 実装が無い
-             ・「何人採用しても追加費用はかかりません」 … 規約上は成功報酬が発生する状態
+          ⚠️ **スカウト送信は書かないこと。** `SCOUT_SENDING_ENABLED` で停止中で、
+             再開の判断もしていない。売れないものを機能表に載せない
+             （`PLAN_FEATURES` からも外してある）。
 
-          ⚠️ 逆に、**無料側の4項目は断定してよい**（2026-08-21 実測）。
+          ⚠️ 次も書かないこと。**どれも実装が無い。**
+             ・スカウト通数・検索の種別・「月3名まで」等の内訳
+             ・年払い（`billing_cycle` 列はあるが UI も料金表も月額のみ）
+
+          ⚠️ 無料側の4項目は断定してよい（2026-08-21 実測）。
              求人・社員・アンバサダーのいずれにも件数/人数の上限は実装されていない。
              掲載が無料であることは規約第4条1項に定めがある。
+
+          ⚠️ **料金表のすぐ下の一文は `/biz/candidates` のゲート文言と揃えている。**
+             LPと製品内で言うことを食い違わせないため。片方だけ直さないこと。
         */}
         <section id="pricing" style={sectionStyle("var(--bg-tint)")}>
           <div style={innerStyle}>
@@ -354,7 +363,9 @@ export default async function ForCompaniesPage() {
               {[
                 {
                   key: "free",
-                  label: "無料でできること",
+                  label: "Free",
+                  price: "0円",
+                  priceNote: "ずっと無料",
                   badge: null,
                   items: [
                     "企業ページの作成・公開",
@@ -374,26 +385,31 @@ export default async function ForCompaniesPage() {
                 },
                 {
                   key: "paid",
-                  label: "有料プランでできること",
-                  badge: "準備中",
+                  label: "有料プラン",
+                  /* ⚠️ 金額は定数から。ここに数字を書かない */
+                  price: `月額 ${PAID_PLAN_MONTHLY_FEE.toLocaleString()}円`,
+                  priceNote: "税別",
+                  badge: null,
                   items: [
-                    "応募者の詳細閲覧",
-                    "候補者の検索",
-                    "スカウトの送信",
+                    "Free のすべて",
+                    "候補者検索",
+                    "応募者の連絡先の表示",
+                    "話せる社員（アンバサダー）の招待",
                   ],
-                  bg: "transparent",
-                  border: "var(--ink-mute)",
-                  dashed: true,
-                  accent: "var(--ink-mute)",
-                  itemColor: "var(--ink-soft)",
+                  /* ⚠️ 「スカウトの送信」を戻さないこと。停止中で機能表から外してある。 */
+                  bg: "#fff",
+                  border: "var(--royal)",
+                  dashed: false,
+                  accent: "var(--royal)",
+                  itemColor: "var(--ink)",
                 },
-              ].map(({ key, label, badge, items, bg, border, dashed, accent, itemColor }) => (
+              ].map(({ key, label, price, priceNote, badge, items, bg, border, dashed, accent, itemColor }) => (
                 <div key={key} style={{
                   padding: "28px 26px", background: bg,
                   border: `1.5px ${dashed ? "dashed" : "solid"} ${border}`, borderRadius: 16,
                   display: "flex", flexDirection: "column",
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
                     {badge && (
                       <span style={{
@@ -402,6 +418,14 @@ export default async function ForCompaniesPage() {
                         whiteSpace: "nowrap",
                       }}>{badge}</span>
                     )}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 22, flexWrap: "wrap" }}>
+                    <span style={{
+                      fontFamily: "Inter, sans-serif", fontSize: "clamp(22px, 3vw, 28px)",
+                      fontWeight: 800, color: key === "paid" ? "var(--royal)" : "var(--ink)",
+                      letterSpacing: "-0.02em", lineHeight: 1.2,
+                    }}>{price}</span>
+                    <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{priceNote}</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 13, flex: 1 }}>
                     {items.map((t) => (
@@ -424,7 +448,8 @@ export default async function ForCompaniesPage() {
               gap: 16, flexWrap: "wrap",
             }}>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>
-                有料プランは準備中です。公開時にご案内します。
+                <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
+                採用人数にかかわらず月額のみです。
               </p>
               <a href="mailto:contact@opinio.co.jp" style={{
                 display: "inline-flex", alignItems: "center", gap: 7,
@@ -439,6 +464,16 @@ export default async function ForCompaniesPage() {
                 料金について問い合わせる
               </a>
             </div>
+
+            {/* ⚠️ この一文は `/biz/candidates` のゲート文言と同じ内容にしてある。
+                   LPと製品内で言うことを食い違わせないため。片方だけ直さないこと。 */}
+            <p style={{
+              marginTop: 18, fontSize: 13, color: "var(--ink-soft)",
+              lineHeight: 1.9, margin: "18px 0 0",
+            }}>
+              候補者検索については、現在は登録者を増やしている段階です。
+              人数が揃ってからのご利用をお勧めしています。
+            </p>
           </div>
         </section>
 
@@ -541,8 +576,10 @@ export default async function ForCompaniesPage() {
               */}
               <FaqItem q="費用はかかりますか？">
                 企業ページの作成、求人の掲載、応募の受け取りまでは無料です。
-                候補者検索やスカウトなどの有料プランは準備中で、公開時にご案内します。
-                取引条件の全文は{" "}
+                候補者検索と応募者の連絡先の表示、話せる社員の招待は、
+                月額{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円（税別）の有料プランでご利用いただけます。
+                <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
+                {" "}取引条件の全文は{" "}
                 <Link href="/terms/listing" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
                   掲載利用規約
                 </Link>
