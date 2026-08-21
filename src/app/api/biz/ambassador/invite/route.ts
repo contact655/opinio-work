@@ -4,6 +4,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { notify } from "@/lib/notify/email";
 import { ambassadorInviteTemplate } from "@/lib/notify/templates";
 import { NextRequest, NextResponse } from "next/server";
+import { canUse } from "@/lib/constants/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,17 @@ export async function POST(req: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (ctx.currentPermission !== "admin") {
     return NextResponse.json({ error: "管理者のみ操作できます" }, { status: 403 });
+  }
+
+  /* ⚠️ **ゲートはここ（API側）。** /biz/members の画面でもボタンを無効化しているが、
+        あれは見た目だけで、この判定を通らなければ意味がない。
+        画面の分岐を消しても、ここが残っていれば守られる。逆は成り立たない。
+     ⚠️ 金額は書かない（有料プランは未実装）。 */
+  if (!canUse(ctx.planType, "ambassadorInvite")) {
+    return NextResponse.json(
+      { error: "「話せる人」の招待は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。" },
+      { status: 403 }
+    );
   }
 
   let body: { user_id?: string; email?: string; role_title?: string };

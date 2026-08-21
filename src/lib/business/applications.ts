@@ -39,7 +39,14 @@ export type BizApplication = {
   jobTitle: string;
   userId: string;           // ow_job_applications.user_id → conversation 照合に使用
   name: string;
-  email: string;
+  /**
+   * ⚠️ **Free プランでは null。** 表示を隠すのではなく、
+   *    `fetchApplicationsForCompany` の **select から列ごと落としている。**
+   *    ページのペイロードにも API のレスポンスにも入らない。
+   *    「null なら有料プランの案内を出す」で分岐すること。
+   */
+  email: string | null;
+  /** ⚠️ email と同じ。Free では select から落ちる */
   phone: string | null;
   message: string | null;
   status: ApplicationStatus;
@@ -55,8 +62,9 @@ type DbApplication = {
   job_id: string;
   user_id: string;
   name: string;
-  email: string;
-  phone: string | null;
+  /** ⚠️ Free では select から落ちるので undefined で来る */
+  email?: string | null;
+  phone?: string | null;
   message: string | null;
   status: string | null;
   created_at: string;
@@ -89,8 +97,10 @@ function transformApplication(row: DbApplication): BizApplication {
     userId: row.user_id,
     jobTitle: row.ow_jobs?.title ?? "(求人情報なし)",
     name: row.name,
-    email: row.email,
-    phone: row.phone,
+    /* ⚠️ select から落ちていれば row に存在しない。?? null で受ける。
+          **既定値やダミーで埋めないこと**（「値が無いことを、ある値に置き換えない」）。 */
+    email: row.email ?? null,
+    phone: row.phone ?? null,
     message: row.message,
     status: toApplicationStatus(row.status),
     createdAt: row.created_at,
@@ -102,7 +112,17 @@ function transformApplication(row: DbApplication): BizApplication {
 
 export async function fetchApplicationsForCompany(
   supabase: SupabaseClient,
-  tenantId: string
+  tenantId: string,
+  /**
+   * 応募者の連絡先（メールアドレス・電話番号）を返すか。
+   *
+   * ⚠️ **既定は false。** 呼び出し側が `canUse(planType, "applicantContact")` を
+   *    渡し忘れたときに連絡先が出てしまうのを避ける（fail-closed）。
+   * ⚠️ **表示側で隠すのではなく、ここで select から列を落とす。**
+   *    一覧と詳細が同じペイロードに載る作りなので、
+   *    表示を隠すだけでは開発者ツールから読めてしまう。
+   */
+  canSeeContact = false,
 ): Promise<BizApplication[]> {
   // RLS (migration 049 の company_admins_read_applications) で自社のみ返る
   // ただし eq("company_id") では ow_job_applications に company_id がないため
@@ -110,7 +130,9 @@ export async function fetchApplicationsForCompany(
   const { data, error } = await supabase
     .from("ow_job_applications")
     .select(
-      "id, job_id, user_id, name, email, phone, message, status, created_at, ow_jobs!inner(id, title)"
+      canSeeContact
+        ? "id, job_id, user_id, name, email, phone, message, status, created_at, ow_jobs!inner(id, title)"
+        : "id, job_id, user_id, name, message, status, created_at, ow_jobs!inner(id, title)"
     )
     .eq("ow_jobs.company_id", tenantId)
     .order("created_at", { ascending: false });

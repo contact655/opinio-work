@@ -4,6 +4,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
+import { canUse } from "@/lib/constants/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +164,9 @@ export default async function MembersPage() {
         ambassadors={ambassadors}
         ambassadorCandidates={candidates}
         meetingStats={meetingStats}
+        /* ⚠️ これは**見た目だけ**。実際のゲートは POST /api/biz/ambassador/invite にある。
+              ここを消しても API 側が 403 を返す。逆は成り立たない。 */
+        canInviteAmbassador={canUse(ctx.planType, "ambassadorInvite")}
       />
     </BusinessLayout>
   );

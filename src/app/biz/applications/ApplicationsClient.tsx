@@ -498,14 +498,39 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
         } />
       </Section>
 
-      {/* 連絡先 */}
+      {/* 連絡先
+          ⚠️ Free プランでは `email` / `phone` が **null で届く**。
+             画面で隠しているのではなく、`fetchApplicationsForCompany` の
+             select から列ごと落としてある（ペイロードにも入らない）。
+             ここは「届いていないときの表示」を出すだけ。 */}
       <Section title="連絡先">
-        <InfoRow label="メールアドレス" value={
-          <a href={`mailto:${app.email}`} style={{ color: "var(--accent)", textDecoration: "none" }}>
-            {app.email}
-          </a>
-        } />
-        {app.phone && <InfoRow label="電話番号" value={app.phone} />}
+        {app.email ? (
+          <>
+            <InfoRow label="メールアドレス" value={
+              <a href={`mailto:${app.email}`} style={{ color: "var(--accent)", textDecoration: "none" }}>
+                {app.email}
+              </a>
+            } />
+            {app.phone && <InfoRow label="電話番号" value={app.phone} />}
+          </>
+        ) : (
+          <div style={{
+            background: "var(--bg-tint)", border: "1px solid var(--line)",
+            borderRadius: 10, padding: "16px 18px",
+          }}>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+              連絡先は有料プランで表示されます。
+            </p>
+            {/* ⚠️ 金額は書かない（有料プランは未実装） */}
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              ご相談は{" "}
+              <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)", textDecoration: "underline" }}>
+                contact@opinio.co.jp
+              </a>{" "}
+              まで。
+            </p>
+          </div>
+        )}
       </Section>
 
       {/* 志望動機 */}

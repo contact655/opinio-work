@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canUse } from "@/lib/constants/plans";
 import { createClient } from "@/lib/supabase/server";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -74,6 +75,16 @@ export async function POST(req: NextRequest) {
 
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  /* ⚠️ 送信の再開はしていない（上の環境変数で止めたまま）。
+        ここはプランの判定を**環境変数と AND** で足しただけ。
+        フラグを true にしても、Free の企業からは送れない。 */
+  if (!canUse(ctx.planType, "scoutSend")) {
+    return NextResponse.json(
+      { error: "スカウトの送信は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。" },
+      { status: 403 }
+    );
+  }
 
   /* 人材紹介利用規約（成功報酬）への同意が要る。
      ⚠️ **画面側（/biz/candidates）と同じ判定にすること。** 片方だけ変えると

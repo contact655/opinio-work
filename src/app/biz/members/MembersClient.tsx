@@ -45,6 +45,13 @@ type Props = {
   isAdmin?: boolean;
   ambassadors?: AmbassadorRecord[];
   ambassadorCandidates?: AmbassadorCandidate[];
+  /**
+   * 「話せる人」を招待できるプランか。
+   * ⚠️ **見た目の出し分けにしか使わない。ゲートではない。**
+   *    本体は POST /api/biz/ambassador/invite の 403。
+   *    ここを true にしても API は通らない。
+   */
+  canInviteAmbassador?: boolean;
   meetingStats?: MeetingStat[];
 };
 
@@ -1031,7 +1038,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [] }: Props) {
+export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false }: Props) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<"staff" | "field" | "employees">("staff");
 
@@ -1757,8 +1764,10 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     <button
                       type="button"
                       onClick={() => handleInviteAmbassador(c.user_id)}
-                      disabled={invitingUserId === c.user_id}
-                      title="ONにすると現場タブに移動します"
+                      disabled={invitingUserId === c.user_id || !canInviteAmbassador}
+                      title={canInviteAmbassador
+                        ? "ONにすると現場タブに移動します"
+                        : "「話せる人」の招待は有料プランの機能です"}
                       style={{
                         display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
                         background: "none", border: "none", cursor: invitingUserId === c.user_id ? "default" : "pointer",

@@ -10,6 +10,7 @@ import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/exp
 import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
+import { canUse } from "@/lib/constants/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,85 @@ export default async function CandidatesPage() {
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 0 }}>
             候補者検索・スカウト送信は、運営による企業審査が完了した後にご利用いただけます。<br />
             審査が完了次第、メールでご連絡します。
+          </p>
+        </div>
+      </BusinessLayout>
+    );
+  }
+
+  /* ══ 有料プランのゲート ═══════════════════════════════════════════════
+     ⚠️ **必ずここで返す。候補者を取得する前。**
+        500件取ってからクライアントで隠すのは不可。一覧も詳細も同じ
+        ペイロードに載るので、開発者ツールから全部見える。
+     ⚠️ 集計の数字も出さない（2026-08-22 の判断）。登録者13人・職種2種類では
+        検討材料にならず、出すと逆効果になるため。 */
+  if (!canUse(ctx.planType, "candidateSearch")) {
+    return (
+      <BusinessLayout {...{
+        userName: ctx.userName,
+        tenantName: ctx.tenantName,
+        tenantLogoGradient: ctx.logoGradient,
+        tenantLogoLetter: ctx.logoLetter,
+        memberships: ctx.allCompanies,
+        currentTenantId: ctx.tenantId,
+      }}>
+        <div style={{
+          background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
+          padding: "44px 40px", maxWidth: 620, margin: "48px auto",
+        }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 100,
+            background: "var(--royal-50)", color: "var(--royal)",
+            border: "1px solid var(--royal-100)", marginBottom: 18,
+          }}>
+            有料プランの機能
+          </div>
+
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 14, lineHeight: 1.5 }}>
+            候補者を探す
+          </h1>
+
+          {/* ⚠️ 文言を「もうすぐ使えます」の方向に変えないこと。
+                 登録者が揃っていないのは事実で、期待を持たせると
+                 登録直後に空だと分かったときの落差になる。 */}
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
+            候補者検索は有料プランの機能です。現在は登録者を増やしている段階のため、
+            ご利用は人数が揃ってからをお勧めしています。
+          </p>
+
+          <div style={{
+            background: "var(--bg-tint)", border: "1px solid var(--line)",
+            borderRadius: 12, padding: "20px 22px", marginBottom: 24,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
+              候補者検索でできること
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[
+                "職種（大分類・小分類）", "現在の会社名", "現在の役職",
+                "雇用形態", "社会人年数", "希望勤務地", "希望年収",
+                "希望する職種", "希望する企業フェーズ", "働き方",
+              ].map((t) => (
+                <span key={t} style={{
+                  fontSize: 12, padding: "5px 11px", borderRadius: 100,
+                  background: "#fff", color: "var(--ink-soft)",
+                  border: "1px solid var(--line)", whiteSpace: "nowrap",
+                }}>{t}</span>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8, marginTop: 14, marginBottom: 0 }}>
+              これらの条件で絞り込み、候補者のプロフィールを閲覧できます。
+            </p>
+          </div>
+
+          {/* ⚠️ 金額は書かない。有料プランは未実装で、LPにも金額を出していない。 */}
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, margin: 0 }}>
+            プランのご相談は{" "}
+            <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
+              contact@opinio.co.jp
+            </a>{" "}
+            までご連絡ください。
           </p>
         </div>
       </BusinessLayout>
