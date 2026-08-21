@@ -2706,7 +2706,6 @@ export type Database = {
           parent_company_country: string | null
           parent_company_name: string | null
           phase: string | null
-          plan: string | null
           prev_career_note: string | null
           published_at: string | null
           reality_disclosure: Json | null
@@ -2860,7 +2859,6 @@ export type Database = {
           parent_company_country?: string | null
           parent_company_name?: string | null
           phase?: string | null
-          plan?: string | null
           prev_career_note?: string | null
           published_at?: string | null
           reality_disclosure?: Json | null
@@ -3014,7 +3012,6 @@ export type Database = {
           parent_company_country?: string | null
           parent_company_name?: string | null
           phase?: string | null
-          plan?: string | null
           prev_career_note?: string | null
           published_at?: string | null
           reality_disclosure?: Json | null
@@ -4048,21 +4045,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
+            foreignKeyName: "ow_company_plans_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_business_monthly_stats"
             referencedColumns: ["tenant_id"]
           },
           {
-            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
+            foreignKeyName: "ow_company_plans_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_business_todo_counts"
             referencedColumns: ["tenant_id"]
           },
           {
-            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
+            foreignKeyName: "ow_company_plans_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
