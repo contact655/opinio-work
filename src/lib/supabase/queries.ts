@@ -1655,13 +1655,31 @@ export const getCompanyStoriesCached = (companyId: string) =>
     { revalidate: 60 }
   )();
 
-/** 公開中のアンバサダー（本人同意 + 公開設定の両方が立っている人だけ） */
+/** 公開中のアンバサダー（本人同意 + 公開設定の両方が立っている人だけ）
+ *
+ * ⚠️ **閲覧者に依存しない条件だけを書く。** `unstable_cache` の中なので、
+ *    ログイン状態で結果を変えると全閲覧者で結果が混ざる。
+ *
+ * ⚠️ 2026-08-22 まで `is_test` も `visibility` も見ていなかった。
+ *    同じ「面談OK」を出す他の経路は全部見ている:
+ *      - `getCompanyEmployees`（同ファイル）… `is_test === true || visibility === "private"` を除外
+ *      - `feed/(list)/page.tsx` … 同じ2つを除外
+ *      - `lib/people/directory.ts` … 上記に加えて `is_system` も除外
+ *    ここは**企業ページの同僚である `getCompanyEmployees` に揃えてある**。
+ *    条件を新しく発明しないこと。
+ *
+ * ⚠️ **`login_only` はここでは絞れない**（閲覧者依存なので上記のとおり書けない）。
+ *    `getCompanyEmployees` は `visibility` を呼び出し側へ返し、
+ *    `/api/jobseeker/companies/[id]/employees` がログイン状態で絞る形にしている。
+ *    このウィジェットには同じ仕組みが無く、**未ログインにも login_only の人が出る**。
+ *    公開中の4行は全員 `login_only` なので、実際に出続けている。**別途の判断が要る。**
+ */
 export const getPublicAmbassadorsCached = (companyId: string) =>
   unstable_cache(
     async () => {
       const { data, error } = await createAdminClient()
         .from("ow_company_members")
-        .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url)")
+        .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url, is_test, visibility)")
         .eq("company_id", companyId)
         .eq("display_consent", true)
         .eq("is_public", true);
@@ -1669,7 +1687,14 @@ export const getPublicAmbassadorsCached = (companyId: string) =>
         console.error("[getPublicAmbassadorsCached]", error.message);
         return [];
       }
-      return data ?? [];
+      /* 除外条件は getCompanyEmployees と同じ形にしてある（上のコメント）。
+         ⚠️ ow_users が引けなかった行（null）も落とす。名前もアバターも出せないので
+            「N名が対応可能」の N だけを水増しすることになる。 */
+      return (data ?? []).filter((r) => {
+        const u = (r as { ow_users?: { is_test?: boolean | null; visibility?: string | null } | null }).ow_users;
+        if (!u) return false;
+        return !(u.is_test === true || u.visibility === "private");
+      });
     },
     ["company-ambassadors", companyId],
     { revalidate: 60 }

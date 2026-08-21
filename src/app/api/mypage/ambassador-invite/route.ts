@@ -95,6 +95,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (accept) {
+    /* ★承認できたら invite_token を作り直す（2026-08-22）。
+       これで**使用済みの URL は二度と通らない**。
+
+       ⚠️ 以前は期限も使い切りも無く、同じリンクを何度でも開けて accept が通り、
+          そのたび consent_at が上書きされていた。列を足さずに使い切りにできるのは、
+          トークンが「どの招待か」を指すだけで本人性はセッションが担保しているため
+          （本人確認は上の .eq("user_id", owUser.id) と GET 側の auth_id 照合）。
+
+       ⚠️ 承認後に同じリンクをもう一度開くと 404「招待が見つかりません」になる。
+          これは意図した挙動。承認済みの状態は /mypage から確認・解除できる。
+
+       ⚠️ 辞退（else 側）は行ごと DELETE するのでトークンも一緒に消える。作り直さない。
+
+       ⚠️ 有効期限（invited_at から N 日）は**入れていない**。列の追加が要るうえ、
+          期限切れの招待をどう見せるかの判断が要るため別タスク。 */
     const { error } = await adminSupabase
       .from("ow_company_members")
       .update({
@@ -102,6 +117,7 @@ export async function POST(req: NextRequest) {
         consent_at: new Date().toISOString(),
         is_public: true,
         role_title: role_title?.trim() || undefined,
+        invite_token: crypto.randomUUID(),
       })
       .eq("id", member.id);
 

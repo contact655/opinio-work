@@ -614,8 +614,51 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
      経緯は `20260820090000_career_profiles_anon_column_grants.sql`。
 
   ⚠️ **これ以外の `ow_*` はテーブルレベル**なので、列を足せばそのまま読める。
-  ⚠️ `ow_companies` は逆に **UPDATE** が列単位（テーブルレベルを落としてある）。
-     読めるが書けない列が生まれる。**SELECT 側と UPDATE 側で運用が違うので混同しない。**
+
+- **★列単位で配っているテーブルの一覧（ここに列を足す migration は `grant` を同梱する）**
+
+  ⚠️ **SELECT 側は上の表がすべて**（`ow_users` / `ow_experiences` / `ow_career_profiles`）。
+     ここは**それに UPDATE 側と `ow_company_members` を足した全体像**。二重管理にしないこと。
+
+  | テーブル | 列単位なのはどれか | 足したとき書くもの |
+  |---|---|---|
+  | `ow_companies` | **UPDATE** | `grant update (列名) ... to authenticated` |
+  | **`ow_users`** | **SELECT（上の表）＋ UPDATE（authenticated）** | `grant select (列名)` と `grant update (列名)` |
+  | **`ow_company_members`** | **SELECT（anon / authenticated）** | `grant select (列名) ... to anon, authenticated` |
+  | `ow_experiences` / `ow_career_profiles` | **SELECT のみ**（上の表） | `grant select (列名)` |
+
+  ⚠️ **これらのテーブルに列を追加する migration では、同じ migration に `grant` を書かないと
+     `authenticated` から使えない列が生まれる。** 読めない列は「0件」に、
+     書けない列は「保存したのに変わらない」に化ける。**どちらもエラーにならない。**
+
+  ⚠️ `ow_users` の UPDATE は 2026-08-22 に列単位へ変えた（`20260822090000`）。
+     **`can_casual_meeting` / `auth_id` / `is_test` / `is_system` / `email` の5列は
+     意図して配っていない。** 配り直すときにこの5列を混ぜないこと。
+     ⚠️ `email` は本人向けのメールアドレス変更機能が無いから落としている。
+        **作るときは戻すこと**（`/auth/confirm` の `email_change` 対応とセット）。
+     ⚠️ **INSERT には触っていない。** `auth_id` / `email` は `lib/auth/linkOwUser.ts` の
+        新規作成経路が INSERT するので、INSERT 権限は残してある。
+     ⚠️ `ow_company_members` の SELECT からは **`invite_token`** を外してある（同 migration）。
+
+  ⚠️ **配った28列のうち13列はアプリが書いていない**（過剰付与。2026-08-22 に実測）。
+     `id` `created_at` `welcome_sent_at` `auth_linked_at` `catchphrase` `username`
+     `statistics_opt_out` `is_mentor` `is_active_mentor` `mentor_themes`
+     `mentor_registered_at` `can_talk_to_candidates` `can_talk_to_hr`
+     **読む経路が無いので実害は無いが、GRANT の棚卸しをする別タスクの対象。**
+     `can_talk_to_*` は死列、`is_mentor` / `is_active_mentor` / `mentor_*` は
+     **DROP 済みの `ow_mentors` の名残**（CLAUDE.md「メンター機能自体が無い」）。
+     ⚠️ **落とすときは編集UIの有無を先に確かめること。** UI が後から付くと
+        「保存できない」に化ける。
+
+  ⚠️ `ow_companies` は **UPDATE** が列単位で、`ow_users` は **SELECT と UPDATE の両方**が列単位。
+     **テーブルごとにどちら側が列単位かが違うので混同しない。**
+
+- **★`PATCH` が 403 でも、UPDATE が失敗したとは限らない（2026-08-22）。**
+  PostgREST に `Prefer: return=representation` を付けると**全列を返そうとする**ため、
+  列単位 SELECT の GRANT に弾かれて **403（42501）** になる。UPDATE 自体は通っている。
+  **権限の判定は `Prefer: return=minimal` で行う**（成功なら 204）。
+  ⚠️ 実際に一度これで「本人は `can_casual_meeting` を書けない」と誤判定した。
+     `return=minimal` で叩き直したら **204 で書けていた。**
 
   ⚠️ **一覧に無いことを根拠にせず、列を足した直後に必ず測る。**
      2026-08-15 に `ow_user_achievements` / `ow_user_awards` へ `experience_id` を足したとき、

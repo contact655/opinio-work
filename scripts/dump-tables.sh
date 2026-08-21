@@ -20,17 +20,21 @@
 #      通しで流し直しても再現できない（実測 OK 54 / FAIL 58）。
 #
 # ── 接続情報：**新しく秘密情報をファイルに置かない** ─────────────────────────
-#   次の順で試す。
-#     A) 環境変数 `SUPABASE_DB_URL` があれば pg_dump を直接使う
-#        → **スキーマ + データ**が出る（そのテーブルだけを作り直せる形）
-#     B) 無ければ **Supabase CLI**（`supabase db dump --linked`）を使う
-#        → CLI が保管している資格情報で繋ぐので**パスワードを扱わない**。
-#          ただし CLI に「テーブル指定」が無いので、public を data-only で落として
-#          **必要な表のぶんだけ切り出す**。つまり **B は data-only**。
+#   次の順で試す。**どちらもスキーマ+データが出る**（2026-08-22 に B を作り直した）。
+#     A) 環境変数 `SUPABASE_DB_URL` があれば pg_dump に直接渡す
+#     B) 無ければ **Supabase CLI の一時資格情報を借りる**。
+#        `supabase db dump --linked --dry-run` は**実行せずに pg_dump 用の
+#        bash スクリプトを表示するだけ**なので、そこから `export PG*` の行を
+#        取り出して eval し、自前の pg_dump に渡す。
+#        → **Docker 不要**。パスワードは環境変数にしか置かない。
+#     C) それも無理なら Docker（`SUPABASE_DB_URL` がある場合のみ）
 #
-#   ⚠️ B で足りるのは「値を戻す」場合だけ。**列を落とす migration の前は A を使う**
-#      （data-only だと、消えた列の定義が復元できない）。
-#      A に要る接続文字列: Supabase ダッシュボード → Project Settings → Database →
+#   ⚠️ **以前の B は `supabase db dump --linked` を直接呼んでおり、Docker 必須だった。**
+#      Docker Desktop が落ちていると作業前ダンプごと失敗し、しかも data-only なので
+#      列を落とす migration の前には使えなかった（2026-08-22 に実際に踏んだ）。
+#      **いまは B でも列定義が残るので、列を落とす migration の前にも使える。**
+#
+#   ⚠️ A に要る接続文字列: Supabase ダッシュボード → Project Settings → Database →
 #      Connection string。**リポジトリ内のファイルに書かないこと。**
 #
 set -euo pipefail
@@ -53,48 +57,72 @@ if [ -f supabase/.temp/postgres-version ]; then
   SERVER_MAJOR="$(cut -d. -f1 < supabase/.temp/postgres-version)"
 fi
 
-if [ -n "${SUPABASE_DB_URL:-}" ]; then
-  # ── A) pg_dump 直接（スキーマ + データ）──────────────────────────────────
-  ARGS=()
-  for t in "$@"; do ARGS+=(-t "public.${t}"); done
+ARGS=()
+for t in "$@"; do ARGS+=(-t "public.${t}"); done
 
-  LOCAL_MAJOR=0
-  if command -v pg_dump >/dev/null 2>&1; then
-    LOCAL_MAJOR="$(pg_dump --version | sed -E 's/.* ([0-9]+).*/\1/')"
+# ── pg_dump のバイナリを選ぶ ─────────────────────────────────────────────────
+#   ⚠️ **サーバと同じメジャー以上が要る。** 古いと "server version mismatch" で止まる。
+#      2026-08-22 時点: サーバ 17 / PATH 上の pg_dump は Homebrew の 16。
+#      postgresql@17 は入っているが link されていないので、**直接パスで拾う**。
+pick_pg_dump() {
+  if command -v pg_dump >/dev/null 2>&1 \
+     && [ "$(pg_dump --version | sed -E 's/.* ([0-9]+).*/\1/')" -ge "$SERVER_MAJOR" ]; then
+    command -v pg_dump; return 0
   fi
+  local c
+  for c in "/opt/homebrew/opt/postgresql@${SERVER_MAJOR}/bin/pg_dump" \
+           "/usr/local/opt/postgresql@${SERVER_MAJOR}/bin/pg_dump"; do
+    [ -x "$c" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+PGDUMP="$(pick_pg_dump || true)"
 
-  if [ "$LOCAL_MAJOR" -ge "$SERVER_MAJOR" ]; then
-    echo "pg_dump ${LOCAL_MAJOR}（ローカル）でスキーマ+データを取得します"
-    pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges "${ARGS[@]}" > "$OUT"
-  elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    # ⚠️ サーバより古い pg_dump は "server version mismatch" で止まる
-    echo "ローカルの pg_dump は ${LOCAL_MAJOR}（サーバ ${SERVER_MAJOR}）。Docker の postgres:${SERVER_MAJOR} を使います"
-    docker run --rm -i "postgres:${SERVER_MAJOR}" \
-      pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges "${ARGS[@]}" > "$OUT"
-  else
-    echo "pg_dump が古く（${LOCAL_MAJOR}）Docker も使えません。brew install postgresql@${SERVER_MAJOR} か Docker Desktop の起動を。" >&2
+if [ -n "${SUPABASE_DB_URL:-}" ] && [ -n "$PGDUMP" ]; then
+  # ── A) 環境変数の接続文字列 ─────────────────────────────────────────────
+  echo "$($PGDUMP --version) でスキーマ+データを取得します（SUPABASE_DB_URL）"
+  "$PGDUMP" "$SUPABASE_DB_URL" --no-owner --no-privileges "${ARGS[@]}" > "$OUT"
+  MODE="スキーマ+データ"
+
+elif [ -n "$PGDUMP" ]; then
+  # ── B) Supabase CLI の一時資格情報を借りる（Docker 不要）────────────────
+  #
+  #   ⚠️ 以前の B は `supabase db dump --linked` を呼んでいたが、**あれは Docker 必須**で、
+  #      Docker Desktop が落ちていると作業前ダンプごと失敗していた（2026-08-22 に踏んだ）。
+  #      しかも data-only なので、列を落とす migration の前には使えなかった。
+  #
+  #   `--dry-run` は**実行せずに pg_dump 用の bash スクリプトを表示するだけ**。
+  #   そこから `export PG*` の行だけを取り出して eval し、自前の pg_dump に渡す。
+  #   → **Docker が要らず、しかもスキーマ+データが取れる。**
+  #
+  #   ⚠️ **資格情報は環境変数にしか置かない。** ファイルにも echo にも出さない。
+  #      PGPASSWORD は使い終わったら unset する。
+  echo "SUPABASE_DB_URL が無いので Supabase CLI の一時資格情報を使います（Docker 不要）"
+  CREDS="$(npx supabase db dump --linked --data-only -s public --dry-run 2>/dev/null \
+             | grep '^export PG' || true)"
+  if [ -z "$CREDS" ]; then
+    echo "資格情報を取得できませんでした。'npx supabase login' と 'npx supabase link' を確認してください。" >&2
     rm -f "$OUT"; exit 1
   fi
+  eval "$CREDS"
+  #   ⚠️ **`--role postgres` が要る。** CLI のログインロール
+  #      （cli_login_postgres.<ref>）は ow_* に直接の権限を持たず、
+  #      これが無いと `permission denied for table ...` / `LOCK TABLE` で落ちる。
+  #      `supabase db dump` 自身も同じフラグを付けている（--dry-run で確認できる）。
+  "$PGDUMP" --role postgres --no-owner --no-privileges "${ARGS[@]}" > "$OUT"
+  unset PGPASSWORD
   MODE="スキーマ+データ"
+
+elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 && [ -n "${SUPABASE_DB_URL:-}" ]; then
+  # ── C) 最後の手段: Docker の pg_dump ───────────────────────────────────
+  echo "ローカルに pg_dump ${SERVER_MAJOR} が無いので Docker の postgres:${SERVER_MAJOR} を使います"
+  docker run --rm -i "postgres:${SERVER_MAJOR}" \
+    pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges "${ARGS[@]}" > "$OUT"
+  MODE="スキーマ+データ"
+
 else
-  # ── B) Supabase CLI（data-only）──────────────────────────────────────────
-  echo "SUPABASE_DB_URL が無いので Supabase CLI で取得します（**data-only**）"
-  TMP="$(mktemp -t dumptables)"
-  # ⚠️ CLI にテーブル指定が無いので public 全体を落としてから切り出す。
-  #    パスワードを扱わずに済むのが利点。
-  npx supabase db dump --linked --data-only -s public -f "$TMP" >/dev/null
-  awk -v tabs="$*" '
-    BEGIN { n = split(tabs, a, " "); for (i = 1; i <= n; i++) want[a[i]] = 1 }
-    /^-- Data for Name: / {
-      t = $5; sub(/;$/, "", t)
-      inblk = (t in want)
-      if (inblk) print "\n-- ===== " t " ====="
-      next
-    }
-    inblk { print }
-  ' "$TMP" > "$OUT"
-  rm -f "$TMP"
-  MODE="データのみ（data-only）"
+  echo "pg_dump ${SERVER_MAJOR} 以上が見つかりません。'brew install postgresql@${SERVER_MAJOR}' を実行してください。" >&2
+  rm -f "$OUT"; exit 1
 fi
 
 # ── 確認（0バイトで終わらせない）───────────────────────────────────────────
