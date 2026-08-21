@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { TERMS_VERSION } from "@/lib/constants/terms";
 
 /**
  * 人材紹介利用規約（成功報酬）への同意パネル。
@@ -22,7 +23,9 @@ export function PlacementTermsPanel({ companyId }: { companyId: string }) {
       await fetch("/api/biz/terms-agreement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId, termsType: "placement", termsVersion: "2026-08-01" }),
+        /* ⚠️ 版はハードコードしない。規約を改定したら termsAgreement.ts の
+              TERMS_VERSION だけを直せば、両方の同意経路に反映される。 */
+        body: JSON.stringify({ companyId, termsType: "placement", termsVersion: TERMS_VERSION }),
       });
       router.refresh();
     });

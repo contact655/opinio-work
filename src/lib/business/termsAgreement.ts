@@ -1,23 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-/**
- * 企業向け規約の種別。
- *
- * ⚠️ **2026-08-14 に「掲載」と「人材紹介」へ分けた。**
- *    それ以前の同意は `business`（分割前の1本）で記録されている。
- *    `business` は**消さない。** 分割前に同意した企業を未同意に戻さないため、
- *    どちらの判定でも `business` を有効として扱う。
- */
-export const TERMS_TYPES = {
-  /** 掲載利用規約（/terms/listing）。企業情報の掲載に必要 */
-  listing: "listing",
-  /** 人材紹介利用規約（/terms/placement）。スカウト・紹介を使うときに必要 */
-  placement: "placement",
-  /** 分割前の1本（/terms/business）。過去の同意記録のみ */
-  legacy: "business",
-} as const;
-
-export const TERMS_VERSION = "2026-08-01";
+/* 定数は `lib/constants/terms.ts` に置いてある。
+   ⚠️ このファイルは `createAdminClient`（service_role）を import しているので、
+      `"use client"` の部品からは**こちらではなく constants を読むこと。** */
+export { TERMS_TYPES, TERMS_VERSION } from "@/lib/constants/terms";
+import { TERMS_TYPES } from "@/lib/constants/terms";
 
 /**
  * その利用者が指定の規約に同意済みか。

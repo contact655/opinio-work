@@ -8,6 +8,7 @@ import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/busin
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
+import { TERMS_VERSION } from "@/lib/constants/terms";
 import {
   COMPANY_SECTIONS,
   INDUSTRY_OPTIONS,
@@ -541,7 +542,8 @@ export function CompanyEditClient({
           userId,
           companyId,
           termsType: "listing",
-          termsVersion: "2026-08-01",
+          /* ⚠️ 版はハードコードしない（termsAgreement.ts の TERMS_VERSION を見る） */
+          termsVersion: TERMS_VERSION,
         }),
       });
       setTermsAgreed(true);
