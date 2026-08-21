@@ -410,18 +410,42 @@ Supabase の日次バックアップには3つの制約がある（2026-08-20 �
    （実測 OK 54 / FAIL 58）。企業データは `supabase/seeds/`（最新でも 2026-05-28・10社）にあり、
    本番87社とは別物。
 
-### スクリプトの2つのモード
+### スクリプトの2つのモード（2026-08-22 に作り直した）
 
-| | 使うもの | 出るもの |
-|---|---|---|
-| `SUPABASE_DB_URL` を設定して実行 | `pg_dump -t` | **スキーマ + データ** |
-| 何も設定せず実行 | `supabase db dump --linked` | **データのみ**（data-only） |
+| | 使うもの | 出るもの | Docker |
+|---|---|---|---|
+| `SUPABASE_DB_URL` を設定して実行 | ローカルの `pg_dump -t` | **スキーマ + データ** | 不要 |
+| 何も設定せず実行 | **Supabase CLI の一時資格情報を借りて**ローカルの `pg_dump` | **スキーマ + データ** | **不要** |
 
-⚠️ **列を落とす／型を変える migration の前は `SUPABASE_DB_URL` を設定して実行すること。**
-   data-only では消えた列の定義が戻せない。
-⚠️ 接続文字列は**リポジトリ内のファイルに書かない**（環境変数で渡す）。
-⚠️ ローカルの `pg_dump` がサーバ（17系）より古いと `server version mismatch` で止まる。
-   スクリプトは自動で Docker の `postgres:17` に切り替える。
+**どちらのモードでもスキーマが出る。** 列を落とす migration の前にも、
+`SUPABASE_DB_URL` を用意できないまま実行してよい。
+
+⚠️ **以前は「何も設定しない」側が `supabase db dump --linked` を直接呼んでおり、
+   Docker 必須かつ data-only だった。** Docker Desktop が落ちていると
+   **作業前ダンプごと 0バイトで失敗する**（2026-08-22 に2回踏んだ）。
+   いまは `--dry-run` で pg_dump 用の資格情報だけを取り出し、
+   自前の `pg_dump` に渡している。
+
+⚠️ 接続文字列と資格情報は**リポジトリ内のファイルに書かない**（環境変数だけ）。
+
+⚠️ ローカルの `pg_dump` が**サーバ（17系）より古いと `server version mismatch` で止まる。**
+   スクリプトは `postgresql@17` を直接パスで拾う。
+   PATH 上の `pg_dump` が 16 でも動く（2026-08-22 実測）。
+
+### ★「エラーが出なかった」を成功にしない
+
+**出力の中身を見ること。** 実測の例（2026-08-22 / `ow_companies` 87行）:
+
+```
+出力: .dumps/20260822-0153-ow_companies.sql （182,196 バイト / スキーマ+データ）
+  CREATE TABLE 1 / ALTER TABLE 6 / CREATE INDEX 7 / COPY 1
+  plan text DEFAULT 'free'::text   ← 落とす予定の列がスキーマに残っている
+  ow_companies  87 行
+```
+
+⚠️ データは `COPY ... FROM stdin;` の形で入る（`INSERT` ではない）。
+   pg_dump の既定で、`psql` でそのまま戻せる。**「INSERT が無い＝データが無い」ではない。**
+   スクリプトの行数表示は COPY と INSERT の両方を数える。
 
 ## ⚠️ migration を書くときのルール
 
