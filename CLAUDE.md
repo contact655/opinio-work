@@ -477,6 +477,36 @@ supabase-js は失敗しても例外を投げないので、画面は成功し�
 - **`.select()` を引数なしで呼ばない。** 全列を返すため、列単位 GRANT を剥がした列があると 403 になる
 - **RLS を緩めて解決しない。** ブラウザセッションから他社の下書きが取れる経路が増える
 
+### ⚠️ 認可の有無を、共通関数名の出現回数で判定しない（2026-08-21 確立）
+
+**`getTenantContext` / `getCompanyContext` / `requireAdmin` を grep して数えても、
+そのルートが無防備かどうかは分からない。同じ判定を直接クエリで書いている実装がある。**
+
+```ts
+// これも立派な企業所属チェック。共通関数を grep しても引っかからない
+const { data: adminLink } = await supabase
+  .from("ow_company_admins")
+  .select("id")
+  .eq("user_id", meUser.id)
+  .eq("company_id", conv.company_id)
+  .eq("is_active", true)
+  .maybeSingle();
+if (!adminLink) return NextResponse.json({ error: "..." }, { status: 403 });
+```
+
+⚠️ **2026-08-21 に実際に誤報を出した。** `/api/biz/conversations/[id]/join` と
+   `/messages` を「ログイン判定だけ」と報告したが、**どちらも所属を検証していた**
+   （join は上のコードで、messages は参加者であることを要求）。
+   RLS 側も `ow_conversation_participants_insert` が
+   「その会話の企業の有効な管理者であること」を WITH CHECK で要求しており、
+   **アプリと RLS の二重で守られていた。**
+
+**ルートごとに中身を読むこと。** 数えてよいのは「読むべきファイルの一覧」を
+作るときだけで、**判定の結論に使わない。**
+
+⚠️ 逆向きの誤りもある。関数を呼んでいても、**戻り値を捨てていれば守っていない**
+   （「0行更新を成功として扱わない」と同じ形）。
+
 ### ⚠️ 認証の内側にあるページは、実際にログインして踏むまで壊れていても分からない
 
 2026-08-11 までに**同じ形の不具合を3件**踏んだ。いずれも未ログインでは
