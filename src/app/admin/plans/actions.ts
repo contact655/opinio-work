@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { PLAN_TYPES, BILLING_CYCLES, type PlanType, type BillingCycle } from "@/lib/constants/plans";
+import { PLAN_TYPES, BILLING_CYCLES, PLAN_MONTHLY_FEE, type PlanType, type BillingCycle } from "@/lib/constants/plans";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -30,7 +30,6 @@ export async function changePlan(
   companyId: string,
   planType: string,
   billingCycle: string,
-  monthlyFee: number | null,
 ): Promise<ActionResult> {
   await assertAdmin();
 
@@ -73,7 +72,11 @@ export async function changePlan(
       company_id: companyId,
       plan_type: planType as PlanType,
       billing_cycle: billingCycle as BillingCycle,
-      monthly_fee: monthlyFee,
+      /* ⚠️ 月額は**定数から入れる。画面から受け取らない。**
+            運営が手で打つと、表示（LP）と記録（DB）が食い違う。
+            金額を変えるときは `lib/constants/plans.ts` の
+            `PAID_PLAN_MONTHLY_FEE` を直す。 */
+      monthly_fee: PLAN_MONTHLY_FEE[planType as PlanType],
       started_at: now,
       ended_at: null,
       status: "active",

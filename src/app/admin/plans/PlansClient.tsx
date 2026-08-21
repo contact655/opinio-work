@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { changePlan } from "./actions";
-import { PLAN_TYPES, PLAN_LABELS, BILLING_CYCLES, type PlanType } from "@/lib/constants/plans";
+import { PLAN_TYPES, PLAN_LABELS, PLAN_MONTHLY_FEE, BILLING_CYCLES, type PlanType } from "@/lib/constants/plans";
 
 export type PlanHistoryRow = {
   id: string;
@@ -39,24 +39,19 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
 
   const [planType, setPlanType] = useState<PlanType>("free");
   const [cycle, setCycle] = useState<string>("monthly");
-  const [fee, setFee] = useState<string>("0");
 
   function openEditor(row: CompanyPlanRow) {
     setEditing(row.companyId);
     setPlanType(((row.current?.planType ?? "free") as PlanType));
     setCycle(row.current?.billingCycle ?? "monthly");
-    setFee(row.current?.monthlyFee != null ? String(row.current.monthlyFee) : "0");
     setMessage(null);
   }
 
   function save(companyId: string) {
-    const n = fee.trim() === "" ? null : Number(fee);
-    if (n != null && (!Number.isFinite(n) || n < 0)) {
-      setMessage({ kind: "error", text: "月額は0以上の数字で入力してください" });
-      return;
-    }
+    /* ⚠️ 月額は送らない。**サーバー側が定数から入れる。**
+          画面で打たせると、LPの表示と DB の記録が食い違う。 */
     startTransition(async () => {
-      const res = await changePlan(companyId, planType, cycle, n);
+      const res = await changePlan(companyId, planType, cycle);
       if (res.ok) {
         setMessage({ kind: "ok", text: "プランを変更しました" });
         setEditing(null);
@@ -167,11 +162,18 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
                     {BILLING_CYCLES.map((c) => <option key={c} value={c}>{CYCLE_LABELS[c]}</option>)}
                   </select>
                 </label>
-                <label style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                  月額（円）<br />
-                  <input value={fee} onChange={(e) => setFee(e.target.value)} inputMode="numeric"
-                    style={{ marginTop: 4, padding: "8px 10px", fontSize: 13, borderRadius: 8, border: "1px solid var(--line)", width: 120 }} />
-                </label>
+                {/* ⚠️ 月額は入力させない。プランを選べば定数から決まる。 */}
+                <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                  月額（自動）<br />
+                  <div style={{
+                    marginTop: 4, padding: "8px 12px", fontSize: 13, borderRadius: 8,
+                    background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    color: "var(--ink)", fontWeight: 700, minWidth: 120,
+                  }}>
+                    {PLAN_MONTHLY_FEE[planType].toLocaleString()}円
+                    <span style={{ fontSize: 11, fontWeight: 400, color: "var(--ink-mute)" }}>（税別）</span>
+                  </div>
+                </div>
                 <button type="button" onClick={() => save(row.companyId)} disabled={isPending}
                   className="btn-fixed-size"
                   style={{

@@ -2,21 +2,18 @@
  * 企業の契約プランと、プランごとに使える機能の対応表。
  *
  * ⚠️ **プランの正は `ow_company_plans`（status='active' の行）。**
- *    `ow_companies.plan` は**廃止予定で、読まない。**
- *    87社すべて 'free' のまま誰も読んでいない列で、DROP は
- *    `supabase/migrations/_pending/` に保留してある。
- *    2箇所に持つと必ず食い違うので、**新しく参照を足さないこと。**
+ *    `ow_companies.plan` は 2026-08-22 に DROP 済み。**もう存在しない。**
  *
  * ⚠️ **許容値は UI / API / DB の CHECK の3つを揃える**（CLAUDE.md）。
  *    DB 側は `ow_company_plans_plan_type_check`。
  *    値を足すときは migration も同時に直す。片方だけ足すと
  *    「選べるのに保存できない」か「保存できるのに判定されない」になる。
  *
- * ⚠️ **金額はここに書かない。** 有料プランは未実装で、LPにも金額を出していない。
- *    料金は `ow_company_plans.monthly_fee` に運営が入れる運用。
+ * ⚠️ **2026-08-23 に starter/growth/scale の3段をやめ、Free / 有料 の2段にした。**
+ *    段を分ける根拠（機能差）が無いまま値だけ増やしていたため。
  */
 
-export const PLAN_TYPES = ["free", "starter", "growth", "scale"] as const;
+export const PLAN_TYPES = ["free", "paid"] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
 
 export const BILLING_CYCLES = ["monthly", "yearly"] as const;
@@ -24,9 +21,27 @@ export type BillingCycle = (typeof BILLING_CYCLES)[number];
 
 export const PLAN_LABELS: Record<PlanType, string> = {
   free: "フリー",
-  starter: "スターター",
-  growth: "グロース",
-  scale: "スケール",
+  paid: "有料プラン",
+};
+
+/**
+ * 有料プランの月額（税別・円）。
+ *
+ * ⚠️ **金額はここが唯一の定義。** LP（`/business` の料金セクションと FAQ）も
+ *    運営画面もこの定数を読む。**別の場所に数字を書かないこと。**
+ *    二重に持つと、片方だけ直したときに表示と請求が食い違う。
+ *
+ * ⚠️ 規約 /terms/listing 第4条2項が「費用は有料プランの利用料金のみ」と
+ *    定めているので、**成果報酬は発生しない**と書いてよい（2026-08-21 改定）。
+ *
+ * ⚠️ 年払いは未対応。`billing_cycle` 列は残してあるが、UIも料金表も月額のみ。
+ */
+export const PAID_PLAN_MONTHLY_FEE = 80000;
+
+/** プランごとの月額。運営画面はここから入れる（画面で直接入力させない）。 */
+export const PLAN_MONTHLY_FEE: Record<PlanType, number> = {
+  free: 0,
+  paid: PAID_PLAN_MONTHLY_FEE,
 };
 
 /**
@@ -40,11 +55,15 @@ export const PLAN_FEATURES = [
   "candidateSearch",
   /** 応募者の連絡先（メールアドレス・電話番号）を見る */
   "applicantContact",
-  /** スカウトを送る。⚠️ 環境変数 SCOUT_SENDING_ENABLED との AND で判定する */
-  "scoutSend",
   /** 「話せる人」（アンバサダー）を招待する */
   "ambassadorInvite",
 ] as const;
+
+/* ⚠️ **`scoutSend` は 2026-08-23 に外した。**
+      スカウト送信は `SCOUT_SENDING_ENABLED` で停止中で、再開の判断もしていない。
+      売れないものを機能表に載せない。停止は環境変数だけで行う。
+      再開してプランに含めるなら、ここに戻したうえで
+      `POST /api/biz/scouts` の判定も同時に戻すこと。 */
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
 /**
@@ -55,10 +74,8 @@ export type PlanFeature = (typeof PLAN_FEATURES)[number];
  *    この表は「有料で開く機能」だけを扱う。
  */
 const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
-  free:    { candidateSearch: false, applicantContact: false, scoutSend: false, ambassadorInvite: false },
-  starter: { candidateSearch: true,  applicantContact: true,  scoutSend: false, ambassadorInvite: true  },
-  growth:  { candidateSearch: true,  applicantContact: true,  scoutSend: true,  ambassadorInvite: true  },
-  scale:   { candidateSearch: true,  applicantContact: true,  scoutSend: true,  ambassadorInvite: true  },
+  free: { candidateSearch: false, applicantContact: false, ambassadorInvite: false },
+  paid: { candidateSearch: true,  applicantContact: true,  ambassadorInvite: true  },
 };
 
 /**
