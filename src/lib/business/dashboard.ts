@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { getCompanyContext } from "@/lib/business/company";
+import { PLAN_LABELS, type PlanType } from "@/lib/constants/plans";
 
 /**
  * Opinio Business — Dashboard data layer
@@ -27,7 +28,12 @@ export type TenantContext = {
   tenantName: string;
   isPublished: boolean;          // ow_companies.is_published
   isApproved: boolean;           // ow_companies.is_approved — 運営が承認済みか
-  planType: "performance" | "saas_monthly" | "saas_yearly" | null;
+  /**
+   * いま有効な契約プラン。`ow_company_plans` の status='active' の行。
+   * ⚠️ **プランの正はこの表。`ow_companies.plan` は廃止予定で読まない。**
+   * ⚠️ 取れなければ null。`canUse()` が null を「何も開かない」に倒す。
+   */
+  planType: PlanType | null;
   planLabel: string;
   userName: string;
   logoGradient: string | null;
@@ -76,12 +82,6 @@ export type JobPerformance = {
 };
 
 // ─── Helpers ──────────────────────────────────────────
-
-const PLAN_LABELS: Record<string, string> = {
-  performance: "成果報酬プラン",
-  saas_monthly: "SaaS月額プラン",
-  saas_yearly: "SaaS年額プラン",
-};
 
 /** 当月の YYYY-MM-01 を ISO 文字列で返す */
 function monthStart(d = new Date()): string {
@@ -141,8 +141,10 @@ export async function getTenantContext(): Promise<TenantContext | null> {
     const { companyId: tenantId, owUserId } = ctx;
     const allMembershipIds = ctx.allMemberships.map((m) => m.companyId);
 
-    // ow_companies / ow_users / ow_tenant_plans を一括並列取得
-    const [companiesRes, owUserRes, planRes] = await Promise.all([
+    /* ow_companies / ow_users を一括並列取得。
+       ⚠️ プランはここで引かない。**`getCompanyContext` が既に解決している。**
+          2箇所で引くと、片方だけ直したときに画面と API で判定が割れる。 */
+    const [companiesRes, owUserRes] = await Promise.all([
       admin.from("ow_companies")
         .select("id, name, logo_gradient, logo_letter, is_published, is_approved")
         .in("id", allMembershipIds),
@@ -150,14 +152,6 @@ export async function getTenantContext(): Promise<TenantContext | null> {
         .select("avatar_color")
         .eq("id", owUserId)
         .maybeSingle(),
-      admin.from("ow_tenant_plans")
-        .select("plan_type")
-        .eq("tenant_id", tenantId)
-        .eq("status", "active")
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then((r) => r, () => ({ data: null, error: null })),
     ]);
 
     const companies = companiesRes.data ?? [];
@@ -172,8 +166,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       isDefault: m.isDefault,
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const planType: TenantContext["planType"] = ((planRes as any).data?.plan_type as any) ?? null;
+    const planType: PlanType | null = ctx.planType;
 
     const userName =
       (user.user_metadata as any)?.name ||
@@ -195,7 +188,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
       isPublished: (companyRow as any).is_published === true,
       isApproved: (companyRow as any).is_approved === true,
       planType,
-      planLabel: planType ? PLAN_LABELS[planType] || "—" : "未設定",
+      planLabel: planType ? (PLAN_LABELS[planType] ?? "—") : "未設定",
       userName,
       logoGradient: companyRow.logo_gradient ?? null,
       logoLetter: companyRow.logo_letter ?? null,

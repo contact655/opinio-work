@@ -205,6 +205,8 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
   };
 }
 
+import { toPlanType, type PlanType } from "@/lib/constants/plans";
+
 // ── Multi-tenant context ─────────────────────────────────────────────────────
 
 export type CompanyMembership = {
@@ -218,6 +220,14 @@ export type CompanyContext = {
   companyId: string;              // resolved current company
   owUserId: string;               // ow_users.id (NOT auth.users.id)
   allMemberships: CompanyMembership[];
+  /**
+   * いま有効な契約プラン。`ow_company_plans` の status='active' の行。
+   *
+   * ⚠️ **プランの正はこの表。`ow_companies.plan` は廃止予定で読まない。**
+   * ⚠️ 取れなければ null。`canUse()` は null を「何も開かない」に倒す。
+   *    ここを既定値 'free' で埋めないこと。取得失敗と無料契約が区別できなくなる。
+   */
+  planType: PlanType | null;
 };
 
 /**
@@ -284,10 +294,30 @@ export async function getCompanyContext(
     resolved = allMemberships[0]; // already sorted ASC by joined_at
   }
 
+  /* いま有効なプランを引く。
+     ⚠️ **API はこの関数を直接呼ぶものが多い。** 画面（getTenantContext）だけに
+        プラン判定を置くと、API を直接叩かれたときに素通りする。
+        ここで解決して `canUse()` に渡せるようにしておく。 */
+  const { data: planRow, error: planError } = await supabase
+    .from("ow_company_plans")
+    .select("plan_type")
+    .eq("company_id", resolved.companyId)
+    .eq("status", "active")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  /* ⚠️ error を捨てない。捨てると権限エラーもテーブル名の間違いも
+        「プラン未設定」に化ける（CLAUDE.md「?? [] は 403 を 0件に化けさせる」）。 */
+  if (planError) {
+    console.error("[getCompanyContext] ow_company_plans:", planError.message);
+  }
+
   return {
     companyId: resolved.companyId,
     owUserId: owUser.id,
     allMemberships,
+    planType: toPlanType(planRow?.plan_type ?? null),
   };
 }
 

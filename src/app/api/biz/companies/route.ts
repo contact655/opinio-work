@@ -176,7 +176,9 @@ export async function POST(req: Request) {
       logo_url: (typeof body.logo_url === "string" && /^https:\/\//i.test(body.logo_url)) ? body.logo_url.slice(0, 2048) : null,
       status: "draft",
       is_published: false,
-      plan: "free",
+      /* ⚠️ `plan` 列には書かない。**プランの正は `ow_company_plans`**（下で1本入れる）。
+            `ow_companies.plan` は廃止予定で、DROP は
+            supabase/migrations/_pending/ に保留してある。 */
       /* ⚠️ 入口を記録する。ロールで判別しない（誰が作ったかではなく、どこから作られたか）。
             この API から作られたものは常に biz_self。 */
       source: "biz_self",
@@ -201,6 +203,26 @@ export async function POST(req: Request) {
       { error: "企業登録に失敗しました" },
       { status: 500 }
     );
+  }
+
+  /* 4.5 ow_company_plans に free を1本入れる。
+     ⚠️ **「行が無い＝無料」は採らない。** 行が無いと `planType` が null になり、
+        「まだ設定していない」と「無料と決めた」が区別できない。
+        既存87社は migration で入れてあるので、**新規もここで必ず作る。**
+     ⚠️ best-effort にしない。失敗したら握り潰さずログに出す
+        （黙って落ちると、その企業だけプラン未設定のまま残る）。 */
+  const { error: planError } = await admin
+    .from("ow_company_plans")
+    .insert({
+      company_id: company.id,
+      plan_type: "free",
+      billing_cycle: "monthly",
+      monthly_fee: 0,
+      started_at: new Date().toISOString(),
+      status: "active",
+    });
+  if (planError) {
+    console.error("[POST /api/biz/companies] ow_company_plans INSERT failed:", planError.message);
   }
 
   // 5. ow_company_admins INSERT（作成者を最初の admin として登録）
