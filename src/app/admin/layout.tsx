@@ -19,6 +19,7 @@ import {
   Inbox,
   Award,
   Send,
+  CreditCard,
   ClipboardCheck,
 } from "lucide-react";
 
@@ -56,6 +57,7 @@ const NAV_GROUPS = [
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
       { label: "スカウト枠管理",      href: "/admin/scout-quotas",     icon: <Send         size={16} strokeWidth={2} /> },
+      { label: "プラン管理",          href: "/admin/plans",            icon: <CreditCard   size={16} strokeWidth={2} /> },
     ],
   },
 ];
