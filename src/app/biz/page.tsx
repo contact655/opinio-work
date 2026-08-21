@@ -371,7 +371,8 @@ export default function BizLandingPage() {
       }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>OPINIO</span>
         <div style={{ display: "flex", gap: 20, fontSize: 12 }}>
-          <Link href="/terms/business" style={{ color: "#6b7280", textDecoration: "none" }}>利用規約（掲載企業）</Link>
+          <Link href="/terms/listing" style={{ color: "#6b7280", textDecoration: "none" }}>掲載利用規約</Link>
+          <Link href="/terms/placement" style={{ color: "#6b7280", textDecoration: "none" }}>人材紹介利用規約</Link>
           <Link href="/privacy" style={{ color: "#6b7280", textDecoration: "none" }}>プライバシーポリシー</Link>
           <Link href="/" style={{ color: "#6b7280", textDecoration: "none" }}>求職者向けトップ</Link>
         </div>
