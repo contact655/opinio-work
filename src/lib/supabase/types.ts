@@ -4012,6 +4012,64 @@ export type Database = {
           },
         ]
       }
+      ow_company_plans: {
+        Row: {
+          billing_cycle: string
+          company_id: string
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          monthly_fee: number | null
+          plan_type: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          billing_cycle?: string
+          company_id: string
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          monthly_fee?: number | null
+          plan_type: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          billing_cycle?: string
+          company_id?: string
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          monthly_fee?: number | null
+          plan_type?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_posts: {
         Row: {
           author_user_id: string | null
@@ -4914,6 +4972,7 @@ export type Database = {
       ow_invoices: {
         Row: {
           amount: number
+          company_id: string
           created_at: string | null
           id: string
           invoice_date: string
@@ -4921,10 +4980,10 @@ export type Database = {
           related_candidate_id: string | null
           related_job_id: string | null
           status: string
-          tenant_id: string
         }
         Insert: {
           amount: number
+          company_id: string
           created_at?: string | null
           id?: string
           invoice_date: string
@@ -4932,10 +4991,10 @@ export type Database = {
           related_candidate_id?: string | null
           related_job_id?: string | null
           status?: string
-          tenant_id: string
         }
         Update: {
           amount?: number
+          company_id?: string
           created_at?: string | null
           id?: string
           invoice_date?: string
@@ -4943,7 +5002,6 @@ export type Database = {
           related_candidate_id?: string | null
           related_job_id?: string | null
           status?: string
-          tenant_id?: string
         }
         Relationships: [
           {
@@ -4962,21 +5020,21 @@ export type Database = {
           },
           {
             foreignKeyName: "ow_invoices_tenant_id_fkey"
-            columns: ["tenant_id"]
+            columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_business_monthly_stats"
             referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ow_invoices_tenant_id_fkey"
-            columns: ["tenant_id"]
+            columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_business_todo_counts"
             referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ow_invoices_tenant_id_fkey"
-            columns: ["tenant_id"]
+            columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
@@ -7121,64 +7179,6 @@ export type Database = {
             columns: ["experience_id"]
             isOneToOne: false
             referencedRelation: "ow_experiences"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ow_tenant_plans: {
-        Row: {
-          created_at: string | null
-          ended_at: string | null
-          id: string
-          monthly_fee: number | null
-          performance_rate: number | null
-          plan_type: string
-          started_at: string | null
-          status: string
-          tenant_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          ended_at?: string | null
-          id?: string
-          monthly_fee?: number | null
-          performance_rate?: number | null
-          plan_type: string
-          started_at?: string | null
-          status?: string
-          tenant_id: string
-        }
-        Update: {
-          created_at?: string | null
-          ended_at?: string | null
-          id?: string
-          monthly_fee?: number | null
-          performance_rate?: number | null
-          plan_type?: string
-          started_at?: string | null
-          status?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_tenant_plans_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
         ]
