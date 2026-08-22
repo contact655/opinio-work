@@ -781,6 +781,9 @@ type EmployeesResponse = {
   hiddenAlumniCount: number;
   totalCurrentCount: number;
   totalAlumniCount: number;
+  /* ⚠️ **閲覧者で絞られたもの**（未ログインには login_only の人が入らない）。
+        サーバーから props で受け取らないこと。ISR の静的HTMLに焼かれる。 */
+  ambassadors: { id: string; user_id: string }[];
   relation: ViewerRelation;
 };
 
@@ -794,12 +797,10 @@ type EmployeesResponse = {
 export function CompanyEmployeeSections({
   companyId,
   categories,
-  ambassadorMap,
   companyName,
 }: {
   companyId: string;
   categories: CompanyEmployeeCategoryItem[];
-  ambassadorMap: Map<string, AmbassadorInfo>;
   companyName: string;
 }) {
   const [data, setData] = useState<EmployeesResponse | null>(null);
@@ -820,6 +821,14 @@ export function CompanyEmployeeSections({
   }, [companyId]);
 
   if (!data) return null;
+
+  /* ⚠️ 面談OKバッジの元。**サーバーから渡さず、ここで組み立てる**（2026-08-22）。
+        props で受け取っていた頃は、未ログインに配られる静的HTMLに
+        面談対応者の user_id が載っていた。バッジが出るのはログイン時だけなので
+        （未ログインには社員カードが1枚も出ない）、ここで作れば足りる。 */
+  const ambassadorMap = new Map<string, AmbassadorInfo>(
+    (data.ambassadors ?? []).map((a) => [a.user_id, { memberId: a.id }])
+  );
 
   const showAlumni = data.alumni.length > 0 || data.hiddenAlumniCount > 0;
   const showAny =

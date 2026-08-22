@@ -1437,6 +1437,18 @@ const COLS = "id, name" as const;
 で設計されているのに揃える。ユーザーの非表示希望と企業側の掲載要望が衝突した場合、
 **必ずユーザー側を優先する。**
 
+### ⚠️ `is_system` は経路ごとに扱いが違う。一律に除外しないこと（2026-08-22 判断）
+
+**`is_system` を除外しているのは `lib/people/directory.ts` だけ。** これは取りこぼしではない。
+
+| 経路 | 扱い | 理由 |
+|---|---|---|
+| `directory.ts`（`/people`） | **除外する** | 起点が `ow_users`（**全登録ユーザー**）なので、システムユーザーの行が候補に入る。`archive` の `b8b30729` で `ow_company_members` 起点から変えたときに足した |
+| `getCompanyEmployees` / `getPublicAmbassadorsCached` | **除外していない（冗長なので不要）** | システムユーザーは `visibility = 'private'` で**既に落ちる**。加えて `ow_experiences` も `ow_company_members` も **0件**で、社員にもアンバサダーにもなり得ない |
+| feed | **除外してはいけない** | `is_system` は**投稿の主体**（企業・求人・記事の告知）。除外すると投稿が消える |
+
+⚠️ **「揃っていないから揃える」で一律除外にしないこと。** feed が壊れる。
+
 ---
 
 ## biz/company フォームから削除した項目（2026-07-28 確定）

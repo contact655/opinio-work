@@ -15,10 +15,12 @@ import {
   getCompanyToolsCached,
   getCompanyStoriesCached,
   getPublicAmbassadorsCached,
+  type PublicAmbassador,
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { InfoCard } from "./InfoCard";
 import { SecTitle } from "./SecTitle";
+import AmbassadorWidget from "./AmbassadorWidget";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
 import { AV_GRADIENTS } from "./avatarGradients";
 import ToolsSectionClient from "./ToolsSectionClient";
@@ -1545,15 +1547,6 @@ function RecruitersSection({
 
 // ─── Company Posts Section ────────────────────────────────────────────────────
 
-type PublicAmbassador = {
-  id: string;
-  user_id: string;
-  role_title: string | null;
-  ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
-};
-
-type AmbassadorInfo = { memberId: string };
-
 type CompanyPost = {
   id: string;
   title: string;
@@ -2167,59 +2160,17 @@ function Sidebar({
         );
       })()}
 
-      {/* カジュアル面談OKウィジェット */}
-      {ambassadors.length > 0 && (
-        <div style={{
-          background: "#fff",
-          border: "1px solid #FCD34D",
-          borderRadius: 14,
-          padding: "16px",
-          boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
-            💬 カジュアル面談OK
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 10 }}>
-            {ambassadors.slice(0, 5).map((amb, i) => {
-              const name = amb.ow_users?.name ?? "";
-              const avatarUrl = amb.ow_users?.avatar_url ?? null;
-              const avatarColor = amb.ow_users?.avatar_color ?? null;
-              return (
-                <a key={amb.id} href={`/u/${amb.user_id}`}
-                  style={{ display: "block", marginLeft: i === 0 ? 0 : -8, position: "relative", zIndex: 5 - i, flexShrink: 0 }}>
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }} />
-                  ) : (
-                    <div style={{
-                      width: 34, height: 34, borderRadius: "50%",
-                      background: avatarColor || "linear-gradient(135deg,var(--royal),#3B5FD9)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 12, fontWeight: 700, color: "#fff", border: "2px solid #fff",
-                    }}>
-                      {name.charAt(0)}
-                    </div>
-                  )}
-                </a>
-              );
-            })}
-            <span style={{ marginLeft: 10, fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
-              {ambassadors.length}名が対応可能
-            </span>
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-            選考なし・完全無料。この会社のことを直接聞けます。<br />転職意欲がなくてもOK。
-          </div>
-          <a href={`#current-employees`} style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: "100%", padding: "9px 0", borderRadius: 8,
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
-            background: "var(--warm)", color: "#fff",
-            boxSizing: "border-box",
-          }}>
-            カジュアル面談を申し込む →
-          </a>
-        </div>
-      )}
+      {/* カジュアル面談OKウィジェット
+             ⚠️ **サーバーで人物を描かない。** 面談対応者は実ユーザーが全員 `login_only` で、
+                このページは ISR（`revalidate = 60`）なので、ここで描くと
+                **未ログインに配られる静的HTMLへ名前と顔が焼き付く**（2026-08-22 まで実際にそうだった）。
+             ⚠️ かといってここで `auth.getUser()` を読むとページが動的化する（2026-08-09 の設計）。
+                → 数字だけ渡し、人物はクライアントが `/api/.../employees` 越しに出す。 */}
+      <AmbassadorWidget
+        companyId={company.id}
+        publicAmbassadors={ambassadors.filter((a) => a.visibility === "public")}
+        totalCount={ambassadors.length}
+      />
 
       {/* 申し込みの流れ — コンパクト1行表示 */}
       {company.accepting_casual_meetings === true && (
@@ -2437,11 +2388,9 @@ export default async function CompanyDetailPage({
 
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
 
-  // userId → ambassador情報のマップ（EmployeeCardの面談OKバッジ用）
-  const ambassadorMap = new Map<string, AmbassadorInfo>();
-  for (const a of ambassadors) {
-    ambassadorMap.set(a.user_id, { memberId: a.id });
-  }
+  /* ⚠️ ここで userId→ambassador のマップを作って渡していたが、やめた（2026-08-22）。
+        ISR の静的HTMLに面談対応者の user_id が載るため。
+        バッジは CompanyEmployeeSections が API のレスポンスから自分で組み立てる。 */
 
   /* ⚠️ 社員一覧の出し分けはここでは行わない（2026-08-09）。
         絞り込みは /api/jobseeker/companies/[id]/employees が
@@ -2616,7 +2565,6 @@ export default async function CompanyDetailPage({
               companyId={company.id}
               companyName={company.name}
               categories={employeeCategories}
-              ambassadorMap={ambassadorMap}
             />
 
             {/* 5-2. 拠点・資本関係

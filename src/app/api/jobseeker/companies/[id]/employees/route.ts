@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCompanyEmployeesCached, type CompanyEmployee } from "@/lib/supabase/queries";
+import { getCompanyEmployeesCached, getPublicAmbassadorsCached, type CompanyEmployee } from "@/lib/supabase/queries";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
  *
  * 企業詳細ページの「閲覧者によって変わる部分」を返す。
  *   - 社員一覧（現役 / OB・OG）を**閲覧者の権限で絞ったもの**
+ *   - 面談対応者（サイドバーの「カジュアル面談OK」ウィジェット用）を同じ条件で絞ったもの
  *   - 伏せた件数（「他N名」の表示用）
  *   - 閲覧者自身がその会社の在籍者かどうか（掲載可否パネル用）
  *
@@ -33,8 +34,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   } = await supabase.auth.getUser();
   const isAuthenticated = !!user;
 
-  // 社員一覧は企業単位の公開データ。閲覧者に依らないのでキャッシュ済みのものを使う
-  const employees = await getCompanyEmployeesCached(params.id);
+  /* 社員一覧・面談対応者はどちらも企業単位のデータで、**キャッシュ側は閲覧者に依らない**
+     （is_test と private だけを落とし、login_only は残して visibility を返してくる）。
+     ⚠️ ログイン状態で絞るのは**ここだけ**。キャッシュの中で絞ると、先に来た人の結果が
+        後から来た人に配られる。 */
+  const [employees, allAmbassadors] = await Promise.all([
+    getCompanyEmployeesCached(params.id),
+    getPublicAmbassadorsCached(params.id),
+  ]);
 
   /* ⚠️ ここがページ本体にあった条件そのもの。変えないこと。 */
   const filterByVisibility = (emps: CompanyEmployee[]) =>
@@ -42,6 +49,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   const visibleCurrent = filterByVisibility(employees.current);
   const visibleAlumni = filterByVisibility(employees.alumni);
+
+  /* ⚠️ 面談対応者にも**同じ条件**を当てる。社員一覧と別の条件にしないこと。 */
+  const visibleAmbassadors = isAuthenticated
+    ? allAmbassadors
+    : allAmbassadors.filter((a) => a.visibility === "public");
 
   // 閲覧者が在籍者本人か（掲載可否パネルの出し分け用）
   let relation: {
@@ -98,6 +110,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     hiddenAlumniCount: employees.alumni.length - visibleAlumni.length,
     totalCurrentCount: employees.current.length,
     totalAlumniCount: employees.alumni.length,
+    /* ⚠️ `ambassadors` は閲覧者が見てよいものだけ。`totalAmbassadorCount` は
+          **閲覧者に依らない総数**で、「ログインすると N名」の N に使う。
+          ⚠️ 見出しの N と遮蔽メッセージの N は**この同じ値**から作ること
+             （別々に数えて食い違った事故がある）。 */
+    ambassadors: visibleAmbassadors,
+    totalAmbassadorCount: allAmbassadors.length,
     relation,
   });
 }

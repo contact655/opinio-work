@@ -1668,15 +1668,24 @@ export const getCompanyStoriesCached = (companyId: string) =>
  *    ここは**企業ページの同僚である `getCompanyEmployees` に揃えてある**。
  *    条件を新しく発明しないこと。
  *
- * ⚠️ **`login_only` はここでは絞れない**（閲覧者依存なので上記のとおり書けない）。
- *    `getCompanyEmployees` は `visibility` を呼び出し側へ返し、
- *    `/api/jobseeker/companies/[id]/employees` がログイン状態で絞る形にしている。
- *    このウィジェットには同じ仕組みが無く、**未ログインにも login_only の人が出る**。
- *    公開中の4行は全員 `login_only` なので、実際に出続けている。**別途の判断が要る。**
+ * ⚠️ **`login_only` はここでは絞らない**（閲覧者依存なので、キャッシュの中に書くと
+ *    先に来た人の結果が後の人に配られる＝キャッシュ汚染になる）。
+ *    **`visibility` を呼び出し側へ返し、閲覧者が誰かを知っている層で絞る。**
+ *    `getCompanyEmployees` ＋ `/api/jobseeker/companies/[id]/employees` と同じ形。
  */
-export const getPublicAmbassadorsCached = (companyId: string) =>
+export type PublicAmbassador = {
+  id: string;
+  user_id: string;
+  role_title: string | null;
+  /* ⚠️ 呼び出し側が未ログインを絞るために使う。**private はここで既に落としてある**ので
+        残るのは public か login_only の2値だけ。 */
+  visibility: "public" | "login_only";
+  ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
+};
+
+export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmbassador[]> =>
   unstable_cache(
-    async () => {
+    async (): Promise<PublicAmbassador[]> => {
       const { data, error } = await createAdminClient()
         .from("ow_company_members")
         .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url, is_test, visibility)")
@@ -1690,10 +1699,22 @@ export const getPublicAmbassadorsCached = (companyId: string) =>
       /* 除外条件は getCompanyEmployees と同じ形にしてある（上のコメント）。
          ⚠️ ow_users が引けなかった行（null）も落とす。名前もアバターも出せないので
             「N名が対応可能」の N だけを水増しすることになる。 */
-      return (data ?? []).filter((r) => {
-        const u = (r as { ow_users?: { is_test?: boolean | null; visibility?: string | null } | null }).ow_users;
-        if (!u) return false;
-        return !(u.is_test === true || u.visibility === "private");
+      return (data ?? []).flatMap((r) => {
+        const row = r as unknown as {
+          id: string; user_id: string; role_title: string | null;
+          ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null;
+                      is_test: boolean | null; visibility: string | null } | null;
+        };
+        const u = row.ow_users;
+        if (!u) return [];
+        if (u.is_test === true || u.visibility === "private") return [];
+        return [{
+          id: row.id,
+          user_id: row.user_id,
+          role_title: row.role_title,
+          visibility: (u.visibility === "public" ? "public" : "login_only") as "public" | "login_only",
+          ow_users: { name: u.name, avatar_color: u.avatar_color, avatar_url: u.avatar_url },
+        }];
       });
     },
     ["company-ambassadors", companyId],
