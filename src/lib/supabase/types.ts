@@ -6232,7 +6232,6 @@ export type Database = {
           visibility_reason: boolean
         }[]
       }
-      get_tenant_id: { Args: never; Returns: string }
       is_solicitation_blocked: {
         Args: { p_candidate_id: string }
         Returns: boolean
