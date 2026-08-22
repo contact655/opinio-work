@@ -29,7 +29,17 @@ export const MEMBER_CREATED_VIA_VALUES: readonly MemberCreatedVia[] = [
 ];
 
 /**
- * 4つの状態。**行の有無と2つのフラグから導く。列は増やさない。**
+ * 5つの状態。**行の有無と2つのフラグから導く。列は増やさない。**
+ *
+ * 軸は「**誰の対応待ちか**」で統一している（`pending_user` / `pending_company`）。
+ *
+ * ⚠️ **状態名に `self` を使わないこと。** `self` は `created_via = 'self'`（＝本人発）
+ *    専用の語で、「本人待ち」の意味で使うと衝突する。
+ *    本人待ちは `pending_user`。（`pending_self` から改名した / 2026-08-23）
+ *
+ * ⚠️ `pending_company` という語は**このファイル以外にも別の意味で存在する**。
+ *    `user_metadata.pending_company` と `opinio_biz_pending_company`（sessionStorage）は
+ *    企業登録時の「入力途中の会社名」で、**まったくの別物**。一括置換しないこと。
  *
  * ⚠️ `none` と `pending_company` を同じ見た目にしないこと。
  *    「まだ申請していない」と「申請したが承認待ち」は利用者にとって別のことで、
@@ -38,8 +48,8 @@ export const MEMBER_CREATED_VIA_VALUES: readonly MemberCreatedVia[] = [
 export type MemberState =
   /** 行が無い＝まだ何もしていない（解除した後もここに戻る） */
   | "none"
-  /** 企業が招待したが本人がまだ承認していない（display_consent=false） */
-  | "pending_self"
+  /** 企業が招待したが**本人**がまだ承認していない（display_consent=false） */
+  | "pending_user"
   /** 本人が申請済み・**企業の承認待ち**（display_consent=true / is_public=false / created_via='self'） */
   | "pending_company"
   /** 本人は同意済みだが企業が非公開にしている（display_consent=true / is_public=false / created_via≠'self'） */
@@ -53,13 +63,13 @@ export type MemberState =
  * ⚠️ `created_via` が NULL の行（この列より前に作られた行）を `pending_company` にしない。
  *    企業側が作った行なので、本人は既に同意している。未公開なのは**企業が非公開にしている**
  *    からで、本人が待たされているわけではない → `unlisted`。
- *    ⚠️ ここを `pending_self` にすると「本人がまだ承認していない」と誤って表示される。
+ *    ⚠️ ここを `pending_user` にすると「本人がまだ承認していない」と誤って表示される。
  */
 export function memberState(
   row: { display_consent: boolean; is_public: boolean; created_via: string | null } | null | undefined,
 ): MemberState {
   if (!row) return "none";
-  if (!row.display_consent) return "pending_self";
+  if (!row.display_consent) return "pending_user";
   if (row.is_public) return "listed";
   return row.created_via === MEMBER_CREATED_VIA.SELF ? "pending_company" : "unlisted";
 }

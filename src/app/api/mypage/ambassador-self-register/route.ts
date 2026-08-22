@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MEMBER_CREATED_VIA } from "@/lib/constants/companyMembers";
+import { MEMBER_CREATED_VIA, type MemberState } from "@/lib/constants/companyMembers";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
@@ -142,5 +142,9 @@ export async function POST(req: NextRequest) {
   /* 申請中は表示されないが、**必ず捨てる**。「表示に出ない操作は呼ばなくてよい」を
      例外にすると、どの経路が呼ぶのかが人によって変わって漏れる。 */
   revalidateCompanyAmbassadors(companyId);
-  return NextResponse.json({ ok: true, id: created.id, state: "pending_company" }, { status: 201 });
+  /* ⚠️ 状態名を文字列で直書きしない。`MemberState` で縛っておくと、
+        改名したときに tsc が落ちて気づける（`pending_self` → `pending_user` の改名時に
+        ここが取り残されかけた）。 */
+  const state: MemberState = "pending_company";
+  return NextResponse.json({ ok: true, id: created.id, state }, { status: 201 });
 }
