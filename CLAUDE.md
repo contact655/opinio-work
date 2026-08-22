@@ -2190,6 +2190,38 @@ ps aux | grep -E "next-server|next dev" | grep -v grep
 `preview_start` が「port 3000 was in use, so port XXXXX was assigned instead」と言ったら、
 **それは前のセッションの dev サーバーが生き残っているサイン**。別ポートで起動せず、先に止める。
 
+#### ★`npm run dev` には guard が入っている（2026-08-22）。ただし穴がある
+
+`package.json` の **`predev`** が [scripts/next-guard.sh](scripts/next-guard.sh) を呼ぶ。
+既に `next dev` / `next-server` が生きていたら、**PID とコマンドラインと待ち受けポートを
+名指しして中止する**（どれと衝突しているか分からないと、結局 kill -9 の総当たりになるため）。
+
+⚠️ **これで防げるのは①（dev の二重起動）だけ。過信しないこと。**
+
+| 防げない経路 | 理由 |
+|---|---|
+| **`npx next dev` を直接叩く** | npm の `pre*` フックは **`npm run dev` 経由でしか走らない**。素通りする |
+| **2セッションが同時に検査する** | 数秒の窓で両方通る。実際に踏んだのは「数分間の重なり」なので実用上は足りるが、**原理的な穴は残る** |
+| **`build` / `start`** | **guard の対象外**。ローカルでは `.next-prod` に出るので衝突しない（`distDir` 側で担保）。`prebuild` / `prestart` には**あえて差していない** ——`prebuild` は Vercel の `npm run build` に差さる唯一の経路で、**本番デプロイを止めうる**ため |
+
+⚠️ **fail-open（迷ったら通す）で書いてある。** `pgrep` が無い環境、`VERCEL` / `CI`、
+   `OPINIO_ALLOW_NEXT=1` のときは**素通り**する。ここで誤って止めると開発が始められない。
+
+```bash
+OPINIO_ALLOW_NEXT=1 npm run dev   # 意図的に並走させたいとき
+```
+
+実測（2026-08-22。すべて実際に走らせて確認）:
+
+| 条件 | 結果 |
+|---|---|
+| dev 不在で `npm run dev` | **起動する** |
+| dev 稼働中に `npm run dev` | **中止**（exit 1）。PID・コマンドライン・ポート3000 を表示 |
+| `OPINIO_ALLOW_NEXT=1` / `VERCEL=1` / `CI=1` | **素通り**（dev 稼働中でも exit 0） |
+| `PATH` を潰して `pgrep`/`lsof` を消す | **素通り**（exit 0・出力0バイト） |
+| `pgrep` はあるが `lsof` が無い | **中止する**。ポート行だけ落ちて PID は出る |
+| dev 稼働中に `npm run build` / `npm start` | **影響なし**（`predev`/`prebuild`/`prestart` とも0件・両方 200） |
+
 #### なぜ致命的か
 
 2つの dev サーバーが同じ `.next/cache/webpack/` に書き込むと pack ファイルが壊れ、
