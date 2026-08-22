@@ -143,15 +143,49 @@ type DbJob = {
 const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", "rejected", "private"]);
 
 /**
- * API から**新しく設定できる** status。
+ * **企業側の API（`PATCH /api/biz/jobs/[id]`）が許す status の遷移。**
+ * 「今どの状態か」→「そこから移ってよい状態」。
  *
- * ⚠️ 2026-08-11 に `VALID_STATUSES` と同じ5値になった（`active` を消したため）。
- *    ⚠️ ここに値を足すときは DB の CHECK と `VALID_STATUSES`（＝表示側）も同時に足す。
- *       片方だけ足すと「DB には入るが画面で draft に化ける」状態になる。
+ * ⚠️ **`published` はどこからも出てこない。これがこの表の目的。**
+ *    公開にできるのは運営だけで、経路は `/admin/jobs` の `approveJob`
+ *    （Server Action・admin クライアント）1本に限る。
+ *    `rejected`（差し戻し）も同じく運営専用。
+ *
+ * ── なぜ遷移表にしたか（2026-08-23）────────────────────────────────────
+ * それまでは「設定してよい値」の**平らな集合**（`SETTABLE_JOB_STATUSES`）で、
+ * **`published` が入っていた。** 画面に公開ボタンは無かったが、
+ * **企業の管理者が API を直接叩けば審査を経ずに公開できた。**
+ * 唯一の歯止めは「その企業のページが公開済みか」だけだった。
+ *
+ * 値の集合では「どこから来たか」を見られないので、**遷移として持つ**。
+ *
+ * ⚠️ **中身は画面（`components/business/JobListCard.tsx` の `renderActions`）が
+ *    出しているボタンと1対1。** 画面にボタンを足したらここにも足す。
+ *    逆にここだけ広げると、画面に無い操作が API から通る状態に戻る。
+ *
+ * ⚠️ 遷移先を足すときは DB の CHECK（`ow_jobs_status_check`）と
+ *    `VALID_STATUSES`（＝表示側）も見ること。3つ揃える（CLAUDE.md）。
  */
-export const SETTABLE_JOB_STATUSES = new Set<string>([
-  "draft", "pending_review", "published", "rejected", "private",
-]);
+export const JOB_STATUS_TRANSITIONS: Record<string, readonly JobStatus[]> = {
+  /** 下書き → 公開申請 */
+  draft:          ["pending_review"],
+  /** 審査待ち → 申請を取り下げる */
+  pending_review: ["draft"],
+  /** 差し戻し → 修正して再申請 */
+  rejected:       ["pending_review"],
+  /** 公開中 → 自社都合で止める（運営の `privateJob` とは別。企業も止められる） */
+  published:      ["private"],
+  /** 非公開 → 公開を再開（＝再審査に出す。直接 published には戻さない） */
+  private:        ["pending_review"],
+};
+
+/** `from` から `to` へ企業側が動かしてよいか。知らない値は false（fail-closed）。 */
+export function canCompanyTransition(from: string | null, to: string): boolean {
+  if (!from) return false;
+  const allowed = JOB_STATUS_TRANSITIONS[from];
+  if (!allowed) return false;
+  return (allowed as readonly string[]).includes(to);
+}
 
 function toJobStatus(s: string | null): JobStatus {
   if (!s) return "draft";

@@ -8,7 +8,7 @@ import { insertActivity } from "@/lib/business/activities";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
-import { validateJobOptionFields, toUrgency, SETTABLE_JOB_STATUSES } from "@/lib/business/jobs";
+import { validateJobOptionFields, toUrgency, canCompanyTransition, JOB_STATUS_TRANSITIONS } from "@/lib/business/jobs";
 
 
 function str(v: unknown, max: number): string | undefined {
@@ -190,24 +190,54 @@ export async function PATCH(
   try { requireAdmin(ctx1.allMemberships, ctx1.companyId); } catch { return permissionDeniedResponse(); }
 
   const newStatus = body.value ?? "";
-  if (!SETTABLE_JOB_STATUSES.has(newStatus)) {
-    return NextResponse.json({ error: "invalid status" }, { status: 400 });
+
+  /* ── 遷移の検査（2026-08-23）──────────────────────────────────────────
+     ⚠️ **「設定してよい値か」ではなく「今の状態から移ってよいか」で見る。**
+        以前は平らな集合で判定しており `published` が含まれていたため、
+        **企業の管理者が API を直接叩けば審査を経ずに公開できた**
+        （画面に公開ボタンは無いので、画面を見ている限り気づけない）。
+
+     ⚠️ **現在の status を DB から読むこと。** リクエストの値を信じない。
+        自社の求人であることは `company_id` の一致で確かめる
+        （UPDATE 側の `.eq("company_id", ...)` と二重になるが、
+         ここで弾かないと他社の求人の状態を**読めて**しまう）。 */
+  const { data: current, error: curErr } = await supabase
+    .from("ow_jobs")
+    .select("status")
+    .eq("id", jobId)
+    .eq("company_id", ctx1.companyId)
+    .maybeSingle();
+
+  /* ⚠️ error を握り潰さない（CLAUDE.md）。読めなかったのか、
+        他社の求人だったのかを区別できないので、どちらも 404 に倒す
+        （存在の有無を漏らさない）。 */
+  if (curErr) {
+    console.error("[jobs PATCH status] 現在の status 取得に失敗:", curErr.message);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+  if (!current) {
+    return NextResponse.json({ error: "求人が見つかりません" }, { status: 404 });
   }
 
-  // 未承認企業は published への昇格不可
-  if (newStatus === "published") {
-    const { data: companyRow } = await supabase
-      .from("ow_companies")
-      .select("is_published")
-      .eq("id", ctx1.companyId)
-      .maybeSingle();
-    if (companyRow && companyRow.is_published !== true) {
-      return NextResponse.json(
-        { error: "運営審査が完了するまで求人を公開できません" },
-        { status: 403 }
-      );
-    }
+  if (!canCompanyTransition(current.status, newStatus)) {
+    /* ⚠️ **`published` を名指しで案内する。** 「invalid status」だけだと、
+          企業側は自分の操作の何が悪いのか分からない。 */
+    const hint =
+      newStatus === "published" || newStatus === "rejected"
+        ? "求人の公開・差し戻しは運営が行います。「公開申請」を送ってください。"
+        : `「${current.status}」から「${newStatus}」への変更はできません。`;
+    return NextResponse.json(
+      {
+        error: hint,
+        allowed: JOB_STATUS_TRANSITIONS[current.status ?? ""] ?? [],
+      },
+      { status: 403 }
+    );
   }
+
+  /* ⚠️ ここにあった「未承認企業は published への昇格不可」の判定は消した。
+        `published` はもう企業側からは設定できないので**到達しない**。
+        同じ趣旨のゲートは運営側（`/admin/jobs` の approveJob）に残っている。 */
 
   const now = new Date().toISOString();
   const patch: { status: string; updated_at: string; submitted_at?: string | null } = { status: newStatus, updated_at: now };
@@ -232,7 +262,25 @@ export async function PATCH(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  // Activity: job_published (best-effort, only on publish) — ctx1 を再利用
+  /* ── ⚠️ この下のブロックは 2026-08-23 以降 **到達しない** ───────────────
+        `canCompanyTransition` の遷移表に `published` への遷移が1本も無いため、
+        企業側から `newStatus === "published"` になることはない。
+
+     ⚠️ **消していない。理由は、これがフィード投稿（`job_posted`）を作る
+        唯一の実装だから。** 運営の承認経路（`admin/jobs/actions.ts` の
+        `approveJob`）は status を published にするだけで、
+        **フィード投稿も活動ログも作らない**（`buildJobPostedRow` の
+        呼び出し元は src 全体でここ1箇所）。
+
+     ⚠️ **つまり「公開してもフィードに流れない」という穴が既にある。**
+        実測（2026-08-23）: `ow_posts` の `job_posted` は74件あるが
+        すべて 2026-06-18 以前で、`scripts/backfill-feed-posts.mjs` が
+        作ったもの。**この経路から作られた投稿は0件。**
+
+        塞ぎ方は「approveJob に移す」だが、それは
+        **承認するたびに公開のフィード投稿が出る**という対外的な挙動の変更なので、
+        判断を仰ぐまで行っていない。移すときはこのブロックごと移すこと
+        （本文の組み立ては `lib/feed/systemPosts` に集約されている）。 */
   if (newStatus === "published") {
     const jobRow1 = await supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle();
     if (jobRow1.data?.company_id) {
