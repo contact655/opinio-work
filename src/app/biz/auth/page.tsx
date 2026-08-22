@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { PAID_PLAN_MONTHLY_FEE } from "@/lib/constants/plans";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo } from "@/lib/auth/redirects";
@@ -1027,8 +1028,8 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         {/* ④ Simplified unified account notice (⑦) */}
         <SimplifiedAccountNotice />
 
-        {/* 成果報酬の開示 + 同意チェックボックス */}
-        <FeeDisclosure />
+        {/* 掲載サービスの料金の案内 + 同意チェックボックス */}
+        <PlanDisclosure />
 
         <ConsentCheckbox
           id="biz-agree-terms"
@@ -1047,10 +1048,14 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         {/* ⚠️ 成功報酬（人材紹介）の同意はここで取らない（2026-08-14 に規約を2本へ分割）。
                掲載だけしたい企業に紹介の同意まで求めない。同意は
                「候補者を探す」＝スカウトを使う時点で取る（PlacementTermsPanel）。 */}
+        {/* ⚠️ **ここに料率を書かないこと**（2026-08-23）。
+               人材紹介の費用は人材紹介利用規約（第8条）が正で、下限額の定めもある。
+               2か所に数字を書くと片方だけ古くなる（今回の事故がまさにそれ）。 */}
         <p style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8, margin: "-4px 0 12px" }}>
-          スカウト・人材紹介（成約時に採用者の理論年収の15%）をご利用の際は、
+          掲載サービスの費用は上記のとおりです。当社の<strong>人材紹介サービス</strong>（求職者のご紹介）は
+          掲載サービスとは別の契約で、ご利用の際は
           <a href="/terms/placement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>人材紹介利用規約</a>
-          への同意を別途お願いします。
+          への同意を別途お願いします。同サービスの費用は同規約に定めます。
         </p>
 
         <button
@@ -1465,31 +1470,43 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
   );
 }
 
-// 成果報酬の開示ボックス
-function FeeDisclosure() {
+/*
+ * 掲載サービスの料金の案内。
+ *
+ * ⚠️ **2026-08-23 に「成果報酬について（重要）／理論年収の15%」から差し替えた。**
+ *    掲載サービスの成功報酬は 2026-08-21 の規約改定で廃止済み
+ *    （/terms/listing 第4条2項・第6条3項）。**古い記載を戻さないこと。**
+ *
+ * ⚠️ **金額は `PAID_PLAN_MONTHLY_FEE` から出す。ここに数字を書かない。**
+ *    LP（/business の料金セクション）と同じ内容にしてある。片方だけ直さないこと。
+ */
+function PlanDisclosure() {
   return (
     <div style={{
       marginTop: 18,
       borderRadius: 10,
-      border: "1.5px solid #FCD34D",
-      background: "var(--warm-soft)",
+      border: "1.5px solid var(--royal-100)",
+      background: "var(--royal-50)",
       padding: "14px 16px",
     }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
-        fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 8,
+        fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 8,
       }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        成果報酬について（重要）
+        料金について
       </div>
-      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#78350F", lineHeight: 1.9 }}>
-        <li>成約（採用決定）が確認できた時点でのみ課金されます</li>
-        <li>採用者の<strong>理論年収の 15%</strong> を成果報酬としてご請求します</li>
+      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+        <li>求人の掲載・企業ページの作成・応募の受け取りは<strong>無料</strong>です</li>
+        <li>
+          候補者検索、応募者の連絡先の表示、話せる社員の招待は、
+          月額 <strong>{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円</strong>（税別）の有料プランでご利用いただけます
+        </li>
       </ul>
-      <p style={{ margin: "8px 0 0", fontSize: 11, color: "#92400E", lineHeight: 1.7 }}>
-        <strong>「理論年収」とは</strong>、月給・賞与・各種手当を含む、採用者が年間に受け取る想定総額を指します。掲載費・候補者閲覧費は一切かかりません。
+      <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--ink)", lineHeight: 1.7, fontWeight: 700 }}>
+        成果報酬は発生しません。
       </p>
     </div>
   );

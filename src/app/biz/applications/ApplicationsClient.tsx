@@ -199,7 +199,8 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
   }
 
   // ── Hire confirm ─────────────────────────────────────────────────────────
-  async function handleHireConfirm(appId: string, salary: number) {
+  /** ⚠️ salary は null を取りうる（年収は任意）。null をそのまま送る。 */
+  async function handleHireConfirm(appId: string, salary: number | null) {
     const res = await fetch(`/api/biz/applications/${appId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -388,14 +389,14 @@ type DetailProps = {
   app: BizApplication;
   isUpdating: boolean;
   onStatusChange: (id: string, status: ApplicationStatus) => void;
-  onHireConfirm: (id: string, salary: number) => void;
+  /** ⚠️ salary は null を取りうる（年収は任意） */
+  onHireConfirm: (id: string, salary: number | null) => void;
 };
 
 function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailProps) {
   const [showHireForm, setShowHireForm] = useState(false);
   const [hiredSalary, setHiredSalary] = useState("");
   const [hireSubmitting, setHireSubmitting] = useState(false);
-  const [hireTermsAgreed, setHireTermsAgreed] = useState(false);
 
   const statusOptions: { value: ApplicationStatus; label: string }[] = [
     { value: "pending",   label: "新着" },
@@ -603,7 +604,9 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定済み</div>
-            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>OPINIOから請求書をお送りします。</div>
+            {/* ⚠️ 「請求書をお送りします」を戻さないこと（2026-08-23 に削除）。
+                   掲載サービスの成功報酬は廃止済みで、この報告に費用は伴わない。 */}
+            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>選考の記録として保存されています。</div>
           </div>
         </div>
       ) : (app.status === "accepted") && (
@@ -620,9 +623,13 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46", marginBottom: 4 }}>
                   🎉 採用が決まりましたか？
                 </div>
+                {/* ⚠️ **費用の案内を書かないこと**（2026-08-23）。
+                       掲載サービスの成功報酬は廃止済み。この報告は記録のためのもの。
+                    ⚠️ 「入社から2年間スカウトが送られない」とも書かないこと。
+                       その実装は無く、転職勧奨の禁止は**当社が紹介した**求職者への
+                       義務であって、企業が自分で採用した人には及ばない。 */}
                 <div style={{ fontSize: 12, color: "#047857", lineHeight: 1.6 }}>
-                  採用確定を報告すると、OPINIOから請求書を発行します。<br />
-                  <span style={{ fontWeight: 600 }}>料金：採用者の年収 × 10%</span>
+                  ご報告いただくと、選考の記録として保存されます。費用は発生しません。
                 </div>
               </div>
               <button
@@ -645,10 +652,11 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
               {/* 年収入力 */}
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#047857", display: "block", marginBottom: 4 }}>
-                  採用者の年収（万円）
+                  採用者の年収（万円）<span style={{ fontWeight: 400, color: "#6B7280" }}>（任意）</span>
                 </label>
+                {/* ⚠️ **任意と書いた以上、空欄で送信できること。** 下の送信条件も同じ。 */}
                 <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8, lineHeight: 1.5 }}>
-                  採用通知書または雇用契約書に記載の年収をご入力ください。
+                  統計のためにお伺いしています。未入力のままご報告いただけます。
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
@@ -666,58 +674,42 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                     }}
                   />
                   <span style={{ fontSize: 13, color: "#047857" }}>万円</span>
-                  {hiredSalary && Number(hiredSalary) > 0 && (
-                    <span style={{ fontSize: 12, color: "#065F46", fontWeight: 700, marginLeft: 4 }}>
-                      → 請求額: {Math.round(Number(hiredSalary) * 0.1)}万円（税抜）
-                    </span>
-                  )}
+                  {/* ⚠️ ここに請求額を計算して出していた（年収 × 0.1）。
+                         2026-08-23 に削除。**戻さないこと。** */}
                 </div>
               </div>
 
-              {/* 規約同意チェック */}
-              <label style={{
-                display: "flex", alignItems: "flex-start", gap: 10,
-                background: "#F0FDF4", border: "1px solid #6EE7B7",
-                borderRadius: 8, padding: "12px 14px", cursor: "pointer",
-              }}>
-                <input
-                  type="checkbox"
-                  checked={hireTermsAgreed}
-                  onChange={e => setHireTermsAgreed(e.target.checked)}
-                  style={{ marginTop: 2, accentColor: "var(--success)", flexShrink: 0, width: 15, height: 15 }}
-                />
-                <span style={{ fontSize: 12, color: "#065F46", lineHeight: 1.65 }}>
-                  上記の年収は採用通知書・雇用契約書に基づく正確な金額であることを確認しました。
-                  報告後、OPINIOより<strong>年収の10%を成果報酬として請求</strong>します。
-                  年収の相違が判明した場合、差額を追加請求する場合があります。
-                </span>
-              </label>
+              {/* ⚠️ 同意チェックを 2026-08-23 に削除した。**請求のためのものだった。**
+                     費用が発生しなくなった以上、同意を取る対象が無い。 */}
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button
+                  /* ⚠️ **年収は任意。** 空欄でも送信できる（null を送る）。
+                        画面に「任意」と書いた以上、必須のままにしない。
+                        入力があるときだけ 100〜5000 の範囲を確かめる。 */
                   onClick={async () => {
-                    const salary = Number(hiredSalary);
-                    if (!salary || salary < 100 || !hireTermsAgreed) return;
+                    const raw = hiredSalary.trim();
+                    const salary = raw === "" ? null : Number(raw);
+                    if (salary !== null && (!Number.isFinite(salary) || salary < 100 || salary > 5000)) return;
                     setHireSubmitting(true);
                     await onHireConfirm(app.id, salary);
                     setHireSubmitting(false);
                     setShowHireForm(false);
-                    setHireTermsAgreed(false);
                   }}
-                  disabled={hireSubmitting || !hiredSalary || Number(hiredSalary) < 100 || !hireTermsAgreed}
+                  disabled={hireSubmitting || (hiredSalary.trim() !== "" && !(Number(hiredSalary) >= 100 && Number(hiredSalary) <= 5000))}
                   style={{
                     padding: "10px 24px", borderRadius: 8,
-                    background: (hireSubmitting || !hireTermsAgreed || !hiredSalary || Number(hiredSalary) < 100)
+                    background: (hireSubmitting || (hiredSalary.trim() !== "" && !(Number(hiredSalary) >= 100 && Number(hiredSalary) <= 5000)))
                       ? "#94a3b8"
                       : "linear-gradient(135deg, var(--success), #047857)",
                     color: "#fff", fontSize: 13, fontWeight: 700,
-                    border: "none", cursor: (hireSubmitting || !hireTermsAgreed) ? "not-allowed" : "pointer",
+                    border: "none", cursor: hireSubmitting ? "not-allowed" : "pointer",
                   }}
                 >
                   {hireSubmitting ? "送信中..." : "確定して報告する"}
                 </button>
                 <button
-                  onClick={() => { setShowHireForm(false); setHiredSalary(""); setHireTermsAgreed(false); }}
+                  onClick={() => { setShowHireForm(false); setHiredSalary(""); }}
                   style={{
                     padding: "10px 16px", borderRadius: 8,
                     background: "transparent", color: "#047857",

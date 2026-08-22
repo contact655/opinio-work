@@ -138,9 +138,12 @@ export async function PATCH(
     ow_companies: { name: string };
   } | null;
 
-  // 採用確定時: 管理者（柴さん）に請求トリガーメールを送信
+  /* 採用確定時: 運営に通知する。
+     ⚠️ **請求のトリガーではない**（2026-08-23）。掲載サービスの成功報酬は
+        2026-08-21 の規約改定で廃止済み。ここで料率を計算していた（年収 × 0.1）が
+        削除した。**戻さないこと。**
+     ⚠️ 年収は任意入力。未入力なら「未入力」と出す（0 や推定値で埋めない）。 */
   if (newStatus === "hired" && appForNotify) {
-    const fee = hiredSalary != null ? Math.round(hiredSalary * 0.1) : null;
     await notify({
       to: process.env.ADMIN_EMAIL || "contact@opinio.co.jp",
       subject: `【採用確定】${job?.ow_companies?.name ?? "企業"} が採用を確定しました`,
@@ -162,15 +165,9 @@ export async function PATCH(
         <td style="padding:10px 14px;border:1px solid #e2e8f0"><a href="mailto:${appForNotify.email}" style="color:#3B5FD9">${appForNotify.email ?? "—"}</a></td></tr>
     <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">想定年収</td>
         <td style="padding:10px 14px;border:1px solid #e2e8f0">${hiredSalary ? `${fmtMan(Number(hiredSalary))}万円` : "未入力"}</td></tr>
-    <tr style="background:#D1FAE5"><td style="padding:10px 14px;background:#6EE7B7;border:1px solid #6EE7B7;font-weight:800;color:#065F46">請求額（目安）</td>
-        <td style="padding:10px 14px;border:1px solid #6EE7B7;font-weight:800;font-size:16px;color:#065F46">${fee ? `${fmtMan(fee)}万円（年収の10%・税抜）` : "年収 × 10%（税抜）"}</td></tr>
     <tr><td style="padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600">申込ID</td>
         <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:12px;color:#475569;font-family:monospace">${appId}</td></tr>
   </table>
-  <div style="margin-top:24px;padding:16px;background:#FEF3C7;border-radius:8px;font-size:13px;color:#92400E">
-    <strong>次のアクション：</strong>請求書を作成して ${job?.ow_companies?.name ?? "企業担当者"} にお送りください。<br/>
-    <span style="font-size:12px;margin-top:6px;display:block">年収に相違がある場合は申込IDを元に差額を追加請求してください。</span>
-  </div>
   <div style="margin-top:16px;font-size:12px;color:#94a3b8">確定日時: ${new Date().toLocaleString("ja-JP")}</div>
 </div></body></html>`,
     });
