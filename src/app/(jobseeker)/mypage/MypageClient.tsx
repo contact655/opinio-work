@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
 import StanceCard from "@/components/profile/editor/StanceCard";
+import TalkToMeCard, { type TalkMembership } from "@/components/profile/editor/TalkToMeCard";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
@@ -70,80 +70,9 @@ function SectionBlock({
 
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
-function AmbassadorWidget({ memberships }: { memberships: AmbassadorMembership[] }) {
-  const router = useRouter();
-  const [removingId, setRemovingId] = useState<string | null>(null);
-
-  if (memberships.length === 0) return null;
-
-  async function handleRemove(id: string) {
-    setRemovingId(id);
-    try {
-      const res = await fetch("/api/mypage/ambassador-self-remove", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_id: id }),
-      });
-      if (res.ok) router.refresh();
-    } catch {
-      // silent
-    } finally {
-      setRemovingId(null);
-    }
-  }
-
-  return (
-    <div style={{ marginTop: 20 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, letterSpacing: "0.05em" }}>
-        面談対応者の設定
-      </div>
-      {memberships.map((m) => (
-        <div key={m.id} style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          background: m.display_consent ? "var(--success-soft)" : "var(--warm-soft)",
-          border: `1px solid ${m.display_consent ? "#6ee7b7" : "#fcd34d"}`,
-          borderRadius: 10,
-          padding: "12px 14px",
-          marginBottom: 8,
-        }}>
-          <span style={{ fontSize: 18 }}>{m.display_consent ? "✅" : "⏳"}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>
-              {m.company_name}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
-              {m.role_title ?? "役職未設定"} ·{" "}
-              {m.display_consent ? "話せる人として公開中" : "承認待ち（未公開）"}
-            </div>
-          </div>
-          <button
-            onClick={() => handleRemove(m.id)}
-            disabled={removingId === m.id}
-            style={{
-              background: "none",
-              border: "1px solid var(--line)",
-              borderRadius: 6,
-              padding: "4px 10px",
-              fontSize: 12, fontWeight: 500,
-              color: "var(--ink-mute)",
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {removingId === m.id ? "..." : "解除"}
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function DashboardView({
   userId, userInitial, userAvatar,
   userEducations,
-  ambassadorMemberships = [],
   schoolPeerCounts = {},
   canPost,
   profileEditorWith,
@@ -162,7 +91,6 @@ function DashboardView({
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  ambassadorMemberships?: AmbassadorMembership[];
   schoolPeerCounts?: Record<string, number>;
 }) {
   /* ⚠️ **経歴タイムライン（MergedTimeline）はここから外した**（2026-08-16）。
@@ -317,8 +245,6 @@ function DashboardView({
       </SectionBlock>
       )}
 
-      {/* 面談対応者の設定（登録がある場合のみ表示） */}
-      <AmbassadorWidget memberships={ambassadorMemberships} />
         </>
       )}
 
@@ -328,7 +254,9 @@ function DashboardView({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type AmbassadorMembership = { id: string; company_id: string; company_name: string; role_title: string | null; display_consent: boolean };
+/* ⚠️ 型は TalkToMeCard 側（= memberState() が要求する形）に合わせる。
+      ここで別に定義すると、列を足したときに片方だけ古くなる。 */
+type AmbassadorMembership = TalkMembership;
 
 /** `ProfileEditor` にそのまま渡すプロップ。★親で1つずつ数え直さない */
 type ProfileEditorProps = Omit<ComponentProps<typeof ProfileEditor>, "owUser">;
@@ -344,6 +272,7 @@ export default function MypageClient({
   scoutsBadge,
   isNewUser = false,
   ambassadorMemberships = [],
+  currentCompanies = [],
   schoolPeerCounts = {},
   ...editorProps
 }: {
@@ -367,6 +296,7 @@ export default function MypageClient({
   scoutsBadge?: number;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
+  currentCompanies?: { id: string; name: string }[];
   schoolPeerCounts?: Record<string, number>;
 } & ProfileEditorProps) {
   const userName = owUser?.name ?? "ユーザー";
@@ -426,6 +356,18 @@ export default function MypageClient({
       <StanceCard
         initialScoutEnabled={(editorProps as { initialScoutEnabled?: boolean | null }).initialScoutEnabled ?? null}
         openToWorkLabel={owUser?.is_open_to_work ? "積極的に探している" : "情報収集として"}
+      />
+
+      {/* ★在籍している会社について話を聞かれてもよいか（2026-08-23 / フェーズ2）。
+             ⚠️ 出るのは**在籍中かつ企業マスタに紐づく会社がある人だけ**。
+                0件ならカードごと出ない（TalkToMeCard 側で判定）。
+             ⚠️ 本文側にあった旧「面談対応者の設定」はここへ統合した。
+                2箇所に置くと、状態の出し分けが片方だけ古くなる
+                （旧ウィジェットは display_consent だけを見ており、
+                 申請しただけの人に「公開中」と表示していた）。 */}
+      <TalkToMeCard
+        currentCompanies={currentCompanies}
+        memberships={ambassadorMemberships}
       />
 
       {/* プロフィール公開促進
@@ -593,7 +535,6 @@ export default function MypageClient({
           userAvatar={userAvatar}
           userEducations={educations}
           canPost={canPost}
-          ambassadorMemberships={ambassadorMemberships}
           schoolPeerCounts={schoolPeerCounts}
           profileEditorWith={(extra) => (
             <ProfileEditor

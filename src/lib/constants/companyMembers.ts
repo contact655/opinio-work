@@ -73,3 +73,22 @@ export function memberState(
   if (row.is_public) return "listed";
   return row.created_via === MEMBER_CREATED_VIA.SELF ? "pending_company" : "unlisted";
 }
+
+/**
+ * 画面が扱う `ow_company_members` の1行。**`memberState()` が要求する3列を必ず含む。**
+ *
+ * ⚠️ この型を各画面で定義し直さないこと。列を足したときに片方だけ古くなる。
+ * ⚠️ `"use client"` のコンポーネント側に置かない。サーバーコンポーネント
+ *    （`/mypage` の page.tsx）からも参照するため。
+ */
+export type CompanyMemberRow = {
+  id: string;
+  company_id: string;
+  company_name: string;
+  role_title: string | null;
+  display_consent: boolean;
+  is_public: boolean;
+  created_via: string | null;
+  /** 企業に招待されたが本人未承認のとき、既存の着地ページへ送るのに使う */
+  invite_token: string;
+};
