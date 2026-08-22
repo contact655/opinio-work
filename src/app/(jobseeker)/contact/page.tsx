@@ -26,14 +26,26 @@ const cards = [
     ctaColor: "var(--error)",
     href: "mailto:contact@opinio.co.jp?subject=【トラブル報告】&body=【お名前】%0A%0A【発生した問題】%0A%0A【発生日時】%0A%0A【URL / 操作手順】%0A",
   },
+  /*
+   * ⚠️ **ここに企業向けの料金の話を書かないこと**（2026-08-23）。
+   *    ここは求職者向けのページ。以前は「掲載内容の変更・料金・採用成功報酬に
+   *    関するご質問」と書いてメールアドレスを出していたが、
+   *    ① 成功報酬は 2026-08-21 の規約改定で廃止済み（記載が古かった）
+   *    ② 料金の話が求職者向けページと企業向けLPの2か所に散っていた
+   *    の2点から、**企業向けLPへ寄せた。**
+   * ⚠️ メールアドレスもここには書かない。問い合わせ導線は /business の
+   *    料金セクションと FAQ にある。増やすと片方だけ古くなる。
+   */
   {
     emoji: "🏢",
     bg: "var(--warm-soft)",
-    title: "企業掲載・採用についてのご相談",
-    desc: "掲載内容の変更・料金・採用成功報酬に関するご質問",
-    cta: "contact@opinio.co.jp",
+    title: "企業のご担当者さまへ",
+    desc: "掲載・料金については企業向けページをご覧ください",
+    cta: "企業向けページを見る →",
     ctaColor: "var(--warm)",
-    href: "mailto:contact@opinio.co.jp?subject=【企業掲載について】",
+    href: "/business",
+    /** サイト内リンクなので next/link で遷移する（全ページ再読み込みにしない） */
+    internal: true,
   },
 ];
 
@@ -56,8 +68,11 @@ export default function ContactPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {cards.map((card) => (
-            <a key={card.href} href={card.href} className="contact-card" style={{ textDecoration: "none" }}>
+          {cards.map((card) => {
+            /* 内部リンクは Link、mailto は素の <a>。中身は共通。 */
+            const Wrapper = card.internal ? Link : "a";
+            return (
+            <Wrapper key={card.href} href={card.href} className="contact-card" style={{ textDecoration: "none" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 10, flexShrink: 0,
@@ -70,8 +85,9 @@ export default function ContactPage() {
                   <p style={{ margin: 0, fontSize: 13, color: card.ctaColor, fontWeight: 600 }}>{card.cta}</p>
                 </div>
               </div>
-            </a>
-          ))}
+            </Wrapper>
+            );
+          })}
         </div>
 
         <div style={{
