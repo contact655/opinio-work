@@ -103,7 +103,35 @@ const nextConfig = {
   },
 };
 
+/* ★ローカルの build / start だけ出力先を `.next` から分ける（2026-08-22）
+ *
+ * ── なぜ ──────────────────────────────────────────────────────────────────
+ * `next dev` / `next build` / `next start` は既定で**同じ `.next` を共有する**ため、
+ * 並行して動かすと壊れる。実際に4回踏んでいる（CLAUDE.md「dev サーバー稼働中に
+ * `.next` を触る他のコマンドを打たない」）。
+ *   ② dev 稼働中に build      → `Cannot find module './vendor-chunks/*.js'`（500）
+ *   ③ dev 稼働中に next start → 同上（**ポートを分けても `.next` は共有**）
+ *   ④ build の直後に dev      → クライアントチャンクが 404。**500 にならない**ので
+ *                               「実装が効いていない」ように見える（一番たちが悪い）
+ * 出力先を分ければ ②③④ は**原理的に起きなくなる**。
+ *
+ * ⚠️ ①（dev の二重起動）はこれでは防げない。両方 `.next` を使うため。
+ *    そちらは PID チェック側で見る。
+ *
+ * ── ⚠️ Vercel では絶対に変えない ────────────────────────────────────────────
+ * `distDir` を条件分岐にすると Vercel の出力トレース（どのファイルを
+ * サーバーレス関数へ同梱するかの解決）と噛み合わない箇所があるため、
+ * **本番側は既定の `.next` のまま**にする。
+ * `VERCEL` / `CI` があるときは**この分岐に一切入らない**。
+ * ⚠️ 将来 CI を足すときも、ここを通さない（既定のままにする）こと。
+ */
 const isDev = process.env.NODE_ENV === "development";
+const isManagedBuild = Boolean(process.env.VERCEL || process.env.CI);
+
+if (!isDev && !isManagedBuild) {
+  // ローカルの build / start だけ。dev（`.next`）と衝突しない場所へ出す
+  nextConfig.distDir = ".next-prod";
+}
 
 export default isDev
   ? nextConfig

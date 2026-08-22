@@ -9,7 +9,7 @@
       "autoPort": true
     },
     {
-      "_comment": "本番ビルドをローカルで動かす。Sentry は NODE_ENV=production でしか有効にならないため、エラー送信の検証にはこちらが要る。dev と .next を共有するので同時に起動しないこと",
+      "_comment": "本番ビルドをローカルで動かす。Sentry は NODE_ENV=production でしか有効にならないため、エラー送信の検証にはこちらが要る。2026-08-22 から出力先が .next-prod に分かれた（next.config.mjs の distDir）ので dev と同時に起動してよい。Vercel は既定の .next のまま",
       "name": "prod",
       "runtimeExecutable": "/bin/bash",
       "runtimeArgs": ["-c", "PATH=/opt/homebrew/bin:$PATH npm run build && PATH=/opt/homebrew/bin:$PATH npx next start -p 3100"],

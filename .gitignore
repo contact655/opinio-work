@@ -11,6 +11,8 @@
 
 # next.js
 /.next/
+# ローカルの build / start 専用（next.config.mjs の distDir）。Vercel では使わない
+/.next-prod/
 /out/
 
 # production
