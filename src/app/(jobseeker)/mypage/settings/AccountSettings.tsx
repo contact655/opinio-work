@@ -195,21 +195,48 @@ export default function AccountSettings({ authEmail }: { authEmail: string }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>アカウント削除
           </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#991B1B", marginBottom: 14, lineHeight: 1.7 }}>
-            アカウントを削除すると、プロフィール・職歴・記事へのコメントなど、すべてのデータが完全に削除されます。
-            取材済みの記事は掲載を続ける場合があります。この操作は取り消せません。
+          {/*
+            ⚠️ **ここに「削除する」ボタンを置かないこと**（2026-08-23）。
+               それまで置いてあったボタンには `onClick` が無く、**押しても何も
+               起きなかった。** 削除を行う API も存在しない
+               （`/api/**` に該当ルート0件、`ow_users` を DELETE するのは
+                運営画面 `/admin/candidates` の一括削除だけ）。
+
+               プライバシーポリシー 11-4 は「退会した場合、保有個人データを
+               速やかに削除します」と約束している。**動かないボタンは、
+               利用者に「削除を申し出た」と誤解させる**ので、
+               実際に動く経路（メール）への案内に差し替えた。
+
+            ⚠️ **セルフサービスの削除を実装するときは、まず何を消して何を残すかを
+               決めること。** ここを決めずに `auth.users` を消すと連鎖する——
+               `ow_users` を参照する FK 45列のうち **29列が ON DELETE CASCADE** で、
+               投稿・職歴・会話・応募まで巻き込まれる（CLAUDE.md）。
+               企業側に既に届いた応募や、相手のいる会話をどう扱うかは
+               別途設計が要る。**それまではこの案内のままにする。**
+          */}
+          <div style={{ fontSize: 12, fontWeight: 500, color: "#991B1B", marginBottom: 12, lineHeight: 1.7 }}>
+            アカウントの削除をご希望の場合は、下記のメールアドレスまでご連絡ください。
+            ご連絡から<strong>7営業日以内</strong>に対応します。
           </div>
-          <button
-            type="button"
+          <a
+            href="mailto:contact@opinio.co.jp?subject=%E3%82%A2%E3%82%AB%E3%82%A6%E3%83%B3%E3%83%88%E5%89%8A%E9%99%A4%E3%81%AE%E3%81%94%E4%BE%9D%E9%A0%BC&body=%E3%82%A2%E3%82%AB%E3%82%A6%E3%83%B3%E3%83%88%E3%81%AE%E5%89%8A%E9%99%A4%E3%82%92%E5%B8%8C%E6%9C%9B%E3%81%97%E3%81%BE%E3%81%99%E3%80%82%0A%0A%E3%80%90%E7%99%BB%E9%8C%B2%E3%83%A1%E3%83%BC%E3%83%AB%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%80%91%0A%0A%E3%80%90%E3%81%8A%E5%90%8D%E5%89%8D%E3%80%91%0A"
             style={{
+              display: "inline-block",
               padding: "8px 16px", fontSize: 13, fontWeight: 600,
               border: "1px solid var(--error)", borderRadius: 8,
-              background: "#fff", color: "var(--error)", cursor: "pointer",
-              fontFamily: "inherit",
+              background: "#fff", color: "var(--error)",
+              fontFamily: "inherit", textDecoration: "none",
             }}
           >
-            アカウントを削除する
-          </button>
+            contact@opinio.co.jp
+          </a>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "#991B1B", marginTop: 12, lineHeight: 1.7 }}>
+            削除すると、プロフィール・職歴・投稿などのデータを削除します。
+            取材済みの記事は掲載を続ける場合があります。
+            {/* ⚠️ 法令上の保存義務があるものは残る。ここを「すべて完全に削除」と
+                   書き切らないこと（プライバシーポリシー 11-4 と食い違う）。 */}
+            職業安定法により保存が義務づけられている帳簿書類は、法令の定めに従って保存します。
+          </div>
         </div>
       </div>
     </div>
