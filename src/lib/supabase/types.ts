@@ -3823,6 +3823,7 @@ export type Database = {
           company_id: string
           consent_at: string | null
           created_at: string
+          created_via: string | null
           display_consent: boolean
           id: string
           invite_token: string
@@ -3837,6 +3838,7 @@ export type Database = {
           company_id: string
           consent_at?: string | null
           created_at?: string
+          created_via?: string | null
           display_consent?: boolean
           id?: string
           invite_token?: string
@@ -3851,6 +3853,7 @@ export type Database = {
           company_id?: string
           consent_at?: string | null
           created_at?: string
+          created_via?: string | null
           display_consent?: boolean
           id?: string
           invite_token?: string

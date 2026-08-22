@@ -306,10 +306,15 @@ export async function POST(req: NextRequest) {
   const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // ⚠️ 投稿できるのは is_public な ow_company_members のみ（2026-08-05）。
-  //    RLS（posts_insert_own）でも同じ条件を掛けているが、ここで早く弾いて
-  //    本文の検証やリンクプレビューの処理に入らないようにする。
-  //    条件は lib/feed/canPost に集約している。
+  /* ⚠️ 投稿できるのは **ow_company_members に行がある人**。
+        ⚠️ ここは「is_public な ow_company_members のみ」と書いてあったが**実装と違っていた**
+           （2026-08-05 に is_public を条件から外したときにコメントだけ残った）。
+           2026-08-23 に実装へ合わせて直した。
+        いまの条件は「行があること。ただし未承認の本人申請（created_via='self' かつ
+        is_public=false）は数えない」。
+        RLS（posts_insert_own）でも同じ条件を掛けているが、ここで早く弾いて
+        本文の検証やリンクプレビューの処理に入らないようにする。
+        ⚠️ 条件は lib/feed/canPost に集約している。ここに書き足さないこと。 */
   const adminForGate = createAdminClient();
   if (!(await canUserPost(adminForGate, owUserId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
