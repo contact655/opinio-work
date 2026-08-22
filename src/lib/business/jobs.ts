@@ -165,6 +165,14 @@ const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", 
  *
  * ⚠️ 遷移先を足すときは DB の CHECK（`ow_jobs_status_check`）と
  *    `VALID_STATUSES`（＝表示側）も見ること。3つ揃える（CLAUDE.md）。
+ *
+ * ⚠️ **この表はアプリ側の制限にすぎない。DB 側にも同じ規則が入っている**
+ *    （2026-08-23 / `trg_guard_job_status`）。それまでは RLS が
+ *    `FOR ALL` で開いており、**企業管理者が PostgREST を直接叩けば
+ *    審査を経ずに公開できた**（実測で 204 を確認）。
+ *    ⚠️ ここに値を足すときは、DB のトリガー
+ *       `guard_job_status_transition()` の許容値も同時に直すこと。
+ *       片方だけ足すと「画面では選べるが保存できない」になる。
  */
 export const JOB_STATUS_TRANSITIONS: Record<string, readonly JobStatus[]> = {
   /** 下書き → 公開申請 */
