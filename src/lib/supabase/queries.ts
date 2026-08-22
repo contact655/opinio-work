@@ -6,7 +6,7 @@
  * Articles: mock継続 (ow_articles テーブルなし)
  */
 
-import { unstable_cache } from "next/cache";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
@@ -1683,6 +1683,29 @@ export type PublicAmbassador = {
   ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
 };
 
+/**
+ * `getPublicAmbassadorsCached` のキャッシュタグ。
+ *
+ * ⚠️ **面談対応者の行を動かす経路は、必ず `revalidateTag(companyAmbassadorsTag(companyId))` を呼ぶこと。**
+ *    呼び忘れると最大60秒ズレる。しかも**ページと API が別のキャッシュエントリを持つ**ため、
+ *    その間「見出し2名・カード1名」のように**同じ画面の中で食い違う**（2026-08-23 に実測）。
+ *    「操作によっては60秒ズレる」は一番デバッグしづらい形なので、
+ *    **1箇所でも漏らさない**こと。現在の呼び出し元:
+ *      - POST   /api/biz/ambassador/invite
+ *      - PATCH  /api/biz/ambassador/update      （承認・非公開トグル）
+ *      - DELETE /api/biz/ambassador/revoke
+ *      - POST   /api/biz/ambassador/self-register
+ *      - POST   /api/mypage/ambassador-self-register
+ *      - DELETE /api/mypage/ambassador-self-remove
+ *      - POST   /api/mypage/ambassador-invite   （承認・辞退）
+ */
+export const companyAmbassadorsTag = (companyId: string) => `company-ambassadors:${companyId}`;
+
+/** 面談対応者のキャッシュを捨てる。**行を動かしたら必ず呼ぶ。** */
+export function revalidateCompanyAmbassadors(companyId: string) {
+  revalidateTag(companyAmbassadorsTag(companyId));
+}
+
 export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmbassador[]> =>
   unstable_cache(
     async (): Promise<PublicAmbassador[]> => {
@@ -1718,7 +1741,8 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
       });
     },
     ["company-ambassadors", companyId],
-    { revalidate: 60 }
+    /* ⚠️ `tags` が無いと revalidateTag で捨てられない。60秒待つしかなくなる。 */
+    { revalidate: 60, tags: [companyAmbassadorsTag(companyId)] }
   )();
 
 // ─── Company employee categories (ow_company_employee_categories) ─────────────

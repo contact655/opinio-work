@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +86,9 @@ export async function POST(req: NextRequest) {
 
   const { data: member, error: fetchErr } = await adminSupabase
     .from("ow_company_members")
-    .select("id, user_id")
+    /* ⚠️ company_id も取る。承認・辞退のあとにキャッシュを捨てるのに要る
+          （辞退は行ごと消えるので、あとからでは分からない）。 */
+    .select("id, user_id, company_id")
     .eq("invite_token", token)
     .eq("user_id", owUser.id)
     .maybeSingle();
@@ -125,6 +128,7 @@ export async function POST(req: NextRequest) {
       console.error("[ambassador accept]", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
+    revalidateCompanyAmbassadors(member.company_id as string);
     return NextResponse.json({ ok: true, accepted: true });
   } else {
     // 辞退 → レコードを削除
@@ -137,6 +141,7 @@ export async function POST(req: NextRequest) {
       console.error("[ambassador decline]", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
+    revalidateCompanyAmbassadors(member.company_id as string);
     return NextResponse.json({ ok: true, accepted: false });
   }
 }

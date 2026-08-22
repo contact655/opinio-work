@@ -5,6 +5,7 @@ import { notify } from "@/lib/notify/email";
 import { ambassadorInviteTemplate } from "@/lib/notify/templates";
 import { NextRequest, NextResponse } from "next/server";
 import { canUse } from "@/lib/constants/plans";
+import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
         .from("ow_company_members")
         .update({ display_consent: true, is_public: true })
         .eq("id", existing.id);
+      revalidateCompanyAmbassadors(ctx.tenantId);
       return NextResponse.json({ id: existing.id, updated: true });
     }
     return NextResponse.json(
@@ -162,5 +164,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  revalidateCompanyAmbassadors(ctx.tenantId);
   return NextResponse.json({ id: member.id, invite_token: member.invite_token });
 }

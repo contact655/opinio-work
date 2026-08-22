@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -71,5 +72,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: member.id, consented: false, error: updateError.message }, { status: 500 });
   }
 
+  revalidateCompanyAmbassadors(ctx.tenantId);
   return NextResponse.json({ id: member.id, consented: true });
 }

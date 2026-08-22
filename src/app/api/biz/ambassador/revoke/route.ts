@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -36,5 +37,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  revalidateCompanyAmbassadors(ctx.tenantId);
   return NextResponse.json({ ok: true });
 }

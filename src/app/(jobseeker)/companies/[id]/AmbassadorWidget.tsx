@@ -22,9 +22,9 @@ import type { PublicAmbassador } from "@/lib/supabase/queries";
  *    `publicAmbassadors` には `visibility === "public"` の人しか入っていない
  *    （＝現状は常に空）。ここに全員を渡すと、**その瞬間に静的HTMLへ名前が焼き付く。**
  *
- * ⚠️ 件数（`totalCount`）は閲覧者に依らないので、サーバーから渡してよい。
- *    「N名が対応可能」も「ログインするとN名」も**この同じ値**から作る。
- *    別々に数えると、過去に出した「現役社員（0名）」と
+ * ⚠️ 件数は閲覧者に依らないのでサーバーから初期値をもらうが、**取得できたら API の値で上書きする**。
+ *    「N名が対応可能」も「ログインするとN名」も**カードと同じ応答**から作る。
+ *    別々の出所にすると、過去に出した「現役社員（0名）」と
  *    「ログインすると1名のプロフィールが見られます」が同じ画面に並ぶ事故になる。
  */
 export default function AmbassadorWidget({
@@ -39,6 +39,13 @@ export default function AmbassadorWidget({
   totalCount: number;
 }) {
   const [shown, setShown] = useState<PublicAmbassador[]>(publicAmbassadors);
+  /* ★見出しの数字は**カードと同じ応答**から出す（2026-08-23）。
+     ⚠️ サーバーが渡す `totalCount` は ISR / unstable_cache 越しなので、
+        承認・解除の直後は最大60秒古い。カードは API から取るため、
+        数字だけサーバー由来にすると**「見出し2名・カード1名」が同じ画面に並ぶ**
+        （実測で発生した）。取得できたら数字も API のものへ差し替える。
+     ⚠️ 取得前・未ログインはサーバーの数字を使う。未ログインはカードが無いので食い違わない。 */
+  const [total, setTotal] = useState<number>(totalCount);
 
   useEffect(() => {
     let alive = true;
@@ -52,13 +59,19 @@ export default function AmbassadorWidget({
           return;
         }
         setShown(d.ambassadors as PublicAmbassador[]);
+        /* ⚠️ カードと数字を**必ず同時に**更新する。片方だけ更新すると元の木阿弥。 */
+        if (typeof d.totalAmbassadorCount === "number") {
+          setTotal(d.totalAmbassadorCount);
+        } else {
+          console.error("[AmbassadorWidget] totalAmbassadorCount が数値ではない", d?.totalAmbassadorCount);
+        }
       })
       .catch((e) => console.error("[AmbassadorWidget]", e));
     return () => { alive = false; };
   }, [companyId]);
 
   // 対応者が1人もいない企業ではウィジェットごと出さない（従来どおり）
-  if (totalCount === 0) return null;
+  if (total === 0) return null;
 
   const locked = shown.length === 0;
 
@@ -107,16 +120,17 @@ export default function AmbassadorWidget({
             );
           })
         )}
-        {/* ⚠️ 見出しの N は locked かどうかに関わらず totalCount。数字は隠さない（案A） */}
+        {/* ⚠️ 見出しの N は locked かどうかに関わらず出す。数字は隠さない（案A）。
+               出所はカードと同じ（取得前だけサーバーの初期値） */}
         <span style={{ marginLeft: 10, fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
-          {totalCount}名が対応可能
+          {total}名が対応可能
         </span>
       </div>
 
       {locked ? (
         <>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6 }}>
-            ログインすると{totalCount}名のプロフィールが見られます
+            ログインすると{total}名のプロフィールが見られます
           </div>
           <a href="/auth" style={{
             display: "flex", alignItems: "center", justifyContent: "center",

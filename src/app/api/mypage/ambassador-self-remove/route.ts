@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,20 @@ export async function DELETE(req: NextRequest) {
 
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  /* ⚠️ 削除する前に company_id を取る。消したあとでは分からず、
+        キャッシュを捨てられない（最大60秒、消したのに出続ける）。 */
+  const { data: target, error: findErr } = await adminSupabase
+    .from("ow_company_members")
+    .select("company_id")
+    .eq("id", member_id)
+    .eq("user_id", owUser.id)
+    .maybeSingle();
+  if (findErr) {
+    console.error("[ambassador self-remove] find:", findErr.message);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+  if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   // 本人のレコードのみ削除できる
   const { error } = await adminSupabase
     .from("ow_company_members")
@@ -45,5 +60,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  revalidateCompanyAmbassadors(target.company_id as string);
   return NextResponse.json({ ok: true });
 }

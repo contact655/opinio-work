@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -49,5 +50,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  // ⚠️ 企業ページの面談対応者は unstable_cache 越し。捨てないと最大60秒ズレる
+  revalidateCompanyAmbassadors(ctx.tenantId);
   return NextResponse.json({ ok: true });
 }
