@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -36,17 +37,21 @@ export async function PUT(req: Request) {
   // 本番カラム（name, mission など）は一切変更しない
   const record = transformFormToDb(body as BizCompany);
 
-  const { error } = await supabase
-    .from("ow_companies")
-    .update({
-      draft_data: record,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", companyId);
-
-  if (error) {
-    console.error("[company PUT]", error.message);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  /* ⚠️ **0行更新を成功として扱わない。** 2026-08-23 まで `.select()` が無く、
+        RLS が `auth.uid() = user_id`（87社中2社にしか入っていない列）を
+        要求していたため、**85社で保存されないまま「保存しました」と出ていた。** */
+  const draftRes = await mutateOne(
+    supabase
+      .from("ow_companies")
+      .update({
+        draft_data: record,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", companyId),
+    "company PATCH draft_data",
+  );
+  if (!draftRes.ok) {
+    return NextResponse.json({ error: draftRes.error }, { status: draftRes.status });
   }
 
   await insertActivity(supabase, {
@@ -86,13 +91,15 @@ export async function PATCH(req: Request) {
   // ── 数値アンケート登録タイムスタンプ更新 ─────────────────────────────────
   if (body.action === "update_numbers_timestamp") {
     const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("ow_companies")
-      .update({ numbers_updated_at: now, updated_at: now })
-      .eq("id", companyId);
-    if (error) {
-      console.error("[company PATCH update_numbers_timestamp]", error.message);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const numRes = await mutateOne(
+      supabase
+        .from("ow_companies")
+        .update({ numbers_updated_at: now, updated_at: now })
+        .eq("id", companyId),
+      "company PATCH update_numbers_timestamp",
+    );
+    if (!numRes.ok) {
+      return NextResponse.json({ error: numRes.error }, { status: numRes.status });
     }
     return NextResponse.json({ ok: true, numbersUpdatedAt: now });
   }
@@ -139,7 +146,8 @@ export async function PATCH(req: Request) {
   const n = (v: unknown): number | null => typeof v === "number" ? v : null;
   const sa = (v: unknown): string[] | null => Array.isArray(v) ? v as string[] : null;
 
-  const { error } = await supabase
+  const mainRes = await mutateOne(
+    supabase
     .from("ow_companies")
     .update({
       tagline:                  s(d.tagline),
@@ -181,11 +189,15 @@ export async function PATCH(req: Request) {
       updated_at:               now,
       draft_data:               null,
     })
-    .eq("id", companyId);
+    .eq("id", companyId),
+    "company PATCH 本体",
+  );
 
-  if (error) {
-    console.error("[company PATCH]", error.message);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  /* ⚠️ **0行更新を成功として扱わない。** ここが 2026-08-23 まで
+        85社で黙って保存されていなかった箇所（RLS の条件が `ow_companies.user_id`
+        依存で、その列は2社にしか入っていなかった）。 */
+  if (!mainRes.ok) {
+    return NextResponse.json({ error: mainRes.error }, { status: mainRes.status });
   }
 
   // ── ow_company_genres の反映（パターンX: 全置換）─────────────────────────
