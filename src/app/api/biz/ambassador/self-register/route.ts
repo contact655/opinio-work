@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { mutateOne, mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";

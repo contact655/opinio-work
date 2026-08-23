@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { mutateOne, mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
+import { mutateOne, mutateMany } from "@/lib/supabase/mutate";
 import { getTenantContext } from "@/lib/business/dashboard";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
