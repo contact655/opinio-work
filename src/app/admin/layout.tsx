@@ -53,6 +53,7 @@ const NAV_GROUPS = [
     items: [
       { label: "応募管理",            href: "/admin/applications",     icon: <Inbox         size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
+      { label: "面談対応者の申請",    href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },

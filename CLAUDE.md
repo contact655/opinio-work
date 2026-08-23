@@ -1449,6 +1449,21 @@ const COLS = "id, name" as const;
 
 ⚠️ **「揃っていないから揃える」で一律除外にしないこと。** feed が壊れる。
 
+### ⚠️ `ow_company_admins.is_ambassador` は死にフラグ。`ow_company_members` と混同しない（2026-08-23）
+
+`/admin/biz-accounts` に **「話せる人」トグル**があるが、これが書くのは
+**`ow_company_admins.is_ambassador`** で、面談対応者の `ow_company_members` とは**別テーブル・別概念**。
+
+⚠️ **公開側からの参照は0件**（実測）。運営がこのトグルを押しても**画面には何も起きない**。
+   `CompanyEmployeeSections` の `isAmbassador` は `ow_company_members` 由来のローカル変数で、
+   この列とは無関係。
+
+⚠️ **代理承認などを作るときにここへ合流させないこと。** 名前が似ているので、
+   誤って繋ぐと「押したのに出ない」が再発する。
+   面談対応者の掲載可否は **`ow_company_members.is_public`** が唯一の軸。
+
+（2026-08-23 時点で `is_ambassador = true` は1件。実害は無いが、消すかどうかは別途判断）
+
 ### 面談対応者のキャッシュ（2026-08-23）
 
 `getPublicAmbassadorsCached` はタグ付き（`companyAmbassadorsTag`）で、
