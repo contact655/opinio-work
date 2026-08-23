@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { formatMonths } from "@/lib/profile/tenure";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -374,6 +375,109 @@ function GridCard({ card, myUserId, followedUserIds }: {
   );
 }
 
+/**
+ * 1列表示の行（2026-08-23）。
+ *
+ * ⚠️ **カードより情報を増やすこと。** 2026-08-04 に「一覧/詳細」トグルを撤去した理由が
+ *    「詳細ビューのほうが情報量が少なく、一覧との差が利用者に伝わらない」だった。
+ *    横に広い行なので、カードに入らなかった**社会人年数**と**外資系経験**を足してある。
+ *    ここを削って見た目だけ変えると、同じ理由でまた撤去することになる。
+ *
+ * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
+ */
+function ListRow({ card, myUserId, followedUserIds }: {
+  card: AmbassadorCard;
+  myUserId: string | null;
+  followedUserIds: string[];
+}) {
+  const router = useRouter();
+  const tenure = card.experienceMonths !== null && card.experienceMonths > 0
+    ? formatMonths(card.experienceMonths)
+    : null;
+
+  return (
+    <div
+      onClick={() => router.push(`/u/${card.userId}`)}
+      className="ppl-list-row"
+      style={{
+        display: "flex", alignItems: "center", gap: 14,
+        background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+        padding: "12px 16px", cursor: "pointer",
+      }}
+    >
+      <div style={{ flexShrink: 0 }}>
+        <Avatar card={card} size={56} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>{card.name}</span>
+          {card.canTalk && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+              background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
+              whiteSpace: "nowrap",
+            }}>
+              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+              {/* ⚠️ 文言はカード・企業ページ・/u/[id] と揃える（出所が同じ） */}
+              {card.acceptingCasualMeetings ? "面談可" : "話を聞けます"}
+            </span>
+          )}
+        </div>
+
+        {/* 会社 → 職種。カードと同じ並び（どこの人かが先に読めるほうが探しやすい）。
+            ⚠️ 所属は会社とは限らない（学校・元所属もある）。自前で組み立てず
+               `AffiliationBlock` を通す。型がユニオンなので `companyName` を
+               直接読むと学校の分岐で落ちる。 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+          <AffiliationBlock card={card} />
+          {card.roleName && (
+            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{card.roleName}</span>
+          )}
+        </div>
+
+        {/* ★ここが1列表示の存在理由。カードには入らない情報を出す */}
+        {(tenure || card.hasForeignExperience) && (
+          <div style={{ display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
+            {tenure && (
+              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>社会人 {tenure}</span>
+            )}
+            {card.hasForeignExperience && (
+              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>外資系の経験あり</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <Link
+          href={`/u/${card.userId}`}
+          target="_blank"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+            border: "1.5px solid var(--line)", background: "#fff",
+            color: "var(--ink-soft)", textDecoration: "none", whiteSpace: "nowrap",
+          }}
+        >
+          プロフィール
+        </Link>
+        {myUserId !== null && card.userId !== myUserId && (
+          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexShrink: 0 }}>
+            <FollowUserButton
+              targetUserId={card.userId}
+              initialFollowed={followedUserIds.includes(card.userId)}
+              isAuthenticated
+              compact
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── フィルタ判定 ─────────────────────────────────────────────────────
 /** v は ow_roles の slug。roleSlugToId は page 側で解決して渡す */
 function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string, string>): boolean {
@@ -392,6 +496,23 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
   const [foreign, setForeign] = useState("");
   /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
   const [sort, setSort] = useState("newest");
+
+  /* ★表示モード（2026-08-23）。既定はグリッド。
+     ⚠️ **2026-08-04 に撤去した「一覧/詳細」トグルとは別物。**
+        あのときの理由は「詳細ビューのほうが情報量が少なく、差が伝わらない」だった。
+        今回の1列表示は**カードより情報が増える**（社会人年数・外資系経験を足す）ので、
+        同じ理由には当たらない。**情報が減る切り替えを作らないこと。**
+     ⚠️ localStorage は**マウント後**に読む。初期値に使うとサーバーと食い違って
+        hydration mismatch になる。 */
+  const [view, setView] = useState<"grid" | "list">("grid");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("people-view");
+    if (saved === "list" || saved === "grid") setView(saved);
+  }, []);
+  const changeView = (v: "grid" | "list") => {
+    setView(v);
+    try { window.localStorage.setItem("people-view", v); } catch { /* プライベートモード等。表示は続ける */ }
+  };
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -712,11 +833,32 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             </div>
           </div>
 
-          {/* 件数。
-              一覧/詳細のトグルは 2026-08-04 に撤去した。
-              詳細ビューのほうが情報量が少なく、一覧との差が利用者に伝わらないため。
-              /schools/[id] でも同じ判断で撤去済み（commit f83fc122）。 */}
+          {/* 表示モードと件数。
+              ⚠️ 2026-08-04 に撤去した「一覧/詳細」トグルを戻したわけではない。
+                 あれは詳細ビューのほうが**情報量が少なく**、差が伝わらないので外した。
+                 ここで足す1列表示は**カードより情報が増える**（社会人年数・外資系経験）。
+                 情報が減る切り替えを作らないこと。 */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <div role="group" aria-label="表示の切り替え" style={{ display: "flex", gap: 4 }}>
+              {([["grid", "グリッド"], ["list", "1列"]] as const).map(([v, label]) => {
+                const active = view === v;
+                return (
+                  <button key={v} type="button" onClick={() => changeView(v)}
+                    aria-pressed={active}
+                    style={{
+                      padding: "5px 11px", borderRadius: 100, fontSize: 12,
+                      fontWeight: active ? 700 : 500, cursor: "pointer",
+                      border: active ? "none" : "1.5px solid var(--line)",
+                      background: active ? "var(--royal)" : "#fff",
+                      color: active ? "#fff" : "var(--ink-soft)",
+                      fontFamily: "inherit", transition: "all 0.15s",
+                    }}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ width: 1, height: 18, background: "var(--line)" }} />
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 16 }}>
                 {sorted.length}
@@ -734,11 +876,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
             該当する方が見つかりません
           </div>
         ) : (
+          view === "list" ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {sorted.map((card) => (
+                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
+              ))}
+            </div>
+          ) : (
           <div className="ppl-grid">
             {sorted.map((card) => (
               <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
             ))}
           </div>
+          )
         )}
 
         <div style={{
