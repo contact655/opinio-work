@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mutateOne, mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
@@ -61,10 +62,12 @@ export async function POST(req: NextRequest) {
 
   // Step 2: 本人として UPDATE（own_member_consent ポリシーで許可。トリガーが consent_at を自動セット）
   const supabase = createClient();
-  const { error: updateError } = await supabase
-    .from("ow_company_members")
-    .update({ display_consent: true })
-    .eq("id", member.id);
+  /* ⚠️ 同意の記録が0行だと「申請した」のに記録が無い状態になる。必ず行数を見る */
+  const updateRes = await mutateOne(
+    supabase.from("ow_company_members").update({ display_consent: true }).eq("id", member.id),
+    "ambassador self-register 同意",
+  );
+  const updateError = updateRes.ok ? null : { message: updateRes.error };
 
   if (updateError) {
     console.error("[ambassador self-register] consent update:", updateError.message);

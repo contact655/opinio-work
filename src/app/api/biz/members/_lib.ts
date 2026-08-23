@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { mutateOne } from "@/lib/supabase/mutate";
 
 type MemberPayload = {
   id: string;
@@ -39,10 +40,13 @@ export async function addExistingUserToCompany(params: {
       return { ok: false, status: 409, code: "DUPLICATE", message: "このユーザーはすでにメンバーです" };
     }
 
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ is_active: true, permission })
-      .eq("id", existing.id);
+    /* ⚠️ **0行更新を成功として扱わない**（CLAUDE.md）。招待の再有効化が
+          効いていないのに「招待しました」と出るのを防ぐ。 */
+    const res = await mutateOne(
+      supabase.from("ow_company_admins").update({ is_active: true, permission }).eq("id", existing.id),
+      "members invite 再有効化",
+    );
+    const error = res.ok ? null : { message: res.error };
 
     if (error) {
       console.error("[members _lib reactivate]", error.message);

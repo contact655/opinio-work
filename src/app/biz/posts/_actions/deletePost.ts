@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "./createPost";
 
@@ -34,10 +35,13 @@ export async function deletePost(id: string): Promise<ActionResult<null>> {
     .maybeSingle();
   if (!membership) return { success: false, error: "権限がありません" };
 
-  const { error } = await supabase
-    .from("ow_company_external_links")
-    .delete()
-    .eq("id", id);
+  /* ⚠️ **0行削除を成功として扱わない**（CLAUDE.md）。RLS に弾かれても
+        `error` は null で返るため、削除できていないのに成功と表示される。 */
+  const res = await mutateOne(
+    supabase.from("ow_company_external_links").delete().eq("id", id),
+    "biz deletePost",
+  );
+  const error = res.ok ? null : { message: res.error };
 
   if (error) {
     console.error("[deletePost] error:", error);

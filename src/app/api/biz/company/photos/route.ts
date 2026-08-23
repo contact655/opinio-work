@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { MAX_PHOTOS_PER_CATEGORY, type PhotoCategory } from "@/lib/business/photos";
@@ -104,12 +105,15 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    // 所有権確認: companyId が一致する行のみ削除
-    const { error } = await supabase
-      .from("ow_company_office_photos")
-      .delete()
-      .eq("id", photoId)
-      .eq("company_id", companyId);
+    /* 所有権確認: companyId が一致する行のみ削除
+       ⚠️ **0行削除を成功として扱わない**（CLAUDE.md）。他社の写真を指定したとき、
+          これまでは削除されないまま成功として返っていた。 */
+    const delRes = await mutateOne(
+      supabase.from("ow_company_office_photos").delete()
+        .eq("id", photoId).eq("company_id", companyId),
+      "office photos DELETE",
+    );
+    const error = delRes.ok ? null : { message: delRes.error };
 
     if (error) {
       console.error("[DELETE /api/biz/company/photos]", error.message);

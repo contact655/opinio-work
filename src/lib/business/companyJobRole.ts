@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { mutateOne } from "@/lib/supabase/mutate";
 
 /**
  * 求人の「自社での呼び方」を ow_company_job_roles に溜め、ow_jobs から指す。
@@ -81,12 +82,14 @@ async function upsertCompanyJobRole(
   }
 
   if (found.data?.id) {
-    const { error } = await supabase
-      .from("ow_company_job_roles")
-      .update({ standard_role_id: standardRoleId, deleted_at: null })
-      .eq("id", found.data.id);
-    if (error) {
-      console.error("[syncCompanyJobRole] update", error.message);
+    const res = await mutateOne(
+      supabase.from("ow_company_job_roles")
+        .update({ standard_role_id: standardRoleId, deleted_at: null })
+        .eq("id", found.data.id),
+      "syncCompanyJobRole update",
+    );
+    if (!res.ok) {
+      console.error("[syncCompanyJobRole] update", res.error);
       return null;
     }
     return found.data.id as string;
@@ -117,11 +120,13 @@ async function upsertCompanyJobRole(
       console.error("[syncCompanyJobRole] refetch after 23505", again.error?.message ?? "not found");
       return null;
     }
-    const { error } = await supabase
-      .from("ow_company_job_roles")
-      .update({ standard_role_id: standardRoleId, deleted_at: null })
-      .eq("id", again.data.id);
-    if (error) console.error("[syncCompanyJobRole] update after 23505", error.message);
+    const res2 = await mutateOne(
+      supabase.from("ow_company_job_roles")
+        .update({ standard_role_id: standardRoleId, deleted_at: null })
+        .eq("id", again.data.id),
+      "syncCompanyJobRole update after 23505",
+    );
+    if (!res2.ok) console.error("[syncCompanyJobRole] update after 23505", res2.error);
     return again.data.id as string;
   }
 

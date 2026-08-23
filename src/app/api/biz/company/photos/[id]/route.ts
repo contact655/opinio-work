@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -101,11 +102,12 @@ export async function DELETE(
     }
 
     // 2. DB から削除
-    const { error: deleteError } = await supabase
-      .from("ow_company_office_photos")
-      .delete()
-      .eq("id", params.id)
-      .eq("company_id", companyId);
+    const delRes = await mutateOne(
+      supabase.from("ow_company_office_photos").delete()
+        .eq("id", params.id).eq("company_id", companyId),
+      "office photo DELETE",
+    );
+    const deleteError = delRes.ok ? null : { message: delRes.error };
 
     if (deleteError) {
       return Response.json({ error: "Internal server error" }, { status: 500 });

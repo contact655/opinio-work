@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { mutateOne, mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { getTenantContext } from "@/lib/business/dashboard";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -12,11 +13,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.display_order !== undefined) patch.display_order = Number(body.display_order);
 
   const supabase = createClient();
-  const { error } = await supabase
-    .from("ow_company_departments")
-    .update(patch)
-    .eq("id", params.id)
-    .eq("company_id", ctx.tenantId);
+  const res = await mutateOne(
+    supabase.from("ow_company_departments").update(patch)
+      .eq("id", params.id).eq("company_id", ctx.tenantId),
+    "departments PUT",
+  );
+  const error = res.ok ? null : { message: res.error };
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
@@ -41,11 +43,13 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   }
   collect(params.id);
 
-  const { error } = await supabase
-    .from("ow_company_departments")
-    .update({ deleted_at: new Date().toISOString() })
-    .in("id", toDelete)
-    .eq("company_id", ctx.tenantId);
+  /* ⚠️ 複数件をまとめて論理削除する。0件はエラー（対象が無いか RLS 拒否） */
+  const res = await mutateMany(
+    supabase.from("ow_company_departments").update({ deleted_at: new Date().toISOString() })
+      .in("id", toDelete).eq("company_id", ctx.tenantId),
+    "departments DELETE",
+  );
+  const error = res.ok ? null : { message: res.error };
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

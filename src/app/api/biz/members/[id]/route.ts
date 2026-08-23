@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -93,10 +94,11 @@ export async function PATCH(
       }
     }
 
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ permission: newPermission })
-      .eq("id", adminRecordId);
+    const res = await mutateOne(
+      supabase.from("ow_company_admins").update({ permission: newPermission }).eq("id", adminRecordId),
+      "members PATCH permission",
+    );
+    const error = res.ok ? null : { message: res.error };
 
     if (error) {
       console.error("[members PATCH permission]", error.message);
@@ -125,10 +127,11 @@ export async function PATCH(
       }
     }
 
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ is_active: false })
-      .eq("id", adminRecordId);
+    const res = await mutateOne(
+      supabase.from("ow_company_admins").update({ is_active: false }).eq("id", adminRecordId),
+      "members PATCH deactivate",
+    );
+    const error = res.ok ? null : { message: res.error };
 
     if (error) {
       console.error("[members PATCH deactivate]", error.message);
@@ -138,10 +141,11 @@ export async function PATCH(
 
   // ── action: reactivate ─────────────────────────────────────────
   else if (body.action === "reactivate") {
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ is_active: true })
-      .eq("id", adminRecordId);
+    const res = await mutateOne(
+      supabase.from("ow_company_admins").update({ is_active: true }).eq("id", adminRecordId),
+      "members PATCH reactivate",
+    );
+    const error = res.ok ? null : { message: res.error };
 
     if (error) {
       console.error("[members PATCH reactivate]", error.message);
@@ -164,10 +168,11 @@ export async function PATCH(
       return NextResponse.json({ error: "部署は 100 文字以内で入力してください" }, { status: 400 });
     }
 
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ role_title: roleTitle, department })
-      .eq("id", adminRecordId);
+    const res = await mutateOne(
+      supabase.from("ow_company_admins").update({ role_title: roleTitle, department }).eq("id", adminRecordId),
+      "members PATCH update_profile",
+    );
+    const error = res.ok ? null : { message: res.error };
 
     if (error) {
       console.error("[members PATCH update_profile]", error.message);
@@ -178,10 +183,11 @@ export async function PATCH(
   // ── action: ambassador ────────────────────────────────────────────
   else if (body.action === "ambassador") {
     const isAmbassador = body.value === "true";
-    const { error } = await supabase
-      .from("ow_company_admins")
-      .update({ is_ambassador: isAmbassador })
-      .eq("id", adminRecordId);
+    const res = await mutateOne(
+      supabase.from("ow_company_admins").update({ is_ambassador: isAmbassador }).eq("id", adminRecordId),
+      "members PATCH ambassador",
+    );
+    const error = res.ok ? null : { message: res.error };
 
     if (error) {
       console.error("[members PATCH ambassador]", error.message);
@@ -232,10 +238,13 @@ export async function DELETE(
     );
   }
 
-  const { error } = await supabase
-    .from("ow_company_admins")
-    .delete()
-    .eq("id", adminRecordId);
+  /* ⚠️ **0行削除を成功として扱わない。** 招待のキャンセルが効いていないのに
+        「キャンセルしました」と出るのを防ぐ（CLAUDE.md）。 */
+  const res = await mutateOne(
+    supabase.from("ow_company_admins").delete().eq("id", adminRecordId),
+    "members DELETE",
+  );
+  const error = res.ok ? null : { message: res.error };
 
   if (error) {
     console.error("[members DELETE]", error.message);

@@ -108,7 +108,16 @@ export async function PUT(
   // 担当者削除は company_id による ownership 確認後にのみ実行
   const { count: jobCount } = await supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("id", jobId).eq("company_id", ctx0.companyId);
   if (!jobCount) return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  await supabase.from("ow_job_assignees").delete().eq("job_id", jobId);
+  /* ⚠️ 入れ替え前の掃除。**0行は正常**（担当者が元から居ない）が、
+        RLS 拒否は 0行と区別する（mutateAllowNone は error を見る）。 */
+  const delAssignees = await mutateAllowNone(
+    supabase.from("ow_job_assignees").delete().eq("job_id", jobId),
+    "job PUT: 担当者の掃除",
+    { returning: "job_id" },
+  );
+  if (!delAssignees.ok) {
+    console.error("[job PUT] 担当者の削除に失敗:", delAssignees.error);
+  }
   if (assigneeIds.length > 0) {
     const { data: validMembers } = await supabase
       .from("ow_company_admins")
