@@ -1571,6 +1571,18 @@ body {
           justify-content: center;
         }
 
+        /* 職歴・学歴の説明文の折りたたみ（MergedTimeline の ExpandableDesc）。
+           ⚠️ **3 が折りたたみの行数の唯一の定義。** TS 側に定数を置かないこと
+              （2026-08-23 に文字数80字での打ち切りから移行。理由は
+              MergedTimeline.tsx の ExpandableDesc のコメントに書いてある）。
+           ⚠️ display / overflow を外すと clamp ごと効かなくなる。3点セット。 */
+        .tl-desc-clamp {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+          overflow: hidden;
+        }
+
         /* モバイル用のインラインロゴ。デスクトップは左のロゴ列が出すので隠す */
         .tl-inline-logo { display: none; }
 

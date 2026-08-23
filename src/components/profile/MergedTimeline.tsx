@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Briefcase } from "lucide-react";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
@@ -9,7 +9,6 @@ import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
-import { truncateAtBoundary } from "@/lib/utils/truncate";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
 function shortCompanyName(name: string): string {
@@ -26,18 +25,61 @@ function shortCompanyName(name: string): string {
     .trim() || name;
 }
 
-// ─── ExpandableDesc: 長い説明文を80字で折りたたみ ────────────────────────────
-const DESC_THRESHOLD = 80;
+/* ─── ExpandableDesc: 長い説明文を「3行」で折りたたむ ────────────────────────
+
+   ⚠️ **文字数（80字）での打ち切りに戻さないこと（2026-08-23 に変更）。**
+
+   実測（ow_experiences の description 11件）:
+     中央値 127字 / 最大 153字 / **11件中10件（91%）が80字超**
+   つまりほぼ全件に「続きを読む」が出ていた。
+
+   さらに 2026-08-15 に説明文の固定幅（560/520px）を撤去した結果、
+   1行に入る字数が **画面幅で 3倍違う**ようになった。
+
+     1440px … 1行 約62字 → 80字 = **1.3行**で畳まれる（畳む意味がない）
+     375px  … 1行 約20字 → 80字 = **4行**で畳まれる
+
+   **1つの文字数では両方に合わない。** 行数で畳めば、どの幅でも
+   「3行を超えたら畳む」という同じ意味になる。
+
+   ⚠️ 実装は CSS の `-webkit-line-clamp`（`.tl-desc-clamp`）。
+      本文は**常に全文を DOM に置く**ので、折りたたみ中でも
+      検索・コピー・クローラから読める（slice していたときは読めなかった）。
+
+   ⚠️ ボタンの出し分けは **実測**（`scrollHeight > clientHeight`）で行う。
+      文字数から推測しない ── フォント・幅・改行で変わるため。
+   ⚠️ 展開中は測らない。展開すると clientHeight が伸びて必ず false になり、
+      「折りたたむ」ボタンが消えてしまう。
+
+   ⚠️ **行数（3行）は globals.css の `.tl-desc-clamp` が持つ。**
+      ここに定数を置くと CSS と二重管理になり、片方だけ直る形になる。
+──────────────────────────────────────────────────────────────────────────── */
+
 function ExpandableDesc({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
-  const needsTruncation = text.length > DESC_THRESHOLD;
-  const display = needsTruncation && !expanded ? truncateAtBoundary(text, DESC_THRESHOLD) : text;
+  const [overflows, setOverflows] = useState(false);
+  const pRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (expanded) return; // 展開中は測らない（上のコメント参照）
+    const el = pRef.current;
+    if (!el) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [text, expanded]);
+
   return (
     <>
-      <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
-        {display}
+      <p
+        ref={pRef}
+        className={expanded ? undefined : "tl-desc-clamp"}
+        style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}
+      >
+        {text}
       </p>
-      {needsTruncation && (
+      {overflows && (
         <button
           onClick={() => setExpanded(v => !v)}
           style={{
