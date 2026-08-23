@@ -501,6 +501,58 @@ supabase-js は失敗しても例外を投げないので、画面は成功し�
 - **`.select()` を引数なしで呼ばない。** 全列を返すため、列単位 GRANT を剥がした列があると 403 になる
 - **RLS を緩めて解決しない。** ブラウザセッションから他社の下書きが取れる経路が増える
 
+### ★書き方は `lib/supabase/mutate.ts` に決めてある（2026-08-23）
+
+**`update` / `delete` を素で書かない。** 原則だけでは守られなかったので、型を用意した。
+
+```ts
+import { mutateOne, mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
+
+// 1行だけ変わるはず（0行はエラー）
+const r = await mutateOne(
+  supabase.from("ow_companies").update({ tagline }).eq("id", companyId),
+  "company PATCH 本体",
+);
+if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+
+// 0行でも正常（入れ替え前の掃除など）。⚠️ これを既定にしない
+await mutateAllowNone(
+  supabase.from("ow_job_roles").delete().eq("job_id", jobId),
+  "job roles 掃除", { returning: "job_id" },
+);
+```
+
+| 関数 | 使うとき |
+|---|---|
+| `mutateOne` | ちょうど1行。2行以上なら警告（条件の書き漏れ） |
+| `mutateMany` | 1行以上。0行はエラー |
+| `mutateAllowNone` | **0行でも正常**。消したいものが元から無くてよい場合だけ |
+
+⚠️ **`.select()` はヘルパーが付ける。呼び出し側で書かない。**
+   素で書くと引数なしになりがちで、全列を返して列単位 GRANT に弾かれる。
+
+⚠️ **`id` 列が無い表がある。** 中間テーブルは複合主キーのことが多い。
+   `{ returning: "job_id" }` のように実在する列を渡す。
+   `ow_job_roles` は `(job_id, role_id)`、`ow_company_genres` は `(company_id, genre_id)`。
+
+⚠️ **`try { } catch { }` は効かない。** supabase-js はエラーを**戻り値**で返すので、
+   囲っても素通りする。**実際にこれで1週間気づかなかった**（下の3件目）。
+
+### ★踏んだ3件（すべて画面はエラーを出さなかった）
+
+| いつ | 何が起きたか |
+|---|---|
+| 2026-08-11 | 企業ロゴURLの一括更新が **83社で0行更新**。RLS が `auth.uid() = user_id` を要求し、その列は85社中2社にしか入っていなかった。入力欄は保存されたように見えていた |
+| 2026-08-23 | `PATCH /api/biz/company` が **85社で保存されていない**。同じ根。`.select()` が無く `error` だけを見ていた |
+| 2026-08-23 | `ow_job_roles` の入れ替えが **DELETE は黙って0行 / INSERT は 403**。書き込みポリシーが1本も無かった。`try/catch` で囲ってあったが捕まらず、**派生値（`role_category_id`）だけが更新され、職種の正と食い違う**形になっていた |
+
+⚠️ **3件とも原因は「コードの書き方」ではなく「RLS の条件」。**
+   アプリを読んでも気づけない。**行数を見る以外に検知する方法が無い。**
+
+⚠️ **入れ替え方式では順序も守ること。** 「消す → 入れる → 派生値を書く」なら、
+   **入れ替えの成功を確認してから派生値を書く。** 失敗しても派生値だけ書くと、
+   正と派生が食い違ったまま残る（3件目がまさにこれ）。
+
 ### ⚠️ 金額・料率を grep するときは、表現ゆれをすべて対象にする（2026-08-23 確立）
 
 **1つの書き方だけで探すと取りこぼす。** `15%` / `15％`（全角）/ `0.15` / `.15` /
