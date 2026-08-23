@@ -14,6 +14,7 @@ import {
   type RawEducation,
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
+import { getAllRoleRowsCached } from "@/lib/supabase/queries";
 import { getUserAge } from "@/lib/age";
 import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
@@ -195,7 +196,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   // Fetch experiences + educations + content links + achievements + awards + media in parallel
   const [
-    { data: expRows }, { data: allRoles },
+    { data: expRows }, allRoles,
     { data: educationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
     { data: recentPostsRaw },
@@ -222,7 +223,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
-    supabase.from("ow_roles").select("id, name, parent_id"),
+    /* ⚠️ 職種マスタは閲覧者にも対象ユーザーにも依存しないので、ページごとに引かない
+          （2026-08-23）。中身は共通キャッシュ。`getAllRoleRows` の注意書きを参照。
+          ⚠️ 非アクティブな職種も返るので、以前と同じ行が引ける（絞ると職種名が消える）。 */
+    getAllRoleRowsCached(),
     /*
       ⚠️ 学歴は adminSupabase で引く。2026-08-06 に anon から
          ow_user_educations の SELECT 権限を剥がしたため、
