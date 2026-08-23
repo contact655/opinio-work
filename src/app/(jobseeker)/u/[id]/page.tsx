@@ -33,7 +33,6 @@ import {
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
 import { ProfileHeader, shortCompanyName } from "@/components/profile/view/ProfileHeader";
-import { PLATFORM_META } from "@/lib/profile/platformMeta";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -685,99 +684,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               <ProfileNavClient sections={navSections} />
             )}
 
-            {/* ── ハイライト (LinkedIn-style 2-3 cards) ── */}
-            {(() => {
-              const highlights: { icon: React.ReactNode; label: string; body: React.ReactNode; href?: string; color: string }[] = [];
-
-              // Card 1: カジュアル面談CTA（非オーナー、在籍企業の話を聞ける人 かつ在籍企業が受付中）
-              if (!viewerIsOwner && isTalkableHere && currentCompanyMeetingOpen) {
-                highlights.push({
-                  color: "var(--warm)",
-                  icon: (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                  ),
-                  label: "カジュアル面談",
-                  body: (
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                      {currentCareer!.company_name}のメンバーと<br/>気軽に話してみませんか
-                    </span>
-                  ),
-                  href: `/companies/${currentCareer!.company_id}/casual-meeting?person=${owUser.id}`,
-                });
-              }
-
-              // Card 2: 最新の発信コンテンツ
-              if (contentLinks.length > 0) {
-                const latest = contentLinks[0];
-                const meta = PLATFORM_META[latest.platform ?? "other"] ?? PLATFORM_META.other;
-                highlights.push({
-                  color: meta.color,
-                  icon: (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                    </svg>
-                  ),
-                  label: meta.label,
-                  body: (
-                    <span style={{
-                      fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5,
-                      overflow: "hidden", display: "-webkit-box",
-                      WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                    }}>
-                      {latest.title || latest.url}
-                    </span>
-                  ),
-                  href: latest.url,
-                });
-              }
-
-              if (highlights.length === 0) return null;
-
-              return (
-                <section style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
-                    ハイライト
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${highlights.length}, 1fr)`, gap: 10 }}>
-                    {highlights.map((h, i) => (
-                      <a
-                        key={i}
-                        href={h.href ?? "#"}
-                        target={h.href?.startsWith("http") ? "_blank" : undefined}
-                        rel={h.href?.startsWith("http") ? "noopener noreferrer" : undefined}
-                        className="u-sidebar-link"
-                        style={{
-                          display: "flex", alignItems: "flex-start", gap: 10,
-                          padding: "14px 16px", borderRadius: 12,
-                          background: "#fff", border: "1px solid var(--line)",
-                          textDecoration: "none", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-                          transition: "box-shadow 0.15s",
-                        }}
-                      >
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                          background: h.color,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          {h.icon}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink)", marginBottom: 3, letterSpacing: "0.02em" }}>
-                            {h.label}
-                          </div>
-                          {h.body}
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </section>
-              );
-            })()}
-
             {/* ⚠️ ここにあった「プロフィール完成度」バナー（本人にだけ出る
                    黄色のプログレスバー＋未完了項目のチップ）は 2026-08-07 に削除した。
                    /u/[id] は**他人に見せるためのページ**で、本人が来るのは
@@ -980,7 +886,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     企業ページを見る
                   </Link>
                   {/* ⚠️ `!viewerIsOwner` を必ず入れる（2026-08-23 に抜けを修正）。
-                         他の2箇所（上のボタン・ハイライトCard 1）は最初から入っていたが、
+                         ヘッダーのボタンには最初から入っていたが、
                          ここだけ抜けており、**本人が自分のページから自分の在籍企業へ
                          カジュアル面談を申し込める**状態だった。
                          ⚠️ 落ちた側は「企業を探す」になる。本人には申込導線を出さない。 */}
