@@ -173,13 +173,14 @@ export default function RootLayout({
     <html lang="ja" className={`${inter.variable} ${notoSerifJP.variable}`}>
       <head>
         {/* PWA */}
-        <meta name="theme-color" content="var(--royal)" />
+        {/* ⚠️ content / color は CSS ではないので var(--royal) は解決されない。16進で書く（--royal と同値） */}
+        <meta name="theme-color" content="#002366" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="OPINIO" />
         <link rel="apple-touch-icon" href="/icons/pwa/icon-192.png" />
-        <link rel="mask-icon" href="/icons/pwa/icon-192.png" color="var(--royal)" />
+        <link rel="mask-icon" href="/icons/pwa/icon-192.png" color="#002366" />
         {/* JSON-LD */}
         <script
           type="application/ld+json"
