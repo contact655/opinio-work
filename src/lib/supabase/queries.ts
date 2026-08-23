@@ -634,7 +634,7 @@ const getCompanyById = cache(async function getCompanyById(
   }
 
   // Fetch jobs + roles + employee categories + genres in parallel
-  const [{ data: jobRows }, { data: roleRows }, employeeCategories, { data: genreRows }] = await Promise.all([
+  const [{ data: jobRows }, roleRows, employeeCategories, { data: genreRows }] = await Promise.all([
     /* ⚠️ status で必ず絞る（2026-08-11）。ここに絞りが無く、**draft の求人が
           公開中の企業ページに並んでいた**。/companies/opinio に
           「opinio-test-…」が2件出ており、`getJobById` は draft を返さないので
@@ -645,9 +645,11 @@ const getCompanyById = cache(async function getCompanyById(
       .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id)
       .eq("status", "published").eq("is_test", false),
-    supabase
-      .from("ow_roles")
-      .select("id, name, parent_id"),
+    /* ⚠️ 職種マスタは企業ごとに変わらないので、企業ページごとに引かない（2026-08-23）。
+          ここを素で引いていたため、**1ビルドで `ow_roles` に166回**飛んでいた
+          （異なるクエリは2種類だけ＝83倍の重複）。本番の企業ページ表示でも
+          1枚あたり3回引いていた。詳細は `getAllRoleRows` の注意書き。 */
+    getAllRoleRowsCached(),
     getCompanyEmployeeCategories(id),
     supabase
       .from("ow_company_genres")
@@ -666,7 +668,7 @@ const getCompanyById = cache(async function getCompanyById(
     .map((g) => ({ id: g.id as string, name: g.name as string }));
 
   const company = mapCompany(data, jobRows?.length ?? 0, genres);
-  const detail = buildCompanyDetail(data, jobRows ?? [], roleRows ?? []);
+  const detail = buildCompanyDetail(data, jobRows ?? [], roleRows);
 
   /* ⚠️ 面談の可否は**フラグ単独では決めない**（2026-08-11）。宛先が無ければ閉じる。
         ここで潰しておくと、企業ページの CTA・バッジ・申込ページが同じ値を見るので
@@ -813,6 +815,64 @@ const getRoleRows = unstable_cache(
 
 export const getRoleTree = cache(async function getRoleTree(): Promise<RoleTree> {
   return buildRoleTree(await getRoleRows());
+});
+
+/** 職種名を引くだけの用途で使う最小の行。`RoleNode` とは別物。 */
+export type RoleNameRow = { id: string; name: string; parent_id: string | null };
+
+/**
+ * ow_roles を **絞り込まずに** 全件返す（id / name / parent_id だけ）。
+ *
+ * ⚠️ **`getRoleRows` と混同しないこと。** あちらは `is_active = true` で絞っている。
+ *    ここは「その role_id の名前は何か」を引くだけなので、非アクティブな職種も要る。
+ *    絞ると、**その職種で登録した人の職種名が画面から黙って消える**
+ *    （2026-08-23 実測で 154件中6件が非アクティブ）。
+ *
+ * ⚠️ 公開クライアントで引いてよい。`ow_roles` の RLS は
+ *    `ow_roles_public_read`（`USING (true)`）の1本だけで、
+ *    **anon でも154件すべて返る**（2026-08-23 に anon キーで実測。
+ *    非アクティブ6件も返ることを確認済み）。
+ *
+ * ⚠️ ここを admin クライアントに戻さないこと。admin は `no-store` 側と混ざりやすく、
+ *    `unstable_cache` の中で使うと DynamicServerError になる経路がある
+ *    （`getJobRoleMap` の注意書きを参照）。
+ */
+const getAllRoleRows = unstable_cache(
+  async (): Promise<RoleNameRow[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("ow_roles")
+      .select("id, name, parent_id");
+    if (error) console.error("[getAllRoleRows]", error.message);
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      parent_id: (r.parent_id as string | null) ?? null,
+    }));
+  },
+  ["all-role-rows"],
+  { revalidate: 3600 } // 職種マスタはほぼ変わらない
+);
+
+/**
+ * role_id → { id, name, parent_id } の Map。
+ *
+ * ⚠️ Map を `unstable_cache` に載せないこと。JSON 化で往復すると素のオブジェクトに
+ *    なり `.get()` が消える（`getRoleRows` の注意書きと同じ理由）。
+ *    キャッシュするのは配列で、Map の組み立ては react `cache()` 側で行う。
+ */
+export const getRoleNameMap = cache(async function getRoleNameMap(): Promise<
+  Map<string, RoleNameRow>
+> {
+  const rows = await getAllRoleRows();
+  return new Map(rows.map((r) => [r.id, r]));
+});
+
+/** `buildCompanyDetail` のように配列で欲しい側の入口。中身は同じキャッシュ。 */
+export const getAllRoleRowsCached = cache(async function getAllRoleRowsCached(): Promise<
+  RoleNameRow[]
+> {
+  return getAllRoleRows();
 });
 
 /**
@@ -1345,15 +1405,10 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   const supabase = createAdminClient();
   const EMPTY = { current: [], alumni: [] };
 
-  // 全 ow_roles を取得 (カテゴリ名・親情報解決用)
-  const { data: allRoles } = await supabase
-    .from("ow_roles")
-    .select("id, name, parent_id");
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const roleMap = new Map<string, Record<string, any>>(
-    (allRoles ?? []).map((r) => [r.id as string, r])
-  );
+  /* 全 ow_roles（カテゴリ名・親情報の解決用）。
+     ⚠️ 企業ごとに引かない（2026-08-23）。中身は企業に依存しないので共通キャッシュを使う。
+        非アクティブな職種も含めて返るので、以前と同じ行が引ける。 */
+  const roleMap = await getRoleNameMap();
 
   // 企業が非表示にした experience_id を取得
   const { data: hiddenRows } = await supabase
@@ -1786,15 +1841,14 @@ export async function getCompanyEmployeeCategories(
   // admin client を使用: FK 制約不在による embedded join 失敗を回避
   const admin = createAdminClient();
 
-  const [catResult, rolesResult] = await Promise.all([
+  const [catResult, roleMap] = await Promise.all([
     admin
       .from("ow_company_employee_categories")
       .select("id, role_id, display_order, custom_name, parent_role_id")
       .eq("company_id", companyId)
       .order("display_order"),
-    admin
-      .from("ow_roles")
-      .select("id, name, parent_id"),
+    /* ⚠️ 職種マスタは企業ごとに変わらない（2026-08-23）。`getAllRoleRows` の注意書き参照。 */
+    getRoleNameMap(),
   ]);
 
   if (catResult.error || !catResult.data) {
@@ -1802,10 +1856,6 @@ export async function getCompanyEmployeeCategories(
     return [];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const roleMap = new Map<string, Record<string, any>>(
-    (rolesResult.data ?? []).map((r) => [r.id as string, r])
-  );
 
   return catResult.data.map((item) => {
     const roleId = (item.role_id as string | null) ?? null;
