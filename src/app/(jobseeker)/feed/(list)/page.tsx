@@ -76,27 +76,25 @@ export default async function FeedPage() {
   // adminClient (SSR / RLS バイパス)
   const adminSupabase = createAdminClient();
 
-  // ログインユーザー自身の現職情報
+  /* ★自分の現職と投稿一覧は**互いに依存しない**ので並列に引く（2026-08-23）。
+        直列だと1往復ぶん余計に待つ。 */
   let myRoleTitle: string | null = null;
   let myCompany: string | null = null;
-  if (myOwUserId) {
-    const { data: myExp } = await adminSupabase
-      .from("ow_experiences")
-      .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
-      .eq("user_id", myOwUserId)
-      .eq("is_current", true)
-      .limit(1)
-      .maybeSingle();
-    if (myExp) {
-      myRoleTitle = myExp.role_title ?? null;
-      myCompany = resolveExperienceCompanyName(myExp);
-    }
-  }
 
   // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
   // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
   //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
-  const { data: rawPosts } = await adminSupabase
+  const [myExpResult, rawPostsResult] = await Promise.all([
+    myOwUserId
+      ? adminSupabase
+          .from("ow_experiences")
+          .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
+          .eq("user_id", myOwUserId)
+          .eq("is_current", true)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    adminSupabase
     .from("ow_posts_visible")
     .select(`
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
@@ -110,21 +108,24 @@ export default async function FeedPage() {
       comments:ow_post_comments(count)
     `)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(20),
+  ]);
 
-  const posts = (rawPosts ?? []) as unknown as RawPost[];
+  /* ⚠️ 型を狭めない。resolveExperienceCompanyName は会社名の解決に
+        EXPERIENCE_COMPANY_COLS 一式を見る。 */
+  const myExp = myExpResult.data;
+  if (myExp) {
+    myRoleTitle = myExp.role_title ?? null;
+    myCompany = resolveExperienceCompanyName(myExp);
+  }
+
+  const posts = (rawPostsResult.data ?? []) as unknown as RawPost[];
 
   // liked_by_me
   let likedPostIds = new Set<string>();
-  if (myOwUserId && posts.length > 0) {
-    const postIds = posts.map((p) => p.id);
-    const { data: likedRows } = await adminSupabase
-      .from("ow_post_likes")
-      .select("post_id")
-      .eq("user_id", myOwUserId)
-      .in("post_id", postIds);
-    likedPostIds = new Set((likedRows ?? []).map((r: { post_id: string }) => r.post_id));
-  }
+  /* ★このあとの3つ（いいね済み / 投稿者の現職 / いいねした人）は
+        **互いに依存しない**ので、可視判定のあとで1回にまとめて投げる。
+        2026-08-23 まで3段の直列で、3往復ぶん待っていた。 */
 
   // 可視判定。⚠️ ここに if を増やさない。判定は lib/feed/visibility に集約している
   //    （3箇所に散っていた結果、パーマリンクだけ is_system の例外が抜けていた）
@@ -140,12 +141,31 @@ export default async function FeedPage() {
   // 現職情報を別クエリで取得
   const userIds = Array.from(new Set(visiblePosts.map((p) => p.user?.id).filter(Boolean) as string[]));
   const expByUser = new Map<string, { roleTitle: string | null; company: string | null }>();
-  if (userIds.length > 0) {
-    const { data: exps } = await adminSupabase
-      .from("ow_experiences")
-      .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
-      .in("user_id", userIds)
-      .eq("is_current", true);
+  const visibleIds = visiblePosts.map((p) => p.id);
+
+  const [likedResult, expsResult, likersResult] = await Promise.all([
+    myOwUserId && posts.length > 0
+      ? adminSupabase.from("ow_post_likes").select("post_id")
+          .eq("user_id", myOwUserId).in("post_id", posts.map((p) => p.id))
+      : Promise.resolve({ data: null }),
+    userIds.length > 0
+      ? adminSupabase.from("ow_experiences")
+          .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
+          .in("user_id", userIds).eq("is_current", true)
+      : Promise.resolve({ data: null }),
+    visibleIds.length > 0
+      ? adminSupabase.from("ow_post_likes")
+          .select("post_id, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
+          .in("post_id", visibleIds).order("created_at", { ascending: false })
+      : Promise.resolve({ data: null }),
+  ]);
+
+  likedPostIds = new Set(((likedResult.data ?? []) as { post_id: string }[]).map((r) => r.post_id));
+
+  {
+    /* ⚠️ 型を狭めない。resolveExperienceCompanyName が会社名の解決に
+          EXPERIENCE_COMPANY_COLS 一式を見る。 */
+    const exps = expsResult.data;
     for (const exp of exps ?? []) {
       if (!expByUser.has(exp.user_id)) {
         expByUser.set(exp.user_id, {
@@ -158,13 +178,8 @@ export default async function FeedPage() {
 
   // top_likers: いいねしたユーザーのアバター（最大3件）をバッチ取得
   const topLikersMap = new Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]>();
-  if (visiblePosts.length > 0) {
-    const pIds = visiblePosts.map((p) => p.id);
-    const { data: likerRows } = await adminSupabase
-      .from("ow_post_likes")
-      .select("post_id, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
-      .in("post_id", pIds)
-      .order("created_at", { ascending: false });
+  {
+    const likerRows = likersResult.data;
     for (const row of likerRows ?? []) {
       const r = row as unknown as { post_id: string; user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null } };
       if (!topLikersMap.has(r.post_id)) topLikersMap.set(r.post_id, []);
