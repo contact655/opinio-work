@@ -56,9 +56,10 @@ export function ProfileHeader({
   currentCareer?: CareerEntry | null;
   /** 現職の企業がマスタにあり、企業ページへのリンクを張ってよいか */
   isCurrentCompanyKnown?: boolean;
-  /** ★「この会社の話を聞けます」のバッジ（2026-08-23 / B-1）。
+  /** ★「面談可」のバッジ（2026-08-23 / B-1）。**氏名の右**に出す。
    *  ⚠️ 判定は呼び出し側（`lib/companyMembers/talkable.ts`）。ここでは描くだけ。
-   *  ⚠️ `/mypage` も同じ部品を使う。渡さなければ何も出ない。 */
+   *  ⚠️ `/mypage` も同じ部品を使う。渡さなければ何も出ない。
+   *  ⚠️ 会社ブロック（右側）へ戻さない。見落とされるため移した。 */
   talkableBadge?: React.ReactNode;
   /** カバー右上。`/u/[id]` は共有ボタン、`/mypage` は鉛筆 */
   topRight?: React.ReactNode;
@@ -154,6 +155,13 @@ export function ProfileHeader({
             marginBottom: 6, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
           }}>
             {name}
+            {/* ★「面談可」は**氏名の右**（2026-08-23）。
+                   ⚠️ 一度は会社ブロック（右側・社名の下）に置いたが、
+                      **視線の外で見落とされる**という指摘を受けて移した。
+                      ページで最も見られるのは氏名の行なので、そこに添える。
+                   ⚠️ 「どの会社の話を聞けるか」は右の会社ブロックが示している。
+                      在籍企業は1社なので、離れても対応は取れる。 */}
+            {talkableBadge}
           </div>
           {/* 肩書き1行。⚠️ 空なら何も出さない（空欄も既定文言も出さない）。 */}
           {headline && (
@@ -252,7 +260,6 @@ export function ProfileHeader({
                   {shortCompanyName(currentCareer.company_name)}
                 </span>
               )}
-              {talkableBadge && <div style={{ marginTop: 4 }}>{talkableBadge}</div>}
             </div>
           </div>
         )}

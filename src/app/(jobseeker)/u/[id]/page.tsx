@@ -20,7 +20,7 @@ import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
-import { ProfileTabsClient, ShowAllFeedButton } from "@/components/profile/ProfileTabsClient";
+import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
 import { DMButton } from "@/components/profile/DMButton";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -107,31 +107,31 @@ type ActivityPost = {
 };
 
 /**
- * アクティビティ（その人の投稿）。**2箇所で使う**（2026-08-23）。
+ * アクティビティ（その人の投稿）。**自己紹介と職歴の間**に1つだけ置く。
  *
- *   mode="preview" … プロフィールタブの中、**自己紹介と職歴の間**。3件まで＋「すべて表示 →」
- *   mode="full"    … フィードタブ。全件
- *
- * ⚠️ **どちらのモードでも0件で消さない。** 「まだ投稿していません」と書く。
+ * ⚠️ **0件でも消さない。** 「まだ投稿していません」と書く。
  *    消すと「投稿していない」のか「置き場所が無い」のかを読み手が区別できない
  *    （それが 2026-08-23 の出発点）。
  * ⚠️ 本人向けの投稿導線はこのページに置かない（2026-08-16/17 の判断）。
  *    投稿は `/mypage` のアクティビティから行う。空状態でも促さない。
+ *
+ * ── ★上位タブ（プロフィール / フィード）は 2026-08-23 に外した ──────────────
+ * 同じ投稿を「抜粋」と「全件」の2箇所に出しており、**アクティビティがあれば足りる**
+ * （柴さんの判断）。全件はこのセクションの中で展開する。
+ *
+ * ⚠️ **タブを戻さないこと。** 戻すと同じ投稿が1ページに2度出る形に戻る。
+ * ⚠️ 取得は `.limit(6)` なので「すべて」も最大6件。展開しても長くなりすぎない。
  */
 function ActivitySection({
-  posts, likedPostIds, viewerIsOwner, displayName, mode,
+  posts, likedPostIds, viewerIsOwner, displayName,
 }: {
   posts: ActivityPost[];
   likedPostIds: Set<string>;
   viewerIsOwner: boolean;
   displayName: string;
-  mode: "preview" | "full";
 }) {
-  const shown = mode === "preview" ? posts.slice(0, ACTIVITY_PREVIEW_LIMIT) : posts;
-  const hasMore = mode === "preview" && posts.length > ACTIVITY_PREVIEW_LIMIT;
-
   return (
-    <section id={mode === "full" ? "activity" : undefined} style={{
+    <section id="activity" style={{
       background: "#fff", border: "1px solid var(--line)",
       borderRadius: 14, padding: "22px 28px", marginBottom: 20,
       boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
@@ -161,8 +161,11 @@ function ActivitySection({
           </p>
         </>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {shown.map((post) => (
+        /* ⚠️ カードはサーバー側で全件作り、表示件数の判断だけをクライアントに渡す
+               （`CollapsibleList` の使い方）。`PostCard` はクライアント部品なので
+               ここで配列にしておけば境界を越えられる。 */
+        <CollapsibleList
+          items={posts.map((post) => (
             <PostCard
               key={post.id}
               post={{
@@ -176,14 +179,11 @@ function ActivitySection({
               }}
             />
           ))}
-        </div>
-      )}
-
-      {/* ⚠️ 抜粋に収まっているときは出さない。押しても同じものしか出ない */}
-      {hasMore && (
-        <div style={{ borderTop: "1px solid var(--line-soft)", marginTop: 14, paddingTop: 4, textAlign: "center" }}>
-          <ShowAllFeedButton label="すべて表示" />
-        </div>
+          limit={ACTIVITY_PREVIEW_LIMIT}
+          labelCollapsed={`投稿をすべて見る（残り ${posts.length - ACTIVITY_PREVIEW_LIMIT} 件）`}
+          containerStyle={{ display: "flex", flexDirection: "column", gap: 12 }}
+          fade
+        />
       )}
     </section>
   );
@@ -657,17 +657,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 ⚠️ 様式は /people のバッジに合わせてある（訪問者はそこから来る）。 */
           talkableBadge={isTalkableHere ? (
             <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              marginLeft: 8, verticalAlign: "middle",
-              fontSize: 12, fontWeight: 700,
-              padding: "3px 9px", borderRadius: 100,
+              /* ⚠️ 氏名の行は flex（gap: 10）なので marginLeft / verticalAlign は要らない。
+                    書き足すと間隔が二重になる。 */
+              display: "inline-flex", alignItems: "center", gap: 5,
+              fontSize: 13, fontWeight: 700,
+              padding: "4px 11px", borderRadius: 100,
               background: "#FFF7ED", color: "#C2410C",
               border: "1px solid #FED7AA", whiteSpace: "nowrap",
             }}>
               <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
               {/* ★本人が同意していれば「面談可」（2026-08-23 に方針変更）。
                      会社の受付状態では出し分けない。
-                  ⚠️ 申込CTA（カジュアル面談する）は別で、**受付中のときだけ**出す。
+                  ⚠️ 申込CTA（カジュアル面談）は別で、**受付中のときだけ**出す。
                      バッジが出ていても申し込めない相手がいる。
                   ⚠️ 文言は /people・企業ページのバッジと揃える。 */}
               面談可
@@ -698,7 +699,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    カジュアル面談する
+                    カジュアル面談
                   </Link>
                 )}
 
@@ -722,7 +723,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </Link>
                 ) : null}
 
-                {/* ⚠️ 並びは「カジュアル面談する → メッセージ → ＋フォロー」（2026-08-23）。
+                {/* ⚠️ 並びは「カジュアル面談 → メッセージ → ＋フォロー」（2026-08-23）。
                        主要な順に左から。フォローは最も軽い操作なので末尾。 */}
                 {/* フォローボタン。オーナー本人には出さない。
                     未ログインでも押せるが、押すと /auth に飛ばす（企業フォローと同じ挙動） */}
@@ -763,23 +764,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
 
-            {/* ★上位タブ（2026-08-23）。プロフィール / フィードの2つ。
-                   投稿は0件でもタブごと残す（`ProfileTabsClient` のコメント参照）。 */}
-            <ProfileTabsClient
-              feedCount={recentPostsTyped.length}
-              feed={<>
-              {/* ⚠️ フィードタブは**全件**（`ow_posts_visible` から6件）。
-                     プロフィール内の抜粋（自己紹介と職歴の間）とは別物で、
-                     あちらは3件までの入口。両方とも0件でも出す。 */}
-              <ActivitySection
-                posts={recentPostsTyped}
-                likedPostIds={likedPostIds}
-                viewerIsOwner={viewerIsOwner}
-                displayName={owUser.name}
-                mode="full"
-              />
-              </>}
-              profile={<>
+            {/* ⚠️ ここにあった上位タブ（プロフィール / フィード）は 2026-08-23 に外した。
+                   同じ投稿を「抜粋」と「全件」で2度出しており、
+                   **アクティビティのセクションがあれば足りる**（柴さんの判断）。
+                ⚠️ 戻さないこと。全件はアクティビティの中で展開する。 */}
 
             {/* ⚠️ ここにあったセクションナビ（自己紹介 / 職歴 / 学歴 …）は 2026-08-23 に外した。
                    上位タブ（プロフィール / フィード）を足した結果、**タブ風の行が2段**になり、
@@ -809,14 +797,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
                    経歴を読む前に見せる。
                 ⚠️ **0件でも出す。** 「まだ投稿していません」と書くことで、
                    投稿していないのか置き場所が無いのかを読み手が区別できる。
-                ⚠️ ここは**抜粋（3件まで）**。全件はフィードタブが持つ。
-                   件数が抜粋を超えるときだけ「すべて表示 →」を出す。 */}
+                ⚠️ 初期表示は3件。**残りはこのセクションの中で展開する**
+                   （タブへ飛ばさない）。 */}
             <ActivitySection
               posts={recentPostsTyped}
               likedPostIds={likedPostIds}
               viewerIsOwner={viewerIsOwner}
               displayName={owUser.name}
-              mode="preview"
             />
             {/* ── 数値実績 ── */}
             <ProfileAchievementsSection achievements={achievements} />
@@ -932,8 +919,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
             </section>
           )}
-              </>}
-            />
 
           {/* Footer CTA — パーソナライズ
               ⚠️ 2026-08-08 まで .profile-grid の**外**にあり、常に 1020px
@@ -987,7 +972,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                       </svg>
-                      カジュアル面談する
+                      カジュアル面談
                     </Link>
                   ) : (
                     <Link href="/companies" style={{
