@@ -297,7 +297,9 @@ function GridCard({ card, myUserId, followedUserIds }: {
           zIndex: 1,
         }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-          面談可
+          {/* ⚠️ 文言は企業ページのバッジと同じにする（出所が同じなので揃える）。
+                 「面談可」に戻さないこと。申し込める意味に読まれる。 */}
+          話を聞けます
         </span>
       )}
 
@@ -739,7 +741,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
-          ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>面談可</strong> は、話を聞く相手として登録している方です。無料で相談できます。<br />
+          ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>話を聞けます</strong> は、いま在籍している会社について話を聞かれてもよいと登録している方です。<br />
+          申し込めるかどうかは会社ごとに異なります。企業ページでご確認ください。<br />
           所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。
         </div>
       </div>

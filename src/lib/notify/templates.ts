@@ -406,7 +406,10 @@ export function newCompanyAdminTemplate(params: {
   };
 }
 
-// ── 面談対応者招待メール（本人宛） ───────────────────────────────────────────
+// ── 「話を聞かれてもよい」への招待（本人宛）───────────────────────────────────
+/* ⚠️ 本人が受け取る文面なので、/mypage・/people と同じ語彙にする（2026-08-23 / B-1）。
+      「面談対応者」は**企業・運営向けの語**。本人宛には出さない。
+   ⚠️ /biz・/admin 側の「面談対応者」「面談受付中」は変えないこと（確定済み）。 */
 export function ambassadorInviteTemplate(params: {
   to: string;
   userName: string;
@@ -419,21 +422,21 @@ export function ambassadorInviteTemplate(params: {
 
   return {
     to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)}の面談対応者に選ばれました`,
+    subject: `【OPINIO】${esc(params.companyName)} の話を聞く相手として招待されています`,
     html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談対応者への招待</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞かれてもよいか、確認させてください</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${esc(params.userName)} さん<br><br>
         <strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
-        あなたをOPINIOの「面談対応者」に指名する申請がありました。
+        あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">企業名</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
         <tr><td style="${TD_LABEL}">役職</td><td style="${TD_VALUE}">${esc(params.roleTitle)}</td></tr>
       </table>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
-        面談対応者になると:<br>
-        ・OPINIOの「話せる人」一覧にあなたのプロフィールが表示されます<br>
+        掲載されると:<br>
+        ・OPINIOに「この会社の話を聞ける人」としてプロフィールが表示されます<br>
         ・転職を検討している方から、カジュアル面談の申込みが届きます<br>
         ・あなたの氏名・役職・所属企業が公開されます
       </p>
@@ -563,7 +566,7 @@ export function ambassadorRequestTemplate(params: {
   };
 }
 
-// ── 面談対応者の申請に対する企業の判断（本人宛）─────────────────────────────
+// ── 「話を聞かれてもよい」の申請に対する企業の判断（本人宛）───────────────────
 /*
  * ⚠️★件名に結果を書かない（2026-08-23 確定）。
  *    件名は受信箱の一覧やスマホのプッシュ通知に出るため、
@@ -586,9 +589,9 @@ export function ambassadorApprovedTemplate(params: {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
   return {
     to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)} の面談対応者について`,
+    subject: `【OPINIO】${esc(params.companyName)} の登録について`,
     html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談対応者に登録されました</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞く相手として登録されました</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${esc(params.userName)} さん<br><br>
         <strong style="color:#0f172a">${esc(params.companyName)}</strong>への
@@ -618,7 +621,7 @@ export function ambassadorDismissedTemplate(params: {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
   return {
     to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)} の面談対応者について`,
+    subject: `【OPINIO】${esc(params.companyName)} の登録について`,
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">登録は見送られました</h2>
       <p style="margin:0 0 20px;color:#475569">

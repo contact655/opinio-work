@@ -105,7 +105,7 @@ export default function AmbassadorInvitePage() {
                 承認しました
               </div>
               <div style={{ color: "var(--ink-soft)", marginBottom: 24 }}>
-                OPINIOの「話せる人」一覧に表示されます。<br />
+                「この会社の話を聞ける人」として表示されます。<br />
                 設定はマイページからいつでも変更できます。
               </div>
               <button
@@ -183,10 +183,13 @@ export default function AmbassadorInvitePage() {
               </div>
 
               <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 8px" }}>
-                面談対応者に選ばれました
+                {/* ★本人向けの語彙に揃える（2026-08-23 / B-1）。
+                       「面談対応者」は企業・運営向けの語。メール（ambassadorInviteTemplate）
+                       と同じ言い方にしてある。片方だけ直すと着地でズレる。 */}
+                話を聞かれてもよいか、確認させてください
               </h1>
               <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: "0 0 24px", lineHeight: 1.7 }}>
-                {info.company_name}の採用担当者から、あなたをOPINIOの「面談対応者」に指名する申請がありました。
+                {info.company_name}の採用担当者から、あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
               </p>
 
               <div style={{
@@ -196,10 +199,10 @@ export default function AmbassadorInvitePage() {
                 marginBottom: 24,
               }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", marginBottom: 10 }}>
-                  面談対応者になると：
+                  掲載されると：
                 </div>
                 {[
-                  "「話せる人」一覧にあなたのプロフィールが表示されます",
+                  "「この会社の話を聞ける人」としてプロフィールが表示されます",
                   "転職を検討している方から、カジュアル面談の申込みが届きます",
                   "あなたの氏名・役職・所属企業が公開されます",
                 ].map((item, i) => (

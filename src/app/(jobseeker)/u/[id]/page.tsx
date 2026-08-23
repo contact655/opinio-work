@@ -557,6 +557,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
           socialLinks={socialLinks}
           currentCareer={currentCareer}
           isCurrentCompanyKnown={isCurrentCompanyKnown}
+          /* ★「この会社の話を聞けます」（2026-08-23 / B-1）。
+                ⚠️ **申込CTAとは独立**。企業が受付を止めていても出す。
+                   人が出るかは本人の同意で決まり、申込導線は企業の受付で決まる（方針D）。
+                ⚠️ 本人が自分のページを見たときも出す。自分の登録状態が確認できるほうがよい
+                   （申込CTAは本人には出さない ＝ `!viewerIsOwner`）。
+                ⚠️ 様式は /people のバッジに合わせてある（訪問者はそこから来る）。 */
+          talkableBadge={isTalkableHere ? (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              marginLeft: 8, verticalAlign: "middle",
+              fontSize: 12, fontWeight: 700,
+              padding: "3px 9px", borderRadius: 100,
+              background: "#FFF7ED", color: "#C2410C",
+              border: "1px solid #FED7AA", whiteSpace: "nowrap",
+            }}>
+              <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
+              話を聞けます
+            </span>
+          ) : null}
           topRight={<ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />}
           actions={<>
               {/* ⚠️ minWidth: 0 が要る（2026-08-08）。この行は親（flex row）の item で、

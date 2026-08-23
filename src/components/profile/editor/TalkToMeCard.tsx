@@ -39,7 +39,7 @@ const COPY: Record<Exclude<MemberState, "none">, { badge: string; tone: string; 
   pending_user: {
     badge: "あなたの確認待ち",
     tone: "var(--warm-soft)",
-    line: "この会社から「話せる人」として登録の依頼が届いています。内容を確認してください。",
+    line: "この会社から「話を聞ける人」として登録の依頼が届いています。内容を確認してください。",
   },
   pending_company: {
     badge: "会社の確認待ち",

@@ -126,7 +126,7 @@ function EmployeeCard({
       background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
       color: "#92400E", border: "1px solid #FCD34D",
       whiteSpace: "nowrap", flexShrink: 0,
-    }}>💬 面談OK</span>
+    }}>💬 話を聞けます</span>
   ) : undefined;
 
   if (isAmbassador && companyId) {

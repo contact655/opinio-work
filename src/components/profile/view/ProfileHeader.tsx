@@ -34,7 +34,7 @@ export function shortCompanyName(name: string): string {
 export function ProfileHeader({
   name, headline, initial, avatarUrl, avatarColor, coverPhotoUrl, coverColor,
   ageDisplay, location, followCounts, socialLinks,
-  currentCareer, isCurrentCompanyKnown,
+  currentCareer, isCurrentCompanyKnown, talkableBadge,
   topRight, actions, promos,
 }: {
   name: string;
@@ -53,6 +53,10 @@ export function ProfileHeader({
   currentCareer?: CareerEntry | null;
   /** 現職の企業がマスタにあり、企業ページへのリンクを張ってよいか */
   isCurrentCompanyKnown?: boolean;
+  /** ★「この会社の話を聞けます」のバッジ（2026-08-23 / B-1）。
+   *  ⚠️ 判定は呼び出し側（`lib/companyMembers/talkable.ts`）。ここでは描くだけ。
+   *  ⚠️ `/mypage` も同じ部品を使う。渡さなければ何も出ない。 */
+  talkableBadge?: React.ReactNode;
   /** カバー右上。`/u/[id]` は共有ボタン、`/mypage` は鉛筆 */
   topRight?: React.ReactNode;
   /** 右側の CTA 群。`/mypage` は渡さない（フォロー・DM・カジュアル面談・共有は本人には要らない） */
@@ -168,6 +172,9 @@ export function ProfileHeader({
                 currentCareer.company_name !== "非公開" && (
                 <span style={{ fontSize: 14, color: "var(--ink-soft)" }}> @ {shortCompanyName(currentCareer.company_name)}</span>
               )}
+              {/* ★在籍会社の直後に置く。誰の話を聞けるのかではなく
+                     **どの会社の話を聞けるのか**が要点なので、会社名から離さない。 */}
+              {talkableBadge}
             </div>
           )}
           <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap" }}>

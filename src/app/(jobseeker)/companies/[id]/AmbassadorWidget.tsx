@@ -90,8 +90,13 @@ export default function AmbassadorWidget({
       padding: "16px",
       boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
     }}>
+      {/* ★見出しは「申し込める」を意味しない表記にする（2026-08-23 / 方針D）。
+             受付を止めている企業でも人は出すので、「カジュアル面談OK」のままだと
+             **申し込めないのに OK と書いてある**状態になる。
+             ⚠️ 社員カードのバッジ（CompanyEmployeeSections）と揃えること。出所は同じ。
+             ⚠️ 文言は暫定。確定はこれから。 */}
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
-        💬 カジュアル面談OK
+        💬 この会社の話を聞ける人
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 10 }}>
@@ -130,7 +135,8 @@ export default function AmbassadorWidget({
         {/* ⚠️ 見出しの N は locked かどうかに関わらず出す。数字は隠さない（案A）。
                出所はカードと同じ（取得前だけサーバーの初期値） */}
         <span style={{ marginLeft: 10, fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
-          {total}名が対応可能
+          {/* ⚠️ 「対応可能」は申込を含意する。受付停止でも出る数字なので使わない。 */}
+          {total}名
         </span>
       </div>
 
