@@ -90,9 +90,42 @@ export async function updateSession(
   /* クッキーの読み書きは試行をまたいで同じものを使う。
      ⚠️ `setAll` で **request.cookies にも書く**こと。書かないと、この後の
         サーバーコンポーネントが**古い（期限切れの）トークン**を読む。 */
+  /** 消し残った非チャンクのクッキー名。②で期限切れにして送り返す。 */
+  const staleCookieNames: string[] = [];
+
   const cookieHandlers = {
     getAll() {
-      return request.cookies.getAll();
+      const all = request.cookies.getAll();
+
+      /* ★**非チャンクとチャンクが混在したら、チャンク側を正とする**（2026-08-23）。
+
+         ⚠️ `@supabase/ssr` は**非チャンク（`sb-<ref>-auth-token`）を優先する**。
+            セッションが 3,180字（`MAX_CHUNK_SIZE`）を超えて `.0` / `.1` に
+            分割されたとき、**古い非チャンクのクッキーが消し残る**ことがあり、
+            middleware はその古い方を読んでしまう。
+
+         ⚠️ **これが「急にログアウトする」の正体だった。** 本番で再現済み:
+              /companies … `getSession()`（署名を検証しない）→ 200。ログイン中に見える
+              /people    … `getUser()`（Supabase で検証）→ 失敗 → **「/auth」へリダイレクト**
+            利用者からは「ログインしているのにユーザータブでログアウトされる」と見える。
+
+         ⚠️ **チャンク側を正とするのは、stale になるのが非チャンク側だから。**
+            2チャンク→1チャンクに縮むときは、ライブラリが `maxAge:0` で
+            チャンクを消す実装を持っている（`cookies.js` の
+            `removeExistingCookiesForItem`）。逆向き（1→2）の取り残しだけが残る。 */
+      const chunkedBases = new Set(
+        all
+          .filter((c) => /\.\d+$/.test(c.name))
+          .map((c) => c.name.replace(/\.\d+$/, "")),
+      );
+      if (chunkedBases.size === 0) return all;
+
+      return all.filter((c) => {
+        if (!chunkedBases.has(c.name)) return true;
+        // 非チャンク側は捨てる。②で消しにいくため名前を控える
+        if (!staleCookieNames.includes(c.name)) staleCookieNames.push(c.name);
+        return false;
+      });
     },
     setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
       cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
@@ -170,6 +203,19 @@ export async function updateSession(
   }
 
   const user = outcome.user;
+
+  /* ② 消し残った非チャンクのクッキーを、ブラウザからも消す。
+        ⚠️ これをやらないと**毎回同じ取り違えが起き続ける**（読む側で無視するだけでは、
+           クッキー自体は残ったままになる）。 */
+  if (staleCookieNames.length > 0) {
+    console.warn(
+      `[updateSession] 非チャンクとチャンクのクッキーが混在していたため、` +
+        `古い非チャンク側を無視して消す: ${staleCookieNames.join(", ")}`,
+    );
+    for (const name of staleCookieNames) {
+      supabaseResponse.cookies.set(name, "", { maxAge: 0, path: "/" });
+    }
+  }
 
   return { response: supabaseResponse, user };
 }
