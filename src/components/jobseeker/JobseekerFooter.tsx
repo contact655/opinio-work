@@ -59,7 +59,7 @@ export function JobseekerFooter() {
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "募集を探す" },
                 { href: "/articles",  label: "記事" },
-                { href: "/auth",      label: "無料登録（無料）" },
+                { href: "/auth",      label: "無料登録" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
                   fontSize: 13, textDecoration: "none",
