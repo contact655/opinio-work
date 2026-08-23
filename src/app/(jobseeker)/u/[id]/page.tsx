@@ -516,7 +516,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
    * ⚠️ **ヘッダーの「〇〇 の企業ページ」リンクはこの判定の対象外。**
    *    あれは「この人はここに在籍している」という肩書きの一部で、宣伝ではない。
    */
-  const canPromoteCurrentCompany = isTalkableHere && currentCompanyMeetingOpen;
+  const canPromoteCurrentCompany = isTalkableHere;
 
   /* ⚠️ この2本も互いに独立なので並列にする（2026-08-09）。
         求人は在籍企業に、記事は本人にぶら下がっており、参照し合わない。 */
@@ -665,13 +665,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
               border: "1px solid #FED7AA", whiteSpace: "nowrap",
             }}>
               <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-              {/* ★文言は**その会社がいま受け付けているか**で出し分ける（2026-08-23）。
-                     受付中は「面談可」、そうでなければ「話を聞けます」。
-                  ⚠️ **バッジの有無（isTalkableHere）には受付を混ぜないこと。**
-                     出るかどうかは本人の同意、文言は企業の受付。混ぜると
-                     企業が受付を止めた瞬間に本人の同意までページから消える（方針D）。
+              {/* ★本人が同意していれば「面談可」（2026-08-23 に方針変更）。
+                     会社の受付状態では出し分けない。
+                  ⚠️ 申込CTA（カジュアル面談する）は別で、**受付中のときだけ**出す。
+                     バッジが出ていても申し込めない相手がいる。
                   ⚠️ 文言は /people・企業ページのバッジと揃える。 */}
-              {currentCompanyMeetingOpen ? "面談可" : "話を聞けます"}
+              面談可
             </span>
           ) : null}
           topRight={<ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />}

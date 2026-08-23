@@ -128,11 +128,11 @@ function EmployeeCard({
             オレンジ＝カジュアル面談は、この製品で唯一の意味。 */
       background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
       whiteSpace: "nowrap", flexShrink: 0,
-    }}>{/* ★文言は**この企業がいま受け付けているか**で出し分ける（2026-08-23）。
-             受付中は「面談可」、そうでなければ「話を聞けます」。
-          ⚠️ **バッジの有無（isAmbassador）には受付を混ぜないこと**（方針D）。
+    }}>{/* ★本人が同意していれば「面談可」（2026-08-23 に方針変更）。
+             企業の受付状態では出し分けない。
+          ⚠️ 申込導線は別で、受付中のときだけ出す。
           ⚠️ 文言は /people・`/u/[id]` のバッジと揃える。 */}
-      💬 {acceptingMeetings ? "面談可" : "話を聞けます"}</span>
+      💬 面談可</span>
   ) : undefined;
 
   if (isAmbassador && companyId) {
