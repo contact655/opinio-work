@@ -5519,6 +5519,50 @@ export type Database = {
           },
         ]
       }
+      ow_user_certifications: {
+        Row: {
+          created_at: string
+          credential_id: string | null
+          credential_url: string | null
+          id: string
+          issued_at: string | null
+          issuer: string | null
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          id?: string
+          issued_at?: string | null
+          issuer?: string | null
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          id?: string
+          issued_at?: string | null
+          issuer?: string | null
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_user_certifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_user_content_links: {
         Row: {
           created_at: string

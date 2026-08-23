@@ -72,6 +72,7 @@ export default async function MypagePage({
   /* ── プロフィール編集にだけ要るもの（2026-08-16 に /profile/edit から移設）── */
   let achievementsRaw: Record<string, unknown>[] = [];
   let awardsRaw: Record<string, unknown>[] = [];
+  let certificationsRaw: Record<string, unknown>[] = [];
   let mediaAppearancesRaw: Record<string, unknown>[] = [];
   let contentLinksRaw: Record<string, unknown>[] = [];
   let desiredRoleIds: string[] = [];
@@ -87,6 +88,7 @@ export default async function MypagePage({
       followCountsResult,
       { data: achRows },
       { data: awdRows },
+      { data: certRows },
       { data: medRows },
       { data: linkRows },
       { data: desiredRoleRows },
@@ -128,6 +130,12 @@ export default async function MypagePage({
       supabase
         .from("ow_user_awards")
         .select("id, title, issuer, awarded_at, description, sort_order, experience_id")
+        .eq("user_id", owUser.id).order("sort_order", { ascending: true }),
+      /* ★資格（2026-08-24）。⚠️ 順番は上の分割代入と揃えること。
+            ずれると別のテーブルの行が入るが、**型が同じ Record なのでエラーにならない。** */
+      supabase
+        .from("ow_user_certifications")
+        .select("id, name, issuer, issued_at, credential_id, credential_url, sort_order")
         .eq("user_id", owUser.id).order("sort_order", { ascending: true }),
       supabase
         .from("ow_user_media_appearances")
@@ -230,6 +238,7 @@ export default async function MypagePage({
           ⚠️ **追加のクエリを投げない。** 上の Promise.all で引いた行から作る。 */
     achievementsRaw = (achRows ?? []) as Record<string, unknown>[];
     awardsRaw = (awdRows ?? []) as Record<string, unknown>[];
+    certificationsRaw = (certRows ?? []) as Record<string, unknown>[];
     mediaAppearancesRaw = (medRows ?? []) as Record<string, unknown>[];
     contentLinksRaw = (linkRows ?? []) as Record<string, unknown>[];
     desiredRoleIds = ((desiredRoleRows ?? []) as { role_id: string }[]).map((r) => r.role_id);
@@ -487,6 +496,8 @@ export default async function MypagePage({
       initialAchievements={achievementsRaw as any}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialAwards={awardsRaw as any}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialCertifications={certificationsRaw as any}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialMediaAppearances={mediaAppearancesRaw as any}
       initialExperiences={initialExperiences}

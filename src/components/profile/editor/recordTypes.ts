@@ -61,6 +61,22 @@ export type Award = {
   experience_id: string | null;
 };
 
+/**
+ * 資格（2026-08-24）。LinkedIn の「資格」に合わせた5項目。
+ * ⚠️ 形は `ProfileSections.tsx` の `CertificationRow` と揃えること。
+ * ⚠️ **`experience_id` は持たない。** 資格は職歴に紐づかない。
+ */
+export type Certification = {
+  id: string;
+  name: string;
+  issuer: string | null;
+  /** 発行日。DB は date だが**画面は年月まで**（API が YYYY-MM-01 に正規化する） */
+  issued_at: string | null;
+  credential_id: string | null;
+  credential_url: string | null;
+  sort_order: number;
+};
+
 export type MediaAppearance = {
   id: string;
   title: string;

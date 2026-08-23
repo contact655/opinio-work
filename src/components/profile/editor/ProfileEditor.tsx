@@ -32,6 +32,7 @@ import {
   type Achievement,
   type Award,
   type MediaAppearance,
+  type Certification,
 } from "./recordTypes";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import type { CompanyLogoInfo } from "@/lib/utils/timeline";
@@ -117,6 +118,7 @@ export default function ProfileEditor({
   initialSocialLinks,
   initialAchievements,
   initialAwards,
+  initialCertifications,
   initialMediaAppearances,
   initialExperiences,
   initialContentLinks,
@@ -143,6 +145,8 @@ export default function ProfileEditor({
   initialSocialLinks: SocialLinks;
   initialAchievements: Achievement[];
   initialAwards: Award[];
+  /** 資格（2026-08-24）。⚠️ `ProfileTab` へそのまま渡す */
+  initialCertifications: Certification[];
   initialMediaAppearances: MediaAppearance[];
   initialExperiences: Stint[];
   initialContentLinks: ContentLink[];
@@ -258,7 +262,10 @@ export default function ProfileEditor({
     avatarUrl: owUser?.avatar_url ?? null,
     experienceCount: initialExperiences.length,
     educationCount:  initialEducations.length,
-    certOrAchievementCount: initialAchievements.length + initialAwards.length + initialMediaAppearances.length,
+    /* ⚠️ 資格も数える（2026-08-24）。`certs` の項目名どおり。
+          2026-08-04 に資格を廃止したときに外れていたぶんを戻した。
+          既存の重み（3点）は変えていないので、誰の点数も下がらない。 */
+    certOrAchievementCount: initialAchievements.length + initialAwards.length + initialMediaAppearances.length + initialCertifications.length,
     socialOrContentCount:   initialContentLinks.length + Object.values(initialSocialLinks).filter(Boolean).length,
   });
   const [profileDirty, setProfileDirty] = useState(false);
@@ -401,6 +408,7 @@ export default function ProfileEditor({
             schools={schools}
             initialAchievements={initialAchievements}
             initialAwards={initialAwards}
+            initialCertifications={initialCertifications}
             initialMediaAppearances={initialMediaAppearances}
             initialSocialLinks={initialSocialLinks}
             initialContentLinks={initialContentLinks}

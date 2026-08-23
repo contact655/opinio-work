@@ -15,6 +15,8 @@ export const ROWS_ON_PROFILE = {
   education: 4,
   achievements: 3,
   awards: 3,
+  /* 資格（2026-08-24）。⚠️ 行が短い（名称＋発行団体＋発行日＋番号）ので受賞と同じ3。 */
+  certifications: 3,
   media: 3,
   content: 3,
 } as const;

@@ -28,6 +28,7 @@ import {
   MediaAppearanceEditor,
   AchievementEditor,
   AwardEditor,
+  CertificationEditor,
   type RoleItem,
   type ExperienceOption,
 } from "./RecordEditors";
@@ -37,6 +38,7 @@ import {
   type Achievement,
   type Award,
   type MediaAppearance,
+  type Certification,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
@@ -63,6 +65,7 @@ import {
   ProfileMediaSection,
   ProfileAchievementsSection,
   ProfileAwardsSection,
+  ProfileCertificationsSection,
   ProfileTimelineSection,
   ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
@@ -523,6 +526,7 @@ export default function ProfileTab({
   schools,
   initialAchievements,
   initialAwards,
+  initialCertifications,
   initialMediaAppearances,
   initialSocialLinks,
   initialContentLinks,
@@ -572,6 +576,8 @@ export default function ProfileTab({
   schools: School[];
   initialAchievements: Achievement[];
   initialAwards: Award[];
+  /** 資格（2026-08-24）。⚠️ 学歴の下に出す */
+  initialCertifications: Certification[];
   initialMediaAppearances: MediaAppearance[];
   initialSocialLinks: SocialLinks;
   initialContentLinks: ContentLink[];
@@ -592,6 +598,7 @@ export default function ProfileTab({
   // ── 実績・受賞タブの状態 ─────────────────────────────────────────────────
   const [achievements,     setAchievements]     = useState<Achievement[]>(initialAchievements);
   const [awards,           setAwards]           = useState<Award[]>(initialAwards);
+  const [certifications,   setCertifications]   = useState<Certification[]>(initialCertifications);
   const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
   /* ⚠️ 「その他の実績・受賞」というまとめ方は 2026-08-16 にやめた。
@@ -709,6 +716,7 @@ export default function ProfileTab({
            職歴・学歴と**同じ書き方に揃える**（片方だけ違う形にしない）。 */
   const shownAchievements = achievements.slice(0, ROWS_ON_PROFILE.achievements);
   const shownAwards       = awards.slice(0, ROWS_ON_PROFILE.awards);
+  const shownCerts        = certifications.slice(0, ROWS_ON_PROFILE.certifications);
   const shownMedia        = mediaAppearances.slice(0, ROWS_ON_PROFILE.media);
   const shownContent      = contentLinks.slice(0, ROWS_ON_PROFILE.content);
 
@@ -741,6 +749,10 @@ export default function ProfileTab({
   const [editingAwdId, setEditingAwdId] = useState<string | null>(null);
   const [deleteAwdId, setDeleteAwdId] = useState<string | null>(null);
   const [awdAddNonce, setAwdAddNonce] = useState(0);
+  /* 資格（2026-08-24）。⚠️ 受賞と同じ形（nonce は値が変わったときだけ発火・ルール⑭） */
+  const [editingCertId, setEditingCertId] = useState<string | null>(null);
+  const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
+  const [certAddNonce, setCertAddNonce] = useState(0);
   /* メディア掲載: 編集はモーダル（2026-08-17 / フェーズ2）。行の鉛筆から来たときは id を持つ */
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
   /* ⚠️ 削除は既存の確認ダイアログを使う。エディタ側が持っているので id を渡して開く */
@@ -826,12 +838,13 @@ export default function ProfileTab({
 
   /* ⚠️ **職歴・学歴は候補に入れない**（2026-08-17）。0件でも枠が出るので、
         候補にも出すと**同じ操作への入口が2つ**になる（ルール⑧）。 */
-  type SectionKey = "about" | "achievements" | "awards" | "media" | "content";
+  type SectionKey = "about" | "achievements" | "awards" | "certifications" | "media" | "content";
   /** 未入力のセクションだけを並べる。★入力済みは本文に出ているので一覧に入れない（二重になる） */
   const emptySections = ([
     { key: "about",        label: "自己紹介",        open: () => setEditingAbout(true) },
     { key: "achievements", label: "数値実績",        open: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); } },
     { key: "awards",       label: "受賞・表彰",      open: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); } },
+    { key: "certifications", label: "資格",          open: () => { setEditingCertId(null); setCertAddNonce((n) => n + 1); } },
     { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); } },
     { key: "content",      label: "発信コンテンツ",  open: () => setContentAddNonce((n) => n + 1) },
   ] as { key: SectionKey; label: string; open: () => void }[]).filter((sec) => {
@@ -839,6 +852,7 @@ export default function ProfileTab({
       case "about":        return !hasAbout;
       case "achievements": return achievements.length === 0;
       case "awards":       return awards.length === 0;
+      case "certifications": return certifications.length === 0;
       case "media":        return mediaAppearances.length === 0;
       case "content":      return contentLinks.length === 0;
     }
@@ -948,12 +962,15 @@ export default function ProfileTab({
       avatarUrl: savedAvatarUrl,
       experienceCount: savedExperienceCount,
       educationCount:  educations.length,
-      certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length,
+      /* ⚠️ 資格も数える（2026-08-24）。`ProfileEditor` の同じ式と揃えること。 */
+      certOrAchievementCount: achievements.length + awards.length + mediaAppearances.length + certifications.length,
       socialOrContentCount:   contentLinks.length + Object.values(savedSocialLinks).filter(Boolean).length,
     });
   }, [
     onSavedChange, initialBasicInfo, initialBirthYear, initialBirthMonth, initialBirthDay,
     savedAvatarUrl, savedExperienceCount, educations, achievements, awards, mediaAppearances,
+    /* ⚠️ 配列そのものを並べる（他の4つと同じ形）。`.length` だけを入れない */
+    certifications,
     contentLinks, savedSocialLinks,
   ]);
 
@@ -1571,6 +1588,33 @@ export default function ProfileTab({
               openEditId={editingEduId}
               openDeleteId={deleteEduId}
               onClosed={() => { setEditingEduId(null); setDeleteEduId(null); }}
+            />
+
+            {/* ★資格（2026-08-24）。**学歴の下**（柴さんの指示・LinkedIn と同じ並び）。
+                   ⚠️ 0件のときはカードを出さない。追加は「セクションを追加」から。
+                      職歴・学歴だけは0件でも枠を出す扱いで、他のセクションは出さない。
+                      ここで枠を出すと、同じ操作への入口が2つになる（ルール⑧）。 */}
+            {certifications.length > 0 && (
+              <ProfileCertificationsSection
+                certifications={shownCerts}
+                actions={{
+                  manageHref: "/mypage/details/certifications",
+                  manageLabel: "資格を編集",
+                  onAdd: () => { setEditingCertId(null); setCertAddNonce((n) => n + 1); },
+                }}
+                showAll={{ href: "/mypage/details/certifications", label: "資格", hiddenCount: certifications.length - shownCerts.length }}
+              />
+            )}
+            {/* ⚠️ 編集フォームは**常にマウントしておく**（モーダル）。
+                   条件付きにすると、0件から「セクションを追加」で開こうとしたときに
+                   マウントと同時に届いた nonce が飲み込まれて開かない（ルール⑭③）。 */}
+            <CertificationEditor
+              certifications={certifications}
+              setCertifications={setCertifications}
+              openAddNonce={certAddNonce}
+              openEditId={editingCertId}
+              openDeleteId={deleteCertId}
+              onClosed={() => { setEditingCertId(null); setDeleteCertId(null); }}
             />
           </div>
 

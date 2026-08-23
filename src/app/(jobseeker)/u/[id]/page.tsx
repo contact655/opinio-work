@@ -28,6 +28,7 @@ import {
   ProfileAboutSection,
   ProfileAchievementsSection,
   ProfileAwardsSection,
+  ProfileCertificationsSection,
   ProfileMediaSection,
   ProfileTimelineSection,
   ProfileArticlesSection,
@@ -290,6 +291,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     { data: expRows }, allRoles,
     { data: educationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
+    { data: certificationsRaw },
     { data: recentPostsRaw },
   ] = await Promise.all([
     /*
@@ -357,6 +359,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, title, media_name, url, thumbnail_url, appeared_at, description, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    /* ★資格（2026-08-24）。⚠️ **admin クライアントで引く。**
+          `ow_user_certifications` は anon に GRANT していない（awards / educations と同じ）。
+          session クライアントのままだと未ログイン閲覧で丸ごと消える。 */
+    adminSupabase
+      .from("ow_user_certifications")
+      .select("id, name, issuer, issued_at, credential_id, credential_url, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true }),
     supabase
       .from("ow_posts_visible")
       .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
@@ -382,6 +392,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const mediaAppearances = (mediaAppearancesRaw ?? []) as Array<{
     id: string; title: string; media_name: string | null; url: string | null;
     thumbnail_url: string | null; appeared_at: string | null; description: string | null; sort_order: number;
+  }>;
+  /* ⚠️ 形は `CertificationRow`（ProfileSections.tsx）と同じにすること。
+        片方だけ列を足すと、渡した先で読まれない列が生まれる。 */
+  const certifications = (certificationsRaw ?? []) as Array<{
+    id: string; name: string; issuer: string | null; issued_at: string | null;
+    credential_id: string | null; credential_url: string | null; sort_order: number;
   }>;
   const recentPostsTyped = (recentPostsRaw ?? []) as Array<{
     id: string; content: string; image_url: string | null; created_at: string;
@@ -837,6 +853,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 />
               </ProfileTimelineSection>
             )}
+
+            {/* ── 資格（2026-08-24）──
+                   ⚠️ **学歴の下**。柴さんの指示で LinkedIn と同じ並びにしてある。
+                   ⚠️ 0件なら出さない（`actions` を渡さないので空状態も出ない）。 */}
+            <ProfileCertificationsSection certifications={certifications} />
 
 
             {/* ── アクティビティ（最近の投稿）──

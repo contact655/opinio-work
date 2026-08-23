@@ -40,6 +40,10 @@ export type AwardRow = {
   id: string; title: string; issuer: string | null; awarded_at: string | null;
   description: string | null; sort_order: number;
 };
+export type CertificationRow = {
+  id: string; name: string; issuer: string | null; issued_at: string | null;
+  credential_id: string | null; credential_url: string | null; sort_order: number;
+};
 export type MediaAppearanceRow = {
   id: string; title: string; media_name: string | null; url: string | null;
   thumbnail_url: string | null; appeared_at: string | null; description: string | null; sort_order: number;
@@ -344,6 +348,156 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
                 {/* ⚠️ 行の右端。`actions` が無ければ描かない＝他人の DOM は不変 */}
                 {(actions?.onEditRow || actions?.onDeleteRow) && (
                   <RowActionButtons id={award.id} label={award.title} actions={actions} />
+                )}
+              </div>
+            ))}
+          </div>
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
+        </section>
+      )}
+    </>
+  );
+}
+
+// ─── ProfileCertificationsSection ──────────────────────────────────────────────────
+/**
+ * 資格（2026-08-24）。LinkedIn の「資格」に合わせた5項目。
+ *
+ *   名称 / 発行団体 / 発行日 / 認定番号 / 認証URL
+ *
+ * ⚠️ **置き場所は学歴の下**（柴さんの指示。LinkedIn と同じ並び）。
+ * ⚠️ **0件なら出さない。** `actions` を渡した本人だけ、空状態と追加導線が出る
+ *    （受賞・表彰と同じ条件式にしてある）。
+ * ⚠️ 発行日は**年月まで**しか出さない。DB は date だが日は意味を持たない
+ *    （API が `YYYY-MM-01` に正規化して入れている）。
+ */
+function formatIssuedAt(iso: string): string {
+  /* ⚠️ `new Date()` を通さない。タイムゾーンで1日ずれて「12月」が「11月」になる。
+        文字列のまま切り出す。 */
+  const [y, m] = iso.split("-");
+  return `${y}年${Number(m)}月`;
+}
+
+export function ProfileCertificationsSection({ certifications, actions, showAll }: {
+  certifications: CertificationRow[];
+  /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
+  actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
+}) {
+  const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
+  return (
+    <>
+      {(certifications.length > 0 || hasActions) && (
+        <section id="certifications" style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+            <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+              資格
+            </span>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+              CERTIFICATIONS
+            </span>
+            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            {certifications.length > 0 && (
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                {certifications.length}件
+              </span>
+            )}
+            {actions?.onAdd && (
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
+                <PlusIcon />追加
+              </button>
+            )}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
+            )}
+          </div>
+
+          {certifications.length === 0 && hasActions && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              まだ資格を登録していません。
+              {actions?.onAdd && (
+                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
+                  資格を追加する
+                </button>
+              )}
+            </p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {certifications.map((cert, i) => (
+              <div key={cert.id} style={{
+                display: "flex", gap: 14, padding: "14px 0",
+                borderTop: i > 0 ? "1px solid var(--line)" : "none",
+              }}>
+                {/* ⚠️ 色を増やさない。オレンジはカジュアル面談専用、緑は金銭的にプラスの条件、
+                       紫と黄色背景は使わない（`.claude/skills/ui-conventions/SKILL.md`）。
+                       ここは濃紺（--royal）の面に白のアイコンで置く。 */}
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  background: "var(--royal)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                  </svg>
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 4 }}>
+                    {cert.name}
+                  </div>
+                  {cert.issuer && (
+                    <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                      {cert.issuer}
+                    </div>
+                  )}
+                  {/* ⚠️ 値が無い項目は**行ごと出さない**。「—」も空欄も置かない
+                         （CLAUDE.md「値が無いことを、ある値に置き換えない」）。 */}
+                  {cert.issued_at && (
+                    <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, marginTop: 2 }}>
+                      発行日: {formatIssuedAt(cert.issued_at)}
+                    </div>
+                  )}
+                  {cert.credential_id && (
+                    <div style={{
+                      fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7,
+                      /* ⚠️ 認定番号は長い英数字が入る。`minWidth: 0` の中で折り返させる
+                             （`overflow-wrap: anywhere` が無いと親を押し広げる） */
+                      overflowWrap: "anywhere",
+                    }}>
+                      認定番号: {cert.credential_id}
+                    </div>
+                  )}
+                  {cert.credential_url && (
+                    <a
+                      href={cert.credential_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        marginTop: 8, padding: "6px 14px", borderRadius: 100,
+                        border: "1.5px solid var(--line)", background: "#fff",
+                        color: "var(--ink-soft)", fontSize: 12, fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      認証情報を表示
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+                {/* ⚠️ 行の右端。`actions` が無ければ描かない＝他人の DOM は不変 */}
+                {(actions?.onEditRow || actions?.onDeleteRow) && (
+                  <RowActionButtons id={cert.id} label={cert.name} actions={actions} />
                 )}
               </div>
             ))}

@@ -4,18 +4,19 @@ import { useState } from "react";
 import {
   ProfileAchievementsSection,
   ProfileAwardsSection,
+  ProfileCertificationsSection,
   ProfileMediaSection,
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
-import { AchievementEditor, AwardEditor, MediaAppearanceEditor, type ExperienceOption } from "@/components/profile/editor/RecordEditors";
+import { AchievementEditor, AwardEditor, CertificationEditor, MediaAppearanceEditor, type ExperienceOption } from "@/components/profile/editor/RecordEditors";
 import { ContentLinksEditor, type ContentLink } from "@/components/profile/editor/ContentLinksEditor";
-import type { Achievement, Award, MediaAppearance } from "@/components/profile/editor/recordTypes";
+import type { Achievement, Award, Certification, MediaAppearance } from "@/components/profile/editor/recordTypes";
 import { DetailsFrame } from "./DetailsFrame";
 
 /**
- * 数値実績 / 受賞・表彰 / メディア掲載 / 発信コンテンツ の一覧ページ（2026-08-17 / フェーズ3）。
+ * 数値実績 / 受賞・表彰 / 資格 / メディア掲載 / 発信コンテンツ の一覧ページ（2026-08-17 / フェーズ3）。
  *
- * ⚠️ **4つとも同じ形**（表示は公開部品、編集はエディタのモーダル）なので1ファイルにまとめた。
+ * ⚠️ **5つとも同じ形**（表示は公開部品、編集はエディタのモーダル）なので1ファイルにまとめた。
  *    ここで見た目を書かない。**行の描画は公開プロフィールと同じ部品**に任せる。
  *
  * ⚠️ 0件でも**行き止まりにしない**。公開部品が「まだ〇〇を登録していません。〇〇を追加する」を
@@ -77,6 +78,25 @@ export function AwardsDetails({ initial, experienceOptions }: {
         openEditId={st.editId}
         openDeleteId={st.deleteId}
         experienceOptions={experienceOptions}
+        onClosed={st.onClosed}
+      />
+    </DetailsFrame>
+  );
+}
+
+/** 資格（2026-08-24）。⚠️ 職歴と紐づかないので `experienceOptions` を取らない */
+export function CertificationsDetails({ initial }: { initial: Certification[] }) {
+  const [rows, setRows] = useState<Certification[]>(initial);
+  const st = useRowState();
+  return (
+    <DetailsFrame title="資格" addLabel="資格を追加" onAdd={st.openAdd} hideOwnHeading>
+      <ProfileCertificationsSection certifications={rows} actions={st.actions} />
+      <CertificationEditor
+        certifications={rows}
+        setCertifications={setRows}
+        openAddNonce={st.addNonce}
+        openEditId={st.editId}
+        openDeleteId={st.deleteId}
         onClosed={st.onClosed}
       />
     </DetailsFrame>

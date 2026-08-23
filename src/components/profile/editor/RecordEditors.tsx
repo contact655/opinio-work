@@ -17,6 +17,7 @@ import {
   type School,
   type Achievement,
   type Award,
+  type Certification,
   type MediaAppearance,
   EDU_YEAR_OPTS,
   parseDateToYM,
@@ -1190,6 +1191,226 @@ export function AwardEditor({
       </ProfileEditModal>
       <ConfirmDialog isOpen={!!deleteTarget} title="受賞歴を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.title}」を削除します。この操作は取り消せません。` : ""}
+        confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
+    </>
+  );
+}
+
+// ─── CertificationEditor ──────────────────────────────────────────────────────
+/**
+ * 資格（2026-08-24）。作りは `AwardEditor` と同じ。**そちらを直すときはここも見ること。**
+ *
+ * ⚠️ 職歴とは紐づけない（`ExperienceSelect` を出さない）。資格は職種に属さない。
+ * ⚠️ 発行日は `<input type="month">`。`monthToDate` で `YYYY-MM-01` にして送る
+ *    （Postgres は `'2025-01'::date` を拒否する。API 側でも同じ正規化をしている）。
+ */
+
+type CertDraft = {
+  name: string; issuer: string; issued_at: string;
+  credential_id: string; credential_url: string;
+};
+const EMPTY_CERT_DRAFT: CertDraft = {
+  name: "", issuer: "", issued_at: "", credential_id: "", credential_url: "",
+};
+function draftFromCert(c: Certification): CertDraft {
+  return {
+    name: c.name, issuer: c.issuer ?? "", issued_at: dateToMonth(c.issued_at),
+    credential_id: c.credential_id ?? "", credential_url: c.credential_url ?? "",
+  };
+}
+
+/** ★入力欄だけ。保存行は `ProfileEditModal` のフッターが持つ */
+function CertForm({
+  draft, onDraftChange, isSaving,
+}: { draft: CertDraft; onDraftChange: (d: CertDraft) => void; isSaving: boolean; }) {
+  const set = useCallback((k: keyof CertDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
+  return (
+    <div style={formCol}>
+      <div>
+        <label style={ael()}>資格名 *</label>
+        <input type="text" value={draft.name} onChange={(e) => set("name", e.target.value)}
+          placeholder="例：IT コーディネータ、基本情報技術者" maxLength={200} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>発行団体（任意）</label>
+        <input type="text" value={draft.issuer} onChange={(e) => set("issuer", e.target.value)}
+          placeholder="例：経済産業省、情報処理推進機構" maxLength={100} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>発行日（任意）</label>
+        <input type="month" value={draft.issued_at} onChange={(e) => set("issued_at", e.target.value)}
+          disabled={isSaving} style={{ ...aef(), maxWidth: 180 }} />
+      </div>
+      <div>
+        <label style={ael()}>認定番号（任意）</label>
+        <input type="text" value={draft.credential_id} onChange={(e) => set("credential_id", e.target.value)}
+          placeholder="例：9041982022C" maxLength={100} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>認証URL（任意）</label>
+        <input type="url" value={draft.credential_url} onChange={(e) => set("credential_url", e.target.value)}
+          placeholder="https://..." maxLength={2048} disabled={isSaving} style={aef()} />
+        {/* ⚠️ https のみ受ける（API が 400 を返す）。**その旨をここに書いておく。**
+               書かないと、http:// を入れた人が「保存に失敗しました」で行き止まりになる
+               （2026-08-16 に content-links で実際に起きた形）。 */}
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+          発行元の確認ページなど。https:// で始まるURLを入力してください。
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function CertificationEditor({
+  certifications, setCertifications, openAddNonce, openEditId, openDeleteId, onClosed,
+}: {
+  certifications: Certification[];
+  setCertifications: React.Dispatch<React.SetStateAction<Certification[]>>;
+  openAddNonce?: number;
+  openEditId?: string | null;
+  openDeleteId?: string | null;
+  onClosed?: () => void;
+}) {
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  const [editingId,     setEditingId]     = useState<string | null>(null);
+  const [editDraft,     setEditDraft]     = useState<CertDraft>(EMPTY_CERT_DRAFT);
+  const [editSaving,    setEditSaving]    = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
+  const [adding,        setAdding]        = useState(false);
+  const [addDraft,      setAddDraft]      = useState<CertDraft>(EMPTY_CERT_DRAFT);
+  const [addSaving,     setAddSaving]     = useState(false);
+  const [addJustSaved,  setAddJustSaved]  = useState(false);
+  const [deleteTarget,  setDeleteTarget]  = useState<Certification | null>(null);
+  const [deleting,      setDeleting]      = useState(false);
+  const [toastMsg,      setToastMsg]      = useState<string | null>(null);
+  const [toastVariant,  setToastVariant]  = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
+
+  const makeBody = (d: CertDraft) => ({
+    name: d.name.trim(),
+    issuer: d.issuer.trim() || null,
+    issued_at: monthToDate(d.issued_at),
+    credential_id: d.credential_id.trim() || null,
+    credential_url: d.credential_url.trim() || null,
+  });
+
+  /* ⚠️ API の 400 は `{ error, message }`。**message をそのまま出す。**
+        握りつぶして「保存に失敗しました」に潰すと、https 以外を入れた人が原因に辿り着けない。 */
+  const readError = async (res: Response, fallback: string) => {
+    try {
+      const j = await res.json();
+      return typeof j?.message === "string" ? j.message : fallback;
+    } catch { return fallback; }
+  };
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/certifications/${editingId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(editDraft)),
+      });
+      if (!res.ok) { showToast(await readError(res, "保存に失敗しました。もう一度お試しください。"), "error"); return; }
+      const updated: Certification = await res.json();
+      setCertifications((prev) => prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c)));
+      showToast("資格を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditingId(null); setEditDraft(EMPTY_CERT_DRAFT); onClosedRef.current?.();
+      setEditJustSaved(false);
+    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
+    finally { setEditSaving(false); }
+  }, [editingId, editDraft, setCertifications, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveAdd = useCallback(async () => {
+    setAddSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/certifications", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(addDraft)),
+      });
+      if (!res.ok) { showToast(await readError(res, "追加に失敗しました。もう一度お試しください。"), "error"); return; }
+      const inserted: Certification = await res.json();
+      setCertifications((prev) => [...prev, inserted]);
+      showToast("資格を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setAdding(false); setAddDraft(EMPTY_CERT_DRAFT); onClosedRef.current?.();
+      setAddJustSaved(false);
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); }
+  }, [addDraft, setCertifications, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobseeker/certifications/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setCertifications((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      setDeleteTarget(null); showToast("資格を削除しました"); onClosedRef.current?.();
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+    finally { setDeleting(false); }
+  }, [deleteTarget, setCertifications, showToast]);
+
+  /* ★外から開く。⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭）。
+        副条件を混ぜない・ref の初期値は現在値にする。 */
+  const lastAddNonce = useRef(openAddNonce);
+  useEffect(() => {
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
+  useEffect(() => {
+    if (!openEditId) return;
+    const t = certifications.find((c) => c.id === openEditId);
+    if (t) { setEditingId(openEditId); setEditDraft(draftFromCert(t)); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEditId]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const t = certifications.find((c) => c.id === openDeleteId);
+    if (t) setDeleteTarget(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDeleteId]);
+
+  /* ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。マウント時に控えた値にしない。 */
+  const isEditing = editingId !== null;
+  const draft = isEditing ? editDraft : addDraft;
+  const savedRow = isEditing ? certifications.find((c) => c.id === editingId) : undefined;
+  const base = savedRow ? draftFromCert(savedRow) : EMPTY_CERT_DRAFT;
+  const dirty = !!draft.name.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+
+  return (
+    <>
+      <ProfileEditModal
+        open={isEditing || adding}
+        title={isEditing ? "資格を編集" : "資格を追加"}
+        dirty={dirty}
+        saving={isEditing ? editSaving : addSaving}
+        justSaved={isEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (isEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={() => {
+          setEditingId(null); setEditDraft(EMPTY_CERT_DRAFT);
+          setAdding(false); setAddDraft(EMPTY_CERT_DRAFT);
+          onClosedRef.current?.();
+        }}
+      >
+        <CertForm
+          draft={draft}
+          onDraftChange={isEditing ? setEditDraft : setAddDraft}
+          isSaving={isEditing ? editSaving : addSaving}
+        />
+      </ProfileEditModal>
+      <ConfirmDialog isOpen={!!deleteTarget} title="資格を削除しますか？"
+        message={deleteTarget ? `「${deleteTarget.name}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
