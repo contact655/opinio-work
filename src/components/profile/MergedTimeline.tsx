@@ -153,6 +153,19 @@ export interface MergedTimelineProps {
   isAuthenticated?: boolean;
   /** この件数を超えた経歴を折りたたむ（未指定の場合は折りたたみなし） */
   collapseAfter?: number;
+  /**
+   * 職歴1件ごとに、行の下へ差し込むもの（経歴ストーリーのアコーディオン）。
+   *
+   * ⚠️ **渡されなければ何も描かない。** 公開プロフィール（`/u/[id]`）は渡さないこと。
+   *    `viewerIsOwner` で出し分けてはいけない。あれは「見ている人が本人か」であって
+   *    「編集画面か」ではなく、**本人が自分の公開ページを見たときも true** になる。
+   *
+   * ⚠️ 2026-08-16 の 2-6（職歴を年表に作り直した回）で、`CareerHistoryEditor` の
+   *    自前の一覧を差し替えたときに `<StoryAccordion>` が一緒に消え、
+   *    **「経歴ストーリー」の入口が1週間なくなっていた**（コミットメッセージに言及なし）。
+   *    親から渡す形にしてあるのは、次に一覧を作り直しても**渡し忘れれば型で気づける**ため。
+   */
+  renderCareerExtra?: (careerId: string) => React.ReactNode;
   /** 生年月日（"YYYY-MM-DD"）。年マーカーに年齢を表示するために使用 */
   birthDate?: string | null;
 }
@@ -1102,6 +1115,7 @@ export default function MergedTimeline({
   educations,
   future,
   viewerIsOwner = false,
+  renderCareerExtra,
   educationActions,
   careerActions,
   isAuthenticated = true,
@@ -1212,6 +1226,7 @@ export default function MergedTimeline({
                       {careerActions.onAddRole && (
                         <AddRoleLink careerId={c.id} onAddRole={careerActions.onAddRole} />
                       )}
+                      {renderCareerExtra?.(c.id)}
                     </div>
                     <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />
                   </div>
@@ -1269,7 +1284,10 @@ export default function MergedTimeline({
                   </div>
                   <div className="d2-parallel-inner">
                     {items.map((c) => (
-                      <ParallelCareerCard key={c.id} data={c} isAuthenticated={isAuthenticated} actions={careerActions} />
+                      <div key={c.id} style={{ minWidth: 0 }}>
+                        <ParallelCareerCard data={c} isAuthenticated={isAuthenticated} actions={careerActions} />
+                        {renderCareerExtra?.(c.id)}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1420,6 +1438,10 @@ export default function MergedTimeline({
                       );
                     })}
                   </div>
+                  {/* ⚠️ ポジションごとに1つずつ。会社単位ではない（ストーリーは職歴 id に紐づく） */}
+                  {renderCareerExtra && items.map((c) => (
+                    <div key={`story-${c.id}`}>{renderCareerExtra(c.id)}</div>
+                  ))}
                   {careerActions?.onAddRole && (
                     <AddRoleLink careerId={head.id} onAddRole={careerActions.onAddRole} />
                   )}
