@@ -69,7 +69,7 @@ const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
 
 
 
-// 5分間 ISR キャッシュ
+// 60秒 ISR キャッシュ
 export const revalidate = 60;
 
 /*
@@ -80,12 +80,38 @@ export const revalidate = 60;
  *    到達するとビルドは成功したまま、その項目だけ消えたページが生成される。
  *    2026-08-09 時点では到達しないことを確認済み。
  */
+/**
+ * ビルド時に事前生成する企業ページ数（2026-08-23）。
+ *
+ * ⚠️ **全社を事前生成しないこと。** 以前は掲載中の全社（79社）を返しており、
+ *    1ページあたり10テーブル前後を引くので **1ビルドで約790クエリ**になっていた。
+ *    ビルドは約15分おきに走っていたため、これが Disk IO バジェットを枯渇させ、
+ *    **本番のDBが約40分ダウンした**（2026-08-23）。
+ *
+ * ⚠️ **事前生成の効果は60秒しか持たない。** このページは `revalidate = 60` なので、
+ *    デプロイ直後の60秒を過ぎれば、どのみち要求時に作り直される。
+ *    全社ぶんのビルドコストに見合わない。
+ *
+ * ⚠️ ここに載らない企業も**問題なく表示される**。`dynamicParams` の既定が true なので、
+ *    未知の slug は都度レンダリングされ、以降 `revalidate` に従ってキャッシュされる。
+ *    SEO の発見性は sitemap が担保している（`filterListedCompanies`）。
+ *
+ * ⚠️ **`generateStaticParams` 自体は消さないこと。** 2026-08-09 の実測で、
+ *    この関数を持たない動的セグメントは **ISR が効かず毎回 MISS** だった。
+ *    件数を絞るのは可、関数ごと消すのは不可。
+ */
+const PRERENDER_COMPANY_LIMIT = 12;
+
 export async function generateStaticParams() {
   /* ⚠️ `getCompanies()` は使えない。内部で Cookie を読む `createClient()` を使っており、
         ビルド時（リクエスト外）に `cookies was called outside a request scope` で落ちる。
         admin クライアントを使う `getCompaniesForList()` を通すこと。 */
   const companies = await getCompaniesForList();
-  return companies.map((c) => ({ id: c.slug ?? c.id }));
+  /* 並びは一覧と同じ（sort_order 昇順 → updated_at 降順）なので、
+     先頭＝ディレクトリで最初に見える企業＝踏まれやすいページから温める。 */
+  return companies
+    .slice(0, PRERENDER_COMPANY_LIMIT)
+    .map((c) => ({ id: c.slug ?? c.id }));
 }
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
