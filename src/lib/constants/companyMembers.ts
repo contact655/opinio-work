@@ -89,6 +89,29 @@ export type CompanyMemberRow = {
   display_consent: boolean;
   is_public: boolean;
   created_via: string | null;
+  /** 本人が同意（＝申請）した時刻。⚠️ 企業の承認時刻は `updated_at`。混同しない。
+   *  ⚠️ **任意**にしてある。申請日を出す画面（/mypage のカード）だけが必要とするので、
+   *     この列を選んでいない呼び出し側に select を強制しない。 */
+  consent_at?: string | null;
   /** 企業に招待されたが本人未承認のとき、既存の着地ページへ送るのに使う */
   invite_token: string;
+};
+
+/**
+ * **企業側（`/biz`）の表示名。** 本人視点の名前をそのまま出さないこと。
+ *
+ * ⚠️★`memberState()` の名前は**本人視点**（誰を待っているか）で付いている。
+ *    企業画面にそのまま出すと主語が反転して読めなくなる:
+ *      `pending_company` = 本人から見て「会社の確認待ち」
+ *                        = 企業から見ると **「あなたの確認待ち」**（待たせているのは自分たち）
+ *      `pending_user`    = 本人から見て「あなたの確認待ち」
+ *                        = 企業から見ると **「本人の確認待ち」**
+ *    ⚠️ 片方の語をもう片方にコピーしない。**誰待ちか分からなくなる。**
+ */
+export const MEMBER_STATE_BIZ_LABEL: Record<MemberState, string> = {
+  none: "—",
+  pending_user: "本人の確認待ち",
+  pending_company: "あなたの確認待ち",
+  unlisted: "非掲載",
+  listed: "掲載中",
 };

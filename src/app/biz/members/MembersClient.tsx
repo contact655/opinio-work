@@ -4,9 +4,26 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 import Toast from "@/components/ui/Toast";
+import { memberState, MEMBER_STATE_BIZ_LABEL } from "@/lib/constants/companyMembers";
 
 type ActionType = "permission" | "deactivate" | "reactivate";
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
+
+/**
+ * 面談対応者の行から状態を出す。**判定は `memberState()` に任せる。**
+ *
+ * ⚠️ `/biz` 側で「display_consent が true なら承認済み」のような判定を書き直さないこと。
+ *    2026-08-23 まで実際にそう書かれていて、**本人からの申請（未承認）が
+ *    「承認済み」に混ざっていた**（企業担当者は開くまで気づけない）。
+ * ⚠️ 表示名は `MEMBER_STATE_BIZ_LABEL`。本人視点の名前をそのまま出すと主語が反転する。
+ */
+function stateOf(a: AmbassadorRecord) {
+  return memberState({
+    display_consent: a.display_consent,
+    is_public: a.is_public,
+    created_via: a.created_via,
+  });
+}
 
 export type AmbassadorRecord = {
   id: string;
@@ -18,6 +35,7 @@ export type AmbassadorRecord = {
   role_title: string | null;
   display_consent: boolean;
   is_public: boolean;
+  created_via: string | null;
   invited_at: string | null;
 };
 
@@ -1069,6 +1087,12 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [ambassadors, setAmbassadors] = useState(initialAmbassadors);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
+  /* ★「見送る」の確認（2026-08-23）。
+     ⚠️ この画面の他の破壊的操作（解除・取消）は**自社が自分で作った行**を消す操作だが、
+        「見送る」は**他人の申請**を消す操作で、しかも**本人には何も通知が届かない**。
+        誤操作の代償を本人が負い、本人はそれに気づけない。だからここだけ確認を挟む。
+     ⚠️ 確認は行ごとに持つ（カード全体で1つにすると別の行を誤爆する）。 */
+  const [dismissConfirmId, setDismissConfirmId] = useState<string | null>(null);
 
   // メールアドレス招待 state
   const [emailInviteOpen, setEmailInviteOpen] = useState(false);
@@ -1392,7 +1416,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       }}>
         {([
           { key: "staff" as const, label: "採用担当", count: activeMembers.length },
-          { key: "field" as const, label: "現場", count: ambassadors.filter((a) => a.display_consent).length },
+          /* ⚠️ display_consent で数えると**本人からの申請（未承認）が混ざる**。
+             このタブには3区分すべてが出るので、出ている件数（＝全件）を出す。 */
+          { key: "field" as const, label: "現場", count: ambassadors.length },
           { key: "employees" as const, label: "社員", count: ambassadorCandidates.length },
         ]).map((tab) => {
           const isSelected = activeSection === tab.key;
@@ -1595,14 +1621,115 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
-        {/* 承認済み */}
-        {ambassadors.filter((a) => a.display_consent).length > 0 && (
+        {/* ★本人からの申請（未承認）＝ pending_company。
+               ⚠️ ここを独立させないと「承認済み」に混ざる。企業担当者は開くまで気づけない。 */}
+        {ambassadors.filter((a) => stateOf(a) === "pending_company").length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#92400e", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              本人からの申請（未承認） {ambassadors.filter((a) => stateOf(a) === "pending_company").length}件
+            </div>
+            <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+              在籍していると申告している方から、「話を聞かれてもよい」と申請がありました。
+              在籍を確認できたら承認してください。<strong style={{ color: "var(--ink)" }}>承認するまで公開されません。</strong>
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              {ambassadors.filter((a) => stateOf(a) === "pending_company").map((a) => (
+                <div key={a.id} style={{
+                  background: "var(--warm-soft)", border: "1px solid #fcd34d", borderRadius: 10,
+                  padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: "50%", background: a.gradient,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0, overflow: "hidden",
+                    }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "—"}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ background: "#fff", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, border: "1px solid #fcd34d" }}>
+                      {MEMBER_STATE_BIZ_LABEL.pending_company}
+                    </span>
+                    {isAdmin && (dismissConfirmId === a.id ? (
+                      /* ⚠️ 見送りは行の DELETE。**本人には通知が届かない**ので、
+                            本人からは「申請が消えた」ようにしか見えない。1クリックで消させない。 */
+                      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 6, padding: "8px 10px", width: "100%" }}>
+                        <p style={{ margin: "0 0 8px", fontSize: 11, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
+                          見送ると申請は削除されます。本人に通知は届かず、もう一度申請してもらう必要があります。
+                        </p>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            onClick={() => { setDismissConfirmId(null); handleRevokeAmbassador(a.id); }}
+                            disabled={revokingMemberId === a.id}
+                            className="btn-fixed-size"
+                            style={{
+                              flex: 1, background: "var(--error)", color: "#fff", border: "none", borderRadius: 6,
+                              padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                            }}
+                          >
+                            {revokingMemberId === a.id ? "..." : "見送る"}
+                          </button>
+                          <button
+                            onClick={() => setDismissConfirmId(null)}
+                            className="btn-fixed-size"
+                            style={{
+                              flex: 1, background: "none", border: "1px solid var(--line)", borderRadius: 6,
+                              padding: "4px 10px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer",
+                            }}
+                          >
+                            やめる
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ⚠️ 承認は既存の PATCH /api/biz/ambassador/update（is_public → true）。
+                            見送りは既存の revoke（DELETE）。**新しい API を作らない。**
+                         ⚠️ 公開トグルの流用ではなく、申請に対する操作として明示的に出す。 */
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          onClick={() => handleTogglePublic(a.id, false)}
+                          disabled={togglingPublicId === a.id}
+                          className="btn-fixed-size"
+                          style={{
+                            background: "var(--royal)", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                          }}
+                        >
+                          {togglingPublicId === a.id ? "..." : "承認する"}
+                        </button>
+                        <button
+                          onClick={() => setDismissConfirmId(a.id)}
+                          className="btn-fixed-size"
+                          style={{
+                            background: "none", border: "1px solid var(--line)", borderRadius: 6,
+                            padding: "4px 10px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer",
+                          }}
+                        >
+                          見送る
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 承認済み（掲載中 / 非掲載）。⚠️ 未承認の申請はここに入れない */}
+        {ambassadors.filter((a) => stateOf(a) === "listed" || stateOf(a) === "unlisted").length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              承認済み
+              承認済み {ambassadors.filter((a) => stateOf(a) === "listed" || stateOf(a) === "unlisted").length}件
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {ambassadors.filter((a) => a.display_consent).map((a) => (
+              {ambassadors.filter((a) => stateOf(a) === "listed" || stateOf(a) === "unlisted").map((a) => (
                 <div key={a.id} style={{
                   background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
@@ -1673,14 +1800,14 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
-        {/* 招待中（承認待ち） */}
-        {ambassadors.filter((a) => !a.display_consent).length > 0 && (
+        {/* 招待中（本人の確認待ち）＝ pending_user */}
+        {ambassadors.filter((a) => stateOf(a) === "pending_user").length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              招待中（承認待ち）
+              招待中（本人の確認待ち） {ambassadors.filter((a) => stateOf(a) === "pending_user").length}件
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {ambassadors.filter((a) => !a.display_consent).map((a) => (
+              {ambassadors.filter((a) => stateOf(a) === "pending_user").map((a) => (
                 <div key={a.id} style={{
                   background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px", opacity: 0.85,
                   display: "flex", flexDirection: "column", gap: 10,
@@ -1702,7 +1829,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   {/* 下段: 招待中バッジ + 取消 */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>
-                      招待中
+                      {MEMBER_STATE_BIZ_LABEL.pending_user}
                     </span>
                     {isAdmin && (
                       <button

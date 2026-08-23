@@ -18,7 +18,8 @@ async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> 
   const adminSupabase = createAdminClient();
   const { data, error } = await adminSupabase
     .from("ow_company_members")
-    .select("id, user_id, role_title, display_consent, is_public, invited_at, ow_users!user_id(name, avatar_color, avatar_url)")
+    /* ⚠️ created_via も取る。無いと「本人からの申請」と「企業が招待した行」を区別できない。 */
+    .select("id, user_id, role_title, display_consent, is_public, created_via, invited_at, ow_users!user_id(name, avatar_color, avatar_url)")
     .eq("company_id", companyId)
     .order("invited_at", { ascending: false });
 
@@ -33,6 +34,7 @@ async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> 
     role_title: string | null;
     display_consent: boolean;
     is_public: boolean;
+    created_via: string | null;
     invited_at: string | null;
     ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
   };
@@ -52,6 +54,7 @@ async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> 
       role_title: r.role_title,
       display_consent: r.display_consent,
       is_public: r.is_public,
+      created_via: r.created_via,
       invited_at: r.invited_at,
     };
   });
