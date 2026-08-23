@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { revalidatePath } from "next/cache";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
@@ -245,21 +246,33 @@ export async function updateApproval(companyId: string): Promise<ActionResult> {
 }
 
 export async function updateSortOrder(items: { id: string; sort_order: number }[]): Promise<ActionResult> {
-  await assertAdmin();
-  const admin = createAdminClient();
-  const results = await Promise.all(
-    items
-      .filter((item) => UUID_RE.test(item.id))
-      .map((item) =>
-        admin.from("ow_companies").update({ sort_order: item.sort_order }).eq("id", item.id)
-      )
-  );
-  const failed = results.find((r) => r.error);
-  if (failed?.error) {
-    console.error("[updateSortOrder]", failed.error.message);
-    return { ok: false, error: toMessage(failed.error) };
+  try {
+    await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
   }
+  const admin = createAdminClient();
+  const targets = items.filter((item) => UUID_RE.test(item.id));
+
+  /* ⚠️ **0行更新を成功として扱わない**（CLAUDE.md）。
+        id の綴り違いや、その企業が消えていた場合に黙って素通りしていた。 */
+  const results = await Promise.all(
+    targets.map((item) =>
+      mutateOne(
+        admin.from("ow_companies").update({ sort_order: item.sort_order }).eq("id", item.id),
+        `updateSortOrder ${item.id}`,
+      )
+    )
+  );
+  const failed = results.find((r) => !r.ok);
+  if (failed && !failed.ok) {
+    return { ok: false, error: failed.error };
+  }
+
+  /* ⚠️ **`/companies` も再検証する。** 並び順を使っているのは公開の企業一覧で、
+        `/admin/companies` だけ revalidate しても利用者の画面は変わらない。 */
   revalidatePath("/admin/companies");
+  revalidatePath("/companies");
   return { ok: true };
 }
 

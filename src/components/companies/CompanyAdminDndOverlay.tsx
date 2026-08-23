@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { updateSortOrder } from "@/app/admin/companies/actions";
 
 type CompanyRow = { id: string; name: string; sort_order: number };
 
@@ -19,6 +20,8 @@ export function CompanyAdminDndOverlay() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
+  /* ⚠️ 失敗を握り潰さない。並び順が保存されなかったことを運営に見せる */
+  const [error, setError]         = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const draggedIdRef = useRef<string | null>(null);
 
@@ -95,16 +98,25 @@ export function CompanyAdminDndOverlay() {
     const updated = list.map((c, i) => ({ ...c, sort_order: i }));
     setCompanies(updated);
 
-    // Supabase に一括保存
+    /* ★保存は Server Action（service_role）で行う（2026-08-23 修正）。
+       ⚠️ **ブラウザ側クライアントで `ow_companies` を更新しないこと。**
+          2026-08-23 まではここで直接 update しており、RLS の
+          `ow_companies_own_update` が `auth.uid() = user_id` を要求していたため
+          **87社中85社で0行更新**だった。しかも戻り値を捨てていたので
+          「保存しました」と出たまま**並び順は1つも変わっていなかった**。
+          2026-08-11 の企業ロゴURL（83社で0行更新）と同じ根。
+       ⚠️ 運営は企業の管理者ではないので、`auth_is_company_admin` の
+          新しいポリシーでも通らない。**運営の書き込みは service_role に寄せる。** */
     setSaving(true);
     setSaved(false);
-    const supabase = createClient();
-    await Promise.all(
-      updated.map((c) =>
-        supabase.from("ow_companies").update({ sort_order: c.sort_order }).eq("id", c.id)
-      )
-    );
+    setError(null);
+    const res = await updateSortOrder(updated.map((c) => ({ id: c.id, sort_order: c.sort_order })));
     setSaving(false);
+    if (!res.ok) {
+      /* ⚠️ 失敗を黙って捨てない。捨てていたのが今回の不具合そのもの。 */
+      setError(res.error);
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -193,9 +205,16 @@ export function CompanyAdminDndOverlay() {
               ⏳ 保存中...
             </div>
           )}
-          {saved && !saving && (
+          {saved && !saving && !error && (
             <div style={{ padding: "7px 20px", background: "#ECFDF5", fontSize: 12, color: "var(--success)", borderBottom: "1px solid #A7F3D0", fontWeight: 600 }}>
               ✓ 保存しました
+            </div>
+          )}
+          {/* ⚠️ **失敗を必ず出す。** 2026-08-23 まで戻り値を捨てており、
+                 85社で0行更新なのに「✓ 保存しました」と出ていた。 */}
+          {error && !saving && (
+            <div style={{ padding: "7px 20px", background: "var(--error-soft)", fontSize: 12, color: "var(--error)", borderBottom: "1px solid #FCA5A5", fontWeight: 600 }}>
+              ✕ 保存できませんでした：{error}
             </div>
           )}
 
