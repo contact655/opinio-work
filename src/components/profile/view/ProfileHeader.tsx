@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FollowCounts } from "@/components/profile/FollowCounts";
+import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { ProfileSocialLinks } from "./ProfileSections";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import type { FollowCounts as Counts } from "@/lib/people/followCounts";
@@ -159,22 +160,22 @@ export function ProfileHeader({
               <span className="u-role-title" style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
                 {currentCareer.role_title || currentCareer.role_label}
               </span>
+              {/* ⚠️ 括弧をやめて中点にした（2026-08-23）。会社ブロックを右へ出したぶん
+                     この行が狭くなり、括弧付きだと折り返したときに
+                     「（エンタープライズセールス）」だけが次行に取り残されて
+                     注釈のように見えていた。中点なら1行でも折り返しても同じに読める。 */}
               {currentCareer.role_title && currentCareer.role_title !== currentCareer.role_label && (
-                <span style={{ fontSize: 13, color: "var(--ink-mute)", marginLeft: 6 }}>({currentCareer.role_label})</span>
+                <span style={{ fontSize: 13, color: "var(--ink-mute)", marginLeft: 8 }}>
+                  <span aria-hidden style={{ marginRight: 6 }}>·</span>{currentCareer.role_label}
+                </span>
               )}
-              {currentCareer.company_name && isCurrentCompanyKnown && (
-                <> <span style={{ fontSize: 14, color: "var(--ink-soft)" }}>@</span>{" "}
-                <Link href={`/companies/${currentCareer.company_id!}`} style={{ fontSize: 14, color: "var(--royal)", textDecoration: "none", fontWeight: 600, borderBottom: "1px solid var(--royal-100)" }}>{shortCompanyName(currentCareer.company_name)}</Link></>
-              )}
-              {currentCareer.company_name && !isCurrentCompanyKnown &&
-                currentCareer.company_name !== "不明な企業" &&
-                currentCareer.company_name !== "非公開企業" &&
-                currentCareer.company_name !== "非公開" && (
-                <span style={{ fontSize: 14, color: "var(--ink-soft)" }}> @ {shortCompanyName(currentCareer.company_name)}</span>
-              )}
-              {/* ★在籍会社の直後に置く。誰の話を聞けるのかではなく
-                     **どの会社の話を聞けるのか**が要点なので、会社名から離さない。 */}
-              {talkableBadge}
+              {/* ⚠️ ここに「@ 会社名」を戻さないこと（2026-08-23）。
+                     会社は右の**会社ブロック**（ロゴ＋社名）に移した。LinkedIn と同じ形。
+                     役職名は長いことがあり（実データに「金融営業本部 営業第1部 /
+                     法人営業（アカウント営業）」がある）、そこへ社名とバッジまで並べると
+                     1行に4要素が詰まって折り返し、どこで切れるか読めなかった。
+                  ⚠️ **バッジも会社ブロックへ移した。** 「どの会社の話を聞けるのか」が
+                     要点なので会社名から離さない、という条件はそちらで満たしている。 */}
             </div>
           )}
           <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap" }}>
@@ -203,6 +204,47 @@ export function ProfileHeader({
           <ProfileSocialLinks socialLinks={socialLinks} />
           {promos}
         </div>
+
+        {/* ★在籍企業（2026-08-23）。LinkedIn と同じく**ロゴ＋社名**を右側に置く。
+               ⚠️ 会社名はここが唯一の置き場。役職行には戻さない（上のコメント）。
+               ⚠️ マスタに無い企業（自由入力）はリンクにしない。ロゴも出ない。
+               ⚠️ 「不明な企業」「非公開企業」「非公開」は**社名ではない**ので出さない。
+                  以前から役職行で除外していた条件をそのまま持ってきている。 */}
+        {currentCareer?.company_name &&
+          currentCareer.company_name !== "不明な企業" &&
+          currentCareer.company_name !== "非公開企業" &&
+          currentCareer.company_name !== "非公開" && (
+          <div className="profile-company-block" style={{
+            display: "flex", alignItems: "center", gap: 10,
+            flexShrink: 0, minWidth: 0,
+          }}>
+            {isCurrentCompanyKnown && (
+              <CompanyLogoImg
+                logoUrl={currentCareer.logo_url}
+                logoLetter={currentCareer.logo_letter ?? null}
+                logoGradient={currentCareer.logo_gradient ?? null}
+                name={currentCareer.company_name}
+                size={40}
+              />
+            )}
+            <div style={{ minWidth: 0 }}>
+              {isCurrentCompanyKnown ? (
+                <Link href={`/companies/${currentCareer.company_id!}`} style={{
+                  fontSize: 14, fontWeight: 700, color: "var(--ink)",
+                  textDecoration: "none", display: "block",
+                }}>
+                  {shortCompanyName(currentCareer.company_name)}
+                </Link>
+              ) : (
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", display: "block" }}>
+                  {shortCompanyName(currentCareer.company_name)}
+                </span>
+              )}
+              {talkableBadge && <div style={{ marginTop: 4 }}>{talkableBadge}</div>}
+            </div>
+          </div>
+        )}
+
         {actions}
       </div>
     </div>
