@@ -152,7 +152,7 @@ export function JobseekerFooter() {
               © 2026 Opinio Inc. All rights reserved.
             </span>
             <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
-              Opinio Inc. · 〒107-0062 東京都港区南青山
+              Opinio Inc. · 〒107-0052 東京都港区赤坂2-21-4
             </span>
           </div>
           <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
