@@ -1464,10 +1464,13 @@ function FeedSidebar({
 
       {myUserId === null ? (
         <div style={PANEL_STYLE}>
-          {/* 文言は LP の最終CTA（LandingPage.tsx の h2 と FinalCta のゲスト用本文）と
-              元は /auth のトラスト行から流用したもの。**2026-08-20 に /auth 側は削除した**
-              （ログインタブにも出ていたため）。ここは未ログイン向けの登録CTAなので残す。
-              ⚠️ ここで新しいコピーを作らないこと。フッター（JobseekerFooter）と同じ3点に揃える。 */}
+          {/* ⚠️ **トラスト行（✓完全無料 / ✓営業電話なし / ✓メール登録のみ）は 2026-08-23 に削除した。**
+                 `/auth` は 2026-08-20 に、フッター（JobseekerFooter）は 2026-08-23 に
+                 同じ3点を落としており、**画面に出す場所はもう無い**（柴さんの判断）。
+              ⚠️ **ここに書き戻さないこと。** このコメントは以前
+                 「フッターと同じ3点に揃える」と書いていたが、揃え先ごと無くなっている。
+              ⚠️ SEO の description（`layout.tsx` など8箇所）には同じ文言が残っている。
+                 あちらは検索結果の説明文で、画面には出ない。**別物として扱う。** */}
           <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
           <p style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
             登録すると、気になる企業を保存して比べられます。新しい求人が出たときの通知も受け取れます。
@@ -1482,11 +1485,6 @@ function FeedSidebar({
           >
             メールアドレスで無料登録
           </a>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", justifyContent: "center", marginTop: 10 }}>
-            {["✓ 完全無料", "✓ 営業電話なし", "✓ メール登録のみ"].map((t) => (
-              <span key={t} style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{t}</span>
-            ))}
-          </div>
         </div>
       ) : (
       <>

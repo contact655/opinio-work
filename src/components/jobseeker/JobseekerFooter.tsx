@@ -27,23 +27,6 @@ export function JobseekerFooter() {
               IT/SaaS業界の企業と求人を探せるプラットフォーム。<br />
               企業情報と求人が、ここに揃っています。
             </p>
-            {/* Trust chips */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {["完全無料", "営業電話なし", "メール登録のみ"].map((t) => (
-                <span key={t} style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "4px 11px", borderRadius: 100,
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  fontSize: 12, fontWeight: 500,
-                  color: "rgba(255,255,255,0.62)",
-                }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(5,150,105,0.9)" strokeWidth={3} strokeLinecap="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {t}
-                </span>
-              ))}
-            </div>
           </div>
 
           {/* 求職者の方 */}
