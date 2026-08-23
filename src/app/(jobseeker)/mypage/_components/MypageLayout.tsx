@@ -266,10 +266,27 @@ export default function MypageLayout({
 
         {/* 右サイドバー（rightColumn がある場合のみ描画） */}
         {rightColumn && (
+          /* ⚠️ **右サイドバーを独立したスクロール枠にしないこと（2026-08-23）。**
+                以前は `position: sticky` ＋ `height: calc(100vh - topOffset)` ＋
+                `overflowY: auto` で、**中身が画面の高さを超えると最後のカードが切れていた**。
+                切れるのは常に一番下のカード（「採用担当者・企業の方はこちら」）で、
+                内側にスクロールできること自体が見た目から分からなかった。
+
+                実測（テスト用アカウント・中身611px）:
+                  ウィンドウ700px … 枠548px → 3px 切れ
+                  ウィンドウ600px … 枠448px → 103px 切れ
+                  ウィンドウ520px … 枠368px → 183px 切れ
+                カードが多い利用者では通常の画面高でも切れる。
+
+             ⚠️ **`height` を `max-height` に変えるだけでは直らない。** 中身が
+                画面より高ければ結局スクロール枠になり、見た目は切れたままになる。
+             ⚠️ **sticky を残したまま高さ指定だけ外すのは最悪。** 上に貼り付いたまま
+                下端に到達する手段が無くなる。外すなら sticky ごと外す。
+             ⚠️ 左の `mypage-left-aside` は**そのまま**。あちらはナビで中身が短く、
+                貼り付いていることに意味がある。 */
           <aside className={`mypage-right-aside${rightColumnCollapse === "hide" ? " mypage-right-hide" : ""}`} style={{
             padding: "36px 24px 60px",
-            position: "sticky", top: topOffset, alignSelf: "start",
-            height: `calc(100vh - ${topOffset}px)`, overflowY: "auto",
+            alignSelf: "start",
             borderLeft: "1px solid var(--line)",
           }}>
             {rightColumn}
