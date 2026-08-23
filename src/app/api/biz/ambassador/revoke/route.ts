@@ -1,7 +1,6 @@
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
-import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
+import { dismissMember } from "@/lib/companyMembers/decide";
 
 export const dynamic = "force-dynamic";
 
@@ -24,19 +23,13 @@ export async function DELETE(req: NextRequest) {
   const { member_id } = body;
   if (!member_id) return NextResponse.json({ error: "member_id required" }, { status: 400 });
 
-  const adminSupabase = createAdminClient();
-
-  const { error } = await adminSupabase
-    .from("ow_company_members")
-    .delete()
-    .eq("id", member_id)
-    .eq("company_id", ctx.tenantId);
-
-  if (error) {
-    console.error("[ambassador revoke] delete error:", error.message);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  /* ⚠️★このルートは**3つの操作**を兼ねている（/biz/members の3箇所から呼ばれる）:
+        「見送る」（本人の申請）/「解除」（承認済み）/「解除」（招待中）。
+        どれなのかは**消える行の状態でしか分からない**ので、判定と通知は
+        decide.ts の内側に置いてある。ここで DELETE を書き直さないこと。 */
+  const result = await dismissMember(member_id, ctx.tenantId);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
   }
-
-  revalidateCompanyAmbassadors(ctx.tenantId);
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, notified: result.notified });
 }

@@ -1091,8 +1091,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
   /* ★「見送る」の確認（2026-08-23）。
      ⚠️ この画面の他の破壊的操作（解除・取消）は**自社が自分で作った行**を消す操作だが、
-        「見送る」は**他人の申請**を消す操作で、しかも**本人には何も通知が届かない**。
-        誤操作の代償を本人が負い、本人はそれに気づけない。だからここだけ確認を挟む。
+        「見送る」は**他人の申請**を消す操作で、**取り消せない**（却下の記録を残す器が無いので
+        元に戻せない）。しかも本人には「見送られました」のメールが届いてしまう。
+        誤操作の代償を本人が負うので、ここだけ確認を挟む。
      ⚠️ 確認は行ごとに持つ（カード全体で1つにすると別の行を誤爆する）。 */
   const [dismissConfirmId, setDismissConfirmId] = useState<string | null>(null);
 
@@ -1659,11 +1660,11 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                       {MEMBER_STATE_BIZ_LABEL.pending_company}
                     </span>
                     {isAdmin && (dismissConfirmId === a.id ? (
-                      /* ⚠️ 見送りは行の DELETE。**本人には通知が届かない**ので、
-                            本人からは「申請が消えた」ようにしか見えない。1クリックで消させない。 */
+                      /* ⚠️ 見送りは行の DELETE。取り消せないうえ、本人に見送った旨の
+                            メールが飛ぶ（lib/companyMembers/decide.ts）。1クリックで消させない。 */
                       <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 6, padding: "8px 10px", width: "100%" }}>
                         <p style={{ margin: "0 0 8px", fontSize: 11, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                          見送ると申請は削除されます。本人に通知は届かず、もう一度申請してもらう必要があります。
+                          見送ると申請は削除され、その旨のメールが本人に届きます。取り消せません。
                         </p>
                         <div style={{ display: "flex", gap: 6 }}>
                           <button

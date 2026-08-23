@@ -1631,6 +1631,51 @@ END IF;
 ⚠️ **CLAUDE.md に警告があっても防げなかった**（`can_send_scout` が1本すり抜けた）。
    **文章では防げない。** 実データで数えること。
 
+### ★実例: `guard_member_consent` は本人を弾いている（2026-08-23 実測）
+
+**トリガーにも同じ取り違えがある。関数だけを探しても見つからない。**
+
+`ow_company_members` の `guard_member_consent`（BEFORE UPDATE）は
+「同意を変えられるのは本人だけ」を意図しているが、比較が
+
+```sql
+if new.user_id <> auth.uid() then   -- ow_users.id  <>  auth.users.id
+```
+
+で、**空間が違うので決して一致しない**（FK で確認: `ow_company_members.user_id`
+→ `ow_users.id` / `ow_user_roles.user_id` → `auth.users.id`）。
+結果、**運営admin だけが通り、本人は自分の同意を変えられない。**
+
+実測（本人のセッションで `display_consent` を true にしようとした）:
+
+```
+エラー P0003: 面談対応者の公開同意は、本人のみが変更できます
+```
+
+⚠️ **RLS は正しい**（`own_member_consent` は `user_id = auth_ow_user_id()`）。
+   ポリシーを読んで「本人は書ける」と判断すると誤る。**トリガーまで見ること。**
+
+⚠️ いま実害が出ていないのは、この分岐に到達する生きた経路が無いため。
+   `POST /api/biz/ambassador/self-register` の Step 2 が唯一の呼び出し元だが、
+   **Step 1 の INSERT が先に落ちる**（下記）。
+   ⚠️ **本人が同意する経路を新しく作ると、その日に踏む。** 直すのは別タスク。
+
+### ★実例: `/api/biz/ambassador/self-register` は CHECK 制約で必ず 500（2026-08-23 実測）
+
+企業の管理者が「自分も面談対応者になる」を押すと**必ず失敗する**。
+
+```
+[ambassador self-register] insert: new row for relation "ow_company_members"
+  violates check constraint "check_public_requires_consent"
+```
+
+INSERT が `display_consent: false, is_public: true` を入れようとするが、
+`check_public_requires_consent` は `is_public = false OR display_consent = true` を要求する。
+**RLS の「INSERT は display_consent=false のみ許可」に合わせた実装が、CHECK と矛盾している。**
+
+⚠️ 行は残らない（INSERT ごと落ちる）ので、データは汚れていない。
+⚠️ 上のトリガーの件と**別の不具合**。混同しないこと。修正は別タスク。
+
 ### ④ 関数を消す前に、**本文まで検索する**
 
 ⚠️ `has_worked_at_company` は **src からの呼び出し0件**だったが、

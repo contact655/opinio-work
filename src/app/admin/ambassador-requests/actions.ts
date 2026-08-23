@@ -1,8 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
+import { approveMember, dismissMember } from "@/lib/companyMembers/decide";
 import { revalidatePath } from "next/cache";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -35,28 +34,12 @@ async function assertAdmin(): Promise<void> {
  */
 export async function approveRequest(memberId: string): Promise<ActionResult> {
   await assertAdmin();
-  const admin = createAdminClient();
 
-  /* ⚠️ 0行更新を成功として扱わない（CLAUDE.md）。`.select("...")` で戻り行を受ける。
-        ⚠️ 引数なしの `.select()` を呼ばない。全列を返すため、列単位 GRANT を
-           剥がした列があると 403 になる。 */
-  const { data, error } = await admin
-    .from("ow_company_members")
-    .update({ is_public: true })
-    .eq("id", memberId)
-    .select("id, company_id");
+  /* ⚠️ 書き込み・通知・キャッシュ破棄は decide.ts の内側。ここで UPDATE しないこと。
+        ⚠️ 企業スコープは渡さない。運営は企業をまたいで承認するため。 */
+  const result = await approveMember(memberId);
+  if (!result.ok) return { ok: false, error: result.error };
 
-  if (error) {
-    console.error("[admin/ambassador-requests] approve:", error.message);
-    return { ok: false, error: error.message };
-  }
-  if (!data || data.length === 0) {
-    return { ok: false, error: "対象が見つかりませんでした（既に処理済みかもしれません）" };
-  }
-
-  /* ⚠️ 面談対応者のキャッシュを捨てる。7経路すべてで呼ぶ決まり
-        （`companyAmbassadorsTag` のコメント参照）。忘れると最大60秒ズレる。 */
-  revalidateCompanyAmbassadors(data[0].company_id as string);
   revalidatePath("/admin/ambassador-requests");
   return { ok: true };
 }
@@ -64,41 +47,19 @@ export async function approveRequest(memberId: string): Promise<ActionResult> {
 /**
  * 運営が代理で見送る（行を DELETE）。
  *
- * ⚠️ **本人には通知が届かない。** 本人からは「申請が消えた」ようにしか見えず、
- *    却下の記録も残らない（器を作らないと決めた / 2026-08-23）。
- *    だから画面側で二段階の確認を挟んでいる。
+ * ⚠️ **却下の記録は残らない**（器を作らないと決めた / 2026-08-23）。行ごと消えるので、
+ *    本人の画面は「まだ申請していない」状態に戻る。
+ *    本人には見送った旨のメールが届く（理由は書けない）。取り消せないので、
+ *    画面側で二段階の確認を挟んでいる。
  */
 export async function dismissRequest(memberId: string): Promise<ActionResult> {
   await assertAdmin();
-  const admin = createAdminClient();
 
-  /* 消す前に company_id を取る。消したあとでは分からず、キャッシュを捨てられない。 */
-  const { data: target, error: findErr } = await admin
-    .from("ow_company_members")
-    .select("company_id")
-    .eq("id", memberId)
-    .maybeSingle();
-  if (findErr) {
-    console.error("[admin/ambassador-requests] find:", findErr.message);
-    return { ok: false, error: findErr.message };
-  }
-  if (!target) return { ok: false, error: "対象が見つかりませんでした" };
+  /* ⚠️ DELETE の戻り行から「本人の申請だったか」を判定して通知するところまで
+        decide.ts が持つ。ここで DELETE を書き直さないこと。 */
+  const result = await dismissMember(memberId);
+  if (!result.ok) return { ok: false, error: result.error };
 
-  const { data, error } = await admin
-    .from("ow_company_members")
-    .delete()
-    .eq("id", memberId)
-    .select("id");
-
-  if (error) {
-    console.error("[admin/ambassador-requests] dismiss:", error.message);
-    return { ok: false, error: error.message };
-  }
-  if (!data || data.length === 0) {
-    return { ok: false, error: "対象が見つかりませんでした" };
-  }
-
-  revalidateCompanyAmbassadors(target.company_id as string);
   revalidatePath("/admin/ambassador-requests");
   return { ok: true };
 }

@@ -92,7 +92,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
               {confirmId === r.id ? (
                 <div style={{ background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", minWidth: 300 }}>
                   <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                    見送ると申請は削除されます。本人に通知は届かず、もう一度申請してもらう必要があります。
+                    見送ると申請は削除され、その旨のメールが本人に届きます。取り消せません。
                   </p>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
