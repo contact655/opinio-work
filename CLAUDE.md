@@ -730,6 +730,11 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
   ⚠️ `ow_users` の UPDATE は 2026-08-22 に列単位へ変えた（`20260822090000`）。
      **`can_casual_meeting` / `auth_id` / `is_test` / `is_system` / `email` の5列は
      意図して配っていない。** 配り直すときにこの5列を混ぜないこと。
+     ⚠️ **`can_casual_meeting` は 2026-08-23 に src からの参照が0件になった**（B-1）。
+        「話を聞ける人」の判定を `ow_company_members`（本人の申請＋企業または運営の承認）へ
+        移し、`/admin/candidates` の運営トグルも撤去した。
+        **列も GRANT（SELECT）も残してある。DROP していない。**
+        ⚠️ **新しい参照を足さないこと。** 判定は `lib/companyMembers/talkable.ts`。
      ⚠️ `email` は本人向けのメールアドレス変更機能が無いから落としている。
         **作るときは戻すこと**（`/auth/confirm` の `email_change` 対応とセット）。
      ⚠️ **INSERT には触っていない。** `auth_id` / `email` は `lib/auth/linkOwUser.ts` の
@@ -743,6 +748,11 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
      **読む経路が無いので実害は無いが、GRANT の棚卸しをする別タスクの対象。**
      `can_talk_to_*` は死列、`is_mentor` / `is_active_mentor` / `mentor_*` は
      **DROP 済みの `ow_mentors` の名残**（CLAUDE.md「メンター機能自体が無い」）。
+     ⚠️ **2026-08-23 に `can_casual_meeting` も同じ状態になった**（参照0件）。
+        この列は UPDATE を配っていない側なので上の13列には入らないが、
+        **棚卸しの対象としては同じ**。列も SELECT の GRANT も残っている。
+     ⚠️ `archive/203` が「`can_casual_meeting` を `can_talk_to_hr` に統合する」と
+        宣言しているが**実行されていない**。統合先の `can_talk_to_hr` は本番0件。
      ⚠️ **落とすときは編集UIの有無を先に確かめること。** UI が後から付くと
         「保存できない」に化ける。
 
@@ -1514,12 +1524,32 @@ const COLS = "id, name" as const;
    誤って繋ぐと「押したのに出ない」が再発する。
    面談対応者の掲載可否は **`ow_company_members.is_public`** が唯一の軸。
 
+⚠️ **「話せる人」は企業・運営向けの語。本人向けの画面とメールでは使わない**（2026-08-23 / B-1）。
+   本人向けは「話を聞かれてもよいか」、訪問者向けは「話を聞けます」に統一した。
+   このトグルと語が衝突していたのが、本人向けから外した理由のひとつ。
+
 （2026-08-23 時点で `is_ambassador = true` は1件。実害は無いが、消すかどうかは別途判断）
 
-### 面談対応者のキャッシュ（2026-08-23）
+### 面談対応者のキャッシュと、承認・見送りの入口（2026-08-23）
 
-`getPublicAmbassadorsCached` はタグ付き（`companyAmbassadorsTag`）で、
-**行を動かす7経路すべてが `revalidateCompanyAmbassadors()` を呼ぶ**。
+**承認と見送りは [lib/companyMembers/decide.ts](src/lib/companyMembers/decide.ts) を通す。**
+`approveMember` / `unlistMember` / `dismissMember` が **UPDATE・DELETE 本体と
+`revalidateCompanyAmbassadors()` と本人への通知を1つの関数の内側に持っている。**
+
+⚠️★**「行を動かす経路すべてで revalidate を呼ぶ」という運用に戻さないこと。**
+   2026-08-23 まではその形（7経路で呼ぶ約束）だったが、**約束を守らせる仕組みが無い**。
+   承認3経路・見送り2経路があり、新しい経路を足した人が呼び忘れる。
+   書き込みを関数の内側に置いたので、**呼び出し側は状態を書き換える手段を他に持たない**
+   ＝ revalidate と通知だけを落とすことが**構造上できない**。
+
+⚠️ したがって `is_public` を直接 UPDATE したり `ow_company_members` を直接 DELETE する
+   コードをルートに書かない。**decide.ts に関数を足すか、既存の関数を呼ぶ。**
+
+⚠️ `decide.ts` を通らない経路（招待の受諾・本人による解除・企業の自己登録など）は
+   **従来どおり各ルートが `revalidateCompanyAmbassadors()` を呼ぶ。**
+   こちらは状態遷移ではなく行の作成・削除なので、集約の対象にしていない。
+
+`getPublicAmbassadorsCached` はタグ付き（`companyAmbassadorsTag`）。
 実測では本番でも**1回目の取得から反映される**（`x-vercel-cache: REVALIDATED`）。
 
 ⚠️ 「ページ=1 / API=0」を**1度だけ観測した。3サイクル測り直しても再現せず**、
@@ -2214,6 +2244,11 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 - 現状: 面談申込は企業宛（`company_id`）で、担当者は企業側が自己アサイン（`action: "assign_to_me"`）するのみ
 - 問題: `/companies/[id]` の「生藤さんに話を聞く →」ボタンを押しても、生藤さんが対応するとは限らない
   - `member_id` を URL パラメータで渡しているが、`ow_casual_meetings` には `member_id`（指名先）を記録するカラムがない
+  - ⚠️ **`/u/[id]` は `?person={ow_users.id}` を渡している**（2026-08-23 確認）。`member_id` と同じく
+    **受け取る側が読んでいない**。`casual-meeting/page.tsx` の searchParams の型は
+    **`{ job_id?: string }` だけ**で、`person` も `member_id` も**そのまま捨てられる**
+  - ⚠️ つまり**人単位のバッジ・CTAが、人単位の結果に繋がっていない**。
+    語彙を「この会社の話を聞ける人」に寄せたのは、申込が企業に届く実装と整合させるため（B-1 / 2026-08-23）
 - 将来実装: `ow_casual_meetings` に `requested_member_id UUID` を追加し、求職者が特定の社員を指名できる仕組みを作る
 - 関連ファイル: `src/app/(jobseeker)/companies/[id]/casual-meeting/page.tsx`、`src/app/api/casual-meeting/route.ts`
 
@@ -2300,6 +2335,35 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 
 ⚠️ **「別セッションが変えうる数字」を事後チェックの固定値に使わないこと。**
    件数は「変更前後の差分」で検証する。
+
+### ⚠️★`npm run build` は本番 Supabase の Auth を落とす（2026-08-23 実測）
+
+**検証のためにビルドを回すと、その間 opinio.jp にログインできなくなる。**
+
+prerender は掲載中の企業ページなどを一気に生成し、**1ページごとに本番 Supabase へ
+問い合わせる**。実測（2026-08-23 / UTC）:
+
+| 何が | 実測値 |
+|---|---|
+| このマシン → PostgREST | **2,204 req/分**（03:47）・**2,393 req/分**（03:52）・1,039 req/分（04:08） |
+| GoTrue | Postgres に接続できず **500**：`dial tcp [::1]:5432: operation was canceled` |
+| `POST /auth/v1/token?grant_type=password` | **504**（origin_time **59,993ms**＝60秒でタイムアウト） |
+| `/auth/v1/health` | **72秒**かけて 504 |
+
+⚠️ **Vercel の本番ビルドも同じ prerender を回す。** ローカルのビルドと重なると二重に叩く
+   （2026-08-23 03:51 に実際に重なった）。**push のタイミングも同じ性質を持つ。**
+
+#### ★手順（「気をつける」ではなく、これに従う）
+
+1. **検証ビルドは最後に1回だけ。** ステップごとに回さない
+2. **中間の確認は dev サーバーの未ログイン HTML で代替する。**
+   「氏名が焼かれていないか」「文言が入っているか」は dev の匿名レスポンスで同じ判定ができる
+   （2026-08-23 に両方で測り、結果が一致することを確認済み）
+3. **prerender の実物（`.next-prod/server/app/**.html`）を見るのは push 直前の1回だけ**
+4. **回す前に柴さんに一声かける。** 回している間ログインできなくなる
+
+⚠️ `distDir` を分けても**防げない**。あれはローカルのファイル衝突の対策で、
+   **本番 Supabase への負荷は dev と build で二重になる。**
 
 ### ⚠️ dev サーバーは絶対に2つ同時に起動しない（2026-08-03 確立）
 
@@ -2506,6 +2570,12 @@ ESLint も `npx next lint --dir src` は `.next` を書き換えない。
   （`fontSize` / `padding` / `display` / `flexDirection` / `width`）をインラインに書かない。
   `!important` で殴らない。
 - **`min-height` は `height` に勝つ。** 自分でサイズを決めるボタンには `.btn-fixed-size` を付ける。
+- **★`/u/{uuid}` は 308 で username に正規化される。** `curl` には **`-L` が要る**。
+  2026-08-23 に付け忘れ、**リダイレクト本文を数えて「CTAが出ない」と誤判定しかけた**
+  （4名とも0件に見えた。`-L` を付けたら正しい値が出た）。
+- **★dev のコンパイル中に取得すると部分応答が返る。** 同じページが **26KB** と **89KB** で返り、
+  短いほうには目的の要素が入っていなかった（2026-08-23 に2回踏んだ）。
+  **サイズが極端に違うときは取り直す。**
 
 → 各項目の計測スクリプトと実測値は [.claude/rules/ui-debugging.md](.claude/rules/ui-debugging.md)
    （`.tsx` / `.jsx` / `.css` を扱うとき自動で読み込まれる）
