@@ -27,8 +27,10 @@ export function shortCompanyName(name: string): string {
  * ⚠️ **`u/[id]/page.tsx` に直書きされていた160行をそのまま移した**（2026-08-16 / 2-7）。
  *    `/mypage` と `/u/[id]` の**両方**がこれを使う。同じ見た目を2箇所に書かない。
  *
- * ⚠️ 右上（`topRight`）と右側の CTA 群（`actions`）だけがページごとに違う。
- *    `/u/[id]` は共有ボタンとフォロー・DM・カジュアル面談、`/mypage` は鉛筆だけ。
+ * ⚠️ 右上（`topRight`）と CTA 群（`metaActions`）だけがページごとに違う。
+ *    `/u/[id]` は共有ボタンとカジュアル面談・メッセージ・フォロー、`/mypage` は鉛筆だけ。
+ *
+ * ⚠️ **右側に置くのは在籍企業のブロックだけ**（2026-08-23）。ボタンを右へ戻さない。
  *
  * ⚠️ **現職・年齢は導出値**（職歴と生年月日から作る）なので、ここには編集導線を置かない。
  */
@@ -36,7 +38,7 @@ export function ProfileHeader({
   name, headline, initial, avatarUrl, avatarColor, coverPhotoUrl, coverColor,
   ageDisplay, location, followCounts, socialLinks,
   currentCareer, isCurrentCompanyKnown, talkableBadge,
-  topRight, actions, promos,
+  topRight, metaActions, promos,
 }: {
   name: string;
   headline?: string | null;
@@ -60,8 +62,16 @@ export function ProfileHeader({
   talkableBadge?: React.ReactNode;
   /** カバー右上。`/u/[id]` は共有ボタン、`/mypage` は鉛筆 */
   topRight?: React.ReactNode;
-  /** 右側の CTA 群。`/mypage` は渡さない（フォロー・DM・カジュアル面談・共有は本人には要らない） */
-  actions?: React.ReactNode;
+  /**
+   * ★CTA 群。**メタ行（年齢・所在地・フォロー数）のすぐ下**に出す（2026-08-23）。
+   *
+   * ⚠️ **以前は右側（会社ブロックの隣）に置いていた** が、LinkedIn に合わせて
+   *    「右は在籍企業だけ・操作は本人の情報の下」に変えた。
+   *    右に置くと、社名入りの可変長ボタン（「〇〇 の企業ページ」）が
+   *    狭い画面で親をはみ出す問題も抱えていた（2026-08-08 に一度対処している）。
+   * ⚠️ `/mypage` は渡さない（フォロー・DM・カジュアル面談は本人には要らない）。
+   */
+  metaActions?: React.ReactNode;
   /** SNS の下に出す促し。`/mypage` だけ */
   promos?: React.ReactNode;
 }) {
@@ -201,6 +211,8 @@ export function ProfileHeader({
                 数字が価値の代理指標に見えないようにする）。0 は出ない。 */}
             <FollowCounts counts={followCounts} />
           </div>
+          {/* ★CTA 群はここ（メタ行の直下）。⚠️ 右側へ戻さないこと（`metaActions` の説明を参照） */}
+          {metaActions}
           <ProfileSocialLinks socialLinks={socialLinks} />
           {promos}
         </div>
@@ -244,8 +256,6 @@ export function ProfileHeader({
             </div>
           </div>
         )}
-
-        {actions}
       </div>
     </div>
   </div>

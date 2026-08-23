@@ -674,11 +674,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
             </span>
           ) : null}
           topRight={<ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />}
-          actions={<>
-              {/* ⚠️ minWidth: 0 が要る（2026-08-08）。この行は親（flex row）の item で、
-                     既定の min-width: auto だと中身（社名入りの「〇〇 の企業ページ」）の
-                     min-content まで広がり、375px で親を 14px はみ出していた。 */}
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", paddingTop: 4, minWidth: 0 }}>
+          /* ★CTA 群。**メタ行（36歳・埼玉県・フォロー数）のすぐ下**に出す（2026-08-23）。
+                ⚠️ **右側へ戻さないこと。** 右は在籍企業のブロックだけにする（LinkedIn と同じ形）。
+                ⚠️ 同時に3つ落とした（柴さんの指示）:
+                     ・「〇〇 の企業ページ」 … 右の会社ブロックの社名が同じ場所へ行くので二重だった
+                     ・「IT 求人を見る」     … 上の代替分岐。片方だけ残すと
+                                              「会社が分かる人には何も出ず、分からない人には求人」になる
+                     ・DM の文言を「〇〇 にDMを送る」→「メッセージ」に短縮
+                ⚠️ minWidth: 0 は残す。可変長のボタンが並ぶ行なので、狭い画面で親を押し広げる。 */
+          metaActions={<>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
                 {/* カジュアル面談ボタン（非オーナー かつ 在籍企業の話を聞ける人 かつ 在籍企業が受付中） */}
                 {!viewerIsOwner && isTalkableHere && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
@@ -697,19 +702,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </Link>
                 )}
 
-                {/* フォローボタン。オーナー本人には出さない。
-                    未ログインでも押せるが、押すと /auth に飛ばす（企業フォローと同じ挙動） */}
-                {!viewerIsOwner && (
-                  <FollowUserButton
-                    targetUserId={owUser.id}
-                    initialFollowed={isFollowingUser}
-                    isAuthenticated={!!authUser}
-                  />
-                )}
-
                 {/* DMボタン */}
                 {!viewerIsOwner && authUser ? (
-                  <DMButton targetUserId={owUser.id} targetName={owUser.name} />
+                  <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
                 ) : !viewerIsOwner && !authUser ? (
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 7,
@@ -723,11 +718,27 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    DMを送る（無料登録）
+                    メッセージ（無料登録）
                   </Link>
                 ) : null}
 
-                {viewerIsOwner ? (
+                {/* ⚠️ 並びは「カジュアル面談する → メッセージ → ＋フォロー」（2026-08-23）。
+                       主要な順に左から。フォローは最も軽い操作なので末尾。 */}
+                {/* フォローボタン。オーナー本人には出さない。
+                    未ログインでも押せるが、押すと /auth に飛ばす（企業フォローと同じ挙動） */}
+                {!viewerIsOwner && (
+                  <FollowUserButton
+                    targetUserId={owUser.id}
+                    initialFollowed={isFollowingUser}
+                    isAuthenticated={!!authUser}
+                  />
+                )}
+
+                {/* ⚠️ ここにあった「〇〇 の企業ページ」と「IT 求人を見る」は 2026-08-23 に外した。
+                       前者は右の会社ブロック（ロゴ＋社名がリンク）と同じ行き先で二重。
+                       後者はその代替分岐なので、片方だけ残すと出し分けが逆立ちする。
+                    ⚠️ 書き戻さないこと。企業ページへは会社ブロックの社名から行ける。 */}
+                {viewerIsOwner && (
                   <Link href="/mypage" className="profile-header-cta" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "8px 18px", borderRadius: 8,
@@ -740,40 +751,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                     プロフィールを編集
-                  </Link>
-                ) : isCurrentCompanyKnown ? (
-                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 18px", borderRadius: 8,
-                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                    color: "var(--royal)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-                    /* ⚠️ flexShrink: 0 を外した（2026-08-08）。社名が入る可変長ボタンで、
-                          375px で親（293px）を 307px ではみ出していた。
-                          社名側を minWidth: 0 で縮め、省略記号で収める。 */
-                    minWidth: 0, maxWidth: "100%",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                      <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                    </svg>
-                    <span
-                      title={`${currentCareer!.company_name} の企業ページ`}
-                      style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    >
-                      {shortCompanyName(currentCareer!.company_name)} の企業ページ
-                    </span>
-                  </Link>
-                ) : (
-                  <Link href="/jobs" style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 18px", borderRadius: 8,
-                    border: "1.5px solid var(--line)", background: "#fff",
-                    color: "var(--ink-soft)", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                    </svg>
-                    IT 求人を見る
                   </Link>
                 )}
               </div>

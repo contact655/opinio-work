@@ -7,9 +7,16 @@ type Props = {
   targetUserId: string;
   targetName: string;
   targetAvatarUrl?: string | null;
+  /**
+   * ボタンの文言。既定は「〇〇 にDMを送る」。
+   * ⚠️ `/u/[id]` のヘッダーは `label="メッセージ"` を渡す（2026-08-23）。
+   *    CTA 群をメタ行の下へ移したとき、氏名入りだと行が長くなりすぎたため。
+   *    氏名は同じカードの見出しに大きく出ているので、繰り返す必要が無い。
+   */
+  label?: string;
 };
 
-export function DMButton({ targetUserId, targetName }: Props) {
+export function DMButton({ targetUserId, targetName, label }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -79,7 +86,7 @@ export function DMButton({ targetUserId, targetName }: Props) {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        {loading ? "準備中..." : `${targetName} にDMを送る`}
+        {loading ? "準備中..." : (label ?? `${targetName} にDMを送る`)}
       </button>
       {error && <span style={{ fontSize: 12, color: "var(--error)" }}>{error}</span>}
     </>
