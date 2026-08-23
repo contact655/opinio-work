@@ -21,6 +21,7 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { ProfileNavClient } from "@/components/profile/ProfileNavClient";
+import { ProfileTabsClient } from "@/components/profile/ProfileTabsClient";
 import { DMButton } from "@/components/profile/DMButton";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -470,9 +471,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
     timelineEdus.length > 0 ? { id: "education", label: "学歴" } : null,
     (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
     contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
-    /* ★本人だけに出す条件をやめた（2026-08-17）。投稿があるときだけ出す。
-          フォームを外したので、投稿0件の本人には飛び先そのものが無い。 */
-    recentPostsTyped.length > 0 ? { id: "activity", label: "投稿" } : null,
+    /* ★投稿は 2026-08-23 に上位タブ「フィード」へ移した。ここには入れない。
+          このナビは**プロフィールタブの中のセクション**を指すもので、
+          別タブの要素を入れると `getElementById` が見つけられない。 */
   ].filter(Boolean) as { id: string; label: string }[];
 
   // キャリアパスノード用 年表示
@@ -689,6 +690,63 @@ export default async function UserProfilePage({ params }: { params: { id: string
           {/* ── Main column ─────────────────────────────────────────── */}
           <div>
 
+            {/* ★上位タブ（2026-08-23）。プロフィール / フィードの2つ。
+                   投稿は0件でもタブごと残す（`ProfileTabsClient` のコメント参照）。 */}
+            <ProfileTabsClient
+              feedCount={recentPostsTyped.length}
+              feed={<>
+              {/* ⚠️ ここは**フィードタブの中身**（2026-08-23）。0件でも出す。
+                     タブごと消すと「投稿がどこにあるか分からない」に戻る。 */}
+              {(
+                <section id="activity" style={{
+                  background: "#fff", border: "1px solid var(--line)",
+                  borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                    <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                      アクティビティ
+                    </span>
+                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                      ACTIVITY
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                    {recentPostsTyped.length > 0 && (
+                      <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
+                        {recentPostsTyped.length}件
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 投稿リスト。0件のときは事実だけ書く（督促はしない）。
+                      ⚠️ 本人向けの投稿導線はこのページに置かない（2026-08-16/17 の判断）。
+                         投稿は `/mypage` のアクティビティから行う。 */}
+                  {recentPostsTyped.length === 0 && (
+                    <p style={{ margin: 0, fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                      まだ投稿がありません。
+                    </p>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {recentPostsTyped.map((post) => (
+                        <PostCard
+                          key={post.id}
+                          post={{
+                            id: post.id,
+                            content: post.content,
+                            image_url: post.image_url,
+                            created_at: post.created_at,
+                            likeCount: post.likes[0]?.count ?? 0,
+                            isLiked: likedPostIds.has(post.id),
+                            isOwner: viewerIsOwner,
+                          }}
+                        />
+                      ))}
+                  </div>
+                </section>
+              )}
+              </>}
+              profile={<>
+
             {/* ── Section navigation (スクロールスパイ付き) ── */}
             {navSections.length > 0 && (
               <ProfileNavClient sections={navSections} />
@@ -747,46 +805,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                      （`/mypage` のプロフィールタブ下端「アクティビティ」。実測で確認）。
                    ⚠️ **投稿の一覧は残す。** 他人にも出るセクションで、
                       本人だけに見えるものではない。 */}
-            {recentPostsTyped.length > 0 && (
-              <section id="activity" style={{
-                background: "#fff", border: "1px solid var(--line)",
-                borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                    アクティビティ
-                  </span>
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    ACTIVITY
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                  {recentPostsTyped.length > 0 && (
-                    <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
-                      {recentPostsTyped.length}件
-                    </span>
-                  )}
-                </div>
-
-                {/* 投稿リスト */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {recentPostsTyped.map((post) => (
-                      <PostCard
-                        key={post.id}
-                        post={{
-                          id: post.id,
-                          content: post.content,
-                          image_url: post.image_url,
-                          created_at: post.created_at,
-                          likeCount: post.likes[0]?.count ?? 0,
-                          isLiked: likedPostIds.has(post.id),
-                          isOwner: viewerIsOwner,
-                        }}
-                      />
-                    ))}
-                </div>
-              </section>
-            )}
 
             {/* ── メディア掲載 ── */}
             <ProfileMediaSection mediaAppearances={mediaAppearances} />
@@ -859,6 +877,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
             </section>
           )}
+              </>}
+            />
 
           {/* Footer CTA — パーソナライズ
               ⚠️ 2026-08-08 まで .profile-grid の**外**にあり、常に 1020px
