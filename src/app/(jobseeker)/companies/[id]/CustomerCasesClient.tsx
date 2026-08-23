@@ -3,20 +3,19 @@
 import { useState } from "react";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { ShowMoreButton } from "./ShowMoreButton";
+import { CHIP_STYLES } from "@/lib/utils/chipVariant";
 
 const INITIAL_CASES = 3;
 
-function productStyle(name: string): { bg: string; border: string; color: string } {
-  const n = name.toLowerCase();
-  if (n.includes("sales") || n.includes("crm") || n.includes("営業"))
-    return { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
-  if (n.includes("market") || n.includes("マーケ"))
-    return { bg: "#FEF3C7", border: "#FDE68A", color: "#92400E" };
-  if (n.includes("service") || n.includes("support") || n.includes("success") || n.includes("サポート"))
-    return { bg: "#D1FAE5", border: "#A7F3D0", color: "#065F46" };
-  if (n.includes("data") || n.includes("analytics") || n.includes("分析") || n.includes("ai"))
-    return { bg: "#F3E8FF", border: "#DDD6FE", color: "#7C3AED" };
-  return { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
+/**
+ * ⚠️ 製品ピルの色は出し分けない（2026-08-23）。
+ *    ここは `companies/[id]/page.tsx` の productStyle とは**別の2つ目の実装**で、
+ *    同じく4色（royal / amber / green / purple）を当てていた。
+ *    凡例が無く、緑が「金銭条件」と衝突するので neutral に統一する。
+ *    → src/lib/utils/chipVariant.ts
+ */
+function productStyle(_name: string): { bg: string; border: string; color: string } {
+  return CHIP_STYLES.neutral;
 }
 
 /** 数値・パーセント・倍数を太字にする */
@@ -96,13 +95,14 @@ function CaseCard({ c }: { c: CustomerCase }) {
       {/* 成果 */}
       <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
         <span style={{
-          fontSize: "var(--text-xs)", fontWeight: 700, color: "#065F46",
-          background: "#D1FAE5", borderRadius: 6, padding: "2px 7px",
+          /* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */
+          fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)",
+          background: "var(--bg-tint)", borderRadius: 6, padding: "2px 7px",
           whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)",
         }}>
           成果
         </span>
-        <p style={{ margin: 0, fontSize: 12, color: "#065F46", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-noto-sans)" }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-noto-sans)" }}>
           <BoldNumbers text={c.result} />
         </p>
       </div>

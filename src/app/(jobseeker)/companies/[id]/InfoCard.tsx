@@ -2,14 +2,20 @@
 // Server / Client どちらからも利用可能（hooks なし）
 
 import React from "react";
+import { chipStyle, type ChipVariant } from "@/lib/utils/chipVariant";
 
 type InfoCardProps = {
   icon: React.ReactNode;
   label: string;
   sublabel?: string;
-  color: string;
-  bg: string;
-  border: string;
+  /**
+   * 色は**役割**で決める。既定は neutral（色に意味を持たせない）。
+   * `money` は金銭的にプラスの条件だけ（確定拠出年金・退職金・SO/RSU）。
+   * ⚠️ 個別の色（color / bg / border）は受け取らない。
+   *    呼び出し側で色を決められると、凡例の無い色分けがまた増える。
+   * → src/lib/utils/chipVariant.ts
+   */
+  variant?: ChipVariant;
 };
 
 /**
@@ -20,7 +26,8 @@ type InfoCardProps = {
  * ⚠️ 福利厚生セクションと共有している。片方だけ別の形にしないこと
  *    （同じ企業ページの中で、同じ見た目のカードが2種類あることになる）。
  */
-export function InfoCard({ icon, label, sublabel, color, bg, border }: InfoCardProps) {
+export function InfoCard({ icon, label, sublabel, variant = "neutral" }: InfoCardProps) {
+  const { color, bg, border } = chipStyle(variant);
   return (
     <div
       style={{

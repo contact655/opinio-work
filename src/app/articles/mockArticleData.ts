@@ -72,11 +72,17 @@ export const ARTICLE_TYPES: { value: ArticleType | "all"; label: string }[] = [
   { value: "report", label: "組織レポート" },
 ];
 
+/**
+ * ⚠️ **記事タイプを色で出し分けない（2026-08-23）。**
+ *    以前は青／紫／黄／灰の4色だった。凡例が無いので色の意味が伝わらず、
+ *    紫と黄色は「使わない」と決めた色でもある（→ lib/utils/chipVariant.ts）。
+ *    種別はラベルの文字で伝わる。
+ */
 export const TYPE_BADGE: Record<ArticleType, { label: string; bg: string; color: string }> = {
-  employee: { label: "社員インタビュー", bg: "#EFF6FF", color: "#1D4ED8" },
-  mentor:   { label: "キャリアの軌跡",   bg: "#F5F3FF", color: "#7C3AED" },
-  ceo:      { label: "CEO・経営陣",      bg: "#FEF3C7", color: "#D97706" },
-  report:   { label: "組織レポート",     bg: "#F1F5F9", color: "#475569" },
+  employee: { label: "社員インタビュー", bg: "var(--royal-50)", color: "var(--royal)" },
+  mentor:   { label: "キャリアの軌跡",   bg: "var(--royal-50)", color: "var(--royal)" },
+  ceo:      { label: "CEO・経営陣",      bg: "var(--royal-50)", color: "var(--royal)" },
+  report:   { label: "組織レポート",     bg: "var(--royal-50)", color: "var(--royal)" },
 };
 
 export const TYPE_EYECATCH_ICON: Record<ArticleType, string> = {

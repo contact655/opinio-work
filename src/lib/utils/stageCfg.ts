@@ -1,3 +1,14 @@
+/**
+ * ⚠️ **資金調達フェーズを色で出し分けない（2026-08-23）。**
+ *    以前はフェーズごとに虹色（シード＝黄 / シリーズA＝緑 / 上場＝緑 …）を当てていた。
+ *    凡例が無いので色の意味が伝わらず、とくに緑が
+ *    「金銭的にプラスの条件」（年収・確定拠出年金）と衝突していた。
+ *    段階はラベルの文字で伝わるので、色はすべてニュートラルにする。
+ *    → src/lib/utils/chipVariant.ts
+ *
+ * ⚠️ `components/companies/CompanyCardCompact.tsx` に**別実装の getStageCfg** がある。
+ *    そちらは一覧カード用で、この定義とは繋がっていない。
+ */
 export type StageCfgEntry = {
   label: string;
   color: string;
@@ -11,30 +22,30 @@ export const STAGE_CONFIG: Record<string, StageCfgEntry> = {
   "プレシード":       { label: "プレシード",       color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
   "bootstrap":        { label: "ブートストラップ", color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
   "ブートストラップ": { label: "ブートストラップ", color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
-  "seed":             { label: "シード",           color: "#92400E", bg: "#FEF3C7", border: "#FDE68A" },
-  "シード":           { label: "シード",           color: "#92400E", bg: "#FEF3C7", border: "#FDE68A" },
-  "series-a":         { label: "シリーズA",        color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
-  "series_a":         { label: "シリーズA",        color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
-  "シリーズA":        { label: "シリーズA",        color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
-  "series-b":         { label: "シリーズB",        color: "#1E40AF", bg: "#DBEAFE", border: "#BFDBFE" },
-  "series_b":         { label: "シリーズB",        color: "#1E40AF", bg: "#DBEAFE", border: "#BFDBFE" },
-  "シリーズB":        { label: "シリーズB",        color: "#1E40AF", bg: "#DBEAFE", border: "#BFDBFE" },
-  "series-c":         { label: "シリーズC",        color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
-  "series_c":         { label: "シリーズC",        color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
-  "シリーズC":        { label: "シリーズC",        color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
-  "series-d":         { label: "シリーズD+",       color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
-  "series_d":         { label: "シリーズD+",       color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
-  "シリーズD以降":    { label: "シリーズD+",       color: "#991B1B", bg: "#FEE2E2", border: "#FECACA" },
-  "ipo":              { label: "IPO準備中",        color: "#9A3412", bg: "#FFEDD5", border: "#FED7AA" },
-  "ipo準備中":        { label: "IPO準備中",        color: "#9A3412", bg: "#FFEDD5", border: "#FED7AA" },
-  "IPO準備中":        { label: "IPO準備中",        color: "#9A3412", bg: "#FFEDD5", border: "#FED7AA" },
-  "listed":           { label: "上場",             color: "#065F46", bg: "#ECFDF5", border: "#6EE7B7", fontWeight: 800 },
-  "上場":             { label: "上場",             color: "#065F46", bg: "#ECFDF5", border: "#6EE7B7", fontWeight: 800 },
-  "unicorn":          { label: "ユニコーン",       color: "#6D28D9", bg: "#F3E8FF", border: "#C4B5FD" },
-  "ユニコーン":       { label: "ユニコーン",       color: "#6D28D9", bg: "#F3E8FF", border: "#C4B5FD" },
-  "growth":           { label: "成長期",           color: "#065F46", bg: "#D1FAE5", border: "#A7F3D0" },
-  "外資系":           { label: "🌐 外資系",        color: "#3730A3", bg: "#E0E7FF", border: "#C7D2FE" },
-  "foreign":          { label: "🌐 外資系",        color: "#3730A3", bg: "#E0E7FF", border: "#C7D2FE" },
+  "seed":             { label: "シード",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "シード":           { label: "シード",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series-a":         { label: "シリーズA",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series_a":         { label: "シリーズA",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "シリーズA":        { label: "シリーズA",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series-b":         { label: "シリーズB",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series_b":         { label: "シリーズB",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "シリーズB":        { label: "シリーズB",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series-c":         { label: "シリーズC",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series_c":         { label: "シリーズC",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "シリーズC":        { label: "シリーズC",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series-d":         { label: "シリーズD+",       color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "series_d":         { label: "シリーズD+",       color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "シリーズD以降":    { label: "シリーズD+",       color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "ipo":              { label: "IPO準備中",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "ipo準備中":        { label: "IPO準備中",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "IPO準備中":        { label: "IPO準備中",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "listed":           { label: "上場",             color: "#475569", bg: "#F1F5F9", border: "#CBD5E1", fontWeight: 800 },
+  "上場":             { label: "上場",             color: "#475569", bg: "#F1F5F9", border: "#CBD5E1", fontWeight: 800 },
+  "unicorn":          { label: "ユニコーン",       color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "ユニコーン":       { label: "ユニコーン",       color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "growth":           { label: "成長期",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "外資系":           { label: "🌐 外資系",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
+  "foreign":          { label: "🌐 外資系",        color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
   "非上場":           { label: "非上場",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
   "non_listed":       { label: "非上場",           color: "#475569", bg: "#F1F5F9", border: "#CBD5E1" },
 };

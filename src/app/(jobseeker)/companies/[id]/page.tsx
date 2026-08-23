@@ -19,6 +19,7 @@ import {
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { InfoCard } from "./InfoCard";
+import { CHIP_STYLES, type ChipVariant } from "@/lib/utils/chipVariant";
 import { SecTitle } from "./SecTitle";
 import AmbassadorWidget from "./AmbassadorWidget";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
@@ -326,9 +327,10 @@ function Hero({
                       display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
                       padding: "var(--space-1) var(--space-2)", borderRadius: 999,
                       fontSize: "var(--text-xs)", fontWeight: 600,
-                      background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
+                      /* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */
+                      background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
                     }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--success)", boxShadow: "0 0 6px rgba(5,150,105,0.6)", flexShrink: 0 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
                       採用中 {company.job_count}件
                     </span>
                   )}
@@ -396,7 +398,8 @@ function Hero({
                   )}
                   {company.careers_url && (
                     <a href={company.careers_url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--warm-soft)", color: "#92400E", border: "1px solid #FDE68A", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+                      /* ⚠️ 黄色は使わない（2026-08-23）。隣の「公式サイト」ピルと同じニュートラルに揃える。 */
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
                       採用情報
                     </a>
@@ -524,23 +527,21 @@ function parseProductName(raw: string): { name: string; sub: string | null } {
   return { name: raw, sub: null };
 }
 
-/** キーワードベースで製品カードのスタイルを決める（カテゴリ別カラー） */
+/**
+ * キーワードから製品カードの**アイコン**を決める。
+ *
+ * ⚠️ **色は出し分けない（2026-08-23）。** 以前はカテゴリごとに7色
+ *    （royal / amber / purple / green / indigo / slate / sky）を当てていたが、
+ *    凡例が無いので読み手には色の意味が分からず、しかも
+ *    「緑＝カスタマーサポート製品」が他所の「緑＝金銭条件」と衝突していた。
+ *    製品は金銭条件ではないので、すべて neutral。
+ *    → src/lib/utils/chipVariant.ts
+ */
 function productStyle(name: string): { bg: string; border: string; color: string; icon: React.ReactNode } {
   const n = name.toLowerCase();
-  // Sales/CRM → royal blue
-  const ROYAL = { bg: "var(--royal-50)", border: "var(--royal-100)", color: "var(--royal)" };
-  // Marketing → warm amber
-  const WARM = { bg: "#FEF3C7", border: "#FDE68A", color: "#92400E" };
-  // Analytics/Data → purple
-  const PURPLE = { bg: "#F3E8FF", border: "#DDD6FE", color: "#7C3AED" };
-  // Service/Support/CS → green
-  const GREEN = { bg: "#D1FAE5", border: "#A7F3D0", color: "#065F46" };
-  // AI/ML → indigo
-  const INDIGO = { bg: "#EEF2FF", border: "#C7D2FE", color: "#4338CA" };
-  // Integration/API/Platform → slate
-  const SLATE = { bg: "#F1F5F9", border: "#CBD5E1", color: "#475569" };
-  // Cloud/Platform → sky
-  const SKY = { bg: "#E0F2FE", border: "#BAE6FD", color: "#0369A1" };
+  const NEUTRAL = CHIP_STYLES.neutral;
+  const ROYAL = NEUTRAL, WARM = NEUTRAL, PURPLE = NEUTRAL,
+        GREEN = NEUTRAL, INDIGO = NEUTRAL, SLATE = NEUTRAL, SKY = NEUTRAL;
 
   if (/(crm|sales|営業|セールス)/.test(n))
     return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
@@ -958,11 +959,14 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       {/* Benefit keyword → emoji mapping */}
       {(() => {
         // SVGベースの福利厚生アイコン（キーワード → SVG）
-        type BenefitIconDef = { svg: React.ReactNode; color: string; bg: string; border: string };
+        /* ⚠️ 色は個別に持たない。役割（neutral / money）だけを返す。
+              以前は紫（書籍・学習）とオレンジ（育休・産休）を独自に当てており、
+              凡例が無いので読み手には意味が分からなかった。
+              緑を残すのは**金銭的にプラスの条件だけ**（→ lib/utils/chipVariant.ts）。 */
+        type BenefitIconDef = { svg: React.ReactNode; variant?: ChipVariant };
         function getBenefitIconDef(benefit: string): BenefitIconDef {
           const b = benefit;
           const royal: BenefitIconDef = {
-            color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)",
             svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
           };
           if (b.includes("リモート") || b.includes("在宅") || b.includes("テレワーク") || b.includes("フルリモート"))
@@ -972,17 +976,17 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           if (b.includes("副業") || b.includes("兼業"))
             return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> };
           if (b.includes("ストックオプション") || b.includes("SO") || b.includes("持株"))
-            return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
+            return { variant: "money", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
           if (b.includes("書籍") || b.includes("学習") || b.includes("研修") || b.includes("勉強会") || b.includes("資格"))
-            return { color: "#5b21b6", bg: "#ede9fe", border: "#ddd6fe", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
+            return { svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
           if (b.includes("育休") || b.includes("産休") || b.includes("子育て") || b.includes("保育"))
-            return { color: "#9a3412", bg: "#ffedd5", border: "#fed7aa", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> };
+            return { svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> };
           if (b.includes("食事") || b.includes("ランチ") || b.includes("社食"))
             return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> };
           if (b.includes("健康") || b.includes("医療") || b.includes("保険"))
             return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> };
           if (b.includes("確定拠出") || b.includes("退職金"))
-            return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> };
+            return { variant: "money", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> };
           // default: checkmark
           return royal;
         }
@@ -1048,9 +1052,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
                             key={b}
                             icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
                             label={b}
-                            color={def.color}
-                            bg={def.bg}
-                            border={def.border}
+                            variant={def.variant}
                           />
                         );
                       })}
@@ -1213,9 +1215,11 @@ function JobEmbedCard({
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 3,
                 fontSize: 12, padding: "2px 7px", borderRadius: 4,
-                background: isRemote ? "#f0fdf4" : "var(--bg-tint)",
-                color: isRemote ? "var(--success)" : "var(--ink-mute)",
-                border: `1px solid ${isRemote ? "#A7F3D0" : "var(--line)"}`,
+                /* ⚠️ リモートを緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。
+                      勤務地はアイコン（🏠/📍）で既に区別が付いている。 */
+                background: "var(--bg-tint)",
+                color: "var(--ink-mute)",
+                border: "1px solid var(--line)",
                 fontWeight: 500,
               }}>
                 {isRemote ? "🏠" : "📍"} {jobLoc}
@@ -1226,7 +1230,9 @@ function JobEmbedCard({
               const WS: Record<string, string> = { full_remote: "フルリモート", hybrid: "ハイブリッド", on_site: "出社" };
               const label = WS[job.workStyle] ?? job.workStyle;
               return (
-                <span style={{ fontSize: 12, padding: "2px 7px", borderRadius: 4, background: "var(--success-soft,#ECFDF5)", color: "var(--success)", border: "1px solid #A7F3D0", fontWeight: 600 }}>{label}</span>
+                /* ⚠️ 勤務形態は緑にしない（2026-08-23）。「ハイブリッド」だけが緑で、
+                      同じ行の年収（緑＝金銭条件）と意味が衝突していた。 */
+                <span style={{ fontSize: 12, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 600 }}>{label}</span>
               );
             })()}
             {job.employmentType && (
@@ -1242,8 +1248,8 @@ function JobEmbedCard({
             {badge && (
               <span style={{
                 fontSize: 12, padding: "2px 7px", borderRadius: 4,
-                background: "var(--success-soft,#ECFDF5)", color: "var(--success)",
-                border: "1px solid #A7F3D0", fontWeight: 700,
+                background: "var(--bg-tint)", color: "var(--ink-mute)",
+                border: "1px solid var(--line)", fontWeight: 700,
               }}>{badge}</span>
             )}
           </div>
@@ -1396,9 +1402,9 @@ function JobsSection({
         padding: "var(--space-6) 32px var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
-        <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="warm">
+        <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="default">
           募集中の求人
-          <span style={{ fontSize: "var(--text-xs)", color: "#D97706", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
             {company.job_count}件
           </span>
         </SecTitle>
@@ -1454,7 +1460,7 @@ function RecruitersSection({
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
-          iconColor="green"
+          iconColor="default"
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -1580,7 +1586,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <SecTitle
-          iconColor="purple"
+          iconColor="default"
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -1591,8 +1597,8 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
           企業からの投稿
         </SecTitle>
         <span style={{
-          fontSize: 12, fontWeight: 700, color: "var(--purple)",
-          background: "var(--purple-soft)", border: "1px solid #e9d5ff",
+          fontSize: 12, fontWeight: 700, color: "var(--ink-mute)",
+          background: "var(--bg-tint)", border: "1px solid var(--line)",
           padding: "2px 10px", borderRadius: 100, fontFamily: "Inter, sans-serif",
           flexShrink: 0,
         }}>
@@ -1622,7 +1628,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
                 {catLabel && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 100,
-                    background: "var(--purple-soft)", color: "var(--purple)",
+                    background: "var(--royal-50)", color: "var(--royal)",
                     fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
                     width: "fit-content",
                   }}>

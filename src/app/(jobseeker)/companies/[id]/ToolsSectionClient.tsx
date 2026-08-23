@@ -12,6 +12,7 @@ import {
   type CategorySlug,
 } from "@/lib/utils/toolCfg";
 import { InfoCard } from "./InfoCard";
+import { CHIP_STYLES } from "@/lib/utils/chipVariant";
 import { ShowMoreButton } from "./ShowMoreButton";
 
 const GROUP_MAX = 6;
@@ -92,12 +93,12 @@ export default function ToolsSectionClient({ tools }: Props) {
                   width: 24,
                   height: 24,
                   borderRadius: 6,
-                  background: def.iconDef.bg,
-                  border: `1px solid ${def.iconDef.border}`,
+                  background: CHIP_STYLES.neutral.bg,
+                  border: `1px solid ${CHIP_STYLES.neutral.border}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: def.iconDef.color,
+                  color: CHIP_STYLES.neutral.color,
                   flexShrink: 0,
                 }}
               >
@@ -161,9 +162,11 @@ export default function ToolsSectionClient({ tools }: Props) {
                       icon={icon}
                       label={tool.name}
                       sublabel={showSublabel ? (tool.note || categoryLabel) : (tool.note || undefined)}
-                      color={iconDef.color}
-                      bg={iconDef.bg}
-                      border={iconDef.border}
+                      /* ⚠️ カテゴリごとの色は使わない（2026-08-23）。
+                            ツールは金銭条件ではないので neutral 固定。
+                            以前は toolCfg のカテゴリ色（緑・黄・紫）がそのまま出ており、
+                            「Salesforce だけ緑」のように意味の無い色分けになっていた。 */
+                      variant="neutral"
                     />
                   </div>
                 );

@@ -123,8 +123,10 @@ function EmployeeCard({
     <span style={{
       fontSize: 12, fontWeight: 700,
       padding: "2px 7px", borderRadius: 100,
-      background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
-      color: "#92400E", border: "1px solid #FCD34D",
+      /* ⚠️ 色は /people の「話を聞けます」バッジと同じにする（2026-08-23）。
+            出所が同じなので文言だけでなく色も揃える。黄色ではなくオレンジ系。
+            オレンジ＝カジュアル面談は、この製品で唯一の意味。 */
+      background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
       whiteSpace: "nowrap", flexShrink: 0,
     }}>💬 話を聞けます</span>
   ) : undefined;
@@ -134,7 +136,9 @@ function EmployeeCard({
       <div style={{
         display: "flex", flexDirection: "column", gap: 10,
         padding: "12px 14px",
-        background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12,
+        /* ⚠️ 黄色の面で強調しない（2026-08-23）。面談であることは
+              オレンジのバッジとリンクが示すので、地は白のままにする。 */
+        background: "#fff", border: "1px solid #FED7AA", borderRadius: 12,
       }}>
         <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
           style={{ display: "flex", textDecoration: "none" }}>

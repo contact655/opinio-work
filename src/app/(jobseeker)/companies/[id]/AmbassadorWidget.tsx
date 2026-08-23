@@ -85,7 +85,9 @@ export default function AmbassadorWidget({
   return (
     <div style={{
       background: "#fff",
-      border: "1px solid #FCD34D",
+      /* ⚠️ 黄色（#FCD34D）をやめてオレンジ系に揃える（2026-08-23）。
+            オレンジ＝カジュアル面談。黄色は使わない。 */
+      border: "1px solid #FED7AA",
       borderRadius: 14,
       padding: "16px",
       boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
