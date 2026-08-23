@@ -20,7 +20,6 @@ import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
-import { ProfileNavClient } from "@/components/profile/ProfileNavClient";
 import { ProfileTabsClient } from "@/components/profile/ProfileTabsClient";
 import { DMButton } from "@/components/profile/DMButton";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
@@ -464,18 +463,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
           移設先で復活させていない。
         - hasSidebarContent … 2カラム切替用。1カラム化で不要。 */
 
-  // セクションナビ用リスト（ProfileNavClient に渡す）
-  const navSections = [
-    owUser.about_me ? { id: "about", label: "自己紹介" } : null,
-    timelineCareers.length > 0 ? { id: "career", label: "職歴" } : null,
-    timelineEdus.length > 0 ? { id: "education", label: "学歴" } : null,
-    (achievements.length > 0 || awards.length > 0) ? { id: "achievements", label: "実績" } : null,
-    contentLinks.length > 0 ? { id: "content", label: "発信" } : null,
-    /* ★投稿は 2026-08-23 に上位タブ「フィード」へ移した。ここには入れない。
-          このナビは**プロフィールタブの中のセクション**を指すもので、
-          別タブの要素を入れると `getElementById` が見つけられない。 */
-  ].filter(Boolean) as { id: string; label: string }[];
-
   // キャリアパスノード用 年表示
   // プラットフォームメタ（アイコン色・表示名）
 
@@ -747,10 +734,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </>}
               profile={<>
 
-            {/* ── Section navigation (スクロールスパイ付き) ── */}
-            {navSections.length > 0 && (
-              <ProfileNavClient sections={navSections} />
-            )}
+            {/* ⚠️ ここにあったセクションナビ（自己紹介 / 職歴 / 学歴 …）は 2026-08-23 に外した。
+                   上位タブ（プロフィール / フィード）を足した結果、**タブ風の行が2段**になり、
+                   しかも下段は下線と塗りを併用していたため、どちらが選択中か読めなくなっていた
+                   （`.claude/skills/ui-conventions/SKILL.md`「タブ」の
+                    「選択状態は下線のみ・塗りを併用しない」に反していた）。
+                ⚠️ **戻すなら、上位タブと見分けが付く形にすること**（丸いチップなど）。
+                   同じ見た目の行を2段重ねない。
+                ⚠️ プロフィールは実測で約3.5画面ぶん。ナビが無くてもスクロールで追える。 */}
 
             {/* ⚠️ ここにあった「プロフィール完成度」バナー（本人にだけ出る
                    黄色のプログレスバー＋未完了項目のチップ）は 2026-08-07 に削除した。
