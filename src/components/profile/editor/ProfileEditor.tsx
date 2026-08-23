@@ -76,7 +76,6 @@ type OwUser = {
   location: string | null;
   birth_date: string | null;
   about_me: string | null;
-  future_aspirations: string | null;
   is_open_to_work: boolean | null;
   social_links: Json | null;
   headline: string | null;

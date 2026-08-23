@@ -51,7 +51,6 @@ import { CollapsibleRow } from "./formKit";
 import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
 import { getUserAge } from "@/lib/age";
 import { ContentLinksEditor, type ContentLink } from "./ContentLinksEditor";
-import { buildFutureData } from "@/lib/utils/timeline";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import {
   toTimelineEducationEntries,
@@ -91,7 +90,6 @@ type OwUser = {
   location: string | null;
   birth_date: string | null;
   about_me: string | null;
-  future_aspirations: string | null;
   is_open_to_work: boolean | null;
   social_links: Json | null;
   headline: string | null;
@@ -815,16 +813,10 @@ export default function ProfileTab({
         一番下の「セクションを追加」が引き継ぐ。
 
      ⚠️ ヘッダー（写真・名前・SNS）は**対象外**。0件という概念が無く、
-        プロフィールの本体そのものなので常に出す。
-     ⚠️ 「目指す姿・ありたい未来」は職歴カードの中にあるので、**職歴が0件でも
-        本文があればカードを出す**。無ければ一覧から選んで開く。 */
+        プロフィールの本体そのものなので常に出す。 */
   const hasAbout = !!initialBasicInfo.aboutMe?.trim();
-  /* ⚠️ `hasFutureText` は参照0になった（2026-08-17）。職歴セクションが常時出るので、
-        「目指す姿があるからカードを出す」という判定が不要になった。 */
 
-  /* ⚠️ **職歴・学歴・目指す姿は候補に入れない**（2026-08-17）。
-        職歴と学歴は0件でも枠が出るようになり、目指す姿はその職歴セクションの中に
-        CTA（「✦ 目指す姿を書いてみる」）が常に出る。
+  /* ⚠️ **職歴・学歴は候補に入れない**（2026-08-17）。0件でも枠が出るので、
         候補にも出すと**同じ操作への入口が2つ**になる（ルール⑧）。 */
   type SectionKey = "about" | "achievements" | "awards" | "media" | "content";
   /** 未入力のセクションだけを並べる。★入力済みは本文に出ているので一覧に入れない（二重になる） */
@@ -1428,27 +1420,15 @@ export default function ProfileTab({
                   まだ職歴を登録していません。
                 </p>
               )}
-              {/* ⚠️ 職歴が0件でも描く。**「将来やりたいこと」がこの中にある**ため
-                     （`MergedTimeline` は future が無ければ何も描かずに null を返す）。 */}
-              {(
-                /* ★表示は公開プロフィールと同じ部品。**行の操作は渡さない**（2026-08-17 / フェーズ3）。
-                      1件ずつ触るのは `/mypage/details/experience` の仕事。
-                   ⚠️ `collapseAfter` は渡さない。あれは「その場で開く」畳み方で、
-                      ここは**一覧ページへ送る**畳み方にする。 */
-                <MergedTimeline
-                  careers={shownCareers.careers}
-                  educations={[]}
-                  /* ★「将来やりたいこと」（2026-08-16）。年表の**先頭**に出る（`buildTimeline` が
-                        future を常に先頭に置く）。編集は `FutureSectionEditor` が丸ごと担うので、
-                     ⚠️ `EditableSection` や `ProfileTimelineSection` で包まない（鉛筆が2つになる）。 */
-                  future={buildFutureData(
-                    { name: initialBasicInfo.name, avatar_color: settings.avatarColor, future_aspirations: owUser?.future_aspirations ?? null },
-                    true,
-                  )}
-                  viewerIsOwner
-                  birthDate={owUser?.birth_date}
-                />
-              )}
+              {/* ★表示は公開プロフィールと同じ部品。**行の操作は渡さない**（2026-08-17 / フェーズ3）。
+                     1件ずつ触るのは `/mypage/details/experience` の仕事。
+                  ⚠️ `collapseAfter` は渡さない。あれは「その場で開く」畳み方で、
+                     ここは**一覧ページへ送る**畳み方にする。 */}
+              <MergedTimeline
+                careers={shownCareers.careers}
+                educations={[]}
+                birthDate={owUser?.birth_date}
+              />
               {careerStints.length === 0 && (
                 <SectionAddCircle label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
               )}
@@ -1512,7 +1492,6 @@ export default function ProfileTab({
                   <MergedTimeline
                     careers={[]}
                     educations={shownEducations}
-                    future={null}
                     /* ⚠️ `birthDate` を渡す。渡さないと年マーカーに年齢が出ず、
                           `/u/[id]` の学歴（「2014 19歳」）と食い違う（2026-08-16 の通しで発見） */
                     birthDate={owUser?.birth_date}

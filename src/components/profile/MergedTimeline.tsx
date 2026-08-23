@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Briefcase } from "lucide-react";
-import FutureSectionEditor from "./FutureSectionEditor";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
 import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
@@ -114,22 +113,9 @@ export interface EducationEntry {
   is_current: boolean;
 }
 
-export interface FutureData {
-  /** ow_users.future_aspirations テキスト */
-  text: string | null;
-  /** ow_users.avatar_color（CSS gradient 文字列）。NULL の場合は親側でフォールバック値を渡す */
-  avatarColor: string;
-  /** アバターイニシャル（例: "田"）。通常は name[0] */
-  initial: string;
-}
-
 export interface MergedTimelineProps {
   careers: CareerEntry[];
   educations: EducationEntry[];
-  /** future_aspirations + アバター情報。null の場合はセクション非表示 */
-  future?: FutureData | null;
-  /** プロフィールオーナー本人が閲覧中かどうか（CTA 表示制御） */
-  viewerIsOwner?: boolean;
   /**
    * ★行ごとの編集アフォーダンス（鉛筆・ゴミ箱）。`/mypage` だけが渡す。
    *
@@ -157,8 +143,8 @@ export interface MergedTimelineProps {
    * 職歴1件ごとに、行の下へ差し込むもの（経歴ストーリーのアコーディオン）。
    *
    * ⚠️ **渡されなければ何も描かない。** 公開プロフィール（`/u/[id]`）は渡さないこと。
-   *    `viewerIsOwner` で出し分けてはいけない。あれは「見ている人が本人か」であって
-   *    「編集画面か」ではなく、**本人が自分の公開ページを見たときも true** になる。
+   *    **「見ている人が本人か」で出し分けてはいけない。** それは「編集画面か」ではなく、
+   *    **本人が自分の公開ページを見たときも true** になる。
    *
    * ⚠️ 2026-08-16 の 2-6（職歴を年表に作り直した回）で、`CareerHistoryEditor` の
    *    自前の一覧を差し替えたときに `<StoryAccordion>` が一緒に消え、
@@ -174,7 +160,6 @@ export interface MergedTimelineProps {
 
 /** buildTimeline が返す中間型（並行グループ化前） */
 type TimelineEntry =
-  | { kind: "future" }
   | { kind: "career";    data: CareerEntry;    isParallel: boolean }
   | { kind: "education"; data: EducationEntry };
 
@@ -184,7 +169,6 @@ type TimelineEntry =
  * 同一開始月の並行職歴 2件以上は "career-group" にバンドルされる。
  */
 type RenderEntry =
-  | { kind: "future" }
   | { kind: "career";              data: CareerEntry;    isParallel: boolean }
   | { kind: "career-group";        items: CareerEntry[] }
   | { kind: "career-same-company"; items: CareerEntry[]; companyKey: string }
@@ -289,12 +273,11 @@ function buildParallelMap(careers: CareerEntry[]): Set<string> {
 
 /**
  * 職歴・学歴をマージしてソート済み配列を返す。
- * 順序: future（常に先頭）→ is_current DESC → start_date DESC → career first（同一日時）
+ * 順序: is_current DESC → start_date DESC → career first（同一日時）
  */
 function buildTimeline(
   careers: CareerEntry[],
   educations: EducationEntry[],
-  hasFuture: boolean,
   parallelIds: Set<string>
 ): TimelineEntry[] {
   const careerEntries: TimelineEntry[] = careers.map((c) => ({
@@ -335,9 +318,7 @@ function buildTimeline(
     return kindOrder(a) - kindOrder(b);
   });
 
-  const result: TimelineEntry[] = [];
-  if (hasFuture) result.push({ kind: "future" });
-  return [...result, ...combined];
+  return combined;
 }
 
 /**
@@ -419,7 +400,7 @@ function groupSameCompanyEntries(entries: RenderEntry[]): RenderEntry[] {
   while (i < entries.length) {
     const entry = entries[i];
 
-    // career-group / education / future は対象外、そのまま通過
+    // career-group / education は対象外、そのまま通過
     if (entry.kind !== "career") {
       result.push(entry);
       i++;
@@ -467,7 +448,7 @@ export function limitCareersForDisplay(
   limit: number,
 ): { careers: CareerEntry[]; hiddenUnits: number } {
   const units = groupSameCompanyEntries(
-    groupParallelEntries(buildTimeline(careers, [], false, buildParallelMap(careers))),
+    groupParallelEntries(buildTimeline(careers, [], buildParallelMap(careers))),
   );
   if (units.length <= limit) return { careers, hiddenUnits: 0 };
   const ids = new Set<string>();
@@ -681,33 +662,6 @@ function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
 }
 
 // EducationIcon は段階6-6 Phase 4 で SchoolLogoImg に完全置換（判断点 #9 案 a）
-
-function FutureIcon({ avatarColor, initial }: { avatarColor: string; initial: string }) {
-  return (
-    <div
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        background: avatarColor,
-        border: "2px solid #fff",
-        boxShadow: "0 0 0 1px var(--royal-100)",
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: 700,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        margin: "0 auto",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
-      {initial}
-    </div>
-  );
-}
 
 // ─── Year marker helpers ──────────────────────────────────────────────────────
 
@@ -1106,15 +1060,11 @@ function ParallelCareerCard({ data, isAuthenticated = true, actions }: { data: C
   );
 }
 
-// FutureContent は FutureSectionEditor に移行（Commit D）
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MergedTimeline({
   careers,
   educations,
-  future,
-  viewerIsOwner = false,
   renderCareerExtra,
   educationActions,
   careerActions,
@@ -1122,19 +1072,14 @@ export default function MergedTimeline({
   collapseAfter,
   birthDate,
 }: MergedTimelineProps) {
-  const hasFuture = future != null && (!!(future.text?.trim()) || viewerIsOwner);
   const parallelIds = buildParallelMap(careers);
-  const entries = buildTimeline(careers, educations, hasFuture, parallelIds);
+  const entries = buildTimeline(careers, educations, parallelIds);
   const renderEntries = groupSameCompanyEntries(groupParallelEntries(entries));
 
   const [isExpanded, setIsExpanded] = useState(false);
-  // education + future entries are always visible; only career entries count toward the collapse limit
-  const alwaysVisibleEntries = renderEntries.filter(
-    (e) => e.kind === "education" || e.kind === "future"
-  );
-  const collapsibleEntries = renderEntries.filter(
-    (e) => e.kind !== "education" && e.kind !== "future"
-  );
+  // education entries are always visible; only career entries count toward the collapse limit
+  const alwaysVisibleEntries = renderEntries.filter((e) => e.kind === "education");
+  const collapsibleEntries = renderEntries.filter((e) => e.kind !== "education");
   const hasMore = collapseAfter !== undefined && collapsibleEntries.length > collapseAfter;
   const hiddenCount = hasMore ? collapsibleEntries.length - collapseAfter : 0;
   const visibleCollapsible = hasMore && !isExpanded
@@ -1151,16 +1096,14 @@ export default function MergedTimeline({
   const enrichedEntries: EnrichedEntry[] = [];
   let prevYear: number | null = null;
   for (const entry of visibleEntries) {
-    if (entry.kind !== "future") {
-      const thisYear = getEntryStartYear(entry);
-      if (thisYear !== null && thisYear !== prevYear) {
-        enrichedEntries.push({
-          kind: "year-sep",
-          year: thisYear,
-          age: birthDate ? calcAgeAtYear(thisYear, birthDate) : null,
-        });
-        prevYear = thisYear;
-      }
+    const thisYear = getEntryStartYear(entry);
+    if (thisYear !== null && thisYear !== prevYear) {
+      enrichedEntries.push({
+        kind: "year-sep",
+        year: thisYear,
+        age: birthDate ? calcAgeAtYear(thisYear, birthDate) : null,
+      });
+      prevYear = thisYear;
     }
     enrichedEntries.push(entry);
   }
@@ -1173,28 +1116,6 @@ export default function MergedTimeline({
         {enrichedEntries.map((entry, _idx) => {
           if (entry.kind === "year-sep") {
             return <YearSeparator key={`year-${entry.year}-${_idx}`} year={entry.year} age={entry.age} />;
-          }
-
-          if (entry.kind === "future") {
-            return (
-              <div key="future" className="tl-row">
-                <div
-                  className="tl-icon-cell"
-                  style={{
-                    paddingTop: 8,
-                  }}
-                >
-                  <FutureIcon
-                    avatarColor={future!.avatarColor}
-                    initial={future!.initial}
-                  />
-                </div>
-                <FutureSectionEditor
-                  initialText={future!.text}
-                  viewerIsOwner={viewerIsOwner}
-                />
-              </div>
-            );
           }
 
           if (entry.kind === "career") {

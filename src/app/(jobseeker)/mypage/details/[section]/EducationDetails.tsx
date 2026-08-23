@@ -38,7 +38,6 @@ export default function EducationDetails({ initialEducations, schools, birthDate
           <MergedTimeline
             careers={[]}
             educations={toTimelineEducationEntries(educations as RawEducation[])}
-            future={null}
             birthDate={birthDate ?? undefined}
             educationActions={actions}
           />

@@ -23,8 +23,8 @@ import { DetailsFrame, DetailsEmpty } from "./DetailsFrame";
  *    ストーリーの読み書きも1件ずつの操作なので、行の操作と同じ場所に置く。
  *
  * ⚠️ **公開プロフィール（`/u/[id]`）には渡さない。** `MergedTimeline` は共有部品で、
- *    `renderCareerExtra` を渡した画面にだけ出る。`viewerIsOwner` で出し分けては
- *    いけない（本人が自分の公開ページを見たときも true になる）。
+ *    `renderCareerExtra` を渡した画面にだけ出る。「見ている人が本人か」で
+ *    出し分けてはいけない（本人が自分の公開ページを見たときも true になる）。
  *
  * ⚠️ 2026-08-16 の 2-6 で `CareerHistoryEditor` の自前の一覧を差し替えたとき、
  *    その中にあった `<StoryAccordion>` が一緒に消え、**入口が1週間なくなっていた。**
@@ -55,8 +55,6 @@ export default function CareerDetails({ initialExperiences, roles, roleAliases, 
         <MergedTimeline
           careers={careers}
           educations={[]}
-          future={null}
-          viewerIsOwner
           birthDate={birthDate ?? undefined}
           careerActions={{
             onEditRow:   (id) => setEditId(id),

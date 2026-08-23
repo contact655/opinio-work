@@ -9,7 +9,6 @@ import MergedTimeline from "@/components/profile/MergedTimeline";
 import { PostCard } from "@/components/profile/PostCard";
 import {
   buildTimelineCareerEntriesFromRaw,
-  buildFutureData,
   toTimelineEducationEntries,
   type RawExperienceRow,
   type RawEducation,
@@ -54,7 +53,6 @@ type OwUser = {
   location: string | null;
   social_links: SocialLinks | null;
   headline: string | null;
-  future_aspirations: string | null;
   is_open_to_work: boolean | null;
   auth_id: string;
 };
@@ -130,7 +128,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     */
     supabase
       .from("ow_users")
-      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, future_aspirations, is_open_to_work, auth_id")
+      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, is_open_to_work, auth_id")
       .eq("id", resolvedId)
       .maybeSingle(),
   ]);
@@ -369,13 +367,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
     viewerIsOwner,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
-  /* ★「目指す姿・ありたい未来」（2026-08-16）。本人には未記入でも CTA を出す。
-        他人には**テキストがあるときだけ**返る（＝未記入の人の公開ページは変わらない）。 */
-  /* ★第2引数は**常に false**（2026-08-17）。本人にも「空なら出さない」を適用する。
-        `true` を渡すと本文が空でも `FutureData` が返り、**本人にだけ空の職歴セクションが
-        出る**（見出しと罫線だけの箱）。実測で見つけた。 */
-  const futureData = buildFutureData(owUser, false);
-
   // Current company for sidebar card（company_id の有無は問わない — 在籍中なら表示）
   const currentCareer = timelineCareers.find((c) => c.is_current) ?? null;
   // timeline.ts が company_id を null にするのは「ow_companies に未登録」の場合のみ
@@ -809,23 +800,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* ── 職歴セクション ──
                    ⚠️ 枠・見出しは `ProfileTimelineSection` に切り出した（2026-08-16 / 2-6）。
                       `/mypage` が同じものを使う。DOM は切り出す前と同一（実測済み）。 */}
-            {/* ⚠️ **`future` は職歴側にだけ渡す**（2026-08-16）。学歴側にも渡すと2回出る。
-                   位置は `/mypage` と同じ（`buildTimeline` が future を常に先頭に置く）。
-                ⚠️ 職歴0件でも `futureData` があればセクションを出す。出さないと
-                   「入力できるのに誰にも見えない」状態が、職歴の無い人だけに残る。
-                   他人が見るとき `buildFutureData` は「空なら null」を返すので、
-                   **未記入の人の公開ページは1バイトも変わらない**（実測で確認）。 */}
-            {(timelineCareers.length > 0 || futureData) && (
+            {/* ⚠️ 会社名の伏せ字は `buildTimelineCareerEntriesFromRaw` に
+                   `viewerIsOwner` を渡して解決済み。そちらは触らない。 */}
+            {timelineCareers.length > 0 && (
               <ProfileTimelineSection id="career" title="職歴">
                 <MergedTimeline
                   careers={timelineCareers}
                   educations={[]}
-                  future={futureData}
-                  /* ★本人にも ✎ を出さない（2026-08-16）。編集は `/mypage` に寄せた。
-                     ⚠️ この prop は `MergedTimeline` では **future の描画にしか効かない**
-                        （会社名の伏せ字は `buildTimelineCareerEntriesFromRaw` に
-                        `viewerIsOwner` を渡して既に解決済み。そちらは触らない）。 */
-                  viewerIsOwner={false}
                   collapseAfter={4}
                   birthDate={birthDate}
                 />
@@ -838,8 +819,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 <MergedTimeline
                   careers={[]}
                   educations={timelineEdus}
-                  future={null}
-                  viewerIsOwner={false}
                   birthDate={birthDate}
                 />
               </ProfileTimelineSection>

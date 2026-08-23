@@ -6,23 +6,15 @@
  *
  * - buildTimelineCareerEntriesFromRaw: RawExperienceRow[] + 解決済み Map → MergedTimeline CareerEntry
  * - toTimelineEducationEntries: ow_user_educations 行 → MergedTimeline EducationEntry
- * - buildFutureData: ow_users row → FutureData | null
  *
  * 設計前提:
- * - avatarColor フォールバック: "linear-gradient(135deg, var(--royal), #3B5FD9)"
- * - initial: name.charAt(0)（UserProfileCard / MypageClient と同一ロジック）
  * - enrolled_at が NULL の学歴エントリは除外（MergedTimeline.EducationEntry は必須）
  */
 
 import type {
   CareerEntry,
   EducationEntry,
-  FutureData,
 } from "@/components/profile/MergedTimeline";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const FALLBACK_AVATAR_COLOR = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
 // ─── Logo fallback helpers ────────────────────────────────────────────────────
 
@@ -291,33 +283,3 @@ export function toTimelineEducationEntries(
     }));
 }
 
-// ─── buildFutureData ──────────────────────────────────────────────────────────
-
-/**
- * ow_users の avatar 情報 + future_aspirations から FutureData を生成する。
- *
- * 返り値:
- * - `FutureData`   — テキストあり、または viewerIsOwner（CTA 表示のため）
- * - `null`         — テキストなし かつ viewerIsOwner=false（セクション非表示）
- *
- * avatarColor フォールバック:
- * - `ow_users.avatar_color` が NULL の場合（全ユーザーの約 1%）に
- *   royal グラデーションを返す。NULL フォールバックは親側（MergedTimeline）には持たせない。
- */
-export function buildFutureData(
-  user: {
-    name: string;
-    avatar_color: string | null;
-    future_aspirations: string | null;
-  },
-  viewerIsOwner: boolean
-): FutureData | null {
-  // オーナー以外かつテキストなし → セクション非表示
-  if (!viewerIsOwner && !user.future_aspirations?.trim()) return null;
-
-  return {
-    text:        user.future_aspirations,
-    avatarColor: user.avatar_color ?? FALLBACK_AVATAR_COLOR,
-    initial:     user.name.charAt(0) || "?",
-  };
-}

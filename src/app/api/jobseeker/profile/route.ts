@@ -33,7 +33,6 @@ export async function PUT(req: Request) {
     about_me?: string | null;
     birth_date?: string | null;
     location?: string | null;
-    future_aspirations?: string | null;
     social_links?: Json | null;
     visibility?: string;
     is_open_to_work?: boolean;
@@ -66,7 +65,6 @@ export async function PUT(req: Request) {
     if ("cover_color"  in body) patch.cover_color  = optionalText(body.cover_color, 100);
     if ("about_me" in body) patch.about_me = optionalText(body.about_me, 2000);
     if ("location" in body) patch.location = optionalText(body.location, 100);
-    if ("future_aspirations" in body) patch.future_aspirations = optionalText(body.future_aspirations, 2000);
 
     /* ⚠️ 不正値は 400。黙って null にすると「入力したのに消えた」になる（学歴で実際に1ヶ月起きた） */
     if ("birth_date" in body) {
