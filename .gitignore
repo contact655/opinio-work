@@ -55,3 +55,10 @@ supabase/.temp/
 
 # 作業前ダンプ（scripts/dump-tables.sh）。**本番データなのでコミットしない**
 .dumps/
+
+# 検証用の一時HTML（public/ に置いて document.cookie を書くやつ）。
+# ⚠️ **本物のセッショントークンが入る。** コミットすると opinio.jp から
+#    ログイン済みセッションを配るページが配信される。
+# ⚠️ 使い終わったらファイル自体を消すこと（この無視設定は保険）。
+#    経緯は CLAUDE.md「② ブラウザで確かめる場合: public/ に一時HTMLを置いて…」
+public/_tmp_*
