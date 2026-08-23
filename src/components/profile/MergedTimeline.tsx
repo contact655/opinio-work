@@ -9,6 +9,7 @@ import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
+import { truncateAtBoundary } from "@/lib/utils/truncate";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
 function shortCompanyName(name: string): string {
@@ -30,7 +31,7 @@ const DESC_THRESHOLD = 80;
 function ExpandableDesc({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const needsTruncation = text.length > DESC_THRESHOLD;
-  const display = needsTruncation && !expanded ? text.slice(0, DESC_THRESHOLD) + "…" : text;
+  const display = needsTruncation && !expanded ? truncateAtBoundary(text, DESC_THRESHOLD) : text;
   return (
     <>
       <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>

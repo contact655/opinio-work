@@ -8,6 +8,7 @@ import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
+import { truncateAtBoundary } from "@/lib/utils/truncate";
 
 type ActorCompany = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; /* ⚠️ isCompanyPostAlive で使う（2026-08-13） */ is_published: boolean | null; is_test: boolean | null } | null;
 
@@ -59,7 +60,7 @@ export async function generateMetadata({ params }: { params: { postId: string } 
   const co = actorCompany(p);
   // 一覧と同じ関数を通す。actor 行と本文で社名が二重にならないようにする
   const body = co ? stripActorPrefix(p.content, p.post_type, [co.brand_name ?? co.name, co.name]) : p.content;
-  const excerpt = body.slice(0, 50) + (body.length > 50 ? "…" : "");
+  const excerpt = truncateAtBoundary(body, 50);
   const authorName = co ? (co.brand_name ?? co.name) : (p.user?.name ?? "ユーザー");
   // OGP。画像は動的生成（/api/og）に寄せる。
   // ⚠️ actor 企業のロゴを og:image に使うのは避けている。85社中76社の logo_url が

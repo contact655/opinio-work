@@ -26,6 +26,7 @@ import { AV_GRADIENTS } from "./avatarGradients";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStageCfg } from "@/lib/utils/stageCfg";
+import { truncateAtBoundary } from "@/lib/utils/truncate";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
 import type { CompanyPhoto, CompanyRecruiter } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
@@ -1607,7 +1608,8 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
       <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: 12 }}>
         {posts.map((post) => {
           const catLabel = post.category ? (POST_CATEGORY_LABEL[post.category] ?? post.category) : null;
-          const bodyPreview = post.body ? post.body.replace(/[#*`>\-]/g, "").trim().slice(0, 120) : null;
+          const cleanedBody = post.body ? post.body.replace(/[#*`>\-]/g, "").trim() : null;
+          const bodyPreview = cleanedBody ? truncateAtBoundary(cleanedBody, 120) : null;
           return (
             <div key={post.id} style={{
               border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
@@ -1639,7 +1641,6 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
                 {bodyPreview && (
                   <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
                     {bodyPreview}
-                    {post.body && post.body.length > 120 ? "…" : ""}
                   </p>
                 )}
                 {post.published_at && (
