@@ -149,6 +149,16 @@ export default function TalkToMeCard({
                 )}
               </div>
 
+              {/* ★申請日を出す（2026-08-23）。
+                     ⚠️ 出さないと「いつ申請したか」が本人に分からず、
+                        止まっているのか忘れられているのかを区別できない。
+                     ⚠️ 「運営が確認します」とは書かない。宛先がある企業では企業が承認するので、
+                        全員に出すと事実と違う。 */}
+              {state === "pending_company" && m?.consent_at && (
+                <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
+                  {new Date(m.consent_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })} に申請
+                </p>
+              )}
               <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
                 {state === "none"
                   /* ⚠️ 見送られると行ごと消えて `none` に戻る。**却下は記録されない**ので、

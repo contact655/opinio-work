@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MEMBER_CREATED_VIA, type MemberState } from "@/lib/constants/companyMembers";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+import { notify } from "@/lib/notify/email";
+import { ambassadorRequestTemplate } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -142,9 +145,57 @@ export async function POST(req: NextRequest) {
   /* 申請中は表示されないが、**必ず捨てる**。「表示に出ない操作は呼ばなくてよい」を
      例外にすると、どの経路が呼ぶのかが人によって変わって漏れる。 */
   revalidateCompanyAmbassadors(companyId);
+
+  /* ★申請が来たことを知らせる（2026-08-23）。
+     ⚠️ **メール送信で API を失敗させない。** 行は既に作れているので、
+        送信に失敗しても 201 を返す。失敗はログに残す。
+     ⚠️ 宛先と「運営に回ったか」は `getCompanyNotificationTarget` の**同じ判定**から出す。
+        掲載中79社のうち77社は企業側に宛先が無く、その場合は運営に届く。
+     ⚠️ 取引通知なので opt-out 列は要らない（週次のリマインドとは別物）。 */
+  await sendRequestNotice(companyId, owUser.id);
   /* ⚠️ 状態名を文字列で直書きしない。`MemberState` で縛っておくと、
         改名したときに tsc が落ちて気づける（`pending_self` → `pending_user` の改名時に
         ここが取り残されかけた）。 */
   const state: MemberState = "pending_company";
   return NextResponse.json({ ok: true, id: created.id, state }, { status: 201 });
+}
+
+/**
+ * 申請が来たことを企業（宛先が無ければ運営）に知らせる。
+ *
+ * ⚠️ **送信可否・宛先の判定はこの関数の中に置く**（CLAUDE.md の既存方針）。
+ *    呼び出し側に条件を書くと、経路が増えたときに片方だけ忘れる。
+ * ⚠️ **例外を外へ投げない。** 送信の失敗で申請そのものを失敗させない。
+ */
+async function sendRequestNotice(companyId: string, owUserId: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const [{ data: company }, { data: user }] = await Promise.all([
+      admin.from("ow_companies").select("name, brand_name").eq("id", companyId).maybeSingle(),
+      admin.from("ow_users").select("name").eq("id", owUserId).maybeSingle(),
+    ]);
+
+    const target = await getCompanyNotificationTarget(companyId, "ambassador-request");
+    if (target.to.length === 0) {
+      console.error("[ambassador self-register] 宛先が0件（運営フォールバックも効いていない）", companyId);
+      return;
+    }
+
+    const appliedAt = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+    for (const to of target.to) {
+      await notify(
+        ambassadorRequestTemplate({
+          to,
+          companyName: company?.brand_name ?? company?.name ?? "（企業名不明）",
+          applicantName: user?.name ?? "（氏名不明）",
+          appliedAt,
+          /* ⚠️ 印はフォールバックと同じ判定から出す */
+          viaOps: target.viaOps,
+        }),
+      );
+    }
+  } catch (e) {
+    /* ⚠️ ここで throw しない。201 を返すことのほうが大事。 */
+    console.error("[ambassador self-register] 通知の送信に失敗:", e);
+  }
 }

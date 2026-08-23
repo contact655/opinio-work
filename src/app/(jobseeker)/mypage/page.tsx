@@ -430,14 +430,15 @@ export default async function MypagePage({
     const adminSupabase = createAdminClient();
     const { data: memberRows, error: memberErr } = await adminSupabase
       .from("ow_company_members")
-      .select("id, company_id, role_title, display_consent, is_public, created_via, invite_token, ow_companies!company_id(name, brand_name)")
+      .select("id, company_id, role_title, display_consent, is_public, created_via, consent_at, invite_token, ow_companies!company_id(name, brand_name)")
       .eq("user_id", owUser.id);
     /* ⚠️ 握り潰さない。空になると「まだ登録していない」と誤って表示され、
           既に公開中の人に「申請する」を出すことになる。 */
     if (memberErr) console.error("[mypage] ambassadorMemberships:", memberErr.message);
     type MRow = {
       id: string; company_id: string; role_title: string | null;
-      display_consent: boolean; is_public: boolean; created_via: string | null; invite_token: string;
+      display_consent: boolean; is_public: boolean; created_via: string | null;
+      consent_at: string | null; invite_token: string;
       ow_companies: { name: string | null; brand_name: string | null } | null;
     };
     ambassadorMemberships = (memberRows ?? []).map((r) => {
@@ -450,6 +451,7 @@ export default async function MypagePage({
         display_consent: row.display_consent,
         is_public: row.is_public,
         created_via: row.created_via,
+        consent_at: row.consent_at,
         invite_token: row.invite_token,
       };
     });
