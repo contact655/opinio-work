@@ -75,6 +75,7 @@ import {
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
 import type { SettingsState } from "./SettingsTab";
+import { USERNAME_MIN, USERNAME_MAX, USERNAME_HINT } from "@/lib/constants/username";
 
 /** JSONB キー名は "x"。値は URL 文字列。空文字列 = 未設定。 */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
@@ -93,6 +94,7 @@ type OwUser = {
   is_open_to_work: boolean | null;
   social_links: Json | null;
   headline: string | null;
+  username: string | null;
 } | null;
 
 /* ⚠️ `ContentLink` 型・`PLATFORM_OPTIONS`・`detectPlatform` は 2026-08-17 に
@@ -103,6 +105,10 @@ type BasicInfo = {
   headline: string;
   location: string;
   aboutMe: string;
+  /** プロフィールURL（`/u/<username>`）。空文字は「未設定」。
+   *  ⚠️ 形式は `lib/constants/username.ts` と DB の CHECK に同じ式がある。
+   *     ここで独自に検証を書かないこと。 */
+  username: string;
 };
 
 /** 肩書きの上限。⚠️ DB の CHECK（`ow_users_headline_length`）と同じ値にすること。 */
@@ -619,6 +625,7 @@ export default function ProfileTab({
     headline:         owUser?.headline  ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
+    username:         owUser?.username  ?? "",
   });
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
@@ -630,6 +637,7 @@ export default function ProfileTab({
     headline:         owUser?.headline  ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
+    username:         owUser?.username  ?? "",
   });
   const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
@@ -856,13 +864,26 @@ export default function ProfileTab({
           name:         basicInfo.name,
           headline:     basicInfo.headline,
           location:     basicInfo.location,
+          username:     basicInfo.username,
           birth_date:   birthDate,
           social_links: socialLinks,
         }),
       });
-      if (!res.ok) throw new Error();
+      /* ⚠️ **API の文言を捨てないこと。** username は 400（形式・予約語）と
+            409（重複）を返す。汎用の「保存に失敗しました」に潰すと、
+            利用者は何を直せばよいか分からない。 */
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        if (detail?.message) {
+          setBasicToastVariant("error");
+          setBasicToastMsg(detail.message);
+          notifyGlobalSave("error");
+          return;
+        }
+        throw new Error();
+      }
       /* ⚠️ 自己紹介は送っていないので、控えも触らない（送った列だけ進める） */
-      setInitialBasicInfo((prev) => ({ ...prev, name: basicInfo.name, headline: basicInfo.headline, location: basicInfo.location }));
+      setInitialBasicInfo((prev) => ({ ...prev, name: basicInfo.name, headline: basicInfo.headline, location: basicInfo.location, username: basicInfo.username }));
       setInitialBirthYear(birthYear);
       setInitialBirthMonth(birthMonth);
       setInitialBirthDay(birthDay);
@@ -1108,6 +1129,37 @@ export default function ProfileTab({
                 />
                 <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, textAlign: "right" }}>
                   {basicInfo.headline.length} / {HEADLINE_MAX}
+                </div>
+              </FormGroup>
+
+              {/* ★プロフィールURL（2026-08-23）。
+                     ⚠️ **生年月日を勧める例を書かないこと。** URL は共有され、ログ・Referer・
+                        履歴・リンクプレビューに残る。年齢は詳細ページだけという方針
+                        （`lib/constants/username.ts` のコメント参照）を URL で壊さない。
+                     ⚠️ 形式の検証は API と DB の CHECK が持つ。ここでは案内だけ出す
+                        （3つ揃えのうち UI 側は「入力の手引き」担当）。 */}
+              <FormGroup label="プロフィールURL" hint={USERNAME_HINT} htmlFor="pe-username">
+                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  <span style={{
+                    fontSize: 13, color: "var(--ink-mute)", whiteSpace: "nowrap",
+                    padding: "0 8px 0 0", fontFamily: "Inter, sans-serif",
+                  }}>opinio.jp/u/</span>
+                  <input
+                    id="pe-username"
+                    type="text"
+                    value={basicInfo.username}
+                    maxLength={USERNAME_MAX}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, username: e.target.value }))}
+                    placeholder="例：yamada_taro"
+                    style={{ ...inputStyle(), flex: 1, minWidth: 0 }}
+                  />
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+                  英字で始まる {USERNAME_MIN}〜{USERNAME_MAX} 文字。小文字の英数字と _ が使えます。
+                  空にすると未設定に戻り、URL は元の形（/u/…）になります。
                 </div>
               </FormGroup>
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { Json } from "@/lib/supabase/types";
 /* ⚠️ 空入力の扱いは1箇所に寄せる。ここに if を書き足さないこと（lib/api/normalize.ts の冒頭を参照）。 */
 import { optionalText, optionalTextMap, requiredText, InvalidInputError } from "@/lib/api/normalize";
+import { normalizeUsername, validateUsername, USERNAME_ERROR_MESSAGE } from "@/lib/constants/username";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export async function PUT(req: Request) {
     is_open_to_work?: boolean;
     profile_setup_at?: string | null;
     updated_at: string;
+    username?: string | null;
   } = { updated_at: new Date().toISOString() };
 
   /* ⚠️ 空は正常系（任意項目は null）、不正は異常系（400）。混同しない。
@@ -65,6 +67,29 @@ export async function PUT(req: Request) {
     if ("cover_color"  in body) patch.cover_color  = optionalText(body.cover_color, 100);
     if ("about_me" in body) patch.about_me = optionalText(body.about_me, 2000);
     if ("location" in body) patch.location = optionalText(body.location, 100);
+
+    /* ★プロフィールURL（`/u/<username>`）。編集UIは /profile/edit の基本情報にある。
+       ⚠️ 形式は `lib/constants/username.ts` と DB の CHECK（ow_users_username_format）に
+          同じ式を書いてある。ここで独自の正規表現を書かないこと。
+       ⚠️ 空文字は「未設定に戻す」＝ null。不正値は 400（黙って null にしない）。
+       ⚠️ **生年月日を混ぜた既定値を作らない。** URL に生年月日を出さない方針
+          （constants 側のコメント参照）。 */
+    if ("username" in body) {
+      const raw = typeof body.username === "string" ? body.username : "";
+      const normalized = normalizeUsername(raw);
+      if (normalized === "") {
+        patch.username = null;
+      } else {
+        const err = validateUsername(normalized);
+        if (err) {
+          return NextResponse.json(
+            { error: `INVALID_USERNAME_${err}`, message: USERNAME_ERROR_MESSAGE[err] },
+            { status: 400 },
+          );
+        }
+        patch.username = normalized;
+      }
+    }
 
     /* ⚠️ 不正値は 400。黙って null にすると「入力したのに消えた」になる（学歴で実際に1ヶ月起きた） */
     if ("birth_date" in body) {
@@ -124,7 +149,18 @@ export async function PUT(req: Request) {
     .eq("auth_id", user.id);
 
   if (error) {
-    console.error("[PUT /api/jobseeker/profile]", error.message);
+    /* ⚠️ username の重複は利用者の入力ミスなので **409 で文言を返す**。
+          500 にすると「保存できない」としか伝わらず、直しようがない。
+          23505 = unique_violation（`ow_users_username_unique`）。 */
+    if (error.code === "23505" && "username" in patch) {
+      return NextResponse.json(
+        { error: "USERNAME_TAKEN", message: USERNAME_ERROR_MESSAGE.TAKEN },
+        { status: 409 },
+      );
+    }
+    /* ⚠️ 23514 = check_violation。DB の CHECK に落ちたということは、
+          上の validateUsername と DB の式がずれている（3つ揃えの崩れ）。 */
+    console.error("[PUT /api/jobseeker/profile]", error.code, error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 

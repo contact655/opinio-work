@@ -46,7 +46,7 @@ export default async function MypagePage({
     /* ⚠️ 列は「ダッシュボードの表示」と「プロフィール編集」の**両方**をまかなう。
           編集側だけが使う cover_photo_url / visibility を落とすと、
           写真カードと公開範囲が空で初期化され、保存した瞬間に消える。 */
-    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, headline, about_me, birth_date, location, social_links, is_open_to_work, profile_setup_at")
+    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, headline, about_me, birth_date, location, social_links, is_open_to_work, profile_setup_at, username")
     .eq("auth_id", user.id)
     .maybeSingle();
 

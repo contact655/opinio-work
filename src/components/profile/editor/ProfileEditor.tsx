@@ -79,6 +79,9 @@ type OwUser = {
   is_open_to_work: boolean | null;
   social_links: Json | null;
   headline: string | null;
+  /** プロフィールURL（`/u/<username>`）。
+   *  ⚠️ 型は3箇所ある（ここ / ProfileTab / mypage の select）。揃えること */
+  username: string | null;
 } | null;
 
 type SettingsState = {
