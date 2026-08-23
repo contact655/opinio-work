@@ -41,6 +41,7 @@ import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, F
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 import { CollapsibleList } from "./CollapsibleList";
+import { ShowMoreButton } from "./ShowMoreButton";
 
 /*
   各セクションの**初期表示の上限**（2026-08-13）。
@@ -1411,26 +1412,29 @@ function JobsSection({
       </div>
 
       <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
-        {/* ⚠️ **ここはその場で開くだけにする（2026-08-23）。**
-               以前は下に「N件すべての求人を見る」（濃紺の塗り・別ページへ遷移）を置き、
-               その場で開くボタンを外していた。逆にした理由は2つ:
-                 ① 濃紺の塗りは**主要な遷移**のために取っておく。企業詳細1枚に
-                    濃紺のボタンが6個以上あり、大半が「開くだけ」だった
-                 ② 求人一覧への遷移はページ末尾の NEXT STEP が担う（そちらが濃紺の塗り）
-               初期表示3件は 2026-08-13 の判断のまま維持する
+        {/* ⚠️ **その場で開くボタンは出さない。残すのは「N件すべての求人を見る」の方**
+               （2026-08-23 に柴さんが確認。ボタンが2つ縦に並んで読みにくいので1つにする、
+                という判断で、**残す側は遷移**）。
+            ⚠️ 一度これを逆に実装して戻している（`9fa1a943` → 本コミット）。
+               「展開だけ残す」に**再度変えないこと。**
+            ⚠️ 初期表示3件は 2026-08-13 の判断のまま維持する
                （求人の多い1社だけセクションが突出して長くなるのを防いでいる）。
-            ⚠️ **黙って隠していない。** 見出しが総数（「募集中の求人 N件」）を出し、
-               このボタンが残り件数を出す。
+            ⚠️ **黙って隠していない。** 下のボタンのラベルが総数を出しており、
+               残りはそこから `/jobs?company=` で見る。
             ⚠️ 切る位置はカテゴリ見出しの手前ではなく**3件目の求人の直後**なので、
-               見出しだけが取り残されることはない（見出しは必ず求人より前に積まれる）。
-            ⚠️ `/companies/[id]/jobs` は**いまも 404**。戻さないこと。 */}
-        <CollapsibleList
-          items={jobNodes}
-          limit={limitIndex}
-          labelCollapsed={`すべて見る（残り ${Math.max(shownJobs - JOBS_LIMIT, 0)}）`}
-          containerStyle={{ display: "flex", flexDirection: "column", gap: 6 }}
-          buttonWrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
-          fade
+               見出しだけが取り残されることはない（見出しは必ず求人より前に積まれる）。 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {jobNodes.slice(0, limitIndex)}
+        </div>
+
+        {/* ⚠️ 濃紺の塗り＝主要な遷移。ここは**別ページ（求人一覧）へ行く**ので塗りのまま。
+            ⚠️ `/companies/[id]/jobs` には戻さないこと（2026-07-01 に削除済みで 404）。
+            ⚠️ 値は slug 優先・UUID も可（JobsClient が両方受ける）。 */}
+        <ShowMoreButton
+          variant="navigate"
+          label={`${company.job_count}件すべての求人を見る`}
+          href={`/jobs?company=${encodeURIComponent(company.slug ?? company.id)}`}
+          wrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
         />
       </div>
     </section>
@@ -2725,14 +2729,12 @@ export default async function CompanyDetailPage({
                        オレンジ＝カジュアル面談だけ / 濃紺の塗り＝主要な遷移（求人一覧へ）。
                        以前は逆に当たっていて、面談が濃紺のアウトライン、求人がオレンジだった。 */}
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {/* ⚠️ 遷移先を `#jobs`（同じページ内の錨）から求人一覧へ変えた（2026-08-23）。
-                         求人セクション下の「N件すべての求人を見る」を外したので、
-                         `/jobs?company=` への導線はここが担う。
-                      ⚠️ `/companies/[id]/jobs` には戻さないこと（2026-07-01 に削除済みで 404）。
-                      ⚠️ 値は slug 優先・UUID も可（JobsClient が両方受ける）。 */}
+                  {/* ⚠️ ここは**ページ内の求人セクションへの錨**。求人一覧への遷移は
+                         セクション下の「N件すべての求人を見る」が担うので、行き先を分ける
+                         （両方を `/jobs?company=` にすると同じ場所への入口が2つになる）。 */}
                   {company.job_count > 0 && (
                     <a
-                      href={`/jobs?company=${encodeURIComponent(company.slug ?? company.id)}`}
+                      href="#jobs"
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 8,
                         padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
