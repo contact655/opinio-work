@@ -499,6 +499,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
       ? (await filterOpenCasualMeetingCompanies([currentCareer.company_id])).has(currentCareer.company_id)
       : false;
 
+  /**
+   * ★在籍企業の宣伝（求人一覧・企業ページへの誘導）を、このページに出してよいか（2026-08-23）。
+   *
+   * **バッジが「面談可」になる条件と同じ**（本人が話を聞かれてもよいと登録していて、
+   * かつ企業が面談を受け付けている）。
+   *
+   * ⚠️ **本人の同意が無いのに、個人のプロフィールを企業の求人広告にしない。**
+   *    「話を聞ける人」の掲載は本人の申請＋企業の承認で成り立っており
+   *    （`lib/companyMembers/talkable.ts` 方針D）、同意していない人のページに
+   *    在籍企業の募集を並べると、本人が企業の窓口であるかのように読まれる。
+   *
+   * ⚠️ 満たさないときは**汎用のフッター**（IT求人を見る / 企業を見る）に落ちる。
+   *    フッターごと消さないのは、ページの終わりが唐突になるため。
+   *
+   * ⚠️ **ヘッダーの「〇〇 の企業ページ」リンクはこの判定の対象外。**
+   *    あれは「この人はここに在籍している」という肩書きの一部で、宣伝ではない。
+   */
+  const canPromoteCurrentCompany = isTalkableHere && currentCompanyMeetingOpen;
+
   /* ⚠️ この2本も互いに独立なので並列にする（2026-08-09）。
         求人は在籍企業に、記事は本人にぶら下がっており、参照し合わない。 */
   const [jobsRes, articlesRes] = await Promise.all([
@@ -880,7 +899,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
                  値は slug 優先・UUID も可（JobsClient 側が両方受ける）。
               ⚠️ 見出しの件数は取得行数ではなく総数（currentCompanyJobCount）。
                  ここに currentCompanyJobs.length を書かないこと（最大3にしかならない）。 */}
-          {isCurrentCompanyKnown && currentCompanyJobs.length > 0 && (
+          {/* ⚠️ 面談可のときだけ出す（2026-08-23）。判定は `canPromoteCurrentCompany`。
+                 同意していない人のプロフィールを企業の求人広告にしない。 */}
+          {canPromoteCurrentCompany && isCurrentCompanyKnown && currentCompanyJobs.length > 0 && (
             <section style={{
               background: "#fff", border: "1px solid var(--line)",
               borderRadius: 14, padding: "24px 28px", marginBottom: 20,
@@ -952,7 +973,9 @@ export default async function UserProfilePage({ params }: { params: { id: string
             textAlign: "center",
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
           }}>
-            {isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
+            {/* ⚠️ 企業名を出す分岐（1・2）は面談可のときだけ。満たさなければ
+                   下の汎用分岐（IT求人を見る / 企業を見る）へ落ちる。 */}
+            {canPromoteCurrentCompany && isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
               <>
                 <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px", lineHeight: 1.5 }}>
                   {shortCompanyName(currentCareer!.company_name)}への転職に興味はありますか？
@@ -1002,7 +1025,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   )}
                 </div>
               </>
-            ) : isCurrentCompanyKnown ? (
+            ) : canPromoteCurrentCompany && isCurrentCompanyKnown ? (
               <>
                 <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
                   {shortCompanyName(currentCareer!.company_name)}についてもっと詳しく知りたい方はこちら
