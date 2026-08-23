@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { mutateOne } from "@/lib/supabase/mutate";
+import { mutateOne, mutateAllowNone } from "@/lib/supabase/mutate";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -219,13 +219,17 @@ export async function PATCH(req: Request) {
 
     const genreIds = (genreRecords ?? []).map((r) => r.id);
 
-    // 2. 既存レコードを全 DELETE
-    const { error: deleteErr } = await supabase
-      .from("ow_company_genres")
-      .delete()
-      .eq("company_id", companyId);
-
-    if (deleteErr) throw deleteErr;
+    /* 2. 既存レコードを全 DELETE
+       ⚠️ **0行は正常**（もともとジャンル未設定の企業がある）。
+          ただし **RLS 拒否は 0行と区別する**（mutateAllowNone は error を見る）。
+          2026-08-23 までこの表には書き込みポリシーが1本も無く、
+          **DELETE が黙って0行になっていた。** */
+    const delGenres = await mutateAllowNone(
+      supabase.from("ow_company_genres").delete().eq("company_id", companyId),
+      "company PATCH: genres 入替（掃除）",
+      { returning: "company_id" },
+    );
+    if (!delGenres.ok) throw new Error(delGenres.error);
 
     // 3. 新しい配列を全 INSERT（slug 配列が空の場合は INSERT スキップ → 全解除）
     if (genreIds.length > 0) {

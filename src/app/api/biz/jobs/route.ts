@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -188,17 +189,42 @@ export async function POST(req: Request) {
     }
   }
 
-  // ow_job_roles 同期（best-effort）
+  /* ── ow_job_roles 同期 ──────────────────────────────────────────────────
+     ⚠️ **職種の正は `ow_job_roles`。** `role_category_id` / `job_category` は
+        主ロールからの**派生値**なので、**入れ替えが成功してから書く。**
+
+     ⚠️ 2026-08-23 まで、失敗しても派生値だけ書く順序だった。
+        当時 `ow_job_roles` には書き込みポリシーが1本も無く、
+        **DELETE は黙って0行 / INSERT は 403** だったため、
+        **職種の正だけが古いまま、派生値が新しくなる**形になっていた。
+        `try/catch` で囲んであったが **supabase-js は例外を投げない**ので
+        捕まっていない。 */
   const jobRoles = Array.isArray(body.jobRoles) ? body.jobRoles as { roleId: string; isPrimary: boolean }[] : [];
   if (jobRoles.length > 0) {
-    try {
-      await supabase.from("ow_job_roles").delete().eq("job_id", newJob.id);
-      await supabase.from("ow_job_roles").insert(
-        jobRoles.map((r) => ({ job_id: newJob.id, role_id: r.roleId, is_primary: r.isPrimary }))
-      );
+    // ⚠️ 新規作成なので消す対象は無い。RLS 拒否だけを見たいので AllowNone
+    const del = await mutateAllowNone(
+      supabase.from("ow_job_roles").delete().eq("job_id", newJob.id),
+      "job POST: ow_job_roles 掃除",
+      { returning: "job_id" },
+    );
+    const ins = del.ok
+      ? await mutateMany(
+          supabase.from("ow_job_roles").insert(
+            jobRoles.map((r) => ({ job_id: newJob.id, role_id: r.roleId, is_primary: r.isPrimary }))
+          ),
+          "job POST: ow_job_roles 登録",
+          { returning: "job_id" },
+        )
+      : del;
+
+    if (ins.ok) {
       // job_category は primary ロール名から派生させる（移行期間中の表示用互換値）
       await syncJobCategoryFromRoles(supabase, newJob.id, jobRoles);
-    } catch { /* best-effort */ }
+    } else {
+      /* ⚠️ **派生値を書かない。** 書くと `ow_job_roles` と食い違う。
+            求人自体は作成済みなので処理は続けるが、ログには必ず残す。 */
+      console.error("[job POST] ow_job_roles の同期に失敗したため派生値を更新しない:", ins.error);
+    }
   }
 
   // 「自社での呼び方」を ow_company_job_roles に溜めて ow_jobs から指す

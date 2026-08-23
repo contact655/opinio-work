@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildJobPostedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
@@ -123,18 +124,37 @@ export async function PUT(
     }
   }
 
-  // ow_job_roles 同期（best-effort）
+  /* ── ow_job_roles 同期 ──────────────────────────────────────────────────
+     ⚠️ **職種の正は `ow_job_roles`。** `role_category_id` / `job_category` は
+        主ロールからの**派生値**なので、**入れ替えが成功してから書く。**
+        経緯は POST 側（api/biz/jobs/route.ts）の同じ箇所のコメントを参照。 */
   const jobRoles = Array.isArray(body.jobRoles) ? body.jobRoles as { roleId: string; isPrimary: boolean }[] : [];
-  try {
-    await supabase.from("ow_job_roles").delete().eq("job_id", jobId);
-    if (jobRoles.length > 0) {
-      await supabase.from("ow_job_roles").insert(
-        jobRoles.map((r) => ({ job_id: jobId, role_id: r.roleId, is_primary: r.isPrimary }))
+  {
+    // ⚠️ 職種が0件になることもある（全部外した）。掃除だけなら0行でよい
+    const del = await mutateAllowNone(
+      supabase.from("ow_job_roles").delete().eq("job_id", jobId),
+      "job PUT: ow_job_roles 掃除",
+      { returning: "job_id" },
+    );
+    if (!del.ok) {
+      console.error("[job PUT] ow_job_roles の削除に失敗:", del.error);
+    } else if (jobRoles.length > 0) {
+      const ins = await mutateMany(
+        supabase.from("ow_job_roles").insert(
+          jobRoles.map((r) => ({ job_id: jobId, role_id: r.roleId, is_primary: r.isPrimary }))
+        ),
+        "job PUT: ow_job_roles 登録",
+        { returning: "job_id" },
       );
-      // job_category は primary ロール名から派生させる（移行期間中の表示用互換値）
-      await syncJobCategoryFromRoles(supabase, jobId, jobRoles);
+      if (ins.ok) {
+        // job_category は primary ロール名から派生させる（移行期間中の表示用互換値）
+        await syncJobCategoryFromRoles(supabase, jobId, jobRoles);
+      } else {
+        /* ⚠️ **派生値を書かない。** 書くと `ow_job_roles` と食い違う。 */
+        console.error("[job PUT] ow_job_roles の登録に失敗したため派生値を更新しない:", ins.error);
+      }
     }
-  } catch { /* best-effort */ }
+  }
 
   // 「自社での呼び方」を ow_company_job_roles に溜めて ow_jobs から指す
   // ⚠️ 表示専用。検索・フィルタは標準職種（ow_job_roles）のまま
