@@ -186,7 +186,7 @@ export default function ToolsSectionClient({ tools }: Props) {
       {!showAllGroups && hiddenGroupCount > 0 && (
         <ShowMoreButton
           variant="expand"
-          label={`すべてを見る（残り ${hiddenGroupCount} グループ）`}
+          label={`すべて見る（残り ${hiddenGroupCount}）`}
           expanded={false}
           onClick={() => setShowAllGroups(true)}
           wrapperStyle={{ marginTop: 4 }}

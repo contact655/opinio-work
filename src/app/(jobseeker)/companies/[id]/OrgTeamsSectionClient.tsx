@@ -418,11 +418,10 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
       {!showAll && (hiddenCount > 0 || hiddenTeamCount > 0) ? (
         <ShowMoreButton
           variant="expand"
-          label={
-            hiddenCount > 0
-              ? `すべてを見る（残り ${hiddenCount} 部門 · ${hiddenTeamCount} チーム）`
-              : `すべてを見る（残り ${hiddenTeamCount} チーム）`
-          }
+          /* ⚠️ 単位語は入れない（2026-08-23）。総数は見出しの
+                「N チーム · M 部門」が出しており、ボタン側で単位を足すと
+                ページ内で単位語が5種類に増えて形が揃わなくなる。 */
+          label={`すべて見る（残り ${hiddenCount > 0 ? hiddenCount : hiddenTeamCount}）`}
           expanded={false}
           onClick={() => setShowAll(true)}
           fade

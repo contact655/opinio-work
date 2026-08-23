@@ -127,7 +127,7 @@ export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases
       {!showAll && hiddenCount > 0 && (
         <ShowMoreButton
           variant="expand"
-          label={`すべての導入事例を見る（残り ${hiddenCount} 社）`}
+          label={`すべて見る（残り ${hiddenCount}）`}
           expanded={false}
           onClick={() => setShowAll(true)}
           fade

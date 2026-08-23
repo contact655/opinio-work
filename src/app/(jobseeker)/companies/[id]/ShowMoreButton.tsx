@@ -1,28 +1,45 @@
 // 「もっと見る」系ボタンの共通コンポーネント。
-// variant="expand"  → その場で展開 （∨ / 折りたたみ ∧）
-// variant="navigate" → 別ページへ遷移 （→）
-// 色・サイズは求人セクションの遷移ボタンを基準に統一。
+// variant="expand"  → その場で展開（ゴースト・∨ / 折りたたみ ∧）
+// variant="navigate" → 別ページへ遷移（濃紺の塗り・→）
+//
+// ⚠️ **見た目で「その場で開く」と「別ページへ行く」を区別する（2026-08-23）。**
+//    以前は両方とも濃紺の塗りで、企業詳細1枚に濃紺のボタンが6個以上並び、
+//    その大半が「開くだけ」だった。塗りは主要な遷移のために取っておく。
+//    → これは 2026-08-12 の「展開ボタンは濃紺塗りに統一」を**意図的に上書きしている**。
 
 import React from "react";
 import Link from "next/link";
 
-const STYLE: React.CSSProperties = {
+const BASE: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   gap: 6,
   padding: "11px 28px",
-  background: "var(--royal)",
-  color: "#fff",
   borderRadius: 8,
   fontSize: 13,
   fontWeight: 700,
   textDecoration: "none",
-  boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
-  border: "none",
   cursor: "pointer",
   fontFamily: "var(--font-noto-sans)",
-  transition: "opacity 0.15s",
+  transition: "background 0.15s, border-color 0.15s",
+};
+
+/** 別ページへ遷移する。ページ内で数を絞って使う */
+const NAVIGATE_STYLE: React.CSSProperties = {
+  ...BASE,
+  background: "var(--royal)",
+  color: "#fff",
+  border: "1px solid var(--royal)",
+  boxShadow: "0 2px 8px rgba(0,35,102,0.2)",
+};
+
+/** その場で開くだけ。面を持たせない */
+const EXPAND_STYLE: React.CSSProperties = {
+  ...BASE,
+  background: "transparent",
+  color: "var(--ink-soft)",
+  border: "1px solid var(--line)",
 };
 
 function ChevronDown() {
@@ -90,12 +107,12 @@ export function ShowMoreButton(props: ShowMoreButtonProps) {
         }} />
       )}
       {props.variant === "navigate" ? (
-        <Link href={props.href} style={STYLE}>
+        <Link href={props.href} style={NAVIGATE_STYLE}>
           {label}
           {icon}
         </Link>
       ) : (
-        <button type="button" onClick={props.onClick} style={STYLE}>
+        <button type="button" onClick={props.onClick} style={EXPAND_STYLE}>
           {label}
           {icon}
         </button>
