@@ -2547,17 +2547,20 @@ export default async function CompanyDetailPage({
 
             {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (
+              /* ⚠️ 背景で目立たせないこと（2026-08-23）。オレンジは
+                    「カジュアル面談」だけの色で、面はCTAボタンが担う。
+                    黄色の面を足すと、同じ意味の色が2重になって主従が消える。 */
               <div style={{
                 display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
                 padding: "14px 20px", borderRadius: 12, marginBottom: "var(--space-6)",
-                background: "linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%)",
-                border: "1px solid #FCD34D",
+                background: "#fff",
+                border: "1px solid var(--line)",
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
                     働く環境を読んだら、次は実際の声を聞いてみませんか？
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#B45309", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
                 </div>
                 <Link href={`/companies/${company.id}/casual-meeting`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
@@ -2704,11 +2707,11 @@ export default async function CompanyDetailPage({
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
-                border: "2px solid #FDE68A",
-                boxShadow: "0 4px 24px rgba(245,158,11,0.12)",
+                border: "1px solid var(--line)",
+                boxShadow: "0 4px 24px rgba(15,23,42,0.08)",
               }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#B45309", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "Inter, sans-serif" }}>
                     NEXT STEP
                   </div>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", lineHeight: 1.4 }}>
@@ -2718,6 +2721,9 @@ export default async function CompanyDetailPage({
                     選考なし・完全無料。転職意欲がなくても大丈夫です。
                   </p>
                 </div>
+                {/* ⚠️ 色は役割で固定する（2026-08-23）。
+                       オレンジ＝カジュアル面談だけ / 濃紺の塗り＝主要な遷移（求人一覧へ）。
+                       以前は逆に当たっていて、面談が濃紺のアウトライン、求人がオレンジだった。 */}
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {company.job_count > 0 && (
                     <a
@@ -2725,9 +2731,9 @@ export default async function CompanyDetailPage({
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 8,
                         padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                        background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
+                        background: "var(--royal)", color: "#fff",
                         textDecoration: "none",
-                        boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
+                        boxShadow: "0 3px 12px rgba(0,35,102,0.25)",
                       }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
@@ -2739,12 +2745,12 @@ export default async function CompanyDetailPage({
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                      background: "transparent", color: "var(--royal)",
-                      border: "1.5px solid var(--royal)",
+                      background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
                       textDecoration: "none",
+                      boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
                     }}
                   >
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
                     <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                   </Link>
                 </div>
