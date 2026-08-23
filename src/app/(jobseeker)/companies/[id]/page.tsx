@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { cache, Fragment } from "react";
 import type React from "react";
 import { permanentRedirect } from "next/navigation";
 import {
@@ -26,6 +26,7 @@ import { AV_GRADIENTS } from "./avatarGradients";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStageCfg } from "@/lib/utils/stageCfg";
+import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
 import type { CompanyPhoto, CompanyRecruiter } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -2322,11 +2323,25 @@ function Sidebar({
                       color: "var(--royal)",
                       textDecoration: "underline",
                       fontWeight: 500,
-                      wordBreak: "break-all",
+                      /* ⚠️ break-all はドメインの途中で改行する（`https://www.salesforce.co` / `m/jp/`）。
+                            表示は formatUrlForDisplay で短くし、折り返しは「/」の直後に置いた
+                            <wbr> に任せる。ドメインは割れない。
+                         ⚠️ `minWidth: 0` を外さないこと。この行は grid の `1fr` 列で、
+                            既定の最小サイズが min-content になる。URL は途中で切れない1語なので、
+                            列が URL の幅（実測 258px）まで広がり、**値カラムが 172px → 258px に膨らんで
+                            サイドバーから 60px はみ出す**。break-all にはこの問題が無い（1文字で切れるため）。
+                         ⚠️ anywhere は最後の逃げ道。<wbr> で切れない極端に長い1語だけが対象。 */
+                      minWidth: 0,
+                      overflowWrap: "anywhere",
                       fontSize: "var(--text-sm)",
                     }}
                   >
-                    {value} →
+                    {splitUrlForWrap(formatUrlForDisplay(value)).map((seg, i, arr) => (
+                      <Fragment key={i}>
+                        {seg}
+                        {i < arr.length - 1 && <wbr />}
+                      </Fragment>
+                    ))} →
                   </a>
                 ) : (
                   <div>
