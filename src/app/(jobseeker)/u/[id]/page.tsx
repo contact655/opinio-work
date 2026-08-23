@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isTalkable } from "@/lib/companyMembers/talkable";
 import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
@@ -55,7 +56,6 @@ type OwUser = {
   headline: string | null;
   future_aspirations: string | null;
   is_open_to_work: boolean | null;
-  can_casual_meeting: boolean | null;
   auth_id: string;
 };
 
@@ -130,7 +130,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     */
     supabase
       .from("ow_users")
-      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, future_aspirations, is_open_to_work, can_casual_meeting, auth_id")
+      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, future_aspirations, is_open_to_work, auth_id")
       .eq("id", resolvedId)
       .maybeSingle(),
   ]);
@@ -389,6 +389,26 @@ export default async function UserProfilePage({ params }: { params: { id: string
            たまたま全員 can_casual_meeting = false で、既存の条件に救われていた。
            **その偶然に頼らない。** 片方が true になった瞬間に死にリンクになる。
         判定は lib/company/casualMeeting.ts に一本化してある。 */
+  /* ★「この会社の話を聞ける人」か（2026-08-23 / B-1）。
+        判定は `lib/companyMembers/talkable.ts`：`ow_company_members` で公開中 ＋
+        その企業に在籍中の経歴があること。**企業の受付状態は見ない**（方針D）。
+        ⚠️ 以前は `ow_users.can_casual_meeting`（運営が個別に立てるフラグ）だった。
+        ⚠️ 掲載可否の判定なので admin クライアントで引く。`ow_company_members` は
+           anon/authenticated に列単位でしか開いておらず、閲覧者によって欠ける。 */
+  const { data: memberRows, error: memberErr } = await adminSupabase
+    .from("ow_company_members")
+    .select("company_id")
+    .eq("user_id", owUser.id)
+    .eq("display_consent", true)
+    .eq("is_public", true);
+  /* ⚠️ 握り潰さない。空になると「話を聞けません」と誤って出る。 */
+  if (memberErr) console.error("[u/[id]] ow_company_members:", memberErr.message);
+
+  const isTalkableHere = isTalkable(
+    ((memberRows ?? []) as { company_id: string }[]).map((m) => m.company_id),
+    [currentCareer?.company_id ?? null],
+  );
+
   const currentCompanyMeetingOpen =
     currentCareer?.company_id
       ? (await filterOpenCasualMeetingCompanies([currentCareer.company_id])).has(currentCareer.company_id)
@@ -543,8 +563,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
                      既定の min-width: auto だと中身（社名入りの「〇〇 の企業ページ」）の
                      min-content まで広がり、375px で親を 14px はみ出していた。 */}
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", paddingTop: 4, minWidth: 0 }}>
-                {/* カジュアル面談ボタン（can_casual_meeting = true かつ非オーナー かつ在籍企業が受付中） */}
-                {!viewerIsOwner && owUser.can_casual_meeting && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
+                {/* カジュアル面談ボタン（非オーナー かつ 在籍企業の話を聞ける人 かつ 在籍企業が受付中） */}
+                {!viewerIsOwner && isTalkableHere && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
@@ -659,8 +679,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {(() => {
               const highlights: { icon: React.ReactNode; label: string; body: React.ReactNode; href?: string; color: string }[] = [];
 
-              // Card 1: カジュアル面談CTA（非オーナー、can_casual_meeting=true かつ在籍企業が受付中）
-              if (!viewerIsOwner && owUser.can_casual_meeting && currentCompanyMeetingOpen) {
+              // Card 1: カジュアル面談CTA（非オーナー、在籍企業の話を聞ける人 かつ在籍企業が受付中）
+              if (!viewerIsOwner && isTalkableHere && currentCompanyMeetingOpen) {
                 highlights.push({
                   color: "var(--warm)",
                   icon: (
@@ -966,7 +986,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                          ここだけ抜けており、**本人が自分のページから自分の在籍企業へ
                          カジュアル面談を申し込める**状態だった。
                          ⚠️ 落ちた側は「企業を探す」になる。本人には申込導線を出さない。 */}
-                  {!viewerIsOwner && owUser.can_casual_meeting && currentCompanyMeetingOpen ? (
+                  {!viewerIsOwner && isTalkableHere && currentCompanyMeetingOpen ? (
                     <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "10px 22px", borderRadius: 8,

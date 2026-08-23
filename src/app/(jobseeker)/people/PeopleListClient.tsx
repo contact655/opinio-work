@@ -271,10 +271,12 @@ function GridCard({ card, myUserId, followedUserIds }: {
   //    同じ職種でも読み手が毎回解釈することになるため（2026-08-04）。
   //    肩書きそのものに意味がある /u/[id] と /biz/candidates では役職名を残している。
   const role = card.roleName;
-  // ⚠️ talk_themes の件数ではなく can_casual_meeting で判定する（2026-08-04）。
-  //    talk_themes は本来「何を話せるか」であって可否ではなく、代用だった。
-  //    可否のフラグは ow_users.can_casual_meeting（/admin/candidates で切り替え）。
-  const isAvailable = card.canCasualMeeting;
+  /* ★判定は `ow_company_members` で公開中 ＋ その企業に在籍中の経歴（2026-08-23 / B-1）。
+        ⚠️ 以前は `ow_users.can_casual_meeting`（運営が個別に立てるフラグ）だった。
+           本人の申請＋企業の承認へ一本化したので、運営フラグは見ない。
+        ⚠️ **企業の受付状態は見ない**（方針D）。バッジは「申し込める」ではなく
+           「この会社について話してよいと言っている人」を意味する。 */
+  const isAvailable = card.canTalk;
 
   return (
     <div

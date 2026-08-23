@@ -106,11 +106,16 @@ function EmployeeCard({
   employee,
   ambassadorInfo,
   companyId,
+  acceptingMeetings,
 }: {
   employee: CompanyEmployee;
   showEndedAt?: boolean;
   ambassadorInfo?: { memberId: string } | null;
   companyId?: string;
+  /** ★企業が申込を受け付けているか。**申込リンクの出し分けだけに使う**（2026-08-23 / 方針D）。
+   *  ⚠️ バッジと社員カードはこの値で消さない。人が出ているのは本人の同意による事実で、
+   *     企業が受付を止めていることとは別。 */
+  acceptingMeetings?: boolean;
 }) {
   const isAmbassador = !!ambassadorInfo;
 
@@ -135,18 +140,24 @@ function EmployeeCard({
           style={{ display: "flex", textDecoration: "none" }}>
           <EmployeeCardInner employee={employee} badge={badge} />
         </a>
-        <Link
-          href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
-          style={{
-            display: "block", textAlign: "center",
-            padding: "8px 16px",
-            background: "linear-gradient(135deg, #F59E0B, #F97316)",
-            color: "#fff", borderRadius: 8,
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
-        </Link>
+        {/* ★申込リンクは企業が受け付けているときだけ（2026-08-23 / 方針D）。
+               受付停止のときに出すと、押した先が「受け付けていません」になる。
+               ⚠️ カードとバッジは残す。人が出ていること自体は偽っていない。
+               ⚠️ `member_id` は現状どこにも記録されない（個人指名は未実装）。積み残し。 */}
+        {acceptingMeetings && (
+          <Link
+            href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
+            style={{
+              display: "block", textAlign: "center",
+              padding: "8px 16px",
+              background: "linear-gradient(135deg, #F59E0B, #F97316)",
+              color: "#fff", borderRadius: 8,
+              fontSize: 12, fontWeight: 700, textDecoration: "none",
+            }}
+          >
+            {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
+          </Link>
+        )}
       </div>
     );
   }
@@ -212,6 +223,7 @@ function CurrentEmployeesSection({
   categories,
   ambassadorMap,
   companyId,
+  acceptingMeetings,
 }: {
   employees: CompanyEmployee[];
   hiddenCount?: number;
@@ -219,6 +231,8 @@ function CurrentEmployeesSection({
   categories: CompanyEmployeeCategoryItem[];
   ambassadorMap: Map<string, { memberId: string }>;
   companyId: string;
+  /** ★申込リンクの出し分けだけに使う（方針D）。社員カードはこの値で消さない。 */
+  acceptingMeetings: boolean;
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
 
@@ -377,7 +391,7 @@ function CurrentEmployeesSection({
         // カテゴリ設定なし → レスポンシブ列
         <div className="employee-grid">
           {employees.map((emp) => (
-            <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
+            <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
           ))}
         </div>
       ) : (
@@ -422,7 +436,7 @@ function CurrentEmployeesSection({
                   // 親直: 子見出しなしでグリッドを直接表示
                   <div className="employee-grid">
                     {(empsByCategory.get(group.children[0].roleId ?? "") ?? []).map((emp) => (
-                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
+                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
                     ))}
                   </div>
                 ) : (
@@ -463,7 +477,7 @@ function CurrentEmployeesSection({
                           </div>
                           <div className="employee-grid">
                             {empsInCat.map((emp) => (
-                              <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
+                              <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
                             ))}
                           </div>
                         </div>
@@ -492,7 +506,7 @@ function CurrentEmployeesSection({
               </div>
               <div className="employee-grid">
                 {uncategorized.map((emp) => (
-                  <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} />
+                  <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
                 ))}
               </div>
             </div>
@@ -798,10 +812,14 @@ export function CompanyEmployeeSections({
   companyId,
   categories,
   companyName,
+  acceptingMeetings,
 }: {
   companyId: string;
   categories: CompanyEmployeeCategoryItem[];
   companyName: string;
+  /** ★企業が申込を受け付けているか（`isCasualMeetingOpen()` 通過後の値）。
+   *  申込リンクの出し分けだけに使う。**社員カードとバッジはこの値で消さない。** */
+  acceptingMeetings: boolean;
 }) {
   const [data, setData] = useState<EmployeesResponse | null>(null);
 
@@ -849,6 +867,7 @@ export function CompanyEmployeeSections({
         categories={categories}
         ambassadorMap={ambassadorMap}
         companyId={companyId}
+        acceptingMeetings={acceptingMeetings}
       />
       {showAlumni && (
         <AlumniSection

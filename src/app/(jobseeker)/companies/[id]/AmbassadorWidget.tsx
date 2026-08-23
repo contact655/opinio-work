@@ -31,12 +31,19 @@ export default function AmbassadorWidget({
   companyId,
   publicAmbassadors,
   totalCount,
+  acceptingMeetings,
 }: {
   companyId: string;
   /** ⚠️ 未ログインに見せてよい人だけ（`visibility === "public"`）。ISR の HTML に焼かれる */
   publicAmbassadors: PublicAmbassador[];
   /** 閲覧者に依らない総数。見出しと遮蔽メッセージの両方がこの値を使う */
   totalCount: number;
+  /** ★企業が申込を受け付けているか。**申込ボタンの出し分けだけに使う**（2026-08-23）。
+   *  ⚠️ **人と件数はこの値で消さない。** 人が出ているのは「本人が話してよいと同意した」
+   *     という事実で、企業が受付を止めていることとは別。消すと同意した事実まで隠れる。
+   *  ⚠️ 呼び出し側が渡すのは `isCasualMeetingOpen()` を通した後の値
+   *     （フラグ単独ではなく宛先の有無も含む）。ここで判定し直さないこと。 */
+  acceptingMeetings: boolean;
 }) {
   const [shown, setShown] = useState<PublicAmbassador[]>(publicAmbassadors);
   /* ★見出しの数字は**カードと同じ応答**から出す（2026-08-23）。
@@ -144,16 +151,25 @@ export default function AmbassadorWidget({
       ) : (
         <>
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-            選考なし・完全無料。この会社のことを直接聞けます。<br />転職意欲がなくてもOK。
+            {acceptingMeetings ? (
+              <>選考なし・完全無料。この会社のことを直接聞けます。<br />転職意欲がなくてもOK。</>
+            ) : (
+              /* ⚠️ ここで行き止まりにしない。申込は閉じていても、プロフィールから
+                    直接メッセージを送る導線（/u/[id] の「DMを送る」）は生きている。 */
+              <>この会社はいま面談の申し込みを受け付けていません。<br />プロフィールから直接メッセージを送れます。</>
+            )}
           </div>
-          <a href="#current-employees" style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: "100%", padding: "9px 0", borderRadius: 8,
-            fontSize: 12, fontWeight: 700, textDecoration: "none",
-            background: "var(--warm)", color: "#fff", boxSizing: "border-box",
-          }}>
-            カジュアル面談を申し込む →
-          </a>
+          {/* ★申込ボタンだけを企業の受付状態で出し分ける（2026-08-23 / 方針D）。 */}
+          {acceptingMeetings && (
+            <a href="#current-employees" style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "100%", padding: "9px 0", borderRadius: 8,
+              fontSize: 12, fontWeight: 700, textDecoration: "none",
+              background: "var(--warm)", color: "#fff", boxSizing: "border-box",
+            }}>
+              カジュアル面談を申し込む →
+            </a>
+          )}
         </>
       )}
     </div>

@@ -2170,6 +2170,9 @@ function Sidebar({
         companyId={company.id}
         publicAmbassadors={ambassadors.filter((a) => a.visibility === "public")}
         totalCount={ambassadors.length}
+        /* ⚠️ ここで渡す値は既に `isCasualMeetingOpen()` を通っている
+              （queries.ts の getCompanyBySlugOrId が潰している）。判定し直さないこと。 */
+        acceptingMeetings={company.accepting_casual_meetings === true}
       />
 
       {/* 申し込みの流れ — コンパクト1行表示 */}
@@ -2565,6 +2568,8 @@ export default async function CompanyDetailPage({
               companyId={company.id}
               companyName={company.name}
               categories={employeeCategories}
+              /* ⚠️ 申込リンクの出し分けだけに使う。社員カードは消さない（方針D）。 */
+              acceptingMeetings={company.accepting_casual_meetings === true}
             />
 
             {/* 5-2. 拠点・資本関係

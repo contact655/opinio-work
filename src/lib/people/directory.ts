@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isTalkable } from "@/lib/companyMembers/talkable";
 import { calcPublicScore } from "@/lib/profile/completion";
 import {
   resolveExperienceCompanyLabel,
@@ -101,8 +102,11 @@ export type DirectoryPerson = {
    *    外資かどうかを判定できないので false になる（推測しない）。
    */
   hasForeignExperience: boolean;
-  /** ow_users.can_casual_meeting。true で「面談可」バッジ */
-  canCasualMeeting: boolean;
+  /** ★「この会社の話を聞ける人」か（`lib/companyMembers/talkable.ts`）。
+   *  ⚠️ 旧 `canCasualMeeting`（`ow_users.can_casual_meeting`）から 2026-08-23 に置き換えた。
+   *     **名前ごと変えてある。** 同じ名前で意味だけ変えると、次に読む人が
+   *     運営フラグのつもりで参照する。 */
+  canTalk: boolean;
   /** 公開項目だけの完成度（81点満点）。既定の並び順に使う */
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
@@ -216,7 +220,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     .from("ow_users")
     /* ⚠️ **birth_date は取らない**（2026-08-20）。一覧に年齢を出さない・年齢で絞り込まないため。
        ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at, can_casual_meeting");
+    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -229,7 +233,6 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     headline: string | null; about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
     updated_at: string | null;
-    can_casual_meeting: boolean | null;
   };
 
   const visible = ((userRows ?? []) as UserRow[]).filter((u) => {
@@ -407,7 +410,13 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
       roleName: roleNode?.name ?? null,
       topRoleId: topRole?.id ?? null,
       hasForeignExperience,
-      canCasualMeeting: u.can_casual_meeting === true,
+      /* ★「話を聞ける人」の判定（2026-08-23 / B-1）。
+            ⚠️ 判定は `lib/companyMembers/talkable.ts` に置いてある。ここに書き直さないこと。
+            ⚠️ 企業の受付状態は見ない（方針D）。人の表示は本人の同意で決まる。 */
+      canTalk: isTalkable(
+        (members.get(u.id) ?? []).map((m) => m.company_id),
+        (exps.get(u.id) ?? []).flatMap((e) => (e.is_current && e.company_id ? [e.company_id] : [])),
+      ),
       publicScore,
       experienceMonths,
       createdAt: u.created_at,

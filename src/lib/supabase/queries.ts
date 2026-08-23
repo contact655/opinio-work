@@ -1716,9 +1716,31 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
         console.error("[getPublicAmbassadorsCached]", error.message);
         return [];
       }
+      /* ★在籍中の経歴があることを要求する（2026-08-23 / B-1）。
+            ⚠️ `ow_company_members` は経歴と連動していない。退職して `is_current` を
+               false にしても行は残るため、**辞めた会社の「話を聞ける人」として出続ける**。
+               申請時の RLS は `is_current = true` を要求するが、それは申請の瞬間だけ。
+            ⚠️ 判定の定義は `lib/companyMembers/talkable.ts`。ここに条件を書き直さない。 */
+      const userIds = Array.from(new Set((data ?? []).map((r) => (r as { user_id: string }).user_id)));
+      const currentUserIds = new Set<string>();
+      if (userIds.length > 0) {
+        const { data: expRows, error: expErr } = await createAdminClient()
+          .from("ow_experiences")
+          .select("user_id")
+          .eq("company_id", companyId)
+          .eq("is_current", true)
+          .in("user_id", userIds);
+        /* ⚠️ 握り潰さない。空になると全員が消え、「0名」に化ける。 */
+        if (expErr) {
+          console.error("[getPublicAmbassadorsCached] ow_experiences:", expErr.message);
+          return [];
+        }
+        for (const e of (expRows ?? []) as { user_id: string }[]) currentUserIds.add(e.user_id);
+      }
+
       /* 除外条件は getCompanyEmployees と同じ形にしてある（上のコメント）。
          ⚠️ ow_users が引けなかった行（null）も落とす。名前もアバターも出せないので
-            「N名が対応可能」の N だけを水増しすることになる。 */
+            「N名」の N だけを水増しすることになる。 */
       return (data ?? []).flatMap((r) => {
         const row = r as unknown as {
           id: string; user_id: string; role_title: string | null;
@@ -1728,6 +1750,8 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
         const u = row.ow_users;
         if (!u) return [];
         if (u.is_test === true || u.visibility === "private") return [];
+        /* ★その企業に在籍中でなければ出さない（退職者が自動で降りる） */
+        if (!currentUserIds.has(row.user_id)) return [];
         return [{
           id: row.id,
           user_id: row.user_id,
