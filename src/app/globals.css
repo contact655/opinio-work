@@ -260,6 +260,33 @@ button, [role="button"] {
   }
 }
 
+/* ── BackToTop（components/jobseeker/BackToTop.tsx）の位置 ────────────────────
+   ⚠️ 幅で変える値なのでインラインに書かない（companies/[id] の MobileBottomCTA と同じ理由）。
+
+   下端に何が重なるかが幅で変わる:
+     < 768px    … MobileBottomNav（64px）。企業詳細ではさらに MobileBottomCTA が
+                  その上（bottom-16）に載る。実測 122px（ボタン2つの最大）
+     768〜1023  … ナビは md:hidden で消え、CTAバーが bottom:0 に付く
+     >= 1024px  … CTAバーは lg:hidden。どちらも無い
+
+   ⚠️ right に safe-area を入れているのは、ノッチ端末の横向きで
+      右のインセット下に潜り込むのを防ぐため。 */
+.back-to-top {
+  right: max(20px, env(safe-area-inset-right));
+  bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* 固定CTAバーを出しているページ（企業詳細）だけ、その上まで持ち上げる */
+.back-to-top--above-cta {
+  bottom: calc(202px + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .back-to-top--above-cta { bottom: calc(138px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 1024px) {
+  .back-to-top--above-cta { bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+
 /* 見出しのフォントウェイトを強化 */
 h1 { font-weight: 700; letter-spacing: -0.5px; color: #0f172a; }
 h2 { font-weight: 700; letter-spacing: -0.3px; color: #0f172a; }

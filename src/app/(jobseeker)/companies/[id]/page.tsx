@@ -1366,9 +1366,8 @@ function JobsSection({
       if (shownJobs === JOBS_LIMIT) limitIndex = jobNodes.length;
     });
   });
-  /* 3件に満たない企業は畳まない（limitIndex が立たないので全件が上限） */
+  /* 3件に満たない企業は切る位置が無い（limitIndex が立たないので全件が上限） */
   if (limitIndex < 0) limitIndex = jobNodes.length;
-  const hiddenJobs = shownJobs - JOBS_LIMIT;
 
   return (
     <>
@@ -1407,16 +1406,17 @@ function JobsSection({
       </div>
 
       <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
-        {/* ⚠️ その場で展開するのは維持する（内容はこのセクションに全件ある）。
-               ここで **別ページへ飛ばす必要は無い**ので、展開は CollapsibleList のまま。 */}
-        <CollapsibleList
-          items={jobNodes}
-          limit={limitIndex}
-          labelCollapsed={`残り ${hiddenJobs} 件の求人を見る`}
-          containerStyle={{ display: "flex", flexDirection: "column", gap: 6 }}
-          buttonWrapperStyle={{ marginTop: 16 }}
-          fade
-        />
+        {/* ⚠️ **その場で開くボタン（「残り N 件の求人を見る」）は出さない**（2026-08-23）。
+               下の「N件すべての求人を見る」と**縦に2つ並んで読みにくかった**ため、
+               この場で開く方をやめた。初期表示3件は 2026-08-13 の判断のまま維持する
+               （求人の多い1社だけセクションが突出して長くなるのを防いでいる）。
+            ⚠️ **黙って隠していない。** 下のボタンのラベルが総数を出しており
+               （「N件すべての求人を見る」）、残りはそこから `/jobs?company=` で見る。
+            ⚠️ 切る位置はカテゴリ見出しの手前ではなく**3件目の求人の直後**なので、
+               見出しだけが取り残されることはない（見出しは必ず求人より前に積まれる）。 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {jobNodes.slice(0, limitIndex)}
+        </div>
 
         {/* 「N件すべての求人を見る」— 2026-08-15 に復活させた。
             ⚠️ 2026-08-08 に削除した理由は「遷移先が存在しない」ことだった
@@ -2484,7 +2484,7 @@ export default async function CompanyDetailPage({
   return (
     <>
       <ReadingProgress />
-      <BackToTop />
+      <BackToTop aboveMobileCta={hasMobileBottomCta(company)} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

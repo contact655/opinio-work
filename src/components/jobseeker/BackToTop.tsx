@@ -3,10 +3,19 @@
 import { useEffect, useState, useCallback } from "react";
 
 /**
- * A "Back to top" button that appears after scrolling 600px.
- * Placed in the bottom-right corner, above any FloatingCTA bar.
+ * 600px スクロールすると出る「ページトップへ戻る」ボタン。右下に固定する。
+ *
+ * ⚠️ **`right` / `bottom` をインラインに書かないこと。** 幅で変える値なので
+ *    `globals.css` の `.back-to-top` に持たせている（同じ理由が
+ *    `companies/[id]` の `MobileBottomCTA` にも書いてある）。
+ *    ノッチ端末の横向きで欠けないよう、safe-area も CSS 側で見ている。
+ *
+ * @param aboveMobileCta 画面下に固定CTAバーを出しているページで true。
+ *   企業詳細は `hasMobileBottomCta()` の結果をそのまま渡す。
+ *   ⚠️ 渡し忘れるとボタンがCTAバーに重なる（z-index はボタンが上なので、
+ *      「募集を見て応募する」の右端を隠す）。
  */
-export function BackToTop() {
+export function BackToTop({ aboveMobileCta = false }: { aboveMobileCta?: boolean } = {}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -24,10 +33,9 @@ export function BackToTop() {
       type="button"
       onClick={scrollToTop}
       aria-label="ページトップへ戻る"
+      className={`back-to-top${aboveMobileCta ? " back-to-top--above-cta" : ""}`}
       style={{
         position: "fixed",
-        right: 20,
-        bottom: visible ? 88 : 72, // above FloatingCTA on mobile
         zIndex: 90,
         width: 44,
         height: 44,
