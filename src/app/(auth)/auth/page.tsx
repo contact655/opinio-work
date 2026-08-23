@@ -334,19 +334,6 @@ function AuthPageInner() {
     <div className="min-h-screen flex items-start justify-center">
       {/* form */}
       <div style={s.formSide}>
-        {/* Mobile logo */}
-        <div className="flex md:hidden" style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--line)" }}>
-          <a
-            href="/"
-            style={{
-              fontFamily: "Inter,sans-serif", fontWeight: 800, fontSize: 20,
-              letterSpacing: "-0.02em", color: "var(--royal)", textDecoration: "none",
-            }}
-          >
-            OPINIO
-          </a>
-        </div>
-
         {/* ⑧ 企業担当者向けリンク — 右上固定 */}
         <a href="/biz/auth" style={{
           position: "fixed", top: 16, right: 20, zIndex: 50,
@@ -366,6 +353,18 @@ function AuthPageInner() {
         </a>
 
         <div style={s.formWrap}>
+          {/* ロゴ。**サイトへ戻る唯一の導線**なので消さないこと（2026-08-23）。
+              ⚠️ 以前は `flex md:hidden` でモバイルにしか出しておらず、
+                 デスクトップは「ログインをやめて戻る」手段が画面上に無かった
+                 （グローバルヘッダーもこのレイアウトには無い）。
+              ⚠️ ヘッダーコンポーネントごと持ち込まないこと。
+                 ログイン済み前提の要素（通知・マイページ）が入っている。 */}
+          <div style={s.logoRow}>
+            <a href="/" style={s.logoLink} aria-label="OPINIO トップへ">
+              OPINIO
+            </a>
+          </div>
+
           {/* ⑦ Mode tabs — active tab is solid royal blue */}
           <div style={s.modeTabs}>
             {(["signup", "login"] as const).map((m) => (
@@ -756,6 +755,22 @@ const s = {
           `margin: auto` は余白があるときだけ効き、足りなければ 0 に潰れて
           上端から始まる＝**切れない**。 */
     margin: "auto",
+  } as React.CSSProperties,
+
+  logoRow: {
+    display: "flex",
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottom: "1px solid var(--line)",
+  } as React.CSSProperties,
+
+  logoLink: {
+    fontFamily: "Inter,sans-serif",
+    fontWeight: 800,
+    fontSize: 20,
+    letterSpacing: "-0.02em",
+    color: "var(--royal)",
+    textDecoration: "none",
   } as React.CSSProperties,
 
   // ⑦ Mode tabs — active is solid royal
