@@ -682,14 +682,39 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
   select has_column_privilege('authenticated','public.ow_users','新しい列','SELECT');
   ```
 
-- **SELECT を列単位で配っているテーブルの一覧**（2026-08-15 実測）。
+- **SELECT を列単位で配っているテーブルの一覧**（**2026-08-23 実測に更新**）。
   ここに載っているテーブルに列を足したら、**`grant select (列名)` を同じ migration に書く。**
 
   | テーブル | authenticated | anon |
   |---|---|---|
-  | `ow_users` | 30 / 32 | **23 / 32**（2026-08-19〜） |
-  | `ow_experiences` | 26 / 35 | 権限なし |
+  | `ow_users` | 30 / 33 | **23 / 33**（2026-08-19〜） |
+  | `ow_experiences` | 26 / 35 | **21 / 35** |
   | `ow_career_profiles` | 7 / 9 | **5 / 9**（2026-08-20〜） |
+  | **`ow_company_members`** | **12 / 14** | **11 / 14** |
+
+  ⚠️ **2026-08-15 版のこの表には誤りがあった**（2026-08-23 に実測して訂正）。
+     `ow_experiences` の anon を「権限なし」と書いていたが、**実際は21列に SELECT がある。**
+     `ow_users` の列数も 32 → 33 に増えていた（分母は増えるので、**割合ではなく実測で書く**）。
+
+  ⚠️ **`ow_experiences` の anon から落ちている14列**（＝ここに載っていない列は anon にも見える）:
+
+  ```
+  salary_man  salary_base  salary_bonus  salary_stock  rank  department  department_id
+  turning_point  exit_reason  learnings  visibility_company_profile
+  join_reasons  join_reason_primary  leave_reasons
+  ```
+
+  ⚠️ **`join_reason`（単数）は anon にも配られている。** 落ちているのは `join_reasons`（複数）と
+     `join_reason_primary` の2列。**名前が似ているので混同しないこと。**
+
+  ```sql
+  -- 一覧を作り直すとき（分母も一緒に出す）
+  select count(*) total,
+         count(*) filter (where has_column_privilege('anon', 'public.ow_experiences', attname, 'SELECT')) anon_select,
+         count(*) filter (where has_column_privilege('authenticated','public.ow_experiences', attname,'SELECT')) auth_select
+    from pg_attribute
+   where attrelid='public.ow_experiences'::regclass and attnum>0 and not attisdropped;
+  ```
 
   ⚠️ **`ow_users` は anon も列単位**（2026-08-19）。**anon から落とした9列**:
 
@@ -858,7 +883,8 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
   このテーブルは**テーブルレベルの UPDATE を落として列単位で配り直している**ので、
   新しい列は**生まれた時点で書き込めない**（`authenticated` から更新すると 403）。
   他のテーブルと違い「足せば使える」ではない。
-  実測（2026-08-13）: テーブルレベル UPDATE **0** / 列単位 **148列**。
+  実測（**2026-08-23**）: テーブルレベル UPDATE **なし** / 列単位 **146 / 151列**。
+  （2026-08-13 は「148列」と書いていたが、分母を書いていなかった。**分母ごと書くこと。**）
   以降に足した `normalized_name` `canonical_company_id` `is_test` は**権限なしのまま**
   （運営しか触らない列なので現状は意図どおり。`listing_status` `source` は付与済み）。
   → 現在の配り方と剥がしたときの経緯は [docs/ow-companies-grants.md](docs/ow-companies-grants.md)
