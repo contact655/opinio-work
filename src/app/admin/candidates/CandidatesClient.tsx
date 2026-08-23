@@ -4,7 +4,6 @@ import { getUserAge } from "@/lib/age";
 
 import { useState, useTransition } from "react";
 import { bulkSetVisibility, bulkDeleteUsers } from "./actions";
-import { CanCasualMeetingToggle } from "./CanCasualMeetingToggle";
 
 type User = {
   id: string;
@@ -12,7 +11,6 @@ type User = {
   name: string | null;
   email: string | null;
   is_mentor: boolean | null;
-  can_casual_meeting: boolean | null;
   /** 一覧には出さない（2026-08-05）。検索の対象としては使っている */
   location: string | null;
   birth_date: string | null;
@@ -137,13 +135,17 @@ export function CandidatesClient({ users }: { users: User[] }) {
                 />
               </th>
               {/*
-                ⚠️ 2026-08-05 に2列削除した。td 側も必ず一緒に増減させること。
+                ⚠️ 2026-08-05 に2列、2026-08-23 に1列削除した。td 側も必ず一緒に増減させること。
                    「居住地」: 一覧で使わない（26名中5名しか埋まっていない）
                    「話せる」: ow_users.can_talk_to_candidates。本番0件・参照は
                      この画面の表示だけ・何もゲートしていなかった。カラムは残してある。
-                     「話せるか」の判定は隣の「面談可」（can_casual_meeting）が担う。
+                   ★「面談可」: ow_users.can_casual_meeting。2026-08-23 に撤去。
+                     判定を ow_company_members（本人の申請＋企業の承認）へ移したので、
+                     押しても画面に何も起きないトグルになった。
+                     ⚠️ **列は残してある。** 復活させないこと。運営が個別に指定する手段は
+                        意図して廃止した（/admin/ambassador-requests で代理承認する）。
               */}
-              {["名前", "メール", "年代", "BIZ", "公開設定", "面談可", "最終ログイン", "登録日", "経歴"].map((h) => (
+              {["名前", "メール", "年代", "BIZ", "公開設定", "最終ログイン", "登録日", "経歴"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -232,13 +234,6 @@ export function CandidatesClient({ users }: { users: User[] }) {
                       ) : (
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>非公開</span>
                       )}
-                    </td>
-                    {/* 面談可 */}
-                    <td style={{ padding: "11px 14px" }}>
-                      <CanCasualMeetingToggle
-                        userId={u.id}
-                        initialValue={u.can_casual_meeting ?? false}
-                      />
                     </td>
                     {/* 最終ログイン */}
                     <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>

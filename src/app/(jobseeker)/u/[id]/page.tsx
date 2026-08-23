@@ -961,7 +961,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     企業ページを見る
                   </Link>
-                  {owUser.can_casual_meeting && currentCompanyMeetingOpen ? (
+                  {/* ⚠️ `!viewerIsOwner` を必ず入れる（2026-08-23 に抜けを修正）。
+                         他の2箇所（上のボタン・ハイライトCard 1）は最初から入っていたが、
+                         ここだけ抜けており、**本人が自分のページから自分の在籍企業へ
+                         カジュアル面談を申し込める**状態だった。
+                         ⚠️ 落ちた側は「企業を探す」になる。本人には申込導線を出さない。 */}
+                  {!viewerIsOwner && owUser.can_casual_meeting && currentCompanyMeetingOpen ? (
                     <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "10px 22px", borderRadius: 8,

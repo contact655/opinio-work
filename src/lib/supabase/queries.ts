@@ -1328,8 +1328,6 @@ export type CompanyEmployee = {
   roleCategoryName: string | null;
   roleParentId: string | null;
   roleParentName: string | null;
-  // === Migration 160: カジュアル面談受付フラグ ===
-  canCasualMeeting: boolean;
   // === OB/OG: 退職後の現在のキャリア ===
   currentRoleTitle: string | null;
   currentCompanyName: string | null;
@@ -1371,7 +1369,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", true)
     .neq("visibility_company", "hidden");
@@ -1389,7 +1387,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, can_casual_meeting, catchphrase, is_test, visibility)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .neq("visibility_company", "hidden")
@@ -1461,7 +1459,6 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       roleCategoryName: (role?.name as string | null) ?? null,
       roleParentId: (role?.parent_id as string | null) ?? null,
       roleParentName: (parent?.name as string | null) ?? null,
-      canCasualMeeting: (u?.can_casual_meeting as boolean) ?? false,
       currentRoleTitle: null,        // 退職後キャリア: 後で補完
       currentCompanyName: null,      // 退職後キャリア: 後で補完
       currentCompanyBrandName: null, // 退職後キャリア: 後で補完

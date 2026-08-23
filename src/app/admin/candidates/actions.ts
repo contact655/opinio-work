@@ -40,30 +40,18 @@ export async function bulkSetVisibility(
      ⚠️ カラムは残してある。復活させるなら、まず can_casual_meeting との違いを定義すること。
 */
 
-/**
- * can_casual_meeting の切り替え。
- * この値が true の人だけが LP の「いま話を聞ける現役社員」枠と
- * /u/[id] のカジュアル面談CTAに出る（掲載 ≠ 面談可）。
- *
- * 本来は本人が設定すべき値だが、現状 /profile/edit に導線が無いため
- * 運営が代理で設定する。can_talk_to_hr との統合は別タスク。
- */
-export async function toggleCanCasualMeeting(
-  userId: string,
-  value: boolean
-): Promise<{ ok: boolean; error?: string }> {
-  await assertAdmin();
-  const admin = createAdminClient();
-  const { error } = await admin
-    .from("ow_users")
-    .update({ can_casual_meeting: value })
-    .eq("id", userId);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/admin/candidates");
-  // LP の FV カードはこの値で出し分けるので、あわせて再検証する
-  revalidatePath("/");
-  return { ok: true };
-}
+/*
+  ★toggleCanCasualMeeting（ow_users.can_casual_meeting）は 2026-08-23 に撤去した。
+
+  「話を聞ける人」の判定を `ow_company_members`（本人の申請＋企業または運営の承認）へ
+  移したため、この列を参照する画面が無くなった。押しても何も起きないトグルを
+  運営画面に残すと、`/admin/biz-accounts` の is_ambassador（公開側からの参照0件の
+  死にフラグ）と同じものを新しく作ることになる。
+
+  ⚠️ **列は DROP していない。GRANT も触っていない。**
+  ⚠️ 運営が「この人は話してよい」と個別指定する手段は**意図して無くした**。
+     代理で承認する必要があるときは /admin/ambassador-requests を使う。
+*/
 
 export async function bulkDeleteUsers(
   userIds: string[]
