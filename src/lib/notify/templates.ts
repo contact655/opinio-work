@@ -562,3 +562,77 @@ export function ambassadorRequestTemplate(params: {
     `),
   };
 }
+
+// ── 面談対応者の申請に対する企業の判断（本人宛）─────────────────────────────
+/*
+ * ⚠️★件名に結果を書かない（2026-08-23 確定）。
+ *    件名は受信箱の一覧やスマホのプッシュ通知に出るため、
+ *    「見送られました」が**本人以外の目に触れうる場所**に出てしまう。
+ *    結果は本文で伝える。承認側も同じ形に揃えている。
+ *
+ * ⚠️ 本文に役職・職歴・企業の内部事情を書かない。企業がなぜそう判断したかの
+ *    記録は存在しない（却下理由を残す器を作っていない）ので、書けるのは結果だけ。
+ *
+ * ⚠️ 配信停止の列は持たない。**本人の操作（申請）に対する結果通知**なので、
+ *    週次メール（`email_weekly_enabled`）とは別の取引通知として扱う。
+ */
+
+/** 企業が承認した（初回のみ。再掲載では送らない） */
+export function ambassadorApprovedTemplate(params: {
+  to: string;
+  userName: string;
+  companyName: string;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: params.to,
+    subject: `【OPINIO】${esc(params.companyName)} の面談対応者について`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談対応者に登録されました</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        ${esc(params.userName)} さん<br><br>
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong>への
+        「話を聞かれてもよい」の登録が承認されました。
+      </p>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px">
+        これから起きること:<br>
+        ・${esc(params.companyName)}のページに、あなたのプロフィールが表示されます<br>
+        ・転職を検討している方から、カジュアル面談の申込みが届きます
+      </p>
+      <p style="margin:0 0 24px">
+        <a href="${siteUrl}/mypage" style="${BTN}">マイページを見る →</a>
+      </p>
+      <p style="color:#94a3b8;font-size:12px;margin:0">
+        ※ 登録はいつでもマイページから取り消せます。
+      </p>
+    `),
+  };
+}
+
+/** 企業（または運営）が見送った。⚠️ 送るのは pending_company の行が消えたときだけ */
+export function ambassadorDismissedTemplate(params: {
+  to: string;
+  userName: string;
+  companyName: string;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: params.to,
+    subject: `【OPINIO】${esc(params.companyName)} の面談対応者について`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">登録は見送られました</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        ${esc(params.userName)} さん<br><br>
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong>への
+        「話を聞かれてもよい」の登録申請は、今回は見送られました。<br>
+        在籍の確認ができなかった場合や、企業側の運用によるものです。
+      </p>
+      <p style="margin:0 0 24px">
+        <a href="${siteUrl}/mypage" style="${BTN}">マイページを見る →</a>
+      </p>
+      <p style="color:#94a3b8;font-size:12px;margin:0">
+        ※ プロフィールの公開設定は、マイページからいつでも変更できます。
+      </p>
+    `),
+  };
+}
