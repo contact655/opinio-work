@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isTalkable } from "@/lib/companyMembers/talkable";
+import { talkableCompanyIds } from "@/lib/companyMembers/talkable";
 import { calcPublicScore } from "@/lib/profile/completion";
 import {
   resolveExperienceCompanyLabel,
@@ -107,6 +107,18 @@ export type DirectoryPerson = {
    *     **名前ごと変えてある。** 同じ名前で意味だけ変えると、次に読む人が
    *     運営フラグのつもりで参照する。 */
   canTalk: boolean;
+  /**
+   * ★`canTalk` の人が在籍する企業が、いまカジュアル面談を受け付けているか。
+   * **バッジの文言を出し分けるためだけに使う**（受付中なら「面談可」、そうでなければ
+   * 「話を聞けます」）。
+   *
+   * ⚠️ **`canTalk` の判定に混ぜないこと。** 人が出るかどうかは本人の同意で決まり、
+   *    受付状態は企業の都合で変わる。混ぜると、企業が受付を止めた瞬間に
+   *    「本人が同意した事実」まで画面から消える（`lib/companyMembers/talkable.ts` の方針D）。
+   * ⚠️ 2026-08-23 実測: バッジが出る4名のうち受付中は1社だけ。
+   *    だから全員を「面談可」と書くと 3/4 が誤表示になる。
+   */
+  acceptingCasualMeetings: boolean;
   /** 公開項目だけの完成度（81点満点）。既定の並び順に使う */
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
@@ -171,6 +183,8 @@ type MemberRow = {
   ow_companies: {
     id: string; name: string | null; brand_name: string | null;
     logo_url: string | null; logo_gradient: string | null; logo_letter: string | null; phase: string | null;
+    /** バッジの文言の出し分けにだけ使う。**`canTalk` の判定には混ぜない**（下記） */
+    accepting_casual_meetings: boolean | null;
   } | null;
 };
 
@@ -266,7 +280,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
        企業数は79件（2026-08-14）なので1回引いても軽い。 */
     db.from("ow_companies").select("id").eq("is_foreign", true),
     db.from("ow_company_members")
-      .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase)")
+      .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase, accepting_casual_meetings)")
       .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
     getRoleTree(),
   ]);
@@ -400,6 +414,16 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
         Object.values(u.social_links ?? {}).filter(Boolean).length + (links.get(u.id) ?? []).length,
     });
 
+    /* ★「話を聞ける会社」の id。バッジの有無（canTalk）と文言（受付中か）の
+          両方がここから決まるので、1回だけ計算して使い回す。
+       ⚠️ 判定は `lib/companyMembers/talkable.ts`。ここに書き直さないこと。
+       ⚠️ 企業の受付状態は **talkableCompanyIds の中に入れない**（方針D）。
+          受付は下の acceptingCasualMeetings で別に見る。 */
+    const talkableIds = talkableCompanyIds(
+      (members.get(u.id) ?? []).map((m) => m.company_id),
+      (exps.get(u.id) ?? []).flatMap((e) => (e.is_current && e.company_id ? [e.company_id] : [])),
+    );
+
     return {
       userId: u.id,
       name: u.name!,
@@ -413,9 +437,10 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
       /* ★「話を聞ける人」の判定（2026-08-23 / B-1）。
             ⚠️ 判定は `lib/companyMembers/talkable.ts` に置いてある。ここに書き直さないこと。
             ⚠️ 企業の受付状態は見ない（方針D）。人の表示は本人の同意で決まる。 */
-      canTalk: isTalkable(
-        (members.get(u.id) ?? []).map((m) => m.company_id),
-        (exps.get(u.id) ?? []).flatMap((e) => (e.is_current && e.company_id ? [e.company_id] : [])),
+      canTalk: talkableIds.length > 0,
+      /* ★バッジの文言用。**判定そのものは上の canTalk と別建てにしてある**（型のコメント参照） */
+      acceptingCasualMeetings: (members.get(u.id) ?? []).some(
+        (m) => talkableIds.includes(m.company_id) && m.ow_companies?.accepting_casual_meetings === true,
       ),
       publicScore,
       experienceMonths,

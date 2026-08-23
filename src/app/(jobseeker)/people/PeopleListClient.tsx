@@ -297,9 +297,14 @@ function GridCard({ card, myUserId, followedUserIds }: {
           zIndex: 1,
         }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-          {/* ⚠️ 文言は企業ページのバッジと同じにする（出所が同じなので揃える）。
-                 「面談可」に戻さないこと。申し込める意味に読まれる。 */}
-          話を聞けます
+          {/* ★文言は**その会社がいま受け付けているか**で出し分ける（2026-08-23）。
+                 受付中 … 「面談可」（実際に申し込める）
+                 それ以外 … 「話を聞けます」（本人は同意しているが申込導線は出ない）
+              ⚠️ **全員を「面談可」にしないこと。** 実測（2026-08-23）でバッジが出る4名のうち
+                 受付中は1社だけで、全員を「可」と書くと 3/4 が誤表示になる。
+                 画面下の注釈「申し込めるかどうかは会社ごとに異なります」とも矛盾する。
+              ⚠️ 文言は企業ページ・`/u/[id]` のバッジと揃える（出所が同じ）。 */}
+          {card.acceptingCasualMeetings ? "面談可" : "話を聞けます"}
         </span>
       )}
 
@@ -741,8 +746,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
-          ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>話を聞けます</strong> は、いま在籍している会社について話を聞かれてもよいと登録している方です。<br />
-          申し込めるかどうかは会社ごとに異なります。企業ページでご確認ください。<br />
+          ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>面談可</strong> は、いま在籍している会社について話を聞かれてもよいと登録していて、<strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>その会社が面談を受け付けている</strong>方です。<br />
+          <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>話を聞けます</strong> は登録はしているものの、会社がいまは受け付けていない方です。申込は企業ページでご確認ください。<br />
           所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。
         </div>
       </div>

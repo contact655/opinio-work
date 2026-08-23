@@ -567,7 +567,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
               border: "1px solid #FED7AA", whiteSpace: "nowrap",
             }}>
               <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-              話を聞けます
+              {/* ★文言は**その会社がいま受け付けているか**で出し分ける（2026-08-23）。
+                     受付中は「面談可」、そうでなければ「話を聞けます」。
+                  ⚠️ **バッジの有無（isTalkableHere）には受付を混ぜないこと。**
+                     出るかどうかは本人の同意、文言は企業の受付。混ぜると
+                     企業が受付を止めた瞬間に本人の同意までページから消える（方針D）。
+                  ⚠️ 文言は /people・企業ページのバッジと揃える。 */}
+              {currentCompanyMeetingOpen ? "面談可" : "話を聞けます"}
             </span>
           ) : null}
           topRight={<ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />}
