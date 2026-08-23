@@ -8,7 +8,7 @@ import {
   applicationUserTemplate,
   applicationCompanyTemplate,
 } from "@/lib/notify/templates";
-import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { insertActivity } from "@/lib/business/activities";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { isJobApplicationOpen, APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
@@ -187,9 +187,9 @@ export async function POST(req: NextRequest) {
       ⚠️ notify() は失敗を飲み込むので、1件失敗しても残りと応募処理は止まらない。
     */
     const companyEmails = jobForNotify.company_id
-      ? await getCompanyNotificationRecipients(jobForNotify.company_id, "applications")
-      : [];
-    for (const to of companyEmails) {
+      ? await getCompanyNotificationTarget(jobForNotify.company_id, "applications")
+      : { to: [], viaOps: false };
+    for (const to of companyEmails.to) {
       await notify(
         applicationCompanyTemplate({
           to,
@@ -197,6 +197,8 @@ export async function POST(req: NextRequest) {
           applicantName: name,
           applicantEmail: email,
           message: (message as string | undefined) ?? null,
+          /* ⚠️ 印は同じ判定から出す。ここでアドレスを見て判定し直さない */
+          viaOps: companyEmails.viaOps,
         })
       );
     }

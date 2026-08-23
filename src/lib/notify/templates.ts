@@ -1,4 +1,30 @@
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
+/** 運営の宛先。⚠️ 新しい持ち方を作らない。既存の3テンプレートと同じこれを使う。 */
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
+
+/**
+ * ★企業に担当者がいないため運営に回ってきた通知に付ける印（2026-08-23）。
+ *
+ * ⚠️ **印を付けるかどうかは `getCompanyNotificationTarget()` の `viaOps` から出す。**
+ *    各テンプレートで「宛先が運営かどうか」を判定し直さないこと。
+ *    フォールバックの分岐と印の分岐が別々になると、片方だけ直って**嘘の印**になる。
+ *
+ * ⚠️ これが無いと、運営は毎回「この通知は自分宛なのか、企業にも届いているのか」を
+ *    判断することになる。3種類のメールが同じ受信箱に混ざるので、印が無いと仕分けできない。
+ */
+export const OPS_SUBJECT_PREFIX = "【担当者未登録】";
+
+/** 運営宛のときだけ本文の先頭に差し込む1行 */
+export function opsFallbackNotice(viaOps: boolean): string {
+  if (!viaOps) return "";
+  return `<p style="margin:0 0 16px;padding:10px 14px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;font-size:13px;color:#92400e">
+    この企業には OPINIO の担当者が登録されていないため、運営に届いています。
+  </p>`;
+}
+
+/** 運営宛のときだけ件名に印を付ける */
+export function opsSubject(subject: string, viaOps: boolean): string {
+  return viaOps ? `${OPS_SUBJECT_PREFIX}${subject}` : subject;
+}
 
 // HTML escape — prevents injection of user-supplied strings into email bodies
 function esc(s: string | null | undefined): string {
@@ -179,11 +205,13 @@ export function applicationCompanyTemplate(params: {
   applicantName: string;
   applicantEmail: string;
   message: string | null;
+  /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
+  viaOps?: boolean;
 }) {
   return {
     to: params.to,
-    subject: `【新着応募】「${params.jobTitle}」に応募がありました`,
-    html: htmlWrap(`
+    subject: opsSubject(`【新着応募】「${params.jobTitle}」に応募がありました`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">応募が届きました</h2>
       <p style="margin:0 0 20px;color:#475569">「${esc(params.jobTitle)}」に新しい応募がありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
@@ -429,6 +457,8 @@ export function casualMeetingCompanyAdminTemplate(params: {
   intent: string | null;
   interestReason: string | null;
   questions: string | null;
+  /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
+  viaOps?: boolean;
 }) {
   const intentLabel: Record<string, string> = {
     info_gathering: "情報収集中",
@@ -438,8 +468,8 @@ export function casualMeetingCompanyAdminTemplate(params: {
   };
   return {
     to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)}へのカジュアル面談申し込みがありました`,
-    html: htmlWrap(`
+    subject: opsSubject(`【OPINIO】${esc(params.companyName)}へのカジュアル面談申し込みがありました`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新着カジュアル面談</h2>
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
@@ -461,11 +491,13 @@ export function joinRequestTemplate(params: {
   companyId: string;
   requesterName: string;
   requesterEmail: string;
+  /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
+  viaOps?: boolean;
 }) {
   return {
     to: params.to,
-    subject: `[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」への参加を希望しています`,
-    html: htmlWrap(`
+    subject: opsSubject(`[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」への参加を希望しています`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
       <h2>${esc(params.adminName)} さん</h2>
       <p>
         <strong>${esc(params.requesterName)}</strong>（${esc(params.requesterEmail)}）さんが
@@ -475,6 +507,57 @@ export function joinRequestTemplate(params: {
       <a href="https://opinio.jp/biz/members" style="${BTN}">メンバーを招待する →</a>
       <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
         心当たりのない場合は、このメールを無視してください。
+      </p>
+    `),
+  };
+}
+
+// ── 面談対応者の申請（企業/運営宛）─────────────────────────────────────────
+/**
+ * 本人が「話を聞かれてもよい」と申請したことを企業に知らせる（2026-08-23）。
+ *
+ * ⚠️ **中身は入れない。** 役職・職歴・自己紹介などは書かない。
+ *    「誰が・どの会社に・いつ申請したか」と、確認する場所への導線まで。
+ *
+ * ⚠️ 取引通知（本人の操作の結果を返すもの）なので **opt-out 列は要らない**。
+ *    週次のリマインド（勧誘）とは別物。混同しないこと。
+ */
+export function ambassadorRequestTemplate(params: {
+  to: string;
+  companyName: string;
+  applicantName: string;
+  appliedAt: string;
+  /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
+  viaOps?: boolean;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  /* 運営に回ったときは運営の画面へ、企業に届くときは企業の画面へ送る */
+  const href = params.viaOps === true
+    ? `${siteUrl}/admin/ambassador-requests`
+    : `${siteUrl}/biz/members`;
+
+  return {
+    to: params.to,
+    subject: opsSubject(
+      `【OPINIO】${esc(params.companyName)}の社員の方から「話を聞かれてもよい」の申請がありました`,
+      params.viaOps === true,
+    ),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">「話を聞かれてもよい」の申請</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong> に在籍していると申告している方から、
+        転職を検討している方の相談に応じてもよい、という申請がありました。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">申請者</td><td style="${TD_VALUE}">${esc(params.applicantName)}</td></tr>
+        <tr><td style="${TD_LABEL}">申請日</td><td style="${TD_VALUE}">${esc(params.appliedAt)}</td></tr>
+      </table>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px">
+        在籍は本人の自己申告です。<strong style="color:#0f172a">承認するまで公開されません。</strong>
+        内容を確認して、承認するか見送るかを選んでください。
+      </p>
+      <p style="margin:0 0 24px">
+        <a href="${href}" style="${BTN}">申請を確認する →</a>
       </p>
     `),
   };

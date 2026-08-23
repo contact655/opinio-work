@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
-import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { isCasualMeetingOpen } from "@/lib/company/casualMeeting";
 import {
   casualMeetingAdminTemplate,
@@ -179,11 +179,11 @@ export async function POST(req: NextRequest) {
       ⚠️ notification_emails が設定されていればそちらが優先される（上書き）。
          全85社が null の現時点では、従来どおり企業の管理者に届く。
     */
-    const companyEmails = await getCompanyNotificationRecipients(
+    const companyEmails = await getCompanyNotificationTarget(
       company_id as string,
       "casual-meetings",
     );
-    for (const email of companyEmails) {
+    for (const email of companyEmails.to) {
       await notify(
         casualMeetingCompanyAdminTemplate({
           to: email,
@@ -192,6 +192,8 @@ export async function POST(req: NextRequest) {
           intent: (intent as string | null) ?? null,
           interestReason: (interest_reason as string | null) ?? null,
           questions: (questions as string | null) ?? null,
+          /* ⚠️ 印は同じ判定から出す */
+          viaOps: companyEmails.viaOps,
         })
       );
     }

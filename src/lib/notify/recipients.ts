@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ADMIN_EMAIL } from "./templates";
 
 /**
  * 企業に届ける通知の宛先を解決する。**企業宛のメールは必ずここを通すこと。**
@@ -31,6 +32,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *    ただしエラーは必ずログに出す（握り潰さない）。
  */
 /*
+ * ★③「運営（ADMIN_EMAIL）へのフォールバック」を 2026-08-23 に実装した（下記）。
+ *   以下は当時の設計メモ。**判断の理由なので残す。**
+ *
  * ⚠️ **将来 ③「運営（ADMIN_EMAIL）へのフォールバック」を足すならここ。**
  *    Opinio は有料職業紹介事業者なので、企業担当者が /biz に来ていない企業の
  *    応募・面談を運営が受けて取り次ぐのが本来の形。企業開拓が進むと
@@ -42,12 +46,33 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *    ここに③を足せば両方が同時に開く。呼び出し側に個別のフォールバックを書かない。
  *
  *    2026-08-11 時点では**実装しない**（足すかどうかは別途判断）。
+ *
+ * ── 2026-08-23 に実装した。実測にもとづく判断 ──────────────────────────────
+ *   掲載中79社のうち**77社が宛先0件**で、応募・面談・面談対応者の申請が
+ *   誰にも届かない状態だった。
+ *
+ *   ⚠️ この関数は**通知の宛先**だけでなく、**応募CTA・面談CTAの出し分け**にも使われている
+ *      （lib/jobs/application.ts / lib/company/casualMeeting.ts）。
+ *      ③を足すと「宛先がある」＝常に真になるので、**それらのCTAも開く**。
+ *      上のコメントが「面談と応募の両方が同時に開く」と書いているのはこの意味。
+ *   ⚠️ 実装時点での実影響は**0社**（実測）:
+ *        公開求人を持つ企業 1社 → 宛先あり（新しく開く求人 0件）
+ *        accepting_casual_meetings=true 5社 → 全社が宛先あり（新しく開く 0社）
+ *      **今後、宛先が無い企業に求人が載った時点で効き始める。** そこが本来の狙い。
  */
-export async function getCompanyNotificationRecipients(
+/**
+ * 宛先と、**運営に回ったかどうか**。
+ *
+ * ⚠️★**この2つは必ず同じ判定から出す。** 送信側が「宛先が運営かどうか」を
+ *    メールアドレスの中身から判定し直さないこと。片方だけ直ると**嘘の印**になる。
+ */
+export type CompanyNotifyTarget = { to: string[]; viaOps: boolean };
+
+export async function getCompanyNotificationTarget(
   companyId: string,
   /** ログにどの経路から呼ばれたか出すためのラベル。例: "applications" */
   source: string,
-): Promise<string[]> {
+): Promise<CompanyNotifyTarget> {
   const admin = createAdminClient();
 
   // ── ① 企業が指定した宛先（上書き）────────────────────────────────────
@@ -62,7 +87,7 @@ export async function getCompanyNotificationRecipients(
   }
 
   const overrides = normalizeEmails(company?.notification_emails);
-  if (overrides.length > 0) return overrides;
+  if (overrides.length > 0) return { to: overrides, viaOps: false };
 
   // ── ② 既定の宛先: 企業の管理者 ────────────────────────────────────────
   const { data: admins, error: adminsErr } = await admin
@@ -82,14 +107,29 @@ export async function getCompanyNotificationRecipients(
     ((admins ?? []) as unknown as Row[]).map((r) => r.ow_users?.email ?? null),
   );
 
-  // ── ③ 宛先なし ────────────────────────────────────────────────────────
-  if (fallback.length === 0) {
-    console.info(
-      `[notify-recipients:${source}] no recipient for company=${companyId}`
-      + " (notification_emails is empty and no active admin)",
-    );
-  }
-  return fallback;
+  if (fallback.length > 0) return { to: fallback, viaOps: false };
+
+  // ── ③ 企業に宛先が無い → 運営へ ──────────────────────────────────────
+  /* ⚠️ 空配列を返さない。返すと応募も面談も「受け取れない」判定になり、
+        企業が担当者を登録するまで導線が閉じたままになる。 */
+  console.info(
+    `[notify-recipients:${source}] falling back to ops for company=${companyId}`
+    + " (notification_emails is empty and no active admin)",
+  );
+  return { to: [ADMIN_EMAIL], viaOps: true };
+}
+
+/**
+ * 宛先だけが要るとき用の薄いラッパー。
+ *
+ * ⚠️ **判定は `getCompanyNotificationTarget` の1本だけ。** ここに規則を書かない。
+ *    印（viaOps）が要る送信経路は必ず `getCompanyNotificationTarget` を使うこと。
+ */
+export async function getCompanyNotificationRecipients(
+  companyId: string,
+  source: string,
+): Promise<string[]> {
+  return (await getCompanyNotificationTarget(companyId, source)).to;
 }
 
 /** 前後空白を落とし、@ を含むものだけ残し、重複を除く */
@@ -110,7 +150,8 @@ function normalizeEmails(input: unknown): string[] {
  * ⚠️ `getCompanyNotificationRecipients` を N 回呼ばないこと。1社あたり2クエリ走る。
  * ⚠️ 判定規則は上の関数と**同じ**（① notification_emails / ② permission='admin' かつ is_active）。
  *    片方だけ直さないこと。③のフォールバックを足すときも両方に効くようにする。
- * ⚠️ 引けなかったときは「宛先なし」に倒す。誰も受け取れない申込を送らせるより害が小さい。
+ * ⚠️ 引けなかったとき（クエリ失敗）は「宛先なし」に倒す。誰も受け取れない申込を
+ *    送らせるより害が小さい。**③のフォールバックは「引けたが0件」のときだけ効かせる。**
  */
 export async function filterCompaniesWithRecipients(
   companyIds: string[],
@@ -146,7 +187,15 @@ export async function filterCompaniesWithRecipients(
 
   for (const c of companies ?? []) {
     const overrides = normalizeEmails(c.notification_emails);
-    if (overrides.length > 0 || hasAdmin.has(c.id as string)) withRecipient.add(c.id as string);
+    if (overrides.length > 0 || hasAdmin.has(c.id as string)) {
+      withRecipient.add(c.id as string);
+    } else {
+      /* ★③ 運営フォールバック（2026-08-23）。企業に宛先が無くても運営が受け取るので
+            「宛先あり」に数える。**単体版（getCompanyNotificationTarget）と同じ結論**にすること。
+         ⚠️ ここを揃えないと、一覧では応募CTAが出ないのに詳細では出る（またはその逆）になる。
+            この関数は一覧用の別実装なので、③を片方だけに入れると必ずズレる。 */
+      withRecipient.add(c.id as string);
+    }
   }
   return withRecipient;
 }

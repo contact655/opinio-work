@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notify/email";
-import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+import { opsSubject, opsFallbackNotice } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -106,16 +107,19 @@ export async function POST(
          他の通知はすべてテンプレート化されているので、移すかは別途判断する。
     */
     const companyName = (scout.ow_companies as any)?.name ?? "企業";
-    const recipients = await getCompanyNotificationRecipients(
+    const target = await getCompanyNotificationTarget(
       scout.company_id as string,
       "scout-reply",
     );
 
-    for (const to of recipients) {
+    for (const to of target.to) {
       await notify({
         to,
-        subject: `【OPINIO】${owMe.name} さんがスカウトに興味を示しました`,
+        /* ⚠️ 運営に回ったときの印は `target.viaOps` から出す。
+              ここでアドレスを見て判定し直さないこと（嘘の印になる）。 */
+        subject: opsSubject(`【OPINIO】${owMe.name} さんがスカウトに興味を示しました`, target.viaOps),
         html: `
+          ${opsFallbackNotice(target.viaOps)}
           <p>${owMe.name} さんが <strong>${companyName}</strong> からのスカウトに「話を聞きたい」と回答しました。</p>
           <p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.jp"}/biz/conversations">OPINIOで会話を確認する →</a></p>
           <hr style="margin:24px 0; border:none; border-top:1px solid #eee" />

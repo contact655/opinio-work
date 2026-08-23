@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
 import { joinRequestTemplate } from "@/lib/notify/templates";
-import { getCompanyNotificationRecipients } from "@/lib/notify/recipients";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 
 /**
  * POST /api/biz/join-request
@@ -144,7 +144,8 @@ export async function POST(req: Request) {
        上書きされた宛先には対応する氏名が無いので「ご担当者」にする。
   */
   const nameByEmail = new Map(adminList.map((a) => [a.email.trim().toLowerCase(), a.name]));
-  const recipients = await getCompanyNotificationRecipients(companyId, "join-request");
+  const target = await getCompanyNotificationTarget(companyId, "join-request");
+  const recipients = target.to;
 
   const results = await Promise.allSettled(
     recipients.map((to) =>
@@ -156,6 +157,8 @@ export async function POST(req: Request) {
           companyId: company.id,
           requesterName: requester.name ?? user.email ?? "不明",
           requesterEmail: requester.email ?? user.email ?? "",
+          /* ⚠️ 印は同じ判定から出す */
+          viaOps: target.viaOps,
         })
       )
     )
