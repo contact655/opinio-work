@@ -2509,7 +2509,7 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about", label: "企業概要" },
           ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
-          ...(company.job_count > 0 ? [{ id: "jobs", label: "求人" }] : []),
+          ...(company.job_count > 0 ? [{ id: "jobs", label: "求人", count: company.job_count }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
           /* ⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
                 分からない（絞り込みはクライアント側のAPIが行うため）。
