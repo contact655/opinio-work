@@ -123,13 +123,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "自動承認に失敗しました。時間をおいて再度お試しください。" }, { status: 500 });
     }
 
-    // ow_user_roles にも tenant_id を登録（biz dashboard のテナント解決に必要）
-    await admin.from("ow_user_roles").upsert({
-      user_id: requester.id,
-      role: "company_admin",
-      tenant_id: companyId,
-    }, { onConflict: "user_id,role,tenant_id" });
+    /*
+      ⚠️ ここには `ow_user_roles` への upsert があったが、**一度も成功していなかった**
+         ので消した（2026-08-23）。コメントは「biz dashboard のテナント解決に必要」と
+         書いてあったが、事実と違う。
 
+      壊れていた点が2つ:
+        ① `role: "company_admin"` は CHECK 違反。
+           `ow_user_roles_role_check` が許すのは candidate / company / admin の3つだけ
+        ② `onConflict: "user_id,role,tenant_id"` に対応する一意制約が無い。
+           実在するのは `UNIQUE (user_id, role)`
+
+      しかも `await` の戻り値を捨てていたので、**エラーが出ても誰も気づけない**
+      （CLAUDE.md「Supabase の呼び出しで error を捨てない」）。
+
+      実測（2026-08-23 / 本番）: `ow_user_roles` は candidate 34 / admin 2 の計36行で、
+      **`company_admin` も `company` も0行、`tenant_id` は全行 NULL。**
+
+      ⚠️ **書き直す必要は無い。** 企業ロールは設計上 `ow_user_roles` に持たない
+         （`lib/roles.ts`: 「company: ow_company_admins の is_active=true 行の存在で判定」）。
+         テナント解決も `ow_company_admins` 経由で、**その行はすぐ上の INSERT で作っている。**
+         `api/biz/companies/route.ts` のコメントも同じことを書いている。
+    */
     console.info(`[join-request] auto-approved user=${requester.id} for company=${companyId}`);
     return NextResponse.json({ success: true, auto_approved: true });
   }
