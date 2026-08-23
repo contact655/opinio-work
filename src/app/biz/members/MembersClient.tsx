@@ -72,6 +72,11 @@ type Props = {
    *    ここを true にしても API は通らない。
    */
   canInviteAmbassador?: boolean;
+  /** ★自分がこの会社に「在籍中」の経歴を持っているか（2026-08-23）。
+   *  ⚠️ 無いまま登録すると、**登録は成功するのに企業ページに出ない**
+   *     （表示条件は `ow_company_members` に載っていること ＋ `is_current` の経歴、
+   *      `lib/companyMembers/talkable.ts`）。だから入口ごと出し分ける。 */
+  selfHasCurrentExperience?: boolean;
   meetingStats?: MeetingStat[];
 };
 
@@ -1058,7 +1063,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false }: Props) {
+export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false, selfHasCurrentExperience = false }: Props) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<"staff" | "field" | "employees">("staff");
 
@@ -1588,8 +1593,27 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
+        {/* ★在籍中の経歴が無いと、登録できても企業ページに出ない（2026-08-23）。
+               登録させずに、先に職歴を登録してもらう。
+               ⚠️ 「押せたのに出ない」を作らないための出し分け。API 側にも同じ判定がある
+                  （こちらは見た目だけ。消しても API が 409 を返す）。 */}
+        {isAdmin && !selfIsAmbassador && !selfHasCurrentExperience && (
+          <div style={{
+            background: "var(--bg-tint)", border: "1px dashed var(--line)",
+            borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+            fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
+          }}>
+            自分も面談対応者になるには、<strong style={{ color: "var(--ink)" }}>この会社に在籍中の職歴</strong>が要ります。
+            <br />
+            職歴は求職者向けのプロフィールで登録します。
+            <a href="/profile/edit?tab=career" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none", marginLeft: 4 }}>
+              職歴を登録する →
+            </a>
+          </div>
+        )}
+
         {/* HR 自己申告（管理者自身を面談対応者に追加） */}
-        {isAdmin && !selfIsAmbassador && (
+        {isAdmin && !selfIsAmbassador && selfHasCurrentExperience && (
           <div style={{
             background: "#fff", border: "1px dashed var(--royal-100)",
             borderRadius: 10, padding: "12px 16px", marginBottom: 16,

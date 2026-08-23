@@ -128,14 +128,34 @@ export default async function MembersPage() {
   ]);
 
   const existingUserIds = ambassadors.map((a) => a.user_id);
-  const [candidates, meetingStatsRaw] = await Promise.all([
+  const [candidates, meetingStatsRaw, selfCurrentExp] = await Promise.all([
     fetchAmbassadorCandidates(ctx.tenantId, existingUserIds),
     adminSupabase
       .from("ow_casual_meetings")
       .select("assignee_user_id, status, completed_at")
       .eq("company_id", ctx.tenantId)
       .not("assignee_user_id", "is", null),
+    /* ★自分がこの会社に「在籍中」の経歴を持っているか（2026-08-23）。
+          ⚠️ 面談対応者として**表示される条件**が `ow_company_members` に載っていることと
+             `is_current = true` の経歴があることの両方だから（lib/companyMembers/talkable.ts）。
+             経歴が無い人を登録できてしまうと、**登録は成功するのにページに出ない**。
+          ⚠️ 実測（2026-08-23）: 有効な企業管理者10人のうち、自社に在籍中の経歴が
+             あるのは1人だけ。**大半がこの状態に落ちる。** */
+    adminSupabase
+      .from("ow_experiences")
+      .select("id")
+      .eq("user_id", ctx.currentOwnId)
+      .eq("company_id", ctx.tenantId)
+      .eq("is_current", true)
+      .limit(1),
   ]);
+
+  /* ⚠️ 握り潰さない。引けなかったときに「経歴あり」に倒すと、
+        出ない登録を作らせることになる。取れなければ false（＝入口を出さない）。 */
+  if (selfCurrentExp.error) {
+    console.error("[biz/members] self current experience:", selfCurrentExp.error.message);
+  }
+  const selfHasCurrentExperience = (selfCurrentExp.data ?? []).length > 0;
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -172,6 +192,8 @@ export default async function MembersPage() {
         /* ⚠️ これは**見た目だけ**。実際のゲートは POST /api/biz/ambassador/invite にある。
               ここを消しても API 側が 403 を返す。逆は成り立たない。 */
         canInviteAmbassador={canUse(ctx.planType, "ambassadorInvite")}
+        /* ⚠️ これも**見た目だけ**。実際のゲートは POST /api/biz/ambassador/self-register にある。 */
+        selfHasCurrentExperience={selfHasCurrentExperience}
       />
     </BusinessLayout>
   );
