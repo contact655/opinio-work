@@ -21,6 +21,7 @@ function stateOf(a: AmbassadorRecord) {
   return memberState({
     display_consent: a.display_consent,
     is_public: a.is_public,
+    approved_at: a.approved_at,
     created_via: a.created_via,
   });
 }
@@ -35,6 +36,7 @@ export type AmbassadorRecord = {
   role_title: string | null;
   display_consent: boolean;
   is_public: boolean;
+  approved_at: string | null;
   created_via: string | null;
   invited_at: string | null;
 };

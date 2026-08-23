@@ -1869,6 +1869,7 @@ export type Database = {
       }
       ow_company_members: {
         Row: {
+          approved_at: string | null
           company_id: string
           consent_at: string | null
           created_at: string
@@ -1884,6 +1885,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approved_at?: string | null
           company_id: string
           consent_at?: string | null
           created_at?: string
@@ -1899,6 +1901,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approved_at?: string | null
           company_id?: string
           consent_at?: string | null
           created_at?: string

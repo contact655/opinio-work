@@ -64,14 +64,33 @@ export type MemberState =
  *    企業側が作った行なので、本人は既に同意している。未公開なのは**企業が非公開にしている**
  *    からで、本人が待たされているわけではない → `unlisted`。
  *    ⚠️ ここを `pending_user` にすると「本人がまだ承認していない」と誤って表示される。
+ *
+ * ⚠️★`pending_company` は「**まだ一度も承認されていない** self 行」だけ。
+ *    承認後に企業が非公開へ戻した行は `unlisted`（`approved_at` で区別する）。
+ *    2026-08-23 に列を足すまで、この2つは区別できなかった。
  */
 export function memberState(
-  row: { display_consent: boolean; is_public: boolean; created_via: string | null } | null | undefined,
+  row:
+    | {
+        display_consent: boolean;
+        is_public: boolean;
+        created_via: string | null;
+        /** ⚠️ **必須**。省略可にすると、select し忘れた画面で「一度も承認されていない」と
+         *     誤判定し、承認済みの人が「申請中」に出戻る（下の警告を参照）。
+         *     取れないのは取得漏れなので、既定値に倒さず型で落とす。 */
+        approved_at: string | null;
+      }
+    | null
+    | undefined,
 ): MemberState {
   if (!row) return "none";
   if (!row.display_consent) return "pending_user";
   if (row.is_public) return "listed";
-  return row.created_via === MEMBER_CREATED_VIA.SELF ? "pending_company" : "unlisted";
+  if (row.created_via !== MEMBER_CREATED_VIA.SELF) return "unlisted";
+  /* ★一度でも承認された行は、非公開に戻っても `unlisted`。`pending_company` に戻さない。
+     ⚠️ ここを `is_public` だけで見ると、企業が公開⇄非公開を往復するたびに
+        「本人からの申請（未承認）」に出戻り、承認通知も往復のたびに飛ぶ。 */
+  return row.approved_at === null ? "pending_company" : "unlisted";
 }
 
 /**
@@ -89,6 +108,9 @@ export type CompanyMemberRow = {
   display_consent: boolean;
   is_public: boolean;
   created_via: string | null;
+  /** 企業（運営）が初回に承認した時刻。⚠️ **必須**（`memberState()` が使う）。
+   *  ⚠️ 再掲載では更新しない。`null` は「一度も承認されていない」を意味する。 */
+  approved_at: string | null;
   /** 本人が同意（＝申請）した時刻。⚠️ 企業の承認時刻は `updated_at`。混同しない。
    *  ⚠️ **任意**にしてある。申請日を出す画面（/mypage のカード）だけが必要とするので、
    *     この列を選んでいない呼び出し側に select を強制しない。 */

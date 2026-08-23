@@ -26,11 +26,14 @@ async function getRequests(): Promise<AmbassadorRequest[]> {
 
   const { data, error } = await admin
     .from("ow_company_members")
-    .select("id, company_id, user_id, display_consent, is_public, created_via, consent_at, created_at, ow_users!user_id(name), ow_companies!company_id(name, brand_name)")
+    .select("id, company_id, user_id, display_consent, is_public, created_via, approved_at, consent_at, created_at, ow_users!user_id(name), ow_companies!company_id(name, brand_name)")
     /* 本人発だけが対象。企業が招待した行（`created_via` が null / 'invite'）は
        `/biz/members` の担当で、運営が代理で承認する対象ではない。 */
     .eq("created_via", MEMBER_CREATED_VIA.SELF)
     .eq("is_public", false)
+    /* ⚠️ 一度でも承認された行は対象外。企業が非公開に戻しただけの行を
+          「未承認の申請」として運営に見せない（`memberState()` と同じ区別）。 */
+    .is("approved_at", null)
     .order("consent_at", { ascending: true, nullsFirst: false });
 
   /* ⚠️ 握り潰さない。空になると「申請が無い」と誤って表示され、
@@ -43,7 +46,7 @@ async function getRequests(): Promise<AmbassadorRequest[]> {
   const rows = (data ?? []) as unknown as {
     id: string; company_id: string; user_id: string;
     display_consent: boolean; is_public: boolean; created_via: string | null;
-    consent_at: string | null; created_at: string;
+    approved_at: string | null; consent_at: string | null; created_at: string;
     ow_users: { name: string | null } | null;
     ow_companies: { name: string | null; brand_name: string | null } | null;
   }[];
