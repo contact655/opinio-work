@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { fetchAvailablePhases, fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
-import { createPublicClient } from "@/lib/supabase/public";
+import { fetchCompanySuggestions, fetchCurrentMembersByCompany } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
@@ -9,7 +9,6 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
-import { filterListedCompanies } from "@/lib/companies/visibility";
 
 type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
@@ -123,15 +122,19 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const isListView  = !hasFilter && view === "list";
   const needsGrid = isGridView || isListView;
 
-  // ── 全クエリを並列実行（experiences は企業IDが確定してから絞り込み） ──────────
-  const supabase = createPublicClient();
-
-  const [locations, phaseOptions, companyNamesResult, allCompaniesResult] = await Promise.all([
+  /* ── 全クエリを並列実行 ──────────────────────────────────────────────────
+     ★2026-08-23 に**直列の2段目を無くした**。それまでは「表示中の企業IDが
+       確定してから在籍メンバーを引く」形で、1往復ぶん余計に待っていた。 */
+  const [locations, phaseOptions, companySuggestions, allMembersByCompany, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
     fetchAvailablePhases(),
-    // 検索サジェスト用企業名リスト
-    filterListedCompanies(supabase.from("ow_companies").select("id, name")).order("name"),
+    // 検索サジェスト用企業名リスト（unstable_cache 300s）
+    fetchCompanySuggestions(),
+    // 在籍メンバー（unstable_cache 300s）— ★1段目に移した。下のコメント参照
+    needsGrid
+      ? fetchCurrentMembersByCompany()
+      : Promise.resolve({} as Record<string, MemberPreview[]>),
     // グリッド/リスト: DB側ページネーション + count を1クエリで取得
     needsGrid
       ? searchCompanies({
@@ -143,49 +146,26 @@ export default async function CompaniesPage({ searchParams }: Props) {
     // 口コミ平均スコア
   ]);
 
-  /*
-    在籍メンバー: 表示中の企業IDに絞って取得（全件スキャン防止）
+  /* ── 在籍メンバー ────────────────────────────────────────────────────────
+     ★**1段目（上の Promise.all）に移した**（2026-08-23）。
 
-    ⚠️ 2026-08-05 まで ow_users(id, name, photo_url, is_test) を select していたが、
-       ow_users.photo_url は**存在しないカラム**（正しくは avatar_url）。
-       クエリがエラーになり experienceResult.data が null → membersByCompany が
-       常に空 → /companies のカードに在籍メンバーが1人も出ていなかった。
-       error を受け取っていなかったため、ログにも何も出ていない。
-    ⚠️ error は必ず見ること。ここは埋め込みも使っているので、
-       カラム名だけでなく関係の曖昧さでも落ちうる。
-  */
-  const displayedCompanyIds = allCompaniesResult.companies.map((c) => c.id);
-  const experienceResult = needsGrid && displayedCompanyIds.length > 0
-    ? await supabase
-        .from("ow_experiences")
-        .select("company_id, user_id, ow_users(id, name, avatar_url, is_test)")
-        .eq("is_current", true)
-        .in("company_id", displayedCompanyIds)
-    : { data: null, error: null };
+     ⚠️ それまでは「表示中の企業IDが確定してから」引いていたため、
+        **直列の2段目**になっていた。実測でここが体感の主因で、
+        タブを押してからスケルトンが残る時間そのものだった
+        （Vercel→Supabase の1往復ぶん）。
 
-  if (experienceResult.error) {
-    console.error("[companies] 在籍メンバーの取得に失敗:", experienceResult.error.message);
-  }
+     ⚠️ 公開企業は79社・`ow_experiences` は22行しかないので、
+        **全社ぶんをキャッシュして、ここで絞る**ほうが安い。
+        `createPublicClient()`（anon・セッションなし）で引いているので
+        結果は誰が見ても同じ＝キャッシュしてよい。
 
-  const companySuggestions: { id: string; name: string }[] =
-    (companyNamesResult.data ?? []) as { id: string; name: string }[];
-
-  // ── 在籍メンバーをメモリ内でページ企業に絞り込み ─────────────────────────
+     ⚠️ **admin クライアントに変えないこと。** 可視性の絞り込みは RLS に任せている。
+        変えると `login_only` の人が未ログインに漏れる。 */
   const membersByCompany: Record<string, MemberPreview[]> = {};
-  if (needsGrid && experienceResult.data) {
-    const pageCompanyIds = new Set(allCompaniesResult.companies.map((c) => c.id));
-    for (const exp of experienceResult.data) {
-      const companyId = exp.company_id as string;
-      if (!pageCompanyIds.has(companyId)) continue;
-      if (!membersByCompany[companyId]) membersByCompany[companyId] = [];
-      if (membersByCompany[companyId].length < 8) {
-        type ExpUser = { id: string; name: string; avatar_url?: string | null; is_test?: boolean | null };
-        const user = exp.ow_users as ExpUser | ExpUser[] | null;
-        if (user) {
-          const u = Array.isArray(user) ? user[0] : user;
-          if (u && !u.is_test) membersByCompany[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.avatar_url ?? null });
-        }
-      }
+  if (needsGrid) {
+    for (const c of allCompaniesResult.companies) {
+      const m = allMembersByCompany[c.id];
+      if (m && m.length > 0) membersByCompany[c.id] = m;
     }
   }
 
