@@ -20,7 +20,7 @@ import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
-import { ProfileTabsClient } from "@/components/profile/ProfileTabsClient";
+import { ProfileTabsClient, ShowAllFeedButton } from "@/components/profile/ProfileTabsClient";
 import { DMButton } from "@/components/profile/DMButton";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -96,6 +96,97 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     openGraph: { title },
     robots: { index: false, follow: false },
   };
+}
+
+/** プロフィール内の抜粋で出す最大件数。⚠️ フィードタブは全件なので、ここだけ */
+const ACTIVITY_PREVIEW_LIMIT = 3;
+
+type ActivityPost = {
+  id: string; content: string; image_url: string | null; created_at: string;
+  likes: { count: number }[];
+};
+
+/**
+ * アクティビティ（その人の投稿）。**2箇所で使う**（2026-08-23）。
+ *
+ *   mode="preview" … プロフィールタブの中、**自己紹介と職歴の間**。3件まで＋「すべて表示 →」
+ *   mode="full"    … フィードタブ。全件
+ *
+ * ⚠️ **どちらのモードでも0件で消さない。** 「まだ投稿していません」と書く。
+ *    消すと「投稿していない」のか「置き場所が無い」のかを読み手が区別できない
+ *    （それが 2026-08-23 の出発点）。
+ * ⚠️ 本人向けの投稿導線はこのページに置かない（2026-08-16/17 の判断）。
+ *    投稿は `/mypage` のアクティビティから行う。空状態でも促さない。
+ */
+function ActivitySection({
+  posts, likedPostIds, viewerIsOwner, displayName, mode,
+}: {
+  posts: ActivityPost[];
+  likedPostIds: Set<string>;
+  viewerIsOwner: boolean;
+  displayName: string;
+  mode: "preview" | "full";
+}) {
+  const shown = mode === "preview" ? posts.slice(0, ACTIVITY_PREVIEW_LIMIT) : posts;
+  const hasMore = mode === "preview" && posts.length > ACTIVITY_PREVIEW_LIMIT;
+
+  return (
+    <section id={mode === "full" ? "activity" : undefined} style={{
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+          アクティビティ
+        </span>
+        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+          ACTIVITY
+        </span>
+        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        {posts.length > 0 && (
+          <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
+            {posts.length}件
+          </span>
+        )}
+      </div>
+
+      {posts.length === 0 ? (
+        <>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.8 }}>
+            {displayName}さんはまだ投稿していません
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+            ここには、{displayName}さんの最近の投稿が表示されます。
+          </p>
+        </>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {shown.map((post) => (
+            <PostCard
+              key={post.id}
+              post={{
+                id: post.id,
+                content: post.content,
+                image_url: post.image_url,
+                created_at: post.created_at,
+                likeCount: post.likes[0]?.count ?? 0,
+                isLiked: likedPostIds.has(post.id),
+                isOwner: viewerIsOwner,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ⚠️ 抜粋に収まっているときは出さない。押しても同じものしか出ない */}
+      {hasMore && (
+        <div style={{ borderTop: "1px solid var(--line-soft)", marginTop: 14, paddingTop: 4, textAlign: "center" }}>
+          <ShowAllFeedButton label="すべて表示" />
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
@@ -682,55 +773,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
             <ProfileTabsClient
               feedCount={recentPostsTyped.length}
               feed={<>
-              {/* ⚠️ ここは**フィードタブの中身**（2026-08-23）。0件でも出す。
-                     タブごと消すと「投稿がどこにあるか分からない」に戻る。 */}
-              {(
-                <section id="activity" style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                    <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                      アクティビティ
-                    </span>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                      ACTIVITY
-                    </span>
-                    <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                    {recentPostsTyped.length > 0 && (
-                      <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
-                        {recentPostsTyped.length}件
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 投稿リスト。0件のときは事実だけ書く（督促はしない）。
-                      ⚠️ 本人向けの投稿導線はこのページに置かない（2026-08-16/17 の判断）。
-                         投稿は `/mypage` のアクティビティから行う。 */}
-                  {recentPostsTyped.length === 0 && (
-                    <p style={{ margin: 0, fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                      まだ投稿がありません。
-                    </p>
-                  )}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {recentPostsTyped.map((post) => (
-                        <PostCard
-                          key={post.id}
-                          post={{
-                            id: post.id,
-                            content: post.content,
-                            image_url: post.image_url,
-                            created_at: post.created_at,
-                            likeCount: post.likes[0]?.count ?? 0,
-                            isLiked: likedPostIds.has(post.id),
-                            isOwner: viewerIsOwner,
-                          }}
-                        />
-                      ))}
-                  </div>
-                </section>
-              )}
+              {/* ⚠️ フィードタブは**全件**（`ow_posts_visible` から6件）。
+                     プロフィール内の抜粋（自己紹介と職歴の間）とは別物で、
+                     あちらは3件までの入口。両方とも0件でも出す。 */}
+              <ActivitySection
+                posts={recentPostsTyped}
+                likedPostIds={likedPostIds}
+                viewerIsOwner={viewerIsOwner}
+                displayName={owUser.name}
+                mode="full"
+              />
               </>}
               profile={<>
 
@@ -756,6 +808,21 @@ export default async function UserProfilePage({ params }: { params: { id: string
                    点線の CTA が出ていたのをやめる。追加は `/mypage` の
                    「セクションを追加」に集約した（2026-08-16）。 */}
             <ProfileAboutSection aboutMe={owUser.about_me} viewerIsOwner={false} />
+
+            {/* ★アクティビティの抜粋（2026-08-23）。**自己紹介と職歴の間**に置く。
+                   LinkedIn と同じ並びで、その人が何を発信しているかを
+                   経歴を読む前に見せる。
+                ⚠️ **0件でも出す。** 「まだ投稿していません」と書くことで、
+                   投稿していないのか置き場所が無いのかを読み手が区別できる。
+                ⚠️ ここは**抜粋（3件まで）**。全件はフィードタブが持つ。
+                   件数が抜粋を超えるときだけ「すべて表示 →」を出す。 */}
+            <ActivitySection
+              posts={recentPostsTyped}
+              likedPostIds={likedPostIds}
+              viewerIsOwner={viewerIsOwner}
+              displayName={owUser.name}
+              mode="preview"
+            />
             {/* ── 数値実績 ── */}
             <ProfileAchievementsSection achievements={achievements} />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 /**
  * `/u/[id]` の上位タブ（2026-08-23）。
@@ -28,6 +28,36 @@ import { useState, type ReactNode } from "react";
  *     下線と塗りが同時に出て「どちらが選択中か分からない」を起こした）。
  *    件数はラベル右のニュートラルなバッジで示す。
  */
+/**
+ * タブの切り替えを、パネルの**中**から呼べるようにする。
+ *
+ * ⚠️ プロフィールの中に置く「すべて表示 →」（LinkedIn と同じ、自己紹介と職歴の間の
+ *    アクティビティから全件へ移る導線）で使う。中身はサーバーで組み立てているので、
+ *    関数を props で渡せない。context 経由にする。
+ */
+const TabContext = createContext<((tab: "profile" | "feed") => void) | null>(null);
+
+/** パネルの中から「フィード」タブへ移るボタン。無い文脈で使っても壊れない（何も描かない） */
+export function ShowAllFeedButton({ label }: { label: string }) {
+  const setTab = useContext(TabContext);
+  if (!setTab) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => { setTab("feed"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        background: "none", border: "none", padding: "8px 0",
+        color: "var(--royal)", fontSize: 13, fontWeight: 600,
+        cursor: "pointer", fontFamily: "inherit",
+      }}
+    >
+      {label}
+      <span aria-hidden>→</span>
+    </button>
+  );
+}
+
 export function ProfileTabsClient({
   profile,
   feed,
@@ -105,10 +135,12 @@ export function ProfileTabsClient({
         })}
       </div>
 
-      {/* ⚠️ 出していない側を DOM に残さない。`ProfileNavClient` は
-             `document.getElementById` でセクションを探すので、隠したまま
-             残すと「見えていないセクション」に飛ぼうとする。 */}
-      <div role="tabpanel">{tab === "profile" ? profile : feed}</div>
+      {/* ⚠️ 出していない側を DOM に残さない（`display:none` で隠さない）。
+             同じ id・同じ見出しの要素が2つ存在すると、`getElementById` や
+             テストの要素探索が見えていない方を掴む。 */}
+      <TabContext.Provider value={setTab}>
+        <div role="tabpanel">{tab === "profile" ? profile : feed}</div>
+      </TabContext.Provider>
     </>
   );
 }
