@@ -2365,6 +2365,68 @@ prerender は掲載中の企業ページなどを一気に生成し、**1ペー�
 ⚠️ `distDir` を分けても**防げない**。あれはローカルのファイル衝突の対策で、
    **本番 Supabase への負荷は dev と build で二重になる。**
 
+#### ★「ログインできない」を見たときの切り分け（2026-08-23 確立）
+
+**アプリのバグに見えるが、上のビルド負荷がこの形で現れる。** 実際に原因特定へ何往復もした。
+
+| 画面に出るもの | 実体 |
+|---|---|
+| ボタンが「**ログイン中...**」のまま固まる | `signInWithPassword` が**60秒ハング**している最中 |
+| 赤い枠に「**`{}`**」とだけ出る | **504 の空ボディ**。`@supabase/auth-js` の `_getErrorMessage` が最後に `JSON.stringify(err)` へ落ち、`{}` という**文字列**がそのままエラー文言になる |
+
+⚠️ **`{}` を「文言の実装漏れ」と読まないこと。** 文言は正しく動いており、
+   **サーバーが中身の無い応答を返している**という意味。
+
+##### 手順（この順で見る。逆順だと空振りする）
+
+1. **`edge_logs` で `grant_type=password` の POST が何回届いたかを数える。**
+   ここが起点。**クリックした回数と合わなければ、リクエスト自体が飛んでいない／死んでいる。**
+
+   ```sql
+   select timestamp, log_attributes['request.search'] as grant,
+          log_attributes['response.status_code'] as status,
+          log_attributes['response.origin_time'] as origin_ms
+     from logs
+    where source='edge_logs' and log_attributes['request.path']='/auth/v1/token'
+      and log_attributes['request.method']='POST'
+      and timestamp > now() - interval 24 hour
+    order by timestamp desc;
+   ```
+
+   実測（2026-08-23）: **24時間で2回だけ**。01:37 は 200（427ms・成功）、
+   04:01:51 は **504（origin_time 59,993ms）**。何度クリックしても飛んでいなかった。
+
+2. **`auth_logs` も見る。ただし504はここに出ない。**
+   ゲートウェイで死ぬので **GoTrue に届かず記録が残らない**。
+   ⚠️ **`auth_logs` だけ見ると「何も起きていない」ように見える。**
+   ここに出るのは 500 のほう（`failed to connect to ... dial tcp [::1]:5432`）。
+
+3. **発信元 IP ごとの req/分 を数えて、叩いている主体を特定する。**
+
+   ```sql
+   select toStartOfMinute(timestamp) as minute,
+          log_attributes['request.headers.cf_connecting_ip'] as ip, count() as n
+     from logs where source='edge_logs' and timestamp > now() - interval 60 minute
+    group by 1,2 having n > 20 order by minute desc, n desc;
+   ```
+
+   ⚠️ **自分のグローバル IP を先に調べておく**（`curl -s https://api.ipify.org`）。
+      ローカルの dev / build は**この IP で出る**。Vercel は AWS ap-northeast-1 の IP 群。
+
+4. **`/auth/v1/health` を数回叩いて、Auth 自体の健康を見る。**
+   アイドル時は **0.07秒**。1秒を超えていたら詰まっている。
+
+##### 判定
+
+| 観測 | 結論 |
+|---|---|
+| password POST が**届いていない** or 504 | **本項のビルド負荷**。`ps aux \| grep "next build"` を見る |
+| password POST が **400 invalid_credentials** | 本当に資格情報が違う |
+| password POST が **200 なのに画面が進まない** | 遷移側の問題。「★フルナビゲーションで遷移する」を参照 |
+
+⚠️ **`auth.users` を見て「BAN されていないか」から入らないこと。** 今回それは全部正常で、
+   `last_sign_in_at` も更新されていた。**壊れていたのはアカウントではなく経路。**
+
 ### ⚠️ dev サーバーは絶対に2つ同時に起動しない（2026-08-03 確立）
 
 **起動前に必ず既存プロセスを確認し、あれば停止する。**
