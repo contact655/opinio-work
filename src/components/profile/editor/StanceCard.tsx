@@ -120,12 +120,20 @@ export default function StanceCard({
 
       <div style={{ height: 1, background: "var(--line)", margin: "16px 0 12px" }} />
 
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em", marginBottom: 4 }}>
-        転職について
+      {/* ★「転職について」は**1行**にする（2026-08-24）。
+             ⚠️ 見出し・値・注記で3行を使っていたが、**表示だけの項目**にその重さは要らない。
+                左に項目名・右に値の1行にして、変更先はその下に短く添える。
+             ⚠️ ここは表示専用。編集は本文の「転職の希望」に1つだけ置く（ルール⑧）。 */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+          転職について
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", textAlign: "right", minWidth: 0 }}>
+          {openToWorkLabel}
+        </span>
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{openToWorkLabel}</div>
-      <p style={{ margin: "6px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-        変更はプロフィールの「転職の希望」から。
+      <p style={{ margin: "4px 0 0", fontSize: 11, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+        変更は「転職の希望」から
       </p>
     </section>
   );

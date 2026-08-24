@@ -382,11 +382,17 @@ export default function MypageClient({
           border: "1.5px solid var(--royal-100)", borderRadius: 12,
           padding: "14px 16px",
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
-            プロフィールを公開して、企業に見つけてもらいましょう
+          {/* ★見出しは**残りの数**（2026-08-24）。
+                 ⚠️ 以前は見出し・本文・ボタンの3つが同じことを言っていた
+                    （「公開して見つけてもらいましょう」「あと1つ、自己紹介を入力すると
+                    公開できます」「自己紹介を入力する →」）。
+                    見出し＝あと何個 / 本文＝何を入れると何が起きるか / ボタン＝次の操作、
+                    と役割を分けている。 */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+            公開まであと{setupMissing.length}つ
           </div>
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
-            あと{setupMissing.length}つ、{setupMissing.map((m) => m.label).join("・")}を入力すると公開できます。
+            {setupMissing.map((m) => m.label).join("・")}を入力すると、企業から見つけてもらえます。
           </div>
           {/* ⚠️ **リンクにしない。** 移設後は同じページなので `href` では何も起きない。
                  足りていない項目の**先頭**に対応するカードを開く。 */}
