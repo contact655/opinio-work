@@ -1321,55 +1321,6 @@ export default function ProfileTab({
             </FormGroup>
           </ProfileEditModal>
 
-        {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4）。
-               公開プロフィールと同じ**独立した2セクション**。並び順も `/u/[id]` に合わせ、
-               自己紹介（基本情報）の直後・職歴の前に置く。
-            ⚠️ 職歴カードの中に入れ子で戻さないこと。紐づけはフォームのセレクトで選ぶ。 */}
-          {/* ⚠️ `manageHref`（「編集」）は**1件以上あるときだけ**渡す（2026-08-24）。
-                 0件で渡すと、押した人が空の一覧ページに着く。職歴・学歴で先に
-                 決めてあった扱い（0件のときは ✎ を出さない）に揃えている。 */}
-          <div style={{ maxWidth: 680 }}>
-            <ProfileAchievementsSection
-              achievements={shownAchievements}
-              actions={{
-                manageHref: achievements.length > 0 ? "/mypage/details/achievements" : undefined,
-                manageLabel: "数値実績を編集",
-                onAdd: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); },
-              }}
-              showAll={{ href: "/mypage/details/achievements", label: "数値実績", hiddenCount: achievements.length - shownAchievements.length }}
-            />
-            {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダルなので何も描かない）。
-                   ⚠️ 閉じたら id を null に戻すこと。同じ行を続けて2回開くために要る。 */}
-            <AchievementEditor
-              achievements={achievements}
-              setAchievements={setAchievements}
-              openAddNonce={achAddNonce}
-              openEditId={editingAchId}
-              openDeleteId={deleteAchId}
-              experienceOptions={experienceOptions}
-              onClosed={() => { setEditingAchId(null); setDeleteAchId(null); }}
-            />
-
-            <ProfileAwardsSection
-              awards={shownAwards}
-              actions={{
-                manageHref: awards.length > 0 ? "/mypage/details/awards" : undefined,
-                manageLabel: "受賞・表彰を編集",
-                onAdd: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); },
-              }}
-              showAll={{ href: "/mypage/details/awards", label: "受賞・表彰", hiddenCount: awards.length - shownAwards.length }}
-            />
-            <AwardEditor
-              awards={awards}
-              setAwards={setAwards}
-              openAddNonce={awdAddNonce}
-              openEditId={editingAwdId}
-              openDeleteId={deleteAwdId}
-              experienceOptions={experienceOptions}
-              onClosed={() => { setEditingAwdId(null); setDeleteAwdId(null); }}
-            />
-          </div>
-
         {/* 職歴・学歴タブ */}
           <div style={{ maxWidth: 680 }}>
 
@@ -1520,6 +1471,55 @@ export default function ProfileTab({
               openEditId={editingEduId}
               openDeleteId={deleteEduId}
               onClosed={() => { setEditingEduId(null); setDeleteEduId(null); }}
+            />
+
+            {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4、2026-08-24 に**学歴の直下へ移動**）。
+                     公開プロフィールと同じ**独立した2セクション**。
+                  ⚠️ 以前は「自己紹介の直後・職歴の前」に置いていた。柴さんの指示で
+                     **学歴の下（資格より上）**にした。**並び順は `/u/[id]` と必ず揃えること。**
+                     片方だけ動かすと、同じプロフィールが2つの画面で別の順に見える。
+                  ⚠️ 職歴カードの中に入れ子で戻さないこと。紐づけはフォームのセレクトで選ぶ。 */}
+            {/* ⚠️ `manageHref`（「編集」）は**1件以上あるときだけ**渡す（2026-08-24）。
+                   0件で渡すと、押した人が空の一覧ページに着く。職歴・学歴で先に
+                   決めてあった扱い（0件のときは ✎ を出さない）に揃えている。 */}
+            <ProfileAchievementsSection
+              achievements={shownAchievements}
+              actions={{
+                manageHref: achievements.length > 0 ? "/mypage/details/achievements" : undefined,
+                manageLabel: "数値実績を編集",
+                onAdd: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); },
+              }}
+              showAll={{ href: "/mypage/details/achievements", label: "数値実績", hiddenCount: achievements.length - shownAchievements.length }}
+            />
+            {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダルなので何も描かない）。
+                   ⚠️ 閉じたら id を null に戻すこと。同じ行を続けて2回開くために要る。 */}
+            <AchievementEditor
+              achievements={achievements}
+              setAchievements={setAchievements}
+              openAddNonce={achAddNonce}
+              openEditId={editingAchId}
+              openDeleteId={deleteAchId}
+              experienceOptions={experienceOptions}
+              onClosed={() => { setEditingAchId(null); setDeleteAchId(null); }}
+            />
+
+            <ProfileAwardsSection
+              awards={shownAwards}
+              actions={{
+                manageHref: awards.length > 0 ? "/mypage/details/awards" : undefined,
+                manageLabel: "受賞・表彰を編集",
+                onAdd: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); },
+              }}
+              showAll={{ href: "/mypage/details/awards", label: "受賞・表彰", hiddenCount: awards.length - shownAwards.length }}
+            />
+            <AwardEditor
+              awards={awards}
+              setAwards={setAwards}
+              openAddNonce={awdAddNonce}
+              openEditId={editingAwdId}
+              openDeleteId={deleteAwdId}
+              experienceOptions={experienceOptions}
+              onClosed={() => { setEditingAwdId(null); setDeleteAwdId(null); }}
             />
 
             {/* ★資格（2026-08-24）。**学歴の下**（柴さんの指示・LinkedIn と同じ並び）。

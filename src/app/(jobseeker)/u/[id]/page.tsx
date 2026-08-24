@@ -836,12 +836,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
               viewerIsOwner={viewerIsOwner}
               displayName={owUser.name}
             />
-            {/* ── 数値実績 ── */}
-            <ProfileAchievementsSection achievements={achievements} />
-
-            {/* ── 受賞・表彰 ── */}
-            <ProfileAwardsSection awards={awards} />
-
             {/* ── 職歴セクション ──
                    ⚠️ 枠・見出しは `ProfileTimelineSection` に切り出した（2026-08-16 / 2-6）。
                       `/mypage` が同じものを使う。DOM は切り出す前と同一（実測済み）。 */}
@@ -868,6 +862,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 />
               </ProfileTimelineSection>
             )}
+
+            {/* ── 数値実績 / 受賞・表彰 ──
+                   ⚠️ **2026-08-24 に「自己紹介の直後・職歴の前」から学歴の直下へ移した**
+                      （柴さんの指示。資格より上）。
+                   ⚠️ **並び順は `/mypage`（ProfileTab）と必ず揃えること。**
+                      片方だけ動かすと、同じプロフィールが2つの画面で別の順に見える。 */}
+            <ProfileAchievementsSection achievements={achievements} />
+            <ProfileAwardsSection awards={awards} />
 
             {/* ── 資格（2026-08-24）──
                    ⚠️ **学歴の下**。柴さんの指示で LinkedIn と同じ並びにしてある。
