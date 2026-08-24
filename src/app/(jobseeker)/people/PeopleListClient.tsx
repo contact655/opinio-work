@@ -392,27 +392,30 @@ function ListRow({ card, myUserId, followedUserIds }: {
   followedUserIds: string[];
 }) {
   const router = useRouter();
-  const tenure = card.experienceMonths !== null && card.experienceMonths > 0
-    ? formatMonths(card.experienceMonths)
-    : null;
+  const months = card.experienceMonths;
+  const hasTenure = months !== null && months > 0;
+  const tenure = hasTenure ? formatMonths(months) : null;
+  /* スタット列は「大きい数字 ＋ 小さい単位」の形（企業一覧の StatCol と同じ）。
+     ⚠️ 端数の月を捨てて「N年」に丸めないこと。単位側に寄せて全部出す
+        （1年未満の人は月数を数字側に出す）。 */
+  const tenureYears = hasTenure ? Math.floor(months / 12) : 0;
+  const tenureRest  = hasTenure ? months % 12 : 0;
 
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
+      /* ★意匠は企業一覧の横カード（globals.css の `.company-list-card`）に合わせてある。
+            余白・角丸・影・hover・アバター寸法まで同じ値。片方だけ動かさないこと。
+         ⚠️ 余白と gap をインラインに書き戻さないこと。狭幅で折り返す指定が効かなくなる。 */
       className="ppl-list-row"
-      style={{
-        display: "flex", alignItems: "center", gap: 14,
-        background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-        padding: "12px 16px", cursor: "pointer",
-      }}
     >
       <div style={{ flexShrink: 0 }}>
-        <Avatar card={card} size={56} />
+        <Avatar card={card} size={68} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>{card.name}</span>
+          <span className="ppl-row-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", transition: "color 0.15s" }}>{card.name}</span>
           {card.canTalk && (
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -431,46 +434,84 @@ function ListRow({ card, myUserId, followedUserIds }: {
             ⚠️ 所属は会社とは限らない（学校・元所属もある）。自前で組み立てず
                `AffiliationBlock` を通す。型がユニオンなので `companyName` を
                直接読むと学校の分岐で落ちる。 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
           <AffiliationBlock card={card} />
           {card.roleName && (
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{card.roleName}</span>
           )}
         </div>
 
-        {/* ★ここが1列表示の存在理由。カードには入らない情報を出す */}
-        {(tenure || card.hasForeignExperience) && (
-          <div style={{ display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
-            {tenure && (
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>社会人 {tenure}</span>
-            )}
-            {card.hasForeignExperience && (
-              <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>外資系の経験あり</span>
-            )}
+        {/* ★ここが1列表示の存在理由。カードには入らない情報を出す。
+            外資系は企業一覧のメタ行の業種タグと同じ意匠にしてある。 */}
+        {card.hasForeignExperience && (
+          <div style={{ marginTop: 6 }}>
+            <span style={{
+              fontSize: 11, color: "var(--ink-soft)",
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              padding: "2px 8px", borderRadius: "var(--radius-sm)",
+              whiteSpace: "nowrap",
+            }}>外資系の経験あり</span>
+          </div>
+        )}
+
+        {/* 社会人年数（狭幅用）。
+            ⚠️ 企業一覧はスタット列を 767px 以下で丸ごと隠すが、こちらは**1列表示の
+               存在理由**なので消さない。列を隠すかわりにここへテキストで出す。 */}
+        {tenure && (
+          <div className="ppl-row-tenure-inline" style={{ marginTop: 4, fontSize: 12, color: "var(--ink-mute)" }}>
+            社会人 {tenure}
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      {/* ── スタット列（企業一覧の StatCol と同じ組み） ──
+          ⚠️ 値が無い人は列ごと出さない。「0年」で埋めない。 */}
+      {hasTenure && (
+        <div className="ppl-row-stats" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 2 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--ink)" }}>
+                {tenureYears > 0 ? tenureYears : tenureRest}
+              </span>
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+                {tenureYears > 0 ? (tenureRest > 0 ? `年${tenureRest}ヶ月` : "年") : "ヶ月"}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>社会人歴</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CTA（縦積み）──
+          ⚠️ 幅は `minWidth` で固定する。「フォロー」→「フォロー中」で列幅が動くため
+             （企業一覧の「保存」→「保存済」と同じ理由）。
+          ⚠️ 意匠は白のまま。navy 塗りにしないこと（グリッドカードと同じ判断。
+             行全体が /u/[id] への導線なので、ここを塗ると一覧が主導線だらけになる）。 */}
+      <div className="ppl-row-cta">
         <Link
           href={`/u/${card.userId}`}
           target="_blank"
+          className="ppl-row-profile-btn"
           onClick={(e) => e.stopPropagation()}
           style={{
-            padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-            border: "1.5px solid var(--line)", background: "#fff",
-            color: "var(--ink-soft)", textDecoration: "none", whiteSpace: "nowrap",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
+            border: "1.5px solid var(--royal-100)", background: "#fff",
+            color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap",
           }}
         >
           プロフィール
         </Link>
         {myUserId !== null && card.userId !== myUserId && (
-          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexShrink: 0 }}>
+          /* ⚠️ `flexDirection: column` にすること。row のままだと中のボタンが
+                内容幅（実測 102px）のままになり、上のプロフィール（列幅124px）と
+                **幅が違って左に寄る**。column なら交差軸が横になり、
+                既定の align-items: stretch で列幅いっぱいに伸びる。 */
+          <div className="ppl-row-follow" onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
             <FollowUserButton
               targetUserId={card.userId}
               initialFollowed={followedUserIds.includes(card.userId)}
               isAuthenticated
-              compact
             />
           </div>
         )}
@@ -680,6 +721,47 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
           box-shadow: 0 8px 32px rgba(0,35,102,0.12);
           transform: translateY(-3px);
           border-color: var(--royal-100);
+        }
+
+        /* ── 1列表示の行 ────────────────────────────────────────────────
+           ★意匠は企業一覧の横カードに合わせてある（2026-08-24）。
+              hover の値は globals.css の .company-list-card と同じ。
+              片方を変えるときは必ずもう片方も見ること。 */
+        .ppl-list-row {
+          display: flex; align-items: center; gap: 18px;
+          background: #fff; border: 1px solid var(--line); border-radius: 14px;
+          box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+          padding: 18px 20px; cursor: pointer;
+          transition: box-shadow 0.18s, border-color 0.18s;
+        }
+        /* CTA は縦積み。⚠️ 幅は min-width で固定する。「フォロー」→「フォロー中」で
+           列幅が動くため（企業一覧の「保存」→「保存済」と同じ理由。実測 102px → 115px）。 */
+        .ppl-row-cta {
+          flex-shrink: 0; display: flex; flex-direction: column;
+          align-items: stretch; gap: 8px; min-width: 124px;
+        }
+        .ppl-list-row:hover { box-shadow: 0 4px 24px rgba(0,35,102,0.12); border-color: #d0daf5; }
+        .ppl-list-row:hover .ppl-row-name { color: var(--royal); }
+        /* 社会人年数は、広い画面ではスタット列・狭い画面では本文のテキストで出す。
+           ⚠️ 両方同時に出さないこと（同じ値が2回出る）。 */
+        .ppl-row-tenure-inline { display: none; }
+        @media (max-width: 767px) {
+          .ppl-row-stats { display: none !important; }
+          .ppl-row-tenure-inline { display: block !important; }
+        }
+        /* ⚠️ 企業一覧は 767px 以下で CTA を丸ごと隠すが、こちらは**隠さない**。
+              企業カードは全体が Link なので消しても導線が残るが、
+              フォローは他に押す場所が無い。折り返して全幅の1行に落とす。 */
+        @media (max-width: 600px) {
+          .ppl-list-row { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
+          .ppl-row-cta { width: 100%; min-width: 0; flex-direction: row; }
+          /* ⚠️ 子セレクタ（>）を書かないこと。React はこの style の中身を
+                テキストとして扱うので **&gt; に化けて規則ごと死ぬ**（実測）。
+                クラス名で指定する。 */
+          /* ⚠️ flex: 1 だと**幅が揃わない**（実測 162px / 123px）。
+                プロフィール側の padding + border 39px ぶんだけ広くなる。
+                半分ずつに固定する（4px は gap 8px の半分）。 */
+          .ppl-row-profile-btn, .ppl-row-follow { flex: 0 0 calc(50% - 4px); }
         }
 
         /* FilterChip */
