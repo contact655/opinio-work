@@ -23,6 +23,8 @@ function stateOf(a: AmbassadorRecord) {
     is_public: a.is_public,
     approved_at: a.approved_at,
     created_via: a.created_via,
+    /* ⚠️ 2026-08-24 追加。`pending_user`（招待に未応答）と `paused`（本人がOFF）の判別に要る */
+    consent_at: a.consent_at,
   });
 }
 
@@ -37,6 +39,7 @@ export type AmbassadorRecord = {
   display_consent: boolean;
   is_public: boolean;
   approved_at: string | null;
+  consent_at: string | null;
   created_via: string | null;
   invited_at: string | null;
 };

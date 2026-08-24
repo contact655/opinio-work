@@ -7,60 +7,46 @@ import { memberState, type MemberState, type CompanyMemberRow } from "@/lib/cons
 /**
  * 「在籍している会社について、話を聞かれてもよいか」（/mypage 右カラム・StanceCard の直下）。
  *
+ * ★2026-08-24 に**トグル**にした（柴さんの指示）。ONが「面談可」そのもので、
+ *   本人がいつでも切り替えられる。**会社の事前承認は廃止した。**
+ *
  * ── 何を持つか ─────────────────────────────────────────────────────────────
  * `ow_company_members` の**行そのもの**。列は増やさない。
  * **状態は `memberState()` の5つをそのまま使う。ここで状態を定義し直さない。**
  *
- * ⚠️★**本人は「申請」までしか作れない。** 公開するのは企業側（`is_public`）。
- *    `ow_experiences` の在籍は自己申告なので、即公開にすると誰でも
- *    「セールスフォース在籍」と書いて企業ページに実名・顔写真つきで並べられる。
- *    API（`/api/mypage/ambassador-self-register`）も RLS（`member_self_apply`）も
- *    `is_public=false` を強制している。**ここから公開できる導線を作らないこと。**
+ * ⚠️★**OFF で行を消さない。** `/api/mypage/ambassador-visibility` を叩いて
+ *    `display_consent` と `is_public` を false にするだけ。消すと戻すのが
+ *    作り直しになり、「いつでも戻せる」というこの画面の約束が嘘になる。
+ *    （DELETE する `ambassador-self-remove` はもうこの画面からは呼ばない）
  *
- * ⚠️★**`pending_company` を「公開中」に見せない。**
- *    `display_consent` だけで色分けすると、申請しただけの人に「公開中」と出る。
- *    実際 2026-08-23 まで `/mypage` 本文の旧ウィジェットがそうなっていた。
+ * ⚠️★**なりすまし対策は3つで受けている。1つでも外すと成立しない。**
+ *    ① 在籍として申告している会社にしか出せない（RLS `member_self_apply` の EXISTS）
+ *    ② 企業はいつでも非掲載にできる（`/biz/members`）
+ *    ③ **この画面に「本人の申告です。OPINIO は在籍確認をしていません」と出す**
+ *    ③を消さないこと。①②はコードで守れるが、③は文言でしか守れない。
  *
- * ⚠️★**`unlisted` を「本人が承認していない」と読める文言にしない。**
- *    本人は同意済みで、非公開にしているのは企業側。待たされているのは本人ではない。
+ * ⚠️ `unlisted`（企業が非掲載にした）を「本人が承認していない」と読める文言にしない。
+ *    本人はONのままで、止めているのは企業側。
  *
- * ⚠️ 挙動は `StanceCard` に合わせる。**API 方式・楽観更新なし**
- *    （押した瞬間ではなく、保存できてから表示を変える）。
- *    未選択でどちらのボタンも active にしない。
+ * ⚠️ 「面談」という語を本文に使わない（選考の面談と読まれる）。見出しは
+ *    「話を聞かれてもよいか」。トグルのラベルだけ、柴さんの指示で「面談可」を使う。
  */
 
 /** @deprecated 名前だけの別名。実体は `CompanyMemberRow` */
 export type TalkMembership = CompanyMemberRow;
 
-/* ⚠️ 文言は**案**。確定は柴さん。ここを唯一の置き場にして、状態ごとに1箇所で持つ。
-      ⚠️ 「面談」という語を本文に使わない（選考の面談と読まれる）。
-         見出しも「話を聞かれてもよいか」にしてある。 */
-const COPY: Record<Exclude<MemberState, "none">, { badge: string; tone: string; line: string }> = {
-  pending_user: {
-    badge: "あなたの確認待ち",
-    tone: "var(--warm-soft)",
-    /* ⚠️ 「内容を確認してください」は**書かない**。すぐ下のボタンが
-          「内容を確認する →」なので、同じことを2回言っている（2026-08-24）。 */
-    line: "「話を聞ける人」として会社から依頼が届いています。",
-  },
-  pending_company: {
-    badge: "会社の確認待ち",
-    tone: "var(--warm-soft)",
-    /* ⚠️ 「申請しました」は落とした。バッジと「〇月〇日に申請」が同じことを言っている。
-          ⚠️ **「まだ公開されていません」は落とさない。** 申請＝公開と誤解させないため。 */
-    line: "会社が在籍を確認すると、この会社のページに掲載されます。まだ公開されていません。",
-  },
-  unlisted: {
-    badge: "いまは非掲載",
-    tone: "var(--bg-tint)",
-    /* ⚠️ **本人が承認していないと読める文言にしない。** 非公開にしているのは会社側。 */
-    line: "会社側の設定で、いまは掲載されていません。登録はそのまま残っています。",
-  },
-  listed: {
-    badge: "掲載中",
-    tone: "var(--success-soft)",
-    line: "この会社のページに掲載中。話を聞きたい人から連絡が届きます。",
-  },
+/* 状態ごとの1行。**トグルの下に出す“いまどうなっているか”**。
+   ⚠️ ここを増やさない。説明はトグルのラベルと下の注記で足りている。 */
+const LINE: Record<Exclude<MemberState, "none">, { text: string; tone: string }> = {
+  /** 企業に招待されて、まだ一度も応じていない */
+  pending_user:    { text: "会社から依頼が届いています", tone: "var(--ink-soft)" },
+  /** 本人が自分でOFFにしている。⚠️ 「戻せる」ことを必ず書く */
+  paused:          { text: "いまは掲載していません · ONにすればすぐ戻ります", tone: "var(--ink-mute)" },
+  /** @deprecated 到達しない（会社の事前承認を廃止した） */
+  pending_company: { text: "会社の確認待ち", tone: "var(--ink-soft)" },
+  /** ⚠️ 止めているのは企業側。本人が何かを怠っているように読ませない */
+  unlisted:        { text: "会社の設定でいまは非掲載です", tone: "var(--ink-soft)" },
+  listed:          { text: "話を聞きたい人から連絡が届きます", tone: "var(--success)" },
 };
 
 export default function TalkToMeCard({
@@ -80,9 +66,10 @@ export default function TalkToMeCard({
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
-  /* ⚠️ 確認は**その行に対して**持つ。カード全体で1つにすると、
-        複数社に在籍している人が別の行の確認を開いたまま押せてしまう。 */
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  /* ⚠️ 2026-08-24 に**削除の確認ダイアログをやめた**。OFF は行を消さず掲載を止めるだけで、
+        ONに戻せば同じ状態に戻るので、確認で止める理由が無くなった。
+        ⚠️ 行ごと消す操作（`ambassador-self-remove`）を**この画面に戻すなら**、
+           2段階の確認も一緒に戻すこと。あれは取り消せない。 */
   const [error, setError] = useState<string | null>(null);
 
   /* 在籍している会社と、その会社の行（あれば）を突き合わせる。
@@ -109,7 +96,6 @@ export default function TalkToMeCard({
         return;
       }
       /* ⚠️ 楽観更新しない。サーバーの行を取り直してから表示を変える。 */
-      setConfirmingId(null);
       router.refresh();
     } catch {
       setError("保存できませんでした。もう一度お試しください。");
@@ -134,97 +120,46 @@ export default function TalkToMeCard({
         {rows.map(({ company, m }) => {
           const state = memberState(m);
           const busy = busyId === (m?.id ?? company.id);
+          /* ★トグルの見た目は「本人の意思」。掲載されているかは下の行が言う。
+             ⚠️ `unlisted`（企業が非掲載）でも**ONのまま**にする。本人はONにしており、
+                ここでOFFに見せると「自分で切ったのか会社が切ったのか」が分からなくなる。 */
+          const on = state === "listed" || state === "unlisted";
+
+          /* ⚠️ 招待に未応答のときは既存の着地ページへ送る。**新しい承認導線を作らない。**
+                依頼の中身（どの会社から・どんな依頼か）を見ないまま承認させないため。 */
+          const invitePending = state === "pending_user" && !!m;
+
+          const toggle = () => {
+            if (busy) return;
+            if (!m) {
+              /* 行がまだ無い＝はじめてON。作成と同時に掲載される */
+              void run("/api/mypage/ambassador-self-register", {
+                method: "POST",
+                body: JSON.stringify({ company_id: company.id }),
+              }, company.id);
+              return;
+            }
+            void run("/api/mypage/ambassador-visibility", {
+              method: "PATCH",
+              body: JSON.stringify({ member_id: m.id, enabled: !on }),
+            }, m.id);
+          };
 
           return (
             <div key={company.id} style={{
-              background: state === "none" ? "var(--bg-tint)" : COPY[state].tone,
+              background: "var(--bg-tint)",
               border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", flex: 1, minWidth: 0,
-                               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {company.name}
-                </span>
-                {state !== "none" && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)",
-                                 background: "#fff", border: "1px solid var(--line)",
-                                 borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {COPY[state].badge}
-                  </span>
-                )}
+              <div style={{
+                fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {company.name}
               </div>
 
-              {/* ★申請日を出す（2026-08-23）。
-                     ⚠️ 出さないと「いつ申請したか」が本人に分からず、
-                        止まっているのか忘れられているのかを区別できない。
-                     ⚠️ 「運営が確認します」とは書かない。宛先がある企業では企業が承認するので、
-                        全員に出すと事実と違う。 */}
-              {state === "pending_company" && m?.consent_at && (
-                <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
-                  {new Date(m.consent_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })} に申請
-                </p>
-              )}
-              {/* ★`none` だけ「問い」と「仕組み」を分けて組む（2026-08-24）。
-                     ⚠️ 84字の1段落で、幅254pxのカードでは**5行に折り返して**いた。
-                        文字を削るのではなく、**先に問い・あとに条件**の順に組み替えている。
-                     ⚠️ 見送られると行ごと消えて `none` に戻る。**却下は記録されない**ので、
-                        本人には「申請が消えた」ようにしか見えない。だから
-                        「また申請できる」ことを**申請できる状態のときに常時**書いておく。
-                        ⚠️ 「取り下げ」とは書かない。初めて見る人には何を指すか分からない。 */}
-              {state === "none" ? (
-                <>
-                  <p style={{ margin: "0 0 6px", fontSize: 12.5, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                    話を聞きたい人がいたら、つないでもよいですか。
-                  </p>
-                  {/* ⚠️ 条件は箇条書きにする。段落に混ぜると、読み飛ばした人が
-                         「申請＝すぐ公開」と受け取る。
-                     ⚠️ **1行に収まる長さで書くこと（14〜15字）。** カードの内寸は
-                        224px（幅320pxの右カラム）で、12px なら記号こみ15字で折り返す。
-                        折り返すと箇条書きが4行になり、**段落だった頃より高くなる**
-                        （実測: 段落 290px → 折り返した箇条書き 320px → 1行に収めて 281px）。 */}
-                  <ul style={{ margin: "0 0 10px", padding: 0, listStyle: "none",
-                               display: "flex", flexDirection: "column", gap: 3 }}>
-                    {["会社が在籍を確認してから掲載",
-                      "見送られても、また申請できます"].map((t) => (
-                      <li key={t} style={{ display: "flex", gap: 6, fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-                        <span aria-hidden style={{ flexShrink: 0 }}>・</span>
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-                  {COPY[state].line}
-                </p>
-              )}
-
-              {/* ── 状態ごとの操作 ───────────────────────────────────────── */}
-              {state === "none" && (
-                /* ⚠️ 「はい／いいえ」の2択にしない。**「いいえ」は行を作らない**ことなので、
-                      押さないことがそのまま「いいえ」。未選択でどちらも active にしないのと同じ考え方。 */
-                <button
-                  type="button"
-                  className="btn-fixed-size"
-                  disabled={busy}
-                  onClick={() => run("/api/mypage/ambassador-self-register", {
-                    method: "POST",
-                    body: JSON.stringify({ company_id: company.id }),
-                  }, company.id)}
-                  style={{
-                    width: "100%", height: 36, borderRadius: 8, fontSize: 13, fontWeight: 700,
-                    fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
-                    border: "1.5px solid var(--royal)", background: "var(--royal)", color: "#fff",
-                  }}
-                >
-                  {busy ? "送信中…" : "申請する"}
-                </button>
-              )}
-
-              {state === "pending_user" && m && (
-                /* ⚠️ 新しい承認導線を作らない。既存の着地ページへ送る。 */
+              {invitePending ? (
                 <a
-                  href={`/mypage/ambassador-invite/${m.invite_token}`}
+                  href={`/mypage/ambassador-invite/${m!.invite_token}`}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
                     width: "100%", height: 36, borderRadius: 8, fontSize: 13, fontWeight: 700,
@@ -233,91 +168,60 @@ export default function TalkToMeCard({
                 >
                   内容を確認する →
                 </a>
-              )}
-
-              {/* ⚠️ 申請の取り消しは**確認を挟まない**。まだ会社の確認を受けていないので、
-                     押し直しても失うものが無い（待ち時間だけ）。 */}
-              {state === "pending_company" && m && (
+              ) : (
+                /* ★トグル本体。⚠️ `button` にする（div にすると Tab で届かない）。
+                      ⚠️ `aria-pressed` を付ける。見た目だけで状態を伝えない。 */
                 <button
                   type="button"
-                  className="btn-fixed-size"
+                  role="switch"
+                  aria-checked={on}
+                  aria-label={`${company.name}で面談可にする`}
                   disabled={busy}
-                  onClick={() => run("/api/mypage/ambassador-self-remove", {
-                    method: "DELETE",
-                    body: JSON.stringify({ member_id: m.id }),
-                  }, m.id)}
+                  onClick={toggle}
+                  className="btn-fixed-size"
                   style={{
-                    width: "100%", height: 36, borderRadius: 8, fontSize: 13, fontWeight: 600,
-                    fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
-                    border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 12, width: "100%", padding: 0, background: "none", border: "none",
+                    cursor: busy ? "wait" : "pointer", fontFamily: "inherit",
                   }}
                 >
-                  {busy ? "処理中…" : "申請を取り消す"}
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+                    {busy ? "保存中…" : "面談可にする"}
+                  </span>
+                  <span aria-hidden style={{
+                    width: 40, height: 22, borderRadius: 999, flexShrink: 0,
+                    background: on ? "var(--royal)" : "var(--line)",
+                    display: "inline-flex", alignItems: "center",
+                    justifyContent: on ? "flex-end" : "flex-start",
+                    padding: 2, transition: "background 0.15s",
+                    opacity: busy ? 0.6 : 1,
+                  }}>
+                    <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
+                  </span>
                 </button>
               )}
 
-              {/* ★掲載中・非掲載の取り消しは**二段階**にする。
-                     ⚠️ 実体は行の DELETE で、**一時停止ではない**。戻すには再申請して
-                        会社の確認をもう一度受ける必要がある。1クリックで消させない。
-                     ⚠️ 「掲載をやめる」とは書かない。`unlisted` では既に非掲載なので
-                        意味が通らず、`listed` では一時停止に読める。 */}
-              {(state === "unlisted" || state === "listed") && m && (
-                confirmingId === m.id ? (
-                  <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px" }}>
-                    <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                      登録を取り消すと、もう一度申請して会社の確認を受ける必要があります。
-                    </p>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        type="button"
-                        className="btn-fixed-size"
-                        disabled={busy}
-                        onClick={() => run("/api/mypage/ambassador-self-remove", {
-                          method: "DELETE",
-                          body: JSON.stringify({ member_id: m.id }),
-                        }, m.id)}
-                        style={{
-                          flex: 1, height: 34, borderRadius: 8, fontSize: 13, fontWeight: 700,
-                          fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
-                          border: "1.5px solid var(--error)", background: "var(--error)", color: "#fff",
-                        }}
-                      >
-                        {busy ? "処理中…" : "取り消す"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-fixed-size"
-                        disabled={busy}
-                        onClick={() => setConfirmingId(null)}
-                        style={{
-                          flex: 1, height: 34, borderRadius: 8, fontSize: 13, fontWeight: 600,
-                          fontFamily: "inherit", cursor: "pointer",
-                          border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
-                        }}
-                      >
-                        やめる
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-fixed-size"
-                    onClick={() => setConfirmingId(m.id)}
-                    style={{
-                      width: "100%", height: 36, borderRadius: 8, fontSize: 13, fontWeight: 600,
-                      fontFamily: "inherit", cursor: "pointer",
-                      border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
-                    }}
-                  >
-                    登録を取り消す
-                  </button>
-                )
+              {/* いまどうなっているか。⚠️ 状態ごとに1行だけ */}
+              {state !== "none" && (
+                <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: LINE[state].tone }}>
+                  {LINE[state].text}
+                </p>
+              )}
+              {state === "none" && (
+                <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+                  ONにすると、この会社のページに掲載されます
+                </p>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* ★なりすまし対策の3つ目（`TalkToMeCard` の冒頭コメント参照）。**消さないこと。**
+             ⚠️ 語彙は `/people` の注記と揃える。同じ事実を2つの画面で別々に言わない。 */}
+      <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+        在籍は本人の申告です。OPINIO は在籍確認を行っていません。会社の判断で非掲載になることがあります。
+      </p>
 
       {error && (
         <p style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>

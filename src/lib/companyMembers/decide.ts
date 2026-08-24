@@ -197,7 +197,7 @@ export async function dismissMember(
   if (scopeCompanyId) q = q.eq("company_id", scopeCompanyId);
 
   const { data: rows, error } = await q.select(
-    "id, user_id, company_id, display_consent, is_public, created_via, approved_at",
+    "id, user_id, company_id, display_consent, is_public, created_via, approved_at, consent_at",
   );
   if (error) {
     console.error("[member-decide] dismiss:", error.message);
@@ -211,6 +211,8 @@ export async function dismissMember(
     user_id: string; company_id: string;
     display_consent: boolean; is_public: boolean;
     created_via: string | null; approved_at: string | null;
+    /* ⚠️ 2026-08-24 追加。`memberState()` が必須で要求する（招待未応答と本人OFFの判別） */
+    consent_at: string | null;
   };
 
   /* ⚠️ 判定は `memberState()` に委ねる。ここで条件を書き直さない。 */

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { approveRequest, dismissRequest } from "./actions";
+/* ⚠️ `approveRequest` は使わない（2026-08-24 に承認を廃止）。
+      actions 側には残してあるが、この画面からは呼ばない。 */
+import { dismissRequest } from "./actions";
 
 export type AmbassadorRequest = {
   id: string;
@@ -51,7 +53,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
         background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10,
         padding: 24, textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
       }}>
-        未承認の申請はありません。
+        自己申告で掲載されている人はいません。
       </div>
     );
   }
@@ -77,7 +79,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                 <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2 }}>
                   {r.userName}
                   <span style={{ color: "var(--ink-mute)" }}>
-                    {" ・ "}{fmt(r.appliedAt)} 申請
+                    {" ・ "}{fmt(r.appliedAt)} からON
                     {d !== null && d >= 1 && <>（{d}日前）</>}
                   </span>
                 </div>
@@ -92,7 +94,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
               {confirmId === r.id ? (
                 <div style={{ background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", minWidth: 300 }}>
                   <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                    見送ると申請は削除され、その旨のメールが本人に届きます。取り消せません。
+                    掲載を取り消すと登録は削除され、その旨のメールが本人に届きます。取り消せません。
                   </p>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
@@ -120,28 +122,20 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                   </div>
                 </div>
               ) : (
+                /* ★「承認する」は 2026-08-24 に外した。会社の事前承認を廃止したので、
+                      ここに出る行は**すでに掲載中**——承認する対象が無い。
+                   ⚠️ 運営の操作は「掲載を取り消す」1つだけ。戻さないこと。 */
                 <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                   <button
                     type="button" className="btn-fixed-size" disabled={busy}
-                    onClick={() => run(() => approveRequest(r.id), r.id)}
-                    style={{
-                      height: 32, padding: "0 14px", borderRadius: 6, fontSize: 12, fontWeight: 700,
-                      fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
-                      border: "none", background: "var(--royal)", color: "#fff",
-                    }}
-                  >
-                    {busy ? "..." : "承認する"}
-                  </button>
-                  <button
-                    type="button" className="btn-fixed-size"
                     onClick={() => setConfirmId(r.id)}
                     style={{
                       height: 32, padding: "0 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-                      fontFamily: "inherit", cursor: "pointer",
+                      fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
                       border: "1px solid var(--line)", background: "#fff", color: "var(--ink-mute)",
                     }}
                   >
-                    見送る
+                    掲載を取り消す
                   </button>
                 </div>
               )}

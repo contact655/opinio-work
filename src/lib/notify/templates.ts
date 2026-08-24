@@ -541,26 +541,31 @@ export function ambassadorRequestTemplate(params: {
 
   return {
     to: params.to,
+    /* ★2026-08-24: 会社の事前承認を廃止したので、**承認を求める文面をやめた**。
+          ⚠️ 「承認するまで公開されません」は事実と逆になる。ここを戻さないこと。
+          ⚠️ 企業がすることは「外したい場合に外す」だけ。だから件名も本文も
+             お願いではなく**お知らせ**にしてある。 */
     subject: opsSubject(
-      `【OPINIO】${esc(params.companyName)}の社員の方から「話を聞かれてもよい」の申請がありました`,
+      `【OPINIO】${esc(params.companyName)}の社員の方が「話を聞かれてもよい」を有効にしました`,
       params.viaOps === true,
     ),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">「話を聞かれてもよい」の申請</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">「話を聞かれてもよい」が有効になりました</h2>
       <p style="margin:0 0 20px;color:#475569">
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong> に在籍していると申告している方から、
-        転職を検討している方の相談に応じてもよい、という申請がありました。
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong> に在籍していると申告している方が、
+        転職を検討している方の相談に応じてもよい、と設定しました。
+        <strong style="color:#0f172a">貴社のページに掲載されています。</strong>
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">申請者</td><td style="${TD_VALUE}">${esc(params.applicantName)}</td></tr>
-        <tr><td style="${TD_LABEL}">申請日</td><td style="${TD_VALUE}">${esc(params.appliedAt)}</td></tr>
+        <tr><td style="${TD_LABEL}">お名前</td><td style="${TD_VALUE}">${esc(params.applicantName)}</td></tr>
+        <tr><td style="${TD_LABEL}">設定日</td><td style="${TD_VALUE}">${esc(params.appliedAt)}</td></tr>
       </table>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
-        在籍は本人の自己申告です。<strong style="color:#0f172a">承認するまで公開されません。</strong>
-        内容を確認して、承認するか見送るかを選んでください。
+        在籍は<strong style="color:#0f172a">本人の申告</strong>で、OPINIO は在籍確認を行っていません。
+        心当たりが無い場合や掲載を止めたい場合は、下のボタンからいつでも非掲載にできます。
       </p>
       <p style="margin:0 0 24px">
-        <a href="${href}" style="${BTN}">申請を確認する →</a>
+        <a href="${href}" style="${BTN}">掲載を確認する →</a>
       </p>
     `),
   };

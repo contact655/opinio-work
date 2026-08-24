@@ -48,13 +48,27 @@ export const MEMBER_CREATED_VIA_VALUES: readonly MemberCreatedVia[] = [
 export type MemberState =
   /** 行が無い＝まだ何もしていない（解除した後もここに戻る） */
   | "none"
-  /** 企業が招待したが**本人**がまだ承認していない（display_consent=false） */
+  /** 企業が招待したが**本人**がまだ一度も応じていない（display_consent=false / consent_at=null） */
   | "pending_user"
-  /** 本人が申請済み・**企業の承認待ち**（display_consent=true / is_public=false / created_via='self'） */
+  /**
+   * ★本人が自分でOFFにしている（display_consent=false / consent_at**あり**）。
+   *
+   * ⚠️ `pending_user` と**同じ2列**で表す。区別は `consent_at` の有無だけ。
+   *    「一度も同意していない」なら null、「同意したことがある」なら日時が残る。
+   *    そのため `guard_member_consent` は**取り下げでも `consent_at` を消さない**
+   *    （2026-08-24 に変更）。消すとこの2つが同じ行に見え、自分でOFFにした人の画面に
+   *    「会社から依頼が届いています」が出る。
+   */
+  | "paused"
+  /**
+   * @deprecated 2026-08-24 に**到達しなくなった**（会社の事前承認を廃止したため）。
+   *   本人の申請は即 `listed` になる。型と企業側のラベルは、過去の行と
+   *   `/biz/members` の既存セクションのために残してある。**新しく使わないこと。**
+   */
   | "pending_company"
-  /** 本人は同意済みだが企業が非公開にしている（display_consent=true / is_public=false / created_via≠'self'） */
+  /** 本人はONだが企業が非掲載にしている（display_consent=true / is_public=false） */
   | "unlisted"
-  /** 公開中（display_consent=true / is_public=true） */
+  /** 掲載中（display_consent=true / is_public=true） */
   | "listed";
 
 /**
@@ -77,20 +91,29 @@ export function memberState(
         created_via: string | null;
         /** ⚠️ **必須**。省略可にすると、select し忘れた画面で「一度も承認されていない」と
          *     誤判定し、承認済みの人が「申請中」に出戻る（下の警告を参照）。
-         *     取れないのは取得漏れなので、既定値に倒さず型で落とす。 */
+         *     取れないのは取得漏れなので、既定値に倒さず型で落とす。
+         *  ⚠️ 2026-08-24 以降、`memberState()` はこの列を**見ていない**（会社の事前承認を
+         *     廃止したため）。列と引数は残してあるが、判定に足さないこと。 */
         approved_at: string | null;
+        /** ⚠️★**必須**。`pending_user`（招待に未応答）と `paused`（本人がOFF）の判別に使う。 */
+        consent_at: string | null;
       }
     | null
     | undefined,
 ): MemberState {
   if (!row) return "none";
-  if (!row.display_consent) return "pending_user";
+  /* ★同意していない行は2種類ある。**`consent_at` で分ける**（2026-08-24）。
+     ⚠️ 一度も同意していない（null）＝企業に招待されて未応答。
+        同意したことがある＝本人が自分でOFFにした。 */
+  if (!row.display_consent) {
+    return row.consent_at ? "paused" : "pending_user";
+  }
   if (row.is_public) return "listed";
-  if (row.created_via !== MEMBER_CREATED_VIA.SELF) return "unlisted";
-  /* ★一度でも承認された行は、非公開に戻っても `unlisted`。`pending_company` に戻さない。
-     ⚠️ ここを `is_public` だけで見ると、企業が公開⇄非公開を往復するたびに
-        「本人からの申請（未承認）」に出戻り、承認通知も往復のたびに飛ぶ。 */
-  return row.approved_at === null ? "pending_company" : "unlisted";
+  /* ★本人はONにしているのに公開されていない＝**企業が非掲載にしている**。
+     ⚠️ 2026-08-24 まではここで `approved_at` を見て `pending_company`（会社の承認待ち）を
+        返していた。会社の事前承認を廃止したので、その状態には**もう到達しない**。
+        `created_via` も見ない（本人発か企業発かで意味は変わらないため）。 */
+  return "unlisted";
 }
 
 /**
@@ -111,10 +134,12 @@ export type CompanyMemberRow = {
   /** 企業（運営）が初回に承認した時刻。⚠️ **必須**（`memberState()` が使う）。
    *  ⚠️ 再掲載では更新しない。`null` は「一度も承認されていない」を意味する。 */
   approved_at: string | null;
-  /** 本人が同意（＝申請）した時刻。⚠️ 企業の承認時刻は `updated_at`。混同しない。
-   *  ⚠️ **任意**にしてある。申請日を出す画面（/mypage のカード）だけが必要とするので、
-   *     この列を選んでいない呼び出し側に select を強制しない。 */
-  consent_at?: string | null;
+  /** 本人が**最後に同意した**時刻。⚠️ 企業の承認時刻は `updated_at`。混同しない。
+   *  ⚠️★**必須**（2026-08-24）。`memberState()` が `pending_user` と `paused` の
+   *     判別に使う。任意のままにすると、select し忘れた画面で
+   *     「自分でOFFにした人」が「企業から依頼が届いています」と表示される。
+   *  ⚠️ 取り下げても消えない。値は「最後に同意した日時」であって「いま同意中」ではない。 */
+  consent_at: string | null;
   /** 企業に招待されたが本人未承認のとき、既存の着地ページへ送るのに使う */
   invite_token: string;
 };
@@ -133,6 +158,9 @@ export type CompanyMemberRow = {
 export const MEMBER_STATE_BIZ_LABEL: Record<MemberState, string> = {
   none: "—",
   pending_user: "本人の確認待ち",
+  /** ⚠️ 本人が自分で止めている。**企業側は戻せない**ので、操作を促す語にしない */
+  paused: "本人が停止中",
+  /** @deprecated 到達しない（2026-08-24 に会社の事前承認を廃止） */
   pending_company: "あなたの確認待ち",
   unlisted: "非掲載",
   listed: "掲載中",

@@ -13,15 +13,22 @@ export const dynamic = "force-dynamic";
  * POST /api/mypage/ambassador-self-register
  * Body: { company_id: string; role_title?: string }
  *
- * 本人が「在籍している会社で話を聞かれてもよい」と**申請**する。
- * **公開はしない。** 企業側が `/biz/members` で承認（is_public → true）するまで
- * 企業ページにも /people にも出ない。
+ * 本人が「在籍している会社で話を聞かれてもよい」を **ONにする**。
  *
- * ── なぜ承認を挟むか ────────────────────────────────────────────────────────
- * `ow_experiences` の在籍は**自己申告**。即公開にすると、誰でも
- * 「セールスフォース在籍」と書いて企業ページに実名・顔写真・/u/ リンクつきで並べられる。
- * いままで安全だったのは**企業の招待でしか行を作れなかった**からで、
- * この入口はその保証を外す変更にあたる。
+ * ★2026-08-24 に**会社の事前承認を廃止した**（柴さんの判断・LinkedIn と同じ形）。
+ *   ONにした時点で企業ページと /people に出る。
+ *
+ * ── なぜ承認をやめたか（実測 2026-08-24 / 本番）────────────────────────────
+ *   `approved_at` が入っている行は **0件**。掲載中4件のうち3件は**管理者が0人の会社**で、
+ *   企業が承認した実績は一度も無い。有効な管理者がいる企業は **79社中7社**しかなく、
+ *   残り72社では承認できる人が存在しない＝申請しても永久に確認待ちになっていた。
+ *   `/people` の注記も既に「OPINIO は在籍確認を行っていません」と書いており、
+ *   「承認するまで公開されません」という説明と食い違っていた。
+ *
+ * ⚠️★**なりすましは3つで受ける。1つでも外すと成立しなくなる。**
+ *   ① 在籍として申告している会社にしか作れない（RLS `member_self_apply` の EXISTS）
+ *   ② 企業はいつでも非掲載にできる（`/biz/members` の公開トグル）
+ *   ③ 画面に「本人の申告です。OPINIO は在籍確認をしていません」と出す
  *
  * ⚠️ `/api/biz/ambassador/self-register` は流用できない。
  *    あちらは `getTenantContext()` 必須の**企業管理者専用**（自社に自分を登録する導線）。
@@ -110,11 +117,10 @@ export async function POST(req: NextRequest) {
   }
 
   /* ★セッションクライアントで INSERT する（RLS を効かせるため）。
-     ⚠️ `is_public` は **false 固定**。ここを body から取らないこと。
-        取ると「本人が承認を飛ばして公開できる」ようになる（RLS が止めるが、
-        画面には 403 しか返らず、直したつもりで壊れたままになる）。
-     ⚠️ `consent_at` は本人が同意した時刻。企業の承認時刻は `updated_at` で足りるので
-        列は増やしていない（2026-08-23 の判断）。 */
+     ⚠️ `is_public` は **true 固定**。ここも body から取らないこと。
+        利用者が決めるのは「ONにするかどうか」で、値そのものではない。
+     ⚠️ `consent_at` は本人が**最後に同意した**時刻。取り下げても消さない
+        （`guard_member_consent` / 2026-08-24）。`pending_user` と `paused` の判別に使う。 */
   const { data: created, error } = await supabase
     .from("ow_company_members")
     .insert({
@@ -122,7 +128,7 @@ export async function POST(req: NextRequest) {
       user_id: owUser.id,
       display_consent: true,
       consent_at: new Date().toISOString(),
-      is_public: false,
+      is_public: true,
       created_via: MEMBER_CREATED_VIA.SELF,
       role_title: roleTitle || null,
     })
@@ -142,8 +148,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  /* 申請中は表示されないが、**必ず捨てる**。「表示に出ない操作は呼ばなくてよい」を
-     例外にすると、どの経路が呼ぶのかが人によって変わって漏れる。 */
+  /* ⚠️ **必ず捨てる。** 即掲載になったので、捨てないと最大60秒このひとが出ない。 */
   revalidateCompanyAmbassadors(companyId);
 
   /* ★申請が来たことを知らせる（2026-08-23）。
@@ -154,14 +159,18 @@ export async function POST(req: NextRequest) {
      ⚠️ 取引通知なので opt-out 列は要らない（週次のリマインドとは別物）。 */
   await sendRequestNotice(companyId, owUser.id);
   /* ⚠️ 状態名を文字列で直書きしない。`MemberState` で縛っておくと、
-        改名したときに tsc が落ちて気づける（`pending_self` → `pending_user` の改名時に
-        ここが取り残されかけた）。 */
-  const state: MemberState = "pending_company";
+        改名したときに tsc が落ちて気づける。
+     ⚠️ 2026-08-24 に `pending_company` から変更。**もう承認待ちにはならない。** */
+  const state: MemberState = "listed";
   return NextResponse.json({ ok: true, id: created.id, state }, { status: 201 });
 }
 
 /**
- * 申請が来たことを企業（宛先が無ければ運営）に知らせる。
+ * 掲載が始まったことを企業（宛先が無ければ運営）に知らせる。
+ *
+ * ⚠️★**承認を求めるメールではない**（2026-08-24 に文面ごと変えた）。
+ *    企業がすることは「外したい場合に外す」だけ。承認を促す文面のままにすると、
+ *    誰も押さない承認を待たせることになる。
  *
  * ⚠️ **送信可否・宛先の判定はこの関数の中に置く**（CLAUDE.md の既存方針）。
  *    呼び出し側に条件を書くと、経路が増えたときに片方だけ忘れる。
