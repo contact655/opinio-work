@@ -148,7 +148,16 @@ export function ProfileHeader({
       </div>
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
-        <div>
+        {/* ★左の列は**縮められるようにする**（2026-08-24）。
+               ⚠️ `flex` を付けないと列幅が max-content になり、狭い器では
+                  右の会社ブロックが**次の行に折り返して左端に落ちる**。
+                  実際 `/mypage`（器 680px・実測 614px）でそうなっていた:
+                  左列 452px ＋ 会社 230px ＋ gap 16px = 698px > 614px。
+                  `/u/[id]` は器が広いので折り返しておらず、**同じ部品なのに
+                  2つの画面で会社の位置が違う**状態だった。
+               ⚠️ basis は 300px。0 や auto にすると狭い画面でも折り返さなくなり、
+                  375px で氏名の列が潰れる。300px を切る器では今までどおり折り返す。 */}
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
           <div className="profile-name" style={{
             fontFamily: 'var(--font-noto-serif)',
             fontSize: 30, fontWeight: 700, color: "var(--ink)",

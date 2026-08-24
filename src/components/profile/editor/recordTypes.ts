@@ -77,6 +77,19 @@ export type Certification = {
   sort_order: number;
 };
 
+/**
+ * 言語（2026-08-24）。LinkedIn の「言語」に合わせた2項目。
+ * ⚠️ 形は `ProfileSections.tsx` の `LanguageRow` と揃えること。
+ * ⚠️ **話せる言語**であって、プログラミング言語（`lib/techStack.ts`）ではない。
+ */
+export type Language = {
+  id: string;
+  name: string;
+  /** 習熟度。値は `lib/constants/languageProficiency.ts` の5値。未選択は null */
+  proficiency: string | null;
+  sort_order: number;
+};
+
 export type MediaAppearance = {
   id: string;
   title: string;

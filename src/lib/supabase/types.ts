@@ -5703,6 +5703,41 @@ export type Database = {
           },
         ]
       }
+      ow_user_languages: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          proficiency: string | null
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          proficiency?: string | null
+          sort_order: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          proficiency?: string | null
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_user_languages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_user_media_appearances: {
         Row: {
           appeared_at: string | null

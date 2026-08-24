@@ -16,6 +16,8 @@ import Link from "next/link";
 /* ⚠️ 定数は**素のモジュール**に置く。ここ（"use client"）から export すると、
       サーバーコンポーネントが `PLATFORM_META[x].color` とドットで読めず 500 になる。 */
 import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
+/* 言語の習熟度ラベル（2026-08-24）。⚠️ 生の値（`native` 等）を画面に出さない */
+import { languageProficiencyLabel } from "@/lib/constants/languageProficiency";
 /* ⚠️ `SocialIcon.tsx` は `"use client"` を**持たない**素のモジュール。
       サーバーコンポーネントからも `SOCIAL_META[x].label` と読めるので、
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
@@ -43,6 +45,9 @@ export type AwardRow = {
 export type CertificationRow = {
   id: string; name: string; issuer: string | null; issued_at: string | null;
   credential_id: string | null; credential_url: string | null; sort_order: number;
+};
+export type LanguageRow = {
+  id: string; name: string; proficiency: string | null; sort_order: number;
 };
 export type MediaAppearanceRow = {
   id: string; title: string; media_name: string | null; url: string | null;
@@ -158,7 +163,9 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
               ACHIEVEMENTS
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            {actions?.onAdd && (
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
+            {actions?.onAdd && achievements.length > 0 && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -272,10 +279,16 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
               AWARDS
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-              {awards.length}件
-            </span>
-            {actions?.onAdd && (
+            {/* ⚠️ 0件のときは出さない（2026-08-24）。他のセクションは元からそうしており、
+                   ここだけ「0件」と出ていた。空であることは本文の空状態が伝えている。 */}
+            {awards.length > 0 && (
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                {awards.length}件
+              </span>
+            )}
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
+            {actions?.onAdd && awards.length > 0 && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -409,7 +422,9 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
                 {certifications.length}件
               </span>
             )}
-            {actions?.onAdd && (
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
+            {actions?.onAdd && certifications.length > 0 && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -511,6 +526,121 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
   );
 }
 
+// ─── ProfileLanguagesSection ───────────────────────────────────────────────────────
+/**
+ * 言語（2026-08-24）。LinkedIn の「言語」に合わせた2項目。
+ *
+ *   言語名 / 習熟度
+ *
+ * ⚠️ **置き場所は資格の下**（柴さんの指示。LinkedIn と同じ並び）。
+ * ⚠️ **話せる言語**であって、プログラミング言語（`lib/techStack.ts` の「言語」）ではない。
+ * ⚠️ **0件なら出さない。** `actions` を渡した本人だけ、空状態と追加導線が出る
+ *    （資格・受賞と同じ条件式にしてある）。
+ * ⚠️ 習熟度が未選択なら**行ごと出さない**。「初級」や「—」で埋めない。
+ * ⚠️ ラベルは `languageProficiencyLabel` を通す。**生の値（`native` 等）を出さない。**
+ */
+export function ProfileLanguagesSection({ languages, actions, showAll }: {
+  languages: LanguageRow[];
+  /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
+  actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
+}) {
+  const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
+  return (
+    <>
+      {(languages.length > 0 || hasActions) && (
+        <section id="languages" style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+            <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+              言語
+            </span>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+              LANGUAGES
+            </span>
+            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            {languages.length > 0 && (
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                {languages.length}件
+              </span>
+            )}
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
+            {actions?.onAdd && languages.length > 0 && (
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
+                <PlusIcon />追加
+              </button>
+            )}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
+            )}
+          </div>
+
+          {languages.length === 0 && hasActions && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              まだ言語を登録していません。
+              {actions?.onAdd && (
+                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
+                  言語を追加する
+                </button>
+              )}
+            </p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {languages.map((lang, i) => {
+              /* ⚠️ 知らない値は null が返る。生の値を画面に出さない */
+              const level = languageProficiencyLabel(lang.proficiency);
+              return (
+                <div key={lang.id} style={{
+                  display: "flex", alignItems: "center", gap: 14, padding: "14px 0",
+                  borderTop: i > 0 ? "1px solid var(--line)" : "none",
+                }}>
+                  {/* ⚠️ 色を増やさない。資格と同じ濃紺の面に白のアイコン
+                         （オレンジはカジュアル面談専用・緑は金銭的にプラスの条件）。 */}
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                    background: "var(--royal)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <circle cx="12" cy="12" r="10" /><path d="M2 12h20" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, overflowWrap: "anywhere" }}>
+                      {lang.name}
+                    </div>
+                    {/* ⚠️ 値が無い項目は**行ごと出さない**（CLAUDE.md
+                           「値が無いことを、ある値に置き換えない」）。 */}
+                    {level && (
+                      <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 2 }}>
+                        {level}
+                      </div>
+                    )}
+                  </div>
+                  {/* ⚠️ 行の右端。`actions` が無ければ描かない＝他人の DOM は不変 */}
+                  {(actions?.onEditRow || actions?.onDeleteRow) && (
+                    <RowActionButtons id={lang.id} label={lang.name} actions={actions} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
+        </section>
+      )}
+    </>
+  );
+}
+
 // ─── ProfileMediaSection ───────────────────────────────────────────────────────────
 export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
   mediaAppearances: MediaAppearanceRow[];
@@ -537,7 +667,9 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 本人のときだけ。`/u/[id]` は `actions` を渡さないので出ない＝DOM 不変 */}
-            {actions?.onAdd && (
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
+            {actions?.onAdd && mediaAppearances.length > 0 && (
               /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
                     複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
                     （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
@@ -772,7 +904,9 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ `/mypage` では同じページなので**リンクにしない**（押しても何も起きない）。
                    `onAdd` が渡されたときだけボタンにする。 */}
-            {viewerIsOwner && (actions?.onAdd ? (
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
+            {viewerIsOwner && contentLinks.length > 0 && (actions?.onAdd ? (
               /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
                     複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
                     （メディア掲載・発信コンテンツ）にだけ効かなかった。 */

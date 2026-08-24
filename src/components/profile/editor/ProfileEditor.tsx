@@ -33,6 +33,7 @@ import {
   type Award,
   type MediaAppearance,
   type Certification,
+  type Language,
 } from "./recordTypes";
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import type { CompanyLogoInfo } from "@/lib/utils/timeline";
@@ -119,6 +120,7 @@ export default function ProfileEditor({
   initialAchievements,
   initialAwards,
   initialCertifications,
+  initialLanguages,
   initialMediaAppearances,
   initialExperiences,
   initialContentLinks,
@@ -147,6 +149,8 @@ export default function ProfileEditor({
   initialAwards: Award[];
   /** 資格（2026-08-24）。⚠️ `ProfileTab` へそのまま渡す */
   initialCertifications: Certification[];
+  /** 言語（2026-08-24）。⚠️ `ProfileTab` へそのまま渡す */
+  initialLanguages: Language[];
   initialMediaAppearances: MediaAppearance[];
   initialExperiences: Stint[];
   initialContentLinks: ContentLink[];
@@ -409,6 +413,7 @@ export default function ProfileEditor({
             initialAchievements={initialAchievements}
             initialAwards={initialAwards}
             initialCertifications={initialCertifications}
+            initialLanguages={initialLanguages}
             initialMediaAppearances={initialMediaAppearances}
             initialSocialLinks={initialSocialLinks}
             initialContentLinks={initialContentLinks}

@@ -73,6 +73,7 @@ export default async function MypagePage({
   let achievementsRaw: Record<string, unknown>[] = [];
   let awardsRaw: Record<string, unknown>[] = [];
   let certificationsRaw: Record<string, unknown>[] = [];
+  let languagesRaw: Record<string, unknown>[] = [];
   let mediaAppearancesRaw: Record<string, unknown>[] = [];
   let contentLinksRaw: Record<string, unknown>[] = [];
   let desiredRoleIds: string[] = [];
@@ -89,6 +90,7 @@ export default async function MypagePage({
       { data: achRows },
       { data: awdRows },
       { data: certRows },
+      { data: langRows },
       { data: medRows },
       { data: linkRows },
       { data: desiredRoleRows },
@@ -136,6 +138,11 @@ export default async function MypagePage({
       supabase
         .from("ow_user_certifications")
         .select("id, name, issuer, issued_at, credential_id, credential_url, sort_order")
+        .eq("user_id", owUser.id).order("sort_order", { ascending: true }),
+      /* ★言語（2026-08-24）。⚠️ 順番は上の分割代入と揃えること。 */
+      supabase
+        .from("ow_user_languages")
+        .select("id, name, proficiency, sort_order")
         .eq("user_id", owUser.id).order("sort_order", { ascending: true }),
       supabase
         .from("ow_user_media_appearances")
@@ -239,6 +246,7 @@ export default async function MypagePage({
     achievementsRaw = (achRows ?? []) as Record<string, unknown>[];
     awardsRaw = (awdRows ?? []) as Record<string, unknown>[];
     certificationsRaw = (certRows ?? []) as Record<string, unknown>[];
+    languagesRaw = (langRows ?? []) as Record<string, unknown>[];
     mediaAppearancesRaw = (medRows ?? []) as Record<string, unknown>[];
     contentLinksRaw = (linkRows ?? []) as Record<string, unknown>[];
     desiredRoleIds = ((desiredRoleRows ?? []) as { role_id: string }[]).map((r) => r.role_id);
@@ -498,6 +506,8 @@ export default async function MypagePage({
       initialAwards={awardsRaw as any}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialCertifications={certificationsRaw as any}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialLanguages={languagesRaw as any}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialMediaAppearances={mediaAppearancesRaw as any}
       initialExperiences={initialExperiences}

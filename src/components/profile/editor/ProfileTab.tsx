@@ -29,6 +29,7 @@ import {
   AchievementEditor,
   AwardEditor,
   CertificationEditor,
+  LanguageEditor,
   type RoleItem,
   type ExperienceOption,
 } from "./RecordEditors";
@@ -39,6 +40,7 @@ import {
   type Award,
   type MediaAppearance,
   type Certification,
+  type Language,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
@@ -66,6 +68,7 @@ import {
   ProfileAchievementsSection,
   ProfileAwardsSection,
   ProfileCertificationsSection,
+  ProfileLanguagesSection,
   ProfileTimelineSection,
   ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
@@ -527,6 +530,7 @@ export default function ProfileTab({
   initialAchievements,
   initialAwards,
   initialCertifications,
+  initialLanguages,
   initialMediaAppearances,
   initialSocialLinks,
   initialContentLinks,
@@ -578,6 +582,8 @@ export default function ProfileTab({
   initialAwards: Award[];
   /** 資格（2026-08-24）。⚠️ 学歴の下に出す */
   initialCertifications: Certification[];
+  /** 言語（2026-08-24）。⚠️ 資格の下に出す */
+  initialLanguages: Language[];
   initialMediaAppearances: MediaAppearance[];
   initialSocialLinks: SocialLinks;
   initialContentLinks: ContentLink[];
@@ -599,6 +605,7 @@ export default function ProfileTab({
   const [achievements,     setAchievements]     = useState<Achievement[]>(initialAchievements);
   const [awards,           setAwards]           = useState<Award[]>(initialAwards);
   const [certifications,   setCertifications]   = useState<Certification[]>(initialCertifications);
+  const [languages,        setLanguages]        = useState<Language[]>(initialLanguages);
   const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
   /* ⚠️ 「その他の実績・受賞」というまとめ方は 2026-08-16 にやめた。
@@ -717,6 +724,7 @@ export default function ProfileTab({
   const shownAchievements = achievements.slice(0, ROWS_ON_PROFILE.achievements);
   const shownAwards       = awards.slice(0, ROWS_ON_PROFILE.awards);
   const shownCerts        = certifications.slice(0, ROWS_ON_PROFILE.certifications);
+  const shownLangs        = languages.slice(0, ROWS_ON_PROFILE.languages);
   const shownMedia        = mediaAppearances.slice(0, ROWS_ON_PROFILE.media);
   const shownContent      = contentLinks.slice(0, ROWS_ON_PROFILE.content);
 
@@ -753,6 +761,10 @@ export default function ProfileTab({
   const [editingCertId, setEditingCertId] = useState<string | null>(null);
   const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
   const [certAddNonce, setCertAddNonce] = useState(0);
+  /* 言語（2026-08-24）。⚠️ 資格と同じ形 */
+  const [editingLangId, setEditingLangId] = useState<string | null>(null);
+  const [deleteLangId, setDeleteLangId] = useState<string | null>(null);
+  const [langAddNonce, setLangAddNonce] = useState(0);
   /* メディア掲載: 編集はモーダル（2026-08-17 / フェーズ2）。行の鉛筆から来たときは id を持つ */
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
   /* ⚠️ 削除は既存の確認ダイアログを使う。エディタ側が持っているので id を渡して開く */
@@ -826,38 +838,23 @@ export default function ProfileTab({
   /* 年齢は導出値（生年月日から作る）。**保存済みの値**から作る */
   const headerAge = ageFromBirth({ year: initialBirthYear, month: initialBirthMonth, day: initialBirthDay });
 
-  /* ── ★空のセクションは出さない（2026-08-16）─────────────────────────────
-        `/u/[id]` は0件のセクションを出さない。`/mypage` だけが7枚の空カードを積んでいて、
-        **入力が1つも無い人がいちばん長いスクロール**になっていた（4.2画面）。
-        「本人には出す（そこからしか追加できない）」の役目は
-        一番下の「セクションを追加」が引き継ぐ。
+  /* ── ★セクションは0件でも常に出す（2026-08-24 / 柴さんの指示）───────────
+        **「セクションを追加」は撤去した。** 項目そのものが見えていないと、
+        何を書けるのかが分からない、というのが理由。
+        入力欄の一覧として使えるように、`/mypage` は**全セクションを常に出す**。
 
-     ⚠️ ヘッダー（写真・名前・SNS）は**対象外**。0件という概念が無く、
-        プロフィールの本体そのものなので常に出す。 */
-  const hasAbout = !!initialBasicInfo.aboutMe?.trim();
+     ⚠️ **入口は増えていない。** 以前は「未入力のセクション＝ピッカーの中だけ」
+        だったのを「未入力のセクション＝本文の空カードだけ」に**移した**もので、
+        どちらか一方しか無い（ルール⑧）。ピッカーを復活させるなら空カードを消すこと。
 
-  /* ⚠️ **職歴・学歴は候補に入れない**（2026-08-17）。0件でも枠が出るので、
-        候補にも出すと**同じ操作への入口が2つ**になる（ルール⑧）。 */
-  type SectionKey = "about" | "achievements" | "awards" | "certifications" | "media" | "content";
-  /** 未入力のセクションだけを並べる。★入力済みは本文に出ているので一覧に入れない（二重になる） */
-  const emptySections = ([
-    { key: "about",        label: "自己紹介",        open: () => setEditingAbout(true) },
-    { key: "achievements", label: "数値実績",        open: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); } },
-    { key: "awards",       label: "受賞・表彰",      open: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); } },
-    { key: "certifications", label: "資格",          open: () => { setEditingCertId(null); setCertAddNonce((n) => n + 1); } },
-    { key: "media",        label: "メディア掲載",    open: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); } },
-    { key: "content",      label: "発信コンテンツ",  open: () => setContentAddNonce((n) => n + 1) },
-  ] as { key: SectionKey; label: string; open: () => void }[]).filter((sec) => {
-    switch (sec.key) {
-      case "about":        return !hasAbout;
-      case "achievements": return achievements.length === 0;
-      case "awards":       return awards.length === 0;
-      case "certifications": return certifications.length === 0;
-      case "media":        return mediaAppearances.length === 0;
-      case "content":      return contentLinks.length === 0;
-    }
-  });
-  const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
+     ⚠️ 一度は逆の判断をしている（2026-08-16）。空カード7枚で 4.2画面になり、
+        入力が1つも無い人がいちばん長いスクロールを強いられていた。
+        **その代償は承知のうえで戻している。** 元に戻すときは
+        「入力欄が見えない」という今回の指摘に別の答えを用意すること。
+
+     ⚠️ `/u/[id]`（他人が見る画面）は**従来どおり0件のセクションを出さない**。
+        判定は表示部品側（`actions` を渡した本人にだけ空状態を出す）にあるので、
+        ここで条件を外しても公開側の DOM は1バイトも変わらない。 */
 
   /* ★ヘッダーの保存（2026-08-16 / 2-7）。名前・肩書き・所在地・生年月日・SNS を
         **1回の PUT** で送る。自己紹介（`about_me`）は送らない。
@@ -986,24 +983,6 @@ export default function ProfileTab({
           maxWidth: 680, display: "flex", alignItems: "center", justifyContent: "flex-end",
           gap: 8, marginBottom: 12, flexWrap: "wrap",
         }}>
-          {emptySections.length > 0 && (
-            <button
-              type="button"
-              className="tap-min-h"
-              onClick={() => setSectionPickerOpen((v) => !v)}
-              aria-expanded={sectionPickerOpen}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "7px 12px", borderRadius: 8,
-                border: "1px dashed var(--line)", background: "#fff",
-                fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
-                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-              }}
-            >
-              <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
-              セクションを追加
-            </button>
-          )}
           {owUser?.id && (
             <a
               href={`/u/${owUser.id}`}
@@ -1029,47 +1008,6 @@ export default function ProfileTab({
             </a>
           )}
         </div>
-
-        {/* 「セクションを追加」を押したときの一覧。★アクション行のすぐ下に出す */}
-        {sectionPickerOpen && emptySections.length > 0 && (
-          <div style={{ maxWidth: 680, marginBottom: 16 }}>
-<section style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 14, padding: "20px 24px",
-                  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>セクションを追加</span>
-                    <button
-                      type="button" className="tap-target"
-                      onClick={() => setSectionPickerOpen(false)}
-                      aria-label="閉じる" title="閉じる"
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 18, lineHeight: 1, padding: 4, fontFamily: "inherit" }}
-                    >×</button>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {emptySections.map((sec) => (
-                      <button
-                        key={sec.key}
-                        type="button"
-                        className="tap-min-h"
-                        onClick={() => { sec.open(); setSectionPickerOpen(false); }}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 8,
-                          width: "100%", padding: "12px 14px", textAlign: "left",
-                          background: "var(--bg-tint)", border: "1px solid var(--line)",
-                          borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
-                          fontSize: 14, fontWeight: 600, color: "var(--ink)",
-                        }}
-                      >
-                        <span style={{ fontSize: 15, lineHeight: 1, color: "var(--royal)" }}>+</span>
-                        {sec.label}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-          </div>
-        )}
 
         {/* ── ヘッダー（2026-08-16 / 2-7）──────────────────────────────────
                ★`UserProfileCard` / 「プロフィール画像・カバー」/「基本情報」の3枚を
@@ -1342,14 +1280,11 @@ export default function ProfileTab({
           {/* ── 自己紹介（#about）──────────────────────────────────────────
                  ★ヘッダーから外して独立セクションにした（2026-08-16 / 2-7）。
                  `/u/[id]` と同じ位置・同じ見た目。 */}
-          {/* ★0件のセクションはカードごと出さない（2026-08-16）。
-                 入力が1つも無い人がいちばん長いスクロールを強いられていたため
-                 （空カード7枚で 4.2画面）。追加の入口は一番下の「セクションを追加」。
-              ⚠️ **編集中は必ず出す。** 出さないとフォームごと消えて追加できない。 */}
           {/* ★自己紹介（2026-08-17 / モーダル化の1枚目）。
                  **本文は常に表示のまま。編集はモーダルで開く。**
                  カードがフォームに化ける形をやめたので、押した場所と入力欄がずれない。 */}
-          {hasAbout && (
+          {/* ⚠️ 0件でも出す（2026-08-24）。未入力なら部品側が
+                 「自己紹介を書いて、あなたのことを伝えましょう」の空カードを出す。 */}
           <div style={{ maxWidth: 680 }}>
             <ProfileAboutSection
               aboutMe={initialBasicInfo.aboutMe || null}
@@ -1357,7 +1292,6 @@ export default function ProfileTab({
               onEdit={() => setEditingAbout(true)}
             />
           </div>
-          )}
 
           <ProfileEditModal
             open={editingAbout}
@@ -1391,18 +1325,19 @@ export default function ProfileTab({
                公開プロフィールと同じ**独立した2セクション**。並び順も `/u/[id]` に合わせ、
                自己紹介（基本情報）の直後・職歴の前に置く。
             ⚠️ 職歴カードの中に入れ子で戻さないこと。紐づけはフォームのセレクトで選ぶ。 */}
+          {/* ⚠️ `manageHref`（「編集」）は**1件以上あるときだけ**渡す（2026-08-24）。
+                 0件で渡すと、押した人が空の一覧ページに着く。職歴・学歴で先に
+                 決めてあった扱い（0件のときは ✎ を出さない）に揃えている。 */}
           <div style={{ maxWidth: 680 }}>
-            {achievements.length > 0 && (
-              <ProfileAchievementsSection
-                achievements={shownAchievements}
-                actions={{
-                  manageHref: "/mypage/details/achievements",
-                  manageLabel: "数値実績を編集",
-                  onAdd: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); },
-                }}
-                showAll={{ href: "/mypage/details/achievements", label: "数値実績", hiddenCount: achievements.length - shownAchievements.length }}
-              />
-            )}
+            <ProfileAchievementsSection
+              achievements={shownAchievements}
+              actions={{
+                manageHref: achievements.length > 0 ? "/mypage/details/achievements" : undefined,
+                manageLabel: "数値実績を編集",
+                onAdd: () => { setEditingAchId(null); setAchAddNonce((n) => n + 1); },
+              }}
+              showAll={{ href: "/mypage/details/achievements", label: "数値実績", hiddenCount: achievements.length - shownAchievements.length }}
+            />
             {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダルなので何も描かない）。
                    ⚠️ 閉じたら id を null に戻すこと。同じ行を続けて2回開くために要る。 */}
             <AchievementEditor
@@ -1415,17 +1350,15 @@ export default function ProfileTab({
               onClosed={() => { setEditingAchId(null); setDeleteAchId(null); }}
             />
 
-            {awards.length > 0 && (
-              <ProfileAwardsSection
-                awards={shownAwards}
-                actions={{
-                  manageHref: "/mypage/details/awards",
-                  manageLabel: "受賞・表彰を編集",
-                  onAdd: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); },
-                }}
-                showAll={{ href: "/mypage/details/awards", label: "受賞・表彰", hiddenCount: awards.length - shownAwards.length }}
-              />
-            )}
+            <ProfileAwardsSection
+              awards={shownAwards}
+              actions={{
+                manageHref: awards.length > 0 ? "/mypage/details/awards" : undefined,
+                manageLabel: "受賞・表彰を編集",
+                onAdd: () => { setEditingAwdId(null); setAwdAddNonce((n) => n + 1); },
+              }}
+              showAll={{ href: "/mypage/details/awards", label: "受賞・表彰", hiddenCount: awards.length - shownAwards.length }}
+            />
             <AwardEditor
               awards={awards}
               setAwards={setAwards}
@@ -1446,10 +1379,9 @@ export default function ProfileTab({
                    ★このカードに「編集モード」は無い。編集も追加も**モーダル**なので、
                    `CareerHistoryEditor` は常に描いておく。アンマウントすると
                    `careerStints` の控えが初期値へ巻き戻る。 */}
-            {/* ★職歴と学歴は**0件でも枠を出す**（2026-08-17）。
-                   キャリアの土台なので、空でも「ここに入る」と分かる場所を残す。
-                   他の5つ（自己紹介・数値実績・受賞・メディア掲載・発信コンテンツ）は
-                   いまどおり「セクションを追加」に集約する。
+            {/* ★0件でも枠を出す。⚠️ **2026-08-24 から全セクションがこの扱い**。
+                   それまで枠を出すのは職歴・学歴だけで、他は「セクションを追加」に
+                   集約していた（その入口は撤去した）。
                 ⚠️ **0件のときは ✎ を出さない。** 一覧ページに送っても空の画面に着くだけ。
                    1件でも入れば ＋ と ✎ の2つに戻る。 */}
             <ProfileTimelineSection
@@ -1512,7 +1444,7 @@ export default function ProfileTab({
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
                       中に置くと、職歴0件のときは**この部品ごと描かれていない**ので、
-                      「セクションを追加 → 職歴」で nonce を上げても受け手がいない
+                      空カードの「＋」で nonce を上げても受け手がいない
                       （マウントと同時に届いた nonce は初期値として飲み込まれる）。 */}
             <CareerHistoryEditor
               openAddNonce={careerAddNonce}
@@ -1591,22 +1523,18 @@ export default function ProfileTab({
             />
 
             {/* ★資格（2026-08-24）。**学歴の下**（柴さんの指示・LinkedIn と同じ並び）。
-                   ⚠️ 0件のときはカードを出さない。追加は「セクションを追加」から。
-                      職歴・学歴だけは0件でも枠を出す扱いで、他のセクションは出さない。
-                      ここで枠を出すと、同じ操作への入口が2つになる（ルール⑧）。 */}
-            {certifications.length > 0 && (
-              <ProfileCertificationsSection
-                certifications={shownCerts}
-                actions={{
-                  manageHref: "/mypage/details/certifications",
-                  manageLabel: "資格を編集",
-                  onAdd: () => { setEditingCertId(null); setCertAddNonce((n) => n + 1); },
-                }}
-                showAll={{ href: "/mypage/details/certifications", label: "資格", hiddenCount: certifications.length - shownCerts.length }}
-              />
-            )}
+                   ⚠️ 0件でも出す。未入力なら部品側が空状態と「資格を追加する」を出す。 */}
+            <ProfileCertificationsSection
+              certifications={shownCerts}
+              actions={{
+                manageHref: certifications.length > 0 ? "/mypage/details/certifications" : undefined,
+                manageLabel: "資格を編集",
+                onAdd: () => { setEditingCertId(null); setCertAddNonce((n) => n + 1); },
+              }}
+              showAll={{ href: "/mypage/details/certifications", label: "資格", hiddenCount: certifications.length - shownCerts.length }}
+            />
             {/* ⚠️ 編集フォームは**常にマウントしておく**（モーダル）。
-                   条件付きにすると、0件から「セクションを追加」で開こうとしたときに
+                   条件付きにすると、0件から「追加」を押したときに
                    マウントと同時に届いた nonce が飲み込まれて開かない（ルール⑭③）。 */}
             <CertificationEditor
               certifications={certifications}
@@ -1616,27 +1544,46 @@ export default function ProfileTab({
               openDeleteId={deleteCertId}
               onClosed={() => { setEditingCertId(null); setDeleteCertId(null); }}
             />
+
+            {/* ★言語（2026-08-24）。**資格の下**（柴さんの指示・LinkedIn と同じ並び）。
+                   ⚠️ 0件でも出す。未入力なら部品側が空状態と「言語を追加する」を出す。 */}
+            <ProfileLanguagesSection
+              languages={shownLangs}
+              actions={{
+                manageHref: languages.length > 0 ? "/mypage/details/languages" : undefined,
+                manageLabel: "言語を編集",
+                onAdd: () => { setEditingLangId(null); setLangAddNonce((n) => n + 1); },
+              }}
+              showAll={{ href: "/mypage/details/languages", label: "言語", hiddenCount: languages.length - shownLangs.length }}
+            />
+            {/* ⚠️ 編集フォームは**常にマウントしておく**（モーダル）。ルール⑭③ */}
+            <LanguageEditor
+              languages={languages}
+              setLanguages={setLanguages}
+              openAddNonce={langAddNonce}
+              openEditId={editingLangId}
+              openDeleteId={deleteLangId}
+              onClosed={() => { setEditingLangId(null); setDeleteLangId(null); }}
+            />
           </div>
 
         {/* メディア掲載（★実績・受賞とは別。職歴に属さないので独立カードのまま）
             ⚠️ 4-2 で「実績・受賞」カードは廃止し、数値実績と受賞歴は職歴カードへ移した。
                メディア掲載は個人としての登壇・寄稿・退職後の取材があり、
                在籍先に紐づけられないのでここに残す。 */}
-          {mediaAppearances.length > 0 && (
           <div style={{ maxWidth: 680 }}>
             {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱・見出しの「追加」だけ足す。
                    編集はモーダル（2026-08-17 / フェーズ2）。 */}
             <ProfileMediaSection
               mediaAppearances={shownMedia}
               actions={{
-                  manageHref: "/mypage/details/media",
+                  manageHref: mediaAppearances.length > 0 ? "/mypage/details/media" : undefined,
                   manageLabel: "メディア掲載を編集",
                 onAdd: () => { setEditingMediaId(null); setMediaAddNonce((n) => n + 1); },
               }}
               showAll={{ href: "/mypage/details/media", label: "メディア掲載", hiddenCount: mediaAppearances.length - shownMedia.length }}
             />
           </div>
-          )}
           {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**。
                  モーダルなので、開いていないあいだは何も描かない。
                  ⚠️ 常設にしたぶん、`openEditId` は**値が変わったときだけ**効く。
@@ -1655,7 +1602,6 @@ export default function ProfileTab({
                （2-1 で報告した重複がこれで解消した）。編集はヘッダーの鉛筆から。 */}
 
         {/* 発信コンテンツ（SNS・発信タブ内） */}
-          {contentLinks.length > 0 && (
           <div style={{ maxWidth: 680 }}>
             {/* ★表示は**公開プロフィールと同じ部品**。編集はモーダル（2026-08-17 / フェーズ2）。
                    行の鉛筆・ゴミ箱・見出しの「追加」だけを `actions` で足す。 */}
@@ -1663,14 +1609,13 @@ export default function ProfileTab({
               contentLinks={shownContent}
               viewerIsOwner
               actions={{
-                  manageHref: "/mypage/details/content",
+                  manageHref: contentLinks.length > 0 ? "/mypage/details/content" : undefined,
                   manageLabel: "発信コンテンツを編集",
                 onAdd: () => setContentAddNonce((n) => n + 1),
               }}
               showAll={{ href: "/mypage/details/content", label: "発信コンテンツ", hiddenCount: contentLinks.length - shownContent.length }}
             />
           </div>
-          )}
 
           {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダル）。
                  本体からは「追加」だけ。行の編集・削除は `/mypage/details/content`。 */}
@@ -1680,9 +1625,9 @@ export default function ProfileTab({
             openAddNonce={contentAddNonce}
           />
 
-          {/* ⚠️ 「セクションを追加」は 2026-08-17（フェーズ4-3）に**ヘッダーの上のアクション行へ移した**。
-                 下端に戻さないこと（空のセクションを出さない作りなので、
-                 入力が何も無い人は下端まで進む理由が無い）。 */}
+          {/* ⚠️ 「セクションを追加」は 2026-08-24 に**撤去した**（柴さんの指示）。
+                 セクションは0件でも常に出るので、まとめて選ぶ入口は要らない。
+                 戻すなら空カードを消すこと（入口を2つにしない。ルール⑧）。 */}
 
     </>
   );

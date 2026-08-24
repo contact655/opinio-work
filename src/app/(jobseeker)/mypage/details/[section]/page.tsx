@@ -6,7 +6,7 @@ import { rowsToStints } from "@/lib/experiences/toStint";
 import type { CompanyLogoInfo } from "@/lib/utils/timeline";
 import EducationDetails from "./EducationDetails";
 import CareerDetails from "./CareerDetails";
-import { AchievementsDetails, AwardsDetails, CertificationsDetails, MediaDetails, ContentDetails } from "./SimpleDetails";
+import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDetails, MediaDetails, ContentDetails } from "./SimpleDetails";
 
 /**
  * プロフィールの1セクションだけを**全件**出すページ（2026-08-17 / フェーズ3）。
@@ -23,7 +23,7 @@ import { AchievementsDetails, AwardsDetails, CertificationsDetails, MediaDetails
  * ⚠️ **存在しない `section` は 404。** 下の `SECTIONS` に無いものは
  *    `dynamicParams = false` によりレンダリングに入る前に落ちる。
  */
-const SECTIONS = ["experience", "education", "achievements", "awards", "certifications", "media", "content"] as const;
+const SECTIONS = ["experience", "education", "achievements", "awards", "certifications", "languages", "media", "content"] as const;
 type Section = (typeof SECTIONS)[number];
 
 /**
@@ -176,7 +176,7 @@ export default async function ProfileDetailsPage({ params }: { params: { section
     );
   }
 
-  /* ── 残り5つ。表も形も同じなので取得だけ切り替える ────────────────────────── */
+  /* ── 残り6つ。表も形も同じなので取得だけ切り替える ────────────────────────── */
   /* ★資格（2026-08-24）。⚠️ **職歴に紐づかない**ので、下の実績・受賞のように
         職歴の表示名を組み立てる必要がない。media / content と同じ形。 */
   if (section === "certifications") {
@@ -185,6 +185,15 @@ export default async function ProfileDetailsPage({ params }: { params: { section
       .select("id, name, issuer, issued_at, credential_id, credential_url, sort_order")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
     return <CertificationsDetails initial={(data ?? []) as never} />;
+  }
+
+  /* ★言語（2026-08-24）。⚠️ 資格と同じく職歴に紐づかない。 */
+  if (section === "languages") {
+    const { data } = await supabase
+      .from("ow_user_languages")
+      .select("id, name, proficiency, sort_order")
+      .eq("user_id", owUser.id).order("sort_order", { ascending: true });
+    return <LanguagesDetails initial={(data ?? []) as never} />;
   }
 
   if (section === "media") {

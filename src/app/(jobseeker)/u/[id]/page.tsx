@@ -29,6 +29,7 @@ import {
   ProfileAchievementsSection,
   ProfileAwardsSection,
   ProfileCertificationsSection,
+  ProfileLanguagesSection,
   ProfileMediaSection,
   ProfileTimelineSection,
   ProfileArticlesSection,
@@ -292,6 +293,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     { data: educationsRaw }, { data: contentLinksRaw },
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
     { data: certificationsRaw },
+    { data: languagesRaw },
     { data: recentPostsRaw },
   ] = await Promise.all([
     /*
@@ -367,6 +369,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, name, issuer, issued_at, credential_id, credential_url, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    /* ★言語（2026-08-24）。⚠️ **admin クライアントで引く。**
+          `ow_user_languages` は anon に GRANT していない（資格と同じ）。
+          session クライアントのままだと未ログイン閲覧で丸ごと消える。
+       ⚠️ 順番は上の分割代入と揃えること。ずれても型が同じなのでエラーにならない。 */
+    adminSupabase
+      .from("ow_user_languages")
+      .select("id, name, proficiency, sort_order")
+      .eq("user_id", owUser.id)
+      .order("sort_order", { ascending: true }),
     supabase
       .from("ow_posts_visible")
       .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
@@ -398,6 +409,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const certifications = (certificationsRaw ?? []) as Array<{
     id: string; name: string; issuer: string | null; issued_at: string | null;
     credential_id: string | null; credential_url: string | null; sort_order: number;
+  }>;
+  /* ⚠️ 形は `LanguageRow`（ProfileSections.tsx）と同じにすること。 */
+  const languages = (languagesRaw ?? []) as Array<{
+    id: string; name: string; proficiency: string | null; sort_order: number;
   }>;
   const recentPostsTyped = (recentPostsRaw ?? []) as Array<{
     id: string; content: string; image_url: string | null; created_at: string;
@@ -858,6 +873,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                    ⚠️ **学歴の下**。柴さんの指示で LinkedIn と同じ並びにしてある。
                    ⚠️ 0件なら出さない（`actions` を渡さないので空状態も出ない）。 */}
             <ProfileCertificationsSection certifications={certifications} />
+
+            {/* ── 言語（2026-08-24）──
+                   ⚠️ **資格の下**。柴さんの指示で LinkedIn と同じ並びにしてある。
+                   ⚠️ 0件なら出さない（`actions` を渡さないので空状態も出ない）。 */}
+            <ProfileLanguagesSection languages={languages} />
 
 
             {/* ── アクティビティ（最近の投稿）──

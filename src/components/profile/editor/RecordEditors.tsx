@@ -18,11 +18,14 @@ import {
   type Achievement,
   type Award,
   type Certification,
+  type Language,
   type MediaAppearance,
   EDU_YEAR_OPTS,
   parseDateToYM,
   formatYMToDate,
 } from "./recordTypes";
+/* 言語の習熟度。⚠️ 選択肢を route や画面に書き写さない（CLAUDE.md） */
+import { LANGUAGE_PROFICIENCIES } from "@/lib/constants/languageProficiency";
 
 type EducationDraft = {
   school:        string;
@@ -1410,6 +1413,199 @@ export function CertificationEditor({
         />
       </ProfileEditModal>
       <ConfirmDialog isOpen={!!deleteTarget} title="資格を削除しますか？"
+        message={deleteTarget ? `「${deleteTarget.name}」を削除します。この操作は取り消せません。` : ""}
+        confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
+    </>
+  );
+}
+
+// ─── LanguageEditor ───────────────────────────────────────────────────────────
+/**
+ * 言語（2026-08-24）。作りは `CertificationEditor` と同じ。**そちらを直すときはここも見ること。**
+ *
+ * ⚠️ 職歴とは紐づけない（`ExperienceSelect` を出さない）。
+ * ⚠️ 習熟度の選択肢は `lib/constants/languageProficiency.ts` を通す。
+ *    **ここに文字列を書き写さない**（UI / API / DB の CHECK の3つを揃える。CLAUDE.md）。
+ * ⚠️ 未選択は空文字で持ち、送信時に `null` にする。「初級」を既定にしない。
+ */
+
+type LangDraft = { name: string; proficiency: string };
+const EMPTY_LANG_DRAFT: LangDraft = { name: "", proficiency: "" };
+function draftFromLang(l: Language): LangDraft {
+  return { name: l.name, proficiency: l.proficiency ?? "" };
+}
+
+/** ★入力欄だけ。保存行は `ProfileEditModal` のフッターが持つ */
+function LangForm({
+  draft, onDraftChange, isSaving,
+}: { draft: LangDraft; onDraftChange: (d: LangDraft) => void; isSaving: boolean; }) {
+  const set = useCallback((k: keyof LangDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
+  return (
+    <div style={formCol}>
+      <div>
+        <label style={ael()}>言語 *</label>
+        <input type="text" value={draft.name} onChange={(e) => set("name", e.target.value)}
+          placeholder="例：英語、中国語（北京語）" maxLength={60} disabled={isSaving} style={aef()} />
+      </div>
+      <div>
+        <label style={ael()}>習熟度（任意）</label>
+        <select value={draft.proficiency} onChange={(e) => set("proficiency", e.target.value)}
+          disabled={isSaving} style={aef()}>
+          {/* ⚠️ 未選択を選べる状態にしておく。選ばなければ画面にも出ない */}
+          <option value="">選択しない</option>
+          {LANGUAGE_PROFICIENCIES.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+export function LanguageEditor({
+  languages, setLanguages, openAddNonce, openEditId, openDeleteId, onClosed,
+}: {
+  languages: Language[];
+  setLanguages: React.Dispatch<React.SetStateAction<Language[]>>;
+  openAddNonce?: number;
+  openEditId?: string | null;
+  openDeleteId?: string | null;
+  onClosed?: () => void;
+}) {
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  const [editingId,     setEditingId]     = useState<string | null>(null);
+  const [editDraft,     setEditDraft]     = useState<LangDraft>(EMPTY_LANG_DRAFT);
+  const [editSaving,    setEditSaving]    = useState(false);
+  const [editJustSaved, setEditJustSaved] = useState(false);
+  const [adding,        setAdding]        = useState(false);
+  const [addDraft,      setAddDraft]      = useState<LangDraft>(EMPTY_LANG_DRAFT);
+  const [addSaving,     setAddSaving]     = useState(false);
+  const [addJustSaved,  setAddJustSaved]  = useState(false);
+  const [deleteTarget,  setDeleteTarget]  = useState<Language | null>(null);
+  const [deleting,      setDeleting]      = useState(false);
+  const [toastMsg,      setToastMsg]      = useState<string | null>(null);
+  const [toastVariant,  setToastVariant]  = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
+
+  const makeBody = (d: LangDraft) => ({
+    name: d.name.trim(),
+    proficiency: d.proficiency || null,
+  });
+
+  /* ⚠️ API の 400 は `{ error, message }`。**message をそのまま出す。** */
+  const readError = async (res: Response, fallback: string) => {
+    try {
+      const j = await res.json();
+      return typeof j?.message === "string" ? j.message : fallback;
+    } catch { return fallback; }
+  };
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/jobseeker/languages/${editingId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(editDraft)),
+      });
+      if (!res.ok) { showToast(await readError(res, "保存に失敗しました。もう一度お試しください。"), "error"); return; }
+      const updated: Language = await res.json();
+      setLanguages((prev) => prev.map((l) => (l.id === editingId ? { ...l, ...updated } : l)));
+      showToast("言語を更新しました");
+      setEditJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setEditingId(null); setEditDraft(EMPTY_LANG_DRAFT); onClosedRef.current?.();
+      setEditJustSaved(false);
+    } catch { showToast("保存に失敗しました。もう一度お試しください。", "error"); }
+    finally { setEditSaving(false); }
+  }, [editingId, editDraft, setLanguages, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveAdd = useCallback(async () => {
+    setAddSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/languages", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(makeBody(addDraft)),
+      });
+      if (!res.ok) { showToast(await readError(res, "追加に失敗しました。もう一度お試しください。"), "error"); return; }
+      const inserted: Language = await res.json();
+      setLanguages((prev) => [...prev, inserted]);
+      showToast("言語を追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setAdding(false); setAddDraft(EMPTY_LANG_DRAFT); onClosedRef.current?.();
+      setAddJustSaved(false);
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); }
+  }, [addDraft, setLanguages, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobseeker/languages/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setLanguages((prev) => prev.filter((l) => l.id !== deleteTarget.id));
+      setDeleteTarget(null); showToast("言語を削除しました"); onClosedRef.current?.();
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+    finally { setDeleting(false); }
+  }, [deleteTarget, setLanguages, showToast]);
+
+  /* ★外から開く。⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭）。 */
+  const lastAddNonce = useRef(openAddNonce);
+  useEffect(() => {
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
+  useEffect(() => {
+    if (!openEditId) return;
+    const t = languages.find((l) => l.id === openEditId);
+    if (t) { setEditingId(openEditId); setEditDraft(draftFromLang(t)); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEditId]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const t = languages.find((l) => l.id === openDeleteId);
+    if (t) setDeleteTarget(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDeleteId]);
+
+  /* ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。マウント時に控えた値にしない。 */
+  const isEditing = editingId !== null;
+  const draft = isEditing ? editDraft : addDraft;
+  const savedRow = isEditing ? languages.find((l) => l.id === editingId) : undefined;
+  const base = savedRow ? draftFromLang(savedRow) : EMPTY_LANG_DRAFT;
+  const dirty = !!draft.name.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+
+  return (
+    <>
+      <ProfileEditModal
+        open={isEditing || adding}
+        title={isEditing ? "言語を編集" : "言語を追加"}
+        dirty={dirty}
+        saving={isEditing ? editSaving : addSaving}
+        justSaved={isEditing ? editJustSaved : addJustSaved}
+        error={null}
+        onSave={() => { if (isEditing) void saveEdit(); else void saveAdd(); }}
+        onClose={() => {
+          setEditingId(null); setEditDraft(EMPTY_LANG_DRAFT);
+          setAdding(false); setAddDraft(EMPTY_LANG_DRAFT);
+          onClosedRef.current?.();
+        }}
+      >
+        <LangForm
+          draft={draft}
+          onDraftChange={isEditing ? setEditDraft : setAddDraft}
+          isSaving={isEditing ? editSaving : addSaving}
+        />
+      </ProfileEditModal>
+      <ConfirmDialog isOpen={!!deleteTarget} title="言語を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.name}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
