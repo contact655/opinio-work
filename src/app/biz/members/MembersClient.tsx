@@ -45,6 +45,10 @@ export type AmbassadorRecord = {
   consent_at: string | null;
   created_via: string | null;
   invited_at: string | null;
+  /** ★その人が**いまもこの会社に在籍していると申告しているか**（2026-08-25）。
+   *  ⚠️ false なら、公開側では既に降りている（`is_public` が true でも出ていない）。
+   *     「公開中」と表示しないこと。 */
+  isCurrentEmployee: boolean;
 };
 
 export type AmbassadorCandidate = {
@@ -1716,7 +1720,16 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   {/* 下段: トグル + 解除 */}
                   {isAdmin && (
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
-                      {stateOf(a) === "paused" ? (
+                      {!a.isCurrentEmployee ? (
+                        /* ★在籍の申告が無い（退職など / 2026-08-25）。
+                              ⚠️ **公開側では既に降りている。**「公開中」と出さないこと。
+                              ⚠️ 公開トグルも出さない。ONに戻しても表示されないので、
+                                 押せるのに何も起きないボタンになる。
+                              ⚠️ 行は残るので「解除」だけは出す（右側の既存ボタン）。 */
+                        <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                          在籍の申告なし（掲載されていません）
+                        </span>
+                      ) : stateOf(a) === "paused" ? (
                         /* ★本人が自分でOFFにしている（2026-08-24）。
                               ⚠️★**公開トグルを出さないこと。** 企業側から公開に戻すと
                                  `check_public_requires_consent`（is_public=false OR display_consent=true）に

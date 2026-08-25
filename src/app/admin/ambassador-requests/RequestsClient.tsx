@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { dismissRequest } from "./actions";
+import { dismissRequest, toggleReviewed } from "./actions";
 
 export type AmbassadorRequest = {
   id: string;
@@ -13,6 +13,8 @@ export type AmbassadorRequest = {
   appliedAt: string | null;
   /** その企業に通知の宛先があるか。0 なら企業側に承認できる人がいない */
   companyRecipients: number;
+  /** 運営が確認した時刻。**null は未確認**（運営専用の列） */
+  reviewedAt: string | null;
 };
 
 function fmt(iso: string | null): string {
@@ -67,12 +69,25 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
           const busy = busyId === r.id && pending;
           return (
             <div key={r.id} style={{
-              background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
+              /* ★未確認は色で分かるようにする（2026-08-25）。確認済みは白に沈める。
+                    ⚠️ 未確認＝悪い、ではない。**まだ見ていない**というだけなので、
+                       エラー色（赤）にしないこと。 */
+              background: r.reviewedAt ? "#fff" : "#FFFBEB",
+              border: `1px solid ${r.reviewedAt ? "var(--line)" : "#FDE68A"}`, borderRadius: 10,
               padding: "14px 16px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
             }}>
               <div style={{ flex: 1, minWidth: 220 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                  {r.companyName}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                    {r.companyName}
+                  </span>
+                  {!r.reviewedAt && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                      background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D",
+                      whiteSpace: "nowrap",
+                    }}>未確認</span>
+                  )}
                 </div>
                 <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2 }}>
                   {r.userName}
@@ -124,6 +139,22 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                       ここに出る行は**すでに掲載中**——承認する対象が無い。
                    ⚠️ 運営の操作は「掲載を取り消す」1つだけ。戻さないこと。 */
                 <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  {/* ★確認の記録（2026-08-25）。⚠️ **掲載状態は変えない**し通知も送らない。
+                         運営のメモで、本人にも企業にも見えない。
+                      ⚠️ もう一度押すと未確認に戻せる（押し間違いで情報を消さない）。 */}
+                  <button
+                    type="button" className="btn-fixed-size" disabled={busy}
+                    onClick={() => run(() => toggleReviewed(r.id, !r.reviewedAt), r.id)}
+                    style={{
+                      height: 32, padding: "0 14px", borderRadius: 6, fontSize: 12, fontWeight: 700,
+                      fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
+                      border: r.reviewedAt ? "1px solid var(--line)" : "none",
+                      background: r.reviewedAt ? "#fff" : "var(--royal)",
+                      color: r.reviewedAt ? "var(--ink-mute)" : "#fff",
+                    }}
+                  >
+                    {busy ? "..." : r.reviewedAt ? "未確認に戻す" : "確認した"}
+                  </button>
                   <button
                     type="button" className="btn-fixed-size" disabled={busy}
                     onClick={() => setConfirmId(r.id)}

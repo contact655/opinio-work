@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MEMBER_CREATED_VIA, memberState } from "@/lib/constants/companyMembers";
+import { fetchSelfListed } from "@/lib/companyMembers/selfListed";
 import { RequestsClient, type AmbassadorRequest } from "./RequestsClient";
 
 /* ⚠️ 運営が押した結果をすぐ反映する。キャッシュに載せない。 */
@@ -30,63 +30,55 @@ export const metadata = { title: { absolute: "自己申告で掲載中の人 | O
 async function getRequests(): Promise<AmbassadorRequest[]> {
   const admin = createAdminClient();
 
-  const { data, error } = await admin
-    .from("ow_company_members")
-    .select("id, company_id, user_id, display_consent, is_public, created_via, approved_at, consent_at, created_at, ow_users!user_id(name), ow_companies!company_id(name, brand_name)")
-    /* 本人発だけが対象。企業が招待した行（`created_via` が null / 'invite'）は
-       企業が相手を知っているので、なりすましの監視対象ではない。 */
-    .eq("created_via", MEMBER_CREATED_VIA.SELF)
-    /* ★掲載されているものだけ。⚠️ 本人がOFFにした行（`paused`）は出さない
-          ——外に出ていないので運営が見る理由が無い。 */
-    .eq("is_public", true)
-    .order("consent_at", { ascending: false, nullsFirst: false });
+  /* ⚠️★条件は `lib/companyMembers/selfListed.ts` に集約している。**ここに書き直さないこと。**
+        ダッシュボードの「未確認 N名」と同じ関数を通さないと、数字と中身が食い違う。
+        （とくに「その企業に在籍中の経歴があるか」の突き合わせを落としやすい） */
+  const listed = await fetchSelfListed();
+  if (listed.length === 0) return [];
 
-  /* ⚠️ 握り潰さない。空になると「誰も自己申告していない」と誤って表示され、
-        なりすましを見落とす。 */
-  if (error) {
-    console.error("[admin/ambassador-requests] fetch:", error.message);
-    return [];
-  }
+  /* 表示に要るものだけ、まとめて引く。⚠️ N+1 にしない */
+  const userIds = Array.from(new Set(listed.map((r) => r.user_id)));
+  const companyIds = Array.from(new Set(listed.map((r) => r.company_id)));
 
-  const rows = (data ?? []) as unknown as {
-    id: string; company_id: string; user_id: string;
-    display_consent: boolean; is_public: boolean; created_via: string | null;
-    approved_at: string | null; consent_at: string | null; created_at: string;
-    ow_users: { name: string | null } | null;
-    ow_companies: { name: string | null; brand_name: string | null } | null;
-  }[];
-
-  /* ⚠️ 念のため `memberState()` でも絞る。上の where と二重だが、
-        状態の定義が1箇所であることを保つため（where だけにすると判定が2つになる）。 */
-  const pending = rows.filter((r) => memberState(r) === "listed");
-  if (pending.length === 0) return [];
-
-  /* 企業ごとの通知宛先数。0 なら企業側に承認できる人がいない＝運営が判断する対象。
-     ⚠️ N+1 にしないよう1回で引く。 */
-  const companyIds = Array.from(new Set(pending.map((r) => r.company_id)));
-  const { data: admins, error: adminErr } = await admin
-    .from("ow_company_admins")
-    .select("company_id, ow_users!user_id(email)")
-    .in("company_id", companyIds)
-    .eq("permission", "admin")
-    .eq("is_active", true);
+  const [{ data: users, error: uErr }, { data: companies, error: cErr }, { data: admins, error: adminErr }] =
+    await Promise.all([
+      admin.from("ow_users").select("id, name").in("id", userIds),
+      admin.from("ow_companies").select("id, name, brand_name").in("id", companyIds),
+      /* 企業ごとの通知宛先数。0 なら企業側に気づける人がいない＝運営が見るしかない対象。 */
+      admin
+        .from("ow_company_admins")
+        .select("company_id, ow_users!user_id(email)")
+        .in("company_id", companyIds)
+        .eq("permission", "admin")
+        .eq("is_active", true),
+    ]);
+  /* ⚠️ 握り潰さない。名前が引けないだけで一覧が空になると、監視対象を見落とす */
+  if (uErr) console.error("[admin/ambassador-requests] ow_users:", uErr.message);
+  if (cErr) console.error("[admin/ambassador-requests] ow_companies:", cErr.message);
   if (adminErr) console.error("[admin/ambassador-requests] recipients:", adminErr.message);
 
+  const userName = new Map((users ?? []).map((u) => [(u as { id: string }).id, (u as { name: string | null }).name]));
+  const companyName = new Map(
+    (companies ?? []).map((c) => {
+      const r = c as { id: string; name: string | null; brand_name: string | null };
+      return [r.id, r.brand_name ?? r.name ?? "—"];
+    }),
+  );
   const recipientCount = new Map<string, number>();
   for (const a of (admins ?? []) as unknown as { company_id: string; ow_users: { email: string | null } | null }[]) {
-    const email = a.ow_users?.email;
-    if (!email) continue;
+    if (!a.ow_users?.email) continue;
     recipientCount.set(a.company_id, (recipientCount.get(a.company_id) ?? 0) + 1);
   }
 
-  return pending.map((r) => ({
+  return listed.map((r) => ({
     id: r.id,
     companyId: r.company_id,
-    companyName: r.ow_companies?.brand_name ?? r.ow_companies?.name ?? "—",
+    companyName: companyName.get(r.company_id) ?? "—",
     userId: r.user_id,
-    userName: r.ow_users?.name ?? "—",
+    userName: userName.get(r.user_id) ?? "—",
     appliedAt: r.consent_at ?? r.created_at,
     companyRecipients: recipientCount.get(r.company_id) ?? 0,
+    reviewedAt: r.ops_reviewed_at,
   }));
 }
 
@@ -103,6 +95,7 @@ export default async function AmbassadorRequestsPage() {
              承認を促す文面にすると、運営が押すべき操作が無いのに待つことになる。 */}
       <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
         本人が「話を聞かれてもよい」をONにして、その企業のページに掲載されている人です。
+        <strong style={{ color: "var(--ink)" }}>未確認が上に並びます。</strong>
       </p>
       <p style={{ margin: "0 0 20px", fontSize: 12, color: "#92400e", lineHeight: 1.7, fontWeight: 600 }}>
         在籍は本人の申告で、OPINIO は在籍確認を行っていません。

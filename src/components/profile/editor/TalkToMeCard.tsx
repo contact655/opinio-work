@@ -77,13 +77,18 @@ export default function TalkToMeCard({
 
   /* 在籍している会社と、その会社の行（あれば）を突き合わせる。
      ⚠️ 行があるが在籍申告が無い会社（退職済みなど）も**出す**。
-        出さないと、公開されたままなのに本人が解除できなくなる。 */
+        出さないと、行が残っているのに本人が始末できなくなる。
+     ★`isCurrent` を持たせる（2026-08-25）。「話を聞ける人」は**現職についての話**なので、
+       在籍が切れた行は掲載されない（公開側は `talkable.ts` / `getPublicAmbassadorsCached`
+       が `is_current = true` を要求している）。
+       ⚠️ **なのにこの画面は `is_public` だけを見て「掲載中」と言っていた。**
+          公開側は既に降ろしているので、**画面だけが嘘をついている**状態だった。 */
   const byCompany = new Map(memberships.map((m) => [m.company_id, m]));
   const rows = [
-    ...currentCompanies.map((c) => ({ company: c, m: byCompany.get(c.id) ?? null })),
+    ...currentCompanies.map((c) => ({ company: c, m: byCompany.get(c.id) ?? null, isCurrent: true })),
     ...memberships
       .filter((m) => !currentCompanies.some((c) => c.id === m.company_id))
-      .map((m) => ({ company: { id: m.company_id, name: m.company_name }, m })),
+      .map((m) => ({ company: { id: m.company_id, name: m.company_name }, m, isCurrent: false })),
   ];
 
   if (rows.length === 0) return null;
@@ -126,7 +131,7 @@ export default function TalkToMeCard({
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {rows.map(({ company, m }) => {
+        {rows.map(({ company, m, isCurrent }) => {
           const state = memberState(m);
           const busy = busyId === (m?.id ?? company.id);
           /* ⚠️ 表示にも読み上げにも同じ名前を使う。法人格と " Japan" が落ちる */
@@ -174,7 +179,38 @@ export default function TalkToMeCard({
                 {brand}
               </div>
 
-              {invitePending ? (
+              {/* ★在籍が切れている行（2026-08-25）。
+                     ⚠️ **トグルを出さない。** ONにしても RLS（在籍チェック）に弾かれるし、
+                        そもそも「話を聞ける人」は現職についての話なので、ONにする意味が無い。
+                     ⚠️ 行は残っているので、本人が始末できる導線だけ出す。
+                        OFF にする更新は在籍が切れていても通る（RLS は公開する側にだけ
+                        在籍チェックを掛けてある）。 */}
+              {!isCurrent ? (
+                <>
+                  <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+                    この会社の在籍が職歴にありません。
+                    <strong style={{ color: "var(--ink-soft)" }}>掲載されていません。</strong>
+                  </p>
+                  {m && (m.is_public || m.display_consent) && (
+                    <button
+                      type="button"
+                      className="btn-fixed-size"
+                      disabled={busy}
+                      onClick={() => void run("/api/mypage/ambassador-visibility", {
+                        method: "PATCH",
+                        body: JSON.stringify({ member_id: m.id, enabled: false }),
+                      }, m.id)}
+                      style={{
+                        width: "100%", height: 36, borderRadius: 8, fontSize: 13, fontWeight: 600,
+                        fontFamily: "inherit", cursor: busy ? "wait" : "pointer",
+                        border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
+                      }}
+                    >
+                      {busy ? "処理中…" : "登録を残さない"}
+                    </button>
+                  )}
+                </>
+              ) : invitePending ? (
                 <a
                   href={`/mypage/ambassador-invite/${m!.invite_token}`}
                   style={{
@@ -221,8 +257,9 @@ export default function TalkToMeCard({
                 </button>
               )}
 
-              {/* いまどうなっているか。⚠️ 状態ごとに1行だけ */}
-              {state !== "none" && (
+              {/* いまどうなっているか。⚠️ 状態ごとに1行だけ。
+                     ⚠️ 在籍が切れている行では出さない（上で「掲載されていません」と言っている）。 */}
+              {isCurrent && state !== "none" && (
                 <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: LINE[state].tone }}>
                   {LINE[state].text}
                 </p>

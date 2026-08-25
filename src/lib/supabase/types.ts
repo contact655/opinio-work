@@ -530,6 +530,7 @@ export type Database = {
           job_id: string | null
           preferred_format: string | null
           questions: string | null
+          requested_user_id: string | null
           share_profile: boolean
           status: string
           updated_at: string
@@ -550,6 +551,7 @@ export type Database = {
           job_id?: string | null
           preferred_format?: string | null
           questions?: string | null
+          requested_user_id?: string | null
           share_profile?: boolean
           status?: string
           updated_at?: string
@@ -570,6 +572,7 @@ export type Database = {
           job_id?: string | null
           preferred_format?: string | null
           questions?: string | null
+          requested_user_id?: string | null
           share_profile?: boolean
           status?: string
           updated_at?: string
@@ -623,6 +626,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_casual_meetings_requested_user_id_fkey"
+            columns: ["requested_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
           {
@@ -1880,6 +1890,7 @@ export type Database = {
           invited_at: string | null
           invited_by: string | null
           is_public: boolean
+          ops_reviewed_at: string | null
           role_title: string | null
           updated_at: string
           user_id: string
@@ -1896,6 +1907,7 @@ export type Database = {
           invited_at?: string | null
           invited_by?: string | null
           is_public?: boolean
+          ops_reviewed_at?: string | null
           role_title?: string | null
           updated_at?: string
           user_id: string
@@ -1912,6 +1924,7 @@ export type Database = {
           invited_at?: string | null
           invited_by?: string | null
           is_public?: boolean
+          ops_reviewed_at?: string | null
           role_title?: string | null
           updated_at?: string
           user_id?: string

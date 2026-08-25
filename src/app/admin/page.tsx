@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 import Link from "next/link";
 
 async function getStats() {
@@ -24,12 +25,12 @@ async function getStats() {
     //    招待の作成時に is_active を立てるのをやめ、承諾時に立てるようにしたため。
     //    「招待した人数」ではなく「実際に使える担当者の数」を出したいので、これが正。
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
-    /* ★自己申告で掲載されている人（2026-08-24）。
-          ⚠️ **要対応タスクには入れない。** 掲載されていること自体は正常で、
-             タスク扱いにすると0にならないバッジが常時出る。
-             ここは「いま何人が自己申告で載っているか」の**状態**として出す。 */
-    admin.from("ow_company_members").select("id", { count: "exact", head: true })
-      .eq("created_via", "self").eq("is_public", true),
+    /* ★自己申告で掲載されていて、**運営がまだ確認していない**人（2026-08-25）。
+          ⚠️★条件は `lib/companyMembers/selfListed.ts` に集約している。**ここに書かないこと。**
+             一覧ページと同じ関数を通さないと、**数字と中身が食い違う**
+             （とくに「在籍しているか」の突き合わせを落としやすい）。
+          ⚠️ 「掲載中の総数」に戻さないこと。あれは0にならないので要対応にできない。 */
+    countSelfListedUnreviewed(),
     // オンボーディングファネル
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
     // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
@@ -96,7 +97,7 @@ async function getStats() {
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: 0,
     bizAdminsCount: bizAdmins.count ?? 0,
-    selfListedCount: selfListed.count ?? 0,
+    selfUnreviewedCount: selfListed,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
@@ -121,7 +122,10 @@ export default async function AdminDashboard() {
   /* ⚠️ 口コミ承認待ちは 2026-08-07 に外した。参照していた ow_company_reviews が
         このプロジェクトに存在せず、常に0件を足していただけだったため。 */
   const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount
-    + (stats.neverLoggedInBizCount > 0 ? 1 : 0);
+    + (stats.neverLoggedInBizCount > 0 ? 1 : 0)
+    /* ⚠️ 未確認は0にできるので**要対応に数える**（2026-08-25）。
+          掲載中の総数を足さないこと。あれは0にならない。 */
+    + stats.selfUnreviewedCount;
 
   const kpis = [
     {
@@ -514,41 +518,44 @@ export default async function AdminDashboard() {
               </Link>
             )}
 
-            {/* ★自己申告で掲載中の人（2026-08-24）。
-                   ⚠️ **タスクではなく状態**として出す。青系にして、上の琥珀色の
-                      「要対応」と見た目で区別する。`totalPending` にも足さない。
+            {/* ★自己申告で掲載されていて、運営がまだ確認していない人（2026-08-25）。
                    ⚠️ 事前の承認を廃止したので、なりすましは**後から見つけて外す**しかない。
-                      通知が届く企業は79社中7社しかなく、残りは企業側が気づけない。
-                      **ここが運営にとって唯一の入口**なので、0件でも導線を残す。 */}
-            <Link href="/admin/ambassador-requests" style={{ textDecoration: "none" }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "12px 14px", borderRadius: 10,
-                background: "#EFF6FF", border: "1px solid #BFDBFE",
-              }}>
+                      通知が届く企業は79社中7社で、残りは企業側が気づけない。
+                      **ここが運営にとって唯一の入口。**
+                   ⚠️ 0件なら出さない。`ops_reviewed_at` を付けたことで**0にできる**ようになり、
+                      要対応タスクとして扱えるようになった（掲載中の総数では0にならなかった）。 */}
+            {stats.selfUnreviewedCount > 0 && (
+              <Link href="/admin/ambassador-requests" style={{ textDecoration: "none" }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 8,
-                  background: "#DBEAFE", color: "#1D4ED8",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  transition: "background 0.15s", cursor: "pointer",
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "#B45309",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>
+                      自己申告の掲載 未確認 {stats.selfUnreviewedCount}名
+                    </p>
+                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
+                      在籍確認はしていません。内容を見て「確認した」を押してください
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#1E3A8A", margin: 0, marginBottom: 2 }}>
-                    自己申告で掲載中 {stats.selfListedCount}名
-                  </p>
-                  <p style={{ fontSize: 11, color: "#1D4ED8", margin: 0 }}>
-                    在籍確認はしていません。定期的に目を通してください
-                  </p>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </div>
-            </Link>
+              </Link>
+            )}
 
             {totalPending === 0 && (
               <div style={{

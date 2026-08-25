@@ -28,6 +28,26 @@ async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> 
     return [];
   }
 
+  /* ★在籍しているかを突き合わせる（2026-08-25）。
+        ⚠️ 公開側（企業ページ・/people・/u）は `is_current = true` を要求しており、
+           **退職した人は既に降りている**。この画面は `is_public` だけを見ていたので、
+           降りている人を「公開中」と表示していた（**画面だけが嘘をつく**）。
+        ⚠️ 行の `is_public` は書き換えない。判定は `talkable.ts` の考え方に合わせ、
+           **読むときに突き合わせる**（同じ判定を2通りに書かない）。 */
+  const memberUserIds = Array.from(new Set((data ?? []).map((r) => (r as { user_id: string }).user_id)));
+  const currentUserIds = new Set<string>();
+  if (memberUserIds.length > 0) {
+    const { data: exps, error: expErr } = await adminSupabase
+      .from("ow_experiences")
+      .select("user_id")
+      .eq("company_id", companyId)
+      .eq("is_current", true)
+      .in("user_id", memberUserIds);
+    /* ⚠️ 握り潰さない。空で素通りすると**全員が退職済み**に見える */
+    if (expErr) console.error("[ambassadors] ow_experiences:", expErr.message);
+    for (const e of exps ?? []) currentUserIds.add((e as { user_id: string }).user_id);
+  }
+
   type Row = {
     id: string;
     user_id: string;
@@ -60,6 +80,7 @@ async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> 
       consent_at: r.consent_at,
       created_via: r.created_via,
       invited_at: r.invited_at,
+      isCurrentEmployee: currentUserIds.has(r.user_id),
     };
   });
 }
