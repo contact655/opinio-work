@@ -10,6 +10,7 @@ import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { isValidIndustry } from "@/lib/search/industryGroups";
 import type { BizCompany } from "@/lib/business/mockCompany";
+import { assertPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 
 
 // PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
@@ -142,6 +143,18 @@ export async function PATCH(req: Request) {
       { status: 400 }
     );
   }
+  /* ⚠️ 公開ゲート。条件はここに書かず `assertPublishable` を呼ぶ（4経路あるので
+        書き写すと必ず漏れる）。**企業経路なので掲載規約の同意も要る。**
+        これまで掲載規約のゲートは `CompanyEditSubNav` のボタン出し分け（UI）だけで、
+        API を直接叩けば未同意でも公開できていた。
+     ⚠️ 取り下げ（isPublished=false）は常に通す。 */
+  if (body.isPublished) {
+    const gate = await assertPublishable(companyId, { kind: "company", authUserId: user.id });
+    if (!gate.ok) {
+      return NextResponse.json({ error: publishBlockedMessage(gate.missing) }, { status: 400 });
+    }
+  }
+
   const s = (v: unknown): string | null => typeof v === "string" ? v : null;
   const n = (v: unknown): number | null => typeof v === "number" ? v : null;
   const sa = (v: unknown): string[] | null => Array.isArray(v) ? v as string[] : null;
