@@ -49,12 +49,16 @@ type DbMeeting = {
   company_internal_memo: string | null;
   company_read_at: string | null;
   assignee_user_id: string | null;
+  /** ★求職者が指名した「話を聞きたい人」（2026-08-25）。
+   *  ⚠️ `assignee_user_id`（企業側で実際に対応する人）とは**別物**。混同しない。 */
+  requested_user_id: string | null;
   created_at: string;
   job_id: string | null;
   status: string;
   applicant: DbApplicant | null;
   job: DbJob | null;
   assignee: DbAssignee | null;
+  requested: DbAssignee | null;
 };
 
 // ─── Constants ───────────────────────────────────────────
@@ -159,6 +163,9 @@ export function transformMeeting(
     isUnread: row.company_read_at == null,
     assigneeId: row.assignee_user_id ?? null,
     assigneeName: row.assignee?.name ?? null,
+    /* ★指名（2026-08-25）。⚠️ 担当者と別に持つ。企業が別の人を割り当てても
+          「誰を指名されたか」が消えないようにするため。 */
+    requestedName: row.requested?.name ?? null,
     assigneeInitial: row.assignee?.name?.charAt(0) ?? null,
     assigneeGradient,
     companyMemo: row.company_internal_memo ?? "",
@@ -184,11 +191,12 @@ export async function fetchMeetingsForCompany(
       .from("ow_casual_meetings")
       .select(
         `id, intent, interest_reason, questions, preferred_format,
-         company_internal_memo, company_read_at, assignee_user_id,
+         company_internal_memo, company_read_at, assignee_user_id, requested_user_id,
          created_at, job_id, status,
          applicant:ow_users!user_id (id, name, avatar_color, birth_date),
          job:ow_jobs!job_id (id, title, salary_min, salary_max),
-         assignee:ow_users!assignee_user_id (id, name, avatar_color)`
+         assignee:ow_users!assignee_user_id (id, name, avatar_color),
+         requested:ow_users!requested_user_id (id, name, avatar_color)`
       )
       .eq("company_id", tenantId)
       .order("created_at", { ascending: false });

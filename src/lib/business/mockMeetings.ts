@@ -41,6 +41,9 @@ export type MeetingApplication = {
   // 企業側
   assigneeId: string | null;
   assigneeName: string | null;
+  /** ★求職者が指名した「話を聞きたい人」の名前（2026-08-25）。指名が無ければ null。
+   *  ⚠️ `assigneeName`（実際に対応する人）とは**別物**。企業が誰を割り当てても消えない。 */
+  requestedName?: string | null;
   assigneeInitial: string | null;
   assigneeGradient: string | null;
   companyMemo: string;

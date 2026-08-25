@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCompanyBySlugOrId } from "@/lib/supabase/queries";
 import CasualMeetingForm from "./CasualMeetingForm";
 
+/** ⚠️ UUID 以外を DB に投げない（`22P02` で 400 になり、`?? []` 側では「0件」に化ける） */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const revalidate = 60;
 export const metadata = { title: { absolute: "カジュアル面談申し込み | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -11,7 +14,10 @@ export default async function CasualMeetingPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { job_id?: string };
+  /* ★`person` は `ow_users.id`（2026-08-25）。`/u/[id]` と企業ページの社員カードが渡す。
+        ⚠️ 2026-08-25 まで**この型に無く、そのまま捨てられていた**。
+           人単位のCTAが企業宛の申込にしか繋がっていなかった。 */
+  searchParams: { job_id?: string; person?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -153,6 +159,43 @@ export default async function CasualMeetingPage({
     );
   }
 
+  /* ── 指名された「話を聞きたい人」（2026-08-25）────────────────────────────
+        ⚠️★**URL の値をそのまま信じない。** 誰でも書き換えられるので、
+           **その会社で実際に掲載されている面談対応者か**を必ず確かめる。
+           確かめないと、掲載していない人・別会社の人の名前を申込画面に出せてしまう。
+        ⚠️ 判定は公開側と同じ2条件（公開中 ＋ その企業に在籍中の経歴）。
+           `lib/companyMembers/talkable.ts` の考え方に合わせる。
+        ⚠️ 不正な値は**黙って無視する**（エラーにしない）。申し込み自体は
+           企業宛として成立するので、止める理由が無い。 */
+  let requestedUserId: string | null = null;
+  let requestedName: string | null = null;
+  const personParam = (searchParams.person ?? "").trim();
+  if (UUID_RE.test(personParam)) {
+    const [{ data: member }, { data: exp }] = await Promise.all([
+      supabase
+        .from("ow_company_members")
+        .select("user_id")
+        .eq("company_id", company.id)
+        .eq("user_id", personParam)
+        .eq("is_public", true)
+        .eq("display_consent", true)
+        .maybeSingle(),
+      supabase
+        .from("ow_experiences")
+        .select("id")
+        .eq("company_id", company.id)
+        .eq("user_id", personParam)
+        .eq("is_current", true)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (member && exp) {
+      const { data: u } = await supabase.from("ow_users").select("name").eq("id", personParam).maybeSingle();
+      requestedUserId = personParam;
+      requestedName = u?.name ?? null;
+    }
+  }
+
   const companyInitial = company.name.charAt(0);
 
   return (
@@ -163,6 +206,8 @@ export default async function CasualMeetingPage({
       companyGradient={company.gradient}
       authEmail={user.email ?? ""}
       jobId={searchParams.job_id ?? null}
+      requestedUserId={requestedUserId}
+      requestedName={requestedName}
     />
   );
 }

@@ -154,7 +154,12 @@ function EmployeeCard({
                ⚠️ `member_id` は現状どこにも記録されない（個人指名は未実装）。積み残し。 */}
         {acceptingMeetings && (
           <Link
-            href={`/companies/${companyId}/casual-meeting?member_id=${ambassadorInfo.memberId}`}
+            /* ★`person`（`ow_users.id`）で渡す（2026-08-25）。
+                  ⚠️ 2026-08-25 まで `member_id`（`ow_company_members.id`）を渡していたが、
+                     **受け側が読んでおらず捨てられていた**。`/u/[id]` は `person` を
+                     渡していたので、**同じ意味の値が2つの名前で飛んでいた**。
+                     人を指すのは `ow_users.id` に統一する（在籍の行は増減するが人は変わらない）。 */
+            href={`/companies/${companyId}/casual-meeting?person=${employee.userId}`}
             style={{
               display: "block", textAlign: "center",
               padding: "8px 16px",

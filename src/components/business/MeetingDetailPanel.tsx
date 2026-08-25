@@ -359,6 +359,34 @@ export function MeetingDetailPanel({
             </div>
           </div>
 
+          {/* ★求職者からの指名（2026-08-25）。担当者の**手前**に出す。
+                 ⚠️ 指名は「誰に聞きたいか」で、担当者は「実際に誰が対応するか」。
+                    別物なので**別の行**で出す。同じ行に混ぜると、担当を変えた瞬間に
+                    指名が消えたように見える。
+                 ⚠️ 「この人が対応しなければならない」ではない。会社が決めてよい。
+                    文言を義務に読める形にしないこと。 */}
+          {m.requestedName && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 12px", marginBottom: 8,
+              background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+              borderRadius: 8,
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              </svg>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                  {m.requestedName} さんに聞きたい
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+                  応募者からの指名です。対応する方は会社で決めてください。
+                </div>
+              </div>
+            </div>
+          )}
+
           {m.assigneeId ? (
             <div style={{
               display: "flex", alignItems: "center", gap: 10,

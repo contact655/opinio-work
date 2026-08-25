@@ -4,6 +4,9 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+
+/** ⚠️ UUID 以外を DB に投げない（`22P02` になり、`?? []` 側では「0件」に化ける） */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { isCasualMeetingOpen } from "@/lib/company/casualMeeting";
 import {
   casualMeetingAdminTemplate,
@@ -46,6 +49,7 @@ export async function POST(req: NextRequest) {
   const {
     company_id, job_id,
     share_profile, intent, interest_reason, questions, preferred_format,
+    requested_user_id,
   } = body;
 
   if (!company_id || typeof company_id !== "string") {
@@ -102,19 +106,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "already_applied", id: existing.id }, { status: 409 });
   }
 
+  /* ── 指名された「話を聞きたい人」（2026-08-25）────────────────────────────
+        ⚠️★**クライアントの値をそのまま入れない。** 申込画面でも確認しているが、
+           API は直接叩けるので**ここでも確かめ直す**。確かめないと、
+           掲載していない人・別会社の人を指名として記録できてしまう。
+        ⚠️ 条件は公開側と同じ2つ（公開中 ＋ その企業に在籍中の経歴）。
+        ⚠️ 不正な値は**黙って null に落とす**（400 で申込ごと止めない）。
+           指名は任意で、企業宛の申込としては成立するため。 */
+  let requestedUserId: string | null = null;
+  if (typeof requested_user_id === "string" && UUID_RE.test(requested_user_id)) {
+    const [{ data: member }, { data: exp }] = await Promise.all([
+      supabase.from("ow_company_members").select("user_id")
+        .eq("company_id", company_id).eq("user_id", requested_user_id)
+        .eq("is_public", true).eq("display_consent", true).maybeSingle(),
+      supabase.from("ow_experiences").select("id")
+        .eq("company_id", company_id).eq("user_id", requested_user_id)
+        .eq("is_current", true).limit(1).maybeSingle(),
+    ]);
+    if (member && exp) requestedUserId = requested_user_id;
+    else console.warn("[POST /api/casual-meetings] 指名が無効なので落とした:", requested_user_id);
+  }
+
   const { data: meeting, error } = await supabase
     .from("ow_casual_meetings")
     .insert({
       user_id: owUserId,
       company_id,
       contact_email,
-      job_id: (job_id && typeof job_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job_id)) ? job_id : null,
+      job_id: (job_id && typeof job_id === "string" && UUID_RE.test(job_id)) ? job_id : null,
       share_profile: share_profile !== false,
       intent: typeof intent === "string" ? intent : null,
       interest_reason: typeof interest_reason === "string" ? interest_reason : null,
       questions: typeof questions === "string" ? questions : null,
       preferred_format: typeof preferred_format === "string" ? preferred_format : null,
       status: "pending",
+      requested_user_id: requestedUserId,
     })
     .select("id, status")
     .single();
