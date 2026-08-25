@@ -439,14 +439,22 @@ export default async function MypagePage({
           **バッジは常に 0**。新着メッセージに一生気づけない状態だった。
        ⚠️ 実在する列は id / kind / stage / company_id / mentor_user_id /
           candidate_user_id / status / last_message_at / created_at の9つだけ。
-       ⚠️ 参加者は候補者側と**メンター側の両方**を見る。求職者が「話を聞かれる側」に
-          なる会話（DM）は `mentor_user_id` に入る。
-       ⚠️ **error を捨てない。** 捨てていたから2026-08-12 以降ずっと気づけなかった。 */
+       ⚠️ **error を捨てない。** 捨てていたから2026-08-12 以降ずっと気づけなかった。
+
+       ★バッジの基準は一覧（/mypage/conversations）と同じ「**自分の参加者行があるか**」。
+       ⚠️ 2026-08-25 まで `candidate_user_id` / `mentor_user_id` で数えていたが、
+          一覧は参加者行で絞るので**基準が2つに割れていた**。実際に本番で、
+          参加者行が無い会話をバッジだけが数え、押すと
+          **「まだ対話がありません」に着く**状態が出ていた（実ユーザー2名）。
+       ⚠️ したがって **バッジは必ず一覧の部分集合**にする。数え方を足すときも、
+          先に「その会話が一覧に出るか」を満たすこと。
+       ⚠️ ここはまだ「未読数」ではなく「7日以内に動きがあった会話数」。
+          未読で数えるのは既読フェーズの範囲。 */
     const [{ count: convCount, error: convError }, { count: appCount, error: appError }, { count: scoutCount, error: scoutError }] = await Promise.all([
       supabase
         .from("ow_conversations")
-        .select("id", { count: "exact", head: true })
-        .or(`candidate_user_id.eq.${owUser.id},mentor_user_id.eq.${owUser.id}`)
+        .select("id, ow_conversation_participants!inner(user_id)", { count: "exact", head: true })
+        .eq("ow_conversation_participants.user_id", owUser.id)
         .gt("last_message_at", sevenDaysAgo),
       supabase
         .from("ow_job_applications")
