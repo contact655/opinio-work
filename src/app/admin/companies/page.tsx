@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminCompaniesClient, { type Company, type CompanyAdmin } from "./AdminCompaniesClient";
+import { findPublishBlockers } from "@/lib/companies/publishable";
 
 /**
  * 企業審査（運営）。
@@ -72,11 +73,26 @@ export default async function AdminCompaniesPage() {
     });
   }
 
+  /* ⚠️ **公開中なのに掲載の条件を満たしていない企業**を洗い出す（2026-08-25）。
+        公開ゲート（checkPublishable）は**切り替え操作しか見ない**ので、
+        ゲートを入れる前から公開されている違反は誰も検知できない
+        （実例: 株式会社データプール — 公開中・事業領域なし）。
+     ⚠️ 判定は `findPublishBlockers` に任せる。条件をここに書き写さない
+        （ゲートと一覧で食い違うと、直したのに警告が消えない／その逆が起きる）。
+     ⚠️ 対象は**公開中の企業だけ**。下書きは「これから直すもの」なので警告にしない。 */
+  const publishedIds = ((companyRows ?? []) as unknown as Company[])
+    .filter((c) => c.is_published || c.listing_status === "listed")
+    .map((c) => c.id);
+  const blockers = await findPublishBlockers(publishedIds);
+  // ⚠️ null は取得失敗。空 Map（＝違反0件）と区別して、画面にもそう出す
+  const blockersFailed = blockers === null;
+
   const companies: Company[] = ((companyRows ?? []) as unknown as Company[]).map((c) => ({
     ...c,
     job_count: jobCountMap.get(c.id) ?? 0,
     admins: adminMap.get(c.id) ?? [],
+    publish_blockers: blockers?.get(c.id) ?? [],
   }));
 
-  return <AdminCompaniesClient initialCompanies={companies} />;
+  return <AdminCompaniesClient initialCompanies={companies} blockersFailed={blockersFailed} />;
 }

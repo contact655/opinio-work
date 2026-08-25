@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
-import { assertPublishable, publishBlockedMessage } from '@/lib/companies/publishable';
+import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publishable';
 
 // PUT /api/admin/companies/[id] — 企業情報全フィールド更新
 // service_role を使用（ow_companies の UPDATE RLS は owner only のため）
@@ -146,12 +146,12 @@ export async function PUT(
 
   /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
         ここに条件を書き写さないこと（is_published を true にできる経路は3つある）。 */
-  /* ⚠️ 公開ゲート。条件はここに書かず `assertPublishable` を呼ぶ（公開に触れる経路は
+  /* ⚠️ 公開ゲート。条件はここに書かず `checkPublishable` を呼ぶ（公開に触れる経路は
         4つあり、書き写すと必ず漏れる）。運営経路なので掲載規約の同意は求めない。
      ⚠️ 取り下げは常に通す。塞ぐのは「見えるようにする一手」だけ。
      ⚠️ **更新を当てる前に見る。** 当てたあとだと、弾いても値は書き換わっている。 */
   if (updates.is_published === true || updates.listing_status === 'listed') {
-    const gate = await assertPublishable(params.id, { kind: 'admin' });
+    const gate = await checkPublishable(params.id, { kind: 'admin' });
     if (!gate.ok) {
       return NextResponse.json({ error: publishBlockedMessage(gate.missing) }, { status: 400 });
     }

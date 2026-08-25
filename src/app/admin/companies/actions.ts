@@ -6,7 +6,7 @@ import { mutateOne } from "@/lib/supabase/mutate";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { revalidatePath } from "next/cache";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
-import { assertPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
+import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 
 async function assertAdmin(): Promise<void> {
   const supabase = createClient();
@@ -119,11 +119,11 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
   if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
   await assertAdmin();
 
-  /* ⚠️ 公開ゲート。条件はここに書かず `assertPublishable` を呼ぶ（公開に触れる経路は
+  /* ⚠️ 公開ゲート。条件はここに書かず `checkPublishable` を呼ぶ（公開に触れる経路は
         4つあり、書き写すと必ず漏れる）。運営経路なので掲載規約の同意は求めない。
      ⚠️ 取り下げ（false）は常に通す。塞ぐのは「見えるようにする一手」だけ。 */
   if (newValue) {
-    const gate = await assertPublishable(companyId, { kind: "admin" });
+    const gate = await checkPublishable(companyId, { kind: "admin" });
     if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
   }
   const admin = createAdminClient();
@@ -183,7 +183,7 @@ export async function updateListingStatus(
 
   // ⚠️ 公開ゲート（掲載に切り替えるときだけ）。取り下げ（draft）は常に通す
   if (newValue === "listed") {
-    const gate = await assertPublishable(companyId, { kind: "admin" });
+    const gate = await checkPublishable(companyId, { kind: "admin" });
     if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
   }
   const admin = createAdminClient();

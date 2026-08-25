@@ -61,6 +61,10 @@ export type Company = {
   url: string | null;
   job_count?: number;
   admins?: CompanyAdmin[];
+  /** 公開中なのに掲載の条件を満たしていない理由。空なら問題なし。
+   *  ⚠️ 判定は `lib/companies/publishable.ts` の `findPublishBlockers`。
+   *     ここで条件を組み立て直さないこと（ゲートと食い違う）。 */
+  publish_blockers?: string[];
 };
 
 /* ⚠️ **データはサーバー（page.tsx + createAdminClient）で取る。**
@@ -68,7 +72,10 @@ export type Company = {
       実測で `ow_jobs` 13件・`ow_company_admins` 4件が運営に見えておらず、
       求人数と担当者の列が実際より少なく出ていた
       （運営ポリシー auth_is_admin を持つのは ow_companies だけ）。 */
-export default function AdminCompaniesClient({ initialCompanies }: { initialCompanies: Company[] }) {
+export default function AdminCompaniesClient(
+  { initialCompanies, blockersFailed = false }:
+  { initialCompanies: Company[]; blockersFailed?: boolean },
+) {
   const [companies, setCompanies] = useState<Company[]>(initialCompanies);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -190,6 +197,10 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
     setDragOverId(null);
   }
 
+  /** 公開中なのに条件を満たしていない企業の数。⚠️ タブや検索で絞っても全体の数を出す
+   *  （絞り込みで隠れると「直った」と誤読される） */
+  const blockedCount = companies.filter((c) => (c.publish_blockers?.length ?? 0) > 0).length;
+
   const filtered = companies.filter((c) => {
     const es = c.engagement_status ?? "none";
     if (activeTab === "contracted" && es !== "contracted") return false;
@@ -270,6 +281,21 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
           </button>
         </div>
       )}
+
+      {/* ⚠️ **公開中なのに掲載の条件を満たしていない企業**（2026-08-25 追加）。
+             公開ゲートは切り替え操作しか見ないので、ゲート導入前から公開されている
+             違反はここでしか気づけない。**0件が正常な状態。**
+          ⚠️ 判定は `findPublishBlockers`（ゲートと同じ関数）。条件をここに書かない。 */}
+      {blockersFailed ? (
+        <div role="alert" style={{ background: "var(--error-soft)", border: "1px solid #FCA5A5", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#991B1B", lineHeight: 1.7 }}>
+          掲載条件の判定に失敗しました。<strong>「要対応」の件数は表示できていません</strong>（0件という意味ではありません）。
+        </div>
+      ) : blockedCount > 0 ? (
+        <div role="status" style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#92400E", lineHeight: 1.7 }}>
+          <strong>要対応 {blockedCount}社</strong> — 公開中ですが、いまの掲載条件を満たしていません。
+          一度取り下げると、直すまで公開に戻せません。表の「⚠️ 要対応」から企業詳細を開いて設定してください。
+        </div>
+      ) : null}
 
       {/* Search */}
       <div style={{ position: "relative", marginBottom: 16 }}>
@@ -382,6 +408,22 @@ export default function AdminCompaniesClient({ initialCompanies }: { initialComp
                             <span style={{ fontWeight: 600, color: "var(--royal)" }}>{c.name || "—"}</span>
                             {c.brand_name && (
                               <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 1 }}>{c.brand_name}</div>
+                            )}
+                            {/* ⚠️ 公開中なのに掲載の条件を満たしていない。
+                                   足りないものを **そのまま** 出す（要約すると何を直すか分からない）。
+                                   文言は findPublishBlockers が返したもの。ここで組み立て直さない。 */}
+                            {(c.publish_blockers?.length ?? 0) > 0 && (
+                              <div
+                                title={c.publish_blockers!.join(" ")}
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4,
+                                  padding: "2px 7px", borderRadius: 100,
+                                  background: "#FEF3C7", border: "1px solid #FDE68A",
+                                  fontSize: 10.5, fontWeight: 700, color: "#92400E", whiteSpace: "nowrap",
+                                }}
+                              >
+                                ⚠️ 要対応
+                              </div>
                             )}
                           </div>
                         </Link>
