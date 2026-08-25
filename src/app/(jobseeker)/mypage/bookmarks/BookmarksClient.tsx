@@ -69,7 +69,8 @@ export default function BookmarksClient({
 }) {
   return (
     <MypageLayout activeKey="bookmarks">
-      <div style={{ padding: "32px 0" }}>
+      {/* ⚠️ 上の余白はレイアウトが持つ。ここで足すと見出しの高さが他ページとずれる（2026-08-25） */}
+      <div>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", marginBottom: 28 }}>
           ブックマーク
         </h1>

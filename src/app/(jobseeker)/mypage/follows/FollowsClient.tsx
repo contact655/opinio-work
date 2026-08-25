@@ -28,8 +28,9 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
     { key: "user", label: "人", count: users.length },
   ];
 
+  /* ⚠️ 中央寄せにしない（2026-08-25）。器はレイアウトが持つ */
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 20px 64px" }}>
+    <div style={{ maxWidth: 720, paddingBottom: 64 }}>
       <h1 style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 18px" }}>
         フォロー中
       </h1>

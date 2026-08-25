@@ -8,7 +8,6 @@ import TalkToMeCard, { type TalkMembership } from "@/components/profile/editor/T
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
-import type { ProfileSavedSnapshot } from "@/components/profile/editor/ProfileTab";
 import type { ComponentProps } from "react";
 /* ⚠️ 型だけ使う。経歴タイムラインの描画は 2026-08-16 にここから外した
       （職歴・学歴カードと重複するため）。`MergedTimeline` 本体は `/u/[id]` が使う。 */
@@ -266,7 +265,6 @@ export default function MypageClient({
   owUser,
   followCounts,
   educations = [],
-  timelineCareers = [],
   conversationsBadge,
   applicationsBadge,
   scoutsBadge,
@@ -287,6 +285,8 @@ export default function MypageClient({
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
+  /* ⚠️ 2026-08-25 に**このコンポーネントでは使わなくなった**（促しカードの判定に使っていた）。
+        プロップは受け取るが本文では触らない。呼び出し側（page.tsx）はそのまま渡している。 */
   timelineCareers?: CareerEntry[];
   /* ⚠️ `companyBookmarks` / `jobBookmarks` / `casualMeetings` は 2026-08-16 に外した。
         SPA ビューごと消えたため。**取得も `page.tsx` から消してある。**
@@ -306,21 +306,16 @@ export default function MypageClient({
   /* ⚠️ 現職の1行は 2-7 で `ProfileHeader` が自分で組むようになった（2026-08-16）。
         ここで作って渡すのはやめた。同じ導出を2箇所に置かない。 */
 
-  /* ── 促しから「該当カードを編集モードで開く」ための合図 ──────────────────
-        ⚠️ **`openAddNonce` と同じ形**（nonce を +1 して受け側の useEffect で開く）。
-           新しい仕組みを作らない。
-        ⚠️ 押しても何も起きないリンクにしないこと。移設前は `/profile/edit` へ
-           飛ばしていたが、移設後は**同じページ**なので無反応になった（2026-08-16）。 */
-  /* ★「あと N つ」は**保存済みスナップショット**から出す（2026-08-16）。
-        SSR のプロップだけを見ていた頃は、保存しても**リロードするまで
-        数字が減らなかった**（実測で確認）。
-        ⚠️ 入力中の値は流れてこない（`ProfileEditor` が保存成功時にだけ進める）。
-           流すと、保存していないのに N が減る。 */
-  const [profileSaved, setProfileSaved] = useState<ProfileSavedSnapshot | null>(null);
-
-  const [openBasicNonce, setOpenBasicNonce] = useState(0);
-  const [openHeaderNonce, setOpenHeaderNonce] = useState(0);
-  const [openCareerNonce, setOpenCareerNonce] = useState(0);
+  /* ⚠️ 「あと N つ」の保存済みスナップショット（`profileSaved`）も 2026-08-25 に落とした。
+        促しカードを外して**読む人がいなくなった**ため。
+        ⚠️ `ProfileEditor` 側の `onSavedSnapshotChange` は**省略可能なプロップ**として残る。
+           保存の成否を親へ返す仕組みなので、次に「保存できたか」を親で使うときに要る。 */
+  /* ⚠️ 「公開まであと N つ」カードを外した（2026-08-25）ので、
+        `openBasicNonce` / `openHeaderNonce` / `openCareerNonce` を**立てる人がいなくなった**。
+        state ごと削除して、`ProfileEditor` へも渡していない。
+        ⚠️ 受け側（ProfileEditor / ProfileTab）の**省略可能なプロップは残してある**。
+           外から編集モーダルを開く仕組み自体は生きており、次に使う人のためのもの。
+           使わないと決めるなら3ファイルまとめて落とすこと（いまは中途半端に残さない判断）。 */
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   // ⚠️ モックの isMentor は使わない。実データ（owUser.is_mentor）で判定する
 
@@ -329,23 +324,6 @@ export default function MypageClient({
         「最近の申込」「ブックマーク」の**すべて見る →**で、そのカードごと外したため。
         同じ内容は左メニューの `/mypage/applications` `/mypage/bookmarks` にあり、
         そちらが本体。**ビューの実装は指示により残している**（消すかどうかは別途判断）。 */
-  /* 公開に必要な3点のうち、まだ埋まっていないもの。
-     ⚠️ バナー本文と同じ3つを見る。文言と条件がズレると、
-        「あと1つ」と書いてあるのに何を入れればいいか分からない状態になる。
-     ⚠️ tab はすべて /profile/edit の VALID_TABS に実在するキー。 */
-  /* ⚠️ スナップショットが届く前（初回描画）は SSR のプロップで判定する。
-        `ProfileEditor` はマウント直後に同じ値を流してくるので、切り替わっても
-        数字は変わらない。 */
-  const savedName    = profileSaved ? profileSaved.name    : (owUser?.name ?? "");
-  const savedAboutMe = profileSaved ? profileSaved.aboutMe : (owUser?.about_me ?? "");
-  const savedCareerCount = profileSaved ? profileSaved.experienceCount : (timelineCareers?.length ?? 0);
-
-  const setupMissing: { label: string; key: "name" | "aboutMe" | "career" }[] = [
-    { key: "name" as const,    label: "名前",     done: !!savedName && savedName !== "ユーザー" },
-    { key: "aboutMe" as const, label: "自己紹介", done: savedAboutMe.trim().length > 0 },
-    { key: "career" as const,  label: "職歴",     done: savedCareerCount > 0 },
-  ].filter((x) => !x.done).map(({ label, key }) => ({ label, key }));
-
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       {/* ★「声をかけられてもよいか」（2026-08-20 / フェーズB）。
@@ -370,51 +348,14 @@ export default function MypageClient({
         memberships={ambassadorMemberships}
       />
 
-      {/* プロフィール公開促進
-          ⚠️ 2026-08-10 まで `/profile/start` を指していたが、**そのページは存在せず 404** だった。
-             しかも表示条件の `ow_users.profile_setup_at` は**書くコードがどこにも無く**
-             （API は受け付けるが送るクライアントが無い）、26人中22人に永久に出続けていた。
-          ⚠️ 表示条件は「本文で約束している3つが埋まっているか」から導く。
-             書かれない列に依存すると、また消えないバナーに戻る。 */}
-      {setupMissing.length > 0 && (
-        <div style={{
-          background: "linear-gradient(135deg, #EFF3FC 0%, #E8EDFB 100%)",
-          border: "1.5px solid var(--royal-100)", borderRadius: 12,
-          padding: "14px 16px",
-        }}>
-          {/* ★見出しは**残りの数**（2026-08-24）。
-                 ⚠️ 以前は見出し・本文・ボタンの3つが同じことを言っていた
-                    （「公開して見つけてもらいましょう」「あと1つ、自己紹介を入力すると
-                    公開できます」「自己紹介を入力する →」）。
-                    見出し＝あと何個 / 本文＝何を入れると何が起きるか / ボタン＝次の操作、
-                    と役割を分けている。 */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-            公開まであと{setupMissing.length}つ
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 10 }}>
-            {setupMissing.map((m) => m.label).join("・")}を入力すると、企業から見つけてもらえます。
-          </div>
-          {/* ⚠️ **リンクにしない。** 移設後は同じページなので `href` では何も起きない。
-                 足りていない項目の**先頭**に対応するカードを開く。 */}
-          <button
-            type="button"
-            onClick={() => {
-              /* ⚠️ 行き先は3つに分かれる（2026-08-16 / 2-7 でカードを作り直した）。
-                    名前は**ヘッダー**、自己紹介は**独立セクション**、職歴はモーダル。 */
-              if (setupMissing[0].key === "career") setOpenCareerNonce((n) => n + 1);
-              else if (setupMissing[0].key === "name") setOpenHeaderNonce((n) => n + 1);
-              else setOpenBasicNonce((n) => n + 1);
-            }}
-            style={{
-            display: "inline-block", padding: "8px 16px",
-            background: "var(--royal)", color: "#fff",
-            border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
-            cursor: "pointer", fontFamily: "inherit",
-          }}>
-            {setupMissing[0].label}を入力する →
-          </button>
-        </div>
-      )}
+      {/* ⚠️★「公開まであと N つ」カードは 2026-08-25 に**撤去した**（柴さんの指示）。
+             本文側が同じことを言っており、**同じ操作への入口が2つ**になっていた（ルール⑧）。
+             ・自己紹介 … 本文の空カードが「自己紹介を書いて、あなたのことを伝えましょう」
+             ・職歴 / 名前 … 本文の職歴カードとヘッダーの ✎
+             ⚠️ 2026-08-24 に**全セクションを常時表示**にしたことで重複が生まれた。
+                空カードを隠す形に戻すなら、この促しも一緒に戻すこと。
+          ⚠️ 「スカウト設定が未完了です」バナーも 2026-08-17 に同じ理由で外している
+             （ヘッダー下の「転職の希望」が現在値を出しているため）。 */}
 
       {/* ⚠️ 「スカウト設定が未完了です」バナーは 2026-08-17（フェーズ5）に外した。
              ヘッダー下の「転職の希望」ボックスが**現在値（「未選択」）を出し、
@@ -548,10 +489,6 @@ export default function MypageClient({
               owUser={owUser}
               followCounts={followCounts}
               profileTabExtra={extra}
-              openBasicNonce={openBasicNonce}
-              openHeaderNonce={openHeaderNonce}
-              openCareerNonce={openCareerNonce}
-              onSavedSnapshotChange={setProfileSaved}
             />
           )}
         />

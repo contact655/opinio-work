@@ -92,7 +92,6 @@ export default async function ScoutsPage() {
     <MypageLayout
       activeKey="scouts"
       scoutsBadge={unanswered}
-      breadcrumb={[{ label: "マイページ", href: "/mypage" }, { label: "届いたスカウト" }]}
     >
       <ScoutsClient scouts={scouts} />
     </MypageLayout>

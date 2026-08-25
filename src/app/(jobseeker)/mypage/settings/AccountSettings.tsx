@@ -142,8 +142,10 @@ function NotificationSettingsSection() {
 }
 
 export default function AccountSettings({ authEmail }: { authEmail: string }) {
+  /* ⚠️ 中央寄せにしない（2026-08-25）。同じ画面の上2つのセクションは左端300pxで、
+     ここだけ490pxから始まっていた。幅を絞るのは可・寄せるのは不可。 */
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "8px 0 40px" }}>
+    <div style={{ maxWidth: 720, padding: "8px 0 40px" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>設定</h1>
       <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: "0 0 24px", lineHeight: 1.7 }}>
         ログイン情報とメール通知の設定です。プロフィールの公開範囲は

@@ -37,8 +37,14 @@ function formatDate(iso: string | null): string {
 export function ScoutsClient({ scouts: initial }: { scouts: ScoutItem[] }) {
   const [scouts, setScouts] = useState(initial);
 
+  /* ⚠️★**ページ側で器を作らない**（2026-08-25）。余白と最大幅は `MypageLayout` が持つ。
+     以前ここに `maxWidth:720 / margin:0 auto / padding:28px` があったため、
+     サイドバーを移動するたびに**見出しの位置が飛んでいた**
+     （実測 1440px: 応募管理は上113px・左300px、スカウトだけ上186px・左510px）。
+     ⚠️ 読みやすさのために幅を絞るのは可。ただし**中央寄せにしない**
+     （左端が動くと、ページを移った瞬間に目線がずれる）。 */
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 20px 64px" }}>
+    <div style={{ maxWidth: 720, paddingBottom: 64 }}>
       <h1
         style={{
           fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',

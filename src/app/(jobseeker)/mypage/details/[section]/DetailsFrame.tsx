@@ -19,8 +19,9 @@ export function DetailsFrame({ title, onAdd, addLabel, children, hideOwnHeading 
          ここでも描くと**枠が二重・見出しが二重・「追加」が2つ**になる（ルール⑧）。 */
   hideOwnHeading?: boolean;
 }) {
+  /* ⚠️ 中央寄せにしない（2026-08-25）。器はレイアウトが持つ */
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
+    <div style={{ maxWidth: 720, paddingBottom: 64 }}>
       <Link
         href="/mypage"
         className="tap-target"
