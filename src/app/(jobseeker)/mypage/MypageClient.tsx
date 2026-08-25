@@ -7,6 +7,8 @@ import StanceCard from "@/components/profile/editor/StanceCard";
 import CareerIntentBox from "@/components/profile/editor/CareerIntentBox";
 /* ★公開プロフィール（`/u/[id]`）と同じ部品（2026-08-25）。**似た見た目を書き足さない** */
 import { ActivitySection, ProfileArticlesSection } from "@/components/profile/view/ProfileSections";
+import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
+import { isTalkable } from "@/lib/companyMembers/talkable";
 import TalkToMeCard, { type TalkMembership } from "@/components/profile/editor/TalkToMeCard";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
@@ -510,6 +512,15 @@ export default function MypageClient({
                 />
               }
               articlesSlot={<ProfileArticlesSection featuredArticles={featuredArticles} />}
+              /* ★「面談可」（2026-08-25 / 柴さんの指示）。
+                    ⚠️ 判定は `/u[id]` `/people` と**同じ関数**（`isTalkable`）を通す。
+                       ここで `display_consent` だけを見る等、別の条件を書かないこと。
+                    ⚠️ 在籍中であることも要る。退職して `is_current` を false にすると
+                       自動で降りる（`talkable.ts` の②）。 */
+              talkableBadge={isTalkable(
+                ambassadorMemberships.filter((m) => m.display_consent && m.is_public).map((m) => m.company_id),
+                currentCompanies.map((c) => c.id),
+              ) ? <TalkableBadge /> : null}
             />
           )}
         />

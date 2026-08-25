@@ -547,6 +547,7 @@ export default function ProfileTab({
   onVisibilitySaved: _onVisibilitySaved,
   activitySlot,
   articlesSlot,
+  talkableBadge,
   followCounts,
   openBasicNonce = 0, openHeaderNonce = 0,
   openCareerNonce = 0,
@@ -556,6 +557,9 @@ export default function ProfileTab({
         ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
   /** ★職歴の表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6） */
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
+  /** ★「面談可」バッジ（2026-08-25）。`/mypage` が渡す。氏名の右に出る。
+      ⚠️ `/u/[id]` と**同じ部品**（`TalkableBadge`）を使うこと。似た見た目を書き足さない。 */
+  talkableBadge?: React.ReactNode;
   /** ★アクティビティの中身（2026-08-25）。`/mypage` が渡す。自己紹介の直後に入る */
   activitySlot?: React.ReactNode;
   /** ★OPINIO 掲載記事（2026-08-25）。`/mypage` が渡す。メディア掲載の直後に入る */
@@ -1212,6 +1216,11 @@ export default function ProfileTab({
                 ageDisplay={headerAge !== null ? `${headerAge}歳` : null}
                 location={initialBasicInfo.location}
                 followCounts={followCounts ?? { followers: 0, following: 0 }}
+                /* ★氏名の右の「面談可」（2026-08-25 / 柴さんの指示）。
+                      本人が「話を聞かれてもよい」を ON にすると出る。
+                   ⚠️ `/u[id]` と `/people` には出ていたが**ここだけ出ていなかった**ので、
+                      ONにしても自分の画面では何も変わらないように見えていた。 */
+                talkableBadge={talkableBadge}
                 socialLinks={savedSocialLinks}
                 currentCareer={timelineCareers.find((c) => c.is_current) ?? null}
                 isCurrentCompanyKnown={!!timelineCareers.find((c) => c.is_current)?.company_id}

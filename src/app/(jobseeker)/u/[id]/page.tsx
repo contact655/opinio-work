@@ -3,6 +3,7 @@ import { permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isTalkable } from "@/lib/companyMembers/talkable";
+import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
 import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
@@ -595,25 +596,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                 ⚠️ 本人が自分のページを見たときも出す。自分の登録状態が確認できるほうがよい
                    （申込CTAは本人には出さない ＝ `!viewerIsOwner`）。
                 ⚠️ 様式は /people のバッジに合わせてある（訪問者はそこから来る）。 */
-          talkableBadge={isTalkableHere ? (
-            <span style={{
-              /* ⚠️ 氏名の行は flex（gap: 10）なので marginLeft / verticalAlign は要らない。
-                    書き足すと間隔が二重になる。 */
-              display: "inline-flex", alignItems: "center", gap: 5,
-              fontSize: 13, fontWeight: 700,
-              padding: "4px 11px", borderRadius: 100,
-              background: "#FFF7ED", color: "#C2410C",
-              border: "1px solid #FED7AA", whiteSpace: "nowrap",
-            }}>
-              <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-              {/* ★本人が同意していれば「面談可」（2026-08-23 に方針変更）。
-                     会社の受付状態では出し分けない。
-                  ⚠️ 申込CTA（カジュアル面談）は別で、**受付中のときだけ**出す。
-                     バッジが出ていても申し込めない相手がいる。
-                  ⚠️ 文言は /people・企業ページのバッジと揃える。 */}
-              面談可
-            </span>
-          ) : null}
+          talkableBadge={isTalkableHere ? <TalkableBadge /> : null}
           topRight={<ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />}
           /* ★CTA 群。**メタ行（36歳・埼玉県・フォロー数）のすぐ下**に出す（2026-08-23）。
                 ⚠️ **右側へ戻さないこと。** 右は在籍企業のブロックだけにする（LinkedIn と同じ形）。

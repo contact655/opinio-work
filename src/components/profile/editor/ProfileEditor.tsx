@@ -140,6 +140,7 @@ export default function ProfileEditor({
   profileTabExtra,
   activitySlot,
   articlesSlot,
+  talkableBadge,
   companyLogoInfo = [],
   followCounts,
   openBasicNonce = 0, openHeaderNonce = 0,
@@ -172,6 +173,8 @@ export default function ProfileEditor({
   profileTabExtra?: React.ReactNode;
   /* ⚠️ ★下の2つは**素通しするだけ**（2026-08-25）。`ProfileTab` の中の
         決まった位置に入る。ここで中身を組み立てないこと。 */
+  /** 「面談可」バッジ（氏名の右）。`/mypage` が渡す */
+  talkableBadge?: React.ReactNode;
   /** アクティビティ（自己紹介の直後）。`/mypage` が渡す */
   activitySlot?: React.ReactNode;
   /** OPINIO 掲載記事（メディア掲載の直後）。`/mypage` が渡す */
@@ -435,6 +438,7 @@ export default function ProfileEditor({
             followCounts={followCounts}
             activitySlot={activitySlot}
             articlesSlot={articlesSlot}
+            talkableBadge={talkableBadge}
             openBasicNonce={openBasicNonce}
             openHeaderNonce={openHeaderNonce}
             openCareerNonce={openCareerNonce}
