@@ -14,7 +14,6 @@ export type MessageRow = {
   sent_at: string;
   sender_participant_id: string | null;
   ow_conversation_participants: {
-    role: string;
     ow_users: { name: string } | null;
   } | null;
 };
