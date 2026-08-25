@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { sectionAddBtn, PlusIcon } from "@/components/profile/view/RowActions";
+import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 
 /**
  * 1セクションの一覧ページの枠（2026-08-17 / フェーズ3）。
@@ -19,8 +20,18 @@ export function DetailsFrame({ title, onAdd, addLabel, children, hideOwnHeading 
          ここでも描くと**枠が二重・見出しが二重・「追加」が2つ**になる（ルール⑧）。 */
   hideOwnHeading?: boolean;
 }) {
-  /* ⚠️ 中央寄せにしない（2026-08-25）。器はレイアウトが持つ */
+  /* ★器は `MypageLayout` が持つ（2026-08-25）。
+        ⚠️ **このページだけ器が無く、カードが左端（x=0）に貼り付いていた。**
+           `/mypage` の職歴カードは x=300・幅620 なので、✎ を押すと本文が
+           左へ300px 飛んでいた。`/mypage` 配下の他のページ（設定・スカウト・
+           ブックマーク・メッセージ・応募管理）は全部この器を通っている。
+        ⚠️ ここで `margin: 0 auto` にしない。画面の中央と `/mypage` の本文の
+           左端は**別の位置**なので、中央寄せでは揃わない（1280px で 330 と 300）。
+        ⚠️ `activeKey` は `dashboard`。このページは `/mypage` の中の1セクションで、
+           サイドバーは「ホーム」が選ばれている状態が正しい。
+        ⚠️ バッジは渡さない。`/mypage` 以外のサブページと同じ扱い。 */
   return (
+    <MypageLayout activeKey="dashboard">
     <div style={{ maxWidth: 720, paddingBottom: 64 }}>
       <Link
         href="/mypage"
@@ -58,6 +69,7 @@ export function DetailsFrame({ title, onAdd, addLabel, children, hideOwnHeading 
         </section>
       )}
     </div>
+    </MypageLayout>
   );
 }
 
