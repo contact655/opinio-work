@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
-import { MEMBER_CREATED_VIA, memberState } from "@/lib/constants/companyMembers";
+/* ⚠️ `memberState` は 2026-08-25 に使わなくなった。削除の通知は
+      「本人が同意していたか」だけで決まるので、5状態に落とす必要が無い。 */
+import { MEMBER_CREATED_VIA } from "@/lib/constants/companyMembers";
 import { sendEmail } from "@/lib/notify/email";
 import { ambassadorApprovedTemplate, ambassadorDismissedTemplate } from "@/lib/notify/templates";
 
@@ -27,11 +29,12 @@ import { ambassadorApprovedTemplate, ambassadorDismissedTemplate } from "@/lib/n
  * |----------------------------------------|------|
  * | 企業が**初めて**掲載した（approved_at が null） | 送る |
  * | 2回目以降の再掲載                          | 送らない |
- * | 行を削除                                  | 送らない※ |
+ * | **本人が同意していた行**を削除            | **送る**（2026-08-25） |
+ * | 同意していない行（招待に未応答）を削除     | 送らない |
+ * | 非掲載にする（`unlistMember`）            | **送らない** |
  *
- * ※ 2026-08-24 時点で `dismissMember` の通知は `pending_company` の行だけを対象に
- *   しているが、その状態には**到達しなくなった**ため実質送られない。
- *   ⚠️ 「掲載を取り消したことを本人に伝えるか」は未決。決めたらここに書くこと。
+ * ⚠️ 削除だけ送るのは、**取り消せない**から。非掲載は本人のカードに理由が出るうえ、
+ *    企業が往復させるたびにメールが飛ぶ。
  *
  * ⚠️ 「is_public が true になったら送る」にしないこと。企業が公開⇄非公開を
  *    往復させるたびにメールが飛ぶ。**初回だけ**を `approved_at is null` で見分ける。
@@ -224,10 +227,21 @@ export async function dismissMember(
     consent_at: string | null;
   };
 
-  /* ⚠️ 判定は `memberState()` に委ねる。ここで条件を書き直さない。 */
-  const wasPendingCompany = memberState(row) === "pending_company";
+  /* ★通知の条件を 2026-08-25 に変えた。
+        旧: `pending_company`（会社の承認待ち）の行を消したときだけ送る
+            → 会社の事前承認を廃止してその状態に**到達しなくなり、実質誰にも届かなくなっていた**。
+        新: **本人が同意していた行**を消したときに送る。
 
-  const notified = wasPendingCompany
+     ⚠️★**削除は取り消せない。** 行が消えるので、戻すには本人が再申請して
+        会社の確認をやり直すことになる。本人の画面には「無くなった」としか映らないので、
+        伝えないと手がかりがゼロになる。
+     ⚠️ **非掲載（`unlistMember`）では送らない。** 本人のカードに
+        「会社の設定でいまは非掲載です」と出るし、企業が公開⇄非公開を往復させるたびに
+        メールが飛ぶ（承認メールを「初回だけ」にしたのと同じ理由）。
+     ⚠️ **同意していない行（招待に未応答）では送らない。** 本人は何も申し込んでいない。 */
+  const wasConsented = row.display_consent === true;
+
+  const notified = wasConsented
     ? await notifyDecision(admin, "dismissed", row.user_id, row.company_id)
     : false;
 

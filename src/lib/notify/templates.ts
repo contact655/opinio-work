@@ -631,20 +631,31 @@ export function ambassadorDismissedTemplate(params: {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
   return {
     to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)} の登録について`,
+    /* ★2026-08-25: 「見送り（申請の却下）」から「掲載の取り消し」へ書き直した。
+          会社の事前承認を廃止したので、**申請という段階が無い**。この通知が飛ぶのは
+          「本人が同意して載っていた行が消えたとき」だけ。
+       ⚠️★**理由は書けない。** 却下の理由を記録する器が無く、企業の運用も様々。
+          書けない以上、**書かない**（推測を本人に伝えない）。代わりに
+          **もう一度ONにできる**ことを必ず伝える——これが本人に残された唯一の手。
+       ⚠️ 非掲載（`unlistMember`）ではこのメールは飛ばない。往復するため。 */
+    subject: `【OPINIO】${esc(params.companyName)} のページの掲載が取り消されました`,
     html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">登録は見送られました</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">掲載が取り消されました</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${esc(params.userName)} さん<br><br>
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong>への
-        「話を聞かれてもよい」の登録申請は、今回は見送られました。<br>
-        在籍の確認ができなかった場合や、企業側の運用によるものです。
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong>のページでの
+        「話を聞かれてもよい」の登録が取り消され、掲載されなくなりました。
+      </p>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px">
+        取り消しは会社または OPINIO の判断によるもので、
+        <strong style="color:#0f172a">理由をお伝えすることはできません。</strong><br>
+        いま在籍している会社であれば、マイページからもう一度ONにできます。
       </p>
       <p style="margin:0 0 24px">
         <a href="${siteUrl}/mypage" style="${BTN}">マイページを見る →</a>
       </p>
       <p style="color:#94a3b8;font-size:12px;margin:0">
-        ※ プロフィールの公開設定は、マイページからいつでも変更できます。
+        ※ プロフィール自体は消えていません。公開範囲はマイページから変更できます。
       </p>
     `),
   };
