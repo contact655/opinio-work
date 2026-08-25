@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
-import { approveMember, unlistMember } from "@/lib/companyMembers/decide";
+import { publishMember, unlistMember } from "@/lib/companyMembers/decide";
 
 export const dynamic = "force-dynamic";
 
@@ -55,10 +55,10 @@ export async function PATCH(req: NextRequest) {
   /* ── 公開状態は lib/companyMembers/decide.ts が引き受ける ────────────────
      ⚠️ ここで `is_public` を直接 UPDATE しないこと。初回承認かどうかの判定と
         本人への通知が decide.ts の内側にあり、直接書くと**通知だけが落ちる**。
-     ⚠️ 承認と再掲載の区別も decide.ts が持つ（往復でメールを飛ばさないため）。 */
+     ⚠️ 初回掲載と再掲載の区別も decide.ts が持つ（往復でメールを飛ばさないため）。 */
   if (is_public !== undefined) {
     const result = is_public
-      ? await approveMember(member_id, ctx.tenantId)
+      ? await publishMember(member_id, ctx.tenantId)
       : await unlistMember(member_id, ctx.tenantId);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 500 });

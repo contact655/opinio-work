@@ -5,7 +5,10 @@ import { sendEmail } from "@/lib/notify/email";
 import { ambassadorApprovedTemplate, ambassadorDismissedTemplate } from "@/lib/notify/templates";
 
 /**
- * 面談対応者の「承認」と「見送り」を**書き込みごと**引き受ける（2026-08-23）。
+ * 面談対応者の「掲載」と「取り消し」を**書き込みごと**引き受ける（2026-08-23）。
+ *
+ * ★2026-08-24 に会社の事前承認を廃止した。ここに「承認」という操作はもう無い。
+ *   企業ができるのは**掲載する / 非掲載にする / 登録を消す**の3つ。
  *
  * ── なぜ書き込みまで中に入れるか ────────────────────────────────────────────
  * 承認は3経路、見送りは2経路ある。判定と送信だけを共通関数にして
@@ -20,13 +23,15 @@ import { ambassadorApprovedTemplate, ambassadorDismissedTemplate } from "@/lib/n
  *    ここに関数を足すか既存の関数を呼ぶこと。**ルートに直接 UPDATE を書かない。**
  *
  * ── 通知を送る条件 ──────────────────────────────────────────────────────────
- * | 遷移                          | 通知 |
- * |-------------------------------|------|
- * | pending_company → listed（初回） | 送る |
- * | unlisted → listed（再掲載）      | 送らない |
- * | pending_company の行を削除        | 送る |
- * | listed / unlisted の行を削除      | 送らない（「掲載の取り消し」は別の事象。積み残し） |
- * | pending_user の行を削除           | 送らない（本人は何も申し込んでいない） |
+ * | 遷移                                   | 通知 |
+ * |----------------------------------------|------|
+ * | 企業が**初めて**掲載した（approved_at が null） | 送る |
+ * | 2回目以降の再掲載                          | 送らない |
+ * | 行を削除                                  | 送らない※ |
+ *
+ * ※ 2026-08-24 時点で `dismissMember` の通知は `pending_company` の行だけを対象に
+ *   しているが、その状態には**到達しなくなった**ため実質送られない。
+ *   ⚠️ 「掲載を取り消したことを本人に伝えるか」は未決。決めたらここに書くこと。
  *
  * ⚠️ 「is_public が true になったら送る」にしないこと。企業が公開⇄非公開を
  *    往復させるたびにメールが飛ぶ。**初回だけ**を `approved_at is null` で見分ける。
@@ -89,14 +94,18 @@ async function notifyDecision(
 }
 
 /**
- * 承認する（`is_public` → true）。
+ * 企業が掲載する（`is_public` → true）。
  *
- * ⚠️ 初回承認かどうかは**条件付き UPDATE で原子的に**判定する。
+ * ★2026-08-24 に `approveMember` から改名した。会社の事前承認を廃止したので、
+ *   この関数は**承認ではなく「企業が掲載を（再）公開する」操作**になった。
+ *   ⚠️ 名前を `approve` に戻さないこと。存在しないゲートがあるように読める。
+ *
+ * ⚠️ 「企業が初めて公開した」かどうかは**条件付き UPDATE で原子的に**判定する。
  *    読んでから書くと、2人の担当者が同時に押したときに二重送信になる。
  *
  * @param scopeCompanyId 渡すと「その企業の行であること」を WHERE に足す（多重の所属確認）
  */
-export async function approveMember(
+export async function publishMember(
   memberId: string,
   scopeCompanyId?: string,
 ): Promise<DecisionResult> {

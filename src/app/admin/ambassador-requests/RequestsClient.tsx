@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-/* ⚠️ `approveRequest` は使わない（2026-08-24 に承認を廃止）。
-      actions 側には残してあるが、この画面からは呼ばない。 */
 import { dismissRequest } from "./actions";
 
 export type AmbassadorRequest = {

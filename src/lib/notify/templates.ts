@@ -594,13 +594,16 @@ export function ambassadorApprovedTemplate(params: {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
   return {
     to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)} の登録について`,
+    /* ★2026-08-24: 会社の事前承認を廃止したので、**「承認されました」と書かない**。
+          この通知が飛ぶのは「企業が初めて掲載した」ときだけで、本人は申請していない
+          （自分でONにしただけ）。⚠️ 承認の語に戻すと、存在しない審査があったように読める。 */
+    subject: `【OPINIO】${esc(params.companyName)} のページに掲載されました`,
     html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞く相手として登録されました</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞く相手として掲載されました</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${esc(params.userName)} さん<br><br>
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong>への
-        「話を聞かれてもよい」の登録が承認されました。
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong>のページに、
+        「話を聞かれてもよい」の登録が掲載されました。
       </p>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         これから起きること:<br>
@@ -611,13 +614,15 @@ export function ambassadorApprovedTemplate(params: {
         <a href="${siteUrl}/mypage" style="${BTN}">マイページを見る →</a>
       </p>
       <p style="color:#94a3b8;font-size:12px;margin:0">
-        ※ 登録はいつでもマイページから取り消せます。
+        ※ マイページのトグルで、いつでも掲載を止められます。
       </p>
     `),
   };
 }
 
-/** 企業（または運営）が見送った。⚠️ 送るのは pending_company の行が消えたときだけ */
+/** 企業（または運営）が掲載を取り消した。
+    ⚠️ 2026-08-24 時点では `pending_company` の行が消えたときだけ送る作りだが、
+       その状態には到達しなくなったため実質送られていない（decide.ts の表を参照）。 */
 export function ambassadorDismissedTemplate(params: {
   to: string;
   userName: string;

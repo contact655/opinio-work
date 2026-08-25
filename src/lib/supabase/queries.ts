@@ -1747,9 +1747,9 @@ export type PublicAmbassador = {
  *      - PATCH  /api/biz/ambassador/update      （承認・非公開トグル）
  *      - DELETE /api/biz/ambassador/revoke
  *      - POST   /api/biz/ambassador/self-register
- *      - POST   /api/mypage/ambassador-self-register
- *      - DELETE /api/mypage/ambassador-self-remove
- *      - POST   /api/mypage/ambassador-invite   （承認・辞退）
+ *      - POST   /api/mypage/ambassador-self-register （本人がONにする＝新規作成）
+ *      - PATCH  /api/mypage/ambassador-visibility     （本人の ON / OFF）
+ *      - POST   /api/mypage/ambassador-invite         （承認・辞退）
  */
 export const companyAmbassadorsTag = (companyId: string) => `company-ambassadors:${companyId}`;
 
