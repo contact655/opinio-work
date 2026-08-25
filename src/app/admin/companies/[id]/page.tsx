@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CompanyDetailClient } from './CompanyDetailClient';
 import { getAllToolMasters, getCompanyToolsForAdmin } from './toolActions';
+import { fetchBusinessDomainOptions } from '@/lib/companies/businessDomains';
 
 // admin layout.tsx で認可チェック済み（isAdmin + redirect）のため再チェック不要
 
@@ -41,8 +42,21 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
         無効な行はセレクト側で「（無効）」と示す。 */
   const { data: industries } = await supabase
     .from('ow_industries')
-    .select('id, name, slug, display_order, is_active')
+    .select('id, name, slug, display_order, is_active, requires_business_domain')
     .order('display_order');
+
+  /* 事業領域（複数・主が1つ）。⚠️ 選択肢はマスタから。コードに書かない */
+  const businessDomains = await fetchBusinessDomainOptions(supabase, 'admin/companies/[id]');
+
+  const { data: companyDomains, error: domainsError } = await supabase
+    .from('ow_company_business_domains')
+    .select('domain_id, is_primary')
+    .eq('company_id', params.id)
+    .order('display_order');
+  // ⚠️ error を握りつぶさない。0件と取得失敗を同じ「未設定」に見せない
+  if (domainsError) {
+    console.error('[admin/companies/[id]] 事業領域の取得に失敗:', domainsError.message);
+  }
 
   // この企業に紐付け済みのジャンル（承認済み・未承認問わず全件）
   const { data: companyGenres } = await supabase
@@ -70,6 +84,8 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
       initialTab={searchParams.tab}
       company={company}
       allIndustries={industries ?? []}
+      allBusinessDomains={businessDomains}
+      companyBusinessDomains={companyDomains ?? []}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
       admins={admins ?? []}

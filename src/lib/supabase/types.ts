@@ -3015,6 +3015,7 @@ export type Database = {
           is_active: boolean
           name: string
           parent_id: string | null
+          requires_business_domain: boolean
           slug: string
         }
         Insert: {
@@ -3024,6 +3025,7 @@ export type Database = {
           is_active?: boolean
           name: string
           parent_id?: string | null
+          requires_business_domain?: boolean
           slug: string
         }
         Update: {
@@ -3033,6 +3035,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           parent_id?: string | null
+          requires_business_domain?: boolean
           slug?: string
         }
         Relationships: [
@@ -6427,6 +6430,14 @@ export type Database = {
         Returns: {
           rejected_at: string
         }[]
+      }
+      set_company_business_domains: {
+        Args: {
+          p_company_id: string
+          p_domain_ids: string[]
+          p_primary_domain_id: string
+        }
+        Returns: number
       }
     }
     Enums: {

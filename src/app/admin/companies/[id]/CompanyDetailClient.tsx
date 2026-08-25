@@ -9,6 +9,7 @@ import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import CompanyToolsTab from './CompanyToolsTab';
 import type { ToolMaster, CompanyToolRow } from './toolActions';
+import { MAX_BUSINESS_DOMAINS_PER_COMPANY } from '@/lib/companies/businessDomains';
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,19 @@ type Genre = {
   name: string;
   description: string | null;
   display_order: number;
+};
+
+/** 事業領域（ow_business_domains）。⚠️ 選択肢はマスタから props で渡る */
+type BusinessDomain = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+};
+
+type CompanyBusinessDomain = {
+  domain_id: string;
+  is_primary: boolean;
 };
 
 type CompanyGenre = {
@@ -51,12 +65,16 @@ type Industry = {
   slug: string;
   display_order: number;
   is_active: boolean;
+  /** 公開ゲートで事業領域を必須にするか。⚠️ slug で判定せず、この列を読む */
+  requires_business_domain: boolean;
 };
 
 type Props = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   company: any; // ow_companies の全カラム
   allIndustries: Industry[];
+  allBusinessDomains: BusinessDomain[];
+  companyBusinessDomains: CompanyBusinessDomain[];
   allGenres: Genre[];
   companyGenres: CompanyGenre[];
   admins: CompanyAdmin[];
@@ -107,7 +125,7 @@ type FormData = {
 };
 
 /** ⚠️ タブのキーはここが唯一の出どころ。`?tab=` のリンク元でも必ずこの綴りを使う。 */
-export const TAB_KEYS = ['basic', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools'] as const;
+export const TAB_KEYS = ['basic', 'domains', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
@@ -120,7 +138,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, allIndustries, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
+export function CompanyDetailClient({ company, allIndustries, allBusinessDomains, companyBusinessDomains, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -161,6 +179,34 @@ export function CompanyDetailClient({ company, allIndustries, allGenres, company
     companyGenres.filter((cg) => cg.is_human_approved).map((cg) => cg.genre_id)
   );
   const [selectedGenres, setSelectedGenres] = useState<Set<string>>(initialApproved);
+
+  // ── 事業領域 state ──────────────────────────────────────────────────────
+  /* ⚠️ 「主がちょうど1件」は画面側でも保つ。API と DB でも守っているが、
+        保存を押してから弾かれるより、選んだ瞬間に整合している方がよい。 */
+  const initialDomains = companyBusinessDomains.map((d) => d.domain_id);
+  const [selectedDomains, setSelectedDomains] = useState<string[]>(initialDomains);
+  const [primaryDomain, setPrimaryDomain] = useState<string | null>(
+    companyBusinessDomains.find((d) => d.is_primary)?.domain_id ?? null
+  );
+  /** この企業の業種が事業領域を必須としているか（マスタの requires_business_domain） */
+  const industryRequiresDomain = allIndustries.find(
+    (i) => i.id === formData.industry_id
+  )?.requires_business_domain ?? false;
+
+  function toggleDomain(id: string) {
+    setSelectedDomains((prev) => {
+      if (prev.includes(id)) {
+        const next = prev.filter((d) => d !== id);
+        // 主を外したら、残りの先頭を主にする（0件なら主なし）
+        setPrimaryDomain((cur) => (cur === id ? (next[0] ?? null) : cur));
+        return next;
+      }
+      if (prev.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY) return prev;
+      const next = [...prev, id];
+      setPrimaryDomain((cur) => cur ?? id);  // 最初の1つを自動で主にする
+      return next;
+    });
+  }
 
   // ── UI state ──────────────────────────────────────────────────────────
   /* ⚠️ `?tab=` を受ける（2026-08-11）。知らない値は 'basic' に落とす。
@@ -325,7 +371,25 @@ export function CompanyDetailClient({ company, allIndustries, allGenres, company
         throw new Error(err.error ?? 'Failed to save company');
       }
 
-      // 2. ジャンル差分を計算して API 呼び出し
+      /* 2. 事業領域を入れ替える（全置換）
+            ⚠️ 差分ではなく集合をそのまま送る。「主がちょうど1件」を保つには、
+               作り直す方が途中状態（主0件/2件）が生まれず素直。
+            ⚠️ 入れ替えは API の先の RPC が1トランザクションで行う。
+               ここから DELETE と INSERT を2回叩かないこと。 */
+      const domainsRes = await fetch(`/api/admin/companies/${company.id}/business-domains`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain_ids: selectedDomains,
+          primary_domain_id: selectedDomains.length > 0 ? primaryDomain : null,
+        }),
+      });
+      if (!domainsRes.ok) {
+        const err = await domainsRes.json().catch(() => ({}));
+        throw new Error(err.error ?? '事業領域の保存に失敗しました');
+      }
+
+      // 3. ジャンル差分を計算して API 呼び出し
       const toAdd = Array.from(selectedGenres).filter((id) => !initialApproved.has(id));
       const toRemove = Array.from(initialApproved).filter((id) => !selectedGenres.has(id));
 
@@ -360,6 +424,7 @@ export function CompanyDetailClient({ company, allIndustries, allGenres, company
   // ── タブ定義 ──────────────────────────────────────────────────────────
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'basic', label: '基本情報' },
+    { key: 'domains', label: `事業領域 (${selectedDomains.length})` },
     { key: 'recruiter', label: '採用担当者' },
     { key: 'admins', label: `アクセス管理 (${adminList.length})` },
     { key: 'opinio', label: 'OPINIO独自' },
@@ -880,6 +945,90 @@ export function CompanyDetailClient({ company, allIndustries, allGenres, company
       )}
 
       {/* ── ジャンルタブ ─────────────────────────────────────────────────── */}
+      {activeTab === 'domains' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-1">事業領域</h2>
+          <p className="text-sm text-gray-500 mb-1">
+            この企業が「何をやっている会社か」を表します。最大 {MAX_BUSINESS_DOMAINS_PER_COMPANY} 件。
+            1つを「主」にしてください（カードや meta description に出るのは主の1件）。
+          </p>
+          {/* ⚠️ 必須かどうかは業種マスタの requires_business_domain で決まる。
+                 slug で判定しないこと。 */}
+          <p className="text-sm mb-4">
+            {industryRequiresDomain ? (
+              <span className="text-amber-700">
+                この業種では<strong>掲載に事業領域が必要</strong>です（主を1件以上）。
+              </span>
+            ) : (
+              <span className="text-gray-500">
+                この業種では任意です。IT/SaaS でない企業に無理に設定しないでください。
+              </span>
+            )}
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            {allBusinessDomains.map((d) => {
+              const checked = selectedDomains.includes(d.id);
+              const atLimit = !checked && selectedDomains.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY;
+              return (
+                <div
+                  key={d.id}
+                  className={`p-3 border rounded-lg transition-colors ${
+                    checked ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                  } ${atLimit ? 'opacity-40' : ''}`}
+                >
+                  <label className={`flex items-start gap-3 ${atLimit ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={atLimit}
+                      onChange={() => toggleDomain(d.id)}
+                      className="mt-0.5 w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium text-sm">{d.name}</p>
+                      {d.description && (
+                        <p className="text-xs text-gray-500 mt-0.5">{d.description}</p>
+                      )}
+                    </div>
+                  </label>
+                  {checked && (
+                    <label className="flex items-center gap-2 mt-2 pl-7 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="primary-business-domain"
+                        checked={primaryDomain === d.id}
+                        onChange={() => setPrimaryDomain(d.id)}
+                        className="w-3.5 h-3.5"
+                      />
+                      <span className="text-xs text-gray-600">主にする</span>
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {allBusinessDomains.length === 0 && (
+            <p className="text-sm text-gray-400">事業領域が登録されていません</p>
+          )}
+
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500">
+              選択中: {selectedDomains.length} / {MAX_BUSINESS_DOMAINS_PER_COMPANY} 件
+              {selectedDomains.length > 0 && primaryDomain && (
+                <> ・主: {allBusinessDomains.find((d) => d.id === primaryDomain)?.name ?? '—'}</>
+              )}
+            </p>
+            {selectedDomains.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY && (
+              <p className="text-xs text-gray-400 mt-1">
+                上限に達しています。別の領域を選ぶには、どれかの選択を外してください。
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
       {activeTab === 'genres' && (
         <section className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="text-base font-semibold mb-1">ジャンルタグ</h2>
