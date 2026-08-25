@@ -114,7 +114,14 @@ export async function POST(
   }
 
   // ── Activity: message_sent / message_received (best-effort) ─────────────
-  // participant.role: "company" = biz側が送信, "candidate" = 求職者が送信
+  /* participant.role: "company_admin" = biz側が送信 / "candidate" = 求職者が送信
+     ⚠️ 2026-08-25 まで `=== "company"` と比べていたが、
+        `ow_conversation_participants_role_check` に `'company'` は無く
+        （許容は candidate / company_admin / mentor / editor / operator）、
+        **常に false**。企業が送ったメッセージまで
+        「候補者からメッセージが届きました」と記録されていた。
+        企業担当者の role を入れているのは
+        `POST /api/biz/conversations/[id]/join` で、値は `company_admin`。 */
   try {
     const { data: conv } = await supabase
       .from("ow_conversations")
@@ -122,7 +129,7 @@ export async function POST(
       .eq("id", conversationId)
       .maybeSingle();
     if (conv?.company_id) {
-      const isCompanySender = participant.role === "company";
+      const isCompanySender = participant.role === "company_admin";
       await insertActivity(supabase, {
         company_id: conv.company_id,
         actor_user_id: owUser.id,

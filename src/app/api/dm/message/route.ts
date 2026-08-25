@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ensureDmParticipants } from "@/lib/conversations/participants";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -38,36 +39,41 @@ export async function POST(request: NextRequest) {
   const isMember = conv.candidate_user_id === owMe.id || conv.mentor_user_id === owMe.id;
   if (!isMember) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
 
-  // participant レコードを取得（なければ自動作成）
-  let { data: participant } = await admin
-    .from("ow_conversation_participants")
-    .select("id")
-    .eq("conversation_id", conversationId)
-    .eq("user_id", owMe.id)
-    .maybeSingle();
+  /* 参加者を冪等に揃える（両者ぶん）。
+     ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を受けておらず、
+        participant が null のまま `sender_participant_id: null` で
+        メッセージを入れられた。この列は nullable なので **INSERT は成功してしまい**、
+        送信者不明の行ができる。DM の画面は
+        `sender_participant_id === myParticipantId` で左右を決めるため、
+        その行は**送った本人にも「相手の発言」として表示される**。 */
+  const participants = await ensureDmParticipants(admin, conversationId, [
+    owMe.id,
+    conv.candidate_user_id,
+    conv.mentor_user_id,
+  ]);
+  if (!participants.ok) {
+    console.error("[dm/message] ensureDmParticipants:", participants.error);
+    return NextResponse.json({ error: participants.error }, { status: participants.status });
+  }
 
-  if (!participant) {
-    const role = conv.candidate_user_id === owMe.id ? "initiator" : "recipient";
-    const { data: created } = await admin
-      .from("ow_conversation_participants")
-      .insert({ conversation_id: conversationId, user_id: owMe.id, role })
-      .select("id")
-      .single();
-    participant = created;
+  const senderParticipantId = participants.byUserId.get(owMe.id);
+  if (!senderParticipantId) {
+    console.error("[dm/message] 送信者の participant が揃わなかった conv=", conversationId);
+    return NextResponse.json({ error: "送信に失敗しました" }, { status: 500 });
   }
 
   // メッセージ挿入（admin client で RLS バイパス）
   const { error: insertErr } = await admin
     .from("ow_conversation_messages")
-    .insert({ conversation_id: conversationId, sender_participant_id: participant?.id ?? null, body: message.trim() });
+    .insert({ conversation_id: conversationId, sender_participant_id: senderParticipantId, body: message.trim() });
 
   if (insertErr) {
-    console.error("[dm/message] insert error:", insertErr);
+    console.error("[dm/message] insert error:", insertErr.message);
     return NextResponse.json({ error: "送信に失敗しました" }, { status: 500 });
   }
 
-  // last_message_at 更新
-  await admin.from("ow_conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conversationId);
+  /* ⚠️ `last_message_at` はここで書かない。`trg_update_last_message_at`
+        （ow_conversation_messages の AFTER INSERT）が `sent_at` で更新する。 */
 
   return NextResponse.json({ ok: true });
 }

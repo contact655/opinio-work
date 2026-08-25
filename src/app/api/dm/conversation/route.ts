@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ensureDmParticipants } from "@/lib/conversations/participants";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -30,23 +31,24 @@ export async function GET(request: NextRequest) {
   const isMember = conv.candidate_user_id === owMe.id || conv.mentor_user_id === owMe.id;
   if (!isMember) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
 
-  // participant レコードを取得（なければ自動作成）
-  let { data: participant } = await admin
-    .from("ow_conversation_participants")
-    .select("id")
-    .eq("conversation_id", conversationId)
-    .eq("user_id", owMe.id)
-    .maybeSingle();
-
-  if (!participant) {
-    const role = conv.candidate_user_id === owMe.id ? "initiator" : "recipient";
-    const { data: created } = await admin
-      .from("ow_conversation_participants")
-      .insert({ conversation_id: conversationId, user_id: owMe.id, role })
-      .select("id")
-      .single();
-    participant = created;
+  /* 参加者を冪等に揃える。
+     ⚠️ **自分のぶんだけ作らない。** 相手の参加者行が無いと、相手の一覧に
+        この会話が出ない（可視性は参加者行で決まる）ため、相手からは
+        永久に開けない。会話行だけが残った過去のデータは、
+        どちらかがここを通れば揃う。
+     ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を捨てており、
+        `myParticipantId: null` を返して**入力欄だけが動く**状態になっていた。 */
+  const participants = await ensureDmParticipants(admin, conversationId, [
+    owMe.id,
+    conv.candidate_user_id,
+    conv.mentor_user_id,
+  ]);
+  if (!participants.ok) {
+    console.error("[dm/conversation] ensureDmParticipants:", participants.error);
+    return NextResponse.json({ error: participants.error }, { status: participants.status });
   }
+
+  const myParticipantId = participants.byUserId.get(owMe.id) ?? null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: messages } = await (admin as any)
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     messages: messages ?? [],
-    myParticipantId: participant?.id ?? null,
+    myParticipantId,
     myName: owMe.name,
   });
 }

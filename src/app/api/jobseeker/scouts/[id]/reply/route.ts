@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createConversation } from "@/lib/conversations/createConversation";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { opsSubject, opsFallbackNotice } from "@/lib/notify/templates";
@@ -52,43 +53,53 @@ export async function POST(
   let conversationId: string | null = scout.conversation_id ?? null;
 
   if (action === "interested") {
-    // Create conversation if not yet linked
+    /* 会話がまだ無ければ作る。
+       ⚠️ **自前で INSERT しない。`create_conversation` RPC に寄せる。**
+          2026-08-25 まで `kind:'company'` × `stage:'mediated'` を直接
+          INSERT しており、`ow_conversations_stage_consistency`
+          （company は stage='active' のみ）に**必ず違反して 500** だった。
+          RPC なら stage を間違えようがなく、
+          `ow_conversations_unique_per_relation` に対する ON CONFLICT も
+          持っているので、同じ企業から2回目のスカウトでも落ちない。
+          候補者の participant も RPC の中で作られる（重複 INSERT は不要）。
+       ⚠️ **`admin` ではなく利用者クライアント `supabase` を渡す。**
+          RPC は SECURITY DEFINER で、中で
+          `ow_users.auth_id = auth.uid()` を確かめる。service_role では
+          `auth.uid()` が null になり 42501 で落ちる。 */
     if (!conversationId) {
-      const { data: conv, error: convErr } = await admin
-        .from("ow_conversations")
-        .insert({
+      try {
+        const created = await createConversation(supabase, {
           kind: "company",
-          stage: "mediated",
-          status: "active",
-          company_id: scout.company_id,
-          candidate_user_id: owMe.id,
-          last_message_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-
-      if (convErr || !conv) {
-        console.error("[scout reply] conv insert error:", convErr);
+          candidateUserId: owMe.id,
+          companyId: scout.company_id as string,
+        });
+        conversationId = created.conversationId;
+      } catch (e) {
+        console.error("[scout reply] createConversation failed:", e);
         return NextResponse.json({ error: "会話の作成に失敗しました" }, { status: 500 });
       }
-      conversationId = conv.id;
 
-      // Add candidate as initial participant
-      const { data: participant, error: partErr } = await admin
-        .from("ow_conversation_participants")
-        .insert({ conversation_id: conversationId, user_id: owMe.id, role: "candidate" })
-        .select("id")
-        .single();
+      if (message?.trim()) {
+        /* 開始メッセージ。participant は RPC が作っているので引き直す。
+           ⚠️ 取れなければ**入れない**。`sender_participant_id` を null で
+              入れると送信者不明の行になる。 */
+        const { data: participant, error: partErr } = await admin
+          .from("ow_conversation_participants")
+          .select("id")
+          .eq("conversation_id", conversationId)
+          .eq("user_id", owMe.id)
+          .maybeSingle();
 
-      if (partErr || !participant) {
-        console.error("[scout reply] participant insert error:", partErr);
-      } else if (message?.trim()) {
-        // Insert candidate's opening message
-        await admin.from("ow_conversation_messages").insert({
-          conversation_id: conversationId,
-          sender_participant_id: participant.id,
-          body: message.trim(),
-        });
+        if (partErr || !participant) {
+          console.error("[scout reply] participant lookup:", partErr?.message ?? "not found");
+        } else {
+          const { error: msgErr } = await admin.from("ow_conversation_messages").insert({
+            conversation_id: conversationId,
+            sender_participant_id: participant.id,
+            body: message.trim(),
+          });
+          if (msgErr) console.error("[scout reply] message insert:", msgErr.message);
+        }
       }
     }
 
