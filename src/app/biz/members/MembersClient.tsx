@@ -4,7 +4,10 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 import Toast from "@/components/ui/Toast";
-import { memberState, MEMBER_STATE_BIZ_LABEL } from "@/lib/constants/companyMembers";
+import { memberState, MEMBER_CREATED_VIA, MEMBER_STATE_BIZ_LABEL, type MemberState } from "@/lib/constants/companyMembers";
+
+/** この画面の一覧に出す状態。⚠️ `pending_user`（招待に未応答）は下の招待中の区分が持つ */
+const LISTED_STATES: MemberState[] = ["listed", "unlisted", "paused"];
 
 type ActionType = "permission" | "deactivate" | "reactivate";
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
@@ -1097,13 +1100,11 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   const [ambassadors, setAmbassadors] = useState(initialAmbassadors);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
-  /* ★「見送る」の確認（2026-08-23）。
-     ⚠️ この画面の他の破壊的操作（解除・取消）は**自社が自分で作った行**を消す操作だが、
-        「見送る」は**他人の申請**を消す操作で、**取り消せない**（却下の記録を残す器が無いので
-        元に戻せない）。しかも本人には「見送られました」のメールが届いてしまう。
-        誤操作の代償を本人が負うので、ここだけ確認を挟む。
-     ⚠️ 確認は行ごとに持つ（カード全体で1つにすると別の行を誤爆する）。 */
-  const [dismissConfirmId, setDismissConfirmId] = useState<string | null>(null);
+  /* ⚠️ 「見送る」の確認（`dismissConfirmId`）は 2026-08-24 に**申請の区分ごと削除した**。
+        会社の事前承認を廃止したので、見送る対象（未承認の申請）が存在しない。
+     ⚠️ **他人の行を消す操作をこの画面に戻すなら、確認も一緒に戻すこと。**
+        「解除」は自社が作った行を消す操作だが、本人が自分で登録した行を企業が消すのは
+        取り消せず（却下を記録する器が無い）、本人にメールも届く。 */
 
   // メールアドレス招待 state
   const [emailInviteOpen, setEmailInviteOpen] = useState(false);
@@ -1651,115 +1652,26 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           </div>
         )}
 
-        {/* ★本人からの申請（未承認）＝ pending_company。
-               ⚠️ ここを独立させないと「承認済み」に混ざる。企業担当者は開くまで気づけない。 */}
-        {ambassadors.filter((a) => stateOf(a) === "pending_company").length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#92400e", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              本人からの申請（未承認） {ambassadors.filter((a) => stateOf(a) === "pending_company").length}件
-            </div>
-            <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-              在籍していると申告している方から、「話を聞かれてもよい」と申請がありました。
-              在籍を確認できたら承認してください。<strong style={{ color: "var(--ink)" }}>承認するまで公開されません。</strong>
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {ambassadors.filter((a) => stateOf(a) === "pending_company").map((a) => (
-                <div key={a.id} style={{
-                  background: "var(--warm-soft)", border: "1px solid #fcd34d", borderRadius: 10,
-                  padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: "50%", background: a.gradient,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0, overflow: "hidden",
-                    }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "—"}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ background: "#fff", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, border: "1px solid #fcd34d" }}>
-                      {MEMBER_STATE_BIZ_LABEL.pending_company}
-                    </span>
-                    {isAdmin && (dismissConfirmId === a.id ? (
-                      /* ⚠️ 見送りは行の DELETE。取り消せないうえ、本人に見送った旨の
-                            メールが飛ぶ（lib/companyMembers/decide.ts）。1クリックで消させない。 */
-                      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 6, padding: "8px 10px", width: "100%" }}>
-                        <p style={{ margin: "0 0 8px", fontSize: 11, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                          見送ると申請は削除され、その旨のメールが本人に届きます。取り消せません。
-                        </p>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button
-                            onClick={() => { setDismissConfirmId(null); handleRevokeAmbassador(a.id); }}
-                            disabled={revokingMemberId === a.id}
-                            className="btn-fixed-size"
-                            style={{
-                              flex: 1, background: "var(--error)", color: "#fff", border: "none", borderRadius: 6,
-                              padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                            }}
-                          >
-                            {revokingMemberId === a.id ? "..." : "見送る"}
-                          </button>
-                          <button
-                            onClick={() => setDismissConfirmId(null)}
-                            className="btn-fixed-size"
-                            style={{
-                              flex: 1, background: "none", border: "1px solid var(--line)", borderRadius: 6,
-                              padding: "4px 10px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer",
-                            }}
-                          >
-                            やめる
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      /* ⚠️ 承認は既存の PATCH /api/biz/ambassador/update（is_public → true）。
-                            見送りは既存の revoke（DELETE）。**新しい API を作らない。**
-                         ⚠️ 公開トグルの流用ではなく、申請に対する操作として明示的に出す。 */
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button
-                          onClick={() => handleTogglePublic(a.id, false)}
-                          disabled={togglingPublicId === a.id}
-                          className="btn-fixed-size"
-                          style={{
-                            background: "var(--royal)", color: "#fff", border: "none", borderRadius: 6,
-                            padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                          }}
-                        >
-                          {togglingPublicId === a.id ? "..." : "承認する"}
-                        </button>
-                        <button
-                          onClick={() => setDismissConfirmId(a.id)}
-                          className="btn-fixed-size"
-                          style={{
-                            background: "none", border: "1px solid var(--line)", borderRadius: 6,
-                            padding: "4px 10px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer",
-                          }}
-                        >
-                          見送る
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 承認済み（掲載中 / 非掲載）。⚠️ 未承認の申請はここに入れない */}
-        {ambassadors.filter((a) => stateOf(a) === "listed" || stateOf(a) === "unlisted").length > 0 && (
+        {/* ★面談対応者（掲載中 / 非掲載 / 本人が停止中）。
+               ⚠️★ここにあった「本人からの申請（未承認）」の区分は 2026-08-24 に**撤去した**。
+                  同日に会社の事前承認を廃止したので `pending_company` には到達せず、
+                  **永久に0件の区分**になっていた（企業担当者からは「申請が来ていない」と読める）。
+                  ⚠️ 承認の区分を戻さないこと。承認する対象がもう無い。
+               ⚠️ `paused`（本人がOFF）も**出す**。出さないと、載っていた人が
+                  黙って消えたように見える。ただし企業側からは戻せない（下記）。 */}
+        {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              承認済み {ambassadors.filter((a) => stateOf(a) === "listed" || stateOf(a) === "unlisted").length}件
+              面談対応者 {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).length}件
             </div>
+            {/* ⚠️ 在籍確認をしていないことを企業にも書く。**画面ごとに言い方を変えない。** */}
+            <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+              本人が「話を聞かれてもよい」をONにすると、貴社のページに掲載されます。
+              在籍は本人の申告で、OPINIO は在籍確認を行っていません。
+              <strong style={{ color: "var(--ink)" }}>掲載を止めたいときは公開トグルを切ってください。</strong>
+            </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {ambassadors.filter((a) => stateOf(a) === "listed" || stateOf(a) === "unlisted").map((a) => (
+              {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).map((a) => (
                 <div key={a.id} style={{
                   background: "#fff", border: "1px solid var(--line)",
                   borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
@@ -1774,7 +1686,19 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                       {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</span>
+                        {/* ★誰が載せたのかを出す（2026-08-24）。事前承認が無くなったので、
+                               企業から見て「自分たちが招いた人」と「本人が自分で載せた人」の
+                               区別が付かなくなっていた。⚠️ 招待した人には出さない。 */}
+                        {a.created_via === MEMBER_CREATED_VIA.SELF && (
+                          <span style={{
+                            flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+                            background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
+                            whiteSpace: "nowrap",
+                          }}>本人が登録</span>
+                        )}
+                      </div>
                       <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "役職未設定"}</div>
                     </div>
                   </div>
@@ -1792,6 +1716,16 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                   {/* 下段: トグル + 解除 */}
                   {isAdmin && (
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                      {stateOf(a) === "paused" ? (
+                        /* ★本人が自分でOFFにしている（2026-08-24）。
+                              ⚠️★**公開トグルを出さないこと。** 企業側から公開に戻すと
+                                 `check_public_requires_consent`（is_public=false OR display_consent=true）に
+                                 弾かれて 23514 で落ちる。押せるのに必ず失敗するボタンになる。
+                              ⚠️ 戻せるのは本人だけ。企業に操作を促す文言にしない。 */
+                        <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
+                          {MEMBER_STATE_BIZ_LABEL.paused}（本人が戻すまで掲載されません）
+                        </span>
+                      ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ fontSize: 11, color: a.is_public ? "var(--success)" : "var(--ink-mute)", fontWeight: 600 }}>{a.is_public ? "公開中" : "非公開"}</span>
                         <button
@@ -1812,6 +1746,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                           }} />
                         </button>
                       </div>
+                      )}
                       <button
                         onClick={() => handleRevokeAmbassador(a.id)}
                         disabled={revokingMemberId === a.id}
