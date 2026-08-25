@@ -299,22 +299,44 @@ split_part(split_part(url,'?',1),'#',1)
    `ow_users` を参照する FK 45列のうち29列が `ON DELETE CASCADE` なので、
    **消し方を間違えると別の表まで巻き込む。**
 
-## `ow_experiences.employment_type` に CHECK が無い（2026-08-19 記録・未着手）
+## ~~`ow_experiences.employment_type` に CHECK が無い~~（2026-08-26 対応済み）
 
-**「UI / API / DB の CHECK を3つ揃える」（CLAUDE.md・2026-08-07 確立）が
-確立された当の列で、経歴側だけ揃っていない。**
+`20260826090000_employment_type_check.sql` で **6値 + NULL** の CHECK を張った。
+これで「UI / API / DB の CHECK を3つ揃える」（CLAUDE.md・2026-08-07 確立）が
+**確立された当の列で揃った**。
 
-| | 実測（2026-08-19） |
+適用前に既存値を数えた（この節が警告していた手順）。**定数に無い値は0件**:
+
+| | 実測（2026-08-26） |
 |---|---|
-| `ow_experiences.employment_type` の CHECK | **0本** |
-| `ow_jobs.employment_type` の CHECK | 1本 |
+| `ow_experiences` 総数 | 24 |
+| `employment_type` が NULL | **18** |
+| 非 NULL | 6（**すべて `正社員`**。表記ゆれ無し） |
+| `EMPLOYMENT_TYPES` の6値に無い値 | **0** |
 
-許可値は `src/lib/constants/careerOptions.ts` の `EMPLOYMENT_TYPES`（経歴用）と
-`JOB_EMPLOYMENT_TYPES`（求人用）で**別集合**。経歴側だけ DB のガードが無いので、
-綴りが1文字ずれた値が入っても**エラーにならず、フィルタから静かに消える**。
+適用後の実測（service role で PostgREST に直接 PATCH。MCP の `execute_sql` は
+read-only なので DB 側の CHECK は API 経由でしか試せない）:
 
-⚠️ **CHECK を張る前に既存値を数えること。** 定数に無い値が既に入っていれば、
-   その migration は全件ロールバックされる。
+| 入力 | 結果 |
+|---|---|
+| 6値すべて / NULL | **204** |
+| `アルバイト`（綴り違い）・`フルタイム` | **400 / 23514** |
+| `正社員 `（末尾空白） | **400 / 23514** |
+| **`インターン`**（`JOB_EMPLOYMENT_TYPES` 側の語彙） | **400 / 23514** |
+
+⚠️ **NULL は許可した。NOT NULL にしないこと。** 24件中18件が NULL で、
+   理由は「唯一の入力欄が任意セレクト」＋「**オンボーディングで雇用形態を聞いていない**」。
+   弾くと既存の職歴が保存できなくなる。
+
+⚠️ **値を足すときは3つとも直す**（`careerOptions.ts` / API の検証 / この CHECK）。
+   求人側（`ow_jobs.employment_type`）は**別集合**なので混ぜない。
+
+→ **残っているのは「NULL をどう埋めるか」。** 2026-08-26 に
+   `/mypage/details/experience` の未設定行へ「＋ 雇用形態を追加」を出したが、
+   **実ユーザーの職歴23件中17件（10人）がまだ NULL**で、`/mypage` 本体には入口が無い
+   （`careerActions` を渡していないため）。**どこで促すかは製品判断。**
+
+---
 
 ## 自由入力の企業名を `company_id` に寄せる導線（2026-08-19 記録・未着手）
 
@@ -343,7 +365,7 @@ split_part(split_part(url,'?',1),'#',1)
 | ① | 職種のトップレベルは「**17件**」（2026-08-10 実測） | **18件**（`parent_id is null` かつ `merged_into_id is null` かつ `is_active`） |
 | ② | 「`ow_experiences` 14件 / 実人数5人」（2026-08-10） | **19件**（実ユーザー18件） |
 | ③ | — | `careerReasons.ts` のコメント「DB 側でも GRANT を付けていないので admin 以外読めない」は **`ow_experience_gaps` については誤り**。同テーブルは `authenticated` に SELECT/INSERT/UPDATE/DELETE があり RLS で本人に絞っている（**2026-08-19 に当該コメントは修正済み**）。正しいのは `ow_experiences` の3列のほう |
-| ④ | 「UI / API / DB の CHECK を3つ揃える」 | `ow_experiences.employment_type` に CHECK が無い（上の節） |
+| ④ | 「UI / API / DB の CHECK を3つ揃える」 | ~~`ow_experiences.employment_type` に CHECK が無い~~ → **2026-08-26 に解消**（上の節）。CLAUDE.md 側にも追記済み |
 
 ## 生年が2箇所にあり、年が食い違っている実ユーザーが1人（2026-08-20 記録・本人確認が必要）
 
