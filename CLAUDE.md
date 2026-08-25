@@ -1128,6 +1128,53 @@ name / description / industry / employee_count / url / logo_url の6項目だけ
 → 3つのヘルパーの使い分けと dev 例外の有無は
    [src/lib/companies/visibility.ts](src/lib/companies/visibility.ts)
 
+### ⚠️★分類の欠けた企業を公開しない ——「公開ゲート」（2026-08-25 方針決定・**実装はフェーズ2**）
+
+**分類が欠けたまま公開される穴は、作成時ではなく公開時に塞ぐ。**
+
+#### なぜ作成時に必須化しないか
+
+企業が自分で登録する入口（`/biz/auth` と `/biz/companies/add/new`）で業種を必須にすると、
+**登録の摩擦が増える。** そこは会社名だけで通したい。
+一方で新規企業は `is_published = false` / `listing_status = 'draft'` で生まれるので、
+**運営が動かすまでは誰にも見えない。** 塞ぐべきはその一手だけ。
+
+⚠️ **したがって業種は作成フォームで任意のままにしてある。** 必須化を作成側へ戻さないこと。
+
+#### 何をゲートするか
+
+`is_published` を true にする / `listing_status` を `'listed'` にする経路で、
+次の2つが埋まっていることを必須にする。埋まっていなければ**弾き、何が足りないかを画面に出す**。
+
+| 必須にするもの | 列 |
+|---|---|
+| 業種 | `ow_companies.industry_id`（単一） |
+| 事業領域 | `ow_company_business_domains` に **`is_primary` の行が1件** |
+
+#### 対象の経路（2つとも塞がないと意味が無い）
+
+| 経路 | 実体 |
+|---|---|
+| `/admin` の掲載トグル | `admin/companies/actions.ts` の `updateIsPublished` / `updateListingStatus` |
+| 企業情報の保存 | `PUT /api/admin/companies/[id]`（`is_published` / `listing_status` を受ける） |
+
+⚠️ **`PATCH /api/biz/company` も `is_published` を触れる**（企業が自分で公開を切り替える）。
+   ゲートを書くときはここも数えること。
+
+⚠️ **軸2（対象業界）を入れる日は、このゲートに1行足す形にする。**
+   別の場所に条件を書き足さない。判定は1箇所に集約する。
+
+#### いま塞がっていないこと（2026-08-25 時点の実態）
+
+現状 `industry`(text) が NULL の企業は **0社**なので実害は出ていない。
+ただし **2026-08-25 に `POST /api/biz/companies` が `industry`(text) を書くのをやめた**ので、
+**これ以降に作られる企業は `industry`(text) が NULL で生まれる。**
+求職者側の一覧カード・業種フィルタ・LPファセット・`/jobs` のフィルタは
+**まだこの列を読んでいる**ため、NULL のまま掲載すると**そのすべてから静かに消える**。
+
+⚠️ **ゲートを実装するか、読み手を事業領域へ移すか、どちらかが済むまで
+   新規企業を `listed` にしないこと。**
+
 ---
 
 ## 企業ページへのリンクは env に関係なく is_published を見る（2026-08-05 確立）
@@ -1243,6 +1290,36 @@ Opinio は有料職業紹介事業の許可事業者（13-ユ-316441）なので
 実測（2026-08-20 / 本番）: 隣接ペア9 → **会社が変わる5行**（両側マスタ4 / 自由入力を含む1）。
 3値の内訳は changed×changed 2 / changed×unchanged 1 / unchanged×unchanged 1 / changed×unknown 1。
 2回流して内容ハッシュ一致。
+
+---
+
+### ⚠️★`?? ""` を挟んだ後の `?? フォールバック` は**永久に効かない**（2026-08-25 記録・フェーズ2で直す）
+
+```ts
+// mapper 側（queries.ts:55）
+industry: (row.industry as string) ?? "",      // NULL → 空文字に化ける
+// 表示側（companies/[id]/page.tsx:154）
+`${company.industry ?? "IT/SaaS"}`             // "" ?? x は "" 。★フォールバックが出ない
+```
+
+`??` が拾うのは **null / undefined だけ**。mapper が先に `?? ""` で潰していると、
+表示側のフォールバックは**書いてあるのに一度も発火しない。**
+
+⚠️ **`?? false` / `?? 0` も同じ形。** とくに **SELECT していない列**に当たっていると、
+   「値が無い」ではなく「取得していない」が既定値に化けて、
+   **画面には正常な値として出る**（CLAUDE.md「経歴に列を足すときは4箇所を揃える」と同根）。
+
+**フェーズ2で直す既知の3件:**
+
+| 場所 | 症状 |
+|---|---|
+| [companies/[id]/page.tsx:154](<src/app/(jobseeker)/companies/[id]/page.tsx>) | meta description が「タグライン**｜・**約200名。」になる |
+| [jobs/[id]/page.tsx:676](<src/app/(jobseeker)/jobs/[id]/page.tsx>) | 「** · 約200名**」と先頭に区切りが残る |
+| [jobs/[id]/page.tsx:1500](<src/app/(jobseeker)/jobs/[id]/page.tsx>) | 「**業種 **」だけ出る（隣の「従業員」には `?? "—"` があるのに業種には無い） |
+
+⚠️ **横展開して洗うこと。** 探すのは「`?? ""` した値に、後段で `??` を重ねている箇所」と
+   「COLS 定数に無い列を mapper が `??` で埋めている箇所」。
+   **COLS 定数と mapper を突き合わせる**のが確実（型では出ない）。
 
 ---
 

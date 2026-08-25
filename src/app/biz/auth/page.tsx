@@ -5,15 +5,17 @@ import { PAID_PLAN_MONTHLY_FEE } from "@/lib/constants/plans";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo } from "@/lib/auth/redirects";
-/* ⚠️ 業種の選択肢はここに書かない。求職者側の業種フィルタと同じ出どころから取る
-      （別リストを持つと、企業が選んだ値がフィルタに一切引っかからなくなる）。 */
-import { INDUSTRY_SELECT_GROUPS } from "@/lib/search/industryGroups";
+/* ⚠️ 業種の選択肢はここに書かない。**`ow_industries` のマスタが唯一の出どころ。**
+      2026-08-25 まで `INDUSTRY_SELECT_GROUPS`（業種名の text）を使っており、
+      企業が選んだ値と運営が見る列（industry_id）が別物になっていた。 */
+import { fetchIndustryOptions, type IndustryOption } from "@/lib/companies/industries";
 
 type Mode = "signup" | "login";
 
 type PendingCompany = {
   name: string;
-  industry: string;
+  /** ow_industries.id。⚠️ 2026-08-25 に業種名（text）から変えた */
+  industryId: string;
   employeeCount: string;
   genres: string[];
 };
@@ -469,7 +471,15 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
   // Step 2 fields
   const [companyName, setCompanyName] = useState("");
-  const [industry, setIndustry] = useState("");
+  const [industryId, setIndustryId] = useState("");
+  /* 業種の選択肢。⚠️ このページは client なので自分で引く。
+        `ow_industries` は anon にも `is_active = true` の読み取りポリシーがあるので
+        未ログインでも取れる。**取れなければセレクトごと出さない**（空のセレクトを出すと
+        「選べない」のか「選択肢が無い」のか利用者に分からない）。 */
+  const [industries, setIndustries] = useState<IndustryOption[]>([]);
+  useEffect(() => {
+    fetchIndustryOptions(createClient(), "biz/auth").then(setIndustries);
+  }, []);
   const [employeeCount, setEmployeeCount] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactTitle, setContactTitle] = useState("");
@@ -618,7 +628,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
           data: {
             name: contactName,
             pending_company: companyName,
-            pending_industry: industry || null,
+            pending_industry_id: industryId || null,
             agreed_terms_business: agreedTerms,
             agreed_terms_version: "2026-07",
           },
@@ -634,7 +644,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         ) {
           setShowExistingNotice(true);
           try {
-            const pending: PendingCompany = { name: companyName, industry, employeeCount, genres: [] };
+            const pending: PendingCompany = { name: companyName, industryId, employeeCount, genres: [] };
             sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
           } catch { /* ignore */ }
           return;
@@ -647,7 +657,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       if (data.user?.identities?.length === 0) {
         setShowExistingNotice(true);
         try {
-          const pending: PendingCompany = { name: companyName, industry, employeeCount, genres: [] };
+          const pending: PendingCompany = { name: companyName, industryId, employeeCount, genres: [] };
           sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
         } catch { /* ignore */ }
         return;
@@ -995,14 +1005,15 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         <div className="biz-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           <div>
             <FieldLabel label="業種" htmlFor="biz-s2-industry" />
-            <select id="biz-s2-industry" value={industry}
-              onChange={(e) => setIndustry(e.target.value)} style={selectStyle}
+            {/* ⚠️ 任意項目のまま。必須化は作成時ではなく公開時に行う。
+                ⚠️ 選択肢は ow_industries から引いている。**ここに値を書かないこと。** */}
+            <select id="biz-s2-industry" value={industryId}
+              onChange={(e) => setIndustryId(e.target.value)} style={selectStyle}
+              disabled={industries.length === 0}
               onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)}>
               <option value="">任意</option>
-              {INDUSTRY_SELECT_GROUPS.map((g) => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                </optgroup>
+              {industries.map((i) => (
+                <option key={i.id} value={i.id}>{i.name}</option>
               ))}
             </select>
           </div>
@@ -1166,7 +1177,7 @@ function LoginForm({ prefillEmail, pendingCompany, next, router, inviteContext }
           await fetch("/api/biz/companies", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: stored.name, industry: stored.industry || null, genres: stored.genres ?? [] }),
+            body: JSON.stringify({ name: stored.name, industry_id: stored.industryId || null, genres: stored.genres ?? [] }),
           });
         } catch { /* 企業作成失敗はログのみ */ }
         try { sessionStorage.removeItem(PENDING_COMPANY_KEY); } catch { /* ignore */ }

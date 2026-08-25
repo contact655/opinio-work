@@ -49,7 +49,9 @@ export default async function BizCompanyPage() {
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
     adminClient
       .from("ow_industries")
-      .select("id, parent_id, name, slug, display_order")
+      /* ⚠️ `parent_id` は取らない。2026-08-25 にマスタをフラット20件へ作り直し、
+            2段階セレクトも撤去したので読む側が無い。階層を戻すときに一緒に足すこと。 */
+      .select("id, name, slug, display_order")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
     adminClient.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("status", "published"),
@@ -86,7 +88,7 @@ export default async function BizCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
-  type IndustryItem = { id: string; parent_id: string | null; name: string; slug: string; display_order: number };
+  type IndustryItem = { id: string; name: string; slug: string; display_order: number };
 
   const industries: IndustryItem[] = (industriesResult.data ?? []) as IndustryItem[];
 

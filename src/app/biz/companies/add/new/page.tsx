@@ -3,6 +3,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CreateCompanyClient } from "./CreateCompanyClient";
+import { fetchIndustryOptions } from "@/lib/companies/industries";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,13 @@ export default async function CreateCompanyPage() {
   const agreedTermsBusiness = (user?.user_metadata?.agreed_terms_business as boolean | undefined) ?? false;
   const agreedFeePct15 = (user?.user_metadata?.agreed_fee_pct15 as boolean | undefined) ?? false;
   const agreedTermsVersion = (user?.user_metadata?.agreed_terms_version as string | undefined) ?? null;
-  const prefilledIndustry = (user?.user_metadata?.pending_industry as string | undefined) ?? null;
+  /* ⚠️ 2026-08-25 に `pending_industry`(業種名) から `pending_industry_id`(ow_industries.id)
+        へ変えた。**古いキーは読まない。** 業種名を id のつもりで渡すと、
+        セレクトの value に一致せず**未選択として静かに保存される。** */
+  const prefilledIndustryId = (user?.user_metadata?.pending_industry_id as string | undefined) ?? null;
+
+  // 業種の選択肢（ow_industries のフラット20件）。⚠️ コードに書かない
+  const industries = await fetchIndustryOptions(createAdminClient(), "biz/companies/add/new");
 
   // メールドメインで企業マスタを照合（LinkedIn的なドメインマッチング）
   const emailDomain = user?.email ? user.email.split("@")[1]?.toLowerCase() ?? null : null;
@@ -93,7 +100,8 @@ export default async function CreateCompanyPage() {
           userBadge={userBadge}
           prefilledCompanyName={prefilledCompanyName}
           prefilledCompanyId={prefilledCompanyId}
-          prefilledIndustry={prefilledIndustry}
+          prefilledIndustryId={prefilledIndustryId}
+          industries={industries}
           emailDomain={matchableDomain}
           agreedTermsBusiness={agreedTermsBusiness}
           agreedFeePct15={agreedFeePct15}
@@ -116,7 +124,8 @@ export default async function CreateCompanyPage() {
         userBadge={userBadge}
         prefilledCompanyName={prefilledCompanyName}
         prefilledCompanyId={prefilledCompanyId}
-        prefilledIndustry={prefilledIndustry}
+        prefilledIndustryId={prefilledIndustryId}
+        industries={industries}
         emailDomain={matchableDomain}
         agreedTermsBusiness={agreedTermsBusiness}
         agreedFeePct15={agreedFeePct15}

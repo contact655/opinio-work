@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { isValidIndustry } from "@/lib/search/industryGroups";
 import { deriveBrandName } from "@/lib/companies/displayName";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
@@ -61,7 +60,8 @@ export async function POST(req: Request) {
   let body: {
     name?: string;
     description?: string;
-    industry?: string;
+    /** ow_industries.id。⚠️ 業種名（text）ではない */
+    industry_id?: string;
     /** 任意。空なら社名から法人格を落とした値を既定にする */
     brand_name?: string;
     size?: string;
@@ -149,14 +149,42 @@ export async function POST(req: Request) {
     }
   }
 
-  /* 業種は選択肢の外の値を受け取らない。
-     ⚠️ 黙って null に落とさず 400 で返す（CLAUDE.md「選択肢が決まっている値は
-        UI / API / DB の CHECK を3つ揃える」）。空文字は未設定なので null にする。 */
-  if (typeof body.industry === "string" && body.industry.trim() && !isValidIndustry(body.industry.trim())) {
-    return NextResponse.json(
-      { error: "INVALID_INDUSTRY", message: "業種の値が不正です。" },
-      { status: 400 }
-    );
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  /* ── 業種（ow_industries への FK）─────────────────────────────────────────
+     ⚠️ **業種は任意のまま。** 未選択なら NULL で作る。必須化は作成時ではなく
+        **公開時**に行う（CLAUDE.md「分類の欠けた企業を公開しない」）。
+     ⚠️ ただし**値が入っているならマスタに実在すること**を確かめる。
+        黙って null に落とさず 400 で返す（CLAUDE.md「選択肢が決まっている値は
+        UI / API / DB の3つを揃える」）。
+     ⚠️ `industry`(text) は**もう書かない**（2026-08-25）。求職者側の表示が
+        当面その列を読むが、書き足すと延命することになる。行き先は事業領域。 */
+  const rawIndustryId = typeof body.industry_id === "string" ? body.industry_id.trim() : "";
+  let industryId: string | null = null;
+  if (rawIndustryId) {
+    if (!UUID_RE.test(rawIndustryId)) {
+      return NextResponse.json(
+        { error: "INVALID_INDUSTRY", message: "業種の値が不正です。" },
+        { status: 400 }
+      );
+    }
+    const { data: industryRow, error: industryErr } = await admin
+      .from("ow_industries")
+      .select("id")
+      .eq("id", rawIndustryId)
+      .maybeSingle();
+    // ⚠️ error を握りつぶさない。捨てると「マスタに無い」と区別が付かなくなる
+    if (industryErr) {
+      console.error("[POST /api/biz/companies] ow_industries の照合に失敗:", industryErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    if (!industryRow) {
+      return NextResponse.json(
+        { error: "INVALID_INDUSTRY", message: "選択された業種は業種マスタに存在しません。画面を再読み込みしてください。" },
+        { status: 400 }
+      );
+    }
+    industryId = rawIndustryId;
   }
 
   // 5. ow_companies INSERT
@@ -170,7 +198,11 @@ export async function POST(req: Request) {
         ? body.brand_name.trim().slice(0, 100)
         : deriveBrandName(name),
       description: body.description || null,
-      industry: body.industry || null,
+      /* ⚠️ `industry`(text) は書かない（2026-08-25）。書くと廃止予定の列を延命する。
+            ⚠️ 結果として**新規企業は industry(text) が NULL で生まれる。**
+               求職者側の一覧カード・業種フィルタ・LPファセットはまだこの列を
+               読んでいるので、公開する前に事業領域へ読み手を移すこと。 */
+      industry_id: industryId,
       employee_count: body.size ? parseInt(body.size, 10) : null,
       url: websiteUrl,
       logo_url: (typeof body.logo_url === "string" && /^https:\/\//i.test(body.logo_url)) ? body.logo_url.slice(0, 2048) : null,
@@ -194,7 +226,7 @@ export async function POST(req: Request) {
       /* ⚠️ normalized_name は書かない。トリガーが name から必ず計算する。
             そもそも authenticated には UPDATE 権限が無い（docs/ow-companies-grants.md）。 */
     })
-    .select("id, name, slug, source, status, created_at, industry, url, logo_url")
+    .select("id, name, slug, source, status, created_at, industry_id, url, logo_url")
     .single();
 
   if (companyError || !company) {
@@ -338,7 +370,7 @@ export async function POST(req: Request) {
         name: company.name,
         status: company.status,
         created_at: company.created_at,
-        industry: company.industry,
+        industry_id: company.industry_id,
         url: company.url,
         logo_url: company.logo_url,
         /* ⚠️ SELECT しているのに返していなかったので足した（2026-08-12）。

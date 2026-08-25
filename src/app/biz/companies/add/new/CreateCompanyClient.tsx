@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-/* ⚠️ 業種の選択肢はここに書かない。求職者側の業種フィルタと同じ出どころから取る
-      （別リストを持つと、企業が選んだ値がフィルタに一切引っかからなくなる）。 */
-import { INDUSTRY_SELECT_GROUPS } from "@/lib/search/industryGroups";
+/* ⚠️ 業種の選択肢はここに書かない。**`ow_industries` のマスタが唯一の出どころ**で、
+      サーバー側（page.tsx）が引いて props で渡す。2026-08-25 まで
+      `INDUSTRY_SELECT_GROUPS`（業種名の text）を使っており、企業が選んだ値と
+      運営が見る列（industry_id）が別物になっていた。 */
+import type { IndustryOption } from "@/lib/companies/industries";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -24,7 +26,10 @@ type SearchResult = {
   id: string;
   name: string;
   logo_url: string | null;
+  /** 候補カードに出す表示用のラベル。⚠️ **保存には使わない** */
   industry: string | null;
+  /** ow_industries.id。⚠️ 業種の引き継ぎに使うのはこちら */
+  industry_id: string | null;
   admin_count: number | null;
   url?: string | null;
 };
@@ -79,7 +84,8 @@ export function CreateCompanyClient({
 
   prefilledCompanyName = null,
   prefilledCompanyId = null,
-  prefilledIndustry = null,
+  prefilledIndustryId = null,
+  industries = [],
   emailDomain = null,
   agreedTermsBusiness = false,
   agreedFeePct15 = false,
@@ -89,7 +95,10 @@ export function CreateCompanyClient({
 
   prefilledCompanyName?: string | null;
   prefilledCompanyId?: string | null;
-  prefilledIndustry?: string | null;
+  /** ow_industries.id。⚠️ 業種名ではない */
+  prefilledIndustryId?: string | null;
+  /** 業種の選択肢（ow_industries の有効な行） */
+  industries?: IndustryOption[];
   emailDomain?: string | null;
   agreedTermsBusiness?: boolean;
   agreedFeePct15?: boolean;
@@ -113,7 +122,7 @@ export function CreateCompanyClient({
     } catch { /* ignore */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [industry, setIndustry] = useState(prefilledIndustry ?? "");
+  const [industryId, setIndustryId] = useState(prefilledIndustryId ?? "");
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,7 +181,7 @@ export function CreateCompanyClient({
           (r: SearchResult) => r.name === companyName || r.name.includes(companyName) || companyName.includes(r.name)
         );
         if (exact) {
-          if (exact.industry && !industry) setIndustry(exact.industry);
+          if (exact.industry_id && !industryId) setIndustryId(exact.industry_id);
           if (exact.url && !website) setWebsite(exact.url);
           // マスタに存在する企業 → conflict カードで「1人目 or 2人目」を明示
           setConflict({ id: exact.id, name: exact.name, admin_count: exact.admin_count });
@@ -255,7 +264,7 @@ export function CreateCompanyClient({
   // サジェストを選択（入力欄にセット + 業界・URLを自動入力）
   function handleSelectSuggestion(s: SearchResult) {
     setName(s.name);
-    if (s.industry) setIndustry(s.industry);
+    if (s.industry_id) setIndustryId(s.industry_id);
     if (s.url) setWebsite(s.url);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -322,7 +331,7 @@ export function CreateCompanyClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          industry: industry || null,
+          industry_id: industryId || null,
           website: website.trim() || null,
 
           agreed_terms_business: agreedTermsBusiness || undefined,
@@ -814,21 +823,21 @@ export function CreateCompanyClient({
           );
         })()}
 
-        {/* 業界 — conflict中は非表示 */}
-        {!conflict && (
+        {/* 業種 — conflict中は非表示
+            ⚠️ 選択肢は `ow_industries`（props）。**ここに値を書かないこと。**
+            ⚠️ 任意項目のまま。必須化は作成時ではなく公開時に行う。 */}
+        {!conflict && industries.length > 0 && (
         <div>
-          <label htmlFor="cc-industry" style={labelStyle}>業界</label>
+          <label htmlFor="cc-industry" style={labelStyle}>業種</label>
           <select
             id="cc-industry"
-            value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            style={{ ...selectStyle, color: industry ? "var(--ink)" : "var(--ink-mute)" }}
+            value={industryId}
+            onChange={(e) => setIndustryId(e.target.value)}
+            style={{ ...selectStyle, color: industryId ? "var(--ink)" : "var(--ink-mute)" }}
           >
-            <option value="">選択してください</option>
-            {INDUSTRY_SELECT_GROUPS.map((g) => (
-              <optgroup key={g.label} label={g.label}>
-                {g.options.map((o) => <option key={o} value={o}>{o}</option>)}
-              </optgroup>
+            <option value="">選択してください（任意）</option>
+            {industries.map((i) => (
+              <option key={i.id} value={i.id}>{i.name}</option>
             ))}
           </select>
         </div>

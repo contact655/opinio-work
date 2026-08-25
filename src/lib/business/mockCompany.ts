@@ -94,11 +94,12 @@ export const COMPANY_SECTIONS = [
 
 export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];
 
-/* ⚠️ 業種の選択肢をここに持たない（2026-08-14）。求職者側の業種フィルタと
-      同じ出どころ（`lib/search/industryGroups.ts`）から再輸出するだけにする。
-      以前はここに独自の8値があり、`/biz/company` の編集フォームが
-      フィルタに存在しない値を保存できてしまっていた。 */
-export { INDUSTRY_OPTIONS } from "@/lib/search/industryGroups";
+/* ⚠️ 業種の選択肢をここに持たない。**`ow_industries` のマスタが唯一の出どころ。**
+      2026-08-14 までここに独自の8値があり、`/biz/company` の編集フォームが
+      求職者側のフィルタに存在しない値を保存できてしまっていた。その後
+      `industryGroups.ts` からの再輸出にしたが、2026-08-25 に業種を
+      `ow_industries`（フラット20件）へ移したので**再輸出ごと落とした**
+      （読む側が1つも無くなったため）。選択肢は `lib/companies/industries.ts`。 */
 
 export const PHASE_OPTIONS = [
   "シード",

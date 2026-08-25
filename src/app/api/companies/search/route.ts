@@ -14,7 +14,7 @@ import { filterListedCompanies } from "@/lib/companies/visibility";
  *   limit - 最大件数（デフォルト 10、最大 50）
  *
  * レスポンス:
- *   { results: [{ id, name, logo_url, industry, admin_count, employee_count }] }
+ *   { results: [{ id, name, logo_url, industry, industry_id, admin_count, employee_count }] }
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   let query = filterListedCompanies(
     supabase
       .from("ow_companies")
-      .select("id, name, brand_name, logo_url, industry, employee_count, url")
+      .select("id, name, brand_name, logo_url, industry, industry_id, employee_count, url")
   )
     .order("name")
     .limit(limit);
@@ -119,6 +119,9 @@ export async function GET(req: NextRequest) {
     name: c.name,
     logo_url: c.logo_url ?? null,
     industry: c.industry ?? null,
+    /* ⚠️ 企業作成フォームが業種を引き継ぐのに使う。**保存に使うのはこちら（id）**で、
+          上の `industry` は候補カードに出す表示用のラベル。混同しないこと。 */
+    industry_id: c.industry_id ?? null,
     employee_count: c.employee_count ?? null,
     url: (c as { url?: string | null }).url ?? null,
     admin_count: adminCountAvailable ? (adminCount.get(c.id) ?? 0) : null,

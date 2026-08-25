@@ -45,7 +45,7 @@ type Props = {
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
   /** ow_industries 全件。2026-08-25 からフラット20件（親子は無い） */
-  industries?: { id: string; parent_id: string | null; name: string; slug: string; display_order: number }[];
+  industries?: { id: string; name: string; slug: string; display_order: number }[];
   /** スコア計算用（サーバー側で取得した静的カウント） */
   initialPublishedJobCount?: number;
   initialPublishedStoryCount?: number;
