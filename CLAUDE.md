@@ -1141,28 +1141,44 @@ name / description / industry / employee_count / url / logo_url の6項目だけ
 
 ⚠️ **したがって業種は作成フォームで任意のままにしてある。** 必須化を作成側へ戻さないこと。
 
-#### 何をゲートするか
+#### ★判定は1つの関数に集約する
 
-`is_published` を true にする / `listing_status` を `'listed'` にする経路で、
-次の2つが埋まっていることを必須にする。埋まっていなければ**弾き、何が足りないかを画面に出す**。
+**4経路それぞれに条件を書かない。必ず漏れる。**
 
-| 必須にするもの | 列 |
-|---|---|
-| 業種 | `ow_companies.industry_id`（単一） |
-| 事業領域 | `ow_company_business_domains` に **`is_primary` の行が1件** |
+```ts
+assertPublishable(companyId, actor)  // 満たしていなければ「何が足りないか」を返す
+```
 
-#### 対象の経路（2つとも塞がないと意味が無い）
+#### 何を見るか — ⚠️ **誰が公開するかで条件が違う**
 
-| 経路 | 実体 |
-|---|---|
-| `/admin` の掲載トグル | `admin/companies/actions.ts` の `updateIsPublished` / `updateListingStatus` |
-| 企業情報の保存 | `PUT /api/admin/companies/[id]`（`is_published` / `listing_status` を受ける） |
+| 条件 | 実体 | 企業（`/biz` 経路） | 運営（`/admin` 経路） |
+|---|---|---|---|
+| **業種** | `ow_companies.industry_id` が非 NULL | **必須** | **必須** |
+| **事業領域** | `ow_company_business_domains` に `is_primary` の行が1件 | **必須** | **必須** |
+| **掲載規約の同意** | `hasAgreedTerms(user, "listing")` | **必須** | **不要** |
 
-⚠️ **`PATCH /api/biz/company` も `is_published` を触れる**（企業が自分で公開を切り替える）。
-   ゲートを書くときはここも数えること。
+⚠️ **分類（業種・事業領域）は actor に関わらず必須。** 運営が例外的に通せる形にしない。
+   分類が欠けたまま掲載されると、業種フィルタ・LPファセット・`/jobs` から静かに消える。
 
-⚠️ **軸2（対象業界）を入れる日は、このゲートに1行足す形にする。**
-   別の場所に条件を書き足さない。判定は1箇所に集約する。
+⚠️ **規約同意は企業のときだけ。** 運営が代理で掲載する場面まで止めると運用が回らない。
+   同意の記録は `ow_terms_agreements` の1系統だけ（2026-08-25 に統一）。
+
+#### 呼ぶ場所（4経路すべて。1つでも漏らすと意味が無い）
+
+| # | 経路 | 実体 | actor |
+|---|---|---|---|
+| ① | `/admin` の掲載トグル | `admin/companies/actions.ts` の `updateIsPublished` | 運営 |
+| ② | 同上 | `updateListingStatus` | 運営 |
+| ③ | 企業情報の保存（運営） | `PUT /api/admin/companies/[id]`（`is_published` / `listing_status` を受ける） | 運営 |
+| ④ | 企業情報の保存（企業） | `PATCH /api/biz/company` | 企業 |
+
+⚠️ **④を忘れやすい。** 企業が自分で公開を切り替えられることを見落とさないこと。
+   現状ここには**サーバー側の同意チェックが無く**、掲載規約のゲートは
+   `CompanyEditSubNav.tsx` の「変更を公開する」ボタンを出し分ける**UI だけ**。
+   API を直接叩けば未同意でも公開できる。**④で `assertPublishable` を呼べばここも塞がる。**
+
+⚠️ **軸2（対象業界）を入れる日は、この関数に1行足す形にする。**
+   別の場所に条件を書き足さない。
 
 #### いま塞がっていないこと（2026-08-25 時点の実態）
 

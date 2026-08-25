@@ -69,9 +69,6 @@ export async function POST(req: Request) {
     logo_url?: string;
     name_en?: string;
     genres?: string[];
-    agreedTermsBusiness?: boolean;
-    agreedFeePct15?: boolean;
-    agreedTermsVersion?: string;
   };
   try {
     body = await req.json();
@@ -286,12 +283,12 @@ export async function POST(req: Request) {
         company_id: company.id,
         permission: "admin",
         is_active: true,
-        ...(body.agreedTermsBusiness != null && {
-          agreed_terms_business: body.agreedTermsBusiness,
-          agreed_fee_15pct: body.agreedFeePct15 ?? false,
-          agreed_terms_version: body.agreedTermsVersion ?? null,
-          agreed_at: new Date().toISOString(),
-        }),
+        /* ⚠️ 規約同意（agreed_*）はここに書かない（2026-08-25 に削除）。
+              記録は `ow_terms_agreements` に一本化してある。
+              以前あった spread は `body.agreedTermsBusiness`（camelCase）を見ており、
+              送信側は `agreed_terms_business`（snake_case）だったので
+              **一度も発火していなかった**（実データ 12行中0行）。
+              列は残してあるが未使用（列の COMMENT を参照）。 */
       });
 
     if (adminError && adminError.code !== "23505") {

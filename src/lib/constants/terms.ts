@@ -44,8 +44,16 @@ export const TERMS_TYPES = {
  *    バージョンは1つしか持っていない。**2本の規約が別々に改定されると表せない。**
  *    同意管理の作り直しは別タスク。今回は認識だけ残す。
  *
- * ⚠️ もう1つ別系統がある。`biz/auth/page.tsx` は
- *    `user_metadata.agreed_terms_version` に **`"2026-07"`** を直書きしている。
- *    `ow_terms_agreements` とは別の記録で、こちらは今回触っていない（別タスク）。
+ * ⚠️ **同意の記録は `ow_terms_agreements` の1系統に統一した（2026-08-25）。**
+ *    それまで `user_metadata.agreed_terms_business` / `agreed_terms_version` と
+ *    `ow_company_admins.agreed_*` という別系統があったが、
+ *      ・書いていたのは `/biz/auth` の step 2 だけで、その step 2 が
+ *        2026-07-23 以降**到達不能**だった
+ *      ・`ow_company_admins` へ渡す経路は**キー名が snake / camel で食い違っており**
+ *        一度も書かれていなかった
+ *    実データも 0（auth.users 60人中0人 / ow_company_admins 12行中0行）だったため、
+ *    **配線ごと削除した。** 列は残してあるが未使用（列の COMMENT を参照）。
+ *
+ * ⚠️ **別系統を増やさないこと。** 同意を記録する場所は `ow_terms_agreements` だけ。
  */
 export const TERMS_VERSION = "2026-08-21";

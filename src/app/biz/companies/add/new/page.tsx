@@ -26,10 +26,10 @@ export default async function CreateCompanyPage() {
     : null;
 
 
-  // biz auth 登録時の規約同意フラグ（user_metadata から）
-  const agreedTermsBusiness = (user?.user_metadata?.agreed_terms_business as boolean | undefined) ?? false;
-  const agreedFeePct15 = (user?.user_metadata?.agreed_fee_pct15 as boolean | undefined) ?? false;
-  const agreedTermsVersion = (user?.user_metadata?.agreed_terms_version as string | undefined) ?? null;
+  /* ⚠️ ここにあった user_metadata の agreed_* の読み出しは 2026-08-25 に削除した。
+        書き込んでいたのは /biz/auth の step 2 だけで、その step 2 自体が
+        2026-07-23 以降到達不能だった（実データ 60人中0人）。
+     ⚠️ 規約同意の記録は `ow_terms_agreements` に一本化してある。復活させないこと。 */
   /* ⚠️ 2026-08-25 に `pending_industry`(業種名) から `pending_industry_id`(ow_industries.id)
         へ変えた。**古いキーは読まない。** 業種名を id のつもりで渡すと、
         セレクトの value に一致せず**未選択として静かに保存される。** */
@@ -103,9 +103,6 @@ export default async function CreateCompanyPage() {
           prefilledIndustryId={prefilledIndustryId}
           industries={industries}
           emailDomain={matchableDomain}
-          agreedTermsBusiness={agreedTermsBusiness}
-          agreedFeePct15={agreedFeePct15}
-          agreedTermsVersion={agreedTermsVersion}
         />
       </BusinessLayout>
     );
@@ -127,9 +124,6 @@ export default async function CreateCompanyPage() {
         prefilledIndustryId={prefilledIndustryId}
         industries={industries}
         emailDomain={matchableDomain}
-        agreedTermsBusiness={agreedTermsBusiness}
-        agreedFeePct15={agreedFeePct15}
-        agreedTermsVersion={agreedTermsVersion}
       />
     </BusinessLayout>
   );

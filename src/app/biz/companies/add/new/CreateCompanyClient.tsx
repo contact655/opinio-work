@@ -87,9 +87,6 @@ export function CreateCompanyClient({
   prefilledIndustryId = null,
   industries = [],
   emailDomain = null,
-  agreedTermsBusiness = false,
-  agreedFeePct15 = false,
-  agreedTermsVersion = null,
 }: {
   userBadge?: UserBadge | null;
 
@@ -100,9 +97,6 @@ export function CreateCompanyClient({
   /** 業種の選択肢（ow_industries の有効な行） */
   industries?: IndustryOption[];
   emailDomain?: string | null;
-  agreedTermsBusiness?: boolean;
-  agreedFeePct15?: boolean;
-  agreedTermsVersion?: string | null;
 }) {
   const [name, setName] = useState(prefilledCompanyName ?? "");
   const [prefilledLocked, setPrefilledLocked] = useState(!!prefilledCompanyName);
@@ -333,10 +327,13 @@ export function CreateCompanyClient({
           name: name.trim(),
           industry_id: industryId || null,
           website: website.trim() || null,
-
-          agreed_terms_business: agreedTermsBusiness || undefined,
-          agreed_fee_pct15: agreedFeePct15 || undefined,
-          agreed_terms_version: agreedTermsVersion || undefined,
+          /* ⚠️ 規約同意はここで送らない（2026-08-25 に削除）。
+                同意の記録は `ow_terms_agreements` に一本化してある。
+                以前は user_metadata の agreed_* を素通しして
+                `ow_company_admins` に書こうとしていたが、
+                **送信側が snake_case・受信側が camelCase で名前が一致しておらず、
+                一度も書かれていなかった**（実データ 12行中0行）。
+             ⚠️ 掲載規約の同意は `/biz/company` で取る。ここでは取らない。 */
         }),
       });
       const data = await res.json();
