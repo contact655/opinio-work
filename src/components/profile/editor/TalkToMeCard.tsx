@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { memberState, type MemberState, type CompanyMemberRow } from "@/lib/constants/companyMembers";
+/* ⚠️ 会社名は必ずここを通す（2026-08-25）。法人格（株式会社…）と末尾の " Japan" が落ちる。
+      ⚠️ 正規表現をコピーして持ってこないこと。3箇所に割れていたのを集約した経緯がある。 */
+import { companyDisplayName } from "@/lib/companies/displayName";
 
 /**
  * 「在籍している会社について、話を聞かれてもよいか」（/mypage 右カラム・StanceCard の直下）。
@@ -17,7 +20,7 @@ import { memberState, type MemberState, type CompanyMemberRow } from "@/lib/cons
  * ⚠️★**OFF で行を消さない。** `/api/mypage/ambassador-visibility` を叩いて
  *    `display_consent` と `is_public` を false にするだけ。消すと戻すのが
  *    作り直しになり、「いつでも戻せる」というこの画面の約束が嘘になる。
- *    （DELETE する `ambassador-self-remove` はもうこの画面からは呼ばない）
+ *    （行ごと消す DELETE ルートは 2026-08-24 に削除した。本人側に戻さないこと）
  *
  * ⚠️★**なりすまし対策は3つで受けている。1つでも外すと成立しない。**
  *    ① 在籍として申告している会社にしか出せない（RLS `member_self_apply` の EXISTS）
@@ -68,8 +71,8 @@ export default function TalkToMeCard({
   const [busyId, setBusyId] = useState<string | null>(null);
   /* ⚠️ 2026-08-24 に**削除の確認ダイアログをやめた**。OFF は行を消さず掲載を止めるだけで、
         ONに戻せば同じ状態に戻るので、確認で止める理由が無くなった。
-        ⚠️ 行ごと消す操作（`ambassador-self-remove`）を**この画面に戻すなら**、
-           2段階の確認も一緒に戻すこと。あれは取り消せない。 */
+        ⚠️ 行ごと消す操作を**この画面に戻すなら**、2段階の確認も一緒に戻すこと。
+           あれは取り消せない（企業の確認からやり直しになる）。 */
   const [error, setError] = useState<string | null>(null);
 
   /* 在籍している会社と、その会社の行（あれば）を突き合わせる。
@@ -109,17 +112,25 @@ export default function TalkToMeCard({
       background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
       padding: "18px 18px 16px", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
     }}>
+      {/* ★見出しで「誰が・何を聞くのか」まで言い切る（2026-08-25）。
+             以前は「話を聞かれてもよいか」だけで、**何の話か**が読めなかった。
+          ⚠️ 「面談」という語は使わない（選考の面談と読まれる）。 */}
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em", marginBottom: 2 }}>
         いま在籍している会社について
       </div>
-      <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>
-        話を聞かれてもよいか
+      <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>
+        転職を考えている人と話せますか
       </h2>
+      <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+        仕事の内容や社内の様子について、聞かれる側になります。
+      </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {rows.map(({ company, m }) => {
           const state = memberState(m);
           const busy = busyId === (m?.id ?? company.id);
+          /* ⚠️ 表示にも読み上げにも同じ名前を使う。法人格と " Japan" が落ちる */
+          const brand = companyDisplayName(company.name, null).displayName;
           /* ★トグルの見た目は「本人の意思」。掲載されているかは下の行が言う。
              ⚠️ `unlisted`（企業が非掲載）でも**ONのまま**にする。本人はONにしており、
                 ここでOFFに見せると「自分で切ったのか会社が切ったのか」が分からなくなる。 */
@@ -150,11 +161,17 @@ export default function TalkToMeCard({
               background: "var(--bg-tint)",
               border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px",
             }}>
-              <div style={{
-                fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {company.name}
+              {/* ⚠️ ブランド名で出す。`株式会社セールスフォース・ジャパン` は
+                     カード幅（約254px）で必ず省略記号になり、どの会社か読めなかった。
+                     ⚠️ `title` に正式名称を残す（省略しても確認できるように）。 */}
+              <div
+                title={company.name}
+                style={{
+                  fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}
+              >
+                {brand}
               </div>
 
               {invitePending ? (
@@ -175,7 +192,10 @@ export default function TalkToMeCard({
                   type="button"
                   role="switch"
                   aria-checked={on}
-                  aria-label={`${company.name}で面談可にする`}
+                  /* ⚠️ 読み上げの文言も画面と合わせる（2026-08-25）。
+                        正式名称のままだと「株式会社…ジャパンで面談可にする」と読まれ、
+                        画面に見えている「話を聞かれてもよい」と一致しなかった。 */
+                  aria-label={`${brand}について話を聞かれてもよい`}
                   disabled={busy}
                   onClick={toggle}
                   className="btn-fixed-size"
@@ -186,7 +206,7 @@ export default function TalkToMeCard({
                   }}
                 >
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-                    {busy ? "保存中…" : "面談可にする"}
+                    {busy ? "保存中…" : "話を聞かれてもよい"}
                   </span>
                   <span aria-hidden style={{
                     width: 40, height: 22, borderRadius: 999, flexShrink: 0,
@@ -209,7 +229,7 @@ export default function TalkToMeCard({
               )}
               {state === "none" && (
                 <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-                  ONにすると、この会社のページに掲載されます
+                  ONにすると、この会社のページに「話を聞ける人」として載ります
                 </p>
               )}
             </div>
@@ -220,7 +240,7 @@ export default function TalkToMeCard({
       {/* ★なりすまし対策の3つ目（`TalkToMeCard` の冒頭コメント参照）。**消さないこと。**
              ⚠️ 語彙は `/people` の注記と揃える。同じ事実を2つの画面で別々に言わない。 */}
       <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-        在籍は本人の申告です。OPINIO は在籍確認を行っていません。会社の判断で非掲載になることがあります。
+        在籍は自己申告で、OPINIO は確認していません。会社の判断で載らないこともあります。
       </p>
 
       {error && (

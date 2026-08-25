@@ -74,44 +74,58 @@ export default function StanceCard({
         声をかけられてもよいか
       </h2>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        {[
-          { value: true, label: "はい" },
-          { value: false, label: "いいえ" },
-        ].map((o) => {
-          const active = saved === o.value;
-          return (
-            <button
-              key={o.label}
-              type="button"
-              onClick={() => void choose(o.value)}
-              disabled={saving}
-              aria-pressed={active}
-              className="btn-fixed-size"
-              style={{
-                flex: 1,
-                height: 40,
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                fontFamily: "inherit",
-                cursor: saving ? "wait" : "pointer",
-                border: active ? "1.5px solid var(--royal)" : "1px solid var(--line)",
-                background: active ? "var(--royal)" : "#fff",
-                color: active ? "#fff" : "var(--ink-soft)",
-              }}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* ★2026-08-25 に「はい／いいえ」の2ボタンから**トグル**に変えた（柴さんの指示）。
+             2ボタンだと、どちらが選択中かが一目で読めなかった。
+          ⚠️★**未選択（null）と「いいえ」はトグルでは同じ見た目になる。**
+             だから下の「まだ選ばれていません」を**必ず残す**。消すと、
+             選んでいない人が「いいえを選んだ」と誤解する（この画面が守ってきた条件）。
+          ⚠️ 挙動は `TalkToMeCard` のトグルと同じにする（`role="switch"` ＋ `aria-checked`）。
+             見た目だけで状態を伝えない。 */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={saved === true}
+        aria-label="企業の採用担当から声をかけられてもよい"
+        disabled={saving}
+        onClick={() => void choose(saved !== true)}
+        className="btn-fixed-size"
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 12, width: "100%", padding: 0, background: "none", border: "none",
+          cursor: saving ? "wait" : "pointer", fontFamily: "inherit",
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+          {saving ? "保存中…" : "声をかけられてもよい"}
+        </span>
+        <span aria-hidden style={{
+          width: 40, height: 22, borderRadius: 999, flexShrink: 0,
+          background: saved === true ? "var(--royal)" : "var(--line)",
+          display: "inline-flex", alignItems: "center",
+          justifyContent: saved === true ? "flex-end" : "flex-start",
+          padding: 2, transition: "background 0.15s",
+          opacity: saving ? 0.6 : 1,
+        }}>
+          <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
+        </span>
+      </button>
 
       {/* ⚠️ 未選択であることを**画面に出す**。どちらも押されていない見た目だけだと、
              「いいえ」を選んだのと区別がつかない。 */}
       {saved === null && (
         <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-          まだ選ばれていません。選ぶまでは声をかけられません。
+          まだ選んでいません。ONにするまで声はかかりません。
+        </p>
+      )}
+      {/* ⚠️ トグルの結果を1行で言う。`TalkToMeCard` と同じ形（下に状態を出す）。 */}
+      {saved === true && (
+        <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--success)" }}>
+          企業から声がかかることがあります
+        </p>
+      )}
+      {saved === false && (
+        <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+          いまは声をかけられません
         </p>
       )}
       {error && (

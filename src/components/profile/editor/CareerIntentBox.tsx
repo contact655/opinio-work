@@ -49,17 +49,10 @@ export type IntentPrefs = {
 const MAX_DESIRED_ROLES = 5;
 
 /** 要約の1行。⚠️ 値そのものを出す */
-function SummaryRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-      <span style={{ flexShrink: 0, width: 84, fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>{label}</span>
-      <span style={{
-        fontSize: 13, fontWeight: 600, minWidth: 0,
-        color: muted ? "var(--ink-mute)" : "var(--ink)",
-      }}>{value}</span>
-    </div>
-  );
-}
+/* ⚠️ `SummaryRow`（ラベル左・値右の1行）は 2026-08-25 に削除した。
+      要約が「転職について」1項目だけになり、右カラムのカードと同じ
+      「小見出し → 問い → 値」の3段に組み替えたため。
+      ⚠️ 項目が2つ以上に戻るなら、また行の形が要る。そのときに書き直すこと。 */
 
 export default function CareerIntentBox({
   initialIsOpenToWork,
@@ -220,9 +213,13 @@ export default function CareerIntentBox({
         background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
         padding: "18px 24px", marginBottom: 20, boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>転職の希望</span>
-          <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        {/* ★見出しの組み方を**右カラムのカードに揃えた**（2026-08-25 / 柴さんの指示）。
+               小見出し（誰に向けた話か）→ 問い → 値、の3段。`StanceCard` と同じ形。
+            ⚠️ 罫線つきの見出し行に戻さないこと。同じ画面の中で
+               「セクション見出し（罫線あり）」と「問い（罫線なし）」が混ざって見える。
+            ⚠️ ✎ は右上に絶対配置する。見出しの右端に置くと、問いの行が
+               ボタンのぶん詰まって折り返す（幅680pxでも起きる）。 */}
+        <div style={{ position: "relative" }}>
           <button
             type="button"
             className="tap-target tap-target-end"
@@ -230,6 +227,7 @@ export default function CareerIntentBox({
             aria-label="転職の希望を編集"
             title="転職の希望を編集"
             style={{
+              position: "absolute", top: 0, right: 0,
               fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--royal)",
               background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
               display: "flex", alignItems: "center", padding: 0,
@@ -237,9 +235,21 @@ export default function CareerIntentBox({
           >
             <PencilIcon />
           </button>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <SummaryRow label="転職について" value={openToWorkText} muted={!saved.isOpenToWork} />
+
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em", marginBottom: 2 }}>
+            企業に伝わる希望条件
+          </div>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>
+            転職について
+          </h2>
+          {/* ⚠️ 値は**そのまま短く**出す。「設定済み」のような抽象語にしない
+                 （このボックスを作った理由そのもの）。 */}
+          <div style={{
+            fontSize: 13, fontWeight: 700,
+            color: saved.isOpenToWork ? "var(--ink)" : "var(--ink-mute)",
+          }}>
+            {openToWorkText}
+          </div>
         </div>
       </section>
 
