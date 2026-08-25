@@ -30,7 +30,10 @@ export default async function BizCompanyPage() {
         分割前の `business` はどちらにも効く（`hasAgreedTerms` 参照）。 */
   const termsAgreed = user ? await hasAgreedTerms(user.id, "listing") : false;
 
-  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, saasCatsResult, jobCntResult, storyCntResult, interviewScoreData] = await Promise.all([
+  /* ⚠️ `ow_saas_categories` の取得は 2026-08-25 に外した。SaaSカテゴリの入力欄を
+        撤去したので誰も使わない（列と値は残してある）。事業領域の入力欄を作る日に
+        `ow_business_domains` を取りに行く。 */
+  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, jobCntResult, storyCntResult, interviewScoreData] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
     adminClient
       .from("ow_genres")
@@ -47,11 +50,6 @@ export default async function BizCompanyPage() {
     adminClient
       .from("ow_industries")
       .select("id, parent_id, name, slug, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true }),
-    adminClient
-      .from("ow_saas_categories")
-      .select("id, name, slug, display_order")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
     adminClient.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("status", "published"),
@@ -89,10 +87,8 @@ export default async function BizCompanyPage() {
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
   type IndustryItem = { id: string; parent_id: string | null; name: string; slug: string; display_order: number };
-  type SaasCatItem = { id: string; name: string; slug: string; display_order: number };
 
   const industries: IndustryItem[] = (industriesResult.data ?? []) as IndustryItem[];
-  const saasCategories: SaasCatItem[] = (saasCatsResult.data ?? []) as SaasCatItem[];
 
   return (
     <CompanyEditClient
@@ -109,7 +105,6 @@ export default async function BizCompanyPage() {
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
       industries={industries}
-      saasCategories={saasCategories}
       initialPublishedJobCount={jobCntResult.count ?? 0}
       initialPublishedStoryCount={storyCntResult.count ?? 0}
       initialInterviewScore={interviewScore}

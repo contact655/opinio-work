@@ -31,7 +31,12 @@ export async function PUT(
     // 既存フィールド
     'name',
     'description',
-    'industry',
+    /* ⚠️ 業種は **`industry_id`（ow_industries への FK）**。下で「マスタに存在する id か」を検証する。
+          ⚠️ **`industry`(text) はここに戻さないこと**（2026-08-25 に外した）。
+             検証が長さ100字だけだったため、マスタに無い綴りを運営が保存でき、
+             その企業が業種フィルタから静かに消えていた。
+             求職者側の表示は当面 `industry`(text) を読むが、書き込み経路はこれで閉じる。 */
+    'industry_id',
     'funding_stage',
     'employee_count',
     'accepting_casual_meetings',
@@ -67,7 +72,8 @@ export async function PUT(
 
   const FIELD_LIMITS: Record<string, number> = {
     name: 200, brand_name: 100, tagline: 300, mission: 1000, description: 5000,
-    why_join: 3000, culture_description: 3000, location: 200, industry: 100, phase: 100,
+    // ⚠️ `industry: 100` は 2026-08-25 に削除。長さでは分類の正しさを守れない（下の存在検証に置き換えた）
+    why_join: 3000, culture_description: 3000, location: 200, phase: 100,
     url: 2048, ceo_name: 200, headquarters_address: 300, nearest_station: 200,
     recruiter_name: 200, recruiter_role: 200, recruiter_message: 2000,
     opinio_comment: 3000, funding_stage: 100,
@@ -109,6 +115,33 @@ export async function PUT(
 
   // service_role で RLS バイパス
   const supabase = createAdminClient();
+
+  /* ── 業種はマスタに存在する id だけを受ける（2026-08-25）──────────────────
+     ⚠️ 不正値を黙って捨てたり既定値に落としたりしない。**400 で弾く**
+        （CLAUDE.md「選択肢が決まっている値は UI / API / DB の3つを揃える」）。
+     ⚠️ 空文字も弾く。業種を消せてしまうと、この列を運用の軸にしている意味が無くなる。 */
+  if ('industry_id' in updates) {
+    const v = updates.industry_id;
+    if (typeof v !== 'string' || !UUID_RE.test(v)) {
+      return NextResponse.json({ error: '業種を選択してください。' }, { status: 400 });
+    }
+    const { data: industry, error: industryErr } = await supabase
+      .from('ow_industries')
+      .select('id')
+      .eq('id', v)
+      .maybeSingle();
+    // ⚠️ error を握りつぶさない。捨てると「マスタに無い」と区別が付かなくなる
+    if (industryErr) {
+      console.error('[PUT /api/admin/companies/[id]] industry lookup:', industryErr.message);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+    if (!industry) {
+      return NextResponse.json(
+        { error: '選択された業種は業種マスタに存在しません。画面を再読み込みしてください。' },
+        { status: 400 },
+      );
+    }
+  }
 
   /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
         ここに条件を書き写さないこと（is_published を true にできる経路は3つある）。 */

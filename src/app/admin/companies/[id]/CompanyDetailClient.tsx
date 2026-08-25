@@ -44,9 +44,19 @@ type CompanyAdmin = {
   user: AdminUser[] | AdminUser | null;
 };
 
+/** 業種マスタ（ow_industries）。2026-08-25 時点でフラット20件 */
+type Industry = {
+  id: string;
+  name: string;
+  slug: string;
+  display_order: number;
+  is_active: boolean;
+};
+
 type Props = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   company: any; // ow_companies の全カラム
+  allIndustries: Industry[];
   allGenres: Genre[];
   companyGenres: CompanyGenre[];
   admins: CompanyAdmin[];
@@ -60,7 +70,13 @@ type FormData = {
   // 既存フィールド
   name: string;
   description: string;
-  industry: string;
+  /* ⚠️ 業種は **`industry_id`（ow_industries への FK）** で持つ。
+        2026-08-25 まで `industry`(text) の自由入力だった。綴りが1文字ずれると
+        その企業が業種フィルタから静かに消えるため、マスタからの選択に閉じた。
+        **自由入力に戻さないこと。**
+     ⚠️ `industry`(text) はこの画面からは編集できない。求職者側の表示は当面その列を
+        読み続けるが、いずれ事業領域（ow_business_domains）へ移して列ごと落とす。 */
+  industry_id: string;
   funding_stage: string;
   employee_count: string;
   accepting_casual_meetings: boolean;
@@ -104,7 +120,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
+export function CompanyDetailClient({ company, allIndustries, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -112,7 +128,7 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
     // 既存
     name: company.name ?? '',
     description: company.description ?? '',
-    industry: company.industry ?? '',
+    industry_id: company.industry_id ?? '',
     funding_stage: company.funding_stage ?? '',
     employee_count: company.employee_count ?? '',
     accepting_casual_meetings: company.accepting_casual_meetings ?? false,
@@ -500,14 +516,24 @@ export function CompanyDetailClient({ company, allGenres, companyGenres, admins:
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="acd-industry" className={labelCls}>業界</label>
-                  <input
+                  <label htmlFor="acd-industry" className={labelCls}>業種</label>
+                  {/* ⚠️ **自由入力に戻さないこと。** 2026-08-25 まで <input type="text"> で、
+                        API 側の検証も長さ100字だけだった。マスタに無い綴りを保存できたため、
+                        その企業が業種フィルタから静かに消えた（実際に「IT / SaaS」
+                        「電設資材・卸売業」など4値がこの経路で残っていた）。 */}
+                  <select
                     id="acd-industry"
-                    type="text"
-                    value={formData.industry}
-                    onChange={(e) => update('industry', e.target.value)}
+                    value={formData.industry_id}
+                    onChange={(e) => update('industry_id', e.target.value)}
                     className={inputCls}
-                  />
+                  >
+                    <option value="">選択してください</option>
+                    {allIndustries.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}{i.is_active ? '' : '（無効）'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="acd-funding-stage" className={labelCls}>資金調達ステージ</label>

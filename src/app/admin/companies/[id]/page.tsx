@@ -35,6 +35,15 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     .eq('is_active', true)
     .order('display_order');
 
+  /* 業種マスタ（ow_industries）。
+     ⚠️ `is_active` で絞らない。運営が無効化した業種に紐づいている企業を開いたとき、
+        セレクトに現在値が出ず、保存すると業種が消えたように見えるため。
+        無効な行はセレクト側で「（無効）」と示す。 */
+  const { data: industries } = await supabase
+    .from('ow_industries')
+    .select('id, name, slug, display_order, is_active')
+    .order('display_order');
+
   // この企業に紐付け済みのジャンル（承認済み・未承認問わず全件）
   const { data: companyGenres } = await supabase
     .from('ow_company_genres')
@@ -60,6 +69,7 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     <CompanyDetailClient
       initialTab={searchParams.tab}
       company={company}
+      allIndustries={industries ?? []}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
       admins={admins ?? []}

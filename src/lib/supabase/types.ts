@@ -417,6 +417,36 @@ export type Database = {
           },
         ]
       }
+      ow_business_domains: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       ow_career_agent_leads: {
         Row: {
           admin_note: string | null
@@ -1246,6 +1276,59 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_business_domains: {
+        Row: {
+          company_id: string
+          created_at: string
+          display_order: number
+          domain_id: string
+          is_primary: boolean
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          display_order?: number
+          domain_id: string
+          is_primary?: boolean
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          display_order?: number
+          domain_id?: string
+          is_primary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_business_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_business_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_business_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_business_domains_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_domains"
             referencedColumns: ["id"]
           },
         ]

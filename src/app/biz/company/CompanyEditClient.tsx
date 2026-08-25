@@ -11,7 +11,6 @@ import { RequirementsTagInput } from "@/components/business/RequirementsTagInput
 import { TERMS_VERSION } from "@/lib/constants/terms";
 import {
   COMPANY_SECTIONS,
-  INDUSTRY_OPTIONS,
   PHASE_OPTIONS,
   REMOTE_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
@@ -45,10 +44,8 @@ type Props = {
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
-  /** ow_industries 全件 */
+  /** ow_industries 全件。2026-08-25 からフラット20件（親子は無い） */
   industries?: { id: string; parent_id: string | null; name: string; slug: string; display_order: number }[];
-  /** ow_saas_categories 全件 */
-  saasCategories?: { id: string; name: string; slug: string; display_order: number }[];
   /** スコア計算用（サーバー側で取得した静的カウント） */
   initialPublishedJobCount?: number;
   initialPublishedStoryCount?: number;
@@ -375,7 +372,6 @@ export function CompanyEditClient({
   initialTermsAgreed = false,
   userId = "",
   industries = [],
-  saasCategories = [],
   initialPublishedJobCount = 0,
   initialPublishedStoryCount = 0,
   initialInterviewScore = 0,
@@ -385,22 +381,12 @@ export function CompanyEditClient({
 
   const [form, setForm] = useState<BizCompany>({ ...initialCompany });
 
-  // 業種マスタ: 大分類（parent_id null）/ 中分類（parent_id あり）
-  const parentIndustries = useMemo(() => industries.filter((i) => i.parent_id === null), [industries]);
-  const selectedParentId = useMemo(() => {
-    if (!form.industryId) return "";
-    const child = industries.find((i) => i.id === form.industryId);
-    return child?.parent_id ?? form.industryId;
-  }, [form.industryId, industries]);
-  const childIndustries = useMemo(
-    () => selectedParentId ? industries.filter((i) => i.parent_id === selectedParentId) : [],
-    [selectedParentId, industries]
-  );
-  const selectedChildSlug = useMemo(
-    () => industries.find((i) => i.id === form.industryId)?.slug ?? "",
-    [form.industryId, industries]
-  );
-  const showSaasCategory = selectedChildSlug === "it-saas";
+  /* ⚠️ ここにあった `showSaasCategory = (selectedChildSlug === "it-saas")` は
+        2026-08-25 に削除した。業種マスタを作り直して `it-saas` という slug が
+        存在しなくなったので、残しておくと**永遠に false を返す死んだ比較**になる。
+        SaaSカテゴリの入力欄も同時に外した（`ow_companies.saas_category_id` の
+        列と値は残してある。列の COMMENT に行き先を書いた）。
+     ⚠️ 事業領域（ow_business_domains）の入力欄は、事業領域のUIを作る日に併せて作る。 */
   const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
   const [termsChecked, setTermsChecked] = useState(false);
   const [isRecordingAgreement, setIsRecordingAgreement] = useState(false);
@@ -706,73 +692,38 @@ export function CompanyEditClient({
                 <FormInput id="ce-tagline" value={form.tagline} onChange={(v) => update("tagline", v)} placeholder="例: MA領域でシリーズCのスタートアップ" />
                 <FormHint>企業詳細ページのミッション直下に表示される短いサブテキストです。SEOの meta description にも使用されます。</FormHint>
               </FormGroup>
-              {/* 業種 2段階セレクト */}
-              {industries.length > 0 ? (
-                <>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 0 }}>
-                    <FormGroup>
-                      <FormLabel required htmlFor="ce-industry-parent">業種（大分類）</FormLabel>
-                      <select
-                        id="ce-industry-parent"
-                        value={selectedParentId}
-                        onChange={(e) => {
-                          const pid = e.target.value;
-                          const children = industries.filter((i) => i.parent_id === pid);
-                          // 大分類変更時: 子がなければ大分類IDを直接セット、あれば空にリセット
-                          update("industryId", children.length === 0 ? pid : "");
-                          update("saasCategoryId", "");
-                        }}
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
-                      >
-                        <option value="">選択してください</option>
-                        {parentIndustries.map((i) => (
-                          <option key={i.id} value={i.id}>{i.name}</option>
-                        ))}
-                      </select>
-                    </FormGroup>
-                    <FormGroup>
-                      <FormLabel htmlFor="ce-industry-child">業種（中分類）</FormLabel>
-                      <select
-                        id="ce-industry-child"
-                        value={childIndustries.length > 0 ? form.industryId : ""}
-                        onChange={(e) => {
-                          update("industryId", e.target.value);
-                          update("saasCategoryId", "");
-                        }}
-                        disabled={childIndustries.length === 0}
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: childIndustries.length === 0 ? "var(--bg-tint)" : "#fff", color: childIndustries.length === 0 ? "var(--ink-mute)" : "inherit" }}
-                      >
-                        <option value="">選択してください</option>
-                        {childIndustries.map((i) => (
-                          <option key={i.id} value={i.id}>{i.name}</option>
-                        ))}
-                      </select>
-                    </FormGroup>
-                  </div>
-                  {showSaasCategory && (
-                    <FormGroup>
-                      <FormLabel htmlFor="ce-saas-category" optional>SaaSカテゴリ</FormLabel>
-                      <select
-                        id="ce-saas-category"
-                        value={form.saasCategoryId}
-                        onChange={(e) => update("saasCategoryId", e.target.value)}
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
-                      >
-                        <option value="">選択してください（任意）</option>
-                        {saasCategories.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <FormHint>SaaS企業のみ。HR Tech / CRM / AI・データ など、プロダクトのカテゴリを選択してください。</FormHint>
-                    </FormGroup>
-                  )}
-                </>
-              ) : (
-                <FormGroup>
-                  <FormLabel required htmlFor="ce-industry">業種</FormLabel>
-                  <FormSelect id="ce-industry" value={form.industry} onChange={(v) => update("industry", v)} options={INDUSTRY_OPTIONS} />
-                </FormGroup>
-              )}
+              {/* 業種（単一選択）
+                  ⚠️ 2026-08-25 に**2段階セレクトをやめて1段にした**。業種マスタを
+                     フラット20件に作り直したので `parent_id` を持つ行が1件も無く、
+                     「業種（中分類）」は**常に空で常に disabled** の死んだ入力欄になっていた。
+                     階層を戻すまで2段に戻さないこと。
+                  ⚠️ ここにあった「SaaSカテゴリ」欄も同時に外した（判定に使っていた
+                     slug `it-saas` がマスタから消えたため）。`saas_category_id` の
+                     列と値は残してある。事業領域の入力欄は別途作る。
+                  ⚠️ **`update("saasCategoryId", "")` を書き戻さないこと。** 業種を
+                     変えるたびに `saas_category_id` を空にしていたので、そのままだと
+                     65社ぶんの値が「業種を選び直しただけ」で消える。
+                  ⚠️ ここにあった `industries.length === 0` のときの代替入力欄
+                     （`industry`(text) を書く FormSelect）も外した。**別の列に書く
+                     二重の保存経路**になっており、実際には一度も描画されていなかった。 */}
+              <FormGroup>
+                <FormLabel required htmlFor="ce-industry">業種</FormLabel>
+                {industries.length > 0 ? (
+                  <select
+                    id="ce-industry"
+                    value={form.industryId}
+                    onChange={(e) => update("industryId", e.target.value)}
+                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
+                  >
+                    <option value="">選択してください</option>
+                    {industries.map((i) => (
+                      <option key={i.id} value={i.id}>{i.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <FormHint>業種の一覧を取得できませんでした。時間をおいて再読み込みしてください。</FormHint>
+                )}
+              </FormGroup>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
                   <FormLabel htmlFor="ce-phase">事業ステージ</FormLabel>
