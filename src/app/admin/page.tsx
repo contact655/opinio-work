@@ -9,6 +9,8 @@ async function getStats() {
   const [
     users, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
+    /* ⚠️ 順番は下の Promise.all と1対1。ずれても型が同じなのでエラーにならない */
+    selfListed,
     onboardingCompleted, profileFilled, appliedOrMet,
   ] = await Promise.all([
     supabase.from("ow_users").select("id", { count: "exact", head: true }),
@@ -22,6 +24,12 @@ async function getStats() {
     //    招待の作成時に is_active を立てるのをやめ、承諾時に立てるようにしたため。
     //    「招待した人数」ではなく「実際に使える担当者の数」を出したいので、これが正。
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
+    /* ★自己申告で掲載されている人（2026-08-24）。
+          ⚠️ **要対応タスクには入れない。** 掲載されていること自体は正常で、
+             タスク扱いにすると0にならないバッジが常時出る。
+             ここは「いま何人が自己申告で載っているか」の**状態**として出す。 */
+    admin.from("ow_company_members").select("id", { count: "exact", head: true })
+      .eq("created_via", "self").eq("is_public", true),
     // オンボーディングファネル
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
     // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
@@ -88,6 +96,7 @@ async function getStats() {
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: 0,
     bizAdminsCount: bizAdmins.count ?? 0,
+    selfListedCount: selfListed.count ?? 0,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
@@ -504,6 +513,42 @@ export default async function AdminDashboard() {
                 </div>
               </Link>
             )}
+
+            {/* ★自己申告で掲載中の人（2026-08-24）。
+                   ⚠️ **タスクではなく状態**として出す。青系にして、上の琥珀色の
+                      「要対応」と見た目で区別する。`totalPending` にも足さない。
+                   ⚠️ 事前の承認を廃止したので、なりすましは**後から見つけて外す**しかない。
+                      通知が届く企業は79社中7社しかなく、残りは企業側が気づけない。
+                      **ここが運営にとって唯一の入口**なので、0件でも導線を残す。 */}
+            <Link href="/admin/ambassador-requests" style={{ textDecoration: "none" }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 14px", borderRadius: 10,
+                background: "#EFF6FF", border: "1px solid #BFDBFE",
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: "#DBEAFE", color: "#1D4ED8",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#1E3A8A", margin: 0, marginBottom: 2 }}>
+                    自己申告で掲載中 {stats.selfListedCount}名
+                  </p>
+                  <p style={{ fontSize: 11, color: "#1D4ED8", margin: 0 }}>
+                    在籍確認はしていません。定期的に目を通してください
+                  </p>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </div>
+            </Link>
 
             {totalPending === 0 && (
               <div style={{

@@ -53,7 +53,9 @@ const NAV_GROUPS = [
     items: [
       { label: "応募管理",            href: "/admin/applications",     icon: <Inbox         size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
-      { label: "面談対応者の申請",    href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
+      /* ⚠️ 2026-08-24 に「申請」から改名した。会社の事前承認を廃止したので、
+            申請という状態はもう無い（この画面は掲載中の人の監視一覧）。 */
+      { label: "自己申告で掲載中",    href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
