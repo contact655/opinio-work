@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Briefcase } from "lucide-react";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
-import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
+import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink, PlusIcon } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
-import { rankLabel } from "@/lib/constants/careerOptions";
+import { rankLabel, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
+import { buildOverlapMap } from "@/lib/profile/parallel";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
 function shortCompanyName(name: string): string {
@@ -164,15 +164,15 @@ export interface MergedTimelineProps {
    *
    * ⚠️ **渡さなければ DOM は1バイトも変わらない。** `/u/[id]` は渡さない。
    * ⚠️ 2-5 では**学歴の行にだけ**出している。職歴は `career` /
-   *    `career-group` / `career-same-company` の**3経路**があり、
-   *    1つ忘れると「並行職のときだけ鉛筆が出ない」形になる。**2-6 でまとめて足す。**
+   *    `career-same-company` の**2経路**がある（`career-group` は 2026-08-26 に廃止）。
    */
   educationActions?: RowActions;
   /**
    * ★職歴の行ごとの編集アフォーダンス。`/mypage` だけが渡す（2026-08-16 / 2-6）。
    *
-   * ⚠️ **職歴の行は3経路ある**（`career` / `career-group` / `career-same-company`）。
-   *    1つ忘れると「並行職のときだけ鉛筆が出ない」形になる。**3つとも足すこと。**
+   * ⚠️ **職歴の行は2経路ある**（`career` / `career-same-company`）。
+   *    1つ忘れると片方の行にだけ操作が出ない形になる。**2つとも足すこと。**
+   *    （`career-group` は 2026-08-26 に廃止。3経路だった頃の記述を戻さないこと）
    * ⚠️ **企業グループの見出しには鉛筆を置かない。** グループは id を持たない。
    *    置けるのは「この会社に役割を追加」（`onAddRole`）だけで、これは
    *    グループ内のどれか1件の id を渡して呼ぶ。
@@ -203,17 +203,22 @@ export interface MergedTimelineProps {
 
 /** buildTimeline が返す中間型（並行グループ化前） */
 type TimelineEntry =
-  | { kind: "career";    data: CareerEntry;    isParallel: boolean }
+  | { kind: "career";    data: CareerEntry }
   | { kind: "education"; data: EducationEntry };
 
 /**
  * レンダリング用エントリ型。
- * groupParallelEntries() が TimelineEntry[] から変換して生成する。
- * 同一開始月の並行職歴 2件以上は "career-group" にバンドルされる。
+ *
+ * ⚠️ **`career-group`（同一開始月の並行職を1枚にまとめる箱）は廃止した**
+ *    （2026-08-26 / フェーズ2-2）。理由は3つ。
+ *    ① 見出しに出していた期間は**2社の期間の和集合**で、誰の在籍期間でもなかった
+ *       （相川さんは「2016年4月 – 現在 · 10年5ヶ月」と出ていたが、そういう在籍は存在しない）
+ *    ② 箱の中の経歴の開始年が**年マーカーから消えていた**
+ *    ③ 判定が「開始月が同じか」だけで、**期間の重なりを見ていなかった**
+ *    並行は箱ではなく**言葉で示す**（`lib/profile/parallel.ts`）。**箱に戻さないこと。**
  */
 type RenderEntry =
-  | { kind: "career";              data: CareerEntry;    isParallel: boolean }
-  | { kind: "career-group";        items: CareerEntry[] }
+  | { kind: "career";              data: CareerEntry }
   | { kind: "career-same-company"; items: CareerEntry[]; companyKey: string }
   | { kind: "education";           data: EducationEntry };
 
@@ -299,34 +304,34 @@ function buildPositionLines(c: CareerEntry): { heading: string; sub: string[] } 
   return { heading, sub };
 }
 
-/** 同一開始月の職歴 ID を収集して Set で返す */
-function buildParallelMap(careers: CareerEntry[]): Set<string> {
-  const byMonth = new Map<string, string[]>();
-  for (const c of careers) {
-    const month = c.started_at.slice(0, 7); // "YYYY-MM"
-    if (!byMonth.has(month)) byMonth.set(month, []);
-    byMonth.get(month)!.push(c.id);
-  }
-  const parallelIds = new Set<string>();
-  Array.from(byMonth.values()).forEach((ids) => {
-    if (ids.length > 1) ids.forEach((id: string) => parallelIds.add(id));
-  });
-  return parallelIds;
-}
-
 /**
  * 職歴・学歴をマージしてソート済み配列を返す。
- * 順序: is_current DESC → start_date DESC → career first（同一日時）
+ * 順序: **start_date DESC → career first（同一日）→ id**
+ *
+ * ── ★`is_current` を並び順から外した（2026-08-26 / フェーズ2-1）──────────────
+ * それまでの第1キーは `is_current DESC` で、**現職を必ず先頭に寄せていた。**
+ * その結果、年表が時系列にならない:
+ *   相川さんは「2016年開始の現職2件」が「2019年開始の退職済み1件」より**上**に来て、
+ *   年マーカーが上から **2016 → 2019** と**古い順に**並んでいた。
+ * 年表として読めることを優先し、**開始日だけで並べる。**
+ *
+ * ⚠️ 「在籍中」バッジは今までどおり出す。**現職であることはバッジで示し、位置では示さない。**
+ *
+ * ── ★最後のキーに `id` を足した（同上）────────────────────────────────────
+ * ⚠️ **同着があると表示順が実行ごとに入れ替わる。** `/u/[id]` の SELECT にも
+ *    最終キーが無く（`is_current` → `started_at` のみ）、同じ日に始まった2件の
+ *    並びは PostgreSQL 側で不定。**実際に before/after の HTML で
+ *    フィクスチャ I社 と G社 の位置が入れ替わっていた。**
+ *    `is_current` を外すと同着はさらに増えるので、ここで必ず決着させる。
+ * ⚠️ `id` は uuid なので順序に意味は無い。**意味ではなく「毎回同じ」ことが目的。**
  */
 function buildTimeline(
   careers: CareerEntry[],
   educations: EducationEntry[],
-  parallelIds: Set<string>
 ): TimelineEntry[] {
   const careerEntries: TimelineEntry[] = careers.map((c) => ({
     kind: "career",
     data: c,
-    isParallel: parallelIds.has(c.id),
   }));
 
   const educationEntries: TimelineEntry[] = educations.map((e) => ({
@@ -336,76 +341,25 @@ function buildTimeline(
 
   const combined = [...careerEntries, ...educationEntries];
 
+  const startOf = (e: TimelineEntry) =>
+    e.kind === "career" ? e.data.started_at : e.data.enrolled_at;
+  const idOf = (e: TimelineEntry) => e.data.id;
+
   combined.sort((a, b) => {
-    const aIsCurrent =
-      a.kind === "career" ? (a.data.is_current ? 1 : 0) :
-      a.kind === "education" ? (a.data.is_current ? 1 : 0) : 0;
-    const bIsCurrent =
-      b.kind === "career" ? (b.data.is_current ? 1 : 0) :
-      b.kind === "education" ? (b.data.is_current ? 1 : 0) : 0;
-
-    // is_current DESC
-    if (bIsCurrent !== aIsCurrent) return bIsCurrent - aIsCurrent;
-
     // start_date DESC
-    const aKey =
-      a.kind === "career" ? a.data.started_at :
-      a.kind === "education" ? a.data.enrolled_at : "";
-    const bKey =
-      b.kind === "career" ? b.data.started_at :
-      b.kind === "education" ? b.data.enrolled_at : "";
+    const aKey = startOf(a);
+    const bKey = startOf(b);
     if (bKey !== aKey) return bKey.localeCompare(aKey);
 
     // career before education tiebreak
     const kindOrder = (e: TimelineEntry) => (e.kind === "career" ? 0 : 1);
-    return kindOrder(a) - kindOrder(b);
+    if (kindOrder(a) !== kindOrder(b)) return kindOrder(a) - kindOrder(b);
+
+    // ★最後は id。同着でも毎回同じ順になるようにする（意味は無い）
+    return idOf(a).localeCompare(idOf(b));
   });
 
   return combined;
-}
-
-/**
- * TimelineEntry[] を走査し、連続する isParallel=true かつ同一開始月の
- * career エントリを "career-group" にまとめた RenderEntry[] を返す。
- *
- * - 2件以上が連続する場合のみグループ化（1件のみの isParallel はフォールバックで career のまま）
- * - グループ化はソート後の配列をそのまま走査するため、ソート順を変えない
- */
-function groupParallelEntries(entries: TimelineEntry[]): RenderEntry[] {
-  const result: RenderEntry[] = [];
-  let i = 0;
-  while (i < entries.length) {
-    const entry = entries[i];
-    if (entry.kind === "career" && entry.isParallel) {
-      const month = entry.data.started_at.slice(0, 7);
-      const group: CareerEntry[] = [entry.data];
-      let j = i + 1;
-      while (j < entries.length) {
-        const next = entries[j];
-        if (
-          next.kind === "career" &&
-          next.isParallel &&
-          next.data.started_at.slice(0, 7) === month
-        ) {
-          group.push(next.data);
-          j++;
-        } else {
-          break;
-        }
-      }
-      if (group.length >= 2) {
-        result.push({ kind: "career-group", items: group });
-      } else {
-        // isParallel=true だが連続仲間なし（防衛的フォールバック）→ 通常カード
-        result.push(entry);
-      }
-      i = j;
-    } else {
-      result.push(entry as RenderEntry);
-      i++;
-    }
-  }
-  return result;
 }
 
 /**
@@ -429,8 +383,7 @@ function getCompanyKey(c: CareerEntry): string {
  * "career-same-company" バリアントにまとめた RenderEntry[] を返す。
  *
  * 設計:
- * - 入力は groupParallelEntries の出力（並行グループ化済み）
- * - "career-group" バリアント（並行職）はそのまま通過（同社グループ化の対象外）
+ * - 入力は buildTimeline の出力（時系列に並んだ配列）
  * - 単独 "career" エントリのうち、ソート順で連続する同社のものをグループ化
  * - 2件以上が連続する場合のみ "career-same-company" に集約、1件のみは "career" のまま
  * - 出戻りパターン（連続しない同社）は自然に別グループになる（意図通り）
@@ -443,7 +396,7 @@ function groupSameCompanyEntries(entries: RenderEntry[]): RenderEntry[] {
   while (i < entries.length) {
     const entry = entries[i];
 
-    // career-group / education は対象外、そのまま通過
+    // education は対象外、そのまま通過
     if (entry.kind !== "career") {
       result.push(entry);
       i++;
@@ -491,13 +444,13 @@ export function limitCareersForDisplay(
   limit: number,
 ): { careers: CareerEntry[]; hiddenUnits: number } {
   const units = groupSameCompanyEntries(
-    groupParallelEntries(buildTimeline(careers, [], buildParallelMap(careers))),
+    buildTimeline(careers, []),
   );
   if (units.length <= limit) return { careers, hiddenUnits: 0 };
   const ids = new Set<string>();
   for (const u of units.slice(0, limit)) {
     if (u.kind === "career") ids.add(u.data.id);
-    else if (u.kind === "career-group" || u.kind === "career-same-company") {
+    else if (u.kind === "career-same-company") {
       for (const item of u.items) ids.add(item.id);
     }
   }
@@ -555,26 +508,254 @@ function EnrolledBadge() {
   );
 }
 
-function ParallelBadge() {
+/* ── ★雇用形態（2026-08-26 / フェーズ1-2）────────────────────────────────────
+      **職歴の3経路が別々に描いていたのを、この1組にまとめた。**
+
+      それまでの状態:
+        career              … 淡いグレーのピル
+        career-group        … `· 業務委託` の素テキスト（★この経路はフェーズ2-2で廃止）
+        career-same-company … `· 正社員` の素テキスト（しかも**グループ代表を1つ**）
+      同じ値が経路によって3通りに見えていた。**ここ以外に描かないこと。**
+      （いま残っているのは `career` と `career-same-company` の2経路）
+
+   ⚠️ **色は「種類が読める」ための色分けであって、良し悪しの序列ではない。**
+      正社員が上位で業務委託が下位、という意味を持たせない。
+   ⚠️ 語彙は `careerOptions.ts` の `EMPLOYMENT_TYPES`（6値）と DB の
+      `ow_experiences_employment_type_check` に揃えてある。**値を足すときは3つとも直す。**
+      ここに無い値が来ても落とさず、灰色で**値そのものを出す**（握りつぶさない）。
+   ⚠️ 緑（在籍中）と橙（旧・並行バッジ）を避けた色にしてある。 */
+const EMPLOYMENT_COLORS: Record<string, { fg: string; bg: string; border: string }> = {
+  "正社員":             { fg: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
+  "契約社員":           { fg: "#0F766E", bg: "#F0FDFA", border: "#99F6E4" },
+  "派遣社員":           { fg: "#6D28D9", bg: "#F5F3FF", border: "#DDD6FE" },
+  "業務委託":           { fg: "#BE123C", bg: "#FFF1F2", border: "#FECDD3" },
+  "アルバイト・パート": { fg: "#C2410C", bg: "#FFF7ED", border: "#FED7AA" },
+  "その他":             { fg: "#475569", bg: "#F1F5F9", border: "#E2E8F0" },
+};
+const EMPLOYMENT_FALLBACK = { fg: "#475569", bg: "#F1F5F9", border: "#E2E8F0" };
+
+function EmploymentBadge({ value }: { value: string }) {
+  const c = EMPLOYMENT_COLORS[value] ?? EMPLOYMENT_FALLBACK;
   return (
     <span
       style={{
         display: "inline-block",
         fontSize: 12,
         fontWeight: 700,
-        letterSpacing: "0.04em",
-        color: "var(--warm)",
-        background: "var(--warm-soft)",
-        border: "1px solid #fde68a",
+        letterSpacing: "0.02em",
+        color: c.fg,
+        background: c.bg,
+        border: `1px solid ${c.border}`,
         borderRadius: 4,
         padding: "1px 6px",
-        verticalAlign: "middle",
-        marginLeft: 6,
         lineHeight: 1.6,
+        whiteSpace: "nowrap",
+        verticalAlign: "middle",
       }}
     >
-      並行
+      {value}
     </span>
+  );
+}
+
+/**
+ * モーダルが開いたあと、雇用形態の項目まで送る。
+ *
+ * ⚠️ **開くだけでは足りない。** モーダルは会社名から順に上から表示されるので、
+ *    開いた直後の雇用形態は**画面に出ない**（1300×900 のスクリーンショットで確認）。
+ *    「押したのに何も起きていない」ように見える。
+ *
+ * ⚠️ **1回呼ぶだけでは届かない。** モーダルは
+ *    ① React の状態で後から描かれ、② 開くあいだレイアウトが動く。
+ *    要素を見つけた最初の1回で `scrollIntoView` しても**そのあと動いて画面外へ戻る**
+ *    （実測: 1回だけの版では雇用形態が一度も画面に出なかった）。
+ *
+ * ⚠️ **`requestAnimationFrame` を使わない。** 前面にないタブでは発火せず、
+ *    **一度も動かない**（実測で 90 フレーム分ゼロ回）。`setTimeout` にする。
+ *
+ * ── ★止まり方（4つ。どれか1つで必ず終わる）────────────────────────────────
+ *   ① 落ち着いて画面に入った  … 位置が2回続けて同じ、かつビューポート内
+ *   ② **利用者が自分で動かした** … wheel / touchmove / キー操作を拾ったら即やめる
+ *   ③ **モーダルが閉じた**      … 一度見つけた要素が消えたらやめる
+ *   ④ 時間切れ                  … **経過時間で 1.5秒**（回数で切らない）
+ *
+ * ⚠️ **②と③が無いと実害が出る。** ②が無いと、押した直後の約1.5秒は
+ *    利用者がスクロールするたびに引き戻す（位置が動く＝まだ落ち着いていない、と読むため）。
+ *    ③が無いと、閉じたあとも1.5秒ぶん空回りする。
+ *
+ * ⚠️ **④は回数ではなく経過時間で切る。** 前面にないタブでは `setTimeout` が
+ *    **1秒に間引かれる**ので、「25回 × 60ms」のつもりが**25秒**回り続ける
+ *    （.claude/rules/ui-debugging.md ⑪）。
+ *
+ * ⚠️ 見つからなくても何もしない。モーダル自体は開いているので、黙って諦めてよい。
+ */
+function scrollToEmploymentField() {
+  const deadline = Date.now() + 1500;
+  let lastTop: number | null = null;
+  let seen = false;
+  let cancelled = false;
+
+  const events = ["wheel", "touchmove", "keydown"] as const;
+  const stopListening = () => {
+    for (const e of events) window.removeEventListener(e, cancel);
+  };
+  /* ★利用者が自分で動かしたら、こちらは手を引く。`passive` で邪魔しない */
+  function cancel() {
+    cancelled = true;
+    stopListening();
+  }
+  for (const e of events) window.addEventListener(e, cancel, { passive: true });
+
+  const tick = () => {
+    if (cancelled) return;
+    const el = document.getElementById(EMPLOYMENT_TYPE_FIELD_ID) as HTMLSelectElement | null;
+    if (el) {
+      if (!seen) {
+        seen = true;
+        el.focus({ preventScroll: true });
+      }
+      const r = el.getBoundingClientRect();
+      const settled = lastTop !== null && Math.abs(r.top - lastTop) < 1;
+      const visible = r.top >= 0 && r.bottom <= window.innerHeight;
+      if (settled && visible) return stopListening();   // ①
+      el.scrollIntoView({ block: "center" });
+      lastTop = el.getBoundingClientRect().top;
+    } else if (seen) {
+      return stopListening();                           // ③ 閉じた
+    }
+    if (Date.now() < deadline) setTimeout(tick, 60);    // ④
+    else stopListening();
+  };
+  setTimeout(tick, 0);
+}
+
+/**
+ * 未設定のときの「＋ 雇用形態を追加」。
+ *
+ * ⚠️ **本人にしか出さない。** 判定は `careerActions.onEditRow` の有無。
+ *    「本人が見ているか」ではなく「**その画面が編集モーダルを持っているか**」で決める。
+ *    本人が自分の `/u/[id]` を見たときは編集できないので、出してはいけない。
+ *    渡されなければ `null` を返す＝**他人の DOM は1バイトも変わらない。**
+ *
+ * ⚠️ 押すと `onEditRow` が開くのは**その経歴の編集モーダル**。行の鉛筆と同じ入口で、
+ *    雇用形態のセレクトはそのモーダルの中にある。専用の口を作らない。
+ *
+ * ⚠️ 当たり判定は `.tap-min-h`（767px 以下で 44px）。**枠線は内側の span が持つ**ので、
+ *    高さを足しても点線の箱が 44px に膨らまない。
+ */
+function EmploymentAddCta({
+  careerId,
+  label,
+  onEdit,
+}: {
+  careerId: string;
+  label: string;
+  onEdit: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="tap-min-h"
+      onClick={() => {
+        onEdit(careerId);
+        scrollToEmploymentField();
+      }}
+      aria-label={`${label} の雇用形態を追加`}
+      title="雇用形態を追加"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        background: "none",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+        fontFamily: "inherit",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          fontSize: 12,
+          fontWeight: 600,
+          color: "var(--ink-mute)",
+          border: "1px dashed var(--line)",
+          borderRadius: 4,
+          padding: "1px 6px",
+          lineHeight: 1.6,
+          whiteSpace: "nowrap",
+        }}
+      >
+        <PlusIcon />
+        雇用形態を追加
+      </span>
+    </button>
+  );
+}
+
+/**
+ * ★雇用形態の枠。**すべての経路がこれを呼ぶ。**
+ *
+ *   値がある   → バッジ
+ *   値が無い   → 本人にだけ「＋ 雇用形態を追加」／他人には **null**
+ *
+ * （CLAUDE.md「値が無いことを、ある値に置き換えない」。既定値を出さない）
+ */
+function EmploymentSlot({
+  data,
+  actions,
+  marginLeft,
+}: {
+  data: CareerEntry;
+  actions?: CareerActions;
+  /** 見出しの語に続けて置くときの左余白。★余白の span も「出すとき」しか作らない */
+  marginLeft?: number;
+}) {
+  const inner = data.employment_type ? (
+    <EmploymentBadge value={data.employment_type} />
+  ) : actions?.onEditRow ? (
+    <EmploymentAddCta careerId={data.id} label={data.company_name} onEdit={actions.onEditRow} />
+  ) : null;
+
+  /* ⚠️ **null のときはラッパーごと返さない。** 余白用の `<span>` だけ残すと、
+        値が無い他人の `/u/[id]` に**空の span が増える**（実際に一度そうなった）。
+        「渡さなければ DOM は1バイトも変わらない」を保つのはここ。 */
+  if (!inner) return null;
+  if (!marginLeft) return inner;
+  return <span style={{ marginLeft, verticalAlign: "middle" }}>{inner}</span>;
+}
+
+/**
+ * ★並行在籍を**言葉で**示す1行（2026-08-26 / フェーズ2-2）。
+ *
+ * 期間の**下**に置く。縦線は常に1本のままで、線の本数で並行を表さない
+ * （重なりは鎖状につながるので線では描けない）。
+ *
+ *   相手が1社   → 「セールスフォース・ジャパンと並行」
+ *   2社以上     → 「他2社と並行」
+ *
+ * ⚠️ **n は会社の数**であって職歴の件数ではない（`buildOverlapMap` が会社で束ねている）。
+ * ⚠️ 渡されなければ何も描かない。**重なりが無い人の DOM は変わらない。**
+ */
+function ParallelNote({ companies }: { companies: string[] | undefined }) {
+  if (!companies || companies.length === 0) return null;
+  const label =
+    companies.length === 1
+      ? `${shortCompanyName(companies[0])}と並行`
+      : `他${companies.length}社と並行`;
+  return (
+    <div
+      style={{
+        fontSize: 12,
+        fontWeight: 600,
+        color: "var(--warm)",
+        lineHeight: 1.4,
+        marginTop: 2,
+      }}
+    >
+      {label}
+    </div>
   );
 }
 
@@ -588,8 +769,6 @@ function ParallelBadge() {
  *   2. logo_url なし かつ logo_letter + logo_gradient あり → LetterCircle
  *   3. どちらもなし → Briefcase アイコン（段階6-3-2 と同一）
  *
- * 並行勤務グループ（A-2）のアイコン列は `isCurrent` ベースで色を決め、
- * ロゴは各 ParallelCareerCard 内の小ロゴで表示する（H-iii 方針）。
  */
 function CompanyLogoIcon({
   isCurrent,
@@ -680,43 +859,19 @@ function CompanyLogoIcon({
     </div>
   );
 }
-
-/** 並行勤務グループのアイコン列用（H-iii: グループ全体を is_current で色分け、ロゴはカード内）*/
-function CareerIcon({ isCurrent }: { isCurrent: boolean }) {
-  return (
-    <div
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: 11,
-        background: isCurrent ? "var(--royal)" : "var(--ink-mute)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        margin: "0 auto",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
-      <Briefcase size={20} color="#fff" strokeWidth={2} />
-    </div>
-  );
-}
-
 // EducationIcon は段階6-6 Phase 4 で SchoolLogoImg に完全置換（判断点 #9 案 a）
 
 // ─── Year marker helpers ──────────────────────────────────────────────────────
 
 function getEntryStartYear(entry: RenderEntry): number | null {
   if (entry.kind === "career") return parseInt(entry.data.started_at.slice(0, 4), 10);
-  if (entry.kind === "career-group") return parseInt(entry.items[0].started_at.slice(0, 4), 10);
+  /* ★同社グループは **items[0]（＝一番上に描かれる役割）** の年を返す（2026-08-26 / フェーズ2-3）。
+        マーカーの規則は「**そのすぐ下に来るものの開始年**」。ここだけ最古を返していたため、
+        大塚さんは「2012」のマーカーの真下に「2020年7月 –」から始まるカードが来ていた。
+     ⚠️ `Math.min` に戻さないこと。グループの内側の年は
+        `InnerYearLabel`（役割リストの中）が出す。 */
   if (entry.kind === "career-same-company") {
-    const earliest = entry.items.reduce(
-      (e, c) => (c.started_at < e ? c.started_at : e),
-      entry.items[0].started_at
-    );
-    return parseInt(earliest.slice(0, 4), 10);
+    return parseInt(entry.items[0].started_at.slice(0, 4), 10);
   }
   if (entry.kind === "education") return parseInt(entry.data.enrolled_at.slice(0, 4), 10);
   return null;
@@ -782,6 +937,42 @@ function YearSeparator({ year, age }: { year: number; age: number | null }) {
   );
 }
 
+/**
+ * ★同社グループの**内側**に出す年ラベル（2026-08-26 / フェーズ2-3）。
+ *
+ * グループは1つの箱なので、外側のマーカーは**1年しか出せない**。
+ * それだけだと、同じ会社で年をまたいで役割が変わった人の年が年表から消える
+ * （大塚さんの海光電業は 2020 / 2018 / 2012 のうち **2012 しか出ていなかった**）。
+ *
+ * ⚠️ **外側（`YearSeparator`）より重さを下げる。** 同じ強さだと年表が二重に見える。
+ *    外側 = 80px 列の枠付きチップ（700）／内側 = 枠なし・小さめ・淡い色。
+ * ⚠️ **年齢も併記する**（外側と同じ「2012 23歳」の形）。年だけだと外側と語彙が割れる。
+ * ⚠️ **タップ対象ではない。** 44px の対象外（押せるものを足さない）。
+ */
+function InnerYearLabel({ year, age }: { year: number; age: number | null }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 6,
+        fontFamily: "Inter, sans-serif",
+        fontSize: 11,
+        fontWeight: 700,
+        color: "var(--ink-mute)",
+        letterSpacing: "0.04em",
+        lineHeight: 1.5,
+        /* ⚠️ 375px でも折り返さない。年＋年齢で最大でも10文字程度 */
+        whiteSpace: "nowrap",
+      }}
+    >
+      <span>{year}</span>
+      {age !== null && <span style={{ fontWeight: 600 }}>{age}歳</span>}
+    </div>
+  );
+}
+
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
 function DescriptionGate() {
@@ -823,12 +1014,16 @@ function DescriptionGate() {
 
 function CareerContent({
   data,
-  isParallel,
+  parallelWith,
   isAuthenticated = true,
+  actions,
 }: {
   data: CareerEntry;
-  isParallel: boolean;
+  /** 1ヶ月以上重なっている他社の名前。無ければ何も描かない */
+  parallelWith?: string[];
   isAuthenticated?: boolean;
+  /** ★雇用形態が未設定のときの「＋ 雇用形態を追加」に使う。渡さなければ出さない */
+  actions?: CareerActions;
 }) {
   const duration = formatDuration(data.started_at, data.ended_at);
   const startLabel = formatYM(data.started_at);
@@ -864,16 +1059,8 @@ function CareerContent({
             {shortCompanyName(data.company_name)}
           </span>
         )}
-        {data.employment_type && (
-          <span style={{
-            fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
-            background: "var(--line-soft)", borderRadius: 4, padding: "2px 7px",
-          }}>
-            {data.employment_type}
-          </span>
-        )}
+        <EmploymentSlot data={data} actions={actions} />
         {data.is_current && <CurrentBadge />}
-        {isParallel && <ParallelBadge />}
       </div>
 
       {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる */}
@@ -895,6 +1082,8 @@ function CareerContent({
       }}>
         {startLabel} – {endLabel}{duration && ` · ${duration}`}
       </div>
+      {/* ★並行は期間の下に1行。バッジではなく言葉で示す（フェーズ2-2） */}
+      <ParallelNote companies={parallelWith} />
 
       {/* 業務内容
           ⚠️ **固定の maxWidth を戻さないこと（2026-08-15 に 560px を撤去）。**
@@ -977,132 +1166,6 @@ function EducationContent({ data }: { data: EducationEntry }) {
  * CareerContent と同内容だが、padding 規則と border-left は CSS クラスで制御する。
  * H-iii: グループアイコン列はそのまま維持し、各カードの会社名左に 24px 小ロゴを表示する。
  */
-function ParallelCareerCard({ data, isAuthenticated = true, actions }: { data: CareerEntry; isAuthenticated?: boolean; actions?: CareerActions }) {
-  const duration = formatDuration(data.started_at, data.ended_at);
-
-  // 小ロゴ 24px（H-iii 方針: 各カード固有の企業アイコン）
-  const SmallLogo = () => {
-    // 非公開企業 → 小さなロックアイコン（"非" 文字を抑制）
-    const isAnonEntry = data.company_name === "非公開企業" || data.company_name === "非公開" || data.company_name === "不明な企業";
-    if (isAnonEntry) {
-      return (
-        <div style={{
-          width: 24, height: 24, borderRadius: 5, flexShrink: 0,
-          background: "linear-gradient(135deg, #64748B, #94A3B8)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.5" strokeLinecap="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-        </div>
-      );
-    }
-    if (data.logo_url) {
-      return (
-        <CompanyLogoImg
-          logoUrl={data.logo_url}
-          logoLetter={data.logo_letter ?? null}
-          logoGradient={data.logo_gradient ?? null}
-          size={24}
-        />
-      );
-    }
-    if (data.logo_letter && data.logo_gradient) {
-      return (
-        <LetterCircle
-          letter={data.logo_letter}
-          gradient={data.logo_gradient}
-          size={24}
-        />
-      );
-    }
-    return null; // フォールバックなし = 小ロゴ非表示
-  };
-
-  const startLabel = formatYM(data.started_at);
-  const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
-
-  return (
-    <div
-      className="d2-parallel-card"
-      style={{ flex: 1, padding: "12px 14px 16px", minWidth: 0, position: "relative" }}
-    >
-      {/* ⚠️ 3経路のうちの2つ目。渡されなければ描かない＝他人の DOM は不変。
-             ⚠️ 会社名の行に混ぜると「在籍中」バッジが折り返して1行下がる。右上に浮かせる。 */}
-      {actions && (
-        <div style={{ position: "absolute", top: 8, right: 8 }}>
-          <RowActionButtons id={data.id} label={data.company_name} actions={actions} />
-        </div>
-      )}
-      {/* Company 名行: 小ロゴ + 会社名 + 雇用形態 + badges */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap", paddingRight: actions ? 56 : 0 }}>
-        <SmallLogo />
-        {data.company_id ? (
-          <Link
-            href={`/companies/${data.company_id}`}
-            className="company-name-link"
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111",
-              textDecoration: "none",
-            }}
-          >
-            {shortCompanyName(data.company_name)}
-          </Link>
-        ) : (
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111",
-            }}
-          >
-            {shortCompanyName(data.company_name)}
-          </span>
-        )}
-        {data.employment_type && (
-          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink-soft)" }}>
-            · {data.employment_type}
-          </span>
-        )}
-        {data.is_current && <CurrentBadge />}
-      </div>
-
-      {/* 役職名 */}
-      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2, lineHeight: 1.4 }}>
-        {data.role_title || data.role_label}
-      </div>
-      {/* 部門 / 職種サブ */}
-      {(data.role_parent_name || (data.role_title && data.role_label !== data.role_title)) && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 3 }}>
-          {[data.role_parent_name, data.role_title ? data.role_label : null].filter(Boolean).join(" · ")}
-        </div>
-      )}
-
-      {/* 期間 */}
-      <div style={{
-        fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
-        color: "var(--ink-mute)", marginBottom: data.description ? 8 : 0, lineHeight: 1.4,
-      }}>
-        {startLabel} – {endLabel}{duration && ` · ${duration}`}
-      </div>
-
-      {/* Description */}
-      {data.description && (
-        isAuthenticated ? (
-          <div style={{ maxWidth: 480 }}>
-            <ExpandableDesc text={data.description} />
-          </div>
-        ) : (
-          <DescriptionGate />
-        )
-      )}
-      {actions?.onAddRole && <AddRoleLink careerId={data.id} onAddRole={actions.onAddRole} />}
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MergedTimeline({
@@ -1115,9 +1178,11 @@ export default function MergedTimeline({
   collapseAfter,
   birthDate,
 }: MergedTimelineProps) {
-  const parallelIds = buildParallelMap(careers);
-  const entries = buildTimeline(careers, educations, parallelIds);
-  const renderEntries = groupSameCompanyEntries(groupParallelEntries(entries));
+  /* ★並行の判定。**箱でまとめず、経歴1件ごとに「重なっている他社」を持つ**
+        （`lib/profile/parallel.ts`）。同じ会社の複数役割どうしは数えない。 */
+  const overlapMap = buildOverlapMap(careers, getCompanyKey);
+  const entries = buildTimeline(careers, educations);
+  const renderEntries = groupSameCompanyEntries(entries);
 
   const [isExpanded, setIsExpanded] = useState(false);
   // education entries are always visible; only career entries count toward the collapse limit
@@ -1186,7 +1251,7 @@ export default function MergedTimeline({
                 {careerActions ? (
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 4, minWidth: 0, flex: 1 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
+                      <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} actions={careerActions} />
                       {careerActions.onAddRole && (
                         <AddRoleLink careerId={c.id} onAddRole={careerActions.onAddRole} />
                       )}
@@ -1195,66 +1260,8 @@ export default function MergedTimeline({
                     <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />
                   </div>
                 ) : (
-                  <CareerContent data={c} isParallel={entry.isParallel} isAuthenticated={isAuthenticated} />
+                  <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} />
                 )}
-              </div>
-            );
-          }
-
-          if (entry.kind === "career-group") {
-            const items = entry.items;
-            const anyIsCurrent = items.some((c) => c.is_current);
-            // グループ共通の開始月（全件同一）
-            const groupStart = items[0].started_at;
-            // グループ終了: any is_current なら null（「現在」）、なければ最遅 ended_at
-            const groupEnd = anyIsCurrent
-              ? null
-              : items.reduce<string | null>((latest, c) => {
-                  if (!c.ended_at) return latest;
-                  return !latest || c.ended_at > latest ? c.ended_at : latest;
-                }, null);
-            const startLabel = formatYM(groupStart);
-            const endLabel = anyIsCurrent ? "現在" : groupEnd ? formatYM(groupEnd) : "";
-            const duration = formatDuration(groupStart, groupEnd);
-
-            return (
-              <div key={`group-${groupStart.slice(0, 7)}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
-                {/* アイコン: グループ内に is_current があれば royal, なければ muted（暫定 A-1 pending） */}
-                <div
-                  className="tl-icon-cell"
-                  style={{
-                    paddingTop: 8,
-                  }}
-                >
-                  <CareerIcon isCurrent={anyIsCurrent} />
-                </div>
-                {/* d-2: bg-tint 背景 + border-left 区切り
-                    並行グループはカード内に 24px の小ロゴを持つので、
-                    tl-inline-logo は足さない（ロゴが2つ出てしまう） */}
-                <div className="tl-content tl-content-edu" style={{ paddingTop: 8, paddingBottom: 28 }}>
-                  {/* グループ期間インライン表示 */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.4 }}>
-                      {startLabel} – {endLabel}{duration && ` · ${duration}`}
-                    </div>
-                    <span style={{
-                      fontSize: 12, fontWeight: 700, color: "#7C3AED",
-                      background: "#EDE9FE", border: "1px solid #C4B5FD",
-                      borderRadius: 4, padding: "1px 6px", lineHeight: 1.6,
-                      letterSpacing: "0.02em",
-                    }}>
-                      複数社在籍
-                    </span>
-                  </div>
-                  <div className="d2-parallel-inner">
-                    {items.map((c) => (
-                      <div key={c.id} style={{ minWidth: 0 }}>
-                        <ParallelCareerCard data={c} isAuthenticated={isAuthenticated} actions={careerActions} />
-                        {renderCareerExtra?.(c.id)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             );
           }
@@ -1274,11 +1281,10 @@ export default function MergedTimeline({
                 }, null);
 
             const duration = formatDuration(earliestStart, latestEnd);
-            /* グループを代表する雇用形態。新しい行を優先し、最初に見つかった非 NULL を採る。
-               ⚠️ 複数種類が混在する場合（正社員→業務委託 等）は代表1つしか出せない。
-                  混在は現時点の実データには無い。出し分けが要るなら子の行に移すこと。 */
-            const groupEmploymentType =
-              items.find((c) => c.employment_type)?.employment_type ?? null;
+            /* ⚠️ **会社の見出しには雇用形態を出さない**（2026-08-26 / フェーズ1-2）。
+                  それまでは「グループ全体から最初の非 NULL を1つ」代表として出しており、
+                  **同じ会社で正社員 → 業務委託 に変わった人が全部『正社員』に見えていた。**
+                  いまは役割ごとの行が自分の値を出す（下の `EmploymentSlot`）。 */
 
             return (
               <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
@@ -1314,16 +1320,6 @@ export default function MergedTimeline({
                         {shortCompanyName(head.company_name)}
                       </span>
                     )}
-                    {/* ⚠️ head（＝先頭の1件）ではなくグループ全体から拾う。
-                           実データでは同じ会社でも古い行にしか employment_type が
-                           入っていないことがあり（例: 大塚さんの海光電業は
-                           現職2件が NULL・最古の1件だけ "正社員"）、
-                           head だけ見ると雇用形態が出ない。 */}
-                    {groupEmploymentType && (
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink-soft)" }}>
-                        · {groupEmploymentType}
-                      </span>
-                    )}
                     {duration && (
                       <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                         {duration}
@@ -1346,8 +1342,23 @@ export default function MergedTimeline({
                       // 表示するポジション名: role_title > role_label の優先順
                       const lines = buildPositionLines(c);
 
+                      /* ★グループの内側の年ラベル（2026-08-26 / フェーズ2-3）。
+                            **年が変わる役割の前だけ**出す。
+                            ⚠️ 先頭（idx 0）は出さない。**外側のマーカーがその年を出している**
+                               （`getEntryStartYear` が items[0] の年を返す）。
+                               ここでも出すと同じ年が2つ並ぶ。 */
+                      const yearOf = (x: CareerEntry) => parseInt(x.started_at.slice(0, 4), 10);
+                      const innerYear =
+                        idx > 0 && yearOf(c) !== yearOf(items[idx - 1]) ? yearOf(c) : null;
+
                       return (
                         <div key={c.id} style={{ position: "relative", paddingBottom: isLast ? 0 : 20 }}>
+                          {innerYear !== null && (
+                            <InnerYearLabel
+                              year={innerYear}
+                              age={birthDate ? calcAgeAtYear(innerYear, birthDate) : null}
+                            />
+                          )}
                           {/* ドットマーカー */}
                           <div style={{
                             position: "absolute", left: -20 + 5 - 4, top: 6,
@@ -1367,6 +1378,12 @@ export default function MergedTimeline({
                           )}
                           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35, overflowWrap: "anywhere" }}>
                             {lines.heading}
+                            {/* ★雇用形態は**役割ごと**。会社の見出しには出さない（3経路のうちの3つ目）。
+                                   ⚠️ 同じ会社でも役割ごとに違いうる（正社員 → 業務委託）。
+                                      グループ代表を1つ出す形に戻さないこと。
+                                   ⚠️ 余白は `marginLeft` で渡す。**ここで span で包まない**
+                                      （値が無いとき空の span が残る）。 */}
+                            <EmploymentSlot data={c} actions={careerActions} marginLeft={6} />
                             {c.is_current && items.length > 1 && (
                               <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
                                 在籍中
@@ -1386,6 +1403,10 @@ export default function MergedTimeline({
                             {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
                             {posDuration && ` · ${posDuration}`}
                           </div>
+                          {/* ★同社グループの中でも並行は出す。
+                                 ⚠️ **同じ会社の役割どうしは数えていない**（`buildOverlapMap`）。
+                                    ここに出るのは「この役割と重なっている**他社**」だけ。 */}
+                          <ParallelNote companies={overlapMap.get(c.id)} />
 
                           {/* 業務内容
                               ⚠️ 520px の固定幅を撤去した（2026-08-15）。理由は

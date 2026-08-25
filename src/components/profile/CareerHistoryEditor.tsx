@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { EMPLOYMENT_TYPES, RANKS } from "@/lib/constants/careerOptions";
+import { EMPLOYMENT_TYPES, RANKS, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import {
@@ -1258,6 +1258,7 @@ function StintForm({
       <div>
         <label style={labelStyle()}>雇用形態</label>
         <select
+          id={EMPLOYMENT_TYPE_FIELD_ID}
           value={draft.employmentType}
           onChange={(e) => set("employmentType", e.target.value)}
           disabled={isSaving}

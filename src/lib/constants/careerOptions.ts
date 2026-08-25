@@ -23,6 +23,20 @@ export const EMPLOYMENT_TYPES = [
   "その他",
 ] as const;
 
+/**
+ * ★雇用形態のセレクトの DOM id（2026-08-26 / フェーズ1-2）。
+ *
+ * `MergedTimeline` の「＋ 雇用形態を追加」は、編集モーダルを開いたあと
+ * **この id を頼りに該当の項目までスクロールする。**
+ * モーダルは縦に長く、開いた直後は**会社名から順に上から表示される**ので、
+ * 雇用形態は画面に出ない（実測）。開くだけでは「押したのに何も起きていない」ように見える。
+ *
+ * ⚠️ **`CareerHistoryEditor` の `<select>` と `MergedTimeline` の2箇所が同じ値を見る。**
+ *    どちらかに文字列を直書きしない。見つからなければスクロールしないだけで、
+ *    モーダル自体は開いているので壊れない。
+ */
+export const EMPLOYMENT_TYPE_FIELD_ID = "career-employment-type";
+
 export const JOB_EMPLOYMENT_TYPES = [
   "正社員",
   "業務委託",
