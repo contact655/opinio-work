@@ -1,24 +1,12 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { PAID_PLAN_MONTHLY_FEE } from "@/lib/constants/plans";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo } from "@/lib/auth/redirects";
-/* ⚠️ 業種の選択肢はここに書かない。**`ow_industries` のマスタが唯一の出どころ。**
-      2026-08-25 まで `INDUSTRY_SELECT_GROUPS`（業種名の text）を使っており、
-      企業が選んだ値と運営が見る列（industry_id）が別物になっていた。 */
-import { fetchIndustryOptions, type IndustryOption } from "@/lib/companies/industries";
 
 type Mode = "signup" | "login";
 
-type PendingCompany = {
-  name: string;
-  /** ow_industries.id。⚠️ 2026-08-25 に業種名（text）から変えた */
-  industryId: string;
-  employeeCount: string;
-  genres: string[];
-};
 const PENDING_COMPANY_KEY = "opinio_biz_pending_company";
 
 const INVITE_TOKEN_KEY = "opinio_biz_invite_token";
@@ -34,14 +22,6 @@ type InviteContext = {
 
 
 
-const EMPLOYEE_COUNT_OPTIONS = [
-  "1-10名",
-  "11-50名",
-  "51-100名",
-  "101-300名",
-  "301-1,000名",
-  "1,001名以上",
-];
 
 export default function BizAuthPage() {
   return (
@@ -72,20 +52,8 @@ function BizAuthInner() {
     router.replace(`/biz/auth?${params.toString()}`, { scroll: false });
   }
   const [prefillEmail, setPrefillEmail] = useState("");
-  const [pendingCompany, setPendingCompany] = useState<PendingCompany | null>(null);
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
   const [loggedInCompanyName] = useState("");
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
-      if (stored) {
-        const parsed: PendingCompany = JSON.parse(stored);
-        setPendingCompany(parsed);
-        setMode("login");
-      }
-    } catch { /* ignore */ }
-  }, []);
-
   useEffect(() => {
     if (!isInviteContext) return;
     try {
@@ -101,10 +69,6 @@ function BizAuthInner() {
   }, [isInviteContext]);
 
   function handleSwitchToLogin(email?: string) {
-    try {
-      const stored = sessionStorage.getItem(PENDING_COMPANY_KEY);
-      if (stored) setPendingCompany(JSON.parse(stored));
-    } catch { /* ignore */ }
     if (email) setPrefillEmail(email);
     setMode("login");
   }
@@ -302,7 +266,6 @@ function BizAuthInner() {
         mode={mode}
         setMode={handleSetMode}
         prefillEmail={prefillEmail}
-        pendingCompany={pendingCompany}
         onSwitchToLogin={handleSwitchToLogin}
         next={next}
         router={router}
@@ -319,14 +282,13 @@ type FormSideProps = {
   mode: Mode;
   setMode: (m: Mode) => void;
   prefillEmail: string;
-  pendingCompany: PendingCompany | null;
   onSwitchToLogin: (email?: string) => void;
   next: string;
   router: ReturnType<typeof useRouter>;
   inviteContext: InviteContext | null;
 };
 
-function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin, next, router, inviteContext }: FormSideProps) {
+function FormSide({ mode, setMode, prefillEmail, onSwitchToLogin, next, router, inviteContext }: FormSideProps) {
   return (
     <div
       className="biz-form-side"
@@ -356,12 +318,11 @@ function FormSide({ mode, setMode, prefillEmail, pendingCompany, onSwitchToLogin
         {/* 招待コンテキストのみタブを表示。通常はログインのみ */}
         {inviteContext && <ModeTabBar mode={mode} onChange={setMode} />}
         {inviteContext && mode === "signup" ? (
-          <SignupForm onSwitchToLogin={onSwitchToLogin} next={next} router={router} inviteContext={inviteContext} />
+          <SignupForm onSwitchToLogin={onSwitchToLogin} inviteContext={inviteContext} />
         ) : (
           <LoginForm
             onSwitchToSignup={() => setMode("signup")}
             prefillEmail={prefillEmail}
-            pendingCompany={pendingCompany}
             next={next}
             router={router}
             inviteContext={inviteContext}
@@ -452,42 +413,23 @@ function PwStrength({ password }: { password: string }) {
 // ── ① サインアップフォーム（2ステップ） ─────────────────────────────────────
 type SignupFormProps = {
   onSwitchToLogin: (email?: string) => void;
-  next: string;
-  router: ReturnType<typeof useRouter>;
-  inviteContext: InviteContext | null;
+  /* ⚠️ **null を受けない。** このフォームは招待の受諾専用で、FormSide が
+        `inviteContext &&` で絞ってから描画する。null 許容に戻すと
+        「常に true の分岐」が復活する。 */
+  inviteContext: InviteContext;
 };
 
-function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupFormProps) {
-  const isInviteMode = inviteContext !== null;
-  const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
-
-  // ① 2-step state
-  const [step, setStep] = useState<1 | 2>(1);
-
-  // Step 1 fields
-  const [email, setEmail] = useState(inviteContext?.email ?? "");
+function SignupForm({ onSwitchToLogin, inviteContext }: SignupFormProps) {
+  /* ⚠️ ここにあった step / 企業名 / 業種 / 従業員数 / 規約同意の state は
+        2026-08-25 に削除した（step 2 ごと到達不能だったため）。
+        企業作成に要る入力は `/biz/companies/add/new` が持っている。 */
+  const [email] = useState(inviteContext.email);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Step 2 fields
-  const [companyName, setCompanyName] = useState("");
-  const [industryId, setIndustryId] = useState("");
-  /* 業種の選択肢。⚠️ このページは client なので自分で引く。
-        `ow_industries` は anon にも `is_active = true` の読み取りポリシーがあるので
-        未ログインでも取れる。**取れなければセレクトごと出さない**（空のセレクトを出すと
-        「選べない」のか「選択肢が無い」のか利用者に分からない）。 */
-  const [industries, setIndustries] = useState<IndustryOption[]>([]);
-  useEffect(() => {
-    fetchIndustryOptions(createClient(), "biz/auth").then(setIndustries);
-  }, []);
-  const [employeeCount, setEmployeeCount] = useState("");
   const [contactName, setContactName] = useState("");
-  const [contactTitle, setContactTitle] = useState("");
-  const [agreedTerms, setAgreedTerms] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showExistingNotice, setShowExistingNotice] = useState(false);
   const [existingCompany, setExistingCompany] = useState<{ id: string; name: string; adminCount: number } | null>(null);
   const [joinRequestSent, setJoinRequestSent] = useState(false);
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
@@ -503,18 +445,9 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 
 
   // ② Google OAuth
-  async function handleGoogleSignup() {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}&biz=1`,
-      },
-    });
-  }
-
-  // ① Step 1 → Step 2
-  function handleStep1Next(e: React.FormEvent) {
+  /* 送信。⚠️ このフォームは**招待の受諾専用**（SignupForm は inviteContext が
+        非 null のときだけ描画される）。分岐は要らない。 */
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!email || !password) return;
@@ -522,13 +455,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
       setError("パスワードは8文字以上で入力してください。");
       return;
     }
-
-    // Invite mode: skip step 2 (no company info needed)
-    if (isInviteMode) {
-      handleInviteSubmit();
-    } else {
-      setStep(2);
-    }
+    handleInviteSubmit();
   }
 
   // Invite mode submit (single step)
@@ -608,74 +535,6 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   }
 
   // ① Step 2 submit
-  async function handleStep2Submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      if (isMockMode) {
-        alert("モックモード: アカウントを作成しました（実際の登録は行われません）");
-        router.push(next);
-        return;
-      }
-
-      const supabase = createClient();
-      const { data, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: contactName,
-            pending_company: companyName,
-            pending_industry_id: industryId || null,
-            agreed_terms_business: agreedTerms,
-            agreed_terms_version: "2026-07",
-          },
-          emailRedirectTo: confirmRedirectTo(location.origin, "/biz/companies/add/new"),
-        },
-      });
-
-      if (authError) {
-        if (
-          authError.message.includes("already registered") ||
-          authError.message.includes("User already registered") ||
-          authError.message.toLowerCase().includes("database error")
-        ) {
-          setShowExistingNotice(true);
-          try {
-            const pending: PendingCompany = { name: companyName, industryId, employeeCount, genres: [] };
-            sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
-          } catch { /* ignore */ }
-          return;
-        }
-        setError(authError.message);
-        return;
-      }
-
-      // 既存アドレス（メール列挙の防止が有効なとき、エラーではなく identities 空で返る）
-      if (data.user?.identities?.length === 0) {
-        setShowExistingNotice(true);
-        try {
-          const pending: PendingCompany = { name: companyName, industryId, employeeCount, genres: [] };
-          sessionStorage.setItem(PENDING_COMPANY_KEY, JSON.stringify(pending));
-        } catch { /* ignore */ }
-        return;
-      }
-
-      if (!data.session) {
-        setConfirmSentTo(email);
-        return;
-      }
-
-      // signUp 完了後は /biz/companies/add/new へ遷移（会社名は user_metadata.pending_company からプリフィル）
-      window.location.replace("/biz/companies/add/new");
-    } catch {
-      setError("エラーが発生しました。時間をおいて再度お試しください。");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleJoinRequest() {
     if (!existingCompany) return;
@@ -712,7 +571,7 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
         <p style={{ ...subtitleStyle, marginBottom: 28 }}>
           <strong style={{ color: "var(--ink)" }}>{confirmSentTo}</strong> に確認メールを送信しました。<br />
           メール内のリンクを開くと、
-          {isInviteMode ? "招待の受諾に進めます。" : "企業情報の入力に進めます。"}
+          招待の受諾に進めます。
         </p>
         <button
           type="button"
@@ -793,294 +652,54 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
   }
 
   // ─── INVITE MODE: single-step form ──────────────────────────────────────
-  if (isInviteMode) {
-    return (
-      <div>
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={titleStyle}>参加する。</h2>
-          <p style={subtitleStyle}>
-            招待されたアカウントとして OPINIO に参加します。<br />
-            お名前とパスワードを設定してください。
-          </p>
-        </div>
-
-        {inviteContext?.companyName && <InviteBanner companyName={inviteContext.companyName} />}
-
-        {error && <ErrorBox message={error} />}
-
-        <form onSubmit={handleStep1Next} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="お名前" required htmlFor="inv-name" />
-            <input id="inv-name" type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
-              placeholder="山田 太郎" style={inputStyle} autoComplete="name"
-              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="メールアドレス（招待先）" required htmlFor="inv-email" />
-            <input id="inv-email" type="email" value={email} readOnly
-              style={{ ...inputStyle, background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "not-allowed" }} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="パスワード" required htmlFor="inv-password" />
-            <div style={{ position: "relative" }}>
-              <input id="inv-password" type={showPassword ? "text" : "password"} required minLength={8}
-                value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="8文字以上" style={{ ...inputStyle, paddingRight: 42 }} autoComplete="new-password"
-                onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-              <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
-            </div>
-            <PwStrength password={password} />
-          </div>
-          <button type="submit" disabled={loading} style={{ ...submitBtnStyle, opacity: loading ? 0.7 : 1 }}>
-            {loading ? "登録中..." : "チームに参加する"}
-          </button>
-          <ImplicitConsent />
-        </form>
-
-        <SwitchRow label="すでにアカウントをお持ちの方は" action="ログイン" onClick={() => onSwitchToLogin()} />
-      </div>
-    );
-  }
-
-  // ─── NORMAL SIGNUP: step 1 ──────────────────────────────────────────────
-  if (step === 1) {
-    return (
-      <div>
-        {/* Step indicator */}
-        <StepIndicator current={1} total={2} />
-
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={titleStyle}>採用を、今日から。</h2>
-          <p style={subtitleStyle}>
-            アカウント情報を入力してください。<br />
-            <strong>掲載費用は無料</strong>、入社まで一切請求なし。
-          </p>
-        </div>
-
-        {error && <ErrorBox message={error} />}
-
-
-        {/* ② Google OAuth — primary, prominent */}
-        <button type="button" onClick={handleGoogleSignup} style={googleBtnStyle}>
-          <GoogleLogo />
-          <span style={{ flex: 1, textAlign: "left" }}>Googleで登録</span>
-          <span style={{
-            padding: "2px 8px", borderRadius: 100,
-            background: "var(--royal-50)", color: "var(--royal)",
-            fontSize: 10, fontWeight: 700, border: "1px solid var(--royal-100)",
-            whiteSpace: "nowrap",
-          }}>推奨</span>
-        </button>
-        {/* ③ G Suite バッジ — 緑ピルに変更 */}
-        <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 0" }}>
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 10, fontWeight: 700, color: "var(--success)",
-            padding: "2px 10px", borderRadius: 100,
-            background: "var(--success-soft)", border: "1px solid #A7F3D0",
-          }}>
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            G Suite / Google Workspace も対応
-          </span>
-        </div>
-
-        {/* ⑥ OR divider — pill style */}
-        <div style={{ display: "flex", alignItems: "center", margin: "20px 0", gap: 10 }}>
-          <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
-          <span style={{
-            fontSize: 11, color: "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap",
-            padding: "3px 10px", background: "var(--bg-tint)",
-            border: "1px solid var(--line)", borderRadius: 100,
-          }}>
-            またはメールで登録
-          </span>
-          <div style={{ flex: 1, height: 1.5, background: "var(--line)" }} />
-        </div>
-
-        <form onSubmit={handleStep1Next} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          <div style={{ marginBottom: 14 }}>
-            <FieldLabel label="お名前" required htmlFor="biz-s1-name" />
-            <input id="biz-s1-name" type="text" required value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder="山田 太郎"
-              style={inputStyle} autoComplete="name"
-              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel label="メールアドレス" required htmlFor="biz-s1-email" />
-            <input id="biz-s1-email" type="email" inputMode="email" required value={email}
-              onChange={(e) => { setEmail(e.target.value); setShowExistingNotice(false); }}
-              placeholder="your@email.com"
-              style={inputStyle} autoComplete="email"
-              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-          </div>
-
-          <div style={{ marginBottom: 4 }}>
-            <FieldLabel label="パスワード" required htmlFor="biz-s1-password" />
-            <div style={{ position: "relative" }}>
-              <input id="biz-s1-password" type={showPassword ? "text" : "password"} required minLength={8}
-                value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="8文字以上" style={{ ...inputStyle, paddingRight: 42 }}
-                autoComplete="new-password"
-                onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
-              <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
-            </div>
-            {/* ⑨ Password strength indicator */}
-            <PwStrength password={password} />
-          </div>
-
-          {/* ⑦ Trust micro-strip above submit */}
-          <div style={{ marginTop: 20, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap" as const }}>
-            {["掲載費¥0", "入社まで請求なし", "即日公開"].map((t) => (
-              <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, color: "var(--ink-mute)", fontWeight: 600 }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3.5" strokeLinecap="round" aria-hidden>
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {t}
-              </span>
-            ))}
-          </div>
-          <button type="submit" style={{ ...submitBtnStyle }}>
-            次のステップへ →
-          </button>
-          <ImplicitConsent />
-        </form>
-
-        <SwitchRow label="すでにアカウントをお持ちの方は" action="ログイン" onClick={() => onSwitchToLogin()} />
-        <p style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "center", marginTop: 4 }}>
-          求職者アカウントをお持ちの方も、そのままログインできます。
-        </p>
-
-        {/* ⑩ Mobile sticky CTA */}
-        <MobileStickyBar label="次のステップへ →" formId="biz-s1-form" />
-      </div>
-    );
-  }
-
-  // ─── NORMAL SIGNUP: step 2 ──────────────────────────────────────────────
+  /* ⚠️ **このフォームは招待の受諾専用。** SignupForm は `inviteContext` が非 null の
+        ときだけ描画される（page.tsx の FormSide を参照）。
+     ⚠️ **企業作成のフォームをここに戻さないこと。**
+        企業作成は `/biz/companies/add/new` に一本化してある（6c5e45ca / 2026-07-23）。
+        以前はここに通常の新規登録（step 1 → step 2 で企業名・業種・従業員数）があり
+        企業を作っていたが、同コミットで新規登録タブを閉じた時点で**到達不能になっていた**。
+        気づかれないまま2回改修された（eef1d8c3 / fee3994d）ので 2026-08-25 に削除した。 */
   return (
     <div>
-      {/* Step indicator */}
-      <StepIndicator current={2} total={2} />
-
-      <div style={{ marginBottom: 20 }}>
-        <button
-          type="button"
-          onClick={() => { setStep(1); setError(null); }}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            background: "none", border: "none", color: "var(--royal)",
-            fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-            cursor: "pointer", padding: "0 0 12px",
-          }}
-        >
-          ← 戻る
-        </button>
-        <h2 style={titleStyle}>あなたの所属企業を教えてください</h2>
-        <p style={subtitleStyle}>すでに OPINIO に登録されている企業の方は、管理者に招待を依頼してください。</p>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={titleStyle}>参加する。</h2>
+        <p style={subtitleStyle}>
+          招待されたアカウントとして OPINIO に参加します。<br />
+          お名前とパスワードを設定してください。
+        </p>
       </div>
+
+      {inviteContext.companyName && <InviteBanner companyName={inviteContext.companyName} />}
 
       {error && <ErrorBox message={error} />}
 
-      {showExistingNotice && (
-        <ExistingUserNotice
-          email={email}
-          onSwitchToLogin={onSwitchToLogin}
-          onChangeEmail={() => { setShowExistingNotice(false); setStep(1); setEmail(""); }}
-        />
-      )}
-
-      <form onSubmit={handleStep2Submit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        <div style={{ marginBottom: 14 }}>
-          <FieldLabel label="企業名" required htmlFor="biz-s2-company" />
-          <input id="biz-s2-company" type="text" required value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="株式会社〇〇" style={inputStyle} autoComplete="organization"
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <div style={{ marginBottom: 16 }}>
+          <FieldLabel label="お名前" required htmlFor="inv-name" />
+          <input id="inv-name" type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
+            placeholder="山田 太郎" style={inputStyle} autoComplete="name"
             onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
         </div>
-
-        {/* 業種＋従業員数 — 任意項目 */}
-        <div className="biz-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <div>
-            <FieldLabel label="業種" htmlFor="biz-s2-industry" />
-            {/* ⚠️ 任意項目のまま。必須化は作成時ではなく公開時に行う。
-                ⚠️ 選択肢は ow_industries から引いている。**ここに値を書かないこと。** */}
-            <select id="biz-s2-industry" value={industryId}
-              onChange={(e) => setIndustryId(e.target.value)} style={selectStyle}
-              disabled={industries.length === 0}
-              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)}>
-              <option value="">任意</option>
-              {industries.map((i) => (
-                <option key={i.id} value={i.id}>{i.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <FieldLabel label="従業員数" htmlFor="biz-s2-emp" />
-            <select id="biz-s2-emp" value={employeeCount}
-              onChange={(e) => setEmployeeCount(e.target.value)} style={selectStyle}
-              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)}>
-              <option value="">任意</option>
-              {EMPLOYEE_COUNT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
+        <div style={{ marginBottom: 16 }}>
+          <FieldLabel label="メールアドレス（招待先）" required htmlFor="inv-email" />
+          <input id="inv-email" type="email" value={email} readOnly
+            style={{ ...inputStyle, background: "var(--bg-tint)", color: "var(--ink-soft)", cursor: "not-allowed" }} />
         </div>
-
-        <div style={{ marginBottom: 14 }}>
-          <FieldLabel label="部署・役職" htmlFor="biz-s2-title" />
-          <input id="biz-s2-title" type="text" value={contactTitle}
-            onChange={(e) => setContactTitle(e.target.value)}
-            placeholder="例：人事部 採用マネージャー（任意）" style={inputStyle} autoComplete="organization-title"
-            onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
+        <div style={{ marginBottom: 16 }}>
+          <FieldLabel label="パスワード" required htmlFor="inv-password" />
+          <div style={{ position: "relative" }}>
+            <input id="inv-password" type={showPassword ? "text" : "password"} required minLength={8}
+              value={password} onChange={(e) => setPassword(e.target.value)}
+              placeholder="8文字以上" style={{ ...inputStyle, paddingRight: 42 }} autoComplete="new-password"
+              onFocus={(e) => applyFocusStyle(e.currentTarget)} onBlur={(e) => removeFocusStyle(e.currentTarget)} />
+            <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
+          </div>
+          <PwStrength password={password} />
         </div>
-
-        {/* ④ Simplified unified account notice (⑦) */}
-        <SimplifiedAccountNotice />
-
-        {/* 掲載サービスの料金の案内 + 同意チェックボックス */}
-        <PlanDisclosure />
-
-        <ConsentCheckbox
-          id="biz-agree-terms"
-          checked={agreedTerms}
-          onChange={setAgreedTerms}
-          label={
-            <>
-              <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載利用規約</a>
-              {" "}および{" "}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>プライバシーポリシー</a>
-              に同意します
-            </>
-          }
-        />
-
-        {/* ⚠️ 成功報酬（人材紹介）の同意はここで取らない（2026-08-14 に規約を2本へ分割）。
-               掲載だけしたい企業に紹介の同意まで求めない。同意は
-               「候補者を探す」＝スカウトを使う時点で取る（PlacementTermsPanel）。 */}
-        {/* ⚠️ **ここに料率を書かないこと**（2026-08-23）。
-               人材紹介の費用は人材紹介利用規約（第8条）が正で、下限額の定めもある。
-               2か所に数字を書くと片方だけ古くなる（今回の事故がまさにそれ）。 */}
-        <p style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8, margin: "-4px 0 12px" }}>
-          掲載サービスの費用は上記のとおりです。当社の<strong>人材紹介サービス</strong>（求職者のご紹介）は
-          掲載サービスとは別の契約で、ご利用の際は
-          <a href="/terms/placement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>人材紹介利用規約</a>
-          への同意を別途お願いします。同サービスの費用は同規約に定めます。
-        </p>
-
-        <button
-          type="submit"
-          disabled={loading || !agreedTerms}
-          style={{
-            ...submitBtnStyle,
-            marginTop: 16,
-            opacity: loading || !agreedTerms ? 0.45 : 1,
-            cursor: loading || !agreedTerms ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading ? "登録中..." : "企業アカウントを開設する →"}
+        <button type="submit" disabled={loading} style={{ ...submitBtnStyle, opacity: loading ? 0.7 : 1 }}>
+          {loading ? "登録中..." : "チームに参加する"}
         </button>
+        <ImplicitConsent />
       </form>
 
       <SwitchRow label="すでにアカウントをお持ちの方は" action="ログイン" onClick={() => onSwitchToLogin()} />
@@ -1092,13 +711,12 @@ function SignupForm({ onSwitchToLogin, next, router, inviteContext }: SignupForm
 type LoginFormProps = {
   onSwitchToSignup?: () => void;
   prefillEmail: string;
-  pendingCompany: PendingCompany | null;
   next: string;
   router: ReturnType<typeof useRouter>;
   inviteContext: InviteContext | null;
 };
 
-function LoginForm({ prefillEmail, pendingCompany, next, router, inviteContext }: LoginFormProps) {
+function LoginForm({ prefillEmail, next, router, inviteContext }: LoginFormProps) {
   const isMockMode = process.env.NEXT_PUBLIC_BIZ_MOCK_MODE === "true";
 
   const [email, setEmail] = useState(inviteContext?.email || prefillEmail);
@@ -1164,27 +782,12 @@ function LoginForm({ prefillEmail, pendingCompany, next, router, inviteContext }
         return;
       }
 
-      let stored: PendingCompany | null = pendingCompany;
-      if (!stored) {
-        try {
-          const raw = sessionStorage.getItem(PENDING_COMPANY_KEY);
-          if (raw) stored = JSON.parse(raw);
-        } catch { /* ignore */ }
-      }
-
-      if (stored) {
-        try {
-          await fetch("/api/biz/companies", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: stored.name, industry_id: stored.industryId || null, genres: stored.genres ?? [] }),
-          });
-        } catch { /* 企業作成失敗はログのみ */ }
-        try { sessionStorage.removeItem(PENDING_COMPANY_KEY); } catch { /* ignore */ }
-        window.location.replace(next || "/biz/dashboard");
-        return;
-      }
-
+      /* ⚠️ ここにあった「ログイン後に企業を作る」経路は 2026-08-25 に削除した。
+            書き込み元だった step 2（新規登録の企業情報フォーム）が
+            6c5e45ca（2026-07-23）以降**到達不能**で、この分岐にも入らなかった。
+         ⚠️ `PENDING_COMPANY_KEY` 自体は残っている。ログイン済み画面のボタンが
+            会社名を書いて `/biz/companies/add/new` へ送り、あちらがプリフィルに使う。
+            **企業を作るのは add/new だけ。ここでは作らない。** */
       router.replace(next);
     } catch {
       setError("ログインに失敗しました。時間をおいて再度お試しください。");
@@ -1202,7 +805,6 @@ function LoginForm({ prefillEmail, pendingCompany, next, router, inviteContext }
       </div>
 
       {inviteContext && <InviteBanner companyName={inviteContext.companyName || "企業"} subtitle={`ログインすると自動的にチームに参加します。（${inviteContext.email}）`} />}
-      {pendingCompany && <PendingBanner companyName={pendingCompany.name} />}
 
       {error && <ErrorBox message={error} />}
 
@@ -1257,8 +859,8 @@ function LoginForm({ prefillEmail, pendingCompany, next, router, inviteContext }
 
         <button type="submit" disabled={loading} style={{ ...submitBtnStyle, marginTop: 20, opacity: loading ? 0.7 : 1 }}>
           {loading
-            ? (pendingCompany ? "企業を作成中..." : "ログイン中...")
-            : (pendingCompany ? "ログインして企業を作成" : "ログイン")}
+            ? "ログイン中..."
+            : "ログイン"}
         </button>
       </form>
 
@@ -1288,62 +890,7 @@ function GoogleLogo() {
   );
 }
 
-const STEP_LABELS = ["アカウント情報", "企業情報"];
-
 // ③ ステップインジケーター — 番号付き円形ステップ
-function StepIndicator({ current, total }: { current: number; total: number }) {
-  const trackItems: React.ReactNode[] = [];
-  for (let i = 0; i < total; i++) {
-    const stepNum = i + 1;
-    const isDone = stepNum < current;
-    const isActive = stepNum === current;
-    trackItems.push(
-      <div key={`c-${i}`} style={{
-        width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-        background: isDone ? "var(--success)" : isActive ? "var(--royal)" : "var(--line)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 11, fontWeight: 800,
-        color: isDone || isActive ? "#fff" : "var(--ink-mute)",
-        boxShadow: isActive ? "0 0 0 4px var(--royal-50)" : "none",
-        transition: "all 0.3s",
-      }}>
-        {isDone ? "✓" : stepNum}
-      </div>
-    );
-    if (i < total - 1) {
-      trackItems.push(
-        <div key={`l-${i}`} style={{
-          flex: 1, height: 2, borderRadius: 99,
-          background: isDone ? "var(--success)" : "var(--line)",
-          transition: "background 0.3s",
-        }} />
-      );
-    }
-  }
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", alignItems: "center" }}>
-        {trackItems}
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-        {STEP_LABELS.slice(0, total).map((label, i) => {
-          const stepNum = i + 1;
-          const isDone = stepNum < current;
-          const isActive = stepNum === current;
-          return (
-            <span key={label} style={{
-              fontSize: 11, fontWeight: isActive ? 700 : 500,
-              color: isActive ? "var(--royal)" : isDone ? "var(--success)" : "var(--ink-mute)",
-            }}>
-              {label}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function InviteBanner({ companyName, subtitle }: { companyName: string; subtitle?: string }) {
   return (
     <div style={{
@@ -1371,32 +918,6 @@ function InviteBanner({ companyName, subtitle }: { companyName: string; subtitle
   );
 }
 
-function PendingBanner({ companyName }: { companyName: string }) {
-  return (
-    <div style={{
-      display: "flex", gap: 10, padding: "12px 14px",
-      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-      borderRadius: 9, marginBottom: 16, animation: "bizSlideIn 0.3s ease-out",
-    }}>
-      <div style={{
-        width: 26, height: 26, borderRadius: 7,
-        background: "var(--royal)", color: "#fff",
-        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      </div>
-      <div style={{ flex: 1, fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)", fontWeight: 700, display: "block", marginBottom: 2 }}>
-          ログインして「{companyName}」を作成します
-        </strong>
-        ログインすると、入力済みの企業情報で企業アカウントを作成します。
-      </div>
-    </div>
-  );
-}
-
 function ErrorBox({ message }: { message: string }) {
   return (
     <div role="alert" aria-live="polite" style={{
@@ -1411,76 +932,6 @@ function ErrorBox({ message }: { message: string }) {
 }
 
 // ⑦ Simplified unified account notice — one concise line
-function SimplifiedAccountNotice() {
-  return (
-    <div style={{
-      display: "flex", gap: 8, padding: "10px 14px",
-      background: "var(--bg-tint)", border: "1px solid var(--line)",
-      borderRadius: 9, marginBottom: 4,
-    }}>
-      <div style={{
-        width: 22, height: 22, background: "var(--royal-50)", color: "var(--royal)",
-        borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-        </svg>
-      </div>
-      <p style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
-        既に個人アカウントをお持ちの方は、同じメールでビジネスアカウントとしてもご利用いただけます。
-      </p>
-    </div>
-  );
-}
-
-type ExistingUserNoticeProps = {
-  email: string;
-  onSwitchToLogin: (email?: string) => void;
-  onChangeEmail: () => void;
-};
-
-function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingUserNoticeProps) {
-  return (
-    <div style={{
-      display: "flex", gap: 10, padding: "14px 16px",
-      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-      borderRadius: 10, marginBottom: 14, animation: "bizSlideIn 0.3s ease-out",
-    }}>
-      <div style={{
-        width: 28, height: 28, background: "var(--royal)", color: "#fff",
-        borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-        </svg>
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 4 }}>
-          このメールアドレスはすでに登録されています
-        </div>
-        <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 10 }}>
-          <strong style={{ color: "var(--ink)" }}>{email}</strong> はすでに登録済みです。
-          ログインして企業情報を追加できます。
-        </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-          <button type="button" onClick={() => onSwitchToLogin(email)} style={{
-            padding: "7px 12px", background: "var(--royal)", color: "#fff",
-            border: "none", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer",
-          }}>
-            ログインへ切り替え
-          </button>
-          <button type="button" onClick={onChangeEmail} style={{
-            padding: "7px 12px", background: "transparent", color: "var(--ink-soft)",
-            border: "1px solid var(--line)", borderRadius: 6, fontFamily: "inherit", fontSize: 11, fontWeight: 600, cursor: "pointer",
-          }}>
-            メールを変更
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /*
  * 掲載サービスの料金の案内。
  *
@@ -1491,77 +942,7 @@ function ExistingUserNotice({ email, onSwitchToLogin, onChangeEmail }: ExistingU
  * ⚠️ **金額は `PAID_PLAN_MONTHLY_FEE` から出す。ここに数字を書かない。**
  *    LP（/business の料金セクション）と同じ内容にしてある。片方だけ直さないこと。
  */
-function PlanDisclosure() {
-  return (
-    <div style={{
-      marginTop: 18,
-      borderRadius: 10,
-      border: "1.5px solid var(--royal-100)",
-      background: "var(--royal-50)",
-      padding: "14px 16px",
-    }}>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 8,
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        料金について
-      </div>
-      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-        <li>求人の掲載・企業ページの作成・応募の受け取りは<strong>無料</strong>です</li>
-        <li>
-          候補者検索、応募者の連絡先の表示、話せる社員の招待は、
-          月額 <strong>{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円</strong>（税別）の有料プランでご利用いただけます
-        </li>
-      </ul>
-      <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--ink)", lineHeight: 1.7, fontWeight: 700 }}>
-        成果報酬は発生しません。
-      </p>
-    </div>
-  );
-}
-
 // 同意チェックボックス
-function ConsentCheckbox({
-  id,
-  checked,
-  onChange,
-  label,
-}: {
-  id: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: React.ReactNode;
-}) {
-  return (
-    <label
-      htmlFor={id}
-      style={{
-        display: "flex", alignItems: "flex-start", gap: 10,
-        marginTop: 12, cursor: "pointer",
-        padding: "10px 12px",
-        borderRadius: 8,
-        border: `1.5px solid ${checked ? "var(--royal)" : "var(--line)"}`,
-        background: checked ? "var(--royal-50)" : "#fff",
-        transition: "border-color .15s, background .15s",
-      }}
-    >
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        style={{ marginTop: 2, accentColor: "var(--royal)", flexShrink: 0, width: 15, height: 15 }}
-      />
-      <span style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.7 }}>
-        {label}
-      </span>
-    </label>
-  );
-}
-
 // ⑥ Implicit consent — no checkbox
 function ImplicitConsent() {
   return (
@@ -1632,31 +1013,6 @@ function PasswordToggle({ visible, onToggle }: { visible: boolean; onToggle: () 
 }
 
 // ⑩ Mobile sticky CTA bar
-function MobileStickyBar({ label, formId }: { label: string; formId?: string }) {
-  return (
-    <div
-      className="biz-mobile-cta"
-      style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
-        padding: "12px 20px calc(12px + env(safe-area-inset-bottom))",
-        background: "rgba(255,255,255,0.96)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderTop: "1px solid var(--line)",
-        zIndex: 50,
-      }}
-    >
-      <button
-        type="submit"
-        form={formId}
-        style={{ ...submitBtnStyle, width: "100%" }}
-      >
-        {label}
-      </button>
-    </div>
-  );
-}
-
 // ── スタイル定数 ─────────────────────────────────────────────────────────────
 
 const titleStyle: React.CSSProperties = {
@@ -1696,14 +1052,6 @@ const inputStyle: React.CSSProperties = {
   color: "var(--ink)", background: "#fff",
   transition: "all 0.15s", outline: "none",
   boxSizing: "border-box",
-};
-
-const selectStyle: React.CSSProperties = {
-  ...inputStyle,
-  appearance: "none", cursor: "pointer", paddingRight: 32,
-  minWidth: 0,
-  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center",
 };
 
 
