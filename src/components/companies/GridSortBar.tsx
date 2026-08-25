@@ -17,15 +17,11 @@ const SORT_OPTIONS = [
         検索バーの「募集あり」フィルタと**同じことを別の形で言っていた**（ルール⑧）。
         しかも公開求人を持つ企業は 79社中1社なので、並べ替えても動くのは1社だけだった。
      ⚠️ 旧 URL の `?sort=jobs` は既定（updated_at 降順＝新着順）に落ちる。壊れない。 */
-  {
-    value: "salary",
-    label: "年収高い順",
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-      </svg>
-    ),
-  },
+  /* ⚠️ 「年収高い順」（value: "salary"）は 2026-08-25 に外した。**戻さないこと。**
+        年収はポジションによって違うので、会社単位の1つの数字では表せない。
+        実データでも、求人に年収が入っている企業は 79社中**1社**しかなく、
+        残り78社は 0 として並ぶだけだった（「募集中あり優先」を外したのと同じ理由）。
+     ⚠️ 旧 URL の `?sort=salary` は既定（updated_at 降順＝新着順）に落ちる。壊れない。 */
   {
     value: "employees",
     label: "社員数順",

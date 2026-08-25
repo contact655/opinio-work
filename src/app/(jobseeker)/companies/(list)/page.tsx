@@ -46,7 +46,6 @@ type SearchParams = {
   location?: string;
   industry?: string;
   foreign?: string;
-  salaryMin?: string;
   view?: string;
   sort?: string;
   page?: string;
@@ -112,10 +111,10 @@ function Pagination({
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, industry, foreign, salaryMin, view, sort } = searchParams;
+  const { q, phase, workStyle, hiring, location, industry, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   // foreign は並び替えモディファイア扱いのため hasFilter に含めない（ソートバーを維持するため）
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || salaryMin);
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
   // 一覧（4列）= デフォルト（パラメータなし or view=card）
   const isGridView  = !hasFilter && (!view || view === "card");
   // 詳細リスト = view=list
@@ -140,7 +139,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
       ? searchCompanies({
           limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE,
           sort: sort ?? "newest", foreign: foreign === "1",
-          salaryMin: salaryMin ? parseInt(salaryMin, 10) : undefined,
         })
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
     // 口コミ平均スコア
@@ -211,7 +209,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
             location={location}
             industry={industry}
             foreign={foreign}
-            salaryMin={salaryMin}
           />
         ) : (
           <div style={{ marginTop: 0 }}>

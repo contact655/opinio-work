@@ -47,8 +47,9 @@ export type CompanyForCarousel = {
   live_obog_count?: number;
   article_count?: number;       // OPINIO 取材記事数
   // 追加情報（カード充実化）
-  avg_salary?: string | null;
-  calc_avg_salary_man?: number | null;  // 求人(salary_min+salary_max)/2 の平均（万円）
+  /* ⚠️ `avg_salary` と `calc_avg_salary_man` は 2026-08-25 に外した。
+        一覧の年収フィルタ・年収高い順を廃止したため（ポジションで違う値を
+        会社単位の1つの数字にできない。実データでも 79社中1社しか持たなかった）。 */
   founded_year?: number | null;
   fit_positives?: string[] | null;
   sort_order?: number | null;

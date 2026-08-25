@@ -34,8 +34,7 @@ export type CompanySearchParams = {
   location?: string;   // 都道府県フィルタ（例: "東京都", "大阪府"）
   industry?: string;   // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
   foreign?: boolean;   // 外資系のみ表示
-  salaryMin?: number;  // 平均年収下限（万円）
-  sort?: string;       // "newest" | "employees" | "salary" | "disclosure"（"jobs" は 2026-08-18 に廃止）
+  sort?: string;       // "newest" | "employees" | "disclosure"（"jobs" は 2026-08-18・"salary" は 2026-08-25 に廃止）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
   offset?: number;
@@ -63,9 +62,9 @@ export async function searchCompanies(
   const supabase = createPublicClient();
 
   // ── DB側ページネーションを使うか判定
-  // hiring / foreign / salaryMin / クライアントソート フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const clientSideSort = params.sort === "salary" || params.sort === "disclosure";
-  const useDbPagination = !params.hiring && !params.foreign && !params.salaryMin && params.phase !== "外資系" && !clientSideSort && params.limit !== undefined;
+  // hiring / foreign / クライアントソート フィルターはアプリ側で処理するため、DB ページネーションと併用不可
+  const clientSideSort = params.sort === "disclosure";
+  const useDbPagination = !params.hiring && !params.foreign && params.phase !== "外資系" && !clientSideSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -114,7 +113,6 @@ export async function searchCompanies(
         }
       }
     }
-    // salaryMin は計算値（求人ごとの中央値平均）でアプリ側フィルタリングするため DB フィルターは不要
     if (params.industry) {
       const groupValues = resolveIndustryFilter(params.industry);
       if (groupValues) {
@@ -138,7 +136,7 @@ export async function searchCompanies(
       .select(
         "id, slug, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, is_foreign, " +
         "accepting_casual_meetings, remote_work_status, location, branch_locations, logo_letter, logo_gradient, logo_url, updated_at, " +
-        "current_member_count, obog_count, avg_salary, company_features, reality_disclosure",
+        "current_member_count, obog_count, company_features, reality_disclosure",
         useDbPagination ? { count: "exact" } : undefined
       )
   );
@@ -167,9 +165,6 @@ export async function searchCompanies(
 
   // #2: 求人タイトルマップ（最大2件/企業）
   const jobTitlesMap: Record<string, string[]> = {};
-
-  // 求人ごとの平均中央値（万円）を企業単位で集計
-  const calcAvgSalaryMap: Record<string, number> = {};
 
   // ライブ社員数集計（案X）— is_test=false かつ visibility!='private'
   // current/obog の定義:
@@ -224,7 +219,6 @@ export async function searchCompanies(
     });
 
     // 企業ごとに求人中央値のリストを集める
-    const salaryMediansMap: Record<string, number[]> = {};
 
     (activeJobsResult.data ?? []).forEach((j: { company_id: string; title?: string; salary_min?: number | null; salary_max?: number | null }) => {
       hiringSet.add(j.company_id);
@@ -236,20 +230,7 @@ export async function searchCompanies(
           jobTitlesMap[j.company_id].push(j.title);
         }
       }
-      // 中央値 = (min + max) / 2（両方ある場合のみ）
-      const mn = j.salary_min ?? 0;
-      const mx = j.salary_max ?? 0;
-      if (mn > 0 && mx > 0) {
-        if (!salaryMediansMap[j.company_id]) salaryMediansMap[j.company_id] = [];
-        salaryMediansMap[j.company_id].push((mn + mx) / 2);
-      }
     });
-
-    // 中央値リストの平均を計算（万円単位に丸める）
-    for (const [cid, medians] of Object.entries(salaryMediansMap)) {
-      const avg = medians.reduce((s, v) => s + v, 0) / medians.length;
-      calcAvgSalaryMap[cid] = Math.round(avg);
-    }
 
     (articlesResult.data ?? []).forEach((a: { company_id: string | null }) => {
       if (a.company_id) {
@@ -262,23 +243,12 @@ export async function searchCompanies(
   const companies: CompanyForCarousel[] = companyList
     .filter((c) => {
       if (params.hiring && !hiringSet.has(c.id)) return false;
-      if (params.salaryMin) {
-        /* ⚠️ **求人由来の計算値のみで絞る（2026-08-11）。**
-              以前は `ow_companies.avg_salary`（「700万円〜」等の文字列）に
-              フォールバックしていたが、①出典が1つも無い機械投入値で、
-              ②`parseInt("700万円〜") / 10000 = 0.07` と換算しており、
-              **どの閾値でもほぼ全社が落ちていた**（実測: 常に1社しか残らない）。
-              計算値が無い企業は「年収が分からない」ので、絞り込みからは外す。 */
-        const calcSal = calcAvgSalaryMap[c.id] ?? null;
-        if (calcSal === null || calcSal < params.salaryMin) return false;
-      }
       return true;
     })
     .map((c) => ({
       ...(c as CompanyForCarousel),
       job_count: jobCountMap[c.id] || 0,
       article_count: articleCountMap[c.id] || 0,
-      calc_avg_salary_man: calcAvgSalaryMap[c.id] ?? null,
       // #2 求人タイトル / #3 カルチャータグ
       top_job_titles: jobTitlesMap[c.id] || [],
       company_features: Array.isArray((c as CompanyForCarousel).company_features)
@@ -301,15 +271,13 @@ export async function searchCompanies(
   /* client-side ソート（salary / disclosure）
      ⚠️ "jobs"（募集中あり優先）は 2026-08-18 に廃止した。「募集あり」フィルタと同じ用途。
         知らない値は下の分岐に入らず、DB 側の既定（updated_at 降順）のまま返る。 */
-  if (params.sort === "salary") {
-    /* ⚠️ **求人由来の計算値のみで並べる（2026-08-11）。**
-          `avg_salary` へのフォールバック（parseSalary）は関数ごと削除した。
-          出典の無い機械投入値だったうえ、"700万円〜" を 0.07 と換算しており
-          並び順にもなっていなかった。計算値が無い企業は 0 として後ろに置く。 */
-    const salaryOf = (c: CompanyForCarousel) =>
-      (c as { calc_avg_salary_man?: number | null }).calc_avg_salary_man ?? 0;
-    filteredCompanies = [...filteredCompanies].sort((a, b) => salaryOf(b) - salaryOf(a));
-  } else if (params.sort === "disclosure") {
+  /* ⚠️ 「年収高い順」（sort === "salary"）は 2026-08-25 に外した。**戻さないこと。**
+        年収はポジションによって違うので、会社単位の1つの数字では表せない。
+        実データでも、求人に年収が入っている企業は 79社中**1社**しかなく、
+        残り78社は 0 として並ぶだけだった。あわせて `?salaryMin=` の絞り込みと、
+        その裏で走っていた求人年収の集計（calc_avg_salary_man）も削除した。
+     ⚠️ 旧 URL の `?sort=salary` / `?salaryMin=` は無視され、既定に落ちる。壊れない。 */
+  if (params.sort === "disclosure") {
     /* ⚠️ **これは `/companies` の並び替え専用のスコア。**
           `lib/utils/disclosureScore.ts` の `calcDisclosureScore`（95点満点・
           /biz/dashboard と /biz/company 用）とは**別物**。名前が似ているので混同しないこと。

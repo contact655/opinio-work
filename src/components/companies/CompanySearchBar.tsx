@@ -13,7 +13,6 @@ import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle
  *    充填率が上がったら true に戻す。ロジック側（searchCompanies）は無変更。
  */
 const SHOW_WORK_STYLE_FILTER = false;
-import { fmtMan } from "@/lib/utils/salary";
 import type { PhaseOption } from "@/lib/constants/phase";
 import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 
@@ -320,10 +319,9 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
   const currentHiring     = searchParams.get("hiring") === "1";
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
-  const currentSalaryMin  = searchParams.get("salaryMin") ?? "";
 
   const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign || currentWorkStyle || currentSalaryMin
+    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign || currentWorkStyle
   );
 
   const locationOptions = locations.map((l) => ({ value: l, label: l }));
@@ -382,13 +380,6 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
       key: "workStyle",
       label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle,
       onRemove: () => updateParam("workStyle", null),
-    });
-  }
-  if (currentSalaryMin) {
-    activeFilters.push({
-      key: "salaryMin",
-      label: `${fmtMan(Number(currentSalaryMin))}万円以上`,
-      onRemove: () => updateParam("salaryMin", null),
     });
   }
 
@@ -536,29 +527,14 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
           </div>
           )}
 
-          {/* ③ 年収フィルター */}
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              className={`csb-filter-pill${currentSalaryMin ? " active" : ""}`}
-              onClick={() => currentSalaryMin ? updateParam("salaryMin", null) : toggleChip("salaryMin")}
-            >
-              {currentSalaryMin ? `${fmtMan(Number(currentSalaryMin))}万円以上` : "年収"}
-              {currentSalaryMin
-                ? <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>
-                : <span style={{ fontSize: 12, marginLeft: 2 }}>▾</span>}
-            </button>
-            {openChip === "salaryMin" && (
-              <div className="csb-filter-pill-menu">
-                {["400", "500", "600", "700", "800", "900", "1000"].map((v) => (
-                  <button key={v} type="button" className={`csb-filter-pill-item${currentSalaryMin === v ? " selected" : ""}`}
-                    onClick={() => { updateParam("salaryMin", v); setOpenChip(null); }}
-                  >{fmtMan(Number(v))}万円以上</button>
-                ))}
-              </div>
-            )}
-          </div>
-
+          {/* ⚠️ **年収フィルタは 2026-08-25 に外した。戻さないこと。**
+                ① 年収はポジションによって違うので、会社単位の1つの数字では表せない
+                ② 実データでも成り立っていなかった。掲載79社のうち求人に年収が入って
+                   いるのは**1社だけ**（`ow_companies.avg_salary` は0社）で、
+                   どの閾値を選んでも**78社が無条件に落ちていた**
+                （2026-08-20 に外した年齢フィルタと同じ形。生年月日が未入力の人を
+                  無条件に落としていて、法令以前に機能として壊れていた）
+             ⚠️ 旧 URL の `?salaryMin=` は無視される。壊れない。 */}
           {/* 外資系 */}
           <button
             type="button"
