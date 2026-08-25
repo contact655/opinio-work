@@ -33,7 +33,13 @@ type Row =
   /** グループ見出し。selectable=false のとき、クリックできない */
   | { kind: "header"; id: string; label: string; selectable: false }
   /** 選択できる行 */
-  | { kind: "item"; id: string; label: string; parentName: string | null; matchedAlias: string | null; selectable: true };
+  | { kind: "item"; id: string; label: string; parentName: string | null; matchedAlias: string | null; selectable: true }
+  /* ★開閉できる大分類（2026-08-25 / 柴さんの指示）。**検索欄が空のときだけ出る。**
+        ⚠️ それまでは空のときに大分類17件＋子126件を**全部フラットに**出しており、
+           「事業開発」の子6件を抜けないと「営業」に届かなかった。
+        ⚠️ `selectable` は `selectableParent` に従う。求人側（false）は
+           大分類を選べないので、行そのものが開閉ボタンとして働く。 */
+  | { kind: "group"; id: string; label: string; childCount: number; expanded: boolean; selectable: boolean };
 
 export function RoleSearchSelect({
   roles,
@@ -64,6 +70,8 @@ export function RoleSearchSelect({
   // ariaLabel から作る（同一フォームに職種欄は1つずつしか無い）
   const listId = `role-listbox-${ariaLabel}`;
   const [activeIndex, setActiveIndex] = useState(0);
+  /** 開いている大分類の id。⚠️ 検索を打ったら意味が無くなるので畳む */
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -124,11 +132,29 @@ export function RoleSearchSelect({
         continue;
       }
 
+      /* ★検索欄が空のときは**大分類だけ**を並べる（2026-08-25 / 柴さんの指示）。
+            子は開いたときにだけ出す。⚠️ ここで子まで出すと143行の一覧に戻る。 */
+      if (!q) {
+        const isOpen = expanded.has(root.id);
+        out.push({
+          kind: "group", id: root.id, label: root.name,
+          childCount: kids.length, expanded: isOpen,
+          /* 大分類そのものも選べる（職歴側）。過去の非IT職は「営業」で十分なケースがある。
+             求人側は選ばせないので、行は開閉だけを担う。 */
+          selectable: selectableParent,
+        });
+        if (isOpen) {
+          for (const k of kids) {
+            out.push({ kind: "item", id: k.id, label: k.name, parentName: root.name, matchedAlias: null, selectable: true });
+          }
+        }
+        continue;
+      }
+
       // 子を持つ大分類。自分も子もヒットしなければ丸ごと出さない
       if (!rootMatch.hit && hitKids.length === 0) continue;
 
       if (selectableParent) {
-        // 大分類そのものも選べる（職歴側）。過去の非IT職は「営業」で十分なケースがある
         out.push({ kind: "item", id: root.id, label: root.name, parentName: null, matchedAlias: rootMatch.alias, selectable: true });
       } else {
         // 求人側は大分類を選ばせない。見出しとしてだけ出す
@@ -136,17 +162,20 @@ export function RoleSearchSelect({
       }
 
       // 大分類自体がヒットしたときは配下を全部出す（絞り込みで子が消えると選べなくなる）
-      const shown = rootMatch.alias === null && rootMatch.hit && q ? kids.map((k) => ({ k, m: match(k, q) })) : hitKids;
-      for (const { k, m } of (q ? shown : kids.map((k) => ({ k, m: { hit: true, alias: null } })))) {
+      const shown = rootMatch.alias === null && rootMatch.hit ? kids.map((k) => ({ k, m: match(k, q) })) : hitKids;
+      for (const { k, m } of shown) {
         out.push({ kind: "item", id: k.id, label: k.name, parentName: root.name, matchedAlias: m.alias, selectable: true });
       }
     }
     return out;
-  }, [roots, childrenOf, query, selectableParent, aliases]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [roots, childrenOf, query, selectableParent, aliases, expanded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectableRows = useMemo(() => rows.filter((r) => r.selectable), [rows]);
 
   useEffect(() => { setActiveIndex(0); }, [query]);
+  /* ⚠️ 検索中は大分類の開閉に意味が無い（ヒットした子が直接出る）ので畳む。
+        畳まないと、検索を消したときに前回開いた大分類が開いたまま戻る。 */
+  useEffect(() => { if (query.trim()) setExpanded(new Set()); }, [query]);
 
   function commit(id: string) {
     onSelect(id);
@@ -232,6 +261,71 @@ export function RoleSearchSelect({
                     background: "var(--bg-tint)", borderTop: "1px solid var(--line-soft)",
                   }}>
                     {row.label}
+                  </div>
+                );
+              }
+              /* ★大分類の行（検索欄が空のときだけ出る）。
+                    ⚠️ ボタンを入れ子にしない。**横並びの兄弟**にする
+                       （`<button>` の中に `<button>` は不正な HTML）。
+                    ⚠️ 選べる側（職歴）は「左＝選ぶ / 右＝開く」に分ける。
+                       選べない側（求人）は行ごと開閉ボタンにする。 */
+              if (row.kind === "group") {
+                const gIdx = selectableRows.findIndex((r) => r.id === row.id);
+                const gActive = gIdx >= 0 && gIdx === activeIndex;
+                const gSelected = row.id === value;
+                const toggle = () => setExpanded((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(row.id)) next.delete(row.id); else next.add(row.id);
+                  return next;
+                });
+                const chevron = (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                       style={{ transform: row.expanded ? "rotate(90deg)" : "none", transition: "transform 0.12s", flexShrink: 0 }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                );
+                return (
+                  <div key={row.id} style={{
+                    display: "flex", alignItems: "stretch",
+                    background: gActive ? "var(--royal-50)" : "#fff",
+                    borderTop: "1px solid var(--line-soft)",
+                  }}>
+                    <button
+                      type="button"
+                      role={row.selectable ? "option" : undefined}
+                      aria-selected={row.selectable ? gSelected : undefined}
+                      aria-expanded={row.selectable ? undefined : row.expanded}
+                      data-active={gActive ? "true" : undefined}
+                      onMouseEnter={() => { if (gIdx >= 0) setActiveIndex(gIdx); }}
+                      onClick={() => { if (row.selectable) commit(row.id); else toggle(); }}
+                      style={{
+                        flex: 1, minWidth: 0, textAlign: "left",
+                        padding: "9px 8px 9px 12px", border: "none", background: "none",
+                        cursor: "pointer", fontFamily: "inherit", fontSize: 13.5,
+                        color: gSelected ? "var(--royal)" : "var(--ink)",
+                        fontWeight: gSelected ? 700 : 600,
+                      }}
+                    >
+                      {row.label}
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>
+                        {row.childCount}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggle}
+                      aria-expanded={row.expanded}
+                      aria-label={`${row.label}の職種を${row.expanded ? "閉じる" : "開く"}`}
+                      className="btn-fixed-size"
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 40, border: "none", background: "none", cursor: "pointer",
+                        color: "var(--ink-mute)", padding: 0,
+                      }}
+                    >
+                      {chevron}
+                    </button>
                   </div>
                 );
               }
