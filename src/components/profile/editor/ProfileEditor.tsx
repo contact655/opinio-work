@@ -131,10 +131,15 @@ export default function ProfileEditor({
         右カラムの StanceCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
         まだ渡してくるので、型としては残す。 */
   initialScoutEnabled: _initialScoutEnabled = null,
-  initialDesiredRoleIds = [],
-  desiredRoleOptions,
-  initialProfilePrefs = null,
+  /* ⚠️ 「転職の希望」は 2026-08-25 に右カラム（`MypageClient`）へ移した。
+        この3つは**受け取るだけで使わない**。`/profile/edit` の呼び出し元が
+        まだ渡してくるので型としては残す（`initialScoutEnabled` と同じ扱い）。 */
+  initialDesiredRoleIds: _initialDesiredRoleIds = [],
+  desiredRoleOptions: _desiredRoleOptions,
+  initialProfilePrefs: _initialProfilePrefs = null,
   profileTabExtra,
+  activitySlot,
+  articlesSlot,
   companyLogoInfo = [],
   followCounts,
   openBasicNonce = 0, openHeaderNonce = 0,
@@ -163,8 +168,14 @@ export default function ProfileEditor({
   initialDesiredRoleIds?: string[];
   /** 希望職種ピッカーの候補。**職歴の roles とは母集団が違う**（is_it_saas で絞る） */
   desiredRoleOptions?: RoleItem[];
-  /** プロフィールタブの一番下に足すもの（`/mypage` が母校・アクティビティを渡す） */
+  /** プロフィールタブの一番下に足すもの（`/mypage` が母校を渡す） */
   profileTabExtra?: React.ReactNode;
+  /* ⚠️ ★下の2つは**素通しするだけ**（2026-08-25）。`ProfileTab` の中の
+        決まった位置に入る。ここで中身を組み立てないこと。 */
+  /** アクティビティ（自己紹介の直後）。`/mypage` が渡す */
+  activitySlot?: React.ReactNode;
+  /** OPINIO 掲載記事（メディア掲載の直後）。`/mypage` が渡す */
+  articlesSlot?: React.ReactNode;
   /* ── 外から特定のカードを開く合図。値が変わるたびに開く ──────────────
         ⚠️ **プロフィールタブへの切り替えもここでやる。** 別のタブを開いたまま
            押されると、カードは開くのに画面には出ない。 */
@@ -422,20 +433,14 @@ export default function ProfileEditor({
             notifyGlobalSave={notifyGlobalSave}
             companyLogoInfo={companyLogoInfo}
             followCounts={followCounts}
+            activitySlot={activitySlot}
+            articlesSlot={articlesSlot}
             openBasicNonce={openBasicNonce}
             openHeaderNonce={openHeaderNonce}
             openCareerNonce={openCareerNonce}
-            /* ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2） */
-            desiredRoleOptions={desiredRoleOptions}
-            initialIntentPrefs={{
-              desired_role_ids:    initialDesiredRoleIds,
-              desired_prefectures: initialProfilePrefs?.desired_prefectures ?? null,
-              desired_work_styles: initialProfilePrefs?.desired_work_styles ?? null,
-              transfer_timing:     initialProfilePrefs?.transfer_timing ?? null,
-              desired_salary_min:  initialProfilePrefs?.desired_salary_min ?? null,
-              desired_salary_max:  initialProfilePrefs?.desired_salary_max ?? null,
-              desired_phase:       initialProfilePrefs?.desired_phase ?? null,
-            }}
+            /* ⚠️ 「転職の希望」は 2026-08-25 に右カラム（`MypageClient`）へ移した。
+                  `desiredRoleOptions` / `initialProfilePrefs` / `initialDesiredRoleIds` は
+                  受け取るだけで `ProfileTab` へは渡さない。**ここに戻さないこと。** */
             onVisibilitySaved={(v) => setSavedSettings((prev) => ({ ...prev, visibility: v }))}
           />
           {/* 母校・アクティビティ（プロフィールの下端） */}

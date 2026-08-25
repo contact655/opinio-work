@@ -81,6 +81,18 @@ export default async function MypagePage({
   let editorRoles: { id: string; name: string; parent_id: string | null; display_order: number }[] = [];
   let desiredRoleOptions: typeof editorRoles = [];
   let initialExperiences: Stint[] = [];
+  /* ── ★公開プロフィールと同じ構成にするための2つ（2026-08-25 / 柴さんの指示）──
+        ⚠️ 型は `/u/[id]` が渡している形と**同じにすること**。片方だけ列を足すと
+           渡した先で読まれない列が生まれる。 */
+  let recentPosts: {
+    id: string; content: string; image_url: string | null; created_at: string;
+    likes: { count: number }[];
+  }[] = [];
+  let featuredArticles: {
+    id: string; slug: string; title: string; subtitle: string | null;
+    type: string; eyecatch_gradient: string | null; read_min: number | null;
+    published_at: string | null;
+  }[] = [];
   if (owUser) {
     const [
       { data: edus },
@@ -95,6 +107,8 @@ export default async function MypagePage({
       { data: linkRows },
       { data: desiredRoleRows },
       { data: roleAliasRows },
+      { data: recentPostsRaw },
+      { data: featuredArticlesRaw },
     ] = await Promise.all([
       supabase
         .from("ow_user_educations")
@@ -156,6 +170,25 @@ export default async function MypagePage({
       supabase.from("ow_profile_desired_roles").select("role_id").eq("user_id", user.id),
       /* 職種の別名（120件）。検索でヒットさせるために全件渡す */
       supabase.from("ow_role_aliases").select("role_id, alias"),
+      /* ★アクティビティ（2026-08-25）。`/u/[id]` と同じ取り方・同じ件数にする。
+            ⚠️ `ow_posts_visible` を**session クライアント**で引く。admin で引くと
+               自分には見えないはずの投稿まで出て、公開プロフィールと食い違う。
+            ⚠️ `.limit(6)` は `/u/[id]` と同じ。片方だけ変えると件数がズレる。 */
+      supabase
+        .from("ow_posts_visible")
+        .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
+        .eq("user_id", owUser.id)
+        .order("created_at", { ascending: false })
+        .limit(6),
+      /* ★OPINIO 掲載記事（2026-08-25）。⚠️ 条件を `/u/[id]` と同じにする
+            （`is_published = true`。下書きを本人にだけ見せる形にしない）。 */
+      supabase
+        .from("ow_articles")
+        .select("id, slug, title, subtitle, type, eyecatch_gradient, read_min, published_at")
+        .eq("user_id", owUser.id)
+        .eq("is_published", true)
+        .order("published_at", { ascending: false })
+        .limit(6),
     ]);
 
     followCounts = followCountsResult;
@@ -244,6 +277,8 @@ export default async function MypagePage({
     /* ── ここから下はプロフィール編集フォーム用の組み立て ────────────────────
           ⚠️ **追加のクエリを投げない。** 上の Promise.all で引いた行から作る。 */
     achievementsRaw = (achRows ?? []) as Record<string, unknown>[];
+    recentPosts = (recentPostsRaw ?? []) as typeof recentPosts;
+    featuredArticles = (featuredArticlesRaw ?? []) as typeof featuredArticles;
     awardsRaw = (awdRows ?? []) as Record<string, unknown>[];
     certificationsRaw = (certRows ?? []) as Record<string, unknown>[];
     languagesRaw = (langRows ?? []) as Record<string, unknown>[];
@@ -479,6 +514,20 @@ export default async function MypagePage({
 
   // 投稿できる人か。できないなら「アクティビティ」セクションごと畳む
   //（コンポーザーがセクションの中身そのものなので、消すと空欄になる）
+  /* ★自分がいいねしている投稿ID（2026-08-25）。`/u/[id]` と同じ形。
+        ⚠️ 投稿が0件なら**引かない**（`.in()` に空配列を渡さない）。 */
+  const likedPostIds: string[] = [];
+  if (owUser && recentPosts.length > 0) {
+    const { data: likedRows, error: likedErr } = await supabase
+      .from("ow_post_likes")
+      .select("post_id")
+      .eq("user_id", owUser.id)
+      .in("post_id", recentPosts.map((p) => p.id));
+    /* ⚠️ 握りつぶさない。403 も 400 も「いいねしていない」に化ける */
+    if (likedErr) console.error("[mypage] ow_post_likes:", likedErr.message);
+    for (const r of likedRows ?? []) likedPostIds.push(r.post_id as string);
+  }
+
   const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
 
   return (
@@ -519,6 +568,10 @@ export default async function MypagePage({
       desiredRoleOptions={desiredRoleOptions}
       initialDesiredRoleIds={desiredRoleIds}
       initialProfilePrefs={profilePrefs}
+      /* ── ★公開プロフィールと同じ構成にするための2つ（2026-08-25）── */
+      recentPosts={recentPosts}
+      likedPostIds={likedPostIds}
+      featuredArticles={featuredArticles}
     />
   );
 }

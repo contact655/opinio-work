@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
 import StanceCard from "@/components/profile/editor/StanceCard";
+import CareerIntentBox from "@/components/profile/editor/CareerIntentBox";
+/* ★公開プロフィール（`/u/[id]`）と同じ部品（2026-08-25）。**似た見た目を書き足さない** */
+import { ActivitySection, ProfileArticlesSection } from "@/components/profile/view/ProfileSections";
 import TalkToMeCard, { type TalkMembership } from "@/components/profile/editor/TalkToMeCard";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
@@ -27,63 +30,24 @@ type OwUser = ComponentProps<typeof ProfileEditor>["owUser"];
       同じ内容は `/mypage/applications` `/mypage/bookmarks` にある（実測 200）。
       ⚠️ `MypageLayout` の `activeKey` はこれとは別物。混同しないこと。 */
 
-// ─── Shared: Section block ────────────────────────────────────────────────────
-
-function SectionBlock({
-  title, titleEn, right, children,
-}: {
-  title: string; titleEn?: string; right?: React.ReactNode; children: React.ReactNode;
-}) {
-  return (
-    <section style={{
-      background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-    }}>
-      <div style={{
-        display: "flex", alignItems: "baseline",
-        justifyContent: "space-between",
-        marginBottom: 18, paddingBottom: 14,
-        borderBottom: "1px solid var(--line)",
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-noto-serif)',
-          fontSize: 17, fontWeight: 600, color: "var(--ink)",
-          display: "flex", alignItems: "baseline", gap: 10,
-        }}>
-          {title}
-          {titleEn && (
-            <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
-              color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
-            }}>
-              {titleEn}
-            </span>
-          )}
-        </div>
-        {right}
-      </div>
-      {children}
-    </section>
-  );
-}
+/* ⚠️ `SectionBlock`（見出し＋罫線の枠）は 2026-08-25 に削除した。唯一の利用者だった
+      「アクティビティ」を本文の中へ移し、そちらは `/u/[id]` と同じ部品を使うため。
+   ⚠️ 似た枠が要るときは書き足さず、`components/profile/view/ProfileSections.tsx`
+      の部品を使うこと（公開プロフィールと片方だけ直る状態を作らない）。 */
 
 // ─── VIEW: Dashboard ──────────────────────────────────────────────────────────
 
 function DashboardView({
-  userId, userInitial, userAvatar,
   userEducations,
   schoolPeerCounts = {},
-  canPost,
   profileEditorWith,
 }: {
-  /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
-  canPost: boolean;
+  /* ⚠️ `userId` / `userInitial` / `userAvatar` / `canPost` は 2026-08-25 に外した。
+        アクティビティを本文の中（`activitySlot`）へ移し、投稿フォームは
+        `MypageClient` が組むようになったため、この階層では使わない。 */
   /** プロフィール編集（3タブ＋カード群）を描く。
-      引数に渡したものは**プロフィールタブの一番下**に入る（母校・アクティビティ） */
+      引数に渡したものは**プロフィールタブの一番下**に入る（母校） */
   profileEditorWith: (extra: React.ReactNode) => React.ReactNode;
-  userId: string;
-  userInitial: string;
-  userAvatar: string;
   userEducations?: {
     id: string; school: string; school_id: string | null;
     school_master: { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null;
@@ -222,27 +186,12 @@ function DashboardView({
         );
       })()}
 
-      {/* ── アクティビティ投稿フォーム ──
-          ⚠️ 投稿できない人にはセクションごと出さない（2026-08-05）。
-             コンポーザーがセクションの中身そのものなので、コンポーザーだけ消すと
-             見出しだけが残って空欄になる。 */}
-      {canPost && (
-      <SectionBlock title="アクティビティ" titleEn="ACTIVITY">
-        <PostComposer
-          avatarColor={userAvatar ?? "linear-gradient(135deg, var(--royal), #3B5FD9)"}
-          initial={userInitial}
-          avatarUrl={null}
-        />
-        <div style={{ marginTop: 8 }}>
-          <Link href={`/u/${userId}`} style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none",
-          }}>
-            投稿を公開プロフィールで確認する →
-          </Link>
-        </div>
-      </SectionBlock>
-      )}
+      {/* ⚠️★「アクティビティ」は 2026-08-25 に**プロフィール本文の中へ移した**
+             （柴さんの指示：公開プロフィールと同じ構成にする）。置き場所は
+             `ProfileTab` の `activitySlot`＝**自己紹介の直後**で、`/u/[id]` と同じ。
+          ⚠️ ここに戻さないこと。戻すと投稿フォームが1ページに2つ出る（ルール⑧）。
+          ⚠️ 「投稿を公開プロフィールで確認する →」も外した。投稿一覧が
+             **その場に出る**ようになったので、確認しに行く先が要らない。 */}
 
         </>
       )}
@@ -272,6 +221,9 @@ export default function MypageClient({
   ambassadorMemberships = [],
   currentCompanies = [],
   schoolPeerCounts = {},
+  recentPosts = [],
+  likedPostIds = [],
+  featuredArticles = [],
   ...editorProps
 }: {
   /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
@@ -298,6 +250,21 @@ export default function MypageClient({
   ambassadorMemberships?: AmbassadorMembership[];
   currentCompanies?: { id: string; name: string }[];
   schoolPeerCounts?: Record<string, number>;
+  /* ── ★公開プロフィールと同じ構成にするための3つ（2026-08-25 / 柴さんの指示）──
+        ⚠️ 取得は `page.tsx` が持つ。ここは**受け取って渡すだけ**。 */
+  /** 自分の投稿（最大6件）。`/u/[id]` と同じ取り方 */
+  recentPosts?: {
+    id: string; content: string; image_url: string | null; created_at: string;
+    likes: { count: number }[];
+  }[];
+  /** 自分がいいねしている投稿ID。⚠️ 配列のまま扱う（`Set` にしない） */
+  likedPostIds?: string[];
+  /** OPINIO 掲載記事 */
+  featuredArticles?: {
+    id: string; slug: string; title: string; subtitle: string | null;
+    type: string; eyecatch_gradient: string | null; read_min: number | null;
+    published_at: string | null;
+  }[];
 } & ProfileEditorProps) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -324,6 +291,18 @@ export default function MypageClient({
         「最近の申込」「ブックマーク」の**すべて見る →**で、そのカードごと外したため。
         同じ内容は左メニューの `/mypage/applications` `/mypage/bookmarks` にあり、
         そちらが本体。**ビューの実装は指示により残している**（消すかどうかは別途判断）。 */
+  /* ⚠️ `editorProps` は `ProfileEditor` の props をそのまま束ねたもので、
+        ここで使う分だけ型を付け直す（`initialScoutEnabled` と同じやり方）。
+        **`as` を各所に散らさず、1箇所でまとめる。** */
+  const intentProps = editorProps as Partial<ComponentProps<typeof CareerIntentBox>> & {
+    initialDesiredRoleIds?: string[];
+    initialProfilePrefs?: {
+      desired_prefectures: string[] | null; desired_work_styles: string[] | null;
+      transfer_timing: string | null; desired_salary_min: number | null;
+      desired_salary_max: number | null; desired_phase: string[] | null;
+    } | null;
+  };
+
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       {/* ★「声をかけられてもよいか」（2026-08-20 / フェーズB）。
@@ -333,7 +312,30 @@ export default function MypageClient({
              ⚠️ 「転職について」は**表示だけ**。編集は本文の「転職の希望」に1つだけ置く。 */}
       <StanceCard
         initialScoutEnabled={(editorProps as { initialScoutEnabled?: boolean | null }).initialScoutEnabled ?? null}
-        openToWorkLabel={owUser?.is_open_to_work ? "積極的に探している" : "情報収集として"}
+      />
+
+      {/* ★「転職の希望」（2026-08-25 / 柴さんの指示）。**本文からここへ移した。**
+             ⚠️ 直前の `StanceCard` が「転職について」を**表示だけ**していたので、
+                同じ値が本文と右カラムの2箇所に出ていた。表示だけの複製を消し、
+                編集ごとこちらへ寄せた（ルール⑧）。
+             ⚠️ 値は `editorProps` から読む。`ProfileEditor` → `ProfileTab` の
+                受け渡しは外したので、**本文に戻すならここから外すこと。**
+             ⚠️ 0件でも出す。未設定なら「情報収集として」と灰色で出て、
+                未設定であることがそのまま読める。 */}
+      <CareerIntentBox
+        initialIsOpenToWork={owUser?.is_open_to_work ?? false}
+        initialPrefs={{
+          desired_role_ids:    intentProps.initialDesiredRoleIds ?? [],
+          desired_prefectures: intentProps.initialProfilePrefs?.desired_prefectures ?? null,
+          desired_work_styles: intentProps.initialProfilePrefs?.desired_work_styles ?? null,
+          transfer_timing:     intentProps.initialProfilePrefs?.transfer_timing ?? null,
+          desired_salary_min:  intentProps.initialProfilePrefs?.desired_salary_min ?? null,
+          desired_salary_max:  intentProps.initialProfilePrefs?.desired_salary_max ?? null,
+          desired_phase:       intentProps.initialProfilePrefs?.desired_phase ?? null,
+        }}
+        roles={intentProps.roles ?? []}
+        roleAliases={intentProps.roleAliases ?? {}}
+        desiredRoleOptions={intentProps.desiredRoleOptions}
       />
 
       {/* ★在籍している会社について話を聞かれてもよいか（2026-08-23 / フェーズ2）。
@@ -477,11 +479,7 @@ export default function MypageClient({
 
       {(
         <DashboardView
-          userId={owUser?.id ?? ""}
-          userInitial={userInitial}
-          userAvatar={userAvatar}
           userEducations={educations}
-          canPost={canPost}
           schoolPeerCounts={schoolPeerCounts}
           profileEditorWith={(extra) => (
             <ProfileEditor
@@ -489,6 +487,29 @@ export default function MypageClient({
               owUser={owUser}
               followCounts={followCounts}
               profileTabExtra={extra}
+              /* ★公開プロフィールと同じ位置に同じ部品を出す（2026-08-25）。
+                    ⚠️ place だけを `ProfileTab` が決め、中身はここで組む。
+                    ⚠️ `/u/[id]` と**同じ部品**を使うこと。似た見た目を書き足さない。 */
+              activitySlot={
+                <ActivitySection
+                  posts={recentPosts}
+                  likedPostIds={likedPostIds}
+                  viewerIsOwner
+                  displayName={userName}
+                  /* ⚠️ 投稿できない人にはフォームを渡さない。
+                        セクション自体は出す——0件でも「まだ投稿していません」と
+                        書くのが `/u/[id]` の作り（消すと置き場所が無いのか
+                        投稿が無いのかを読み手が区別できない）。 */
+                  composer={canPost ? (
+                    <PostComposer
+                      avatarColor={userAvatar}
+                      initial={userInitial}
+                      avatarUrl={owUser?.avatar_url ?? null}
+                    />
+                  ) : undefined}
+                />
+              }
+              articlesSlot={<ProfileArticlesSection featuredArticles={featuredArticles} />}
             />
           )}
         />

@@ -208,10 +208,15 @@ export default function CareerIntentBox({
   const openToWorkText = openToWorkLabel(saved.isOpenToWork);
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div>
+      {/* ⚠️ 幅を自分で決めない（2026-08-25）。右カラムへ移したので、
+             器（`MypageLayout` の右カラム）の幅にそのまま従う。
+             `maxWidth: 680` を残すと本文幅の想定のままになる。
+          ⚠️ 枠の指定は `StanceCard` / `TalkToMeCard` と**同じ値**にすること。
+             1枚だけ内側の余白が違うと、縦に並べたとき文字の左端が揃わない。 */}
       <section style={{
         background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
-        padding: "18px 24px", marginBottom: 20, boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        padding: "18px 18px 16px", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
       }}>
         {/* ★見出しの組み方を**右カラムのカードに揃えた**（2026-08-25 / 柴さんの指示）。
                小見出し（誰に向けた話か）→ 問い → 値、の3段。`StanceCard` と同じ形。

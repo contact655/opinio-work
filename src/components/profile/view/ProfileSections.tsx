@@ -18,6 +18,8 @@ import Link from "next/link";
 import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
 /* 言語の習熟度ラベル（2026-08-24）。⚠️ 生の値（`native` 等）を画面に出さない */
 import { languageProficiencyLabel } from "@/lib/constants/languageProficiency";
+import { PostCard } from "@/components/profile/PostCard";
+import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
 /* ⚠️ `SocialIcon.tsx` は `"use client"` を**持たない**素のモジュール。
       サーバーコンポーネントからも `SOCIAL_META[x].label` と読めるので、
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
@@ -1148,6 +1150,116 @@ export function ProfileTimelineSection({ id, title, onAdd, addLabel, manageHref,
         )}
       </div>
       {children}
+    </section>
+  );
+}
+
+/** プロフィール内の抜粋で出す最大件数。⚠️ フィードタブは全件なので、ここだけ */
+const ACTIVITY_PREVIEW_LIMIT = 3;
+
+type ActivityPost = {
+  id: string; content: string; image_url: string | null; created_at: string;
+  likes: { count: number }[];
+};
+
+/**
+ * アクティビティ（その人の投稿）。**自己紹介と職歴の間**に1つだけ置く。
+ *
+ * ⚠️ ★`/u/[id]/page.tsx` から**ここへ移した**（2026-08-25）。`/mypage` の
+ *    プロフィールにも同じものを出すため。**JSX は1文字も変えていない。**
+ *    投稿フォームは足していない——`composer` を渡した側だけが持つ。
+ *
+ * ⚠️ **0件でも消さない。** 「まだ投稿していません」と書く。
+ *    消すと「投稿していない」のか「置き場所が無い」のかを読み手が区別できない
+ *    （それが 2026-08-23 の出発点）。
+ * ⚠️ 本人向けの投稿導線はこのページに置かない（2026-08-16/17 の判断）。
+ *    投稿は `/mypage` のアクティビティから行う。空状態でも促さない。
+ *
+ * ── ★上位タブ（プロフィール / フィード）は 2026-08-23 に外した ──────────────
+ * 同じ投稿を「抜粋」と「全件」の2箇所に出しており、**アクティビティがあれば足りる**
+ * （柴さんの判断）。全件はこのセクションの中で展開する。
+ *
+ * ⚠️ **タブを戻さないこと。** 戻すと同じ投稿が1ページに2度出る形に戻る。
+ * ⚠️ 取得は `.limit(6)` なので「すべて」も最大6件。展開しても長くなりすぎない。
+ */
+export function ActivitySection({
+  posts, likedPostIds, viewerIsOwner, displayName, composer,
+}: {
+  posts: ActivityPost[];
+  /* ⚠️ **配列で受ける。`Set` にしないこと**（2026-08-25）。この部品は
+        `"use client"` なので、サーバーコンポーネントから渡る props は
+        RSC 境界を越える。React 18 の直列化に `Set` を通す確証が無く、
+        しかも**投稿0件だと一度も読まれない**ので、動いて見えても検証にならない。 */
+  likedPostIds: string[];
+  viewerIsOwner: boolean;
+  displayName: string;
+  /** ★本人の投稿フォーム（2026-08-25）。`/mypage` だけが渡す。
+      ⚠️ `/u/[id]` には渡さない。公開プロフィールに投稿導線は置かない
+         （2026-08-16/17 の判断）。**ここで `viewerIsOwner` から生やさないこと。** */
+  composer?: React.ReactNode;
+}) {
+  return (
+    <section id="activity" style={{
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+          アクティビティ
+        </span>
+        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+          ACTIVITY
+        </span>
+        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        {posts.length > 0 && (
+          <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
+            {posts.length}件
+          </span>
+        )}
+      </div>
+
+      {composer && <div style={{ marginBottom: posts.length > 0 ? 18 : 14 }}>{composer}</div>}
+
+      {posts.length === 0 ? (
+        <>
+          {/* ⚠️ 本人が見ているときは三人称にしない（2026-08-25）。
+                 `/mypage` に出すようになって「テスト三郎さんはまだ投稿していません」と
+                 自分に向かって言う形になった。**訪問者と本人で文を分ける。** */}
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.8 }}>
+            {viewerIsOwner ? "まだ投稿していません" : `${displayName}さんはまだ投稿していません`}
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+            {viewerIsOwner
+              ? "ここに、あなたの最近の投稿が表示されます。"
+              : `ここには、${displayName}さんの最近の投稿が表示されます。`}
+          </p>
+        </>
+      ) : (
+        /* ⚠️ カードはサーバー側で全件作り、表示件数の判断だけをクライアントに渡す
+               （`CollapsibleList` の使い方）。`PostCard` はクライアント部品なので
+               ここで配列にしておけば境界を越えられる。 */
+        <CollapsibleList
+          items={posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={{
+                id: post.id,
+                content: post.content,
+                image_url: post.image_url,
+                created_at: post.created_at,
+                likeCount: post.likes[0]?.count ?? 0,
+                isLiked: likedPostIds.includes(post.id),
+                isOwner: viewerIsOwner,
+              }}
+            />
+          ))}
+          limit={ACTIVITY_PREVIEW_LIMIT}
+          labelCollapsed={`投稿をすべて見る（残り ${posts.length - ACTIVITY_PREVIEW_LIMIT} 件）`}
+          containerStyle={{ display: "flex", flexDirection: "column", gap: 12 }}
+          fade
+        />
+      )}
     </section>
   );
 }

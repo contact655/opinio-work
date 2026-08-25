@@ -21,17 +21,16 @@ import { useState } from "react";
  *    書く経路も読む経路も無い死列で、`/api/dm/start` は `visibility` しか見ていない。
  *    出すと「オフにしたのに DM が届く」になる（docs/phase-a-stance-20260820.md）。
  *
- * ⚠️ 「転職について」は**表示だけ**。編集はプロフィール本文の「転職の希望」に1つだけ置く。
+ * ⚠️ 「転職について」は 2026-08-25 にこのカードから外した。
+ *    真下の `CareerIntentBox`（転職の希望）が同じ値を出し、そこから編集もできる。
+ *    **表示だけの複製をここに戻さないこと**（ルール⑧）。
  *    同じ列を触る画面を2つにしない。
  */
 export default function StanceCard({
   initialScoutEnabled,
-  openToWorkLabel,
 }: {
   /** `null` は「まだ選んでいない」。⚠️ `can_send_scout()` は null を false 扱いにする */
   initialScoutEnabled: boolean | null;
-  /** 「転職について」に出す現在の文言（表示のみ） */
-  openToWorkLabel: string;
 }) {
   /* ★保存済みの値だけを見る（ルール⑦）。押した瞬間ではなく、保存できてから更新する */
   const [saved, setSaved] = useState<boolean | null>(initialScoutEnabled);
@@ -132,23 +131,6 @@ export default function StanceCard({
         <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>
       )}
 
-      <div style={{ height: 1, background: "var(--line)", margin: "16px 0 12px" }} />
-
-      {/* ★「転職について」は**1行**にする（2026-08-24）。
-             ⚠️ 見出し・値・注記で3行を使っていたが、**表示だけの項目**にその重さは要らない。
-                左に項目名・右に値の1行にして、変更先はその下に短く添える。
-             ⚠️ ここは表示専用。編集は本文の「転職の希望」に1つだけ置く（ルール⑧）。 */}
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
-          転職について
-        </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", textAlign: "right", minWidth: 0 }}>
-          {openToWorkLabel}
-        </span>
-      </div>
-      <p style={{ margin: "4px 0 0", fontSize: 11, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-        変更は「転職の希望」から
-      </p>
     </section>
   );
 }

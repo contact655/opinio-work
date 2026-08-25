@@ -50,7 +50,6 @@ import { stintsToCareerEntries } from "./careerTimeline";
 import { SectionShowAll, SectionAddCircle, PencilIcon } from "@/components/profile/view/RowActions";
 import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
-import CareerIntentBox, { type IntentPrefs } from "./CareerIntentBox";
 import { CollapsibleRow } from "./formKit";
 import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
 import { getUserAge } from "@/lib/age";
@@ -538,16 +537,16 @@ export default function ProfileTab({
   onDirtyChange,
   notifyGlobalSave,
   companyLogoInfo = [],
-  /* ── ★ヘッダー下の「転職の希望」ボックス（2026-08-17 / フェーズ4-2）──────────
-        ⚠️ `initialScoutEnabled` は 2026-08-20 に受け取るのをやめた。
-           スカウトの可否は右カラムの `StanceCard` が持つ（`MypageClient` が
-           `editorProps` から直接読む）。**ここに戻すと同じ列を2箇所で触ることになる。** */
-  initialIntentPrefs,
-  desiredRoleOptions,
+  /* ⚠️ 「転職の希望」ボックスは 2026-08-25 に右カラムへ移した。
+        `initialScoutEnabled`（2026-08-20）と同じく、`MypageClient` が
+        `editorProps` から直接読む。**ここで受け取り直さないこと。**
+        同じ列を触る画面が2つに戻る。 */
   /* ⚠️ `onVisibilitySaved` は受け取るが使わない（2026-08-20 / B-2）。
         公開範囲は `/mypage/settings` が持つ。呼び出し元（ProfileEditor）が
         まだ渡してくるので、型としては残す。 */
   onVisibilitySaved: _onVisibilitySaved,
+  activitySlot,
+  articlesSlot,
   followCounts,
   openBasicNonce = 0, openHeaderNonce = 0,
   openCareerNonce = 0,
@@ -557,10 +556,10 @@ export default function ProfileTab({
         ⚠️ 値が**変わるたび**に開く。真偽値にしないこと（2回目が効かなくなる）。 */
   /** ★職歴の表示を組み直すための企業ロゴ情報（2026-08-16 / 2-6） */
   companyLogoInfo?: ({ id: string } & CompanyLogoInfo)[];
-  /** 希望条件。**ボックスのモーダルが編集する** */
-  initialIntentPrefs?: IntentPrefs;
-  /** 希望職種の候補（IT/SaaS で絞ったもの） */
-  desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  /** ★アクティビティの中身（2026-08-25）。`/mypage` が渡す。自己紹介の直後に入る */
+  activitySlot?: React.ReactNode;
+  /** ★OPINIO 掲載記事（2026-08-25）。`/mypage` が渡す。メディア掲載の直後に入る */
+  articlesSlot?: React.ReactNode;
   /** 公開範囲が保存できたら親へ返す（写真カードのプレビューが見る） */
   onVisibilitySaved?: (v: "public" | "login_only" | "private") => void;
   /** ★ヘッダーに出すフォロー数（2026-08-16 / 2-7）。0 の項目は出ない */
@@ -1262,20 +1261,11 @@ export default function ProfileTab({
             )}
           </div>
 
-          {/* ── ★転職の希望（ヘッダーの直下・2026-08-17 / フェーズ4-2）──────────
-                 公開範囲 / スカウト設定 / 転職検討状況 の**現在値**を要約で出し、
-                 ✎ で7項目のモーダルを開く。
-              ⚠️ タブ「転職の希望」「設定」はフェーズ4-3 で畳む。それまでは
-                 同じ列を触る画面が2つある（意図的な過渡状態）。 */}
-          {initialIntentPrefs && (
-            <CareerIntentBox
-              initialIsOpenToWork={settings.isOpenToWork}
-              initialPrefs={initialIntentPrefs}
-              roles={roles}
-              roleAliases={roleAliases}
-              desiredRoleOptions={desiredRoleOptions}
-            />
-          )}
+          {/* ⚠️ 「転職の希望」は 2026-08-25 に**右カラムへ移した**（柴さんの指示）。
+                 同じ値（転職について）を右カラムの `StanceCard` が表示だけしており、
+                 **同じ情報が本文と右カラムの2箇所**に出ていた。編集ごと右へ寄せた。
+              ⚠️ 本文に戻すなら、右カラム側（`MypageClient`）から必ず外すこと。
+                 2箇所に出す形へ戻さない。 */}
 
           {/* ── 自己紹介（#about）──────────────────────────────────────────
                  ★ヘッダーから外して独立セクションにした（2026-08-16 / 2-7）。
@@ -1320,6 +1310,14 @@ export default function ProfileTab({
               />
             </FormGroup>
           </ProfileEditModal>
+
+        {/* ★アクティビティ（2026-08-25 / 柴さんの指示）。
+               **`/u/[id]` と同じ位置（自己紹介の直後）**に出す。中身も同じ部品。
+            ⚠️ 中身と取得は `/mypage/page.tsx` が持ち、ここは**置き場所だけ**。
+               ProfileTab から `ow_posts` を引かないこと。
+            ⚠️ 渡されなければ何も出ない。投稿できない人には `/mypage` 側が渡さない
+               （見出しだけが残る形を作らない）。 */}
+        {activitySlot}
 
         {/* 職歴・学歴タブ */}
           <div style={{ maxWidth: 680 }}>
@@ -1583,6 +1581,13 @@ export default function ProfileTab({
               }}
               showAll={{ href: "/mypage/details/media", label: "メディア掲載", hiddenCount: mediaAppearances.length - shownMedia.length }}
             />
+
+            {/* ★OPINIO 掲載記事（2026-08-25 / 柴さんの指示）。
+                   **`/u/[id]` と同じ位置（メディア掲載の直後）**に出す。
+                ⚠️ 本人が編集するものではない（運営が `ow_articles.user_id` で紐づける）。
+                   **✎ や「追加」を足さないこと。**
+                ⚠️ 0件なら部品側が何も描かない。ここで条件を書かない。 */}
+            {articlesSlot}
           </div>
           {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**。
                  モーダルなので、開いていないあいだは何も描かない。

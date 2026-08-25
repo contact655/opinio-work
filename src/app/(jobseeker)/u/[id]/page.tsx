@@ -6,7 +6,6 @@ import { isTalkable } from "@/lib/companyMembers/talkable";
 import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
-import { PostCard } from "@/components/profile/PostCard";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
@@ -20,7 +19,6 @@ import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
-import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
 import { DMButton } from "@/components/profile/DMButton";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -33,6 +31,7 @@ import {
   ProfileMediaSection,
   ProfileTimelineSection,
   ProfileArticlesSection,
+  ActivitySection,
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
 import { ProfileHeader, shortCompanyName } from "@/components/profile/view/ProfileHeader";
@@ -98,97 +97,6 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     openGraph: { title },
     robots: { index: false, follow: false },
   };
-}
-
-/** プロフィール内の抜粋で出す最大件数。⚠️ フィードタブは全件なので、ここだけ */
-const ACTIVITY_PREVIEW_LIMIT = 3;
-
-type ActivityPost = {
-  id: string; content: string; image_url: string | null; created_at: string;
-  likes: { count: number }[];
-};
-
-/**
- * アクティビティ（その人の投稿）。**自己紹介と職歴の間**に1つだけ置く。
- *
- * ⚠️ **0件でも消さない。** 「まだ投稿していません」と書く。
- *    消すと「投稿していない」のか「置き場所が無い」のかを読み手が区別できない
- *    （それが 2026-08-23 の出発点）。
- * ⚠️ 本人向けの投稿導線はこのページに置かない（2026-08-16/17 の判断）。
- *    投稿は `/mypage` のアクティビティから行う。空状態でも促さない。
- *
- * ── ★上位タブ（プロフィール / フィード）は 2026-08-23 に外した ──────────────
- * 同じ投稿を「抜粋」と「全件」の2箇所に出しており、**アクティビティがあれば足りる**
- * （柴さんの判断）。全件はこのセクションの中で展開する。
- *
- * ⚠️ **タブを戻さないこと。** 戻すと同じ投稿が1ページに2度出る形に戻る。
- * ⚠️ 取得は `.limit(6)` なので「すべて」も最大6件。展開しても長くなりすぎない。
- */
-function ActivitySection({
-  posts, likedPostIds, viewerIsOwner, displayName,
-}: {
-  posts: ActivityPost[];
-  likedPostIds: Set<string>;
-  viewerIsOwner: boolean;
-  displayName: string;
-}) {
-  return (
-    <section id="activity" style={{
-      background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-          アクティビティ
-        </span>
-        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-          ACTIVITY
-        </span>
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-        {posts.length > 0 && (
-          <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600, color: "var(--ink-mute)" }}>
-            {posts.length}件
-          </span>
-        )}
-      </div>
-
-      {posts.length === 0 ? (
-        <>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.8 }}>
-            {displayName}さんはまだ投稿していません
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-            ここには、{displayName}さんの最近の投稿が表示されます。
-          </p>
-        </>
-      ) : (
-        /* ⚠️ カードはサーバー側で全件作り、表示件数の判断だけをクライアントに渡す
-               （`CollapsibleList` の使い方）。`PostCard` はクライアント部品なので
-               ここで配列にしておけば境界を越えられる。 */
-        <CollapsibleList
-          items={posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={{
-                id: post.id,
-                content: post.content,
-                image_url: post.image_url,
-                created_at: post.created_at,
-                likeCount: post.likes[0]?.count ?? 0,
-                isLiked: likedPostIds.has(post.id),
-                isOwner: viewerIsOwner,
-              }}
-            />
-          ))}
-          limit={ACTIVITY_PREVIEW_LIMIT}
-          labelCollapsed={`投稿をすべて見る（残り ${posts.length - ACTIVITY_PREVIEW_LIMIT} 件）`}
-          containerStyle={{ display: "flex", flexDirection: "column", gap: 12 }}
-          fade
-        />
-      )}
-    </section>
-  );
 }
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
@@ -421,14 +329,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
   /* ログインユーザーがいいねしている投稿ID一覧。
      ⚠️ 閲覧者の ow_users.id は上で1回引いたものを使い回す。
         ここで auth_id から引き直さないこと（2026-08-09 まで同じ行を2回引いていた）。 */
-  const likedPostIds = new Set<string>();
+  /* ⚠️ 配列で持つ。`ActivitySection` は `"use client"` なので `Set` を渡さない */
+  const likedPostIds: string[] = [];
   if (viewerOwUserId && recentPostsTyped.length > 0) {
     const { data: likedRows } = await supabase
       .from("ow_post_likes")
       .select("post_id")
       .eq("user_id", viewerOwUserId)
       .in("post_id", recentPostsTyped.map((p) => p.id));
-    for (const r of likedRows ?? []) likedPostIds.add(r.post_id as string);
+    for (const r of likedRows ?? []) likedPostIds.push(r.post_id as string);
   }
 
   // ロール情報 Map（職種名 + 親カテゴリ名）
