@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       url: "/companies",
       // OG画像の sub も「企業・求人」に合わせる（旧: 企業・カジュアル面談）
-      images: [{ url: "/api/og?type=list&title=%E4%BC%81%E6%A5%AD%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E4%BC%81%E6%A5%AD%E3%83%BB%E6%B1%82%E4%BA%BA", width: 1200, height: 630 }],
+      images: [{ url: "/api/og?type=list&name=%E4%BC%81%E6%A5%AD%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E4%BC%81%E6%A5%AD%E3%83%BB%E6%B1%82%E4%BA%BA&v=2", width: 1200, height: 630 }],
     },
     twitter: { card: "summary_large_image", description },
   };

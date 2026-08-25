@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       url: "/articles",
       // OG画像の title も「記事」に合わせる（旧: 取材記事）
-      images: [{ url: "/api/og?type=list&title=%E8%A8%98%E4%BA%8B&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%AA%E5%83%8D%E3%81%8D%E6%96%B9", width: 1200, height: 630 }],
+      images: [{ url: "/api/og?type=list&name=%E8%A8%98%E4%BA%8B&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E3%83%AA%E3%82%A2%E3%83%AB%E3%81%AA%E5%83%8D%E3%81%8D%E6%96%B9&v=2", width: 1200, height: 630 }],
     },
     twitter: { card: "summary_large_image", description },
   };

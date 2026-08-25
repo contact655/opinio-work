@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     description: "企業ページの開設と求人の掲載は無料。掲載件数・掲載期間の制限はありません。IT/SaaS業界に特化したキャリアプラットフォーム OPINIO。",
     type: "website",
     url: "https://opinio.jp/business",
-    images: [{ url: "https://opinio.jp/api/og?title=OPINIO+for+Business&subtitle=%E6%8E%B2%E8%BC%89%E3%81%AF%E7%84%A1%E6%96%99%E3%81%A7%E3%81%99", width: 1200, height: 630 }],
+    images: [{ url: "https://opinio.jp/api/og?name=OPINIO+for+Business&sub=%E6%8E%B2%E8%BC%89%E3%81%AF%E7%84%A1%E6%96%99%E3%81%A7%E3%81%99&v=2", width: 1200, height: 630 }],
   },
 };
 

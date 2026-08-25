@@ -77,7 +77,7 @@ export async function generateMetadata({
     "IT/SaaS業界の求人はOPINIOで。",
   ].filter(Boolean).join("｜");
 
-  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.roleLabel ?? "")}`;
+  const ogImageUrl = `/api/og?type=job&name=${encodeURIComponent(job.role)}&sub=${encodeURIComponent(company.name)}&badge=${encodeURIComponent(job.roleLabel ?? "")}&v=2`;
 
   return {
     title: { absolute: `${job.role} — ${company.name} | OPINIO` },

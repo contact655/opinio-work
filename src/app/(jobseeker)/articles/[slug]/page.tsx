@@ -62,7 +62,7 @@ export async function generateMetadata({
     ? article.subtitle
     : `${article.company_name}の${typeLabel}。読了${article.read_min}分。IT/SaaS業界のリアルな働き方をOPINIOが取材。`;
 
-  const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}`;
+  const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}&v=2`;
 
   return {
     title: { absolute: `${article.title} | OPINIO` },

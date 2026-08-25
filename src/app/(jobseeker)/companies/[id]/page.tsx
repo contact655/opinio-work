@@ -154,7 +154,7 @@ export async function generateMetadata({
     ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}${size ? `・${size}` : ""}。企業情報と求人をOPINIOで確認。`
     : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。`;
 
-  const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}`;
+  const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}&v=2`;
 
   return {
     title: { absolute: `${company.name} — 企業情報・求人 | OPINIO` },

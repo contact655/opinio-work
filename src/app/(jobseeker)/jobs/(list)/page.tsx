@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       type: "website",
       url: "/jobs",
-      images: [{ url: "/api/og?type=list&title=%E6%B1%82%E4%BA%BA%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E6%9C%80%E6%96%B0%E6%B1%82%E4%BA%BA%E6%83%85%E5%A0%B1", width: 1200, height: 630 }],
+      images: [{ url: "/api/og?type=list&name=%E6%B1%82%E4%BA%BA%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E6%9C%80%E6%96%B0%E6%B1%82%E4%BA%BA%E6%83%85%E5%A0%B1&v=2", width: 1200, height: 630 }],
     },
     twitter: { card: "summary_large_image", description },
   };

@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: { params: { postId: string } 
   //    企業によってカードの見た目が変わるので、生成画像に統一する。
   const ogImageUrl = `/api/og?type=${co ? "company" : "default"}`
     + `&name=${encodeURIComponent(excerpt)}`
-    + `&sub=${encodeURIComponent(authorName)}`;
+    + `&sub=${encodeURIComponent(authorName)}&v=2`;
   const url = `/feed/${params.postId}`;
 
   return {
