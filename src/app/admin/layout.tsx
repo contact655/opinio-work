@@ -53,9 +53,11 @@ const NAV_GROUPS = [
     items: [
       { label: "応募管理",            href: "/admin/applications",     icon: <Inbox         size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
-      /* ⚠️ 2026-08-24 に「申請」から改名した。会社の事前承認を廃止したので、
-            申請という状態はもう無い（この画面は掲載中の人の監視一覧）。 */
-      { label: "自己申告で掲載中",    href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
+      /* ⚠️ 2026-08-24 に「申請」から改名（会社の事前承認を廃止したため）。
+            ⚠️★2026-08-25 に「掲載」を外した。**運営は1人で「企業の掲載」「求人の掲載」
+               「人の掲載」を全部扱う**ので、`掲載` だけでは何の掲載か読めない。
+               人を指すときは `面談対応者` を使う（`/biz` と同じ語彙で、企業や求人と衝突しない）。 */
+      { label: "面談対応者（自己申告）", href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },

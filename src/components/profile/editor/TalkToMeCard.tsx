@@ -44,11 +44,13 @@ const LINE: Record<Exclude<MemberState, "none">, { text: string; tone: string }>
   /** 企業に招待されて、まだ一度も応じていない */
   pending_user:    { text: "会社から依頼が届いています", tone: "var(--ink-soft)" },
   /** 本人が自分でOFFにしている。⚠️ 「戻せる」ことを必ず書く */
-  paused:          { text: "いまは掲載していません · ONにすればすぐ戻ります", tone: "var(--ink-mute)" },
+  /* ⚠️ 「掲載」とだけ書かない（2026-08-25）。この製品には**会社の掲載・求人の掲載・
+        人の掲載**があり、どれの話か読めない。**どのページに出るのか**を書く。 */
+  paused:          { text: "この会社のページに出ていません · ONで戻ります", tone: "var(--ink-mute)" },
   /** @deprecated 到達しない（会社の事前承認を廃止した） */
   pending_company: { text: "会社の確認待ち", tone: "var(--ink-soft)" },
   /** ⚠️ 止めているのは企業側。本人が何かを怠っているように読ませない */
-  unlisted:        { text: "会社の設定でいまは非掲載です", tone: "var(--ink-soft)" },
+  unlisted:        { text: "会社の設定で、いまはページに出ていません", tone: "var(--ink-soft)" },
   listed:          { text: "話を聞きたい人から連絡が届きます", tone: "var(--success)" },
 };
 
@@ -189,7 +191,7 @@ export default function TalkToMeCard({
                 <>
                   <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
                     この会社の在籍が職歴にありません。
-                    <strong style={{ color: "var(--ink-soft)" }}>掲載されていません。</strong>
+                    <strong style={{ color: "var(--ink-soft)" }}>この会社のページには出ていません。</strong>
                   </p>
                   {m && (m.is_public || m.display_consent) && (
                     <button
@@ -266,7 +268,7 @@ export default function TalkToMeCard({
               )}
               {state === "none" && (
                 <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-                  ONにすると、この会社のページに「話を聞ける人」として載ります
+                  ONにすると、この会社のページに「話を聞ける人」として出ます
                 </p>
               )}
             </div>
@@ -277,7 +279,7 @@ export default function TalkToMeCard({
       {/* ★なりすまし対策の3つ目（`TalkToMeCard` の冒頭コメント参照）。**消さないこと。**
              ⚠️ 語彙は `/people` の注記と揃える。同じ事実を2つの画面で別々に言わない。 */}
       <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-        在籍は自己申告で、OPINIO は確認していません。会社の判断で載らないこともあります。
+        在籍は自己申告で、OPINIO は確認していません。会社の判断で出ないこともあります。
       </p>
 
       {error && (

@@ -544,10 +544,10 @@ export default async function AdminDashboard() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>
-                      自己申告の掲載 未確認 {stats.selfUnreviewedCount}名
+                      面談対応者（自己申告） 未確認 {stats.selfUnreviewedCount}名
                     </p>
                     <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
-                      在籍確認はしていません。内容を見て「確認した」を押してください
+                      企業ページに出ている人です。在籍確認はしていません
                     </p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">

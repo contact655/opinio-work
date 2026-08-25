@@ -53,7 +53,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
         background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10,
         padding: 24, textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
       }}>
-        自己申告で掲載されている人はいません。
+        自己申告の面談対応者はいません。
       </div>
     );
   }
@@ -107,7 +107,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
               {confirmId === r.id ? (
                 <div style={{ background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", minWidth: 300 }}>
                   <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.6, color: "var(--ink)", fontWeight: 600 }}>
-                    掲載を取り消すと登録は削除され、その旨のメールが本人に届きます。取り消せません。
+                    企業ページから外すと登録は削除され、その旨のメールが本人に届きます。取り消せません。
                   </p>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
@@ -137,7 +137,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
               ) : (
                 /* ★「承認する」は 2026-08-24 に外した。会社の事前承認を廃止したので、
                       ここに出る行は**すでに掲載中**——承認する対象が無い。
-                   ⚠️ 運営の操作は「掲載を取り消す」1つだけ。戻さないこと。 */
+                   ⚠️ 運営の操作は「企業ページから外す」1つだけ。戻さないこと。 */
                 <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                   {/* ★確認の記録（2026-08-25）。⚠️ **掲載状態は変えない**し通知も送らない。
                          運営のメモで、本人にも企業にも見えない。
@@ -164,7 +164,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                       border: "1px solid var(--line)", background: "#fff", color: "var(--ink-mute)",
                     }}
                   >
-                    掲載を取り消す
+                    企業ページから外す
                   </button>
                 </div>
               )}

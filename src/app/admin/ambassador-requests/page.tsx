@@ -5,7 +5,7 @@ import { RequestsClient, type AmbassadorRequest } from "./RequestsClient";
 /* ⚠️ 運営が押した結果をすぐ反映する。キャッシュに載せない。 */
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: { absolute: "自己申告で掲載中の人 | OPINIO 運営" } };
+export const metadata = { title: { absolute: "面談対応者（自己申告） | OPINIO 運営" } };
 
 /**
  * 本人が自分で「話を聞かれてもよい」をONにして**掲載されている人**を全社横断で一覧する。
@@ -88,19 +88,19 @@ export default async function AmbassadorRequestsPage() {
   return (
     <div style={{ maxWidth: 1000 }}>
       <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px" }}>
-        自己申告で掲載中の人
+        面談対応者（自己申告）
       </h1>
       {/* ⚠️★ここの文言を「申請」「承認」に戻さないこと（2026-08-24）。
              会社の事前承認は廃止した。**この一覧に出ている人は既に掲載されている。**
              承認を促す文面にすると、運営が押すべき操作が無いのに待つことになる。 */}
       <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        本人が「話を聞かれてもよい」をONにして、その企業のページに掲載されている人です。
-        <strong style={{ color: "var(--ink)" }}>未確認が上に並びます。</strong>
+        本人が「話を聞かれてもよい」をONにして、<strong style={{ color: "var(--ink)" }}>その企業のページに出ている人</strong>です。
+        （企業の掲載・求人の掲載とは別物）<strong style={{ color: "var(--ink)" }}>未確認が上に並びます。</strong>
       </p>
       <p style={{ margin: "0 0 20px", fontSize: 12, color: "#92400e", lineHeight: 1.7, fontWeight: 600 }}>
         在籍は本人の申告で、OPINIO は在籍確認を行っていません。
-        なりすましや誤りに気づいたら、ここから掲載を取り消してください。
-        企業側に担当者がいる場合は、企業の「チーム管理」からも非掲載にできます。
+        なりすましや誤りに気づいたら、ここから<strong style={{ color: "#7c2d12" }}>企業ページから外して</strong>ください。
+        企業側に担当者がいる場合は、企業の「チーム管理」からも外せます。
       </p>
       <RequestsClient requests={requests} />
     </div>

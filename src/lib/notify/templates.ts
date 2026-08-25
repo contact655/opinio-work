@@ -562,7 +562,7 @@ export function ambassadorRequestTemplate(params: {
       </table>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         在籍は<strong style="color:#0f172a">本人の申告</strong>で、OPINIO は在籍確認を行っていません。
-        心当たりが無い場合や掲載を止めたい場合は、下のボタンからいつでも非掲載にできます。
+        心当たりが無い場合や掲載を止めたい場合は、下のボタンからいつでも貴社のページから外せます。
       </p>
       <p style="margin:0 0 24px">
         <a href="${href}" style="${BTN}">掲載を確認する →</a>
@@ -640,11 +640,11 @@ export function ambassadorDismissedTemplate(params: {
        ⚠️ 非掲載（`unlistMember`）ではこのメールは飛ばない。往復するため。 */
     subject: `【OPINIO】${esc(params.companyName)} のページの掲載が取り消されました`,
     html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">掲載が取り消されました</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">会社のページに出なくなりました</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${esc(params.userName)} さん<br><br>
         <strong style="color:#0f172a">${esc(params.companyName)}</strong>のページでの
-        「話を聞かれてもよい」の登録が取り消され、掲載されなくなりました。
+        「話を聞かれてもよい」の登録が取り消され、ページに出なくなりました。
       </p>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         取り消しは会社または OPINIO の判断によるもので、
