@@ -8,6 +8,58 @@
 
 ---
 
+## ⚠️★`OnboardingGuard` の stance 分岐の修正が作業ツリーにしか無い
+
+**対象**: `src/components/jobseeker/OnboardingGuard.tsx:110`（`/onboarding/stance` への
+リダイレクトで `currentHref()` を使っている行）。
+
+**なぜ残っているか**: `career_stance` のオンボーディング機能そのものが別セッションの
+未コミット作業で、そのページ（`/onboarding/stance`）は **HEAD に存在せず本番では 404**。
+ファイルごとコミットすると `career_stance` が NULL のプロファイルが 404 へ飛ばされるため、
+2026-08-27 のコミット（`5ac19ea6`）には **`onboarding_completed` 分岐だけ**を入れてある。
+
+⚠️ **あちらが `OnboardingGuard.tsx` をコミットすれば自動的に含まれるが、
+   作業ツリーを捨てて作り直すと落ちる。**
+⚠️ 落ちると、**ヘッダーの検索（＝主動線）でゲートに捕まった人の検索語が消える。**
+   `usePathname()` はクエリ文字列を含まないため、`next=%2Fsearch` になって
+   回答後に空の `/search` へ着地する。
+
+**やること**: `career_stance` の機能が本番に出たら、**`/search?q=営業` でゲートを通して
+語が残ることを必ず実測する。**
+   期待: `/onboarding/stance?next=/search?q=%E5%96%B6%E6%A5%AD` を経由し、
+   回答後に `/search?q=営業` へ着地して見出しが「「営業」の検索結果」になる。
+
+---
+
+## ゲートの検証はテストアカウントを1回ごとに1つ消費する
+
+**対象**: `career_stance` が NULL の `is_test` アカウント。
+`/onboarding/stance` のゲートは**答えると通過してしまう**ので、同じアカウントで
+2回目の検証ができない。
+
+**消費済み**（いずれも 2026-08-26）:
+`contact+001`（researching）/ `contact+03`（researching）/ `contact+04`（open）
+
+**残数（2026-08-26 実測）**:
+
+| 区分 | 残数 |
+|---|---|
+| **stance ゲートの検証に使える**（`career_stance` NULL かつ `onboarding_completed` true） | **24** |
+| └ うち `contact+NN@opinio.co.jp` の純粋なテスト枠 | **22**（`contact+05`〜`+15` と `+17`〜`+27`） |
+| └ 残り2件は `hshiba@opinio.co.jp` と `d1872303951587@gmail.com` | ⚠️ **消費しない**（前者は本人のアドレス） |
+| **`onboarding_completed` ゲートの検証に使える**（`onboarding_completed` false） | **1**（`contact+16` のみ） |
+
+⚠️ **`onboarding_completed` 側は残り1つしかない。** 2026-08-27 の
+`currentHref()` 修正でこの分岐だけが本番に出ているのに、**その分岐は単体で未実測**
+（当時アカウントが見つからず、stance 分岐での確認で代替した）。
+`contact+16` を使うときは、**この検証を先に済ませること。**
+
+⚠️ 使い切ったら、新しいテストアカウントを作るのではなく
+   **既存の `is_test` アカウントの `career_stance` を NULL に戻す**ほうが安い
+   （本番で検証用アカウントを新規作成しない方針。CLAUDE.md 参照）。
+
+---
+
 ## `window.location.pathname` に `.search` を付け忘れている箇所が6件残っている
 
 **対象**（すべて未ログイン時の `/auth?next=` を組み立てている箇所）:
