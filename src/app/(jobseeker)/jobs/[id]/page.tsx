@@ -19,6 +19,7 @@ import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { primaryBusinessDomain } from "@/types/genre";
+import { Markdown } from "@/components/common/Markdown";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -852,7 +853,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 }>
                   仕事内容
                 </SecTitle>
-                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 2.0, whiteSpace: "pre-wrap" }}>{job.overview}</p>
+                {/* ⚠️ markdown として描画する（2026-08-26）。入力欄が markdown なので合わせる。
+                       ⚠️ 本番5件は改行を含まないので、この変更で見た目は変わらない。 */}
+                <Markdown>{job.overview}</Markdown>
               </section>
               )}
 

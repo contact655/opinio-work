@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { buildLogoStoragePath, type OfficePhoto } from "@/lib/business/photos";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
+import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -831,15 +832,14 @@ export function CompanyEditClient({
               title="企業説明"
               desc="企業の事業内容、創業背景、組織カルチャー、これからの展望などを自由に記述してください。読み物として読まれます。"
             >
-              {/* ⚠️ **MarkdownEditor を戻さないこと（2026-08-26）。**
-                     企業ページの描画は plain text（改行で段落分け／`detail.about`）で、
-                     `##` などの記法は**そのまま記号として出る。**
-                     見出しを書かせるなら、先に描画側を markdown 対応させること。 */}
-              <FormTextarea
+              {/* ⚠️ **描画とセットで扱うこと。** 企業ページは
+                     `components/common/Markdown` で解釈する（2026-08-26 に対応）。
+                     片方だけ変えると `##` が記号のまま出る。 */}
+              <MarkdownEditor
                 value={form.descriptionMarkdown}
                 onChange={(v) => update("descriptionMarkdown", v)}
-                placeholder={"事業の特徴や組織カルチャーを記述してください。\n\n改行すると段落として表示されます。"}
-                rows={12}
+                placeholder="## 私たちについて&#10;&#10;事業の特徴や組織カルチャーを記述してください..."
+                minHeight={300}
               />
             </SectionCard>
 

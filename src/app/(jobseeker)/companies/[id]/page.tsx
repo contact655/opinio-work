@@ -63,6 +63,7 @@ import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
+import { Markdown } from "@/components/common/Markdown";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -533,13 +534,13 @@ function AboutSection({
         <PhotoCarousel photos={photos} />
 
         {/* ① 会社概要 */}
+        {/* ⚠️ **markdown として描画する（2026-08-26）。** 入力欄が markdown エディタなので
+               描画も合わせる。片方だけだと `##` が記号のまま出る。
+            ⚠️ 既存データは空行区切りに正規化済み（migration 20260826200000）。
+               単一改行を段落として扱う独自処理は入れない。 */}
         {detail.about && (
           <div style={{ marginBottom: detail.culture_description ? "var(--space-4)" : "var(--space-6)" }}>
-            {detail.about.split("\n").filter(line => line.trim()).map((line, i) => (
-              <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
-                {line.trim()}
-              </p>
-            ))}
+            <Markdown>{detail.about}</Markdown>
           </div>
         )}
 
