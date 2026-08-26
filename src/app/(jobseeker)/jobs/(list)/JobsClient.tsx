@@ -170,7 +170,13 @@ function JobListItem({
       });
       if (res.status === 401) {
         setBookmarked(!next);
-        router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+        /* ⚠️ **`.search` まで含める。** `/jobs` は絞り込みを URL に持つので
+              （category / work_style / salary / industry / prefecture / emp_type /
+               sort / company / page …）、pathname だけだとログイン後に
+              絞り込みが全部消えた `/jobs` に戻る。 */
+        router.push(
+          `/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+        );
       } else if (!res.ok) {
         setBookmarked(!next);
       } else {

@@ -8,6 +8,31 @@
 
 ---
 
+## `window.location.pathname` に `.search` を付け忘れている箇所が6件残っている
+
+**対象**（すべて未ログイン時の `/auth?next=` を組み立てている箇所）:
+
+| 場所 | 出る画面 |
+|---|---|
+| `u/[id]/FollowUserButton.tsx:32` | `/u/[id]` `/feed` `/people` |
+| `companies/[id]/CompanyDetailClient.tsx:295` | `/companies/[id]` |
+| `companies/[id]/CompanyDetailClient.tsx:362` | 同上 |
+| `components/jobseeker/BookmarkButton.tsx:62` | `/jobs/[id]` `/companies/[id]` |
+| `components/profile/DMButton.tsx:31` | `/u/[id]` |
+| `components/profile/DMButton.tsx:49` | 同上 |
+
+**なぜ残っているか**: **現時点で実害が無いのは、置かれている画面がクエリを読まないからにすぎない。**
+6箇所とも `searchParams`（サーバー）も `useSearchParams`（クライアント）も使っていない画面に出る。
+⚠️ **それらの画面がクエリを持った時点で同じ不具合が出る。** コードの書き方は
+`OnboardingGuard`（2026-08-27 修正）や `JobsClient:173`（同日修正）と**まったく同じ**で、
+違うのは「いま置かれている場所」だけ。
+
+**やるなら**: `window.location.pathname + window.location.search` に直す。
+⚠️ `useSearchParams()` に置き換えないこと。Suspense 境界の無い場所に足すと
+静的レンダリングが落ちる（`OnboardingGuard` の JSDoc 参照）。
+
+---
+
 ## ~~テスト用アカウントに `is_test` を立てる~~（2026-08-26 対応済み・**12件だった**）
 
 `20260826100000_flag_test_accounts_16_to_27.sql` で **`contact+16`〜`+27` の12件**に立てた。
