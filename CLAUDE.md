@@ -1437,6 +1437,56 @@ industry: (row.industry as string) ?? "",      // NULL → 空文字に化ける
    とくに **SELECT していない列**に当たっていると「値が無い」ではなく
    「**取得していない**」が既定値に化け、**画面には正常な値として出る。**
 
+#### ★洗い方は grep ではなく型で（2026-08-26 確立）
+
+**プロパティ名で grep すると誤検出だらけになる**（別の型の `.name` 同士が当たる。
+実測で 225 件出て、ほぼ全部が無関係だった）。
+**型情報を使えば確定できる** —— `?? ""` を通った後の型は `string` で null にならないので、
+**「非 null に `??` を重ねている」は型だけで判定できる。**
+
+```bash
+# ⚠️ 一時設定はリポジトリ直下に置く（プラグイン解決のため）。**使ったら即消す**
+#    （並行セッションの git add -A に拾われる）
+cat > .eslintrc.tsaware.json <<'JSON'
+{ "root": true, "parser": "@typescript-eslint/parser",
+  "parserOptions": { "project": "./tsconfig.json" },
+  "plugins": ["@typescript-eslint"],
+  "rules": { "@typescript-eslint/no-unnecessary-condition": "warn" } }
+JSON
+npx eslint --no-eslintrc -c .eslintrc.tsaware.json --ext .ts,.tsx --format json src
+rm -f .eslintrc.tsaware.json
+```
+
+##### ⚠️★出た結果を2つに分ける。**片方は誤検出**
+
+| | 形 | 実行時 |
+|---|---|---|
+| **(A) 誤検出** | `(row.name as string) ?? "—"` | **`??` は正しく発火する。** `as` が嘘をついて型から null を消しているだけ |
+| **(B) 本物** | `job.highlight ?? "…"`（`highlight` は mapper が `?? ""` 済み） | **一度も発火しない** |
+
+**(A) を直しにいかないこと。** DB 行（`Record<string, any>`）に `as string` を当てている
+箇所はすべて (A) で、**動作は正しい。**
+見分け方は **左辺の出どころ**を読むこと —— DB 行なら (A)、mapper を通った型なら (B)。
+
+⚠️ 2026-08-26 に実際に (A) を1件バグと誤判定しかけた
+   （`getCompanyRecruiters` の `(user.name as string) ?? "担当者"`。
+   `user` は DB 行そのものなので **null になりうる＝正しい**）。
+
+##### 実測（2026-08-26 / src 全体）
+
+`??` の不要条件 **319 件** → うちフォールバックが空文字などでない
+「**出るはずだったのに出ない値**」が **82 件** → 読んで (B) と確定したのは **2 件**。
+
+| 直したもの | 症状 |
+|---|---|
+| `jobs/[id]/page.tsx` の meta | `job.highlight ?? "○○社の△△求人"` が発火せず、キャッチコピーの無い求人の meta が**年収から始まる**。公開5件は全部持っているが**下書き15件中2件が該当** |
+| `lib/matching/scoreJob.ts` | `job.salary_max ?? jMin` が発火せず jMax が 0 のまま。**下限だけ書いてある求人が年収の加点から丸ごと外れていた** |
+
+⚠️ **どちらも `??` を `||` に変えて直した。** mapper 側の `?? ""` / `?? 0` を外すと
+   型が `string | null` に変わって呼び出し側に波及するため、
+   **読む側で「空も無しとして扱う」ほうが安全。**
+   ⚠️ ただし `||` は 0 も falsy にする。**0 が意味を持つ値には使わないこと。**
+
 ---
 
 ## データ表示の原則
