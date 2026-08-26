@@ -9,6 +9,8 @@ export type AmbassadorRequest = {
   companyName: string;
   userId: string;
   userName: string;
+  /** 検証用アカウントか。⚠️ **一覧から外さない。区別を出すだけ**（CLAUDE.md / `/admin/jobs` の前例） */
+  isTest: boolean;
   /** 本人が申請した時刻（`consent_at`。無ければ `created_at`） */
   appliedAt: string | null;
   /** その企業に通知の宛先があるか。0 なら企業側に承認できる人がいない */
@@ -91,6 +93,18 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                 </div>
                 <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2 }}>
                   {r.userName}
+                  {/* ⚠️ 検証用アカウントは**隠さず印を付ける**。運営はこの行の
+                         「企業ページから外す」で片付けられる。 */}
+                  {r.isTest && (
+                    <span style={{
+                      marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#92400E",
+                      background: "#FEF3C7", border: "1px solid #FDE68A",
+                      borderRadius: 4, padding: "1px 5px", verticalAlign: "middle",
+                      whiteSpace: "nowrap",
+                    }}>
+                      検証用アカウント
+                    </span>
+                  )}
                   <span style={{ color: "var(--ink-mute)" }}>
                     {" ・ "}{fmt(r.appliedAt)} からON
                     {d !== null && d >= 1 && <>（{d}日前）</>}

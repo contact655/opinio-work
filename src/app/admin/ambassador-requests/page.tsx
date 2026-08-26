@@ -42,7 +42,11 @@ async function getRequests(): Promise<AmbassadorRequest[]> {
 
   const [{ data: users, error: uErr }, { data: companies, error: cErr }, { data: admins, error: adminErr }] =
     await Promise.all([
-      admin.from("ow_users").select("id, name").in("id", userIds),
+      /* ⚠️ `is_test` も取る。**隠すためではなく、区別を出すため**（2026-08-26）。
+            2026-08-26 に、フラグの立っていない検証用アカウントがこの一覧に出ていた。
+            CLAUDE.md「テストデータを完全に隠さないこと。見えなくすると
+            『見えていないだけ』を自分で作る」（`/admin/jobs` の前例）。 */
+      admin.from("ow_users").select("id, name, is_test").in("id", userIds),
       admin.from("ow_companies").select("id, name, brand_name").in("id", companyIds),
       /* 企業ごとの通知宛先数。0 なら企業側に気づける人がいない＝運営が見るしかない対象。 */
       admin
@@ -58,6 +62,9 @@ async function getRequests(): Promise<AmbassadorRequest[]> {
   if (adminErr) console.error("[admin/ambassador-requests] recipients:", adminErr.message);
 
   const userName = new Map((users ?? []).map((u) => [(u as { id: string }).id, (u as { name: string | null }).name]));
+  const userIsTest = new Map(
+    (users ?? []).map((u) => [(u as { id: string }).id, (u as { is_test: boolean | null }).is_test === true]),
+  );
   const companyName = new Map(
     (companies ?? []).map((c) => {
       const r = c as { id: string; name: string | null; brand_name: string | null };
@@ -76,6 +83,7 @@ async function getRequests(): Promise<AmbassadorRequest[]> {
     companyName: companyName.get(r.company_id) ?? "—",
     userId: r.user_id,
     userName: userName.get(r.user_id) ?? "—",
+    isTest: userIsTest.get(r.user_id) ?? false,
     appliedAt: r.consent_at ?? r.created_at,
     companyRecipients: recipientCount.get(r.company_id) ?? 0,
     reviewedAt: r.ops_reviewed_at,
