@@ -155,9 +155,30 @@ export async function PATCH(req: Request) {
     }
   }
 
-  const s = (v: unknown): string | null => typeof v === "string" ? v : null;
-  const n = (v: unknown): number | null => typeof v === "number" ? v : null;
-  const sa = (v: unknown): string[] | null => Array.isArray(v) ? v as string[] : null;
+  /* ★**draft_data に無いキーは触らない（undefined を返す）。**
+     ⚠️ 以前は `typeof v === "string" ? v : null` だったため、
+        **`transformFormToDb` が書いていないキーはすべて null で上書きされた。**
+        実際に3列が食い違っていた（2026-08-26 に発見）:
+
+          PATCH が読む      draft_data にある名前     本番の件数
+          description       （無い。about_markdown）   82/87
+          founded_year      established_at             82/87
+          female_ratio      gender_ratio                1/87
+
+        つまり**企業が「変更を公開する」を1回押すだけで、自社の説明文と設立年が
+        消えていた。** 実害が出ていないのは draft_data が全社 NULL だからで
+        （保存経路自体が 2026-08-23 まで RLS で0行更新だった）、**踏むのは時間の問題だった。**
+
+     ⚠️ **キーがあって空**（利用者が消した）と**キーが無い**（フォームがその項目を
+        持っていない）を区別すること。前者は null で消す、後者は触らない。
+     ⚠️ 名前の食い違い自体は直していない。フォーム側の項目とマスタの対応は
+        別タスク（下のコメント参照）。ここで塞ぐのは**破壊**のほう。 */
+  const s = (v: unknown): string | null | undefined =>
+    v === undefined ? undefined : typeof v === "string" ? v : null;
+  const n = (v: unknown): number | null | undefined =>
+    v === undefined ? undefined : typeof v === "number" ? v : null;
+  const sa = (v: unknown): string[] | null | undefined =>
+    v === undefined ? undefined : Array.isArray(v) ? v as string[] : null;
 
   const mainRes = await mutateOne(
     supabase
@@ -188,6 +209,20 @@ export async function PATCH(req: Request) {
       logo_url:                 s(d.logo_url),
       logo_gradient:            s(d.logo_gradient),
       logo_letter:              s(d.logo_letter),
+      /* ★ここから下は 2026-08-26 に追加。**入力欄は生きているのに展開されておらず、
+            企業が保存しても永久に公開されない状態だった。**
+         ⚠️ とくに `notification_emails` は
+            `lib/notify/recipients.ts` の**第一優先の宛先**で、
+            設定しても応募・面談の通知が届かないままだった（本番の設定は0社）。
+         ⚠️ 列単位 UPDATE の GRANT を実測で確認済み（6列とも authenticated に true）。
+            **1列でも権限が無いと PATCH 全体が 403 になる**ので、
+            ここに列を足すときは必ず `has_column_privilege` で測ること。 */
+      notification_emails:      sa(d.notification_emails),
+      company_features:         sa(d.company_features),
+      nearest_station:          s(d.nearest_station),
+      careers_url:              s(d.careers_url),
+      funding_total:            s(d.funding_total),
+      work_time_system:         s(d.work_time_system),
       is_published:             body.isPublished ?? false,
       /* ⚠️ 企業側の「公開する」は**2軸を同時に**動かす。
             2026-08-12 に is_published（詳細ページ）と listing_status（ディレクトリ）を
@@ -198,6 +233,22 @@ export async function PATCH(req: Request) {
             2026-08-12 まで `body.isPublished ? now : null` と書いており、
             **公開中に再保存するたび初回公開日を上書きし、非公開に戻すと消していた。**
             運営側（updateIsPublished）の「最初に公開した日時」という意味と食い違っていた。 */
+      /* ⚠️★**まだ展開していない項目がある**（2026-08-26 時点）。
+            `transformFormToDb` が書くキーと本番列の名前が食い違っており、
+            どちらを正とするか決まっていないため保留にしてある。
+            **`undefined` を返すようにしたので上書きはされない**（触らないだけ）。
+
+              フォームの項目        draft_data のキー      本番列（読み手）
+              設立年 foundedAt      established_at         founded_year
+              男女比 genderRatio    gender_ratio           female_ratio
+              会社概要              about_markdown         description（求職者が読む）
+
+         ⚠️ 会社概要は markdown 前提の入力欄なので、`description` に素で入れると
+            記号がそのまま出る（求人の `description_markdown` と同じ問題）。
+            **列の統合とセットで決めること。**
+         ⚠️ 入力欄が撤去済みの項目（評価制度・残業時間・有給取得率・働き方の補足・
+            面談可能日時）はここに足さないこと。`transformFormToDb` は今も
+            キーを吐くので、足すと**古い空値で上書きする**ことになる。 */
       ...publishedAtPatch(currentRow?.published_at, !!body.isPublished, now),
       updated_at:               now,
       draft_data:               null,
