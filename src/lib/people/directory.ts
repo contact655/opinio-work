@@ -7,7 +7,7 @@ import {
   EXPERIENCE_COMPANY_COLS,
 } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
-import { resolveTopRole } from "@/lib/roles/jobRoles";
+import { resolveTopRole, expandWithAncestors } from "@/lib/roles/jobRoles";
 
 /**
  * /people と /people/role/[slug] が共有する「登録ユーザー一覧」の取得。
@@ -95,6 +95,21 @@ export type DirectoryPerson = {
   roleName: string | null;
   /** 職種フィルタ用の9大分類 ID。roleName とは粒度が違う（フィルタは粗く） */
   topRoleId: string | null;
+  /**
+   * ★キーワード検索の職種辞書照合に使う。`roleName` と同じ職種を**祖先まで展開**したもの。
+   *
+   * ⚠️ **求人側の `job.roleIds`（queries.ts の getJobs）と同じ形にしてある。**
+   *    辞書（`getRoleAliases()`）は「その語が指す職種そのもの」だけを返し、
+   *    祖先方向へは広げない約束なので、**受け側がここで祖先を持っていないと
+   *    「営業」で検索してもフィールドセールスの人に当たらない。**
+   *    2026-08-26 まで `/people` は辞書を使っておらず、実際に当たっていなかった。
+   *
+   * ⚠️ **出どころは `roleName` / `topRoleId` と同じ1件（roleSource）**にしてある。
+   *    全職歴の職種を混ぜると、カードに出ている職種・職種チップの絞り込みと
+   *    検索の対象がずれる（「営業で引いたのに、カードにはコーポレートと出ている」）。
+   *    過去の職歴まで対象にしたくなったら、チップ側と一緒に変えること。
+   */
+  roleIds: string[];
   /**
    * これまでの職歴に**1社でも外資系**（`ow_companies.is_foreign`）があるか。
    * ⚠️ 現職に限らない。過去の在籍も含める（/people の外資系フィルタ用）。
@@ -440,6 +455,8 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
       affiliation,
       roleName: roleNode?.name ?? null,
       topRoleId: topRole?.id ?? null,
+      /* 職種辞書の照合用。⚠️ 祖先まで展開する（型のコメント参照） */
+      roleIds: expandWithAncestors(roleTree, roleSource?.role_category_id ? [roleSource.role_category_id] : []),
       hasForeignExperience,
       /* ★「話を聞ける人」の判定（2026-08-23 / B-1）。
             ⚠️ 判定は `lib/companyMembers/talkable.ts` に置いてある。ここに書き直さないこと。

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
-import { getRoleTree } from "@/lib/supabase/queries";
+import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
 import { PeopleListClient } from "./PeopleListClient";
 
 /**
@@ -29,9 +29,14 @@ export const metadata: Metadata = {
 export default async function PeoplePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [people, roleTree] = await Promise.all([
+  /* ⚠️ `roleAliases` は `getRoleAliases()`（**`/jobs` の検索と同じ辞書**）。
+        キーワード検索を職種で当てるために渡す。**2つ目の辞書を作らないこと。**
+        辞書は `unstable_cache`（revalidate 3600）＋ react `cache()` 済みなので、
+        ここで呼んでも追加の往復は増えない。 */
+  const [people, roleTree, roleAliases] = await Promise.all([
     getDirectoryPeople(!!user),
     getRoleTree(),
+    getRoleAliases(),
   ]);
 
   // フォローボタンの初期状態。
@@ -60,7 +65,7 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={people} roleSlugToId={roleSlugToId} myUserId={myUserId} followedUserIds={followedUserIds} />
+      <PeopleListClient ambassadors={people} roleSlugToId={roleSlugToId} roleAliases={roleAliases} myUserId={myUserId} followedUserIds={followedUserIds} />
     </div>
   );
 }

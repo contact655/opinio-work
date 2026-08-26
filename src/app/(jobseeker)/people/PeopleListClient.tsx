@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { DirectoryPerson } from "@/lib/people/directory";
+import type { SearchAlias } from "@/lib/supabase/queries";
 import { FollowUserButton } from "../u/[id]/FollowUserButton";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
@@ -20,6 +21,12 @@ type Props = {
   ambassadors: AmbassadorCard[];
   /** ow_roles の slug → id。フィルタの照合に使う。page 側で解決して渡す */
   roleSlugToId: Record<string, string>;
+  /**
+   * 職種辞書（職種名 ＋ ow_role_aliases）。**`/jobs` の検索と同じ `getRoleAliases()`**。
+   * ⚠️ **ここで2つ目の辞書を作らないこと。** 辞書が割れると、同じ語で
+   *    `/jobs` と `/people` の挙動がまた食い違う（それを直したのがこの変更）。
+   */
+  roleAliases: SearchAlias[];
   /** 閲覧者の ow_users.id。自分のカードにフォローボタンを出さないために使う */
   myUserId: string | null;
   /** 閲覧者が既にフォローしている ow_users.id */
@@ -530,7 +537,7 @@ function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string,
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followedUserIds }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds }: Props) {
   const [role, setRole] = useState("");
 
   /* 外資系。⚠️ **これまでの職歴に1社でもあればヒット**（現職に限らない）。
@@ -575,6 +582,25 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
     setOpenChip(openChip === name ? null : name);
   }
 
+  /*
+    ★キーワードが指す職種の ID 集合（2026-08-26）。
+
+    ⚠️ **`/jobs` の `matchByAlias` と同じ辞書・同じ向き**で引く。
+       辞書側は「その語が指す職種そのもの」だけを持ち（`getRoleAliases()` の JSDoc）、
+       祖先方向へは広げない。広がりは**受け側の `roleIds` に祖先が入っていること**で作る。
+         「営業」               → 営業 を roleIds に持つ人＝営業配下すべて
+         「エンタープライズセールス」→ その職種の人だけ（兄弟は出ない）
+       が同じ1本の判定で成立する。
+    ⚠️ 辞書側を祖先方向に広げないこと。広げると「子職種で検索したのに祖先の兄弟まで出る」。
+  */
+  const keywordRoleIds = useMemo(() => {
+    const q = keyword.trim().toLowerCase();
+    if (!q) return null;
+    const hits = roleAliases.filter((a) => a.alias.toLowerCase().includes(q));
+    if (hits.length === 0) return null;
+    return new Set(hits.flatMap((a) => a.roleIds).filter(Boolean));
+  }, [keyword, roleAliases]);
+
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
@@ -587,14 +613,20 @@ export function PeopleListClient({ ambassadors, roleSlugToId, myUserId, followed
         aff.kind === "none" ? "" : aff.kind === "education" ? aff.schoolName : aff.companyName;
       const roleLabel =
         aff.kind === "none" || aff.kind === "education" ? "" : (aff.roleTitle ?? "");
-      return (
+      const byText =
         a.name.toLowerCase().includes(q) ||
         company.toLowerCase().includes(q) ||
         roleLabel.toLowerCase().includes(q) ||
-        (a.roleName ?? "").toLowerCase().includes(q)
-      );
+        (a.roleName ?? "").toLowerCase().includes(q);
+      /* ★本文一致と辞書一致の**和集合**（`/jobs` も同じく union）。
+            ⚠️ AND にしないこと。今より絞り込まれる語が出て、件数が黙って減る。
+         ⚠️ `roleIds` は 2026-08-26 に足した列なので、`unstable_cache`
+            （`directory-people` / revalidate 1800）に**古い形の配列が残っていると
+            undefined になる**。`?? []` で受ける。 */
+      const byAlias = !!keywordRoleIds && (a.roleIds ?? []).some((id) => keywordRoleIds.has(id));
+      return byText || byAlias;
     });
-  }, [ambassadors, role, foreign, keyword, roleSlugToId]);
+  }, [ambassadors, role, foreign, keyword, roleSlugToId, keywordRoleIds]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
