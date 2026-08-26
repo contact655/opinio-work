@@ -5,7 +5,6 @@ import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/business/CompanyEditSubNav";
-import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
 import { TERMS_VERSION } from "@/lib/constants/terms";
@@ -832,11 +831,15 @@ export function CompanyEditClient({
               title="企業説明"
               desc="企業の事業内容、創業背景、組織カルチャー、これからの展望などを自由に記述してください。読み物として読まれます。"
             >
-              <MarkdownEditor
+              {/* ⚠️ **MarkdownEditor を戻さないこと（2026-08-26）。**
+                     企業ページの描画は plain text（改行で段落分け／`detail.about`）で、
+                     `##` などの記法は**そのまま記号として出る。**
+                     見出しを書かせるなら、先に描画側を markdown 対応させること。 */}
+              <FormTextarea
                 value={form.descriptionMarkdown}
                 onChange={(v) => update("descriptionMarkdown", v)}
-                placeholder="## 私たちについて&#10;&#10;事業の特徴や組織カルチャーを記述してください..."
-                minHeight={300}
+                placeholder={"事業の特徴や組織カルチャーを記述してください。\n\n改行すると段落として表示されます。"}
+                rows={12}
               />
             </SectionCard>
 

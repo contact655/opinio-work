@@ -39,7 +39,8 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     location: str(body.location, 200),
     remote_work_status: str(body.remoteWorkStatus, 50),
     probation_period: str(body.probationPeriod, 100),
-    description_markdown: str(body.descriptionMarkdown, 50000),
+    /* ⚠️ 正は `description`（2026-08-26 統合）。旧列に書くと求職者側に出ない。 */
+    description: str(body.descriptionMarkdown, 50000),
     message_to_candidates: str(body.messageToCandidates, 2000),
     required_skills: strArr(body.requiredSkills),
     preferred_skills: strArr(body.preferredSkills),
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
     const { data: source } = await supabase
       .from("ow_jobs")
       .select(
-        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference"
+        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference"
       )
       .eq("id", sourceId)
       .eq("company_id", ctxDup.companyId)

@@ -46,7 +46,6 @@ type Job = {
   source_url: string | null;
   /** 最後に原文と突き合わせた日時 */
   source_verified_at: string | null;
-  description_markdown: string | null;
   description: string | null;
   required_skills: string[] | null;
   requirements: string | null;
@@ -253,7 +252,8 @@ export default function JobDetailClient({
   }
 
   // ── derived values ─────────────────────────────────────────────────────────
-  const description = job.description_markdown || job.description;
+  /* ⚠️ `description_markdown` は 2026-08-26 に description へ統合（廃止）。読まない。 */
+  const description = job.description;
   const requiredSkills = job.required_skills?.length
     ? job.required_skills
     : job.requirements

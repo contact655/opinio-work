@@ -72,7 +72,8 @@ export async function PUT(
       location: str(body.location, 200),
       remote_work_status: str(body.remoteWorkStatus, 50),
       probation_period: str(body.probationPeriod, 100),
-      description_markdown: str(body.descriptionMarkdown, 50000),
+      /* ⚠️ 正は `description`（2026-08-26 統合）。旧列に書くと求職者側に出ない。 */
+      description: str(body.descriptionMarkdown, 50000),
       message_to_candidates: str(body.messageToCandidates, 2000),
       required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills.filter((x: unknown): x is string => typeof x === "string").slice(0, 30).map((s: string) => s.slice(0, 200)) : [],
       preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills.filter((x: unknown): x is string => typeof x === "string").slice(0, 30).map((s: string) => s.slice(0, 200)) : [],

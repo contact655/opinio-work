@@ -957,10 +957,13 @@ export function JobEditForm({
                   ))}
                 </div>
                 <textarea
-                  aria-label="求人詳細（Markdown）"
+                  /* ⚠️ 「（Markdown）」を戻さないこと（2026-08-26）。求職者側の描画は
+                        plain text（改行で段落分け）で、**markdown は解釈されない。**
+                        書かせるなら先に描画側を対応させること。 */
+                  aria-label="求人詳細"
                   value={form.descriptionMarkdown}
                   onChange={(e) => updateForm("descriptionMarkdown", e.target.value)}
-                  placeholder={"## このポジションのミッション\n\n具体的な業務内容を記載してください。"}
+                  placeholder={"このポジションのミッション\n\n具体的な業務内容を記載してください。改行すると段落として表示されます。"}
                   rows={10}
                   style={{
                     width: "100%", padding: "14px 16px", border: "none",

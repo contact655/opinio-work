@@ -82,7 +82,7 @@ type DbJobFull = {
   location: string | null;
   remote_work_status: string | null;
   probation_period: string | null;
-  description_markdown: string | null;
+  description: string | null;
   message_to_candidates: string | null;
   required_skills: string[] | null;
   preferred_skills: string[] | null;
@@ -120,7 +120,7 @@ type DbJob = {
   salary_max: number | null;
   location: string | null;
   remote_work_status: string | null;
-  description_markdown: string | null;  // m031 (旧: description)
+  description: string | null;  // m031 (旧: description)
   required_skills: string[] | null;     // m031 TEXT[] (旧: requirements TEXT)
   preferred_skills: string[] | null;    // m031 TEXT[]
   selection_steps: string[] | null;     // m031 TEXT[] (旧: selection_process JSONB)
@@ -221,7 +221,7 @@ function computeCompletionPercent(row: DbJob): number {
     row.job_category,
     row.employment_type,
     row.location,
-    row.description_markdown,          // m031
+    row.description,
     row.required_skills?.length ? row.required_skills[0] : null,   // m031
     row.preferred_skills?.length ? row.preferred_skills[0] : null, // m031
     row.salary_min != null ? String(row.salary_min) : null,
@@ -243,7 +243,7 @@ function transformJob(row: DbJob, meetingCount: number, applicationCount: number
     salaryMax: row.salary_max ?? undefined,
     location: row.location ?? undefined,
     remoteWorkStatus: row.remote_work_status ?? undefined,
-    descriptionMarkdown: row.description_markdown ?? undefined,    // m031 修正
+    descriptionMarkdown: row.description ?? undefined,
     requiredSkills: row.required_skills ?? [],                     // m031 修正
     preferredSkills: row.preferred_skills ?? [],                   // m031 修正
     selectionSteps: row.selection_steps ?? [],                     // m031 修正
@@ -272,7 +272,7 @@ export async function fetchJobsForCompany(
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description_markdown, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)"
+      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)"
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
@@ -334,7 +334,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description_markdown, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -367,7 +367,7 @@ export async function fetchJobById(
     salaryMax: row.salary_max ?? undefined,
     location: row.location ?? undefined,
     remoteWorkStatus: row.remote_work_status ?? undefined,
-    descriptionMarkdown: row.description_markdown ?? undefined,
+    descriptionMarkdown: row.description ?? undefined,
     messageToCandidates: row.message_to_candidates ?? undefined,
     requiredSkills: row.required_skills ?? [],
     preferredSkills: row.preferred_skills ?? [],

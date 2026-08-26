@@ -19,7 +19,7 @@ export default async function AdminJobDetailPage({ params }: Props) {
       ow_job_roles!job_id(is_primary, ow_roles!role_id(name)),
       salary_min, salary_max, salary_note,
       location, remote_work_status, work_style,
-      description_markdown, description,
+      description,
       required_skills, requirements,
       preferred_skills, preferred,
       culture_fit, selection_steps, selection_process,

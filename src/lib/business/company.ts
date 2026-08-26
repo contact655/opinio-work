@@ -20,13 +20,13 @@ export type DbCompany = {
   logo_gradient: string | null;
   logo_letter: string | null;
   logo_url: string | null;
-  about_markdown: string | null;
+  description: string | null;
   employee_count: string | null;
-  established_at: string | null;
+  founded_year: number | null;
   avg_age: number | null;
   avg_salary: string | null;
   funding_total: string | null;
-  gender_ratio: string | null;
+  female_ratio: string | null;
   evaluation_system: string | null;
   benefits: string[] | null;
   fit_positives: string[] | null;
@@ -55,8 +55,10 @@ export type DbCompany = {
 const SELECT_COLUMNS = [
   "id", "user_id", "name", "tagline", "mission", "why_join", "company_features",
   "industry", "industry_id", "saas_category_id", "phase", "business_stage", "url", "careers_url",
-  "logo_gradient", "logo_letter", "logo_url", "about_markdown", "employee_count", "established_at",
-  "avg_age", "avg_salary", "funding_total", "gender_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
+  /* ⚠️ 【廃止】列は取らないこと（about_markdown / established_at / gender_ratio）。
+        2026-08-26 に description / founded_year / female_ratio へ統合済み。 */
+  "logo_gradient", "logo_letter", "logo_url", "description", "employee_count", "founded_year",
+  "avg_age", "avg_salary", "funding_total", "female_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails", "show_fit_negatives",
   "availability_days", "availability_times", "availability_notes",
@@ -104,13 +106,13 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     logoGradient: row.logo_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
     logoLetter: row.logo_letter ?? (row.name ? row.name[0] : "?"),
     logoUrl: row.logo_url ?? "",
-    descriptionMarkdown: row.about_markdown ?? "",
+    descriptionMarkdown: row.description ?? "",
     employeeCount: row.employee_count ?? "",
-    foundedAt: row.established_at ?? "",
+    foundedAt: row.founded_year != null ? String(row.founded_year) : "",
     avgAge: row.avg_age != null ? String(row.avg_age) : "",
     avgSalary: row.avg_salary ?? "",
     fundingTotal: row.funding_total ?? "",
-    genderRatio: row.gender_ratio ?? "",
+    genderRatio: row.female_ratio ?? "",
     evaluationSystem: row.evaluation_system ?? "",
     benefitsTags: Array.isArray(row.benefits) ? row.benefits : [],
     fitPositives: Array.isArray(row.fit_positives) ? row.fit_positives : [],
@@ -167,13 +169,22 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
     logo_gradient: form.logoGradient || null,
     logo_letter: form.logoLetter || null,
     logo_url: form.logoUrl || null,
-    about_markdown: form.descriptionMarkdown || null,
+    /* ⚠️ **正は `description`。** 2026-08-26 に統合した。
+          以前は `about_markdown` に書いていたが、求職者側は `description` を読むため
+          企業が書いた企業説明は**どこにも出なかった**（本番0件）。
+       ⚠️ 描画は plain text（改行で段落分け／`companies/[id]` の `detail.about`）。
+          **markdown は解釈されない。** 入力欄も markdown を promote しない形にしてある。 */
+    description: form.descriptionMarkdown || null,
     employee_count: form.employeeCount || null,
-    established_at: form.foundedAt || null,
+    /* ⚠️ **正は `founded_year`(int)。** 求職者側は年しか表示しない。
+          以前は `established_at`(text) に書いており、PATCH は `founded_year` を読むため
+          **公開のたびに設立年が NULL で潰れていた。** */
+    founded_year: form.foundedAt ? (parseInt(form.foundedAt.replace(/[^\d]/g, "").slice(0, 4), 10) || null) : null,
     avg_age: isNaN(avgAge) ? null : avgAge,
     avg_salary: form.avgSalary || null,
     funding_total: form.fundingTotal || null,
-    gender_ratio: form.genderRatio || null,
+    /* ⚠️ **正は `female_ratio`。** `gender_ratio` は本番0件のまま廃止した。 */
+    female_ratio: form.genderRatio || null,
     evaluation_system: form.evaluationSystem || null,
     benefits: form.benefitsTags.length > 0 ? form.benefitsTags : null,
     fit_positives: form.fitPositives.length > 0 ? form.fitPositives : null,

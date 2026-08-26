@@ -233,22 +233,14 @@ export async function PATCH(req: Request) {
             2026-08-12 まで `body.isPublished ? now : null` と書いており、
             **公開中に再保存するたび初回公開日を上書きし、非公開に戻すと消していた。**
             運営側（updateIsPublished）の「最初に公開した日時」という意味と食い違っていた。 */
-      /* ⚠️★**まだ展開していない項目がある**（2026-08-26 時点）。
-            `transformFormToDb` が書くキーと本番列の名前が食い違っており、
-            どちらを正とするか決まっていないため保留にしてある。
-            **`undefined` を返すようにしたので上書きはされない**（触らないだけ）。
-
-              フォームの項目        draft_data のキー      本番列（読み手）
-              設立年 foundedAt      established_at         founded_year
-              男女比 genderRatio    gender_ratio           female_ratio
-              会社概要              about_markdown         description（求職者が読む）
-
-         ⚠️ 会社概要は markdown 前提の入力欄なので、`description` に素で入れると
-            記号がそのまま出る（求人の `description_markdown` と同じ問題）。
-            **列の統合とセットで決めること。**
+      /* ✅ 2026-08-26 に名前の食い違いを解消した（migration 20260826160000）。
+            `transformFormToDb` が `description` / `founded_year` / `female_ratio` を
+            直接書くようになったので、ここの `d.*` がそのまま噛み合う。
+         ⚠️ 【廃止】キー（about_markdown / established_at / gender_ratio）を
+            ここに足さないこと。読む先が2つに戻る。
          ⚠️ 入力欄が撤去済みの項目（評価制度・残業時間・有給取得率・働き方の補足・
-            面談可能日時）はここに足さないこと。`transformFormToDb` は今も
-            キーを吐くので、足すと**古い空値で上書きする**ことになる。 */
+            面談可能日時）も足さないこと。`transformFormToDb` は今もキーを吐くので、
+            足すと**古い空値で上書きする**ことになる。 */
       ...publishedAtPatch(currentRow?.published_at, !!body.isPublished, now),
       updated_at:               now,
       draft_data:               null,

@@ -105,36 +105,10 @@ function mapCompany(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-/**
- * ★**企業側（/biz）と求職者側で列名が割れている。**最初に中身のある値を返す。
- *
- * | 企業が書く列（新しい） | 旧データがある列 |
- * |---|---|
- * | `required_skills`(text[])   | `requirements`(text)      |
- * | `preferred_skills`(text[])  | `preferred`(text)         |
- * | `selection_steps`(text[])   | `selection_process`(jsonb)|
- *
- * ⚠️ **`??` では駄目。** `PUT /api/biz/jobs/[id]` は未入力でも **空配列を書く**ので、
- *    `[] ?? 旧列` は `[]` を返して**旧データを永久に隠す。**
- *    2026-08-26 に歓迎スキルの表示を直した直後、企業が別の項目を保存しただけで
- *    また消える状態だと分かったのがこの関数を入れた理由。
- *
- * ⚠️ **企業側の列を先に置く。** 企業が編集した内容が旧データに負けてはいけない。
- *
- * ⚠️ `description_markdown`（企業側の本文）は**ここに入れていない。**
- *    `overview` は plain text として描画され（`white-space: pre-wrap`）、
- *    JSON-LD にも素で入るので、markdown を流し込むと記号がそのまま出る。
- *    列の統合は別タスク。**本番0件なので現時点の実害は無い。**
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pickFilled(...vals: any[]): any {
-  return vals.find((v) =>
-    Array.isArray(v) ? v.length > 0
-    : typeof v === "string" ? v.trim() !== ""
-    : v != null,
-  );
-}
-
+/* ⚠️ **`pickFilled` は 2026-08-26 に削除した。** 列を統合して読む先が1つになったため。
+      旧テキスト列（requirements / preferred / selection_process）は
+      migration 20260826160000 で配列列へ移行し、COMMENT で【廃止】と印を付けてある。
+      **新しく読み書きしないこと。** */
 function mapJob(row: Record<string, any>): Job {
   const publishedAt = row.published_at as string | null;
   const isNew = publishedAt ? daysSince(publishedAt) <= 7 : false;
@@ -150,14 +124,14 @@ function mapJob(row: Record<string, any>): Job {
   if (row.location) tags.push((row.location as string).split("・")[0]);
 
   // required_skills: string or string[]
-  const reqRaw = pickFilled(row.required_skills, row.requirements);
+  const reqRaw = row.required_skills;
   const requiredSkills: string[] = Array.isArray(reqRaw)
     ? reqRaw
     : typeof reqRaw === "string" && reqRaw.trim()
     ? reqRaw.split(/\n|\\n|・|、/).map((s: string) => s.replace(/\\n/g, "").trim()).filter(Boolean)
     : [];
 
-  const prefRaw = pickFilled(row.preferred_skills, row.preferred);
+  const prefRaw = row.preferred_skills;
   const preferredSkills: string[] = Array.isArray(prefRaw)
     ? prefRaw
     : typeof prefRaw === "string" && prefRaw.trim()
@@ -166,7 +140,7 @@ function mapJob(row: Record<string, any>): Job {
 
   /* 選考フロー。⚠️ 企業側は `selection_steps`(text[]) に書き、
         旧データは `selection_process`(jsonb) に入っている。 */
-  const selectionRaw = pickFilled(row.selection_steps, row.selection_process);
+  const selectionRaw = row.selection_steps;
   const selectionFlow = Array.isArray(selectionRaw)
     ? selectionRaw.map((step: string, i: number) => ({
         step: String(i + 1),
@@ -1048,8 +1022,7 @@ const JOB_LIST_COLS = [
      ⚠️ 2列とも要る。`overview` は詳細と同じ `description ?? what_youll_do_intro`
         で組み立てるので、片方だけ足すと**一覧と詳細で意味が変わる。** */
   "description", "what_youll_do_intro",
-  /* ⚠️ 企業側（/biz）が書く列。`requirements` と対で `pickFilled` が見る。
-        並び替え「開示充実順」が `required_skills` を見るので一覧でも要る。 */
+  /* ⚠️ 並び替え「開示充実順」が `required_skills` を見るので一覧でも要る。 */
   "required_skills",
 ].join(", ");
 
@@ -1064,11 +1037,9 @@ const JOB_DETAIL_COLS = [
         jobs/[id]/page.tsx にある。空配列なので節ごと出ないだけで、エラーにならない）。
      ⚠️ `required_skills` は同じ形の別名だが**本番0件**で、実データは `requirements` に
         あるので取っていない。増えたらここに足す。 */
-  "description", "requirements", "preferred_skills", "preferred",
-  /* ⚠️ 選考フローは列が2つある。`selection_steps`(企業側) を取らないと、
-        企業が入力した選考フローが**求職者に一度も出ない**（2026-08-26 実測:
-        公開中の求人5件すべてが該当していた）。 */
-  "selection_process", "selection_steps",
+  /* ⚠️ 【廃止】列は取らないこと（requirements / preferred / selection_process）。
+        2026-08-26 に配列列へ統合済み。取ると読む先が2つに戻る。 */
+  "description", "preferred_skills", "selection_steps",
   "message_to_candidates", "what_youll_do_intro", "who_we_want_intro",
   "why_hire", "team_composition", "first_90_days",
   // セールス職専用（詳細のみ）
