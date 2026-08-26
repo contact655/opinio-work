@@ -102,7 +102,6 @@ export default function CasualMeetingForm({
   /** 指名された人の表示名。null なら名前を出さない（値が無いものを埋めない） */
   requestedName: string | null;
 }) {
-  const [shareProfile, setShareProfile] = useState(true);
   const [intent, setIntent] = useState<Intent>("info_gathering");
   const [interestReason, setInterestReason] = useState("");
   const [questions, setQuestions] = useState("");
@@ -128,7 +127,6 @@ export default function CasualMeetingForm({
         body: JSON.stringify({
           company_id: companyId,
           contact_email: contactEmail,
-          share_profile: shareProfile,
           intent,
           interest_reason: interestReason || null,
           questions: questions || null,
@@ -244,32 +242,19 @@ export default function CasualMeetingForm({
 
       <form onSubmit={handleSubmit}>
 
-        {/* Section 1: Profile share */}
+        {/* Section 1: Profile share（告知のみ。選択肢は無い）
+            ⚠️ **チェックボックスを戻さないこと（2026-08-26 撤去）。**
+               「チェックを外すとプロフィールは共有されず、下記の入力内容のみが
+               企業に届きます」と書いてあったが、`share_profile` は**どこからも
+               読まれておらず**、企業側の面談画面は常に氏名を出し
+               `/u/{userId}` を開くボタンも出していた。**外しても全部見えていた。**
+            ⚠️ **この告知文は消さないこと。** 選択肢を無くした以上、
+               「何が共有されるか」を伝える責任はむしろ大きくなる。 */}
         <section style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>OPINIOプロフィールを企業に共有</h2>
+          <h2 style={sectionTitleStyle}>OPINIOプロフィールが企業に共有されます</h2>
           <p style={sectionDescStyle}>
-            あなたのプロフィール情報が企業側に共有されます。企業側が事前にあなたのキャリアを確認できるため、<strong>面談当日の対話がスムーズ</strong>になります。
+            お申し込みにあたり、あなたのプロフィール情報（氏名・職歴など）が企業側に共有されます。企業側が事前にあなたのキャリアを確認できるため、<strong>面談当日の対話がスムーズ</strong>になります。
           </p>
-          <label style={{
-            display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer",
-            padding: "14px 16px",
-            background: shareProfile ? "var(--royal-50)" : "var(--bg-tint)",
-            border: `1px solid ${shareProfile ? "var(--royal-100)" : "var(--line)"}`,
-            borderRadius: 10,
-          }}>
-            <input
-              type="checkbox"
-              checked={shareProfile}
-              onChange={(e) => setShareProfile(e.target.checked)}
-              style={{ marginTop: 2, accentColor: "var(--royal)", width: 16, height: 16, flexShrink: 0 }}
-            />
-            <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
-              <strong>OPINIOプロフィールを企業に共有する</strong>（推奨）<br />
-              <span style={{ color: "var(--ink-soft)", fontSize: 12 }}>
-                チェックを外すと、プロフィールは共有されず、下記の入力内容のみが企業に届きます。
-              </span>
-            </span>
-          </label>
         </section>
 
         {/* Section 2: Intent */}

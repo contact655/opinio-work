@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const {
     company_id, job_id,
-    share_profile, intent, interest_reason, questions, preferred_format,
+    intent, interest_reason, questions, preferred_format,
     requested_user_id,
   } = body;
 
@@ -134,7 +134,6 @@ export async function POST(req: NextRequest) {
       company_id,
       contact_email,
       job_id: (job_id && typeof job_id === "string" && UUID_RE.test(job_id)) ? job_id : null,
-      share_profile: share_profile !== false,
       intent: typeof intent === "string" ? intent : null,
       interest_reason: typeof interest_reason === "string" ? interest_reason : null,
       questions: typeof questions === "string" ? questions : null,
