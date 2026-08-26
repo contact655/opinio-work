@@ -13,6 +13,27 @@ function completedKey(userId: string): string {
 }
 
 /**
+ * ★戻り先の URL。**クエリ文字列まで含める。**
+ *
+ * ⚠️ `usePathname()` は**クエリ文字列を含まない**。それを `next=` に入れていたため、
+ *    `/companies?q=営業` でゲートに捕まると `next=%2Fcompanies` になり、
+ *    **答えたあと検索語が消えた状態で戻っていた**（2026-08-27 修正）。
+ *    ヘッダーの検索が `/search?q=` を指すようになると、ここが検索の主動線になる。
+ *
+ * ⚠️ **`useSearchParams()` を使わないこと。** `OnboardingGuard` は
+ *    `(jobseeker)/layout.tsx` 直下で **Suspense に包まれていない**ので、
+ *    あのフックを足すと `(jobseeker)` 配下の静的レンダリングが落ちる
+ *    （LP `/` は現に prerender されている。CLAUDE.md「/jobs の ISR 失敗」と同じ形）。
+ *    ここは `useEffect` の中＝クライアント専用なので `window` を直接読めば足りる。
+ *
+ * ⚠️ 受け側の `safeNext()` は `/` 始まりならクエリ付きでもそのまま通す。変更不要。
+ */
+function currentHref(fallbackPathname: string): string {
+  if (typeof window === "undefined") return fallbackPathname;
+  return window.location.pathname + window.location.search;
+}
+
+/**
  * ログイン済みで onboarding_completed=false のユーザーを /onboarding へ誘導する。
  *
  * ── ここは「ページ遷移のたびに走る」場所であることに注意（2026-08-13）────────
@@ -60,7 +81,7 @@ export function OnboardingGuard() {
         .maybeSingle();
 
       if (!profile?.onboarding_completed) {
-        router.replace(`/onboarding?next=${encodeURIComponent(pathname)}`);
+        router.replace(`/onboarding?next=${encodeURIComponent(currentHref(pathname))}`);
         return;
       }
 
