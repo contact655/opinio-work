@@ -8,6 +8,44 @@
 
 ---
 
+## 柴さんのアカウントが実質2つに割れている（本命が未決）
+
+| アカウント | `is_test` | 中身 | 位置づけ |
+|---|---|---|---|
+| `hshiba@opinio.co.jp` | **true** | **ゼロ**（職歴0 / 所属0 / 学歴0 / 投稿0、`ow_profiles` 1行のみ） | **運用でログインに使っている**ほう |
+| `s.hisato1020@gmail.com` | **false** | `ow_company_members` 1件・学歴2件 | **`/people` に出ている実体** |
+
+**なぜ残っているか**: **普段ログインするアカウントと、公開されているプロフィールが別物。**
+プロフィールを充実させる作業をするときに間違えやすい
+（ログインしたまま編集すると、公開側ではない空のほうに書き込むことになる）。
+
+**どちらを本命にするかが未決。** 決まるまで `hshiba@opinio.co.jp` の `is_test` は**現状維持**。
+⚠️ 2026-08-26 実測で、**`is_test` によって実際に落ちている面は0件**。
+   `ow_users.is_test` を見ている面は20箇所あるが、そのすべてが
+   `ow_experiences` / `ow_company_members` / `ow_user_educations` / `can_send_scout` を
+   起点にしており、このアカウントはどれも0件。`/people` は「所属が1つも無い人は出さない」
+   ので `is_test` 以前に落ちる。`/biz/candidates` は `scout_enabled` が NULL なので
+   `can_send_scout` が掲載79社すべてで false。
+   ＝ **いま `is_test` を外しても何も起きないし、付けたままでも実害が無い。**
+
+**hshiba 側に寄せる場合**: `supabase/migrations/20260803171424_cleanup_internal_accounts.sql`
+の**1件を戻す作業が伴う**（あの migration 自身にそう書かれている）。
+
+> ⚠️ 前者を「捨ててよいアカウント」と判断したわけではない。ログインは残す。
+> もしプロフィールを hshiba 側に寄せたいなら、この migration ではなく中身を移す作業になる。
+> **その場合はこの1件を戻すこと。**
+
+⚠️ **実際には柴さん名義の行は4つある**（2026-08-26 実測）。上の2つに加えて
+   `hshiba+01@third-box.jp`（`is_test` / 学歴1件）と
+   `hshiba+03@third-box.jp`（`is_test` / 「山田 太郎」名義・中身ゼロ）。
+   本命を決めるときは、この2つをどうするかも一緒に決めること。
+
+⚠️ 関連: ゲート検証で `hshiba@opinio.co.jp` を消費しないこと（下の「ゲートの検証は
+   テストアカウントを1回ごとに1つ消費する」を参照）。消費すると**この行の
+   `career_stance` が埋まる。**
+
+---
+
 ## ⚠️★`OnboardingGuard` の stance 分岐の修正が作業ツリーにしか無い
 
 **対象**: `src/components/jobseeker/OnboardingGuard.tsx:110`（`/onboarding/stance` への
