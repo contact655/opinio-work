@@ -6,6 +6,8 @@ import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/exp
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
 import { canUserPost } from "@/lib/feed/canPost";
 import { getCompaniesForList } from "@/lib/supabase/queries";
+import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
+import { primaryBusinessDomain } from "@/types/genre";
 
 export const metadata: Metadata = {
   /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
@@ -20,6 +22,21 @@ export type SidebarFollow = { id: string; slug: string | null; name: string; bra
 export type SidebarUserFollow = { id: string; name: string; avatar_color: string | null; avatar_url: string | null; role_title: string | null; company_name: string | null };
 export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
 /** 右レール「掲載中の企業」。ディレクトリに載っている企業から先頭3社 */
+/**
+ * 埋め込みで来た事業領域を、表示側が読む1つの値（主の1件）に畳む。
+ * ⚠️ **キー名は `industry` のまま。** FeedClient と型の互換を保つため
+ *    （中身は事業領域名。`ow_companies.industry`(text) ではない）。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenRefCompany(co: any): any {
+  if (!co) return null;
+  const links = (co.ow_company_business_domains ?? []) as {
+    is_primary: boolean; ow_business_domains: { name: string } | null;
+  }[];
+  const { ow_company_business_domains: _, ...rest } = co;
+  return { ...rest, industry: links.find((l) => l.is_primary)?.ow_business_domains?.name ?? null };
+}
+
 export type SidebarCompany = { id: string; slug: string | null; name: string; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
@@ -101,7 +118,7 @@ export default async function FeedPage() {
       image_url, link_url, link_title, link_image_url, link_description, link_domain,
       event_title, event_starts_at, event_location, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
-      ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, industry, employee_count, location, founded_year, is_published, is_test),
+      ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, location, founded_year, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))),
       ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
       ref_article:ow_articles!ref_article_id(id, slug, title, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
       likes:ow_post_likes(count),
@@ -207,7 +224,10 @@ export default async function FeedPage() {
       user: p.user
         ? { id: p.user.id, name: p.user.name, avatar_color: p.user.avatar_color, avatar_url: p.user.avatar_url, is_system: p.user.is_system ?? false, roleTitle: exp?.roleTitle ?? null, company: exp?.company ?? null }
         : { id: "", name: "不明", avatar_color: null, avatar_url: null, is_system: false, roleTitle: null, company: null },
-      ref_company: p.ref_company ?? null,
+      /* ⚠️ 埋め込みの `ow_company_business_domains[]` を **`industry` に畳んでから渡す。**
+            畳まずに渡すと FeedClient は `co.industry` が undefined になり、
+            **企業の情報行から業種だけが黙って消える**（型は optional なので tsc は通る）。 */
+      ref_company: flattenRefCompany(p.ref_company),
       ref_job: p.ref_job ?? null,
       ref_article: p.ref_article ?? null,
       like_count: p.likes?.[0]?.count ?? 0,
@@ -356,9 +376,13 @@ export default async function FeedPage() {
       };
     });
 
+  /* ⚠️ タグは**事業領域**。`industry`(text) は廃止予定で新規企業では空になる。 */
+  const sidebarDomains = await fetchBusinessDomainsByCompany(
+    adminSupabase, listedCompanies.slice(0, 3).map((c) => c.id), "feed sidebar",
+  );
   const sidebarCompanies: SidebarCompany[] = listedCompanies.slice(0, 3).map((c) => ({
     id: c.id, slug: c.slug, name: c.name, tagline: c.tagline || null,
-    industry: c.industry || null,
+    industry: primaryBusinessDomain(sidebarDomains.get(c.id))?.name ?? null,
     logo_letter: c.logo_letter, logo_gradient: c.logo_gradient, logo_url: c.logo_url,
   }));
 

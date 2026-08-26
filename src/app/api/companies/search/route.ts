@@ -34,7 +34,15 @@ export async function GET(req: NextRequest) {
   let query = filterListedCompanies(
     supabase
       .from("ow_companies")
-      .select("id, name, brand_name, logo_url, industry, industry_id, employee_count, url")
+      /* ⚠️ サブテキストは **業種（`ow_industries.name`）**。`industry`(text) は
+            廃止予定（新規企業には書かれない）なので読まない。
+         ⚠️ **ここだけ事業領域ではなく業種を出している。** 理由は「必ず値がある」こと：
+            この API は掲載中の企業しか返さず、**公開ゲートが掲載の条件として
+            `industry_id` を必須にしている**（lib/companies/publishable.ts）。
+            事業領域は業種によっては任意（`requires_business_domain = false`）なので、
+            将来この絞り込みを緩めて下書き企業まで出すようになると**空になりうる。**
+            ここは見分けが目的なので、欠けない側を選ぶ。 */
+      .select("id, name, brand_name, logo_url, industry_id, employee_count, url, ow_industries(name)")
   )
     .order("name")
     .limit(limit);
@@ -118,7 +126,10 @@ export async function GET(req: NextRequest) {
     id: c.id,
     name: c.name,
     logo_url: c.logo_url ?? null,
-    industry: c.industry ?? null,
+    /* ⚠️ キー名は据え置き（受け手2つ＝職歴エディタとオンボーディングが同じ形で読む）。
+          中身は**業種マスタの名前**で、`ow_companies.industry`(text) ではない。 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    industry: ((c as any).ow_industries?.name as string | undefined) ?? null,
     /* ⚠️ 企業作成フォームが業種を引き継ぐのに使う。**保存に使うのはこちら（id）**で、
           上の `industry` は候補カードに出す表示用のラベル。混同しないこと。 */
     industry_id: c.industry_id ?? null,

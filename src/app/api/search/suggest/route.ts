@@ -71,7 +71,10 @@ export async function GET(req: Request) {
     filterListedCompanies(
       supabase
         .from("ow_companies")
-        .select("id, slug, name, industry, logo_letter, logo_gradient")
+        /* ⚠️ サブテキストは**事業領域**。`industry`(text) は廃止予定で
+              新規企業では空になる（CLAUDE.md「求職者側の読み手を事業領域へ移した」）。
+              anon の埋め込み取得が通ることは実測済み（RLS は掲載中の企業に限定）。 */
+        .select("id, slug, name, logo_letter, logo_gradient, ow_company_business_domains(is_primary, ow_business_domains(name))")
         /* ★**社名は「和名・英語名・ブランド名・slug」の4つで引く**（2026-08-20）。
            ⚠️ 和名（`name`）だけで引くと、**英語名で検索した人には見つからない**。
               このサイトの社名は「アドビ株式会社」「シスコシステムズ合同会社」のように
@@ -122,8 +125,22 @@ export async function GET(req: Request) {
   */
   const roleLabels = await fetchJobRoleLabels(jobs.map((j) => j.id));
 
+  /* 埋め込みの形（`ow_company_business_domains[]`）をそのまま返すと
+     受け手が毎回ほどくことになるので、**主の1件だけ**を `industry` として返す。
+     ⚠️ キー名は据え置き。受け手（ヘッダー・企業ピッカー）が同じ形で読める。 */
+  const companiesOut = (companies ?? []).map((c) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const links = ((c as any).ow_company_business_domains ?? []) as {
+      is_primary: boolean; ow_business_domains: { name: string } | null;
+    }[];
+    const primary = links.find((l) => l.is_primary)?.ow_business_domains?.name ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { ow_company_business_domains: _, ...rest } = c as any;
+    return { ...rest, industry: primary };
+  });
+
   return NextResponse.json({
-    companies: companies ?? [],
+    companies: companiesOut,
     jobs: jobs.map((j) => ({ ...j, roleLabel: roleLabels.get(j.id)?.label ?? null })),
   });
 }
