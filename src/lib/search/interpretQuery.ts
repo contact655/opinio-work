@@ -61,12 +61,24 @@ export type SearchKind = "company" | "job" | "person";
  * ⚠️ **当てられない条件を黙って捨てないこと。** チップには出したうえで
  *    「求人にのみ効く」と分かる形にする（画面側が `appliesTo` を見る）。
  */
+/**
+ * ★人検索のとき、この条件を**どこに当てるか**。
+ *
+ *   `experience` … 職歴1行に当てる（在籍した会社 / その時の職種 / その会社の属性）
+ *   `person`     … その人自身に当てる（職歴とは無関係。スキルなど）
+ *
+ * ⚠️ **人検索の AND の意味がこれで2つに分かれる。**
+ *    詳細は `runSearch.ts` の `searchPersonHits`。片方だけ変えると意味が壊れる。
+ * ⚠️ 企業検索・求人検索では使わない（あちらは職歴を見ない）。
+ */
+export type ConditionScope = "experience" | "person";
+
 export type Condition =
-  | { kind: "company"; label: string; appliesTo: SearchKind[]; companyId: string }
-  | { kind: "role"; label: string; appliesTo: SearchKind[]; roleIds: string[] }
-  | { kind: "domain"; label: string; appliesTo: SearchKind[]; domainId: string; slug: string }
-  | { kind: "foreign"; label: string; appliesTo: SearchKind[]; isForeign: boolean }
-  | { kind: "salaryMin"; label: string; appliesTo: SearchKind[]; man: number };
+  | { kind: "company"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; companyId: string }
+  | { kind: "role"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; roleIds: string[] }
+  | { kind: "domain"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; domainId: string; slug: string }
+  | { kind: "foreign"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; isForeign: boolean }
+  | { kind: "salaryMin"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; man: number };
 
 export type InterpretResult = {
   primaryKind: SearchKind;
@@ -408,6 +420,8 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
         }
         conditions.push({
           kind: "company",
+          /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
+          matchOn: "experience",
           label: hit[0].label, // ★マスタの表示名。入力文字列ではない
           appliesTo: ["company", "job", "person"],
           companyId: hit[0].id,
@@ -429,6 +443,8 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
   if (salaryMan !== null) {
     conditions.push({
       kind: "salaryMin",
+      /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
+      matchOn: "experience",
       label: `年収 ${salaryMan}万以上`,
       /* ⚠️ 年収の列があるのは求人だけ。企業にも人にも当てられない
             （企業の年収は 79社中1社しか持たず、2026-08-25 に一覧から外している）。 */
@@ -443,6 +459,8 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     if (i < 0) continue;
     conditions.push({
       kind: "foreign",
+      /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
+      matchOn: "experience",
       label: f.label,
       /* 人にも当てられる（その人の職歴に外資の在籍があるか）。
          実測: `is_foreign` は掲載79社で **true 65 / false 14 / null 0**＝
@@ -474,6 +492,8 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     if (hitAt < 0) continue;
     conditions.push({
       kind: "domain",
+      /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
+      matchOn: "experience",
       label: d.name, // ★マスタの名前。入力文字列ではない
       appliesTo: ["company", "job", "person"],
       domainId: d.id,
@@ -514,6 +534,8 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     const label = roleTree.byId.get(h.roleIds[0])?.name ?? h.alias;
     conditions.push({
       kind: "role",
+      /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
+      matchOn: "experience",
       label, // ★マスタの職種名。入力文字列ではない
       appliesTo: ["company", "job", "person"],
       roleIds: h.roleIds,

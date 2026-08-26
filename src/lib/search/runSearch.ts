@@ -473,23 +473,46 @@ export async function searchPersonHits(
     const exps = [...(expsByUser.get(u.id) ?? [])].sort((a, b) =>
       (a.started_at ?? "").localeCompare(b.started_at ?? ""),
     );
-    /* 条件ごとに「それを満たす職歴」を探す。1つでも満たせない条件があれば落とす（AND）。 */
-    let ok = true;
-    let earliestMatch: ExpRow | null = null;
-    let latestMatch: ExpRow | null = null;
-    for (const c of cond) {
-      const matched = exps.filter((e) => experienceMatches(e, c, tree, foreignById, domainsByCompany));
-      if (matched.length === 0) { ok = false; break; }
-      const first = matched[0];
-      const last = matched[matched.length - 1];
-      if (!earliestMatch || (first.started_at ?? "") < (earliestMatch.started_at ?? "")) {
-        earliestMatch = first;
-      }
-      if (!latestMatch || (last.started_at ?? "") > (latestMatch.started_at ?? "")) {
-        latestMatch = last;
-      }
-    }
-    if (!ok) continue;
+    /* ── ★AND は2段。**意味が違うので混ぜないこと** ───────────────────────────
+
+       ① 職歴側（`matchOn: "experience"`）
+            **1つの職歴が、職歴側の条件を全部満たすこと。**
+            「CTC で**インサイドセールスをしていた**人」の意味になる。
+
+          ⚠️ 「条件ごとに、それを満たす職歴がどれか1つある」ではない。
+             それだと「CTC にいたことがあり、かつ**どこかで**インサイドセールスを
+             した人」になる。2026-08-27 まではこちらだった。
+             実測で `ctcのインサイドセールスの人` に木村さんが1件出ていたが、
+             あの人の IS は Salesforce で、CTC では ES。**誤った1件**だった。
+
+       ② 人側（`matchOn: "person"`）
+            **その人自身が満たすこと。職歴とは無関係。**
+            スキルのように「いつ・どこで」に紐づかないものがここに来る。
+
+       ⚠️ ①を②と同じ「その人のどこかが満たす」に緩めないこと。
+          職歴は「いつ・どこで」を持つので、束ねて判定すると上のような誤りが出る
+          （同じ人の別々の時期をつなぎ合わせてしまう）。 */
+    const expConds = cond.filter((c) => c.matchOn === "experience");
+    const personConds = cond.filter((c) => c.matchOn === "person");
+
+    /* ① 職歴側。⚠️ 条件が無いときは空にしておく。`[].every()` は true なので、
+          そのまま filter すると**全職歴が「マッチした職歴」になり**、
+          下のマッチ理由が的外れな職歴から作られる。 */
+    const matchedExps =
+      expConds.length > 0
+        ? exps.filter((e) =>
+            expConds.every((c) => experienceMatches(e, c, tree, foreignById, domainsByCompany)),
+          )
+        : [];
+    if (expConds.length > 0 && matchedExps.length === 0) continue;
+
+    // ② 人側
+    if (!personConds.every((c) => personMatches(u.id, c))) continue;
+
+    /* `exps` は started_at 昇順なので `matchedExps` もその順序を保つ */
+    const earliestMatch: ExpRow | null = matchedExps[0] ?? null;
+    const latestMatch: ExpRow | null =
+      matchedExps.length > 0 ? matchedExps[matchedExps.length - 1] : null;
     /* 条件が1つも無い（全部 unresolved だった）ときは、職歴を持つ人だけを出す。
        ⚠️ 全員返すと「検索した意味が無い一覧」になる。 */
     if (cond.length === 0 && exps.length === 0) continue;
@@ -501,7 +524,7 @@ export async function searchPersonHits(
       gradient: u.avatar_color?.startsWith("linear-gradient") ? u.avatar_color : FALLBACK_GRADIENT,
       avatarUrl: u.avatar_url,
       currentLabel: resolveExperienceCompanyLabel(exps.find((e) => e.is_current) ?? null),
-      matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree),
+      matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds),
     });
   }
 
@@ -509,6 +532,32 @@ export async function searchPersonHits(
     items: isLoggedIn ? hits.slice(0, HIT_LIMIT) : [],
     total: hits.length,
   };
+}
+
+/**
+ * ★人に当てる条件（`matchOn: "person"`）。**職歴とは無関係に、その人自身を見る。**
+ *
+ * ⚠️ **いまは該当する条件が1つも無い**（既存5種はすべて `matchOn: "experience"`）。
+ *    2026-08-27 に構造だけ用意した。スキルを入れるときにここが埋まる
+ *    （docs/phase0-skills-20260827.md）。
+ *
+ * ⚠️ **未知の条件は false（＝その人を落とす）。** true に倒すと、
+ *    実装し忘れた条件が「全員が満たしている」ことになって静かに素通りする。
+ *    0件になれば気づけるが、全件返ると気づけない。
+ */
+function personMatches(_owUserId: string, c: Condition): boolean {
+  switch (c.kind) {
+    /* 職歴に当てる条件がここへ来るのは呼び出し側の分け方の誤り。
+       黙って通さずに落とす。 */
+    case "company":
+    case "role":
+    case "domain":
+    case "foreign":
+    case "salaryMin":
+      return false;
+    default:
+      return false;
+  }
 }
 
 function experienceMatches(
@@ -558,8 +607,18 @@ function buildMatchReason(
   earliest: ExpRow | null,
   latest: ExpRow | null,
   tree: Awaited<ReturnType<typeof getRoleTree>>,
+  personConds: Condition[],
 ): string | null {
-  if (!earliest) return null;
+  /* ★職歴側の条件が1つも当たっていないとき（人側の条件だけで出た人）。
+     ⚠️ 職歴から理由を作れないので、**当たった条件そのもの**を並べる。
+        例: スキルだけで引いたら「Salesforce・MEDDIC」。
+     ⚠️ ここを null に倒さないこと。理由の無いカードは、なぜ出たのか分からない
+        （`/search` の人カードは理由の1行が要るという前提で作ってある）。
+     ⚠️ ラベルはマスタ由来（`Condition.label`）。入力文字列は出さない。 */
+  if (!earliest) {
+    if (personConds.length > 0) return personConds.map((c) => c.label).join("・");
+    return null;
+  }
   const roleName = (e: ExpRow) =>
     (e.role_category_id ? tree.byId.get(e.role_category_id)?.name : null) ?? null;
 
