@@ -456,6 +456,25 @@ Supabase の日次バックアップには3つの制約がある（2026-08-20 �
 3. **推測値を投入しない。** 企業ごとに調べた値でなければ列に入れない。
    「とりあえず hybrid」「とりあえず東京都」は、後から migration 由来か企業設定かを判別できなくなる。
 
+### ⚠️★保留したい migration を `supabase/migrations/` に置かない（2026-08-26 確立）
+
+**`supabase db push` は保留中のものを全部当てる。**
+ファイル冒頭に「適用しないこと」と書いても**ロックにはならない**。
+
+⚠️ **2026-08-26 に実際に踏んだ。** `20260827090000_scout_gate_career_stance.sql` は
+   冒頭に「**利用規約 第8条の改定日が決まるまで適用しないこと**」と書かれていたが、
+   別セッションが自分の migration を当てるために `db push` した際、
+   **保留分としてまとめて適用された。** 打ち消す migration
+   （`20260827140000_revert_scout_gate_career_stance.sql`）を別に足して戻している。
+
+- **適用日が決まるまでは [`supabase/pending/`](supabase/pending/) に置く。**
+  当てる日に `supabase/migrations/` へ移す。
+- **`db push` の前に `supabase migration list` で保留分を必ず確認する。**
+  自分のファイル以外が並んでいたら、当てる前に持ち主に確認する。
+
+⚠️ **`db push` は「自分の1本だけ」を選べない。** 保留が複数あるときは、
+   **他人のものも一緒に出ていく**前提で判断すること。
+
 → 実際に踏んだ事例（archive/258 が archive/170 を理由ごと打ち消していた件、
    公開求人18件の出所調査に丸一日かかった件）と採番・baseline の運用は
    [.claude/skills/db-safety/SKILL.md](.claude/skills/db-safety/SKILL.md)
