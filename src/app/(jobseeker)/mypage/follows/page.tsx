@@ -46,10 +46,23 @@ export default async function FollowsPage() {
   if (companyIds.length > 0) {
     const { data } = await admin
       .from("ow_companies")
-      .select("id, slug, name, brand_name, industry, logo_url, logo_letter, logo_gradient")
+      /* ⚠️ サブテキストは**事業領域**。`industry`(text) は廃止予定で新規企業では空。 */
+      .select("id, slug, name, brand_name, logo_url, logo_letter, logo_gradient, ow_company_business_domains(is_primary, ow_business_domains(name))")
       .in("id", companyIds);
+    /* ⚠️ 埋め込みを `industry` に**畳んでから**渡す。畳まないと FollowsClient 側は
+          `c.industry` が undefined になり、**型は optional なので tsc も lint も通ったまま
+          サブテキストだけが黙って消える**（フィードで同じ形を踏んだ）。
+       ⚠️ キー名は据え置き。中身は事業領域名で、`ow_companies.industry`(text) ではない。 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flatten = (c: any) => {
+      const links = (c.ow_company_business_domains ?? []) as {
+        is_primary: boolean; ow_business_domains: { name: string } | null;
+      }[];
+      const { ow_company_business_domains: _, ...rest } = c;
+      return { ...rest, industry: links.find((l) => l.is_primary)?.ow_business_domains?.name ?? null };
+    };
     // ow_follows_v の並び（新しい順）を保つ
-    const byId = new Map((data ?? []).map((c) => [c.id, c]));
+    const byId = new Map((data ?? []).map((c) => [c.id, flatten(c)]));
     companies = companyIds.map((id) => byId.get(id)).filter(Boolean) as FollowedCompany[];
   }
 

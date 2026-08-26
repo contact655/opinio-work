@@ -46,17 +46,29 @@ export default async function BookmarksPage() {
       if (companyBmarks.length > 0) {
         const ids = companyBmarks.map((b) => b.target_id as string);
         const { data: companies } = await admin
-          .from("ow_companies").select("id, name, industry, employee_count").in("id", ids);
+          /* ⚠️ 求職者に見せる分類は**事業領域**。`industry`(text) は廃止予定で
+                新規企業では空になる（CLAUDE.md「求職者側の読み手を事業領域へ移した」）。 */
+          .from("ow_companies")
+          .select("id, name, employee_count, ow_company_business_domains(is_primary, ow_business_domains(name))")
+          .in("id", ids);
         if (companies) {
           const map = new Map(companies.map((c) => [c.id, c]));
           companyBookmarks = companyBmarks.flatMap((b) => {
             const c = map.get(b.target_id as string);
             if (!c) return [];
+            /* 主の事業領域だけを出す（カードは1行1タグ）。無ければ項目ごと落とす。 */
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const links = ((c as any).ow_company_business_domains ?? []) as {
+              is_primary: boolean; ow_business_domains: { name: string } | null;
+            }[];
+            const domain = links.find((l) => l.is_primary)?.ow_business_domains?.name ?? null;
             return [{
               id: b.id as string, type: "company" as const,
               title: c.name as string,
-              meta: [c.industry, formatEmployeeCount(c.employee_count)].filter(Boolean).join(" / "),
-              badge_label: (c.industry as string) ?? "企業",
+              meta: [domain, formatEmployeeCount(c.employee_count)].filter(Boolean).join(" / "),
+              /* ⚠️ `?? "企業"` は事業領域が無いときに出す既定値。`??` でよい
+                    （上の `domain` は null か文字列で、空文字にはならない）。 */
+              badge_label: domain ?? "企業",
               href: `/companies/${c.id}`,
             }];
           });
