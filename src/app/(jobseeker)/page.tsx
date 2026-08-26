@@ -6,9 +6,11 @@ import LandingPage, {
   type LPFacet,
   type LPTotals,
 } from "./LandingPage";
-import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { pickLpCompanies } from "@/lib/lp/pickCompanies";
 import { filterListedCompanies } from "@/lib/companies/visibility";
+import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
+import { primaryBusinessDomain } from "@/types/genre";
 
 /**
  * 掲載数は実データから出す。ハードコードすると外から見える説明文が古いまま腐るため。
@@ -61,12 +63,14 @@ const PREVIEW_JOBS = 12;
 export default async function HomePage() {
   const db = createAdminClient();
 
-  // ── ファセット用の軽量取得 ────────────────────────────────────────
-  // 集計のために industry / phase の2列だけを引く。行数は企業数に比例するが
-  // 列を絞っているので数千社まで許容範囲。これ以上増えたら集計ビューに移す。
-  const facetRowsP = filterListedCompanies(
-    db.from("ow_companies").select("industry, phase")
-  );
+  /* ── ファセット ────────────────────────────────────────────────────
+     ⚠️ 業種のファセットは **事業領域（getBusinessDomainFacets）** に移した（2026-08-26）。
+        `industry`(text) は廃止予定で新規企業には書かれないため、
+        あれで数えると新しい企業が**どのファセットにも入らない**。
+     ⚠️ ここにあった `ow_companies` から phase を全件引くクエリは同時に削除した。
+        「フェーズから探す」は 2026-08-03 に消えており、**取った行を誰も使っていなかった**
+        （LP を1回描くたびに掲載79社ぶんを引いて捨てていた）。 */
+  const industryFacetsP = getBusinessDomainFacets();
 
   // ── 総件数（count only: 行は取得しない）─────────────────────────
   const companyCountP = filterListedCompanies(
@@ -95,8 +99,8 @@ export default async function HomePage() {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(PREVIEW_JOBS);
 
-  const [facetRes, companyCountRes, jobCountRes, jobsRes, schoolRes] =
-    await Promise.all([facetRowsP, companyCountP, jobCountP, jobsP, schoolRowsP]);
+  const [companyCountRes, jobCountRes, jobsRes, schoolRes, industryFacetList] =
+    await Promise.all([companyCountP, jobCountP, jobsP, schoolRowsP, industryFacetsP]);
 
   // ── ピックアップ企業の選定 ──────────────────────────────────────
   // ⚠️ 基準は src/lib/lp/pickCompanies.ts に切り出してある。
@@ -104,7 +108,7 @@ export default async function HomePage() {
   const companyRowsRaw = await pickLpCompanies(db, PREVIEW_COMPANIES);
 
   for (const [label, res] of Object.entries({
-    facets: facetRes, jobs: jobsRes, schools: schoolRes,
+    jobs: jobsRes, schools: schoolRes,
   })) {
     if (res.error) console.error(`[HomePage] ${label} fetch failed:`, res.error.message);
   }
@@ -114,16 +118,17 @@ export default async function HomePage() {
     jobs: jobCountRes.count ?? 0,
   };
 
-  // ── ファセット集計 ──────────────────────────────────────────────
-  // 0件でもラベルは出す。件数が増えたときに伸びが見えるようにするため、
-  // 「0なら隠す」ことはしない。
-  const facetRows = (facetRes.data ?? []) as { industry: string | null; phase: string | null }[];
-
-  const industryFacets: LPFacet[] = INDUSTRY_GROUPS.map((g) => ({
-    key: g.key,
-    label: g.label,
-    count: facetRows.filter((r) => r.industry && (g.values as readonly string[]).includes(r.industry)).length,
-    href: `/companies?industry=${g.key}`,
+  /* ── ファセット ──────────────────────────────────────────────────
+     ⚠️ 件数はマスタ側（getBusinessDomainFacets）が数える。ここで数え直さない。
+        ⚠️ **0件のものは含まれない。** 2026-08-25 まで「ITサービス・受託 0件」が
+           出続けていた（押しても必ず0件）。
+        ⚠️ URL の key は事業領域の slug。旧 `INDUSTRY_GROUPS` の key と一致させて
+           あるので、既存の被リンクはそのまま効く。 */
+  const industryFacets: LPFacet[] = industryFacetList.map((d) => ({
+    key: d.slug,
+    label: d.name,
+    count: d.count,
+    href: `/companies?industry=${d.slug}`,
   }));
 
   // フェーズはDB値が英語・日本語混在。実データは listed / unicorn / non_listed / series_d が確認済み
@@ -137,6 +142,9 @@ export default async function HomePage() {
     logo_gradient: string | null; url: string | null;
   }[];
   const previewIds = companyRows.map((c) => c.id);
+
+  /* ⚠️ カードのラベルは**事業領域**。`industry`(text) は廃止予定で新規企業では空になる。 */
+  const previewDomains = await fetchBusinessDomainsByCompany(db, previewIds, "LP companies");
 
   const tally = async (table: string, col: string, filter?: [string, string]) => {
     const map = new Map<string, number>();
@@ -162,7 +170,7 @@ export default async function HomePage() {
   const companies: LPCompanyCard[] = companyRows.map((c) => ({
     id: c.id,
     name: c.brand_name ?? c.name,
-    industry: c.industry,
+    businessDomain: primaryBusinessDomain(previewDomains.get(c.id))?.name ?? null,
     phase: c.phase,
     logoUrl: c.logo_url,
     logoLetter: c.logo_letter,

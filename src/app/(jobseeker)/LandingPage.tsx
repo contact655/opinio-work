@@ -86,7 +86,8 @@ export type LPFacet = { key: string; label: string; count: number; href: string 
 export type LPCompanyCard = {
   id: string;
   name: string;
-  industry: string | null;
+  /** 主の事業領域名。⚠️ `industry`(text) ではない（廃止予定で新規企業では空になる） */
+  businessDomain: string | null;
   phase: string | null;
   logoUrl: string | null;
   logoLetter: string | null;
@@ -394,7 +395,7 @@ export default function LandingPage({
                     <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.45 }}>{c.name}</b>
                     {/* 淡色(muted)を 12px で使うので weight 600。12px 未満は作らない */}
                     <small style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.muted }}>
-                      {[c.industry, phaseText(c.phase)].filter(Boolean).join(" ／ ") || "—"}
+                      {[c.businessDomain, phaseText(c.phase)].filter(Boolean).join(" ／ ") || "—"}
                     </small>
                   </div>
                 </div>

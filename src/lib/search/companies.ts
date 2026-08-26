@@ -1,5 +1,5 @@
 // src/lib/search/companies.ts
-import { resolveIndustryFilter } from "./industryGroups";
+import { resolveIndustryKey } from "./industryGroups";
 // 企業検索の抽象化レイヤー
 //
 // 事前調査結果（2026-05-17）:
@@ -18,7 +18,7 @@ import { resolveIndustryFilter } from "./industryGroups";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { CompanyForCarousel } from "@/types/genre";
+import type { CompanyForCarousel, CompanyBusinessDomain } from "@/types/genre";
 import { PHASE_FILTER_MAP, availablePhaseOptions, type PhaseOption } from "@/lib/constants/phase";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 
@@ -113,15 +113,34 @@ export async function searchCompanies(
         }
       }
     }
-    if (params.industry) {
-      const groupValues = resolveIndustryFilter(params.industry);
-      if (groupValues) {
-        q = q.in("industry", groupValues);
-      } else {
-        q = q.ilike("industry", `%${params.industry}%`);
-      }
-    }
+    /* ⚠️ 事業領域での絞り込みは `applyFilters` の外で company_id を解決し、
+          `domainCompanyIds` として渡す（下）。ここで `industry`(text) を見ない。 */
+    if (domainCompanyIds) q = q.in("id", domainCompanyIds);
     return q;
+  }
+
+  /* ── 事業領域の絞り込み（2026-08-26。`industry`(text) から移行）─────────────
+     ⚠️ **`?industry=` の値は事業領域の slug**（ai / infra / crm …）。
+        事業領域の slug は旧 `INDUSTRY_GROUPS` の key と一致させてあるので、
+        既存の被リンク・ブックマークはそのまま効く。それより前の旧 key だけ
+        `resolveIndustryKey` で読み替える。
+     ⚠️ **主だけでなく全部の事業領域に当てる。** 主だけで絞ると複数持てる意味が無い。
+     ⚠️ 該当0社のときは `[]` ではなく **ダミーの id 1件**を渡す。空配列を `.in()` に
+        渡すと PostgREST が「絞り込み無し」と解釈して**全件返す**（0件のはずが全件になる）。
+     ⚠️ 結果を `.in("id", ...)` で **DB 側の条件**にするので、ページネーションは維持される。 */
+  let domainCompanyIds: string[] | null = null;
+  if (params.industry) {
+    const slug = resolveIndustryKey(params.industry);
+    const { data: domainRows, error: domainErr } = await supabase
+      .from("ow_company_business_domains")
+      .select("company_id, ow_business_domains!inner(slug)")
+      .eq("ow_business_domains.slug", slug);
+    if (domainErr) {
+      // ⚠️ 握りつぶさない。空にすると「該当0社」と「取得失敗」が区別できない
+      console.error("[getCompanies] 事業領域での絞り込みに失敗:", domainErr.message);
+    }
+    const ids = Array.from(new Set((domainRows ?? []).map((r) => r.company_id as string)));
+    domainCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
   }
 
   // ── Step 1: データ取得 + 総件数を1クエリで同時取得（count: "exact"）
@@ -166,6 +185,10 @@ export async function searchCompanies(
   // #2: 求人タイトルマップ（最大2件/企業）
   const jobTitlesMap: Record<string, string[]> = {};
 
+  /* 事業領域（複数・主が1件）。⚠️ カードに出すのは**主の1件だけ**だが、
+        絞り込みは**全部**に当てる（複数持てる意味が無くなるため）。 */
+  const domainsMap: Record<string, CompanyBusinessDomain[]> = {};
+
   // ライブ社員数集計（案X）— is_test=false かつ visibility!='private'
   // current/obog の定義:
   //   現役 = is_current=true
@@ -174,7 +197,7 @@ export async function searchCompanies(
   const liveObogCountMap: Record<string, number> = {};
 
   if (companyIds.length > 0) {
-    const [activeJobsResult, articlesResult, expResult] = await Promise.all([
+    const [activeJobsResult, articlesResult, expResult, domainsResult] = await Promise.all([
       supabase
         .from("ow_jobs")
         .select("company_id, title, salary_min, salary_max")
@@ -190,7 +213,28 @@ export async function searchCompanies(
         .from("ow_experiences")
         .select("company_id, user_id, is_current, ow_users!inner(id, is_test, visibility)")
         .in("company_id", companyIds),
+      /* 事業領域。⚠️ N+1 にしない（表示企業ぶんを1クエリで引く）。
+            並び順は display_order（主が1番）なので、そのまま出せば主が先頭に来る。 */
+      supabase
+        .from("ow_company_business_domains")
+        .select("company_id, is_primary, ow_business_domains(id, name, slug)")
+        .in("company_id", companyIds)
+        .order("display_order", { ascending: true }),
     ]);
+
+    /* ⚠️ error を握りつぶさない。空で返すと「事業領域が未設定の企業」と
+          「取得に失敗した」が区別できなくなる（カードのタグが黙って消える）。 */
+    if (domainsResult.error) {
+      console.error("[getCompanies] 事業領域の取得に失敗:", domainsResult.error.message);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const row of (domainsResult.data ?? []) as any[]) {
+      const d = row.ow_business_domains as { id: string; name: string; slug: string } | null;
+      if (!d) continue;
+      const cid = row.company_id as string;
+      if (!domainsMap[cid]) domainsMap[cid] = [];
+      domainsMap[cid].push({ id: d.id, name: d.name, slug: d.slug, is_primary: !!row.is_primary });
+    }
 
     // 集計: 企業ごとに現役 user_id セット / OB候補 user_id セットを構築
     const currentSets  = new Map<string, Set<string>>();
@@ -249,6 +293,7 @@ export async function searchCompanies(
       ...(c as CompanyForCarousel),
       job_count: jobCountMap[c.id] || 0,
       article_count: articleCountMap[c.id] || 0,
+      business_domains: domainsMap[c.id] ?? [],
       // #2 求人タイトル / #3 カルチャータグ
       top_job_titles: jobTitlesMap[c.id] || [],
       company_features: Array.isArray((c as CompanyForCarousel).company_features)

@@ -18,6 +18,7 @@ import { isBusinessRole } from "@/lib/roles/jobRoles";
 import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { primaryBusinessDomain } from "@/types/genre";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -672,9 +673,22 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 ) : (
                   <span style={{ fontSize: "var(--text-base)", color: "var(--ink)", fontWeight: 700 }}>{company.name}</span>
                 )}
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
-                  {company.industry}{formatEmployeeCount(company.employee_count) ? ` · ${formatEmployeeCount(company.employee_count)}` : ""}
-                </span>
+                {/* ⚠️ **区切りを先に書かない。** 2026-08-25 まで
+                       `{company.industry}{... ? ` · ${...}` : ""}` と書いており、
+                       業種が空の企業では **先頭に「 · 」だけが残っていた**
+                       （`mapCompany` が `?? ""` で潰すので null にならず、条件分岐が効かない）。
+                       ある項目だけを集めて join する。 */}
+                {[
+                  primaryBusinessDomain(company.business_domains)?.name,
+                  formatEmployeeCount(company.employee_count),
+                ].filter(Boolean).length > 0 && (
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
+                    {[
+                      primaryBusinessDomain(company.business_domains)?.name,
+                      formatEmployeeCount(company.employee_count),
+                    ].filter(Boolean).join(" · ")}
+                  </span>
+                )}
               </div>
 
               {/* HOT badge */}
@@ -1497,7 +1511,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, flexWrap: "wrap" }}>
-                      <span>業種 <strong style={{ color: "var(--ink)" }}>{company.industry}</strong></span>
+                      {/* ⚠️ 求職者に見せる分類は**事業領域**。`industry`(text) は運用側の軸で、
+                             廃止予定のため新規企業では空になる。隣の「従業員」に合わせて
+                             無いときは「—」を出す（項目ごと消すと行が揃わない）。 */}
+                      <span>事業領域 <strong style={{ color: "var(--ink)" }}>{primaryBusinessDomain(company.business_domains)?.name ?? "—"}</strong></span>
                       <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{formatEmployeeCount(company.employee_count) ?? "—"}</strong></span>
                     </div>
                   </div>

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
 
 /**
@@ -23,6 +23,9 @@ type Props = {
   /** ⚠️ 実データに1社でもあるフェーズだけ。サーバ側の fetchAvailablePhases() が絞って渡す。
    *     ここで PHASE_OPTIONS を全部出さないこと（0件の選択肢を出さない） */
   phaseOptions: PhaseOption[];
+  /** 事業領域の選択肢。⚠️ **マスタが唯一の出どころ。** ここに値を書かない。
+   *  ⚠️ 実データに1社でもあるものだけをサーバ側が渡す（0件の選択肢を出さない）。 */
+  industryOptions: BusinessDomainOption[];
   companySuggestions?: { id: string; name: string }[];
 };
 
@@ -239,7 +242,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ locations, phaseOptions, companySuggestions = [] }: Props) {
+export function CompanySearchBar({ locations, phaseOptions, industryOptions, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -347,10 +350,10 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
     });
   }
   if (currentIndustry) {
-    const industryGroup = INDUSTRY_GROUPS.find((g) => g.key === currentIndustry);
+    const industryGroup = industryOptions.find((d) => d.slug === currentIndustry);
     activeFilters.push({
       key: "industry",
-      label: industryGroup?.label ?? currentIndustry,
+      label: industryGroup?.name ?? currentIndustry,
       onRemove: () => updateParam("industry", null),
     });
   }
@@ -472,7 +475,7 @@ export function CompanySearchBar({ locations, phaseOptions, companySuggestions =
           <FilterChip
             label="業種"
             value={currentIndustry}
-            options={INDUSTRY_GROUPS.map((g) => ({ value: g.key, label: g.label }))}
+            options={industryOptions.map((d) => ({ value: d.slug, label: d.name }))}
             onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
             isOpen={openChip === "industry"}
             onToggle={() => toggleChip("industry")}

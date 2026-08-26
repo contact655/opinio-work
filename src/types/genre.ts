@@ -17,6 +17,27 @@ export type Genre = {
   is_active: boolean;
 };
 
+/**
+ * 事業領域（`ow_business_domains`）。企業に最大3件、うち主が1件。
+ *
+ * ⚠️ **カード・meta・OGP に出すのは主の1件だけ。** 1行1タグの作りなので
+ *    複数出すと横幅が破綻する。
+ * ⚠️ **絞り込みは全部に当てる。** 主だけで絞ると、複数持てる意味が無くなる。
+ */
+export type CompanyBusinessDomain = {
+  id: string;
+  name: string;
+  slug: string;
+  is_primary: boolean;
+};
+
+/** 主の事業領域を取り出す。⚠️ 表示側はこれを使う（配列を直接 join しない） */
+export function primaryBusinessDomain(
+  domains: CompanyBusinessDomain[] | null | undefined,
+): CompanyBusinessDomain | null {
+  return domains?.find((d) => d.is_primary) ?? null;
+}
+
 export type CompanyForCarousel = {
   id: string;
   slug?: string | null;             // URL-safe slug（例: "salesforce"）。null の場合は id で代替
@@ -47,6 +68,8 @@ export type CompanyForCarousel = {
   live_obog_count?: number;
   article_count?: number;       // OPINIO 取材記事数
   // 追加情報（カード充実化）
+  /** 事業領域（主が先頭）。⚠️ 求職者側の分類軸はこちら。`industry`(text) ではない */
+  business_domains?: CompanyBusinessDomain[];
   /* ⚠️ `avg_salary` と `calc_avg_salary_man` は 2026-08-25 に外した。
         一覧の年収フィルタ・年収高い順を廃止したため（ポジションで違う値を
         会社単位の1つの数字にできない。実データでも 79社中1社しか持たなかった）。 */

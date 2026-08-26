@@ -57,8 +57,26 @@ const LEGACY_KEYS: Record<string, string> = {
 };
 
 /**
+ * `?industry=` の旧 key を正規の key に直すだけの関数。
+ *
+ * ⚠️ **2026-08-26 以降、求職者側の絞り込みは事業領域（`ow_business_domains`）に移した。**
+ *    事業領域の slug は現行の key と**12件すべて一致させてある**ので、
+ *    `?industry=ai` のような既存の被リンク・ブックマークはそのまま効く。
+ *    ここが受け持つのは、それより前の旧 key（fintech / ec / healthcare）の救済だけ。
+ *
+ * ⚠️ `ec` は 2026-08-25 まで `marketplace` に寄せていたが、事業領域では
+ *    「コマース・EC」を**作っていない**（該当0社）ので `marketplace` のままにする。
+ */
+export function resolveIndustryKey(industryParam: string): string {
+  return LEGACY_KEYS[industryParam] ?? industryParam;
+}
+
+/**
  * `?industry=` の値 → DB の `industry` に一致させる値の配列。
  * 知らない key なら null を返し、呼び出し側は生の値として扱う（ilike 等）。
+ *
+ * ⚠️ **求職者側の絞り込みはもうこれを使っていない**（事業領域に移行済み）。
+ *    `industry`(text) 列を落とすフェーズまで、経緯として残してある。
  */
 export function resolveIndustryFilter(industryParam: string): string[] | null {
   const key = LEGACY_KEYS[industryParam] ?? industryParam;

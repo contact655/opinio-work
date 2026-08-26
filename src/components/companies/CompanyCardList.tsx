@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { primaryBusinessDomain } from "@/types/genre";
 import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
@@ -247,7 +248,11 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
               ⚠️ 在籍者（この会社の人）は入れない。76社中2社にしかデータが無いため。 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "auto" }}>
             {/* 業種タグ — 塗りなし・淡い背景。募集中バッジと強さで差をつける */}
-            {company.industry && (
+            {/* ⚠️ **主の事業領域を1件だけ出す。** 最大3件持てるが、この行は
+                   `whiteSpace: nowrap` の1行なので複数出すと横幅が破綻する。
+                ⚠️ `company.industry`(text) は見ない（2026-08-26 に移行）。あれは
+                   廃止予定で、新規企業には書かれないためタグが黙って消える。 */}
+            {primaryBusinessDomain(company.business_domains)?.name && (
               <span style={{
                 fontSize: 11, color: "var(--ink-soft)",
                 background: "var(--bg-tint)", border: "1px solid var(--line)",
@@ -255,7 +260,7 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                       角丸が 0 になる。タグ用は `--radius-sm`（6px、globals.css:100）。 */
                 padding: "2px 8px", borderRadius: "var(--radius-sm)",
                 whiteSpace: "nowrap", flexShrink: 0,
-              }}>{company.industry}</span>
+              }}>{primaryBusinessDomain(company.business_domains)!.name}</span>
             )}
 
             {company.employee_count && (

@@ -7,6 +7,7 @@
  */
 
 import { unstable_cache, revalidateTag } from "next/cache";
+import type { CompanyBusinessDomain } from "@/types/genre";
 import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
@@ -45,7 +46,14 @@ function daysSince(iso: string | null | undefined): number {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre[] = []): Company {
+function mapCompany(
+  row: Record<string, any>,
+  jobCount = 0,
+  genres: CompanyGenre[] = [],
+  /* 事業領域（主が先頭）。⚠️ **呼び出し側がまとめて引いて渡す。**
+        ここで1社ずつ引くと N+1 になる（/jobs は79社ぶん一度に描く）。 */
+  businessDomains: CompanyBusinessDomain[] = [],
+): Company {
   return {
     id: row.id as string,
     slug: (row.slug as string | null) ?? null,
@@ -73,6 +81,7 @@ function mapCompany(row: Record<string, any>, jobCount = 0, genres: CompanyGenre
     linkedin_url: (row.linkedin_url as string | null) ?? null,
     careers_url: (row.careers_url as string | null) ?? null,
     genres,
+    business_domains: businessDomains,
     is_editors_pick: false,
     is_dimmed: false,
     // ⚠️ リンク生成の判定用。dev では getCompanies が is_published で絞らないので、
@@ -395,7 +404,12 @@ export type CompanyListRow = {
   /** 英語表記の会社名（例: "Datadog Japan"） */
   name_en: string | null;
   tagline: string;
+  /* ⚠️ **求職者側の分類軸は事業領域（`business_domains`）に移す。**
+        `industry`(text) は廃止予定で、いまは移行のあいだ残しているだけ。
+        新規企業には書かれないので、これを見ている画面は新しい企業を取りこぼす。 */
   industry: string;
+  /** 事業領域（主が先頭）。主だけを出すときは `primaryBusinessDomain()` を使う */
+  business_domains?: CompanyBusinessDomain[];
   phase: string;
   /** DB上の文字列そのまま（例: "約200名", "1000名以上", "100〜300名"） */
   employee_count: string;
@@ -434,6 +448,48 @@ const COMPANY_LISTPAGE_COLS = [
  * dev環境ではis_publishedフィルターを無効化（テストデータが少ないため全15件表示）。
  * 本番環境では is_published=true の企業のみ表示。
  */
+/**
+ * company_id → 事業領域（主が先頭）を1クエリで引く。
+ *
+ * ⚠️ **N+1 にしないためのもの。** 企業ごとに引かない。
+ * ⚠️ error を握りつぶさない。空で返すと「未設定」と「取得失敗」が区別できず、
+ *    カードのタグが黙って消える。
+ * ⚠️ `companyIds` が空なら**クエリを投げない**（`.in()` に空配列を渡さない）。
+ */
+/**
+ * 企業ID → 事業領域（主が先頭）。⚠️ **N+1 にしない**ため必ずまとめて引く。
+ * ⚠️ 求職者側に企業を出す経路は、必ずこれを通して `mapCompany` の第4引数に渡すこと。
+ */
+export async function fetchBusinessDomainsByCompany(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  companyIds: string[],
+  label: string,
+): Promise<Map<string, CompanyBusinessDomain[]>> {
+  const out = new Map<string, CompanyBusinessDomain[]>();
+  if (companyIds.length === 0) return out;
+
+  const { data, error } = await db
+    .from("ow_company_business_domains")
+    .select("company_id, is_primary, ow_business_domains(id, name, slug)")
+    .in("company_id", companyIds)
+    .order("display_order", { ascending: true });
+
+  if (error) {
+    console.error(`[${label}] 事業領域の取得に失敗:`, error.message);
+    return out;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const row of (data ?? []) as any[]) {
+    const d = row.ow_business_domains as { id: string; name: string; slug: string } | null;
+    if (!d) continue;
+    const cid = row.company_id as string;
+    if (!out.has(cid)) out.set(cid, []);
+    out.get(cid)!.push({ id: d.id, name: d.name, slug: d.slug, is_primary: !!row.is_primary });
+  }
+  return out;
+}
+
 export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   const supabase = createAdminClient();
 
@@ -452,6 +508,13 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     console.error("[getCompaniesForList]", error.message);
     return [];
   }
+
+  /* ⚠️ `COMPANY_LISTPAGE_COLS` は `join(", ")` 製なので supabase-js が行の型を解決できず、
+        `GenericStringError` に化ける（CLAUDE.md「.select() には文字列リテラルを渡す」）。
+        既存の mapper と同じく any 経由で扱う。列リストの直し方は別タスク。 */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listedIds = ((companyRows ?? []) as any[]).map((c) => c.id as string);
+  const domainsByCompany = await fetchBusinessDomainsByCompany(supabase, listedIds, "getCompaniesForList");
 
   // Fetch active job counts + first office photo + registered member counts in parallel
   const [{ data: jobRows }, { data: photoRows }, { data: expRows }] = await Promise.all([
@@ -500,6 +563,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (companyRows ?? []).map((row: Record<string, any>): CompanyListRow => ({
     id: row.id as string,
+    business_domains: domainsByCompany.get(row.id as string) ?? [],
     slug: (row.slug as string | null) ?? null,
     name: (row.name as string) ?? "",
     name_en: (row.name_en as string) ?? null,
@@ -595,6 +659,13 @@ const COMPANY_DETAIL_COLS = [
   "headquarters_address", "branch_locations",
 ].join(", ");
 
+/**
+ * ⚠️ **参照0件（2026-08-26 実測）。** `companies/[id]/page.tsx` に
+ *    「これは使えない」というコメントだけが残っている（Cookie を読む
+ *    `createClient()` を使うため RSC のキャッシュに乗らない）。
+ * ⚠️ **使い始めるなら `business_domains` を渡すこと。** いまの `mapCompany(row)` は
+ *    第4引数を省いているので、**事業領域が全社で空になる**（型では気づけない）。
+ */
 export async function getCompanies(): Promise<Company[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -667,7 +738,16 @@ const getCompanyById = cache(async function getCompanyById(
     .sort((a, b) => ((a.display_order as number) ?? 0) - ((b.display_order as number) ?? 0))
     .map((g) => ({ id: g.id as string, name: g.name as string }));
 
-  const company = mapCompany(data, jobRows?.length ?? 0, genres);
+  /* ⚠️ 列リストが `join(", ")` 製なので行の型が `GenericStringError` に化ける
+        （CLAUDE.md「.select() には文字列リテラルを渡す」）。既存の扱いに合わせる。 */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyId = (data as any).id as string;
+  const companyDomains = await fetchBusinessDomainsByCompany(
+    supabase, [companyId], "getCompanyBySlugOrId",
+  );
+  const company = mapCompany(
+    data, jobRows?.length ?? 0, genres, companyDomains.get(companyId) ?? [],
+  );
   const detail = buildCompanyDetail(data, jobRows ?? [], roleRows);
 
   /* ⚠️ 面談の可否は**フラグ単独では決めない**（2026-08-11）。宛先が無ければ閉じる。
@@ -993,7 +1073,16 @@ export const getJobs = unstable_cache(
       (cjrRows ?? []).map((r) => [r.id as string, { name: r.name as string, deleted_at: r.deleted_at as string | null }])
     );
 
-    const companies = (compRows ?? []).map((row) => mapCompany(row));
+    /* 事業領域。⚠️ N+1 にしない（表示する企業ぶんを1クエリで引く）。
+          ⚠️ この関数は unstable_cache の中なので、**no-store のクライアントを使わない**
+             （CLAUDE.md「unstable_cache の中で no-store のクライアントを使わない」）。 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const compIds = ((compRows ?? []) as any[]).map((c) => c.id as string);
+    const domainsByCompany = await fetchBusinessDomainsByCompany(admin, compIds, "getJobs");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const companies = ((compRows ?? []) as any[]).map((row) =>
+      mapCompany(row, 0, [], domainsByCompany.get(row.id as string) ?? []),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jobs = (jobRows ?? []).map((row: Record<string, any>) => {
       const job = mapJob(row);
@@ -1134,7 +1223,10 @@ const getJobById = cache(async function getJobById(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jobRow = data as Record<string, any>;
 
-  const [{ data: compData, error: compErr }, { data: relatedRows }] = await Promise.all([
+  /* ⚠️ 事業領域も一緒に引く。**渡し忘れると画面は落ちず「事業領域 —」になる**
+        （2026-08-26 に実際に踏んだ。Salesforce の求人詳細が「—」で出ていた）。
+        `mapCompany` の第4引数は省略できるので、型では気づけない。 */
+  const [{ data: compData, error: compErr }, { data: relatedRows }, jobCompanyDomains] = await Promise.all([
     supabase
       .from("ow_companies")
       .select(COMPANY_LIST_COLS)
@@ -1147,6 +1239,7 @@ const getJobById = cache(async function getJobById(
       .eq("status", "published").eq("is_test", false)
       .neq("id", jobRow.id)
       .limit(3),
+    fetchBusinessDomainsByCompany(supabase, [jobRow.company_id as string], "getJobById"),
   ]);
 
   if (compErr || !compData) {
@@ -1211,7 +1304,9 @@ const getJobById = cache(async function getJobById(
     job.roleLabel = pickRoleLabel({ standardRoleName: job.roleName });
   }
 
-  const company = mapCompany(compData);
+  const company = mapCompany(
+    compData, 0, [], jobCompanyDomains.get(jobRow.company_id as string) ?? [],
+  );
   company.accepting_casual_meetings = companyAcceptsMeeting;
   /* ⚠️ 応募が届く先があるか。求人の status とは別（lib/jobs/application.ts）。
         published でも宛先が無ければ応募は誰にも届かない。 */

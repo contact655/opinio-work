@@ -9,7 +9,7 @@ import { showToast } from "@/lib/toast";
 import { createClient } from "@/lib/supabase/client";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
-import { INDUSTRY_GROUPS, resolveIndustryFilter } from "@/lib/search/industryGroups";
+import type { BusinessDomainFacet } from "@/lib/companies/businessDomainsCached";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { availablePhaseOptions, phaseMatches } from "@/lib/constants/phase";
 /**
@@ -614,11 +614,15 @@ export default function JobsClient({
   jobs: allJobs,
   companies,
   parentRoles,
+  industryOptions,
   roleAliases = [],
 }: {
   jobs: Job[];
   companies: Company[];
   parentRoles: { id: string; name: string }[];
+  /** 事業領域の選択肢。⚠️ **マスタが唯一の出どころ。** ここに値を書かない。
+   *  ⚠️ 掲載中が1社以上あるものだけをサーバ側が渡す（0件の選択肢を出さない）。 */
+  industryOptions: BusinessDomainFacet[];
   /** 検索用の職種辞書（職種名＋別名）。roleIds はその語が指す職種そのものだけ
    *  （祖先は求人側の roleIds に入っている。queries.ts の getRoleAliases 参照） */
   roleAliases?: { alias: string; roleIds: string[] }[];
@@ -987,21 +991,12 @@ export default function JobsClient({
 
 
     if (industry) {
-      /* ⚠️ URL パラメータは INDUSTRY_GROUPS の **key**（"ai" 等）で、
-            `company.industry` は **DB の値**（"AI・データ" 等）。直接比較すると必ず外れる。
-            2026-08-11 まで `normalizeIndustry(c.industry) === industry` と比較しており、
-            **全業種で常に0件**だった（/jobs は45件出るのに ?industry=ai は0件）。
-            `companies.ts` と同じ `resolveIndustryFilter()` で key を値の配列に直す。 */
-      const values = resolveIndustryFilter(industry);
+      /* ⚠️ **事業領域で絞る（2026-08-26）。** `?industry=` の値は事業領域の slug。
+            それまでは `industry`(text) と比べていたが、あれは廃止予定で
+            新規企業には書かれないため、新しい企業が全業種で出なくなる。
+         ⚠️ **主だけでなく全部の事業領域に当てる。** 主だけで絞ると複数持てる意味が無い。 */
       const companyIds = companies
-        .filter((c) =>
-          c.industry
-            ? values
-              ? values.includes(c.industry)
-              // 未知の key はフォールバックで値そのものとして扱う（companies.ts の ilike 相当）
-              : c.industry === industry
-            : false
-        )
+        .filter((c) => (c.business_domains ?? []).some((d) => d.slug === industry))
         .map((c) => c.id);
       list = list.filter((j) => companyIds.includes(j.company_id));
     }
@@ -1277,7 +1272,7 @@ export default function JobsClient({
                   setOpenFilter("industry");
                 }}
               >
-                {INDUSTRY_GROUPS.find((g) => g.key === industry)?.label ?? "業種"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {industryOptions.find((d) => d.slug === industry)?.name ?? "事業領域"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 都道府県 ピル */}
@@ -2055,10 +2050,10 @@ export default function JobsClient({
           {openFilter === "industry" && (
             <>
               <button className={`jobs-pill-item${!industry ? " selected" : ""}`} onClick={() => { setParam("industry", ""); setOpenFilter(null); }}>すべて</button>
-              {INDUSTRY_GROUPS.map((g) => (
-                <button key={g.key} className={`jobs-pill-item${industry === g.key ? " selected" : ""}`}
-                  onClick={() => { setParam("industry", industry === g.key ? "" : g.key); setOpenFilter(null); }}
-                >{g.label}</button>
+              {industryOptions.map((g) => (
+                <button key={g.slug} className={`jobs-pill-item${industry === g.slug ? " selected" : ""}`}
+                  onClick={() => { setParam("industry", industry === g.slug ? "" : g.slug); setOpenFilter(null); }}
+                >{g.name}</button>
               ))}
             </>
           )}

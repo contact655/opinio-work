@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 
-export function JobseekerFooter() {
+/* ⚠️ **サーバーコンポーネント。** 事業領域の一覧を自分で引く。
+      全ページに出るので `getBusinessDomainFacets()` は unstable_cache 済み（300s）。
+      素で引くと1ページ表示ごとに1クエリ増える。 */
+export async function JobseekerFooter() {
+  const industryFacets = await getBusinessDomainFacets();
   return (
     <footer role="contentinfo" style={{ background: "var(--ink)", color: "#fff", marginTop: "auto" }}>
 
@@ -97,27 +101,31 @@ export function JobseekerFooter() {
         </div>
       </div>
 
-      {/* ── 業種ディレクトリ ────────────────────────────────────────────────
+      {/* ── 事業領域ディレクトリ ────────────────────────────────────────────────
           在庫が増えたときにトップページが担うのは「カテゴリページへのハブ」。
           その器を先に置いている。
-          ⚠️ URL は LP の業種チップと同じ形式（/companies?industry=<key>）。
+          ⚠️ URL は LP のチップと同じ形式（/companies?industry=<事業領域のslug>）。
              片方だけ変えると同じ場所への入口が2種類できるので、必ず揃えること。
           ⚠️ 職種軸・勤務地軸はまだ足さない。公開求人18件中17件が営業に偏っており、
              いま職種で切ると薄さが露出する（2026-08-05 判断）。 */}
+      {/* ⚠️ 取得できなかった／0件のときは**見出しごと出さない。**
+             空の見出しだけが残ると「リンクが消えた」ように見える。 */}
+      {industryFacets.length > 0 && (
       <div style={{ padding: "0 48px 28px" }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", paddingTop: 28, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
           <h4 style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
-            業種から探す
+            事業領域から探す
           </h4>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px" }}>
-            {INDUSTRY_GROUPS.map((g) => (
-              <Link key={g.key} href={`/companies?industry=${g.key}`} className="footer-link" style={{ fontSize: 13, textDecoration: "none" }}>
-                {g.label}
+            {industryFacets.map((d) => (
+              <Link key={d.slug} href={`/companies?industry=${d.slug}`} className="footer-link" style={{ fontSize: 13, textDecoration: "none" }}>
+                {d.name}
               </Link>
             ))}
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Bottom bar ──────────────────────────────────────────────────────── */}
       <div style={{ padding: "20px 48px" }} className="px-5 md:px-12">

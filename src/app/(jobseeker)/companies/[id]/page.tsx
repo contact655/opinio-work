@@ -62,6 +62,7 @@ import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
+import { primaryBusinessDomain } from "@/types/genre";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -147,14 +148,26 @@ export async function generateMetadata({
   //    以前は一律 `+ "名規模"` していたため「3500名以上名規模」「約200名名規模」と
   //    全社の meta description が二重になっていた。値はそのまま使う。
   const size = company.employee_count?.toString().trim() || null;
+
+  /* ⚠️ **求職者側の分類は事業領域。** `company.industry`(text) は廃止予定で
+        新規企業には書かれないため、ここで使うと新しい企業の meta が欠ける。
+     ⚠️ 「業界」を後ろに付けない（2026-08-11 削除）。値は業界名ではなく
+        製品・業務領域なので、「開発者ツール業界」のように日本語として成立しない。 */
+  const domainLabel = primaryBusinessDomain(company.business_domains)?.name ?? null;
+
+  /* ⚠️ **`?? "IT/SaaS"` のようなフォールバックを書かないこと。**
+        2026-08-25 まで `company.industry ?? "IT/SaaS"` と書いていたが、
+        `mapCompany` が先に `?? ""` で潰しているため **一度も発火せず**、
+        値が無い企業では「タグライン｜・約200名。」と**余った区切りだけ**が出ていた。
+        `??` は null / undefined しか拾わない。**無いものは項目ごと落とす。** */
+  const metaParts = [domainLabel, size].filter(Boolean).join("・");
   const description = company.tagline
-    /* ⚠️ 「業界」を後ろに付けない（2026-08-11 削除）。industry の値は業界名ではなく
-          製品・業務領域なので、「開発者ツール業界」「経理・財務業界」「CRM・営業支援業界」の
-          ように日本語として成立しない。値をそのまま出す。 */
-    ? `${company.tagline}｜${company.industry ?? "IT/SaaS"}${size ? `・${size}` : ""}。企業情報と求人をOPINIOで確認。`
+    ? `${company.tagline}${metaParts ? `｜${metaParts}` : ""}。企業情報と求人をOPINIOで確認。`
     : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。`;
 
-  const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(company.industry ?? "IT/SaaS")}&v=2`;
+  /* ⚠️ バッジが無いときは**空で渡す**（`/api/og` は空ならピルごと描かない）。
+        推測の「IT/SaaS」を入れない。 */
+  const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(domainLabel ?? "")}&v=2`;
 
   return {
     title: { absolute: `${company.name} — 企業情報・求人 | OPINIO` },
@@ -162,7 +175,7 @@ export async function generateMetadata({
     ...(noindex ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: `/companies/${canonicalId}` },
     // 「カジュアル面談」は 2026-08-03 に削除（面談前提の説明はプラットフォーム側では使わない）
-    keywords: [company.name, company.industry ?? "", "企業情報", "求人", "IT転職", "SaaS転職"].filter(Boolean),
+    keywords: [company.name, domainLabel ?? "", "企業情報", "求人", "IT転職", "SaaS転職"].filter(Boolean),
     openGraph: {
       title: `${company.name} | OPINIO`,
       description,
@@ -270,7 +283,9 @@ function Hero({
                   fontFamily: "Inter, var(--font-inter), sans-serif",
                 }}
               >
-                {company.industry}
+                {/* ⚠️ 値が無いときは**要素ごと出さない。** 2026-08-25 まで無条件に
+                       描いており、空の div の marginBottom だけが残っていた。 */}
+                {primaryBusinessDomain(company.business_domains)?.name}
               </div>
               {(() => {
                 /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。
@@ -2296,7 +2311,9 @@ function Sidebar({
 
           {(
             [
-              { key: "業界", value: company.industry, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+              /* ⚠️ 下の `.filter((item) => item.value)` が値の無い行を落とす。
+                    ラベルは「業界」ではなく**事業領域**（何をやっている会社か）。 */
+              { key: "事業領域", value: primaryBusinessDomain(company.business_domains)?.name ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
               /* ⚠️ `capital_notes` の置き場所は2箇所ある（2026-08-13）。
                     **`capital_notes` はここに出さない。**「拠点・資本関係」セクション
                     （本文）の資本関係カードに移した（2026-08-13）。

@@ -10,7 +10,12 @@ export type Company = {
   name: string;
   name_en?: string | null;
   tagline: string;
+  /* ⚠️ **求職者側の分類軸は事業領域（`business_domains`）へ移行中。**
+        `industry`(text) は廃止予定で、新規企業には書かれない。
+        これだけを見ている画面は新しい企業を取りこぼす。 */
   industry: string;
+  /** 事業領域（主が先頭）。主だけ出すときは `primaryBusinessDomain()` を使う */
+  business_domains?: import("@/types/genre").CompanyBusinessDomain[];
   phase: string;
   employee_count: number;
   job_count: number;

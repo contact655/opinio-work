@@ -9,6 +9,7 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 
 type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
@@ -124,10 +125,13 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ── 全クエリを並列実行 ──────────────────────────────────────────────────
      ★2026-08-23 に**直列の2段目を無くした**。それまでは「表示中の企業IDが
        確定してから在籍メンバーを引く」形で、1往復ぶん余計に待っていた。 */
-  const [locations, phaseOptions, companySuggestions, allMembersByCompany, allCompaniesResult] = await Promise.all([
+  const [locations, phaseOptions, industryFacets, companySuggestions, allMembersByCompany, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
     fetchAvailablePhases(),
+    /* 事業領域の選択肢（unstable_cache 300s）。⚠️ **掲載中が1社以上あるものだけ。**
+          フェーズと同じ扱いで、0件の選択肢を出さない。 */
+    getBusinessDomainFacets(),
     // 検索サジェスト用企業名リスト（unstable_cache 300s）
     fetchCompanySuggestions(),
     // 在籍メンバー（unstable_cache 300s）— ★1段目に移した。下のコメント参照
@@ -178,7 +182,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar locations={locations} phaseOptions={phaseOptions} companySuggestions={companySuggestions} />
+            <CompanySearchBar locations={locations} phaseOptions={phaseOptions} industryOptions={industryFacets} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>

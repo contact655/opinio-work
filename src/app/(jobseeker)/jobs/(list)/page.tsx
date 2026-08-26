@@ -4,6 +4,7 @@ import { getJobs, getParentRoles, getRoleAliases } from "@/lib/supabase/queries"
 import JobsClient from "./JobsClient";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 import { filterCompaniesAcceptingApplications } from "@/lib/jobs/application";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 
 /*
   ⚠️ **ISR（`export const revalidate`）にしないこと。2026-08-13 に試して戻した。**
@@ -66,10 +67,12 @@ export async function generateMetadata(): Promise<Metadata> {
 */
 
 export default async function JobsPage() {
-  const [{ jobs, companies }, parentRoles, roleAliases] = await Promise.all([
+  const [{ jobs, companies }, parentRoles, roleAliases, industryOptions] = await Promise.all([
     getJobs(),
     getParentRoles(),
     getRoleAliases(),
+    /* 事業領域の選択肢。⚠️ 0件のものは含まれない（押しても0件の選択肢を出さない） */
+    getBusinessDomainFacets(),
   ]);
 
   /* ⚠️ 応募が届く先があるかを企業ごとに解決して Company に載せる（2026-08-11）。
@@ -94,7 +97,7 @@ export default async function JobsPage() {
       }
     >
       {/* recommendations は渡さない。JobsClient がログイン中だけ自分で取りに行く */}
-      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} roleAliases={roleAliases} />
+      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} industryOptions={industryOptions} roleAliases={roleAliases} />
     </Suspense>
   );
 }
