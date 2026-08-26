@@ -71,8 +71,13 @@ export async function generateMetadata({
     ? `年収${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
     : job.salary_min ? `年収${fmtMan(job.salary_min)}万円〜` : "";
 
+  /* ⚠️ **`??` ではなく `||`。** `mapJob` が `highlight` を
+        `catch_copy ?? one_liner ?? ""` で組み立てるので、**値が無いときは空文字で
+        null にならない。** `??` だとこのフォールバックは一度も発火せず、
+        キャッチコピーの無い求人の meta が年収から始まっていた
+        （公開5件は全部持っているので実害は出ていないが、**下書き15件中2件が該当**）。 */
   const description = [
-    job.highlight ?? `${company.name}の${job.role}求人`,
+    job.highlight || `${company.name}の${job.role}求人`,
     salaryText,
     job.work_style,
     "IT/SaaS業界の求人はOPINIOで。",

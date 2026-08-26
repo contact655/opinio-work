@@ -98,7 +98,10 @@ export function scoreJob(
 
   // 2. 年収重なり（job.salary_min/max は万円単位）
   const jMin = job.salary_min ?? 0;
-  const jMax = job.salary_max ?? jMin;
+  /* ⚠️ **`??` ではなく `||`。** `mapJob` が `salary_max` を `?? 0` で埋めるため
+        **上限が無い求人でも null ではなく 0** になる。`??` だと jMax が 0 のままで
+        下の `jMax > 0` を通らず、**下限だけ書いてある求人が年収の加点から丸ごと外れていた。** */
+  const jMax = job.salary_max || jMin;
   const pMin = profile.desired_salary_min;
   const pMax = profile.desired_salary_max;
   if (jMax > 0 && (pMin != null || pMax != null)) {
