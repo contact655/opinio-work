@@ -166,7 +166,16 @@ export async function findPublishBlockers(
   const admin = createAdminClient();
 
   const [{ data: rows, error }, { data: domainRows, error: domainErr }] = await Promise.all([
-    admin.from("ow_companies").select(CLASSIFICATION_COLS).in("id", companyIds),
+    /* ⚠️ **検証用の企業（`is_test`）は運営タスクに出さない（2026-08-26）。**
+          この一覧の意味は「運営が直すべき**公開中**の企業」。`is_test` の行は
+          `lib/companies/visibility.ts` が求職者側から丸ごと除外しているので、
+          分類が欠けていても誰にも見えない＝直す対象ではない。
+          外さないと、テスト企業を作るたびに消えない警告が積み上がる。
+       ⚠️ **`checkPublishable`（ゲート）側には同じ条件を入れないこと。**
+          あちらは「公開に切り替える一手」を塞ぐもので、テスト企業でも
+          分類が欠けたまま切り替えられる状態は作らない。
+          **目的が違うので条件が違ってよい**（結果が食い違うわけではない）。 */
+    admin.from("ow_companies").select(CLASSIFICATION_COLS).eq("is_test", false).in("id", companyIds),
     admin
       .from("ow_company_business_domains")
       .select("company_id")
