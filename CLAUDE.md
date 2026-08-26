@@ -1480,6 +1480,48 @@ industry: (row.industry as string) ?? "",      // NULL → 空文字に化ける
 入力欄なので `description` に素で入れると記号がそのまま出る（求人の
 `description_markdown` と同じ問題）。**列の統合とセットで決めること。**
 
+### ✅★列の2組問題は統合して解消した（2026-08-26 / migration 20260826160000）
+
+**正 = データがある側**に寄せた。廃止側は **DROP せず COMMENT で【廃止】と印**を付けてある。
+
+| 統合先（正） | 廃止 | データ移行 |
+|---|---|---|
+| `ow_jobs.required_skills`(text[]) | `requirements`(text) | **18件を分割して移行** |
+| `ow_jobs.preferred_skills`(text[]) | `preferred`(text) | **5件** |
+| `ow_jobs.selection_steps` | `selection_process` | 不要（0件） |
+| `ow_jobs.description` | `description_markdown` | 不要（0件） |
+| `ow_companies.description` | `about_markdown` | 不要（0件） |
+| `ow_companies.founded_year`(int) | `established_at`(text) | 不要（既に入っていた） |
+| `ow_companies.female_ratio` | `gender_ratio` | 不要（0件） |
+
+⚠️ **`pickFilled()` は削除した。** 読む先が1つになったため。
+   **【廃止】列を新しく読み書きしないこと。** 読む先が2つに戻る。
+
+⚠️ **テキスト→配列の分割規則は `mapJob` と一致させること。** ずれると表示が変わる。
+   実データ4件で SQL と JS の出力が一致することを確かめてから適用した。
+   migration には事前・事後の件数チェックを入れてある（想定と違えば中止）。
+
+#### ★markdown は「入力できるのに出ない」だったので、入力側を外した
+
+求職者側の描画は **`detail.about` を改行で段落分けする plain text**（`companies/[id]/page.tsx`）で、
+**markdown レンダラは存在しない。** それなのに企業側には
+`MarkdownEditor`（H2/H3 ボタン付き）と「求人詳細（**Markdown**）」の入力欄があった。
+
+→ **入力欄から markdown の表現を外した**（素の textarea に）。**出ない記法を書かせない。**
+
+⚠️ `components/business/MarkdownEditor.tsx` は**消していない**（参照0件）。
+   描画側を markdown 対応させる日に戻せるようにしてある。
+   ⚠️ **戻すときは「入力欄と描画をセットで変える」こと。** 片方だけだと元に戻る。
+   ⚠️ 既存の 82社の `description` は**改行1つで段落を区切っている**。
+      markdown として描画すると**段落が潰れる**ので、`remark-breaks` 相当の手当てが要る。
+
+#### 検証（実画面で確認したこと）
+
+| | |
+|---|---|
+| 求職者側 | 公開求人5件で必須・歓迎・選考フロー・本文が**移行前と同一**／企業3社の「企業について」も同一 |
+| **企業側** | `/biz/jobs/[id]/edit` に**移行後の必須スキル・歓迎スキル・選考フローが入っている**（統合前は空だった） |
+
 #### ⚠️★求人は列が2組ある。企業が書く列と求職者が読む列が違う（2026-08-26 発覚）
 
 **`/biz` の求人フォームが書く列と、求職者側 `mapJob` が読む列が別名で並存している。**
