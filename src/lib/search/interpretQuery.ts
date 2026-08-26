@@ -271,6 +271,50 @@ async function loadCompanyNames(): Promise<CompanyNameRow[]> {
 
 type CharClass = "latin" | "katakana" | "kanji" | "other";
 
+/**
+ * ★英数字だけで書かれた語か。**境界チェックを効かせてよいかの判定。**
+ *
+ * ⚠️ **日本語には語の境界が無い。** 「営業」は「法人営業」の一部として当たる必要があり、
+ *    ここに日本語を含めると `/search` の職種検索が丸ごと壊れる。
+ *    境界チェックは**英数字の並びにだけ**効かせること。
+ */
+function isLatinTerm(s: string): boolean {
+  return /^[a-z0-9&./+#-]+$/i.test(s);
+}
+
+/**
+ * ★辞書語が文中に現れる位置。**英字の略語は語の途中で拾わない。**
+ *
+ * ⚠️ 直さないと、辞書にある2〜4文字の英字略語（`AE` `AM` `EM` `IR` `CRO` `TAM` `M&A` など
+ *    実測25件）が**プロダクト名の途中に当たる**。2026-08-27 に本番で実測した誤爆:
+ *      Miro            → IR                          （m|ir|o）
+ *      Microsoft Teams → CRO ＋ アカウントマネージャー （mi|cro|soft と te|am|s）
+ *      Airtable / Jira → IR ／ Amplitude / Dynamics 365 → AM
+ *    実在プロダクト30件で測って **7件（23%）** が誤爆していた。
+ *
+ * ⚠️ **日本語の語には効かせない**（`isLatinTerm` を見る）。
+ *    「法人営業」の中の「営業」は今までどおり当たる。
+ *
+ * ⚠️ 社名の照合（`compactWithMap` + `charClass`）とは別実装。あちらは記号を落とした
+ *    文字列の上で字種の隣接を見るが、こちらは**正規化済みの原文**をそのまま見る
+ *    （職種の照合は記号を落としていないので位置を共有できない）。
+ */
+function findAliasIndex(hay: string, alias: string): number {
+  if (!isLatinTerm(alias)) return hay.indexOf(alias);
+  let from = 0;
+  for (;;) {
+    const i = hay.indexOf(alias, from);
+    if (i < 0) return -1;
+    from = i + 1;
+    const before = hay[i - 1];
+    const after = hay[i + alias.length];
+    const touching =
+      (before !== undefined && /[a-z0-9]/i.test(before)) ||
+      (after !== undefined && /[a-z0-9]/i.test(after));
+    if (!touching) return i;
+  }
+}
+
 function charClass(ch: string | undefined): CharClass {
   if (!ch) return "other";
   if (/[a-z0-9]/i.test(ch)) return "latin";
@@ -447,7 +491,9 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
   for (const a of roleAliases) {
     const alias = a.alias.toLowerCase();
     if (alias.length < 2) continue;
-    const i = normalized.indexOf(alias);
+    /* ★英字の略語は語の途中で拾わない（`findAliasIndex` の注記を参照）。
+          日本語の語は今までどおり部分一致で当てる。 */
+    const i = findAliasIndex(normalized, alias);
     if (i < 0) continue;
     roleHits.push({ alias, at: i, roleIds: a.roleIds });
   }
