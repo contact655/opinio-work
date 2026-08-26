@@ -1433,6 +1433,53 @@ industry: (row.industry as string) ?? "",      // NULL → 空文字に化ける
    「COLS 定数に無い列を mapper が `??` で埋めている箇所」。
    **COLS 定数と mapper を突き合わせる**のが確実（型では出ない）。
 
+#### ⚠️★`/biz/company` の「変更を公開する」は、書いていない列を NULL で潰していた（2026-08-26）
+
+企業側の企業情報は **`draft_data`(jsonb) に自動保存 → PATCH で本番列に展開**する2段構え。
+その展開が `s(v) = typeof v === "string" ? v : null` だったため、
+**`transformFormToDb` が書いていないキーはすべて `null` で上書きされていた。**
+
+| PATCH が読むキー | draft_data にある名前 | 本番の件数 |
+|---|---|---|
+| `description` | **無い**（`about_markdown` に入る） | **82/87** |
+| `founded_year` | `established_at` | **82/87** |
+| `female_ratio` | `gender_ratio` | 1/87 |
+
+⚠️ **企業が「変更を公開する」を1回押すだけで、自社の説明文と設立年が消えていた。**
+   実害が出ていないのは `draft_data` が**全社 NULL** だからで
+   （保存経路自体が 2026-08-23 まで RLS で0行更新だった）、**踏むのは時間の問題だった。**
+
+##### 直し方: **キーが無いなら `undefined` を返して触らない**
+
+`JSON.stringify` は `undefined` の値を持つキーを落とすので、PostgREST にも送られない
+（`postgrest-js` の replacer は bigint 変換だけ。実装を読んで確認済み）。
+
+⚠️ **「キーがあって空」と「キーが無い」を区別すること。**
+   前者は利用者が消したので `null`、後者はフォームがその項目を持っていないので**触らない。**
+
+##### ⚠️ 入力欄は生きているのに展開されていなかった6項目（同時に追加）
+
+`notification_emails` / `company_features` / `nearest_station` /
+`careers_url` / `funding_total` / `work_time_system`
+
+⚠️ とくに **`notification_emails` は `lib/notify/recipients.ts` の第一優先の宛先**で、
+   企業が設定しても**応募・面談の通知が届かないまま**だった（本番の設定は0社）。
+
+⚠️ **`ow_companies` は UPDATE が列単位 GRANT。1列でも権限が無いと PATCH 全体が 403 になる。**
+   ここに列を足すときは必ず `has_column_privilege` で測ること（6列とも true を確認済み）。
+
+⚠️ **入力欄が撤去済みの項目をここに足さないこと**（評価制度・残業時間・有給取得率・
+   働き方の補足・面談可能日時）。`transformFormToDb` は今もキーを吐くので、
+   足すと**古い空値で上書きする**ことになる。
+
+##### 残っている名前の食い違い（保留・上書きはされない）
+
+`foundedAt → established_at` vs `founded_year` / `genderRatio → gender_ratio` vs `female_ratio` /
+`会社概要 → about_markdown` vs `description`（求職者が読むのは後者）。
+**どちらを正とするか決まっていないので展開していない。** 会社概要は markdown 前提の
+入力欄なので `description` に素で入れると記号がそのまま出る（求人の
+`description_markdown` と同じ問題）。**列の統合とセットで決めること。**
+
 #### ⚠️★求人は列が2組ある。企業が書く列と求職者が読む列が違う（2026-08-26 発覚）
 
 **`/biz` の求人フォームが書く列と、求職者側 `mapJob` が読む列が別名で並存している。**
