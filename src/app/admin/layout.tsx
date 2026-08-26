@@ -14,6 +14,7 @@ import {
   Newspaper,
   School,
   UserCheck,
+  Eye,
   Briefcase,
   CalendarCheck,
   Inbox,
@@ -58,6 +59,9 @@ const NAV_GROUPS = [
                「人の掲載」を全部扱う**ので、`掲載` だけでは何の掲載か読めない。
                人を指すときは `面談対応者` を使う（`/biz` と同じ語彙で、企業や求人と衝突しない）。 */
       { label: "面談対応者（自己申告）", href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
+      /* ★「登録している人」ではなく「訪問者に実際に見えている人」の一覧（2026-08-26）。
+            /admin/candidates とは別の問いに答えるので分けてある。 */
+      { label: "公開面に出ている人", href: "/admin/public-faces", icon: <Eye          size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "学校追加リクエスト",  href: "/admin/school-requests",  icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
