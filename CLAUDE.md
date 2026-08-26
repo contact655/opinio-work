@@ -1259,21 +1259,30 @@ checkPublishable(companyId, actor)  // 満たしていなければ「何が足�
    具体性は**軸2（対象業界）を入れる日に戻す**。「業種特化」はそのための暫定値で、
    マスタの `description` にもそう書いてある。
 
-##### 残っている読み手（Part B・未着手）
+##### ✅ 移行は完了した（2026-08-26）
 
-**求職者に企業を見せるが、まだ `industry`(text) を読んでいる箇所。**
-
-| 場所 | 備考 |
+| 場所 | 出すもの |
 |---|---|
-| `feed/(list)/page.tsx` / `FeedClient.tsx` | フィードの企業カードのタグ |
-| `mypage/bookmarks` / `mypage/follows` | ブックマーク・フォローの一覧 |
-| `u/[id]` / `mypage` / `mypage/details/[section]` | 匿名化した職歴の会社ラベル |
-| `components/profile/CareerHistoryEditor.tsx` / `onboarding` | 企業ピッカーの補助テキスト |
-| `components/jobseeker/JobseekerHeader.tsx` | 検索ドロップダウンの企業サブテキスト |
+| `/companies` 一覧・詳細・LP・フッター | **事業領域** |
+| `/jobs` 一覧・詳細 | **事業領域** |
+| フィード（サイドバー・`company_joined` の情報行） | **事業領域** |
+| `mypage/bookmarks` / `mypage/follows` | **事業領域** |
+| ヘッダー検索のサジェスト | **事業領域** |
+| **企業ピッカー**（職歴エディタ・オンボーディング） | ⚠️ **業種**（下記） |
+| **匿名化した職歴の会社ラベル**（`u/[id]` / `mypage` / `mypage/details`） | ⚠️ **業種のまま**（下記） |
 
-⚠️ **匿名化ラベル（`u/[id]` など）は事業領域が正しいとは限らない。**
-   「IT・ソフトウェア」のような**粗い業種のほうが匿名性が高い**ので、
-   ここは移す前に「どちらを出すか」を決めること。**機械的に置き換えないこと。**
+⚠️ **企業ピッカーだけ業種にしている。** `/api/companies/search` は掲載中の企業しか
+   返さず、**公開ゲートが `industry_id` を必須にしている**ので必ず値がある。
+   一方で事業領域は業種によっては任意（`requires_business_domain = false`）。
+   見分けが目的の画面なので欠けない側を選んだ。
+
+⚠️ **匿名化ラベルは業種のまま残す。** 「IT・ソフトウェア」のような**粗い区分のほうが
+   匿名性が高い**ので、事業領域まで絞ると勤務先が推測されやすくなる。
+   **事業領域に置き換えないこと。**
+
+⚠️ **埋め込みで取ったら、渡す前に `industry` へ畳むこと。** 畳まずに渡すと
+   受け手は `undefined` になり、**型が optional なので tsc も lint も通ったまま
+   その項目だけ黙って消える**（フィードと follows で同じ形を踏んだ）。
 
 ⚠️ `companies/[id]/CustomerCasesClient.tsx` の `c.industry` は**導入事例の顧客の業種**で、
    `ow_companies.industry` とは無関係。**移行の対象ではない。**
