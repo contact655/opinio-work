@@ -17,11 +17,16 @@
  *       エラーは出ず、件数が多いだけなので**正常に見える**。
  *       → docs/phase0-search-20260826.md「3-C」
  *
- * ③ **解決先は4つだけ。増やさないこと。**
+ * ③ **解決先は5つだけ。増やさないこと。**
  *      職種       → ow_roles + ow_role_aliases（getRoleAliases() の414語）
  *      事業領域   → ow_business_domains（12件）
  *      外資/日系  → ow_companies.is_foreign
  *      年収       → ow_jobs.salary_min
+ *      社名       → ow_companies.id（掲載79社。2026-08-27 追加）
+ *
+ *    ⚠️ 社名の照合は**メモリ上の完全一致**で行う。`ilike '%q%'` は使わない。
+ *       部分一致にすると「Dropbox」の中の「Box」に当たる（実データに両社ある）。
+ *       前方一致も採らない。2文字以下の社名は解決しない（`hp` という slug が実在する）。
  *
  *    ⚠️ **`ow_industries` は条件に使わない。** 掲載79社のうち **70社が
  *       「IT・ソフトウェア」**で、絞り込みとして機能しない（実測）。
@@ -38,6 +43,9 @@
 import { cache } from "react";
 import { getRoleAliases, getRoleTree, type SearchAlias } from "@/lib/supabase/queries";
 import { getBusinessDomainOptions } from "@/lib/companies/businessDomainsCached";
+import { createPublicClient } from "@/lib/supabase/public";
+import { filterListedCompanies } from "@/lib/companies/visibility";
+import { companyDisplayName } from "@/lib/companies/displayName";
 
 // ── 結果の型 ─────────────────────────────────────────────────────────────────
 
@@ -54,6 +62,7 @@ export type SearchKind = "company" | "job" | "person";
  *    「求人にのみ効く」と分かる形にする（画面側が `appliesTo` を見る）。
  */
 export type Condition =
+  | { kind: "company"; label: string; appliesTo: SearchKind[]; companyId: string }
   | { kind: "role"; label: string; appliesTo: SearchKind[]; roleIds: string[] }
   | { kind: "domain"; label: string; appliesTo: SearchKind[]; domainId: string; slug: string }
   | { kind: "foreign"; label: string; appliesTo: SearchKind[]; isForeign: boolean }
@@ -172,7 +181,33 @@ export function decidePrimaryKind(normalized: string): SearchKind {
 type Vocabulary = {
   roleAliases: SearchAlias[];
   domains: { id: string; slug: string; name: string; terms: string[] }[];
+  /** 正規化した社名 → 企業。**同じ綴りが2社以上なら解決しない**ので配列で持つ */
+  companyIndex: Map<string, { id: string; label: string }[]>;
+  /** 索引にある最長キーの長さ。走査の上限に使う */
+  companyMaxLen: number;
 };
+
+/**
+ * ★社名の照合キーを作る正規化。
+ *
+ * 小文字化・全角→半角（`normalizeForDisplay` で済んでいる）に加えて、
+ * **文字でも数字でも長音符でもないもの（記号・空白・中黒）を落とす。**
+ *   「日本ヒューレット・パッカード合同会社」→「日本ヒューレットパッカード合同会社」
+ *   「hp-jp」→「hpjp」
+ *
+ * ⚠️ クエリ側にも**同じ関数**を通すこと。片方だけ記号を落とすと一生一致しない。
+ */
+export function companyKey(s: string): string {
+  return s.toLowerCase().replace(/[^A-Za-z0-9ぁ-んァ-ヴ一-龠々〆ヵヶー]/g, "");
+}
+
+/**
+ * 社名として解決してよい最短の長さ。
+ *
+ * ⚠️ **2文字以下は解決しない。** 実データに `hp` という slug があり、
+ *    2文字だと無関係な文に当たりすぎる（「hpに強い人」以外でも当たる）。
+ */
+const COMPANY_KEY_MIN_LEN = 3;
 
 /**
  * 事業領域の名前を照合語に割る。
@@ -186,17 +221,82 @@ type Vocabulary = {
 const DOMAIN_PART_MIN_LEN = 4;
 
 const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary> {
-  const [roleAliases, domainRows] = await Promise.all([
+  const [roleAliases, domainRows, companyRows] = await Promise.all([
     getRoleAliases(),
     getBusinessDomainOptions(),
+    loadCompanyNames(),
   ]);
   const domains = domainRows.map((d) => {
     const parts = d.name.split(/[・/]/).map((s) => s.trim()).filter(Boolean);
     const terms = [d.name, ...parts.filter((p) => p.length >= DOMAIN_PART_MIN_LEN)];
     return { id: d.id, slug: d.slug, name: d.name, terms: Array.from(new Set(terms)) };
   });
-  return { roleAliases, domains };
+
+  /* ★社名は**全件メモリに載せて完全一致**で突き合わせる（SQL の部分一致は使わない）。
+     掲載79社しかないので、1回引いてキャッシュすれば十分。 */
+  const companyIndex = new Map<string, { id: string; label: string }[]>();
+  let companyMaxLen = 0;
+  for (const c of companyRows) {
+    const label = companyDisplayName(c.name, c.name_en).displayName;
+    /* ⚠️ 対象は name / brand_name / slug の3つ。
+          `name_en` は入れていない（短い綴りが多く、誤爆の余地が大きい）。
+          実データでは `slug` が短い呼称（salesforce / smarthr）を持っているので、
+          「Salesforce」「SmartHR」はここで引ける。 */
+    for (const raw of [c.name, c.brand_name, c.slug]) {
+      if (!raw) continue;
+      const key = companyKey(raw);
+      if (key.length < COMPANY_KEY_MIN_LEN) continue;
+      const prev = companyIndex.get(key) ?? [];
+      if (!prev.some((x) => x.id === c.id)) prev.push({ id: c.id, label });
+      companyIndex.set(key, prev);
+      if (key.length > companyMaxLen) companyMaxLen = key.length;
+    }
+  }
+  return { roleAliases, domains, companyIndex, companyMaxLen };
 });
+
+type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null };
+
+/** 掲載中の企業の社名。⚠️ ディレクトリの軸なので `filterListedCompanies` を通す */
+async function loadCompanyNames(): Promise<CompanyNameRow[]> {
+  const { data, error } = await filterListedCompanies(
+    createPublicClient().from("ow_companies").select("id, name, name_en, brand_name, slug"),
+  );
+  /* ⚠️ error を握りつぶさない。空で返すと「社名で引けない」が静かに起きる */
+  if (error) console.error("[interpretQuery] 社名の取得に失敗:", error.message);
+  return (data ?? []) as CompanyNameRow[];
+}
+
+// ── 社名の照合 ───────────────────────────────────────────────────────────────
+
+type CharClass = "latin" | "katakana" | "kanji" | "other";
+
+function charClass(ch: string | undefined): CharClass {
+  if (!ch) return "other";
+  if (/[a-z0-9]/i.test(ch)) return "latin";
+  if (/[ァ-ヴー]/.test(ch)) return "katakana";
+  if (/[一-龠々〆ヵヶ]/.test(ch)) return "kanji";
+  return "other";
+}
+
+/**
+ * 記号を落とした文字列と、その各文字が元の何文字目だったかの対応。
+ *
+ * ⚠️ 社名の照合は記号を落とした側で行うが、**未解決語の切り出しは元の文字列**で行う。
+ *    位置がずれると別の語を「解決済み」として伏せてしまうので、対応表で戻す。
+ */
+function compactWithMap(s: string): { compact: string; map: number[] } {
+  let compact = "";
+  const map: number[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (/[A-Za-z0-9ぁ-んァ-ヴ一-龠々〆ヵヶー]/.test(ch)) {
+      compact += ch.toLowerCase();
+      map.push(i);
+    }
+  }
+  return { compact, map };
+}
 
 // ── ③ 解決 ───────────────────────────────────────────────────────────────────
 
@@ -218,13 +318,59 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     return { primaryKind: "company", conditions: [], unresolved: [], normalized: "" };
   }
 
-  const [{ roleAliases, domains }, roleTree] = await Promise.all([
+  const [{ roleAliases, domains, companyIndex, companyMaxLen }, roleTree] = await Promise.all([
     loadVocabulary(),
     getRoleTree(),
   ]);
 
   const conditions: Condition[] = [];
   const consumed: Span[] = [];
+  /* 社名として当たったが**2社以上に一致して決められなかった**語。
+     ⚠️ 黙って1社に決めない。未解決として画面に出す。 */
+  const ambiguousCompanyWords: string[] = [];
+
+  // ── 社名 → ow_companies.id ───────────────────────────────────────────────
+  {
+    const { compact, map } = compactWithMap(normalized);
+    /* 長いキーから順に見て、既に埋まった範囲は飛ばす。
+       ⚠️ 「dropbox」と「box」が両方索引にあるので、短いほうを先に採ると
+          Dropbox の求人が Box として解決される。 */
+    const taken: boolean[] = new Array(compact.length).fill(false);
+    const maxLen = Math.min(companyMaxLen, compact.length);
+    for (let len = maxLen; len >= COMPANY_KEY_MIN_LEN; len--) {
+      for (let i = 0; i + len <= compact.length; i++) {
+        const key = compact.slice(i, i + len);
+        const hit = companyIndex.get(key);
+        if (!hit) continue;
+        if (taken.slice(i, i + len).some(Boolean)) continue;
+        /* ★境界チェック。**同じ字種が隣接していたら部分一致なので採らない。**
+           「dropboxの営業」の中の「box」は直前が `p`（英字）なので弾く。
+           助詞（ひらがな）や文頭・文末に接している場合だけ通す。 */
+        const beforeSame = charClass(compact[i - 1]) === charClass(compact[i]) &&
+          charClass(compact[i]) !== "other";
+        const afterSame = charClass(compact[i + len]) === charClass(compact[i + len - 1]) &&
+          charClass(compact[i + len - 1]) !== "other";
+        if (beforeSame || afterSame) continue;
+
+        for (let k = i; k < i + len; k++) taken[k] = true;
+        const origStart = map[i];
+        const origEnd = map[i + len - 1] + 1;
+        consumed.push({ start: origStart, end: origEnd });
+
+        if (hit.length > 1) {
+          /* ⚠️ 同じ綴りが2社以上に当たった。**どちらかに決めない。** */
+          ambiguousCompanyWords.push(normalized.slice(origStart, origEnd));
+          continue;
+        }
+        conditions.push({
+          kind: "company",
+          label: hit[0].label, // ★マスタの表示名。入力文字列ではない
+          appliesTo: ["company", "job", "person"],
+          companyId: hit[0].id,
+        });
+      }
+    }
+  }
 
   // ── 年収 → ow_jobs.salary_min ────────────────────────────────────────────
   let salaryMan: number | null = null;
@@ -329,10 +475,17 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     consumed.push({ start: h.at, end: h.at + h.alias.length });
   }
 
+  const unresolved = collectUnresolved(
+    normalized,
+    normalizeForDisplay(rawText).slice(0, 200),
+    consumed,
+  );
+  for (const w of ambiguousCompanyWords) if (!unresolved.includes(w)) unresolved.push(w);
+
   return {
     primaryKind: decidePrimaryKind(normalized),
     conditions,
-    unresolved: collectUnresolved(normalized, normalizeForDisplay(rawText).slice(0, 200), consumed),
+    unresolved,
     normalized,
   };
 }

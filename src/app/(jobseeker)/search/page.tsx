@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { interpretQuery, type Condition, type SearchKind } from "@/lib/search/interpretQuery";
 import { runSearch, MIN_AGGREGATE_COUNT, type SearchResults } from "@/lib/search/runSearch";
+import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { PersonHitCard } from "./PersonHitCard";
@@ -226,6 +227,23 @@ export default async function SearchPage({ searchParams }: Props) {
       const n = r.company.total + r.job.total + r.person.total;
       if (n > 0) relaxations.push({ label: interpreted.conditions[i].label, index: i, count: n });
     }
+  }
+
+  /* ★検索ログ。**ベストエフォート。** 失敗しても下の描画は止めない。
+     ⚠️ `logSearch` は自前で try/catch していて例外を投げない（searchLog.ts 参照）。
+     ⚠️ `await` する: fire-and-forget にすると、サーバーレスでは
+        応答を返した時点で実行が打ち切られて記録が落ちる。INSERT 1本なので許容する。
+     ⚠️ 条件が1つも立たなかったときも記録する。**その回こそ `unresolved` に
+        次に足すべき語が入っている**（ログの主目的）。 */
+  if (raw.trim()) {
+    await logSearch({
+      query: raw,
+      primaryKind: primary,
+      conditions,
+      unresolved: interpreted.unresolved,
+      resultCount: results[primary].total,
+      userId: await resolveOwUserId(user?.id ?? null),
+    });
   }
 
   const sectionTitle = { company: "企業", job: "募集", person: "人" }[primary];

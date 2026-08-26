@@ -149,6 +149,9 @@ export async function searchCompanyHits(conditions: Condition[]): Promise<KindRe
      ⚠️ **ユーザーの文字列を `ilike` に流さない**（interpretQuery の②）。 */
   const idSets: Set<string>[] = [];
   for (const c of cond) {
+    /* 社名は既に ow_companies.id に解決済み（interpretQuery）。ここでは id で絞るだけ。
+       ⚠️ 入力文字列を ilike に流す経路をここに作らないこと。 */
+    if (c.kind === "company") idSets.push(new Set([c.companyId]));
     if (c.kind === "domain") {
       const { data, error } = await db
         .from("ow_company_business_domains")
@@ -303,6 +306,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
 
   const companySets: Set<string>[] = [];
   for (const c of cond) {
+    if (c.kind === "company") companySets.push(new Set([c.companyId]));
     if (c.kind === "foreign") {
       companySets.push(
         new Set(
@@ -529,6 +533,12 @@ function experienceMatches(
     if (e.visibility_company === "hidden") return false;
     if (!e.company_id) return false;
     return domainsByCompany.get(e.company_id)?.has(c.domainId) ?? false;
+  }
+  if (c.kind === "company") {
+    /* ⚠️ 社名を伏せている経歴（hidden）は判定から外す。
+          「Salesforce で働いている人」で出てしまうと、伏せた在籍が露見する。 */
+    if (e.visibility_company === "hidden") return false;
+    return e.company_id === c.companyId;
   }
   return false; // salaryMin は appliesTo で除外済み
 }
