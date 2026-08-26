@@ -1009,12 +1009,28 @@ const JOB_LIST_COLS = [
   "tech_stack",
   // スキルタグ表示用（一覧カードで使用）
   "requirements",
+  /* ★`overview` の材料（2026-08-26 追加）。**カードには出さないが、`/jobs` の
+        並び替え「開示充実順」が `j.overview.length > 100` を見ている。**
+     ⚠️ ここに無いと `mapJob` が `overview` を `""` に埋めるので、
+        **その加点（1点）が全求人で一律に発火しない**（順位は変わらないので画面では
+        気づけない。CLAUDE.md「全社同値の列で並べ替えている無意味な処理」と同じ形）。
+     ⚠️ 2列とも要る。`overview` は詳細と同じ `description ?? what_youll_do_intro`
+        で組み立てるので、片方だけ足すと**一覧と詳細で意味が変わる。** */
+  "description", "what_youll_do_intro",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [
   ...JOB_LIST_COLS.split(", "),
   "status", "expires_at",
-  "description", "requirements", "preferred_skills", "selection_process",
+  /* ⚠️ **`preferred` も取ること（2026-08-26 追加）。** `mapJob` は
+        `row.preferred_skills ?? row.preferred` で歓迎スキルを組み立てるが、
+        **`preferred_skills`(配列) は本番20件すべて空で、実データは `preferred`(text) に
+        5件入っている**（公開中の求人5件すべて）。この列を取っていなかったため、
+        求人詳細の「歓迎スキル」が**一度も表示されていなかった**（表示先は
+        jobs/[id]/page.tsx にある。空配列なので節ごと出ないだけで、エラーにならない）。
+     ⚠️ `required_skills` は同じ形の別名だが**本番0件**で、実データは `requirements` に
+        あるので取っていない。増えたらここに足す。 */
+  "description", "requirements", "preferred_skills", "preferred", "selection_process",
   "message_to_candidates", "what_youll_do_intro", "who_we_want_intro",
   "why_hire", "team_composition", "first_90_days",
   // セールス職専用（詳細のみ）
