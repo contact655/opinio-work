@@ -85,16 +85,36 @@
 ⚠️ **実装する判断に変えるなら、判定は1箇所に集約すること。**
    経路ごとに書くと必ず漏れる（CLAUDE.md「公開ゲート」と同じ）。
 
-### ④ ⚠️★掲示だけでは足りない ── 登録メールへの通知が要る
+### ④ ✅周知は完了（掲示 ＋ メール通知。2026-08-28）
 
 第24条2項は**「本サービス上の掲示**および**登録メールアドレスへの通知」**の
-両方を要求している。規約ページを更新しただけでは要件を満たさない。
+両方を要求する。**両方とも 2026-08-28 に実施した。**
 
-⚠️ **週次メールは停止中**（`WEEKLY_EMAIL_ENABLED` 未設定）だが、これは別系統。
-   規約改定の通知は1回限りの送信で、`lib/notify/email.ts`（Resend）は生きている。
-   **宛先の作り方は `getWeeklyRecipients()` を流用しないこと** —— あちらは
-   配信停止（`email_weekly_enabled`）を尊重するが、**規約改定の通知は
-   配信停止の対象外**（契約上の通知であって販促ではない）。
+| | |
+|---|---|
+| 掲示 | `content/legal/terms-of-service-jobseeker.md` の冒頭（本番 `/terms` で確認済み） |
+| メール | **5名に送信**（`ow_users` 38名から `is_test` / システム33名を除外）。全通 Resend が受理 |
+| 記録 | `~/Desktop/opinio-legal/terms-notice-20260828-delivery.json`（message id 付き） |
+
+⚠️ **宛先を含むのでリポジトリには置いていない。**
+
+#### 次に同じことをするときの注意（実際に踏んだもの）
+
+⚠️ **`lib/notify/email.ts` の `sendEmail` / `notify` を使わないこと。**
+   `console.error` を出すだけで**エラーを握りつぶす**（`notify` は try/catch まで
+   している）。**「送れたか」を示せない**ので、規約の周知では使えない。
+   Resend を直接叩き、1通ずつ結果と message id を残すこと。
+
+⚠️ **宛先を `getWeeklyRecipients()` で作らないこと。** あちらは配信停止
+   （`email_weekly_enabled`）を尊重するが、**規約改定の通知は配信停止の対象外**
+   （契約上の通知であって販促ではない）。本文末尾にその旨を明記した。
+
+⚠️ **★受理は配達の証明ではない。** Resend の POST が 200 でも、バウンスは非同期。
+   ⚠️ しかも **`RESEND_API_KEY` は送信専用**（`GET /emails/{id}` は 401
+      `restricted_api_key`）。**API では配達状況を確認できない。**
+      確認は Resend のダッシュボードで行う。
+   ⚠️ 生藤さんの `hiroki.ikuto.placeholder@opinio.co.jp` は **placeholder** で、
+      バウンスする可能性がある。ダッシュボードで確認すること。
 
 ### ⑤ ★2026-09-27 より前に `SCOUT_SENDING_ENABLED` を有効にしないこと
 
