@@ -7,6 +7,24 @@ export const dynamic = "force-dynamic";
 /**
  * 標準スキルの削除（2026-08-27）。形は `api/jobseeker/languages/[id]` に揃えてある。
  * ⚠️ **PUT は無い**（理由は `../route.ts` の冒頭）。
+ *
+ * ── ★なぜ `createAdminClient` なのか（2026-08-27）───────────────────────────
+ * **このAPIは `createAdminClient` を使っている（RLS をバイパスする）。**
+ *
+ * 理由は `types.ts` に `ow_skills` / `ow_user_skills` の型が無く、
+ * `Database` 型付きの `createClient` では **tsc が通らない**ため
+ * （2026-08-27 時点で `types.ts` は**別セッションが `career_stance` で編集中**。
+ *  `npm run gen:types` を流すと相手の未リリースの変更を巻き込むので流せない）。
+ *
+ * ★**`user_id` はセッションから解決した値だけを使い、リクエスト本文からは
+ *   絶対に受け取らないこと。** 全クエリに `.eq("user_id", owUserId)` が
+ *   付いていることが**唯一の防御**になっている。
+ *
+ * ⚠️ **`gen:types` が流せるようになったら `createClient`（RLS 付き）へ戻すこと。**
+ * ⚠️ family（資格・言語・メディア・発信コンテンツ）は**すべて `createClient`**。
+ *    ここだけが例外であって、これが揃った形ではない。
+ *
+ * ⚠️ 認証（`getUser`）だけは RLS 付きの `createClient` を使っている。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
