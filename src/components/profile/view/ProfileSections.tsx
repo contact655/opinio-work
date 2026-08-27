@@ -18,6 +18,7 @@ import Link from "next/link";
 import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
 /* 言語の習熟度ラベル（2026-08-24）。⚠️ 生の値（`native` 等）を画面に出さない */
 import { languageProficiencyLabel } from "@/lib/constants/languageProficiency";
+import { SKILL_CATEGORIES } from "@/lib/constants/skills";
 import { PostCard } from "@/components/profile/PostCard";
 import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
 /* ⚠️ `SocialIcon.tsx` は `"use client"` を**持たない**素のモジュール。
@@ -50,6 +51,16 @@ export type CertificationRow = {
 };
 export type LanguageRow = {
   id: string; name: string; proficiency: string | null; sort_order: number;
+};
+
+/**
+ * 標準スキル（2026-08-27）。⚠️ 形は `recordTypes.ts` の `UserSkill` と揃えること。
+ * ⚠️ 表示名も区分も**マスタ（`ow_skills`）が持つ**。この行に自由入力の名前は無い。
+ */
+export type UserSkillRow = {
+  id: string;
+  skill_id: string;
+  skill: { id: string; label: string; category: string } | null;
 };
 export type MediaAppearanceRow = {
   id: string; title: string; media_name: string | null; url: string | null;
@@ -633,6 +644,127 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
                 </div>
               );
             })}
+          </div>
+          {showAll && showAll.hiddenCount > 0 && (
+            <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />
+          )}
+        </section>
+      )}
+    </>
+  );
+}
+
+// ─── ProfileSkillsSection ──────────────────────────────────────────────────────────
+/**
+ * 標準スキル（2026-08-27）。作りは `ProfileLanguagesSection` と同じ。
+ *
+ * ⚠️ **置き場所は学歴の下**（柴さんの指示）。⚠️ **その差し込みはまだ入っていない。**
+ *    `/mypage` のカード（`ProfileTab.tsx`）と `/u/[id]` への表示は
+ *    別セッションがそれらのファイルを触っているため保留。→ docs/todo.md
+ * ⚠️ **0件なら出さない。** `actions` を渡した本人だけ、空状態と追加導線が出る
+ *    （資格・言語と同じ条件式にしてある）。
+ * ⚠️ **区分ごとにまとめて出す。** 15個まで並ぶので、平らに並べると読めない。
+ *    区分名は `skillCategoryLabel` を通す（**生の値（`product` 等）を出さない**）。
+ * ⚠️ 年数や習熟度は**持たない**。ここに「3年」などを足さないこと。
+ */
+export function ProfileSkillsSection({ skills, actions, showAll }: {
+  skills: UserSkillRow[];
+  /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
+  actions?: RowActions;
+  /** ★上限で切ったときの「すべて表示」。渡さなければ描かない */
+  showAll?: { href: string; hiddenCount: number; label: string };
+}) {
+  const hasActions = !!(actions?.onEditRow || actions?.onDeleteRow || actions?.onAdd);
+  /* 区分ごとに束ねる。⚠️ マスタに無い区分の行は落とさず「その他」に寄せない
+        ——`skill` が null なのは参照先が消えたときだけで、そのときは行ごと出さない。 */
+  /* ⚠️ 並び順は `SKILL_CATEGORIES` の並びそのもの。ここで sort しない
+        （`skillCategoryRank` は**値**を取る関数で、ラベルを渡すと全件が同じ順位になり、
+         「並べ替えているつもりの何もしないコード」になる）。 */
+  const groups = SKILL_CATEGORIES
+    .map((c) => ({ label: c.label, rows: skills.filter((s) => s.skill?.category === c.value) }))
+    .filter((g) => g.rows.length > 0);
+  return (
+    <>
+      {(skills.length > 0 || hasActions) && (
+        <section id="skills" style={{
+          background: "#fff", border: "1px solid var(--line)",
+          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
+          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+            <span style={{ fontFamily: "'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+              スキル
+            </span>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+              SKILLS
+            </span>
+            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            {skills.length > 0 && (
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
+                {skills.length}件
+              </span>
+            )}
+            {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
+                   同じカードに追加の入口が2つ並ぶため（ルール⑧）。 */}
+            {actions?.onAdd && skills.length > 0 && (
+              <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
+                <PlusIcon />追加
+              </button>
+            )}
+            {actions?.manageHref && (
+              <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
+            )}
+          </div>
+
+          {/* ⚠️ 空のときは**1行だけ**。説明を足さないこと（柴さんの指示） */}
+          {skills.length === 0 && hasActions && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              まだスキルを登録していません。
+              {actions?.onAdd && (
+                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
+                  スキルを追加する
+                </button>
+              )}
+            </p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {groups.map((g) => (
+              <div key={g.label}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 8 }}>
+                  {g.label}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {g.rows.map((row) => (
+                    /* ⚠️ 色を増やさない。neutral 固定
+                           （オレンジはカジュアル面談専用・緑は金銭的にプラスの条件）。 */
+                    <span key={row.id} style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "6px 12px", borderRadius: 100,
+                      background: "var(--royal-50)", color: "var(--royal)",
+                      border: "1px solid var(--royal-100)",
+                      fontSize: 13, fontWeight: 600, whiteSpace: "nowrap",
+                    }}>
+                      {row.skill?.label}
+                      {/* ⚠️ 行の操作。`actions` が無ければ描かない＝他人の DOM は不変 */}
+                      {actions?.onDeleteRow && (
+                        <button
+                          type="button"
+                          onClick={() => actions.onDeleteRow?.(row.id)}
+                          aria-label={`${row.skill?.label ?? "スキル"} を削除`}
+                          style={{
+                            border: "none", background: "none", padding: 0, cursor: "pointer",
+                            color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, fontFamily: "inherit",
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
           {showAll && showAll.hiddenCount > 0 && (
             <SectionShowAll href={showAll.href} label={showAll.label} hiddenCount={showAll.hiddenCount} />

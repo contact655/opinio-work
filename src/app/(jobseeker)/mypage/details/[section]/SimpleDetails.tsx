@@ -6,12 +6,13 @@ import {
   ProfileAwardsSection,
   ProfileCertificationsSection,
   ProfileLanguagesSection,
+  ProfileSkillsSection,
   ProfileMediaSection,
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
-import { AchievementEditor, AwardEditor, CertificationEditor, LanguageEditor, MediaAppearanceEditor, type ExperienceOption } from "@/components/profile/editor/RecordEditors";
+import { AchievementEditor, AwardEditor, CertificationEditor, LanguageEditor, SkillEditor, MediaAppearanceEditor, type ExperienceOption, type SkillMaster } from "@/components/profile/editor/RecordEditors";
 import { ContentLinksEditor, type ContentLink } from "@/components/profile/editor/ContentLinksEditor";
-import type { Achievement, Award, Certification, Language, MediaAppearance } from "@/components/profile/editor/recordTypes";
+import type { Achievement, Award, Certification, Language, UserSkill, MediaAppearance } from "@/components/profile/editor/recordTypes";
 import { DetailsFrame } from "./DetailsFrame";
 
 /**
@@ -97,6 +98,38 @@ export function CertificationsDetails({ initial }: { initial: Certification[] })
         setCertifications={setRows}
         openAddNonce={st.addNonce}
         openEditId={st.editId}
+        openDeleteId={st.deleteId}
+        onClosed={st.onClosed}
+      />
+    </DetailsFrame>
+  );
+}
+
+/**
+ * スキル（2026-08-27）。⚠️ 職歴と紐づかないので `experienceOptions` を取らない。
+ *
+ * ★**このページが唯一の入口**（2026-08-27 時点）。`/mypage` のカードへの差し込みは
+ *   `ProfileTab.tsx` を別セッションが触っているため保留にしてある。
+ *   ここから登録すれば `/search` で引ける状態にはなっている。→ docs/todo.md
+ *
+ * ⚠️ **編集が無い**ので `openEditId` を渡さない（`SkillEditor` も受けない）。
+ *    行の中に変えられる値が無い。差し替えは「消して選び直す」。
+ */
+export function SkillsDetails({ initial, masters }: { initial: UserSkill[]; masters: SkillMaster[] }) {
+  const [rows, setRows] = useState<UserSkill[]>(initial);
+  const st = useRowState();
+  return (
+    <DetailsFrame title="スキル" addLabel="スキルを追加" onAdd={st.openAdd} hideOwnHeading>
+      <ProfileSkillsSection
+        skills={rows}
+        /* ⚠️ `onEditRow` は渡さない。渡すと鉛筆が出るが行き先が無い */
+        actions={{ onDeleteRow: st.actions.onDeleteRow, onAdd: st.actions.onAdd }}
+      />
+      <SkillEditor
+        skills={rows}
+        setSkills={setRows}
+        masters={masters}
+        openAddNonce={st.addNonce}
         openDeleteId={st.deleteId}
         onClosed={st.onClosed}
       />

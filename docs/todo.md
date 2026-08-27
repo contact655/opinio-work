@@ -122,6 +122,46 @@
 
 ---
 
+## ⚠️★スキルの「配置」2箇所が別セッション待ち（2026-08-27）
+
+**スキルは登録できるし `/search` でも引ける。出ていないのは *置き場所* だけ。**
+
+2026-08-27 に `ow_skills` / `ow_user_skills` と入力UI・表示部品・API を入れた。
+ただし**プロフィール上の2箇所への差し込みが未了**で、そこだけ残っている。
+
+| 何が | どのファイルに1行足すか | 状態 |
+|---|---|---|
+| `/mypage` のカード（**学歴の下**に置く） | `src/components/profile/editor/ProfileTab.tsx` | **別セッションが作業中** |
+| `/u/[id]`（他人が見るプロフィール） | `src/app/(jobseeker)/u/[id]/page.tsx` | **別セッションが作業中** |
+
+⚠️ **その2ファイルは `career_stance` の未リリース機能を含んでいる。**
+   2026-08-27 時点で本番の `/onboarding/stance` は **404**。
+   こちらの都合でコミットすると、**別セッションの未完成機能が本番に出る。**
+   → **相手が出し終わってから足すこと。**
+
+### いま何ができるか
+
+**`/mypage/details/skills` が入口として生きている。** ここから登録すれば
+`ow_user_skills` に入り、`/search`（「Tableau の経験がある人」など）で引ける。
+実測済み（2026-08-27）。
+
+⚠️ ただし**そのURLへの導線が無い**（`/mypage` のカードから辿れない）。
+   直打ちしないと着かないので、上の差し込みが入るまでは実質的に使われない。
+
+### 足すときの形
+
+どちらも既存の部品を呼ぶだけで、新しい見た目は書かない。
+
+- 表示: `ProfileSkillsSection`（`components/profile/view/ProfileSections.tsx`）
+- 入力: `SkillEditor`（`components/profile/editor/RecordEditors.tsx`）
+- 取得: `ow_user_skills` ＋ `skill:ow_skills(id, label, category)`
+
+⚠️ **`/u/[id]` では `actions` を渡さないこと。** 渡すと他人の画面に
+   追加・削除の導線が出る（`ProfileSections` の他のセクションと同じ約束）。
+
+⚠️ **`ProfileTab.tsx` に差し込むときは「学歴の下」。** 資格・言語より上に置かない
+   （並びは柴さんの指示）。
+
 ## ⚠️★`OnboardingGuard` の stance 分岐の修正が作業ツリーにしか無い
 
 **対象**: `src/components/jobseeker/OnboardingGuard.tsx:110`（`/onboarding/stance` への

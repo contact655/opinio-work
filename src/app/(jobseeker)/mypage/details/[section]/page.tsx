@@ -6,7 +6,7 @@ import { rowsToStints } from "@/lib/experiences/toStint";
 import type { CompanyLogoInfo } from "@/lib/utils/timeline";
 import EducationDetails from "./EducationDetails";
 import CareerDetails from "./CareerDetails";
-import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDetails, MediaDetails, ContentDetails } from "./SimpleDetails";
+import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDetails, SkillsDetails, MediaDetails, ContentDetails } from "./SimpleDetails";
 
 /**
  * プロフィールの1セクションだけを**全件**出すページ（2026-08-17 / フェーズ3）。
@@ -23,7 +23,7 @@ import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDet
  * ⚠️ **存在しない `section` は 404。** 下の `SECTIONS` に無いものは
  *    `dynamicParams = false` によりレンダリングに入る前に落ちる。
  */
-const SECTIONS = ["experience", "education", "achievements", "awards", "certifications", "languages", "media", "content"] as const;
+const SECTIONS = ["experience", "education", "achievements", "awards", "certifications", "languages", "skills", "media", "content"] as const;
 type Section = (typeof SECTIONS)[number];
 
 /**
@@ -194,6 +194,30 @@ export default async function ProfileDetailsPage({ params }: { params: { section
       .select("id, name, proficiency, sort_order")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
     return <LanguagesDetails initial={(data ?? []) as never} />;
+  }
+
+  /* ★スキル（2026-08-27）。⚠️ 読み取りは `createAdminClient`。
+        ⚠️ **admin は RLS をバイパスする**ので、`user_id` の条件を自分で必ず付けること。
+        ⚠️ マスタ（`ow_skills`）も一緒に引く。ピッカーの選択肢になる。
+           `is_active` で絞る——止めたスキルを新しく選べてはいけない。 */
+  if (section === "skills") {
+    const admin = createAdminClient();
+    const [{ data: rows, error: rowsErr }, { data: masters, error: mastersErr }] = await Promise.all([
+      admin
+        .from("ow_user_skills")
+        .select("id, skill_id, skill:ow_skills(id, label, category)")
+        .eq("user_id", owUser.id)
+        .order("created_at", { ascending: true }),
+      admin
+        .from("ow_skills")
+        .select("id, label, category, aliases")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
+    /* ⚠️ error を握りつぶさない。`?? []` だけで受けると「0件」に化ける */
+    if (rowsErr)    console.error("[details/skills rows]", rowsErr.message);
+    if (mastersErr) console.error("[details/skills masters]", mastersErr.message);
+    return <SkillsDetails initial={(rows ?? []) as never} masters={(masters ?? []) as never} />;
   }
 
   if (section === "media") {

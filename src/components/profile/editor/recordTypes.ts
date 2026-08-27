@@ -90,6 +90,23 @@ export type Language = {
   sort_order: number;
 };
 
+/**
+ * 標準スキル（2026-08-27）。`ow_user_skills` 1行 ＋ 参照先の `ow_skills`。
+ *
+ * ⚠️ **自由入力は無い。** 表示名も区分も `ow_skills`（運営が管理するマスタ）が持つ。
+ *    ここに `name: string` を足して自由入力を受けられる形にしないこと。
+ *    語彙が閉じていることが `/search` の前提になっている。
+ * ⚠️ **年数・習熟度は持たない。** 自己申告は保存した瞬間から古くなる
+ *    （`ow_profiles.experience_years` を都度計算に変えたのと同じ理由）。
+ * ⚠️ 形は `ProfileSections.tsx` の `UserSkillRow` と揃えること。
+ */
+export type UserSkill = {
+  /** ⚠️ `ow_user_skills.id`。`skill_id`（マスタ側）と混同しない */
+  id: string;
+  skill_id: string;
+  skill: { id: string; label: string; category: string } | null;
+};
+
 export type MediaAppearance = {
   id: string;
   title: string;

@@ -19,6 +19,7 @@ import {
   type Award,
   type Certification,
   type Language,
+  type UserSkill,
   type MediaAppearance,
   EDU_YEAR_OPTS,
   parseDateToYM,
@@ -26,6 +27,8 @@ import {
 } from "./recordTypes";
 /* 言語の習熟度。⚠️ 選択肢を route や画面に書き写さない（CLAUDE.md） */
 import { LANGUAGE_PROFICIENCIES } from "@/lib/constants/languageProficiency";
+import { RoleSearchSelect, type RoleOption } from "@/components/ui/RoleSearchSelect";
+import { SKILL_CATEGORIES, MAX_USER_SKILLS, skillCategoryRank } from "@/lib/constants/skills";
 
 type EducationDraft = {
   school:        string;
@@ -1607,6 +1610,186 @@ export function LanguageEditor({
       </ProfileEditModal>
       <ConfirmDialog isOpen={!!deleteTarget} title="言語を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.name}」を削除します。この操作は取り消せません。` : ""}
+        confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
+        onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
+      {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
+    </>
+  );
+}
+
+// ─── SkillEditor ──────────────────────────────────────────────────────────────
+/**
+ * 標準スキル（2026-08-27）。作りは `LanguageEditor` と同じ。**そちらを直すときはここも見ること。**
+ *
+ * ⚠️ **自由入力は無い。`ow_skills` から選ぶだけ。** 語彙が閉じていることが
+ *    `/search` の前提（利用者の文字列を ilike に流さない）。入力欄を足さないこと。
+ * ⚠️ **編集が無い。** 行の中に変えられる値が無いので、追加と削除だけ。
+ *    差し替えは「消して選び直す」。`openEditId` を受けないのはそのため。
+ * ⚠️ 上限は `MAX_USER_SKILLS`。**UI と API の2層で担保**する（DB のトリガーは足さない。
+ *    理由は `lib/constants/skills.ts`）。ここだけに置かないこと。
+ *
+ * ── ピッカー ────────────────────────────────────────────────────────────────
+ * `RoleSearchSelect` を流用する。**区分を親、スキルを子にした2階層**として渡す。
+ * ⚠️ 区分そのものはスキルではないので `selectableParent={false}`。
+ * ⚠️ `clearOnSelect` を付ける。複数選ぶフォームなので、選んだ語が欄に残ると
+ *    次を選ぶときに消す手間が要る。
+ * ⚠️ 親の id は `cat:` を前に付ける。**マスタの UUID と衝突させない**
+ *    （`onSelect` に来た id をそのまま `skill_id` として送るため、
+ *      区分の id が混ざると存在しない UUID を送ることになる）。
+ */
+export type SkillMaster = { id: string; label: string; category: string; aliases: string[] };
+
+const SKILL_CAT_PREFIX = "cat:";
+
+export function SkillEditor({
+  skills, setSkills, masters, openAddNonce, openDeleteId, onClosed,
+}: {
+  skills: UserSkill[];
+  setSkills: React.Dispatch<React.SetStateAction<UserSkill[]>>;
+  /** `ow_skills` の全行（有効なもの） */
+  masters: SkillMaster[];
+  openAddNonce?: number;
+  openDeleteId?: string | null;
+  onClosed?: () => void;
+}) {
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  const [adding,       setAdding]       = useState(false);
+  const [addSaving,    setAddSaving]    = useState(false);
+  const [addJustSaved, setAddJustSaved] = useState(false);
+  const [picked,       setPicked]       = useState<string>("");
+  const [deleteTarget, setDeleteTarget] = useState<UserSkill | null>(null);
+  const [deleting,     setDeleting]     = useState(false);
+  const [toastMsg,     setToastMsg]     = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
+  const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
+    setToastVariant(variant); setToastMsg(msg);
+  }, []);
+
+  /* ★区分を親、スキルを子にした2階層。⚠️ 既に持っているスキルは候補から外す
+        （選べるのに 409 になる状態を作らない）。 */
+  const owned = new Set(skills.map((s) => s.skill_id));
+  const available = masters.filter((m) => !owned.has(m.id));
+  const usedCats = SKILL_CATEGORIES.filter((c) => available.some((m) => m.category === c.value));
+  const roleOptions: RoleOption[] = [
+    ...usedCats.map((c) => ({ id: SKILL_CAT_PREFIX + c.value, name: c.label, parent_id: null })),
+    ...available
+      .slice()
+      .sort((a, b) => skillCategoryRank(a.category) - skillCategoryRank(b.category) || a.label.localeCompare(b.label))
+      .map((m) => ({ id: m.id, name: m.label, parent_id: SKILL_CAT_PREFIX + m.category })),
+  ];
+  /* ⚠️ `ow_skills.aliases` をそのまま渡す。`/search` が引くのと同じ別名で探せる */
+  const aliasMap: Record<string, string[]> = {};
+  for (const m of available) if (m.aliases?.length) aliasMap[m.id] = m.aliases;
+
+  const atLimit = skills.length >= MAX_USER_SKILLS;
+
+  /* ⚠️ API の 400 は `{ error, message }`。**message をそのまま出す。** */
+  const readError = async (res: Response, fallback: string) => {
+    try {
+      const j = await res.json();
+      return typeof j?.message === "string" ? j.message : fallback;
+    } catch { return fallback; }
+  };
+
+  const saveAdd = useCallback(async (skillId: string) => {
+    setAddSaving(true);
+    try {
+      const res = await fetch("/api/jobseeker/skills", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skill_id: skillId }),
+      });
+      if (!res.ok) { showToast(await readError(res, "追加に失敗しました。もう一度お試しください。"), "error"); return; }
+      const inserted: UserSkill = await res.json();
+      setSkills((prev) => [...prev, inserted]);
+      showToast("スキルを追加しました");
+      setAddJustSaved(true);
+      await new Promise((r) => setTimeout(r, 600));
+      setAddJustSaved(false);
+    } catch { showToast("追加に失敗しました。もう一度お試しください。", "error"); }
+    finally { setAddSaving(false); setPicked(""); }
+  }, [setSkills, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobseeker/skills/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setSkills((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      setDeleteTarget(null); showToast("スキルを削除しました"); onClosedRef.current?.();
+    } catch { showToast("削除に失敗しました。もう一度お試しください。", "error"); }
+    finally { setDeleting(false); }
+  }, [deleteTarget, setSkills, showToast]);
+
+  /* ★外から開く。⚠️ **nonce は値が変わったときだけ発火させる**（ルール⑭）。 */
+  const lastAddNonce = useRef(openAddNonce);
+  useEffect(() => {
+    if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
+    lastAddNonce.current = openAddNonce;
+    setAdding(true);
+  }, [openAddNonce]);
+  useEffect(() => {
+    if (!openDeleteId) return;
+    const t = skills.find((s) => s.id === openDeleteId);
+    if (t) setDeleteTarget(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDeleteId]);
+
+  const closeModal = () => { setAdding(false); setPicked(""); onClosedRef.current?.(); };
+
+  return (
+    <>
+      <ProfileEditModal
+        open={adding}
+        title="スキルを追加"
+        /* ⚠️ 選んだ瞬間に保存するので、モーダルに未保存の状態は残らない。
+              `dirty` を立てると閉じるたびに破棄確認が出る。 */
+        dirty={false}
+        saving={addSaving}
+        justSaved={addJustSaved}
+        error={null}
+        /* ⚠️ 保存ボタンは使わない（選択＝保存）。閉じるだけ */
+        onSave={closeModal}
+        onClose={closeModal}
+      >
+        <div style={formCol}>
+          <div>
+            <label style={ael()}>スキル</label>
+            {/* ⚠️ 上限に達したら選ばせない。API 側でも弾くが、
+                   押せてから怒られるより、押せないほうがよい */}
+            {atLimit ? (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                スキルは{MAX_USER_SKILLS}個までです。入れ替えるには、どれかを削除してください。
+              </p>
+            ) : (
+              <RoleSearchSelect
+                roles={roleOptions}
+                aliases={aliasMap}
+                value={picked}
+                onSelect={(id) => {
+                  /* ⚠️ 区分の行は選べない設定だが、来たら無視する（保険） */
+                  if (id.startsWith(SKILL_CAT_PREFIX)) return;
+                  setPicked(id);
+                  void saveAdd(id);
+                }}
+                selectableParent={false}
+                placeholder="スキル名で検索（例: Salesforce、Tableau）"
+                disabled={addSaving}
+                ariaLabel="スキル"
+                clearOnSelect
+              />
+            )}
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+              一覧から選ぶ形です（自由入力はできません）。選ぶとすぐ保存されます。
+              {" "}{skills.length} / {MAX_USER_SKILLS}
+            </p>
+          </div>
+        </div>
+      </ProfileEditModal>
+
+      <ConfirmDialog isOpen={!!deleteTarget} title="スキルを削除しますか？"
+        message={deleteTarget ? `「${deleteTarget.skill?.label ?? "このスキル"}」を削除します。この操作は取り消せません。` : ""}
         confirmLabel="削除する" confirmVariant="danger" isSubmitting={deleting}
         onConfirm={() => { void confirmDelete(); }} onCancel={() => { setDeleteTarget(null); onClosedRef.current?.(); }} />
       {toastMsg && <Toast message={toastMsg} variant={toastVariant} onDone={() => setToastMsg(null)} />}
