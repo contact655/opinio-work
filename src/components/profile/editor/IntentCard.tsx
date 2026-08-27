@@ -181,29 +181,70 @@ export default function IntentCard({
     ];
   }, [currentCompanies, memberships]);
 
-  const runMember = useCallback((url: string, init: RequestInit, id: string) => {
-    void (async () => {
-      setMemberBusyId(id);
-      setMemberError(null);
-      try {
-        const res = await fetch(url, { headers: { "Content-Type": "application/json" }, ...init });
+  /* ★1つのトグルにまとめるための導出（2026-08-27）。**行は会社ごとのまま。**
+     ⚠️ `unlisted`（企業が非掲載にした）でも **ON のまま**にする。ここで OFF に見せると
+        「自分で切ったのか会社が切ったのか」が分からなくなる（会社ごとの頃と同じ判断）。 */
+  const TALK_BUSY_ID = "__talk__";
+  const talkStates = useMemo(
+    () => memberRows.map((r) => ({ ...r, state: memberState(r.m) })),
+    [memberRows],
+  );
+  /** 1社でも掲載中／企業が非掲載なら ON。＝「本人はよいと言っている」 */
+  const talkOn = talkStates.some((r) => r.state === "listed" || r.state === "unlisted");
+  /** 招待に未応答の行があれば、トグルではなく確認への導線を出す（1件目） */
+  const talkInvite = talkStates.find((r) => r.isCurrent && r.state === "pending_user" && r.m)?.m ?? null;
+  /** ⚠️ 状態は**言うことがあるときだけ**。掲載中・OFF はトグルが言っている */
+  const talkStateLine = useMemo(() => {
+    const hidden = talkStates.filter((r) => r.state === "unlisted");
+    if (hidden.length > 0) {
+      const names = hidden.map((r) => companyDisplayName(r.company.name, null).displayName).join("・");
+      return `${names}が非公開にしています`;
+    }
+    if (!talkOn && currentCompanies.length === 0) return "職歴に在籍中の会社がありません";
+    return null;
+  }, [talkStates, talkOn, currentCompanies.length]);
+
+  /**
+   * ★ONで在籍中の全社に出し、OFFで持っている行すべてを止める。
+   * ⚠️ **1件でも失敗したら止めて知らせる。** 途中まで反映された状態を
+   *    「保存できた」と見せない（半分だけ公開されるのが一番まずい）。
+   */
+  const runTalk = useCallback(async (next: boolean) => {
+    setMemberBusyId(TALK_BUSY_ID);
+    setMemberError(null);
+    try {
+      const targets = next
+        /* ON: 在籍中の会社。行が無ければ作る、あれば有効化する */
+        ? memberRows.filter((r) => r.isCurrent)
+        /* OFF: 行があるものすべて（在籍が切れた会社も含む） */
+        : memberRows.filter((r) => r.m);
+      for (const r of targets) {
+        const res = !r.m
+          ? await fetch("/api/mypage/ambassador-self-register", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ company_id: r.company.id }),
+            })
+          : await fetch("/api/mypage/ambassador-visibility", {
+              method: "PATCH", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ member_id: r.m.id, enabled: next }),
+            });
         if (!res.ok) {
           const d = await res.json().catch(() => null);
           setMemberError(d?.message ?? "保存できませんでした。もう一度お試しください。");
           return;
         }
-        /* ★「現職の話を聞かれる」も意思表示。ON / OFF の**どちらでも**進める
-              （API 側も同じ）。⚠️ 片方だけにすると、止めた日が残らない。 */
-        setStanceTs(new Date().toISOString());
-        /* ⚠️ 楽観更新しない。サーバーの行を取り直してから表示を変える。 */
-        router.refresh();
-      } catch {
-        setMemberError("保存できませんでした。もう一度お試しください。");
-      } finally {
-        setMemberBusyId(null);
       }
-    })();
-  }, [router]);
+      /* ★ON / OFF の**どちらでも**進める（API 側も同じ）。片方だけにすると止めた日が残らない */
+      setStanceTs(new Date().toISOString());
+      /* ⚠️ 楽観更新しない。サーバーの行を取り直してから表示を変える。 */
+      router.refresh();
+    } catch {
+      setMemberError("保存できませんでした。もう一度お試しください。");
+    } finally {
+      setMemberBusyId(null);
+    }
+  }, [memberRows, router]);
+
 
   /* ── ③ 転職について＋希望条件（モーダル）────────────────────────────────────
         ★保存済みの値。カードの下段はここだけを見る */
@@ -372,107 +413,61 @@ export default function IntentCard({
           意思表示
         </h2>
 
-        {/* ── ② 現職の話を聞かれる（在籍している会社ごとに1行）──────────────────
-               ⚠️ 会社が複数ある人は、**同じラベルの行を会社の数だけ並べる**。
-                  下段の社名だけが変わる。0件なら行ごと出ない。 */}
-        {memberRows.map(({ company, m, isCurrent }) => {
-          const state = memberState(m);
-          const busy = memberBusyId === (m?.id ?? company.id);
-          /* ⚠️ 表示にも読み上げにも同じ名前を使う。法人格と " Japan" が落ちる */
-          const brand = companyDisplayName(company.name, null).displayName;
-          /* ★トグルの見た目は「本人の意思」。掲載されているかは下段が言う。
-             ⚠️ `unlisted`（企業が非掲載）でも**ONのまま**にする。ここでOFFに見せると
-                「自分で切ったのか会社が切ったのか」が分からなくなる。 */
-          const on = state === "listed" || state === "unlisted";
-          /* ⚠️ 在籍が切れている行は**ONにできない**（RLS の在籍チェックに弾かれる）。
-                OFF にする更新は通るので、ONのときだけ操作させる。 */
-          const disabled = !isCurrent && !on;
-          /* ⚠️ 招待に未応答のときは既存の着地ページへ送る。**新しい承認導線を作らない。**
-                依頼の中身（どの会社から・どんな依頼か）を見ないまま応じさせないため。 */
-          const invitePending = isCurrent && state === "pending_user" && !!m;
-
-          /* ★下段は**状態だけ**。⚠️ 分岐ごとに形を変えない（統合前は在籍切れの行だけ
-                トグルの無いテキスト1行になっていた）。
-             ⚠️★**社名と状態を「社名 ・ 状態」の1行にしない**（2026-08-26 / 実測で断念）。
-                右カラムの下段に使える幅は **233px**（カード271 − 左右18）しかないのに、
-                実在する社名だけで既に **182px**（伊藤忠テクノソリューションズ / 日本ヒューレット・パッカード）。
-                残り 51px では「 ・ 非公開」（**最短の3文字**でも 241px）すら入らず、
-                どの組み合わせも 2行に折り返した（実測 345〜371px）。
-                → **社名を1行、状態を次の行**に分ける。こうすると状態は最長でも
-                  169px（「会社から依頼が届いています」）で1行に収まる。
-                ⚠️ 文言を削って1行に押し込む案は採らない。社名を5文字まで削るか、
-                   状態を意味の分からない略語にするしかない。 */
-          const stateLine =
-            !isCurrent                 ? "職歴に在籍がありません"
-            : state === "unlisted"     ? "会社が非公開にしています"
-            : state === "pending_user" ? "会社から依頼が届いています"
-            : null;
-
-          return (
-            <div key={company.id} style={DIVIDER}>
-              {invitePending ? (
-                /* ⚠️ トグルの代わりにリンク。**押した先で中身を読んでから**応じる。 */
-                <a
-                  href={`/mypage/ambassador-invite/${m!.invite_token}`}
-                  className="tap-min-h"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    gap: 12, width: "100%", textDecoration: "none",
-                  }}
-                >
-                  <span style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
-                    現職の話を聞かれる
-                  </span>
-                  <span style={{ fontSize: SUB_SIZE, fontWeight: 700, color: "var(--royal)", flexShrink: 0 }}>
-                    確認する →
-                  </span>
-                </a>
-              ) : (
-                <ToggleRow
-                  label="現職の話を聞かれる"
-                  on={on}
-                  busy={busy}
-                  disabled={disabled}
-                  /* ⚠️ 読み上げの文言も画面と合わせる。正式名称のままだと
-                        「株式会社…ジャパンで…」と読まれ、画面の表示と一致しない。 */
-                  ariaLabel={`${brand}について、現職の話を聞かれてもよい`}
-                  onToggle={() => {
-                    if (!m) {
-                      /* 行がまだ無い＝はじめてON。作成と同時に掲載される */
-                      runMember("/api/mypage/ambassador-self-register", {
-                        method: "POST",
-                        body: JSON.stringify({ company_id: company.id }),
-                      }, company.id);
-                      return;
-                    }
-                    runMember("/api/mypage/ambassador-visibility", {
-                      method: "PATCH",
-                      body: JSON.stringify({ member_id: m.id, enabled: !on }),
-                    }, m.id);
-                  }}
-                />
-              )}
-              {/* ⚠️ 正式名称は `title` に残す（幅が足りないときは省略記号になるため）。
-                     ⚠️ `nowrap` + 省略記号にしておく。社名が長い会社（「エヌ・ティ・ティ・データ」など）で
-                        2行になると、下の状態行と区別がつかなくなる。 */}
-              <p
-                title={company.name}
+        {/* ── ② 話を聞かれてもよい（会社ごとではなく**1つ**）────────────────────
+               ★2026-08-27 に会社ごとの行をやめた（柴さんの指示）。
+                 決めることは「面談対応をするかどうか」の1つで、会社ごとに違う答えを
+                 持ちたいという要望が実際に無かった。
+               ⚠️ **データは会社ごとの行のまま**（`ow_company_members`）。まとめたのは操作だけ。
+                  行を1本にすると、なりすまし対策（在籍申告のある会社にしか出せない RLS）と
+                  企業側の非公開トグルが成立しなくなる。
+               ⚠️ ONで**在籍中の全社**に出す。OFFで**持っている行すべて**を止める
+                  （在籍が切れた会社の行も止められないと、本人が始末できなくなる）。 */}
+        {memberRows.length > 0 && (
+          <div style={DIVIDER}>
+            {talkInvite ? (
+              /* ⚠️ 招待に未応答のときは既存の着地ページへ送る。**新しい承認導線を作らない。**
+                    依頼の中身（どの会社から・どんな依頼か）を見ないまま応じさせないため。 */
+              <a
+                href={`/mypage/ambassador-invite/${talkInvite.invite_token}`}
+                className="tap-min-h"
                 style={{
-                  margin: "4px 0 0", fontSize: SUB_SIZE, lineHeight: 1.6, color: SUB_COLOR,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  gap: 12, width: "100%", textDecoration: "none",
                 }}
               >
-                {brand}
+                <span style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
+                  話を聞かれてもよい
+                </span>
+                <span style={{ fontSize: SUB_SIZE, fontWeight: 700, color: "var(--royal)", flexShrink: 0 }}>
+                  確認する →
+                </span>
+              </a>
+            ) : (
+              <ToggleRow
+                label="話を聞かれてもよい"
+                on={talkOn}
+                busy={memberBusyId === TALK_BUSY_ID}
+                /* ⚠️ 在籍中の会社が1社も無いときは**ONにできない**（RLS の在籍チェックに
+                      弾かれる）。OFF にする更新は通るので、ONのときだけ操作させる。 */
+                disabled={!talkOn && currentCompanies.length === 0}
+                ariaLabel="現職の話を聞かれてもよい"
+                onToggle={() => { void runTalk(!talkOn); }}
+              />
+            )}
+            {/* ⚠️ 下段は**状態だけ**。説明は書かない（このカードの約束）。
+                   ⚠️ 会社ごとの事情（企業が非公開にした等）は、社名を出さないと
+                      意味が通らないので**ここでだけ社名を出す**。 */}
+            {talkStateLine && <SubLine>{talkStateLine}</SubLine>}
+            {/* ⚠️ 失敗は必ず画面に出す。**トグルが元に戻るだけ**だと、
+                   保存できなかったのか自分が押し間違えたのか分からない。
+                   ⚠️ 途中で失敗したときは、そこで止めて残りを送っていない
+                      （`runTalk`）。半分だけ公開された状態を「保存できた」と見せない。 */}
+            {memberError && (
+              <p style={{ margin: "8px 0 0", fontSize: SUB_SIZE, fontWeight: 600, color: "var(--error)" }}>
+                {memberError}
               </p>
-              {/* ⚠️ 状態は**あるときだけ**。掲載中・OFF はトグルが言っているので出さない。 */}
-              {stateLine && <SubLine>{stateLine}</SubLine>}
-            </div>
-          );
-        })}
-        {memberError && (
-          <p style={{ margin: "8px 0 0", fontSize: SUB_SIZE, fontWeight: 600, color: "var(--error)" }}>
-            {memberError}
-          </p>
+            )}
+          </div>
         )}
 
         {/* ── ③ 転職について（トグルではなく値をそのまま出す）────────────────── */}
