@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow, FormGroup, selectStyle, inputStyle } from "./formKit";
 import { PencilIcon } from "@/components/profile/view/RowActions";
-import { CheckPillGroup, type CheckPillOption } from "@/components/ui/CheckPillGroup";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { memberState, type CompanyMemberRow } from "@/lib/constants/companyMembers";
 /* ⚠️ 会社名は必ずここを通す。法人格（株式会社…）と末尾の " Japan" が落ちる。
       ⚠️ 正規表現をコピーして持ってこないこと。3箇所に割れていたのを集約した経緯がある。 */
 import { companyDisplayName } from "@/lib/companies/displayName";
 import {
-  DESIRED_WORK_STYLES, TRANSFER_TIMINGS, DESIRED_PHASES, SALARY_MAX_MAN,
+  DESIRED_WORK_STYLES, SALARY_MAX_MAN,
   CAREER_STANCES, CAREER_STANCE_LABELS,
 } from "@/lib/constants/careerPreferences";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
@@ -52,6 +51,136 @@ import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
  *    いまは「スカウト可否をいつ答えたか」だけを指しており、カード全体の最終更新ではない。
  *    フェーズ2で「転職について」の新しい列を入れてから、両方の保存で更新する形にして出す。
  */
+
+/* ── 小道具（2026-08-27）───────────────────────────────────────────────────── */
+
+const CHIP: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 6,
+  padding: "6px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+  background: "var(--royal-50)", color: "var(--royal)",
+};
+const CHIP_X: React.CSSProperties = {
+  background: "none", border: "none", padding: 0, cursor: "pointer",
+  color: "inherit", fontSize: 13, lineHeight: 1,
+};
+
+/**
+ * 選択リスト ＋ 選んだものをチップで出す（複数選択）。
+ *
+ * ⚠️ `<select multiple>` は使わない。Ctrl+クリックが要り、モバイルで実質使えない。
+ *    **選ぶたびに1件足す** `<select>` にして、外すのはチップの × で行う。
+ * ⚠️ **選んだものは選択肢から消す。** 残すと同じ値を2回選べるように見える。
+ */
+function PickList({
+  ariaLabel, placeholder, options, value, onChange,
+}: {
+  ariaLabel: string;
+  placeholder: string;
+  options: { value: string; label: string }[];
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const remaining = options.filter((o) => !value.includes(o.value));
+  const labelOf = (v: string) => options.find((o) => o.value === v)?.label ?? v;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <select
+        aria-label={ariaLabel}
+        value=""
+        disabled={remaining.length === 0}
+        onChange={(e) => { if (e.target.value) onChange([...value, e.target.value]); }}
+        style={selectStyle()}
+      >
+        <option value="">{remaining.length === 0 ? "すべて選択済み" : placeholder}</option>
+        {remaining.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      {value.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {value.map((v) => (
+            <span key={v} style={CHIP}>
+              {labelOf(v)}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((x) => x !== v))}
+                aria-label={`${labelOf(v)} を外す`}
+                style={CHIP_X}
+              >×</button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 大分類 → 小分類 → 追加。**複数選択の欄で2段セレクトを使うための形。**
+ *
+ * ⚠️ `RoleSearchSelect` は `clearOnSelect`（追加用）のとき2段セレクトを出さない。
+ *    理由は「選んだ瞬間に追加されるのか、大分類を選んでから小分類を選ぶのかが
+ *    決まらない（**追加ボタンが要る**）」で、あの部品の冒頭に書いてある。
+ *    **ここはその追加ボタンを置くことで成立させている。**
+ * ⚠️ **大分類だけでも追加できる。** 当てはまる小分類が無いことがあるため
+ *    （求人フォームと同じ扱い）。
+ */
+function TwoStepRolePicker({
+  roles, disabled, onAdd,
+}: {
+  roles: { id: string; name: string; parent_id: string | null }[];
+  disabled: boolean;
+  onAdd: (roleId: string) => void;
+}) {
+  const [parentId, setParentId] = useState("");
+  const [childId, setChildId] = useState("");
+  const parents = roles.filter((r) => !r.parent_id);
+  const children = roles.filter((r) => r.parent_id === parentId);
+  const picked = childId || parentId;
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>または一覧から選ぶ</span>
+        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <select
+          aria-label="希望職種（大分類）"
+          value={parentId}
+          disabled={disabled}
+          onChange={(e) => { setParentId(e.target.value); setChildId(""); }}
+          style={{ ...selectStyle(), flex: "1 1 140px" }}
+        >
+          <option value="">大分類を選ぶ</option>
+          {parents.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+        <select
+          aria-label="希望職種（小分類）"
+          value={childId}
+          disabled={disabled || !parentId || children.length === 0}
+          onChange={(e) => setChildId(e.target.value)}
+          style={{ ...selectStyle(), flex: "1 1 140px" }}
+        >
+          <option value="">{!parentId ? "先に大分類を選ぶ" : children.length === 0 ? "小分類なし" : "小分類を選ぶ"}</option>
+          {children.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+        <button
+          type="button"
+          disabled={disabled || !picked}
+          onClick={() => { onAdd(picked); setParentId(""); setChildId(""); }}
+          style={{
+            padding: "0 16px", borderRadius: 8, border: "none",
+            background: disabled || !picked ? "var(--line)" : "var(--royal)",
+            color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+            cursor: disabled || !picked ? "default" : "pointer", flexShrink: 0,
+          }}
+        >追加</button>
+      </div>
+      <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+        大分類だけでも追加できます。当てはまる小分類があるときだけ選んでください。
+      </p>
+    </div>
+  );
+}
 
 export type IntentPrefs = {
   /** ★「転職について」の意思表示（2026-08-26 / フェーズ2）。
@@ -274,10 +403,12 @@ export default function IntentCard({
 
   /* ⚠️ 選択肢から外した値を今持っている人には足し戻す。
         出さないと画面から消えたまま保存され続け、別項目を保存した拍子に失われる。 */
-  const workStyleOptions = useMemo<CheckPillOption[]>(() => {
-    const base: CheckPillOption[] = DESIRED_WORK_STYLES.map((o) => ({ value: o.value, label: o.label }));
-    const known = new Set(base.map((o) => o.value));
-    return [...base, ...workStyles.filter((v) => !known.has(v)).map((v) => ({ value: v, label: v, legacy: true }))];
+  const workStyleOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const base = DESIRED_WORK_STYLES.map((o) => ({ value: o.value, label: o.label }));
+    const known = new Set<string>(base.map((o) => o.value));
+    /* ⚠️ 足し戻した値は `PickList` の選択肢に混ざるが、**選択済みなので候補には出ない**
+          （選んだものは選択肢から消す作り）。チップのラベルにだけ使われる。 */
+    return [...base, ...workStyles.filter((v) => !known.has(v)).map((v) => ({ value: v, label: v }))];
   }, [workStyles]);
 
   /** 開き直したときに保存済みの値へ戻す */
@@ -551,7 +682,7 @@ export default function IntentCard({
           <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
             この答えで、<strong style={{ color: "var(--ink)" }}>企業の採用担当から声をかけられるかどうか</strong>が決まります。
             <br />
-            「いまは声をかけられたくない」を選ぶと、企業からあなたに連絡は届きません。
+            「今はいない」を選ぶと、企業からあなたに連絡は届きません。
             答えていないあいだも届きません。
             <br />
             いま在籍している会社と、職歴に書いた会社からは、答えにかかわらず届きません。
@@ -595,20 +726,33 @@ export default function IntentCard({
                 ? `希望職種は ${MAX_DESIRED_ROLES} 件までです`
                 : "職種名で検索（例: 法人営業、AE、営業）"}
             />
+            {/* ★大分類 → 小分類 → 追加（2026-08-27 / 柴さんの指示）───────────────
+                   ⚠️ `RoleSearchSelect` は `clearOnSelect`（追加用）のとき2段セレクトを
+                      出さない。理由は「選んだ瞬間に追加されるのか、大分類を選んでから
+                      小分類を選ぶのかが決まらない（**追加ボタンが要る**）」で、
+                      あの部品の冒頭に書いてある。**その追加ボタンをここで用意した。**
+                   ⚠️ **検索欄は残す。** 2026-08-06 まで2段セレクトだけだった頃、
+                      「中間の子職種が1件も使われていない」偏りが出ていた。
+                      名前を知っている人は検索、知らない人は一覧、の併用にする。 */}
+            <TwoStepRolePicker
+              roles={desiredRoleOptions ?? roles}
+              disabled={roleIds.length >= MAX_DESIRED_ROLES}
+              onAdd={(roleId) => {
+                if (roleIds.includes(roleId)) return;
+                if (roleIds.length >= MAX_DESIRED_ROLES) return;
+                setRoleIds([...roleIds, roleId]);
+              }}
+            />
             {roleIds.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {roleIds.map((id) => (
-                  <span key={id} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "6px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                  }}>
+                  <span key={id} style={CHIP}>
                     {roleNameById.get(id) ?? id}
                     <button
                       type="button"
                       onClick={() => setRoleIds(roleIds.filter((r) => r !== id))}
                       aria-label={`${roleNameById.get(id) ?? id} を外す`}
-                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit", fontSize: 13, lineHeight: 1 }}
+                      style={CHIP_X}
                     >×</button>
                   </span>
                 ))}
@@ -624,28 +768,34 @@ export default function IntentCard({
             workStyles.length > 0 ? `スタイル${workStyles.length}件` : null,
           ].filter(Boolean).join(" / ") || "未設定"}
         >
+          {/* ★チェックの一覧をやめ、**選択リスト＋選んだものをチップ**にした（2026-08-27）。
+                 ⚠️ 勤務地はチェックが**47個**並んでおり、モーダルの大半を占めていた。
+                 ⚠️ どちらも**複数選べる**ままにしてある。素の `<select multiple>` は
+                    使わない（Ctrl+クリックが要り、モバイルで壊れる）。 */}
           <FormGroup label="希望勤務地">
-            <CheckPillGroup
+            <PickList
               ariaLabel="希望勤務地"
-              value={prefectures}
+              placeholder="都道府県を選ぶ"
               options={[...COMMON_PREFECTURES, ...OTHER_PREFECTURES].map((p) => ({ value: p, label: p }))}
+              value={prefectures}
               onChange={setPrefectures}
             />
           </FormGroup>
           <FormGroup label="希望勤務スタイル">
-            <CheckPillGroup
+            <PickList
               ariaLabel="希望勤務スタイル"
-              value={workStyles}
+              placeholder="勤務スタイルを選ぶ"
               options={workStyleOptions}
+              value={workStyles}
               onChange={setWorkStyles}
             />
           </FormGroup>
-          <FormGroup label="転職検討時期" htmlFor="intent-timing">
-            <select id="intent-timing" value={timing} onChange={(e) => setTiming(e.target.value)} style={selectStyle()}>
-              <option value="">未設定</option>
-              {TRANSFER_TIMINGS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </FormGroup>
+          {/* ⚠️★「転職検討時期」の入力は 2026-08-27 に**削除した**（柴さんの指示）。
+                 ⚠️ 列（`transfer_timing`）と値は**残している**。`prefsPatch` は
+                    保存済みの値をそのまま送り続けるので、既存の値は壊れない。
+                 ⚠️ **`/biz/candidates` は今もこの値を企業に見せている。**
+                    入力だけ消したので、値を持つ人は**直せないまま表示される**。
+                    企業側の表示も外すかどうかは別途判断する。 */}
         </CollapsibleRow>
 
         <CollapsibleRow
@@ -670,14 +820,9 @@ export default function IntentCard({
           </div>
         </CollapsibleRow>
 
-        <CollapsibleRow label="興味のある企業フェーズ" state={phase.length > 0 ? `${phase.length}件` : "未設定"}>
-          <CheckPillGroup
-            ariaLabel="興味のある企業フェーズ"
-            value={phase}
-            options={DESIRED_PHASES.map((p) => ({ value: p, label: p }))}
-            onChange={setPhase}
-          />
-        </CollapsibleRow>
+        {/* ⚠️★「興味のある企業フェーズ」の入力は 2026-08-27 に**削除した**（柴さんの指示）。
+               ⚠️ 列（`desired_phase`）と値は**残している**（上の `transfer_timing` と同じ）。
+               ⚠️ **`/biz/candidates` は今もこの値を企業に見せている。** */}
       </ProfileEditModal>
     </>
   );
