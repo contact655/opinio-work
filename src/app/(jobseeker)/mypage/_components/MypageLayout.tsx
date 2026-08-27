@@ -220,7 +220,14 @@ export default function MypageLayout({
       {/* デスクトップ: グリッドレイアウト */}
       {/* ⚠️ minmax(0, 1fr) にすること。1fr のままだと中身の最小幅で本文が押し広げられ、
              右カラムがあるときに横スクロールが出る（1100px 未満で実際に出ていた）。 */}
-      <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px minmax(0, 1fr) 320px" : "260px minmax(0, 1fr)", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: 1440, margin: "0 auto" }}>
+      {/* ★本文列の上限を `/u/[id]`（公開プロフィール）と同じ 1060px に揃えた（2026-08-27）。
+             同じプロフィールが、自分で見るときと他人が見るときで幅が違っていた
+             （実測: `/u/[id]` 1060px に対し、ここは 1440-260-320 = **860px**）。
+          ⚠️ 揃えたのは**本文列の上限**であって、外枠ではない。
+             `minmax(0, 1060px)` なので、画面が狭いときは従来どおり縮む。
+             外枠は 260 + 1060 + 320 = **1640** まで許して、それ以上は中央寄せ。
+          ⚠️ `/u/[id]` の 1060 を変えるときは**ここも変える**。片方だけ動かすと、また幅がずれる。 */}
+      <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? "260px minmax(0, 1060px) 320px" : "260px minmax(0, 1060px)", minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: rightColumn ? 1640 : 1320, margin: "0 auto" }}>
 
         {/* 左サイドバー（デスクトップのみ） */}
         <aside className="mypage-left-aside" style={{
