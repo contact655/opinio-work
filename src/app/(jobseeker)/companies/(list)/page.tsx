@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { fetchAvailablePhases, fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
-import { fetchCompanySuggestions, fetchCurrentMembersByCompany } from "@/lib/search/companies";
+import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
 import { RecentlyViewedSection } from "@/components/companies/RecentlyViewedSection";
@@ -10,8 +10,6 @@ import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
-
-type MemberPreview = { id: string; name: string; photoUrl?: string | null };
 
 
 // 企業名はベタ書きしない（理由は lib/seo/featuredCompanies.ts のコメント参照）。
@@ -130,7 +128,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ── 全クエリを並列実行 ──────────────────────────────────────────────────
      ★2026-08-23 に**直列の2段目を無くした**。それまでは「表示中の企業IDが
        確定してから在籍メンバーを引く」形で、1往復ぶん余計に待っていた。 */
-  const [locations, phaseOptions, industryFacets, companySuggestions, allMembersByCompany, allCompaniesResult] = await Promise.all([
+  const [locations, phaseOptions, industryFacets, companySuggestions, allCompaniesResult] = await Promise.all([
     // フィルターバー用ロケーション（unstable_cache 300s）
     fetchDistinctLocations(),
     fetchAvailablePhases(),
@@ -139,10 +137,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
     getBusinessDomainFacets(),
     // 検索サジェスト用企業名リスト（unstable_cache 300s）
     fetchCompanySuggestions(),
-    // 在籍メンバー（unstable_cache 300s）— ★1段目に移した。下のコメント参照
-    needsGrid
-      ? fetchCurrentMembersByCompany()
-      : Promise.resolve({} as Record<string, MemberPreview[]>),
     // グリッド/リスト: DB側ページネーション + count を1クエリで取得
     needsGrid
       ? searchCompanies({
@@ -152,30 +146,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
     // 口コミ平均スコア
   ]);
-
-  /* ── 在籍メンバー ────────────────────────────────────────────────────────
-     ★**1段目（上の Promise.all）に移した**（2026-08-23）。
-
-     ⚠️ それまでは「表示中の企業IDが確定してから」引いていたため、
-        **直列の2段目**になっていた。実測でここが体感の主因で、
-        タブを押してからスケルトンが残る時間そのものだった
-        （Vercel→Supabase の1往復ぶん）。
-
-     ⚠️ 公開企業は79社・`ow_experiences` は22行しかないので、
-        **全社ぶんをキャッシュして、ここで絞る**ほうが安い。
-        `createPublicClient()`（anon・セッションなし）で引いているので
-        結果は誰が見ても同じ＝キャッシュしてよい。
-
-     ⚠️ **admin クライアントに変えないこと。** 可視性の絞り込みは RLS に任せている。
-        変えると `login_only` の人が未ログインに漏れる。 */
-  const membersByCompany: Record<string, MemberPreview[]> = {};
-  if (needsGrid) {
-    for (const c of allCompaniesResult.companies) {
-      const m = allMembersByCompany[c.id];
-      if (m && m.length > 0) membersByCompany[c.id] = m;
-    }
-  }
-
 
   return (
     <>
@@ -293,7 +263,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                 <CompanyCardList
                                   key={c.id}
                                   company={c}
-                                  members={membersByCompany[c.id] ?? []}
                                   compact
                                 />
                               ))}
@@ -305,7 +274,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
                               <CompanyCardList
                                 key={c.id}
                                 company={c}
-                                members={membersByCompany[c.id] ?? []}
                               />
                             ))}
                           </div>

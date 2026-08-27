@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { primaryBusinessDomain } from "@/types/genre";
 import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
-import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
 import { formatEmployeeCountBand } from "@/lib/utils/employeeCount";
 import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
@@ -16,44 +15,14 @@ import { companyDisplayName } from "@/lib/companies/displayName";
       ここに正規表現を書き戻さないこと。3箇所に別実装があってルールが割れていた。 */
 
 
-/** メンバーアバター（写真優先・初期文字フォールバック） */
-function MemberAvatar({ name, photoUrl, size = 24 }: { name: string; photoUrl?: string | null; size?: number }) {
-  const initial = name.slice(0, 1);
-  const hue = Array.from(name).reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
-  if (photoUrl) {
-    return (
-      <img
-        src={photoUrl}
-        alt={name}
-        style={{
-          width: size, height: size, borderRadius: "50%", objectFit: "cover",
-          border: "2px solid #fff", flexShrink: 0, marginLeft: -6,
-        }}
-      />
-    );
-  }
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: `hsl(${hue},60%,50%)`,
-      border: "2px solid #fff",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.42, fontWeight: 700, color: "#fff",
-      flexShrink: 0, marginLeft: -6,
-    }}>
-      {initial}
-    </div>
-  );
-}
 
 // ── Bookmark fetch deduplication（CompanyCardCompactと共有） ──────────────────
 type Props = {
   company: CompanyForCarousel;
-  members?: MemberPreview[];
   compact?: boolean;  // compact=true: 縦カード（2列グリッド）/ false: 横カード（リスト）
 };
 
-export function CompanyCardList({ company, members = [], compact }: Props) {
+export function CompanyCardList({ company, compact }: Props) {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
@@ -398,19 +367,6 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                 </svg>
                 募集中 {company.job_count}件
               </span>
-            )}
-            {/* #7: メンバーアバター */}
-            {members.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 0, paddingLeft: 6 }}>
-                {members.slice(0, 4).map((m) => (
-                  <MemberAvatar key={m.id} name={m.name} photoUrl={m.photoUrl} size={20} />
-                ))}
-                {members.length > 4 && (
-                  <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: 8 }}>
-                    +{members.length - 4}名
-                  </span>
-                )}
-              </div>
             )}
           </div>
         </div>

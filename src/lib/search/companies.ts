@@ -484,51 +484,19 @@ export const fetchCompanySuggestions = unstable_cache(
   { revalidate: 300 }
 );
 
-/**
- * 企業ごとの「現役社員」プレビュー（カードに出す数名）— 5分間キャッシュ。
+/* ⚠️★**「現役社員」プレビューの取得は 2026-08-28 に削除した。復活させないこと。**
  *
- * ⚠️ **これを消すと `/companies` の直列2段目が復活する。**
- *    2026-08-23 まで、表示中の企業IDが確定してから
- *    `ow_experiences` を引いていた（＝1段目の後にもう1往復）。
- *    実測ではここが体感の主因で、**タブを押してからスケルトンが残る時間**そのものだった。
+ * `createPublicClient()`（anon）で `ow_experiences` を引いていたが、実ユーザーは
+ * 全員 `visibility = 'login_only'` なので **RLS が全行を落とし、常に `{}` を返していた**
+ * （実測: anon 200/0行 ／ admin 13行。401 でも 42501 でもないので GRANT ではなく RLS）。
+ * `/companies` のカードのメンバーアバターは **79社すべてで一度も表示されていない。**
  *
- * ⚠️ **`createPublicClient()`（anon）で引くこと。** 可視性の絞り込みは RLS に任せている。
- *    admin クライアントに変えると `login_only` の人が未ログインに漏れる
- *    （2026-08-22 に面談対応者で踏んだのと同じ形）。
- *    anon はセッションを持たないので、**結果は誰が見ても同じ＝キャッシュしてよい。**
+ * ⚠️ **`api/companies/batch/route.ts` では 2026-08-20 に同じ理由で削除済み**だった。
+ *    一覧側が取り残しになっていた。
  *
- * ⚠️ 公開企業は79社・`ow_experiences` は22行しかないので、
- *    **全社ぶんまとめて引いて呼び出し側で絞る**ほうが、ページごとに引くより安い。
+ * ⚠️ **`createAdminClient()` に変えて復活させないこと。** RLS を外すことになり、
+ *    `login_only` の氏名と顔写真が未ログインに配られる
+ *    （`f9d6d051` で `/companies/[id]` を直したのと同じ事故になる）。
+ *    出すなら**件数だけをサーバー、人物はクライアント**（詳細ページと同じ形）。
  */
-export const fetchCurrentMembersByCompany = unstable_cache(
-  async (): Promise<Record<string, { id: string; name: string; photoUrl: string | null }[]>> => {
-    const supabase = createPublicClient();
-    const { data, error } = await supabase
-      .from("ow_experiences")
-      .select("company_id, user_id, ow_users(id, name, avatar_url, is_test)")
-      .eq("is_current", true);
 
-    /* ⚠️ 2026-08-05 に存在しない列（photo_url）で引いてエラーになり、
-          在籍メンバーが1人も出ていなかったことがある。error は必ず見る。 */
-    if (error) {
-      console.error("[fetchCurrentMembersByCompany]", error.message);
-      return {};
-    }
-
-    const out: Record<string, { id: string; name: string; photoUrl: string | null }[]> = {};
-    for (const exp of data ?? []) {
-      const companyId = exp.company_id as string | null;
-      if (!companyId) continue;
-      type ExpUser = { id: string; name: string; avatar_url?: string | null; is_test?: boolean | null };
-      const raw = exp.ow_users as ExpUser | ExpUser[] | null;
-      const u = Array.isArray(raw) ? raw[0] : raw;
-      if (!u || u.is_test) continue;
-      if (!out[companyId]) out[companyId] = [];
-      if (out[companyId].length >= 8) continue;
-      out[companyId].push({ id: u.id, name: u.name ?? "?", photoUrl: u.avatar_url ?? null });
-    }
-    return out;
-  },
-  ["current-members-by-company"],
-  { revalidate: 300 }
-);
