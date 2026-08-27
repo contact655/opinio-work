@@ -32,9 +32,16 @@ export async function GET(request: Request) {
     );
   }
 
-  // RLS の SELECT は USING(true) のためフィルタだけで取得できるが、
-  // experience_id が自分のものか ownership 確認は RLS の INSERT/UPDATE/DELETE が担う。
-  // GET は公開データとして扱う(ow_experience_stories の SELECT 方針と統一)。
+  /* ★SELECT も RLS が所有者で絞る（2026-08-27）。
+     ⚠️ **以前はここに「GET は公開データとして扱う」と書いてあったが、前提が崩れていた。**
+        統一先としていた `ow_experience_stories` は 2026-08-15 に `select_own` へ
+        絞られており、この表（見出し）だけが `USING(true)` で取り残されていた。
+        `name` は本人が書いた文字列なので、本文と同じ扱いにした。
+     ⚠️ したがって `experience_id` で絞っても、**他人の経歴を指定すれば 0 件**になる。
+        アプリ側で所有者を確かめる必要は無いが、**0 件を「無い」と読まないこと**
+        （他人のものを指した可能性がある）。
+     ⚠️ anon は GRANT が無いので 401（42501）。この関数は冒頭で未ログインを
+        弾いているので、通常そこには到達しない。 */
   const { data, error } = await supabase
     .from("ow_story_sections")
     .select("id, experience_id, name, sort_order, created_at")

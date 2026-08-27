@@ -484,10 +484,28 @@ split_part(split_part(url,'?',1),'#',1)
 
 ---
 
-## RLS が `USING(true)` かつ anon に SELECT がある テーブル ── **個人データは片付いた**（2026-08-16）
+## RLS が `USING(true)` かつ anon に SELECT がある テーブル ── **個人データは片付いた**（2026-08-16 / **2026-08-27 に取り直し**）
 
 25件を洗い出し、**個人データ・企業の内部情報・運営設定を12件すべて塞いだ**（うち1件は DROP）。
 **残り13件は「公開が正しい」ものだけ。** ★塞ぎに行かないこと。理由を下の表に書いた。
+
+### ⚠️ 2026-08-27 に数え直した ── **14表。個人が書いた文字列が入るものは0**
+
+**⚠️ 以前この節に書いていた数え方は誤っていた。** `polroles` を見ておらず、
+`service_role` にだけ配った `USING(true)` を「anon が読める」と数えていた
+（**19表と報告したが、正しくは14表**）。数え方は CLAUDE.md
+「RLS で弾かれても 403 ではない」に置いた。**そちらのクエリを使うこと。**
+
+| 区分 | 件数 | 表 |
+|---|---|---|
+| **公開が正しいマスタ** | **12** | `ow_roles` / `ow_role_aliases` / `ow_tool_masters` / `ow_articles` / `ow_job_roles` / `ow_job_requirements` / `ow_job_matching_tags` / `ow_company_culture_tags` / `ow_company_office_photos` / `ow_company_segments` / `ow_company_tools` ＋ **`ow_languages` / `ow_skills`**（2026-08-27 に追加。意図どおり） |
+| **個人が書いた文字列** | **0** | ~~`ow_story_sections`~~ … **2026-08-27 に塞いだ**（`20260827230000`。own + admin、anon の GRANT も剥奪） |
+
+⚠️ **`ow_company_hidden_experiences` は対象ではなかった。** anon に効く SELECT ポリシーが
+   元から無く、漏れていない（`USING(true)` は `TO service_role` のもの）。
+   整理として anon の GRANT だけ剥がした（同 migration）。**ポリシーは触っていない。**
+
+⚠️ **数え直すときは必ず `polroles` まで見ること。** 見ないと今回と同じ誤検出をする。
 
 ⚠️ **形は4通りに分かれた。一律に当てないこと。**
 
