@@ -159,29 +159,19 @@ join に変えるにはこの2ファイルを書き換える必要があり、�
 ⚠️ **順番を守ること。** `name` を先に落とすと、その2ファイルが読む列が消えて
    プロフィールから言語が黙って消える。
 
-## ⚠️★スキルのAPIが `createAdminClient` のままになっている（2026-08-27）
+## ⚠️★言語のAPIが `createAdminClient` のままになっている（2026-08-27）
 
-`/api/jobseeker/skills`（一覧・追加）と `/api/jobseeker/skills/[id]`（削除）は
-**RLS をバイパスする `createAdminClient` で書いてある。**
+**`/api/jobseeker/languages`（一覧・追加・更新・削除）と `/api/languages`（公開マスタ）**が
+RLS をバイパスする `createAdminClient` で書いてある。
 
-理由は `types.ts` に `ow_skills` / `ow_user_skills` の型が無く、`Database` 型付きの
-`createClient` では **tsc が通らない**ため。`npm run gen:types` を流せば解決するが、
-2026-08-27 時点で `types.ts` は**別セッションが `career_stance` で編集中**で、
-流すと相手の未リリースの変更を巻き込む。
-
-⚠️ **`gen:types` が流せるようになったら `createClient`（RLS 付き）へ戻すこと。**
-
-⚠️ **2026-08-27 に言語も同じ状態になった。** `ow_languages` と
-   `ow_user_languages.language_id` の型が無いため、
-   **`/api/jobseeker/languages`（一覧・追加・更新・削除）と `/api/languages` も
-   `createAdminClient` に変えた。** こちらは**元は `createClient` だった**ので、
-   戻し先がはっきりしている。**戻すときは言語も一緒に戻すこと。**
+⚠️ **スキル側は 2026-08-27 に `createClient` へ戻した**（`types.ts` を先に出したため）。
+   **残っているのは言語だけ。** こちらも**元は `createClient` だった**ので戻し先は明確。
 
 | ルート | 元 | いま |
 |---|---|---|
-| `/api/jobseeker/skills`（新規） | — | admin |
-| **`/api/jobseeker/languages`** | **createClient** | **admin** |
-| `/api/languages`（新規・公開マスタ） | — | admin |
+| `/api/jobseeker/skills` | — | ✅ **createClient に戻した** |
+| **`/api/jobseeker/languages`** | **createClient** | **admin（要対応）** |
+| **`/api/languages`**（公開マスタ） | — | **admin（要対応）** |
 
 残る family（資格・メディア・発信コンテンツ）は**すべて `createClient`**。
 
