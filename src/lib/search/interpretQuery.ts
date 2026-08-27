@@ -188,11 +188,7 @@ function findKindMarkers(q: string): { end: number; len: number; kind: SearchKin
             主対象が person に化ける（2026-08-27 に実測）。`dropbox` の `ob` も同じ。
          ⚠️ 判定は職種・スキルと同じ `isLatinTerm` + 前後の英数字チェックに揃える。
             ここだけ別の規則にしない。 */
-      if (isLatinTerm(m.word)) {
-        const prev = i > 0 ? q[i - 1] : "";
-        const next = q[i + m.word.length] ?? "";
-        if (/[a-z0-9]/i.test(prev) || /[a-z0-9]/i.test(next)) continue;
-      }
+      if (isLatinTerm(m.word) && touchesLatin(q, i, m.word.length)) continue;
       out.push({ end: i + m.word.length, len: m.word.length, kind: m.kind });
     }
   }
@@ -342,6 +338,37 @@ function isLatinTerm(s: string): boolean {
 }
 
 /**
+ * 1文字が英数字か。**この判定の唯一の実体。**
+ *
+ * ⚠️ 範囲外（`undefined`）は false。文頭・文末に接しているのは
+ *    「英数字に挟まれていない」＝境界として正しいので通す。
+ */
+function isLatinChar(ch: string | undefined): boolean {
+  return ch !== undefined && /[a-z0-9]/i.test(ch);
+}
+
+/**
+ * ★英字の語の境界判定。**`hay` の `start` から `len` 文字が、英数字に挟まれていないか。**
+ *
+ * ⚠️ **この関数が「英字の境界チェック」の唯一の実体。** 同じ判定を各所に書き写さない。
+ *    書き写した結果、**合図（`ob` / `og`）だけチェックが漏れていた**
+ *    （`google cloud` の中の `og` を OB/OG と読んで主対象が person に化けた。
+ *     2026-08-27 に実測）。1箇所に寄せたのはこれが理由。
+ *
+ * 呼び出し元:
+ *   - `findKindMarkers`  … 主対象の合図（`ob` / `og`）
+ *   - `findAliasIndex`   … 職種の別名 と 標準スキル（両方ここを通る）
+ *
+ * ⚠️ **社名の照合はここを使わない。** あちらは英字だけでなく
+ *    **同じ字種（英字・カタカナ・漢字）の隣接**を見る別ルールで、
+ *    `charClass` がその実体。**統合すると社名側の判定が緩くなる**ので分けてある。
+ *    共有しているのは1文字の判定（`isLatinChar`）だけ。
+ */
+function touchesLatin(hay: string, start: number, len: number): boolean {
+  return isLatinChar(hay[start - 1]) || isLatinChar(hay[start + len]);
+}
+
+/**
  * ★辞書語が文中に現れる位置。**英字の略語は語の途中で拾わない。**
  *
  * ⚠️ 直さないと、辞書にある2〜4文字の英字略語（`AE` `AM` `EM` `IR` `CRO` `TAM` `M&A` など
@@ -365,18 +392,13 @@ function findAliasIndex(hay: string, alias: string): number {
     const i = hay.indexOf(alias, from);
     if (i < 0) return -1;
     from = i + 1;
-    const before = hay[i - 1];
-    const after = hay[i + alias.length];
-    const touching =
-      (before !== undefined && /[a-z0-9]/i.test(before)) ||
-      (after !== undefined && /[a-z0-9]/i.test(after));
-    if (!touching) return i;
+    if (!touchesLatin(hay, i, alias.length)) return i;
   }
 }
 
 function charClass(ch: string | undefined): CharClass {
   if (!ch) return "other";
-  if (/[a-z0-9]/i.test(ch)) return "latin";
+  if (isLatinChar(ch)) return "latin";
   if (/[ァ-ヴー]/.test(ch)) return "katakana";
   if (/[一-龠々〆ヵヶ]/.test(ch)) return "kanji";
   return "other";
