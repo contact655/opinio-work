@@ -122,6 +122,43 @@
 
 ---
 
+## ⚠️★`ow_user_languages.name` が `language_id` と二重管理になっている（2026-08-27）
+
+`ow_languages` マスタを作り `language_id` を足したが、**`name`（text）も残してある。**
+`name` は**マスタの `label` の複製**で、正は `language_id`。
+
+### なぜ残したか
+
+読み手のうち**2つが別セッションの作業中で触れない**ため。
+
+| 読み手 | 状態 |
+|---|---|
+| `src/app/(jobseeker)/u/[id]/page.tsx` | **作業中** |
+| `src/app/(jobseeker)/mypage/page.tsx` | **作業中** |
+
+どちらも `.select("id, name, proficiency, sort_order")` で `name` を直接読んでいる。
+join に変えるにはこの2ファイルを書き換える必要があり、いま触ると
+**未リリースの `career_stance` を巻き込んで本番に出してしまう。**
+
+### 何を守っているか
+
+**API が「`language_id` のマスタの `label` と `name` が一致すること」を検証している。**
+これが**自由入力の復活を防ぐ唯一の防御**で、DB 側には制約が無い
+（`name` は素の text のまま）。
+
+⚠️ **この検証を外さないこと。** 外すと `name` に任意の文字列が入り、
+   マスタ化した意味が消える（`/search` は `language_id` で引くので、
+   画面に出る `name` だけがズレるという最悪の形になる）。
+
+### 片付け方（あの2ファイルが空いてから）
+
+1. 2つの読み手を `language:ow_languages(id, label)` の join に変える
+2. `name` を drop する（`ow_user_languages` は 0 行なので移行は不要）
+3. API の一致検証も落とす（正が1つになるので要らなくなる）
+
+⚠️ **順番を守ること。** `name` を先に落とすと、その2ファイルが読む列が消えて
+   プロフィールから言語が黙って消える。
+
 ## ⚠️★スキルのAPIが `createAdminClient` のままになっている（2026-08-27）
 
 `/api/jobseeker/skills`（一覧・追加）と `/api/jobseeker/skills/[id]`（削除）は
