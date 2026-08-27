@@ -17,12 +17,19 @@
  *       エラーは出ず、件数が多いだけなので**正常に見える**。
  *       → docs/phase0-search-20260826.md「3-C」
  *
- * ③ **解決先は5つだけ。増やさないこと。**
+ * ③ **解決先は6つだけ。増やさないこと。**
  *      職種       → ow_roles + ow_role_aliases（getRoleAliases() の414語）
  *      事業領域   → ow_business_domains（12件）
  *      外資/日系  → ow_companies.is_foreign
  *      年収       → ow_jobs.salary_min
  *      社名       → ow_companies.id（掲載79社。2026-08-27 追加）
+ *      スキル     → ow_skills.id（標準スキル。2026-08-27 追加）
+ *
+ *    ⚠️★**社名と同名のスキルは、常に社名として解決する。**（実測11件:
+ *       AWS / Braze / Cloudflare / Datadog / HubSpot / Marketo / New Relic /
+ *       Okta / Salesforce / Snowflake / Zendesk）
+ *       同じ語が2つの条件になると AND で自分自身を絞り、ほぼ0件になる。
+ *       「そのスキルを持つ人」は `/search` の帯（主結果の下）で別に出す。
  *
  *    ⚠️ 社名の照合は**メモリ上の完全一致**で行う。`ilike '%q%'` は使わない。
  *       部分一致にすると「Dropbox」の中の「Box」に当たる（実データに両社ある）。
@@ -78,7 +85,10 @@ export type Condition =
   | { kind: "role"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; roleIds: string[] }
   | { kind: "domain"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; domainId: string; slug: string }
   | { kind: "foreign"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; isForeign: boolean }
-  | { kind: "salaryMin"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; man: number };
+  | { kind: "salaryMin"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; man: number }
+  /* ★スキル。**人にしか当てられない**（求人の required_skills は自由記述で、
+        標準スキルの ID と突き合わせられない。企業にスキルの表はそもそも無い）。 */
+  | { kind: "skill"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; skillId: string };
 
 export type InterpretResult = {
   primaryKind: SearchKind;
@@ -173,6 +183,16 @@ function findKindMarkers(q: string): { end: number; len: number; kind: SearchKin
         if (HITO_BLOCK_BEFORE.includes(prev)) continue;
         if (HITO_BLOCK_AFTER.includes(next)) continue;
       }
+      /* ★英字の合図（`ob` / `og`）は語の途中で拾わない。
+         ⚠️ 直さないと `google cloud` の中の `og`（g-o-**og**-le）が OB/OG と読まれ、
+            主対象が person に化ける（2026-08-27 に実測）。`dropbox` の `ob` も同じ。
+         ⚠️ 判定は職種・スキルと同じ `isLatinTerm` + 前後の英数字チェックに揃える。
+            ここだけ別の規則にしない。 */
+      if (isLatinTerm(m.word)) {
+        const prev = i > 0 ? q[i - 1] : "";
+        const next = q[i + m.word.length] ?? "";
+        if (/[a-z0-9]/i.test(prev) || /[a-z0-9]/i.test(next)) continue;
+      }
       out.push({ end: i + m.word.length, len: m.word.length, kind: m.kind });
     }
   }
@@ -197,6 +217,8 @@ type Vocabulary = {
   companyIndex: Map<string, { id: string; label: string }[]>;
   /** 索引にある最長キーの長さ。走査の上限に使う */
   companyMaxLen: number;
+  /** 標準スキル。★社名と同名のものは**除いてある**（上の③） */
+  skills: { id: string; label: string; terms: string[] }[];
 };
 
 /**
@@ -233,10 +255,11 @@ const COMPANY_KEY_MIN_LEN = 3;
 const DOMAIN_PART_MIN_LEN = 4;
 
 const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary> {
-  const [roleAliases, domainRows, companyRows] = await Promise.all([
+  const [roleAliases, domainRows, companyRows, skillRows] = await Promise.all([
     getRoleAliases(),
     getBusinessDomainOptions(),
     loadCompanyNames(),
+    loadSkills(),
   ]);
   const domains = domainRows.map((d) => {
     const parts = d.name.split(/[・/]/).map((s) => s.trim()).filter(Boolean);
@@ -264,8 +287,32 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
       if (key.length > companyMaxLen) companyMaxLen = key.length;
     }
   }
-  return { roleAliases, domains, companyIndex, companyMaxLen };
+  /* ★社名と同名のスキルは索引に入れない（常に社名として解決させるため）。
+        ⚠️ ラベル単位で丸ごと落とす。別名だけ残すと
+           「AWS は会社／Amazon Web Services はスキル」という食い違いが出る。 */
+  const skills = skillRows
+    .filter((r) => !companyIndex.has(companyKey(r.label)))
+    .map((r) => ({
+      id: r.id,
+      label: r.label,
+      terms: Array.from(new Set([r.label, ...(r.aliases ?? [])])).filter((t) => t.length >= 2),
+    }));
+
+  return { roleAliases, domains, companyIndex, companyMaxLen, skills };
 });
+
+type SkillRow = { id: string; label: string; aliases: string[] | null };
+
+/** 標準スキル。⚠️ `is_active` のものだけ */
+async function loadSkills(): Promise<SkillRow[]> {
+  const { data, error } = await createPublicClient()
+    .from("ow_skills")
+    .select("id, label, aliases")
+    .eq("is_active", true);
+  /* ⚠️ error を握りつぶさない。空で返すと「スキルで引けない」が静かに起きる */
+  if (error) console.error("[interpretQuery] 標準スキルの取得に失敗:", error.message);
+  return (data ?? []) as SkillRow[];
+}
 
 type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null };
 
@@ -374,7 +421,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     return { primaryKind: "company", conditions: [], unresolved: [], normalized: "" };
   }
 
-  const [{ roleAliases, domains, companyIndex, companyMaxLen }, roleTree] = await Promise.all([
+  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills }, roleTree] = await Promise.all([
     loadVocabulary(),
     getRoleTree(),
   ]);
@@ -502,6 +549,42 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     consumed.push({ start: hitAt, end: hitAt + hitLen });
   }
 
+  // ── スキル → ow_skills ───────────────────────────────────────────────────
+  /* ⚠️ 職種と同じ `findAliasIndex` を使う（英字の略語は語の途中で拾わない）。
+        `Go` が `Google Cloud` / `gong` の中で拾われないのはこの境界チェック。
+     ⚠️ **最長一致だけ残す。** `GitHub` ⊂ `GitHub Copilot` のような組で、
+        短いほうが二重に立たないようにする。 */
+  {
+    const skillHits: { term: string; at: number; id: string; label: string }[] = [];
+    for (const sk of skills) {
+      for (const term of sk.terms) {
+        const t = term.toLowerCase();
+        const i = findAliasIndex(normalized, t);
+        if (i < 0) continue;
+        skillHits.push({ term: t, at: i, id: sk.id, label: sk.label });
+      }
+    }
+    skillHits.sort((x, y) => y.term.length - x.term.length);
+    const kept: typeof skillHits = [];
+    for (const h of skillHits) {
+      if (kept.some((k) => k.term.includes(h.term))) continue; // 長い語に含まれる
+      if (kept.some((k) => k.id === h.id)) continue;           // 同じスキルを2回立てない
+      kept.push(h);
+    }
+    for (const h of kept.sort((x, y) => x.at - y.at)) {
+      conditions.push({
+        kind: "skill",
+        label: h.label, // ★マスタの表示名。入力文字列ではない
+        /* ⚠️ 人にしか当てられない。求人の required_skills は自由記述で
+              標準スキルの ID と突き合わせられず、企業にスキルの表は無い。 */
+        appliesTo: ["person"],
+        matchOn: "person",
+        skillId: h.id,
+      });
+      consumed.push({ start: h.at, end: h.at + h.term.length });
+    }
+  }
+
   // ── 職種 → ow_roles + ow_role_aliases ────────────────────────────────────
   /* 辞書の語がクエリに現れるかを見る（`/jobs` とは向きが逆：あちらは
      「入力語が別名に含まれるか」、こちらは「別名が文に現れるか」）。
@@ -551,11 +634,41 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
   for (const w of ambiguousCompanyWords) if (!unresolved.includes(w)) unresolved.push(w);
 
   return {
-    primaryKind: decidePrimaryKind(normalized),
+    primaryKind: resolvePrimaryKind(normalized, conditions),
     conditions,
     unresolved,
     normalized,
   };
+}
+
+/**
+ * 主対象を決める。**合図が無いときは条件に従う。**
+ *
+ * `decidePrimaryKind` は合図（「人」「求人」など）が無ければ `company` に倒す。
+ * これは既定として妥当だが、**解決した条件がどれも企業に効かないとき**は
+ * 絞り込みが1つも無い企業一覧になる ——つまり**掲載中の全社**が出る。
+ *
+ * ⚠️ **2026-08-27 にスキルを足した日に実際に起きた。** `Go` は
+ *    スキル（`matchOn: "person"` / `appliesTo: ["person"]`）としてだけ解決するので、
+ *    主対象が企業のまま**79社すべてが「検索結果」として出ていた。**
+ *    スキルを足す前は「解決できる条件が無い」扱いで、その旨を出していた。
+ *
+ * したがって、**合図が無く、かつ既定の対象に効く条件が1つも無い**ときは、
+ * 実際に効く対象へ寄せる。合図があるときは**利用者が明示した対象を尊重して動かさない**
+ * （「Go の企業」と書いた人には、効かない旨のチップを見せるほうが正しい）。
+ */
+function resolvePrimaryKind(normalized: string, conditions: Condition[]): SearchKind {
+  const explicit = findKindMarkers(normalized).length > 0;
+  const decided = decidePrimaryKind(normalized);
+  if (explicit || conditions.length === 0) return decided;
+  if (conditions.some((c) => c.appliesTo.includes(decided))) return decided;
+
+  /* ★順序は固定（company → job → person）。条件の並び順で対象が変わると、
+     同じ意味のクエリで結果が変わって再現しなくなる。 */
+  for (const k of ["company", "job", "person"] as const) {
+    if (conditions.some((c) => c.appliesTo.includes(k))) return k;
+  }
+  return decided;
 }
 
 // ── ④ 解決できなかった語を拾う ───────────────────────────────────────────────

@@ -28,6 +28,7 @@
 | いつ | どうする |
 |---|---|
 | 適用日が未定のものを書いた | **`supabase/pending/` に置く**（`supabase/migrations/` には置かない） |
+| **コミット単位を揃えるための一時退避** | **ここを使う**（scratchpad は使わない。⚠️ 消えるし、他のセッションから見えない） |
 | 適用日が決まった | `supabase/migrations/` へ **移動**し、そのとき採番を振り直す |
 | `db push` する前 | **必ず `supabase migration list` で保留分を確認する** |
 

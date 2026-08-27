@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { interpretQuery, type Condition, type SearchKind } from "@/lib/search/interpretQuery";
-import { runSearch, MIN_AGGREGATE_COUNT, type SearchResults } from "@/lib/search/runSearch";
+import {
+  runSearch, skillBandsForCompanies, MIN_AGGREGATE_COUNT,
+  type SearchResults, type SkillBand,
+} from "@/lib/search/runSearch";
 import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
@@ -212,6 +215,14 @@ export default async function SearchPage({ searchParams }: Props) {
   };
   const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn) : EMPTY;
 
+  /* ★社名として解決した語が標準スキルにもあるとき、「そのスキルを持つ人」への橋渡しを出す。
+     ⚠️ 条件には混ぜない（同じ語で company と skill を両方立てると AND で潰れる）。
+     ⚠️ 人数の下限は `MIN_AGGREGATE_COUNT`。人の件数を出す閾値と揃える
+        （n=1/2 の「1人います」は本人の特定に繋がる）。 */
+  const skillBands: SkillBand[] = nothingResolved
+    ? []
+    : (await skillBandsForCompanies(conditions)).filter((b) => b.count >= MIN_AGGREGATE_COUNT);
+
   const primary = interpreted.primaryKind;
   const others = (["company", "job", "person"] as SearchKind[]).filter((k) => k !== primary);
   const totalAll = results.company.total + results.job.total + results.person.total;
@@ -332,6 +343,32 @@ export default async function SearchPage({ searchParams }: Props) {
             </p>
           )}
         </section>
+
+        {/* ── ★スキルの帯。社名として解決した語がスキルにもあるときだけ ── */}
+        {skillBands.length > 0 && (
+          <section style={{ marginTop: 22, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 13 }}>
+              {skillBands.map((b) => (
+                <span key={b.skillId} style={{ color: "var(--ink-mute)" }}>
+                  {b.label}を使える人: <strong style={{ color: "var(--ink)" }}>{b.count}</strong> 名
+                  {/* ⚠️ 未ログインに個票は出さない。既存ルールをそのまま適用する */}
+                  {isLoggedIn ? (
+                    <Link
+                      href={`/search?q=${encodeURIComponent(`${b.label}のスキルを持つ人`)}`}
+                      style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6 }}
+                    >
+                      見る
+                    </Link>
+                  ) : (
+                    <Link href="/auth" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>
+                      ログインすると表示
+                    </Link>
+                  )}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── 他の対象は件数の注記だけ。⚠️ 条件0件のときは出さない（全件の数字になるため） ── */}
         {!nothingResolved && (

@@ -426,7 +426,7 @@ export async function searchPersonHits(
   const db = createAdminClient();
   const tree = await getRoleTree();
 
-  const [userRes, expRes, foreignRes, domainRes] = await Promise.all([
+  const [userRes, expRes, foreignRes, domainRes, skillRes] = await Promise.all([
     db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system"),
     db
       .from("ow_experiences")
@@ -435,9 +435,13 @@ export async function searchPersonHits(
       ),
     db.from("ow_companies").select("id, is_foreign"),
     db.from("ow_company_business_domains").select("company_id, domain_id"),
+    /* ★人が持つスキル。⚠️ `matchOn: "person"` の条件はここから判定する。
+          職歴とは無関係なので `experienceMatches` には渡さない。 */
+    db.from("ow_user_skills").select("user_id, skill_id"),
   ]);
   for (const [label, res] of Object.entries({
     users: userRes, experiences: expRes, companies: foreignRes, domains: domainRes,
+    userSkills: skillRes,
   })) {
     if (res.error) console.error(`[searchPersonHits] ${label}:`, res.error.message);
   }
@@ -453,6 +457,13 @@ export async function searchPersonHits(
     const s = domainsByCompany.get(d.company_id) ?? new Set<string>();
     s.add(d.domain_id);
     domainsByCompany.set(d.company_id, s);
+  }
+
+  const skillsByUser = new Map<string, Set<string>>();
+  for (const r of (skillRes.data ?? []) as { user_id: string; skill_id: string }[]) {
+    const set = skillsByUser.get(r.user_id) ?? new Set<string>();
+    set.add(r.skill_id);
+    skillsByUser.set(r.user_id, set);
   }
 
   const expsByUser = new Map<string, ExpRow[]>();
@@ -507,7 +518,7 @@ export async function searchPersonHits(
     if (expConds.length > 0 && matchedExps.length === 0) continue;
 
     // ② 人側
-    if (!personConds.every((c) => personMatches(u.id, c))) continue;
+    if (!personConds.every((c) => personMatches(u.id, c, skillsByUser))) continue;
 
     /* `exps` は started_at 昇順なので `matchedExps` もその順序を保つ */
     const earliestMatch: ExpRow | null = matchedExps[0] ?? null;
@@ -545,8 +556,14 @@ export async function searchPersonHits(
  *    実装し忘れた条件が「全員が満たしている」ことになって静かに素通りする。
  *    0件になれば気づけるが、全件返ると気づけない。
  */
-function personMatches(_owUserId: string, c: Condition): boolean {
+function personMatches(
+  owUserId: string,
+  c: Condition,
+  skillsByUser: Map<string, Set<string>>,
+): boolean {
   switch (c.kind) {
+    case "skill":
+      return skillsByUser.get(owUserId)?.has(c.skillId) ?? false;
     /* 職歴に当てる条件がここへ来るのは呼び出し側の分け方の誤り。
        黙って通さずに落とす。 */
     case "company":
@@ -635,16 +652,86 @@ function buildMatchReason(
   return from ? `${from} → ${to}` : to;
 }
 
+/**
+ * ★社名として解決した語が、標準スキルにも同じ綴りで存在するときの「そのスキルを持つ人」の数。
+ *
+ * ── なぜ要るか ──────────────────────────────────────────────────────────────
+ * `Salesforce` のような語は**会社でもスキルでもある**（実測11件）。
+ * `interpretQuery` は**常に社名として解決する**ので、そのままだと
+ * 「Salesforce を使える人」に辿り着けない。主結果の下に帯で出して橋渡しする。
+ *
+ * ⚠️ **条件には混ぜない。** 同じ語で company 条件と skill 条件を両方立てると
+ *    AND で自分自身を絞り、ほぼ0件になる。あくまで別枠の案内。
+ *
+ * ⚠️ 数え方は `searchPersonHits` の母集団と揃える
+ *    （`is_test` / `is_system` / `private` を除外し、`login_only` は含める）。
+ *    ここだけ条件が違うと、帯の数字と実際に見える人数が食い違う。
+ */
+export type SkillBand = { label: string; skillId: string; count: number };
+
+export async function skillBandsForCompanies(conditions: Condition[]): Promise<SkillBand[]> {
+  const companyLabels = conditions
+    .filter((c): c is Extract<Condition, { kind: "company" }> => c.kind === "company")
+    .map((c) => c.label);
+  if (companyLabels.length === 0) return [];
+
+  const db = createAdminClient();
+  const { data: skillRows, error: skillErr } = await db
+    .from("ow_skills")
+    .select("id, label")
+    .eq("is_active", true)
+    .in("label", companyLabels);
+  if (skillErr) console.error("[skillBandsForCompanies] ow_skills:", skillErr.message);
+  const skills = (skillRows ?? []) as { id: string; label: string }[];
+  if (skills.length === 0) return [];
+
+  const [{ data: links, error: linkErr }, { data: users, error: userErr }] = await Promise.all([
+    db.from("ow_user_skills").select("user_id, skill_id").in("skill_id", skills.map((s) => s.id)),
+    db.from("ow_users").select("id, visibility, is_test, is_system"),
+  ]);
+  if (linkErr) console.error("[skillBandsForCompanies] ow_user_skills:", linkErr.message);
+  if (userErr) console.error("[skillBandsForCompanies] ow_users:", userErr.message);
+
+  const visible = new Set(
+    ((users ?? []) as { id: string; visibility: string | null; is_test: boolean | null; is_system: boolean | null }[])
+      .filter((u) => !u.is_test && !u.is_system && u.visibility !== "private")
+      .map((u) => u.id),
+  );
+
+  const counts = new Map<string, Set<string>>();
+  for (const l of (links ?? []) as { user_id: string; skill_id: string }[]) {
+    if (!visible.has(l.user_id)) continue;
+    const set = counts.get(l.skill_id) ?? new Set<string>();
+    set.add(l.user_id);
+    counts.set(l.skill_id, set);
+  }
+
+  return skills
+    .map((s) => ({ label: s.label, skillId: s.id, count: counts.get(s.id)?.size ?? 0 }))
+    .filter((b) => b.count > 0);
+}
+
 // ── まとめて引く ─────────────────────────────────────────────────────────────
 
 export async function runSearch(
   conditions: Condition[],
   isLoggedIn: boolean,
 ): Promise<SearchResults> {
+  /* ★その対象に効く条件が1つも無いなら、**引かずに0件を返す。**
+     ⚠️ 引いてしまうと絞り込みゼロの全件が「検索結果」として出る。
+        `/search` 側は「条件が1つも解決しなかった」ときは検索しないが、
+        **条件はあるのに、その対象には効かない**という形が別にある。
+        実例（2026-08-27）: `Goの企業` は `Go` をスキル（人にのみ効く）として
+        解決するので条件は1件ある。それでも企業に効く条件は0件なので、
+        **掲載79社が丸ごと並んでいた。** 件数が多いぶん正常に見えるのが厄介。
+     ⚠️ ここで塞ぐのは、対象ごとの判定を1箇所に集めるため。呼び出し側で
+        条件を数える形にすると、対象が増えたときに必ず数え漏れる。 */
+  const applies = (k: SearchKind) => conditions.some((c) => c.appliesTo.includes(k));
+
   const [company, job, person] = await Promise.all([
-    searchCompanyHits(conditions),
-    searchJobHits(conditions),
-    searchPersonHits(conditions, isLoggedIn),
+    applies("company") ? searchCompanyHits(conditions) : { items: [], total: 0 },
+    applies("job") ? searchJobHits(conditions) : { items: [], total: 0 },
+    applies("person") ? searchPersonHits(conditions, isLoggedIn) : { items: [], total: 0 },
   ]);
   return { company, job, person };
 }
