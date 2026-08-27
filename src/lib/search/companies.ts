@@ -1,5 +1,6 @@
 // src/lib/search/companies.ts
 import { resolveIndustryKey } from "./industryGroups";
+import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 // 企業検索の抽象化レイヤー
 //
 // 事前調査結果（2026-05-17）:
@@ -63,7 +64,12 @@ export async function searchCompanies(
 
   // ── DB側ページネーションを使うか判定
   // hiring / foreign / クライアントソート フィルターはアプリ側で処理するため、DB ページネーションと併用不可
-  const clientSideSort = params.sort === "disclosure";
+  /* ⚠️ **アプリ側で並べるものはここに列挙する。** 列挙するとDB側ページネーションが
+        無効になり（下の useDbPagination）、全件取ってから並べてページを切る。
+     ⚠️ `employees` を足した（2026-08-28）。**DB側の `employee_count DESC` は
+        text列の辞書順**で、`約800名` が1位・`約10000名` が下位という並びだった
+        （実測。この列は自由記述で、純粋な数値は79社中2社しかない）。 */
+  const clientSideSort = params.sort === "disclosure" || params.sort === "employees";
   const useDbPagination = !params.hiring && !params.foreign && params.phase !== "外資系" && !clientSideSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
@@ -146,7 +152,10 @@ export async function searchCompanies(
   // ── Step 1: データ取得 + 総件数を1クエリで同時取得（count: "exact"）
   // 旧: COUNT クエリ → await → DATA クエリ（2 hop）
   // 新: DATA クエリ + count: "exact" で1 hop に統合
-  const orderCol = params.sort === "employees" ? "employee_count" : "updated_at";
+  /* ⚠️ **`employee_count` で order しない**（2026-08-28 に外した）。text列なので
+        辞書順になる。従業員数の並びは下のアプリ側ソートが担当する。
+     ⚠️ ここが基準の並び（新着順）になり、**安定ソートなので同数のときはこの順が残る**。 */
+  const orderCol = "updated_at";
   const orderAsc = false;
 
   let dataQuery = applyFilters(
@@ -322,6 +331,24 @@ export async function searchCompanies(
         残り78社は 0 として並ぶだけだった。あわせて `?salaryMin=` の絞り込みと、
         その裏で走っていた求人年収の集計（calc_avg_salary_man）も削除した。
      ⚠️ 旧 URL の `?sort=salary` / `?salaryMin=` は無視され、既定に落ちる。壊れない。 */
+  /* ── 社員数順 ────────────────────────────────────────────────────────────────
+     ⚠️ **`employee_count` は自由記述の text**。`parseEmployeeCount` で数値を取り出して
+        並べる（括弧の中は捨て、最初の数字を採る。規則は employeeCount.ts）。
+     ⚠️ **第2キーは置いていない。** `Array.prototype.sort` は安定なので、同数のときは
+        前段のDB順（`updated_at DESC` ＝新着順）がそのまま残る。
+        実測（2026-08-28 / 公開79社）: 異なる数値は33種類しかなく、
+        **同数のグループが11組（最大12社）**あるので、ここの挙動は実際に効く。
+        ⚠️ 名前順など別のキーにしたくなったら、ここに1行足す。
+           `updated_at` は企業情報を1つ直すたびに動くので、同数内の順序も動く。
+     ⚠️ **数値が取れない企業は末尾へ**（-1）。0 として扱うと「0名の会社」に見える。 */
+  if (params.sort === "employees") {
+    filteredCompanies = [...filteredCompanies].sort(
+      (a, b) =>
+        (parseEmployeeCount(b.employee_count) ?? -1) -
+        (parseEmployeeCount(a.employee_count) ?? -1),
+    );
+  }
+
   if (params.sort === "disclosure") {
     /* ⚠️ **これは `/companies` の並び替え専用のスコア。**
           `lib/utils/disclosureScore.ts` の `calcDisclosureScore`（95点満点・
