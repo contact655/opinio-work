@@ -86,10 +86,19 @@ dev と本番で挙動が異なる場合がある。
 | `customer_cases` / `global_employee_count` | 各1 |
 | `headquarters_address` | **0** |
 
-⚠️ **`logo_url` はこの一覧に入れていない。** 76社すべてが
-`https://logo.clearbit.com/...` を指しており、**このホストは名前解決すらしない**
-（Clearbit の Logo API は終了。`clearbit.com` のルートは 200 なのでネットワーク制限ではない）。
-「値はあるが表示できない」ので ✓/空欄では表せない。**別タスク。**
+⚠️ **`logo_url` はこの一覧に入れていない。** ~~76社すべてが Clearbit を指しており表示できない~~
+→ **2026-08-16 に Storage へ移行済み**（`69a0e656` / `15c9f88e`）。
+
+実測（2026-08-28 / 公開79社）: **Supabase Storage 77 / Clearbit 0 / NULL 2**
+（PKSHA Technology・フライル）。77件すべて実ファイルとして取得でき、
+PNG 66 / JPEG 9 / WebP 1 / GIF 1。**「表示できない」問題は解消している。**
+
+⚠️ **残っている問題は別のもの。** 77件のうち **22件（28.6%）が縦横比 1.91:1**
+   ——1200×628 / 1024×537 / 2400×1260 など、**OGP画像の規格**。
+   各社サイトから取得した OGP 画像であって、ロゴではない。
+   マーケティング文言や背景色が焼き込まれており、**枠を小さくすると判読できない**
+   （40px だと高さ17px）。**ロゴ画像そのものの差し替えが要る別タスク。**
+   ⚠️ **枠のサイズ調整では直らない。** 40px 化の提案は 2026-08-28 にこの理由で不採用にした。
 
 ### ✅ /companies 1ページ目の9社を Salesforce と同じ密度にした（2026-08-13 完了）
 
@@ -138,12 +147,16 @@ Datadog の「NYSE上場」は事実誤りだったので NASDAQ に訂正して
    それ以外を埋めようとすると、必ず取材か企業からの入力が要る。
    **「ページが薄い」を理由に取材項目を推測で埋めないこと。**
 
-⚠️ **画面のロゴが出ているのは別経路のおかげ。** `components/common/CompanyLogo.tsx` が
-死んだ Clearbit URL からドメインだけを抜き出し、
-`https://www.google.com/s2/favicons?domain=<domain>&sz=256` にフォールバックしている。
-**Salesforce だけが特別なのではなく、76社すべてがこの経路**（実測で確認）。
-`lib/utils/companyLogo.ts` の `usableLogoUrl` は Clearbit を null に潰す判定で、
-letter フォールバック用。両者は別の仕組みなので混同しないこと。
+⚠️ ~~画面のロゴが出ているのは Google favicon フォールバックのおかげ~~
+→ **2026-08-16 の Storage 移行で、この経路は使われなくなった**（2026-08-28 実測）。
+
+`components/common/CompanyLogo.tsx` の Clearbit ドメイン抽出と
+`https://www.google.com/s2/favicons?...` フォールバックは**現在1社でも発火しない**
+（Clearbit の URL が0件のため）。`naturalWidth <= 16` を失敗扱いにする分岐も同様。
+**防御として残してあるだけ。** `lib/utils/companyLogo.ts` の `usableLogoUrl`
+（Clearbit を null に潰す判定）も同じ。**消さないが、生きていると思わないこと。**
+
+⚠️ NULL の2社（PKSHA・フライル）は letter フォールバックで出ている。
 
 ### ⚠️ `main_products` の書式と、説明文が表示されない件（2026-08-12 実測）
 
@@ -315,6 +328,85 @@ ALTER TABLE ow_companies
    ⚠️ 認証の内側なら、実際にログインして踏むこと（HTTP status だけ見ない）
 3. 到達できるなら、**受け取る先があるか**を確かめる
    （応募・面談は `getCompanyNotificationRecipients` が0件だと届かない）
+
+---
+
+## ⚠️ `/companies`（一覧）の作りで、読む前に間違えやすいこと（2026-08-28 実測）
+
+### ① ISR ではない。動的レンダリング
+
+`export const revalidate` も `dynamic` も `generateStaticParams` も**無い**が、
+`searchParams` を読むので App Router の仕様で**動的**になる
+（本番の応答は `cache-control: private, no-cache, no-store`）。
+
+⚠️ **`searchCompanies()` 自体は `unstable_cache` に包まれていない。**
+   包まれているのは `fetchAvailablePhases` / `fetchDistinctLocations` /
+   `fetchCompanySuggestions` / `fetchCurrentMembersByCompany` の4つだけ。
+
+→ したがって **`companyAmbassadorsTag` / `revalidateCompanyAmbassadors` は一覧に無関係。**
+   一覧に面談対応者の件数を出すとしても、**新しいタグは要らない**
+   （むしろ包むと、あの7経路にタグ追加を忘れる余地を新しく作ることになる）。
+
+⚠️ `/companies/[id]`（詳細）は ISR。**一覧と詳細で前提が違う。** 詳細で必要だった
+   「数字だけサーバー、人物はクライアント」（`f9d6d051`）は、一覧では構造上不要。
+
+### ② ★`fetchCurrentMembersByCompany` は常に `{}` を返す（死んでいる）
+
+`createPublicClient()`（anon）で `ow_experiences` を引くが、実ユーザーは全員
+`login_only` なので **RLS が全行を落とす**。実測: anon **200 / 0行** ／ admin 13行。
+（`401`/`42501` ではないので GRANT ではなく RLS。）
+
+→ `CompanyCardList` のメンバーアバターは **79社すべてで一度も表示されていない。**
+   ログイン中でも出ない（閲覧者に関係なく anon で引くため）。
+
+⚠️ **個人情報は漏れていない**（本番HTMLで氏名0件・`/u/` リンク0件）。
+   ただしそれは設計の成果ではなく **RLS の副作用**。「起こせなかった0」の一例。
+
+⚠️ **admin クライアントに変えないこと。** 変えると `login_only` の氏名と顔写真が
+   未ログインに配られる（`f9d6d051` で詳細ページ側を直したのと同じ事故になる）。
+
+### ③ 並び替え「開示充実順」の実装が、同じページに2つある
+
+| 場所 | 内容 |
+|---|---|
+| [lib/search/companies.ts](src/lib/search/companies.ts) の `disclosureScore` | 記事3 + 求人1 + 特徴1 + 現役2 + OB1（8点）。**これが本体** |
+| `companies/(list)/page.tsx` の `sort === "disclosure"` | `reality_disclosure` の有無で**再ソート**。全社空なので実害なし |
+
+⚠️ **廃止するなら2つとも消すこと。** 片方だけだと残る。
+   `/biz` の `lib/utils/disclosureScore.ts`（95点満点）と `/jobs` の同名ソートは**別物**。
+
+### ⚠️★「社員数順」の結果は、画面から検証できない（2026-08-28）
+
+**カードの従業員数はレンジ表記**（`51-200名` など）なので、
+**帯の中の順序の根拠がどこにも出ていない。** 例えば `51-200名` の帯には
+**28社**が並ぶが、その28社がなぜその順なのかは画面から読み取れない。
+
+内部の並びはこうなっている:
+
+| | |
+|---|---|
+| 第1キー | `parseEmployeeCount` が返す**数値の降順**（`約200名` > `約100名`） |
+| 同数のとき | **`updated_at DESC`（前段のDB順＝新着順）が残る**。`Array.prototype.sort` が安定なため |
+| 第2キー | **意図的に置いていない** |
+
+⚠️ **「並び順がおかしい」と誤読されやすい形。** 帯が同じ2社の上下は、
+   カード上の情報だけでは説明できない。**バグとして直しにいく前にここを読むこと。**
+
+⚠️ **第2キーを足して取り繕わないこと。** 実測（2026-08-28 / 公開79社）で
+   異なる数値は **33種類しかなく、同数グループが11組（100名に12社・200名に12社）**
+   あるが、これは `employee_count` が「約100名」に丸められた自由記述だから。
+   **粒度の粗さは並び順では解決しない。** 直すならデータ側（元の値）の話。
+
+### ④ カードの下端が揃う仕組みは `minHeight` ではない
+
+`minHeight: 3.1em` は**既に外してある**（`CompanyCardList` のコメント参照）。
+いまの揃え方は **tagline の1行クランプ ＋ CSS Grid の行内 stretch**。
+
+実測（2026-08-28）: 1440px=3列 / 1199px・768px=2列 で**全カード 161px で一致**。
+**375px は1列**なので行内に他のカードが無く、**tagline が空の1社だけ 19px 低い**
+（124px vs 143px）。tagline は公開79社中 **78社にあり、1社だけ空**。
+
+⚠️ **行を足しても375pxの不揃いは解消しない。** 直すなら tagline 側の話。
 
 ---
 
