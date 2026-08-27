@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { createClient } from "@/lib/supabase/server";
 import { LANGUAGE_PROFICIENCY_VALUES } from "@/lib/constants/languageProficiency";
 import { MAX_USER_LANGUAGES } from "@/lib/constants/languages";
 
@@ -13,6 +13,10 @@ import { MAX_USER_LANGUAGES } from "@/lib/constants/languages";
  *
  * ⚠️ 習熟度の許容値を**ここに書き写さない**。`lib/constants/languageProficiency.ts`
  *    を見る（UI と同じ定数を通す。CLAUDE.md）。
+ *
+ * ⚠️ **DB を触るので Supabase クライアントを受け取る。** 呼び出し側（route）が
+ *    セッションから作ったものをそのまま渡すこと。ここで作らない
+ *    （route と別のクライアントになると、RLS の効き方が変わって気づけない）。
  *
  * ── ★`name` はマスタの `label` の複製（2026-08-27）───────────────────────────
  * 正は `language_id`。`name` を残しているのは、読み手の `u/[id]/page.tsx` と
@@ -34,16 +38,9 @@ export type LanguageInput = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * ★マスタに存在することまで確かめる。**DB を見るので async。**
- *
- * ⚠️ マスタ（`ow_languages`）の参照に `createAdminClient` を使っている。
- *    このテーブルは `USING (true)` で anon にも公開しているので、admin でも
- *    見えるものは変わらない（権限の格上げにはならない）。
- *    型（`types.ts`）に `ow_languages` がまだ無いのが直接の理由で、
- *    `gen:types` が流せるようになったら `createClient` に戻してよい。
- */
+/** ★マスタに存在することまで確かめる。**DB を見るので async。** */
 export async function parseLanguageBody(
+  supabase: ReturnType<typeof createClient>,
   body: Record<string, unknown>
 ): Promise<LanguageInput | NextResponse> {
   /* ★受けるのは `language_id`。**名前の自由入力は受け付けない。** */
@@ -55,7 +52,7 @@ export async function parseLanguageBody(
     );
   }
 
-  const { data: master, error } = await createAdminClient()
+  const { data: master, error } = await supabase
     .from("ow_languages")
     .select("id, label, is_active")
     .eq("id", languageId)
@@ -74,7 +71,7 @@ export async function parseLanguageBody(
   /* ★`name` が送られてきたら、マスタの `label` と**完全一致**していること。
      ⚠️ 送られてこなければマスタの値を使う（呼び出し側の書き忘れで
         自由な値が入る余地を残さない）。 */
-  const label = master.label as string;
+  const label = master.label;
   if (body.name !== undefined && body.name !== null && body.name !== label) {
     return NextResponse.json(
       {
@@ -113,8 +110,11 @@ export async function parseLanguageBody(
  * ⚠️ **追加のときだけ呼ぶ。** 編集（PUT）で呼ぶと、上限に達した人が
  *    既存の行を直せなくなる。
  */
-export async function checkLanguageLimit(owUserId: string): Promise<NextResponse | null> {
-  const { count, error } = await createAdminClient()
+export async function checkLanguageLimit(
+  supabase: ReturnType<typeof createClient>,
+  owUserId: string,
+): Promise<NextResponse | null> {
+  const { count, error } = await supabase
     .from("ow_user_languages")
     .select("id", { count: "exact", head: true })
     .eq("user_id", owUserId);

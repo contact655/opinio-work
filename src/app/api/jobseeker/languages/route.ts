@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { parseLanguageBody, checkLanguageLimit, LANGUAGE_COLS } from "@/lib/api/languageInput";
 
@@ -9,27 +8,13 @@ export const dynamic = "force-dynamic";
  * 言語の一覧・追加（2026-08-24）。
  * ⚠️ 形は `api/jobseeker/certifications` に揃えてある。片方を直すときはもう片方も見ること。
  * ⚠️ 検証は `lib/api/languageInput.ts` に置き、POST と PUT で共有する。
- *
- * ── ★なぜ `createAdminClient` なのか（2026-08-27）───────────────────────────
- * **データは `createAdminClient` で読み書きしている（RLS をバイパスする）。**
- * 認証（`getUser`）だけは RLS 付きの `createClient`。
- *
- * 理由は `types.ts` に `ow_languages` と `ow_user_languages.language_id` の型が無く、
- * `Database` 型付きの `createClient` では **tsc が通らない**ため
- * （2026-08-27 時点で `types.ts` は**別セッションが `career_stance` で編集中**。
- *  `npm run gen:types` を流すと相手の未リリースの変更を巻き込むので流せない）。
- *
- * ★**`user_id` はセッションから解決した値だけを使い、リクエスト本文からは
- *   絶対に受け取らないこと。** 全クエリに `.eq("user_id", owUserId)` が
- *   付いていることが**唯一の防御**になっている。
- *
- * ⚠️ **`gen:types` が流せるようになったら `createClient`（RLS 付き）へ戻すこと。**
- *    ⚠️ このルートは 2026-08-27 まで `createClient` だった。**戻し先がある。**
- *    スキル（`api/jobseeker/skills`）も同じ状態。→ docs/todo.md
  */
 
-async function resolveOwUserId(authUid: string): Promise<string | null> {
-  const { data, error } = await createAdminClient()
+async function resolveOwUserId(
+  supabase: ReturnType<typeof createClient>,
+  authUid: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
     .from("ow_users")
     .select("id")
     .eq("auth_id", authUid)
@@ -38,7 +23,7 @@ async function resolveOwUserId(authUid: string): Promise<string | null> {
     console.error("[api/jobseeker/languages resolveOwUserId]", error.message);
     return null;
   }
-  return (data?.id as string | undefined) ?? null;
+  return data?.id ?? null;
 }
 
 // GET /api/jobseeker/languages
@@ -47,10 +32,10 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const owUserId = await resolveOwUserId(user.id);
+  const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ languages: [] });
 
-  const { data, error } = await createAdminClient()
+  const { data, error } = await supabase
     .from("ow_user_languages")
     .select(LANGUAGE_COLS)
     .eq("user_id", owUserId)
@@ -79,17 +64,17 @@ export async function POST(req: Request) {
   }
 
   /* ⚠️ マスタに存在するかまで見るので await。**同じ関数を PUT でも通す。** */
-  const input = await parseLanguageBody(body);
+  const input = await parseLanguageBody(supabase, body);
   if (input instanceof NextResponse) return input;
 
-  const owUserId = await resolveOwUserId(user.id);
+  const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   /* ★上限。⚠️ **追加のときだけ。** PUT で呼ぶと上限に達した人が既存の行を直せなくなる。 */
-  const overLimit = await checkLanguageLimit(owUserId);
+  const overLimit = await checkLanguageLimit(supabase, owUserId);
   if (overLimit) return overLimit;
 
-  const { data: maxRow } = await createAdminClient()
+  const { data: maxRow } = await supabase
     .from("ow_user_languages")
     .select("sort_order")
     .eq("user_id", owUserId)
@@ -98,7 +83,7 @@ export async function POST(req: Request) {
     .maybeSingle();
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
-  const { data: inserted, error: insertError } = await createAdminClient()
+  const { data: inserted, error: insertError } = await supabase
     .from("ow_user_languages")
     .insert({ user_id: owUserId, ...input, sort_order: nextSortOrder })
     .select(LANGUAGE_COLS)

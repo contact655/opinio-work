@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { parseLanguageBody, LANGUAGE_COLS } from "@/lib/api/languageInput";
 
@@ -8,27 +7,13 @@ export const dynamic = "force-dynamic";
 /**
  * 言語の更新・削除（2026-08-24）。
  * ⚠️ 検証は POST と**同じ関数**を通す（`lib/api/languageInput.ts`）。
- *
- * ── ★なぜ `createAdminClient` なのか（2026-08-27）───────────────────────────
- * **データは `createAdminClient` で読み書きしている（RLS をバイパスする）。**
- * 認証（`getUser`）だけは RLS 付きの `createClient`。
- *
- * 理由は `types.ts` に `ow_languages` と `ow_user_languages.language_id` の型が無く、
- * `Database` 型付きの `createClient` では **tsc が通らない**ため
- * （2026-08-27 時点で `types.ts` は**別セッションが `career_stance` で編集中**。
- *  `npm run gen:types` を流すと相手の未リリースの変更を巻き込むので流せない）。
- *
- * ★**`user_id` はセッションから解決した値だけを使い、リクエスト本文からは
- *   絶対に受け取らないこと。** 全クエリに `.eq("user_id", owUserId)` が
- *   付いていることが**唯一の防御**になっている。
- *
- * ⚠️ **`gen:types` が流せるようになったら `createClient`（RLS 付き）へ戻すこと。**
- *    ⚠️ このルートは 2026-08-27 まで `createClient` だった。**戻し先がある。**
- *    スキル（`api/jobseeker/skills`）も同じ状態。→ docs/todo.md
  */
 
-async function resolveOwUserId(authUid: string): Promise<string | null> {
-  const { data, error } = await createAdminClient()
+async function resolveOwUserId(
+  supabase: ReturnType<typeof createClient>,
+  authUid: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
     .from("ow_users")
     .select("id")
     .eq("auth_id", authUid)
@@ -37,7 +22,7 @@ async function resolveOwUserId(authUid: string): Promise<string | null> {
     console.error("[api/jobseeker/languages resolveOwUserId]", error.message);
     return null;
   }
-  return (data?.id as string | undefined) ?? null;
+  return data?.id ?? null;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,7 +34,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const owUserId = await resolveOwUserId(user.id);
+  const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: Record<string, unknown>;
@@ -62,12 +47,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   /* ⚠️ POST と**同じ関数**。マスタに存在するかまで見るので await。
         ⚠️ 上限（`checkLanguageLimit`）はここでは呼ばない。呼ぶと上限に達した人が
            既存の行を直せなくなる（件数は変わらないので見る必要も無い）。 */
-  const input = await parseLanguageBody(body);
+  const input = await parseLanguageBody(supabase, body);
   if (input instanceof NextResponse) return input;
 
   /* ⚠️ `.eq("user_id", owUserId)` を必ず付ける。RLS も同じ条件で守っているが、
         アプリ側でも絞る（0行更新を成功として扱わないため、下で単一行を要求する）。 */
-  const { data: updated, error } = await createAdminClient()
+  const { data: updated, error } = await supabase
     .from("ow_user_languages")
     .update(input)
     .eq("id", params.id)
@@ -102,10 +87,10 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const owUserId = await resolveOwUserId(user.id);
+  const owUserId = await resolveOwUserId(supabase, user.id);
   if (!owUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { error } = await createAdminClient()
+  const { error } = await supabase
     .from("ow_user_languages")
     .delete()
     .eq("id", params.id)

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -11,12 +11,10 @@ export const dynamic = "force-dynamic";
  *    返すと「使ってよい値」に見える。`it`（イタリア語）が「IT業界」に当たるなど
  *    2文字コードは誤爆源になる（migration の冒頭を参照）。
  *
- * ⚠️ `createAdminClient` なのは `types.ts` に `ow_languages` の型がまだ無いため
- *    （`gen:types` が流せない事情は `api/jobseeker/languages` の冒頭）。
- *    このテーブルは元から全員に公開なので、admin でも見えるものは変わらない。
+ * ⚠️ 未ログインでも読める。RLS は `USING (true)`、GRANT は anon にもある。
  */
 export async function GET() {
-  const { data, error } = await createAdminClient()
+  const { data, error } = await createClient()
     .from("ow_languages")
     .select("id, label, aliases")
     .eq("is_active", true)
