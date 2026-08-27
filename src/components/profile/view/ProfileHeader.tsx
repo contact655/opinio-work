@@ -92,9 +92,12 @@ export function ProfileHeader({
     }
   `}</style>
   {/* Cover + Avatar header — full width above grid */}
+  {/* ⚠️ 影は他のカード（`ProfileSections`）と同じ値にそろえる（2026-08-27）。
+         この1枚だけ影が無く、薄グレーの地の上で境目が弱かった。 */}
   <div style={{
     background: "#fff", border: "1px solid var(--line)",
     borderRadius: 16, overflow: "hidden", marginBottom: "var(--space-6)",
+    boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
   }}>
     {/* Cover area: photo or gradient */}
     <div className="profile-cover" style={{ height: 200, position: "relative", background: coverPhotoUrl ? undefined : coverColor, overflow: "hidden" }}>

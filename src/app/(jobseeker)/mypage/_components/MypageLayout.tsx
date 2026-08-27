@@ -267,7 +267,15 @@ export default function MypageLayout({
         </aside>
 
         {/* メインコンテンツ */}
-        <main id="main-content" style={{ padding: "36px 40px 60px" }} className="mypage-main-content">
+        {/* ★本文の背景を薄グレー（`--bg-tint`）にする（2026-08-27）。
+               ⚠️ **カードも本文も body も全部 `#fff` で、白の上に白**だった。
+                  区切りは 1px の枠だけで、カードの境目が読めない。
+               ⚠️ 公開プロフィール（`/u/[id]`）は**元からこの形**
+                  （コンテナが `--bg-tint`／カードが白＋影）。**あちらに揃えた。**
+               ⚠️ カード側を濃くする方向で直さないこと。カードは白のままにして
+                  **地の色を下げる**のが、`--bg-tint` の本来の使い方
+                  （globals.css に「ページ背景 (薄グレー)」と書いてある）。 */}
+        <main id="main-content" style={{ padding: "36px 40px 60px", background: "var(--bg-tint)" }} className="mypage-main-content">
           {children}
         </main>
 

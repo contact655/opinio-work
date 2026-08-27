@@ -74,6 +74,7 @@ export default async function MypagePage({
   let awardsRaw: Record<string, unknown>[] = [];
   let certificationsRaw: Record<string, unknown>[] = [];
   let languagesRaw: Record<string, unknown>[] = [];
+  let skillsRaw: Record<string, unknown>[] = [];
   let mediaAppearancesRaw: Record<string, unknown>[] = [];
   let contentLinksRaw: Record<string, unknown>[] = [];
   let desiredRoleIds: string[] = [];
@@ -103,6 +104,7 @@ export default async function MypagePage({
       { data: awdRows },
       { data: certRows },
       { data: langRows },
+      { data: skillRows },
       { data: medRows },
       { data: linkRows },
       { data: desiredRoleRows },
@@ -158,6 +160,13 @@ export default async function MypagePage({
         .from("ow_user_languages")
         .select("id, name, proficiency, sort_order")
         .eq("user_id", owUser.id).order("sort_order", { ascending: true }),
+      /* ★スキル（2026-08-27）。⚠️ 順番は上の分割代入と揃えること。
+            ⚠️ `createAdminClient` なのは `types.ts` の型がまだ無かった頃の名残ではなく、
+               **この行は `supabase`（RLS 付き）で引ける**（`ow_user_skills_select_own`）。 */
+      supabase
+        .from("ow_user_skills")
+        .select("id, skill_id, skill:ow_skills(id, label, category)")
+        .eq("user_id", owUser.id).order("created_at", { ascending: true }),
       supabase
         .from("ow_user_media_appearances")
         .select("id, title, media_name, url, thumbnail_url, appeared_at, description, sort_order")
@@ -282,6 +291,7 @@ export default async function MypagePage({
     awardsRaw = (awdRows ?? []) as Record<string, unknown>[];
     certificationsRaw = (certRows ?? []) as Record<string, unknown>[];
     languagesRaw = (langRows ?? []) as Record<string, unknown>[];
+    skillsRaw = (skillRows ?? []) as Record<string, unknown>[];
     mediaAppearancesRaw = (medRows ?? []) as Record<string, unknown>[];
     contentLinksRaw = (linkRows ?? []) as Record<string, unknown>[];
     desiredRoleIds = ((desiredRoleRows ?? []) as { role_id: string }[]).map((r) => r.role_id);
@@ -569,6 +579,8 @@ export default async function MypagePage({
       initialCertifications={certificationsRaw as any}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialLanguages={languagesRaw as any}
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      initialSkills={skillsRaw as any}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialMediaAppearances={mediaAppearancesRaw as any}
       initialExperiences={initialExperiences}

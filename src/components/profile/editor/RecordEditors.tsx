@@ -1757,12 +1757,18 @@ export type SkillMaster = { id: string; label: string; category: string; aliases
 const SKILL_CAT_PREFIX = "cat:";
 
 export function SkillEditor({
-  skills, setSkills, masters, openAddNonce, openDeleteId, onClosed,
+  skills, setSkills, masters: mastersProp, openAddNonce, openDeleteId, onClosed,
 }: {
   skills: UserSkill[];
   setSkills: React.Dispatch<React.SetStateAction<UserSkill[]>>;
-  /** `ow_skills` の全行（有効なもの） */
-  masters: SkillMaster[];
+  /**
+   * `ow_skills` の全行（有効なもの）。**省略できる。**
+   * ⚠️ 省いたときは**この部品が自分で取りに行く**（`/api/skills`）。
+   *    呼び出し元が2つあり、片方（`ProfileTab`）はサーバーで引いた行を持っていない。
+   *    必須にするとあちらに props を1つ通すことになり、任意にして既定を空にすると
+   *    **選択肢が1つも無いピッカー**が出る。`LanguageEditor` と同じ形にしてある。
+   */
+  masters?: SkillMaster[];
   openAddNonce?: number;
   openDeleteId?: string | null;
   onClosed?: () => void;
@@ -1780,6 +1786,29 @@ export function SkillEditor({
   const showToast = useCallback((msg: string, variant: "default" | "error" = "default") => {
     setToastVariant(variant); setToastMsg(msg);
   }, []);
+
+  /* ★マスタ。props で来なければ**自分で取る**（`LanguageEditor` と同じ形）。
+     ⚠️ 取りに行くのは**モーダルを開いたときだけ**。この部品は常に描かれているので、
+        マウント時に取ると全ページ表示で1往復増える。 */
+  const [fetched, setFetched] = useState<SkillMaster[]>([]);
+  const [mastersError, setMastersError] = useState(false);
+  const masters = mastersProp ?? fetched;
+  useEffect(() => {
+    if (mastersProp || !adding || fetched.length > 0) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/skills");
+        if (!res.ok) throw new Error(String(res.status));
+        const j = await res.json();
+        if (alive) setFetched(j.skills ?? []);
+      } catch (e) {
+        console.error("[SkillEditor] スキルマスタの取得に失敗:", e);
+        if (alive) setMastersError(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, [mastersProp, adding, fetched.length]);
 
   /* ★区分を親、スキルを子にした2階層。⚠️ 既に持っているスキルは候補から外す
         （選べるのに 409 になる状態を作らない）。 */
@@ -1896,7 +1925,10 @@ export function SkillEditor({
               />
             )}
             <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              一覧から選ぶ形です（自由入力はできません）。選ぶとすぐ保存されます。
+              {/* ⚠️ 取得に失敗したことを「選択肢が無い」と見せない */}
+              {mastersError
+                ? "スキルの一覧を読み込めませんでした。再読み込みしてください。"
+                : "一覧から選ぶ形です（自由入力はできません）。選ぶとすぐ保存されます。"}
               {" "}{skills.length} / {MAX_USER_SKILLS}
             </p>
           </div>

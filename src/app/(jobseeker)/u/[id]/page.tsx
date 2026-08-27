@@ -29,6 +29,7 @@ import {
   ProfileAwardsSection,
   ProfileCertificationsSection,
   ProfileLanguagesSection,
+  ProfileSkillsSection,
   ProfileMediaSection,
   ProfileTimelineSection,
   ProfileArticlesSection,
@@ -205,6 +206,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     { data: achievementsRaw }, { data: awardsRaw }, { data: mediaAppearancesRaw },
     { data: certificationsRaw },
     { data: languagesRaw },
+    { data: skillsRaw },
     { data: recentPostsRaw },
   ] = await Promise.all([
     /*
@@ -289,6 +291,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .select("id, name, proficiency, sort_order")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
+    /* ★スキル（2026-08-27）。⚠️ **admin クライアントで引く。**
+          `ow_user_skills` は anon に GRANT していない（資格・言語と同じ）。
+          session クライアントのままだと**未ログイン閲覧で丸ごと消える**。
+       ⚠️ 順番は上の分割代入と揃えること。 */
+    adminSupabase
+      .from("ow_user_skills")
+      .select("id, skill_id, skill:ow_skills(id, label, category)")
+      .eq("user_id", owUser.id)
+      .order("created_at", { ascending: true }),
     supabase
       .from("ow_posts_visible")
       .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
@@ -324,6 +335,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
   /* ⚠️ 形は `LanguageRow`（ProfileSections.tsx）と同じにすること。 */
   const languages = (languagesRaw ?? []) as Array<{
     id: string; name: string; proficiency: string | null; sort_order: number;
+  }>;
+  /* ⚠️ 形は `UserSkillRow`（ProfileSections.tsx）と同じにすること。 */
+  const skills = (skillsRaw ?? []) as unknown as Array<{
+    id: string; skill_id: string;
+    skill: { id: string; label: string; category: string } | null;
   }>;
   const recentPostsTyped = (recentPostsRaw ?? []) as Array<{
     id: string; content: string; image_url: string | null; created_at: string;
@@ -774,6 +790,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                    ⚠️ **資格の下**。柴さんの指示で LinkedIn と同じ並びにしてある。
                    ⚠️ 0件なら出さない（`actions` を渡さないので空状態も出ない）。 */}
             <ProfileLanguagesSection languages={languages} />
+            {/* ★スキル（2026-08-27）。⚠️ **`actions` を渡さない。**
+                   渡すと他人の画面に追加・削除の導線が出る。
+                   0件なら部品側が何も描かない（他人が見る DOM は1バイトも変わらない）。 */}
+            <ProfileSkillsSection skills={skills} />
 
 
             {/* ── アクティビティ（最近の投稿）──

@@ -28,6 +28,7 @@ import {
 } from "./formKit";
 import {
   EducationEditor,
+  SkillEditor,
   MediaAppearanceEditor,
   AchievementEditor,
   AwardEditor,
@@ -44,6 +45,7 @@ import {
   type MediaAppearance,
   type Certification,
   type Language,
+  type UserSkill,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
@@ -71,6 +73,7 @@ import {
   ProfileAwardsSection,
   ProfileCertificationsSection,
   ProfileLanguagesSection,
+  ProfileSkillsSection,
   ProfileTimelineSection,
   ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
@@ -539,6 +542,7 @@ export default function ProfileTab({
   initialAwards,
   initialCertifications,
   initialLanguages,
+  initialSkills,
   initialMediaAppearances,
   initialSocialLinks,
   initialContentLinks,
@@ -596,6 +600,8 @@ export default function ProfileTab({
   initialCertifications: Certification[];
   /** 言語（2026-08-24）。⚠️ 資格の下に出す */
   initialLanguages: Language[];
+  /** ★スキル（2026-08-27）。⚠️ 資格・言語と同じ流し方 */
+  initialSkills: UserSkill[];
   initialMediaAppearances: MediaAppearance[];
   initialSocialLinks: SocialLinks;
   initialContentLinks: ContentLink[];
@@ -618,6 +624,10 @@ export default function ProfileTab({
   const [awards,           setAwards]           = useState<Award[]>(initialAwards);
   const [certifications,   setCertifications]   = useState<Certification[]>(initialCertifications);
   const [languages,        setLanguages]        = useState<Language[]>(initialLanguages);
+  /* ★スキル（2026-08-27）。⚠️ 編集は無いので `openEditId` を持たない（追加と削除だけ） */
+  const [skills,           setSkills]           = useState<UserSkill[]>(initialSkills);
+  const [skillAddNonce,    setSkillAddNonce]    = useState(0);
+  const [deleteSkillId,    setDeleteSkillId]    = useState<string | null>(null);
   const [mediaAppearances, setMediaAppearances] = useState<MediaAppearance[]>(initialMediaAppearances);
 
   /* ⚠️ 「その他の実績・受賞」というまとめ方は 2026-08-16 にやめた。
@@ -1584,6 +1594,32 @@ export default function ProfileTab({
               openEditId={editingLangId}
               openDeleteId={deleteLangId}
               onClosed={() => { setEditingLangId(null); setDeleteLangId(null); }}
+            />
+
+            {/* ★スキル（2026-08-27）。**言語の下**（学歴 → 資格 → 言語 → スキル）。
+                   ⚠️ ずっと `/mypage/details/skills` を直打ちしないと辿り着けなかった。
+                      登録も `/search` での検索も 2026-08-27 に出来ていたが、
+                      **置き場所だけが無かった**（`ProfileTab.tsx` が別セッションの
+                      作業中で触れなかったため）。
+                   ⚠️ 0件でも出す。未入力なら部品側が空状態と「スキルを追加する」を出す。 */}
+            <ProfileSkillsSection
+              skills={skills}
+              actions={{
+                manageHref: skills.length > 0 ? "/mypage/details/skills" : undefined,
+                manageLabel: "スキルを編集",
+                /* ⚠️ `onEditRow` は渡さない。**スキルに編集は無い**（行の中に変えられる値が
+                      無いので追加と削除だけ）。渡すと鉛筆が出て行き先が無くなる。 */
+                onDeleteRow: (id) => setDeleteSkillId(id),
+                onAdd: () => setSkillAddNonce((n) => n + 1),
+              }}
+            />
+            {/* ⚠️ 編集フォームは**常にマウントしておく**（モーダル）。ルール⑭③ */}
+            <SkillEditor
+              skills={skills}
+              setSkills={setSkills}
+              openAddNonce={skillAddNonce}
+              openDeleteId={deleteSkillId}
+              onClosed={() => setDeleteSkillId(null)}
             />
           </div>
 
