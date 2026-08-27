@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -3739,6 +3739,36 @@ export type Database = {
           },
         ]
       }
+      ow_languages: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          iso_639_1: string | null
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          iso_639_1?: string | null
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          iso_639_1?: string | null
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       ow_match_scores: {
         Row: {
           career_score: number | null
@@ -4656,6 +4686,7 @@ export type Database = {
       ow_profiles: {
         Row: {
           bio: string | null
+          career_stance: string | null
           created_at: string | null
           desired_phase: string[] | null
           desired_prefectures: string[] | null
@@ -4674,9 +4705,7 @@ export type Database = {
           onboarding_completed: boolean | null
           photo_url: string | null
           scout_enabled: boolean | null
-          skills: string[] | null
           stance_updated_at: string | null
-          tools: string[] | null
           transfer_timing: string | null
           transfer_timing_updated_at: string | null
           updated_at: string | null
@@ -4685,6 +4714,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          career_stance?: string | null
           created_at?: string | null
           desired_phase?: string[] | null
           desired_prefectures?: string[] | null
@@ -4703,9 +4733,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           photo_url?: string | null
           scout_enabled?: boolean | null
-          skills?: string[] | null
           stance_updated_at?: string | null
-          tools?: string[] | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
           updated_at?: string | null
@@ -4714,6 +4742,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          career_stance?: string | null
           created_at?: string | null
           desired_phase?: string[] | null
           desired_prefectures?: string[] | null
@@ -4732,9 +4761,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           photo_url?: string | null
           scout_enabled?: boolean | null
-          skills?: string[] | null
           stance_updated_at?: string | null
-          tools?: string[] | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
           updated_at?: string | null
@@ -5209,6 +5236,47 @@ export type Database = {
           },
         ]
       }
+      ow_search_logs: {
+        Row: {
+          conditions: Json | null
+          created_at: string
+          id: string
+          primary_kind: string
+          query: string
+          result_count: number | null
+          unresolved: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string
+          id?: string
+          primary_kind: string
+          query: string
+          result_count?: number | null
+          unresolved?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string
+          id?: string
+          primary_kind?: string
+          query?: string
+          result_count?: number | null
+          unresolved?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_search_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_settings: {
         Row: {
           description: string | null
@@ -5229,6 +5297,47 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      ow_skills: {
+        Row: {
+          aliases: string[]
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          tool_id: string | null
+        }
+        Insert: {
+          aliases?: string[]
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          tool_id?: string | null
+        }
+        Update: {
+          aliases?: string[]
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          tool_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_skills_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "ow_tool_masters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ow_story_sections: {
         Row: {
@@ -5806,6 +5915,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          language_id: string | null
           name: string
           proficiency: string | null
           sort_order: number
@@ -5814,6 +5924,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          language_id?: string | null
           name: string
           proficiency?: string | null
           sort_order: number
@@ -5822,12 +5933,20 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          language_id?: string | null
           name?: string
           proficiency?: string | null
           sort_order?: number
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_user_languages_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "ow_languages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_user_languages_user_id_fkey"
             columns: ["user_id"]
@@ -6026,6 +6145,42 @@ export type Database = {
           },
         ]
       }
+      ow_user_skills: {
+        Row: {
+          created_at: string
+          id: string
+          skill_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          skill_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          skill_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_user_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "ow_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_user_skills_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_users: {
         Row: {
           about_me: string | null
@@ -6052,7 +6207,6 @@ export type Database = {
           is_test: boolean
           location: string | null
           mentor_registered_at: string | null
-          mentor_themes: string[] | null
           name: string
           profile_setup_at: string | null
           social_links: Json | null
@@ -6087,7 +6241,6 @@ export type Database = {
           is_test?: boolean
           location?: string | null
           mentor_registered_at?: string | null
-          mentor_themes?: string[] | null
           name: string
           profile_setup_at?: string | null
           social_links?: Json | null
@@ -6122,7 +6275,6 @@ export type Database = {
           is_test?: boolean
           location?: string | null
           mentor_registered_at?: string | null
-          mentor_themes?: string[] | null
           name?: string
           profile_setup_at?: string | null
           social_links?: Json | null
