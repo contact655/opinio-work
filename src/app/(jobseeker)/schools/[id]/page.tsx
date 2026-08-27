@@ -210,7 +210,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
   const school = await getSchool(id);
-  if (!school) return { title: "学校 | OPINIO" };
+  /* ⚠️ 下の通常時と同じく `absolute`。ここだけ素の `title` で、
+        フォールバック時だけ「学校 | OPINIO | OPINIO」になっていた（2026-08-28）。 */
+  if (!school) return { title: { absolute: "学校 | OPINIO" } };
   return {
     title: { absolute: `${school.name} 出身者 | OPINIO` },
     description: `${school.name}出身のIT/SaaS業界の現役社員・OB/OGのキャリアを見る。`,

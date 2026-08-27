@@ -27,7 +27,9 @@ import StanceStepClient from "./StanceStepClient";
       （「OPINIO | IT/SaaS業界の転職・求人情報」）がタブに出て、
       **何を聞かれている画面なのかがタブから読めない。**
    ⚠️ 認証の内側なので `robots` は不要（middleware が未ログインを弾く）。 */
-export const metadata = { title: "転職について | OPINIO" };
+/* ⚠️ `absolute` を使う。素の `title` に書くと、ルートの `template: "%s | OPINIO"` が
+      さらに付いて **「転職について | OPINIO | OPINIO」** になる（2026-08-28 に実測して修正）。 */
+export const metadata = { title: { absolute: "転職について | OPINIO" } };
 
 export default async function StancePage({
   searchParams,

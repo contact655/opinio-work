@@ -13,7 +13,9 @@ import type { Metadata } from "next";
  *    外部リソース（フォント・画像・API）に依存させないこと。
  */
 export const metadata: Metadata = {
-  title: "オフライン | OPINIO",
+  /* ⚠️ `absolute` を使う。素の `title` だと「オフライン | OPINIO | OPINIO」になる
+        （2026-08-28 に本番で実測） */
+  title: { absolute: "オフライン | OPINIO" },
   robots: { index: false, follow: false },
 };
 

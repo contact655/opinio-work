@@ -275,9 +275,18 @@ export default function MypageLayout({
                ⚠️ カード側を濃くする方向で直さないこと。カードは白のままにして
                   **地の色を下げる**のが、`--bg-tint` の本来の使い方
                   （globals.css に「ページ背景 (薄グレー)」と書いてある）。 */}
-        <main id="main-content" style={{ padding: "36px 40px 60px", background: "var(--bg-tint)" }} className="mypage-main-content">
+        {/* ⚠️★`<main id="main-content">` にしない（2026-08-28 に直した）。
+               この部品は `(jobseeker)/layout.tsx` の `<main id="main-content">` の
+               **中**に描かれるので、
+                 ① `<main>` の入れ子になる（HTML として不正・1文書に1つ）
+                 ② **id が重複する**。`querySelector("#main-content")` が
+                    外側を掴み、内側だと思って測ると別物を測る
+                    （実際に測定で1度掴み違えた）
+               ⚠️ スキップリンク（`app/layout.tsx` の `#main-content`）の行き先は
+                  **外側のまま**でよい。あちらは既にヘッダーの後ろにある。 */}
+        <div style={{ padding: "36px 40px 60px", background: "var(--bg-tint)" }} className="mypage-main-content">
           {children}
-        </main>
+        </div>
 
         {/* 右サイドバー（rightColumn がある場合のみ描画） */}
         {rightColumn && (

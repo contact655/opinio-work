@@ -21,7 +21,8 @@ import { COVERAGE_COLUMNS } from "./columns";
  *
  * ⚠️ /admin/layout.tsx が cookies() を呼ぶのでこのページは自動的に動的。
  */
-export const metadata = { title: "充填状況 | OPINIO Admin" };
+/* ⚠️ `absolute` を使う。素の `title` だと「… | OPINIO Admin | OPINIO」になる */
+export const metadata = { title: { absolute: "充填状況 | OPINIO Admin" } };
 
 /** 値が「埋まっている」か。空配列・空文字・空JSONは埋まっていない扱い */
 function isFilled(v: unknown): boolean {
