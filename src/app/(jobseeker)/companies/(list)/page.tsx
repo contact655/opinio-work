@@ -116,10 +116,15 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   // foreign は並び替えモディファイア扱いのため hasFilter に含めない（ソートバーを維持するため）
   const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
-  // 一覧（4列）= デフォルト（パラメータなし or view=card）
-  const isGridView  = !hasFilter && (!view || view === "card");
-  // 詳細リスト = view=list
+  /* 詳細リスト = view=list。★**これだけを名指しで判定する。** */
   const isListView  = !hasFilter && view === "list";
+  /* 一覧（グリッド）= 既定。★**未知の値もここに落とす**（2026-08-28）。
+     ⚠️ それまでは `!view || view === "card"` だったため、`?view=grid` のような
+        **綴り違いで isGridView も isListView も false になり、needsGrid が false**。
+        検索も一覧も描かれない**空ページ（実測 81KB）が 200 で返っていた**。
+     ⚠️ 並び替えの `sort` が未知の値を既定に落としているのと同じ流儀
+        （GridSortBar のコメント。`?sort=jobs` / `?sort=salary` の前例）。 */
+  const isGridView  = !hasFilter && !isListView;
   const needsGrid = isGridView || isListView;
 
   /* ── 全クエリを並列実行 ──────────────────────────────────────────────────
