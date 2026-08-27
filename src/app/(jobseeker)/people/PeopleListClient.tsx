@@ -950,31 +950,56 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           </div>
 
           {/* 表示モードと件数。
-              ⚠️ 2026-08-04 に撤去した「一覧/詳細」トグルを戻したわけではない。
+              ★意匠は `/companies` のビュートグル（`components/companies/GridSortBar.tsx`）と
+                揃えてある（2026-08-27）。**同じ操作が2つの一覧で別の見た目だったため。**
+                `.view-btn` は globals.css の共通クラスで、あちらと同じものを使っている。
+                ⚠️ **片方だけ変えないこと。** 揃えたのが目的なので、ずらすと意味が無くなる。
+
+              ⚠️ ラベルを「一覧 / 詳細」にしたが、**2026-08-04 に撤去した同名のトグルとは別物。**
                  あれは詳細ビューのほうが**情報量が少なく**、差が伝わらないので外した。
-                 ここで足す1列表示は**カードより情報が増える**（社会人年数・外資系経験）。
-                 情報が減る切り替えを作らないこと。 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div role="group" aria-label="表示の切り替え" style={{ display: "flex", gap: 4 }}>
-              {([["grid", "グリッド"], ["list", "1列"]] as const).map(([v, label]) => {
-                const active = view === v;
-                return (
-                  <button key={v} type="button" onClick={() => changeView(v)}
-                    aria-pressed={active}
-                    style={{
-                      padding: "5px 11px", borderRadius: 100, fontSize: 12,
-                      fontWeight: active ? 700 : 500, cursor: "pointer",
-                      border: active ? "none" : "1.5px solid var(--line)",
-                      background: active ? "var(--royal)" : "#fff",
-                      color: active ? "#fff" : "var(--ink-soft)",
-                      fontFamily: "inherit", transition: "all 0.15s",
-                    }}>
-                    {label}
-                  </button>
-                );
-              })}
+                 いまの1列表示は**カードより情報が増える**（社会人年数・外資系経験）ので、
+                 「詳細」という語が実態と合っている。
+                 ⚠️ **情報が減る切り替えを作らないこと**（この制約は変わっていない）。
+
+              ⚠️ state の値（`grid` / `list`）と localStorage のキー（`people-view`）は
+                 変えていない。**見た目だけの変更。** 保存済みの設定がそのまま効く。 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div role="group" aria-label="表示の切り替え" style={{
+              display: "flex", gap: 2,
+              background: "var(--line-soft)", borderRadius: 8, padding: 2,
+            }}>
+              <button type="button" onClick={() => changeView("grid")}
+                aria-pressed={view === "grid"} className="view-btn" title="コンパクト一覧"
+                style={{
+                  background: view === "grid" ? "var(--royal)" : "transparent",
+                  color: view === "grid" ? "#fff" : "var(--ink-mute)",
+                }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                一覧
+              </button>
+              <button type="button" onClick={() => changeView("list")}
+                aria-pressed={view === "list"} className="view-btn" title="詳細リストビュー"
+                style={{
+                  background: view === "list" ? "var(--royal)" : "transparent",
+                  color: view === "list" ? "#fff" : "var(--ink-mute)",
+                }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
+                  <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+                  <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+                </svg>
+                詳細
+              </button>
             </div>
-            <div style={{ width: 1, height: 18, background: "var(--line)" }} />
+            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 16 }}>
                 {sorted.length}
