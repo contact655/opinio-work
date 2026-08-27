@@ -55,7 +55,6 @@ type OwUser = {
   location: string | null;
   social_links: SocialLinks | null;
   headline: string | null;
-  is_open_to_work: boolean | null;
   auth_id: string;
 };
 
@@ -130,7 +129,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
     */
     supabase
       .from("ow_users")
-      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, is_open_to_work, auth_id")
+      /* ⚠️ `is_open_to_work` は 2026-08-26 に select から外した（フェーズ2）。
+              **取っていたが描画側で1度も参照していなかった**（この画面に「転職検討中」は出ない）。
+              「転職について」の正は `ow_profiles.career_stance` に移っている。 */
+      .select("id, name, headline, avatar_color, avatar_url, cover_color, cover_photo_url, about_me, location, social_links, auth_id")
       .eq("id", resolvedId)
       .maybeSingle(),
   ]);

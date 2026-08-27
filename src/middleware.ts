@@ -63,6 +63,9 @@ export async function middleware(request: NextRequest) {
        ⚠️ casual-meeting / apply を 2026-08-05 にここへ移したのと同じ理由。
           **認証の判定は middleware に一元化する。** */
     pathname === "/mypage" || pathname.startsWith("/mypage/") ||
+    /* ⚠️ オンボーディングも認証の内側（2026-08-27）。`/onboarding/stance` は
+          `ow_profiles` を読んでから出し分けるので、未ログインで開かせない。 */
+    pathname === "/onboarding" || pathname.startsWith("/onboarding/") ||
     // ⚠️ 申し込み系はページ側でも redirect しているが、middleware でも弾く。
     //    ページ側の redirect() だけだと HTTP は 200 のまま（Suspense 境界の内側で
     //    起きるため）で、ステータスを見る側からは「誰でも開ける」ように見える。

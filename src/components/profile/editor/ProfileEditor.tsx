@@ -19,7 +19,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Json } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
-import ProfileTab, { type ProfileSavedSnapshot } from "./ProfileTab";
+import ProfileTab, { type ProfileSavedSnapshot, type SettingsState } from "./ProfileTab";
 /* ⚠️ カード・入力欄の共通部品は formKit に移した（3-B / 2026-08-15）。中身は変えていない。 */
 import {
   /* ⚠️ 元から RecordEditors 側（切り出した範囲）で export されていた型。移動先から import する。 */
@@ -78,20 +78,12 @@ type OwUser = {
   location: string | null;
   birth_date: string | null;
   about_me: string | null;
-  is_open_to_work: boolean | null;
   social_links: Json | null;
   headline: string | null;
   /** プロフィールURL（`/u/<username>`）。
    *  ⚠️ 型は3箇所ある（ここ / ProfileTab / mypage の select）。揃えること */
   username: string | null;
 } | null;
-
-type SettingsState = {
-  avatarColor: string;
-  coverColor: string;
-  visibility: "public" | "login_only" | "private";
-  isOpenToWork: boolean;
-};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -128,7 +120,7 @@ export default function ProfileEditor({
   roleAliases = {},
   isWelcome = false,
   /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
-        右カラムの StanceCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
+        右カラムの IntentCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
         まだ渡してくるので、型としては残す。 */
   initialScoutEnabled: _initialScoutEnabled = null,
   /* ⚠️ 「転職の希望」は 2026-08-25 に右カラム（`MypageClient`）へ移した。
@@ -258,7 +250,6 @@ export default function ProfileEditor({
     avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
     coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
     visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
-    isOpenToWork: owUser?.is_open_to_work ?? false,
   };
   /* 保存済みの公開設定。写真カードのプレビューが見る。
      ⚠️ 右カラムの「企業からの見え方」は 2026-08-16 に外した（本体は設定タブにある）。 */

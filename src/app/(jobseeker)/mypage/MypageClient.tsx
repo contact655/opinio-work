@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
-import StanceCard from "@/components/profile/editor/StanceCard";
-import CareerIntentBox from "@/components/profile/editor/CareerIntentBox";
+/* ★意思表示（2026-08-26 / フェーズ1）。`StanceCard` / `CareerIntentBox` /
+      `TalkToMeCard` の**3枚を1枚に統合した**。3枚に戻さないこと。 */
+import IntentCard from "@/components/profile/editor/IntentCard";
 /* ★公開プロフィール（`/u/[id]`）と同じ部品（2026-08-25）。**似た見た目を書き足さない** */
 import { ActivitySection, ProfileArticlesSection } from "@/components/profile/view/ProfileSections";
 import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
 import { isTalkable } from "@/lib/companyMembers/talkable";
-import TalkToMeCard, { type TalkMembership } from "@/components/profile/editor/TalkToMeCard";
+import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
@@ -204,9 +205,9 @@ function DashboardView({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-/* ⚠️ 型は TalkToMeCard 側（= memberState() が要求する形）に合わせる。
+/* ⚠️ 型は `memberState()` が要求する形をそのまま使う。
       ここで別に定義すると、列を足したときに片方だけ古くなる。 */
-type AmbassadorMembership = TalkMembership;
+type AmbassadorMembership = CompanyMemberRow;
 
 /** `ProfileEditor` にそのまま渡すプロップ。★親で1つずつ数え直さない */
 type ProfileEditorProps = Omit<ComponentProps<typeof ProfileEditor>, "owUser">;
@@ -296,37 +297,32 @@ export default function MypageClient({
   /* ⚠️ `editorProps` は `ProfileEditor` の props をそのまま束ねたもので、
         ここで使う分だけ型を付け直す（`initialScoutEnabled` と同じやり方）。
         **`as` を各所に散らさず、1箇所でまとめる。** */
-  const intentProps = editorProps as Partial<ComponentProps<typeof CareerIntentBox>> & {
+  const intentProps = editorProps as Partial<ComponentProps<typeof IntentCard>> & {
     initialDesiredRoleIds?: string[];
     initialProfilePrefs?: {
       desired_prefectures: string[] | null; desired_work_styles: string[] | null;
       transfer_timing: string | null; desired_salary_min: number | null;
       desired_salary_max: number | null; desired_phase: string[] | null;
+      career_stance: string | null; stance_updated_at: string | null;
     } | null;
   };
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* ★「声をかけられてもよいか」（2026-08-20 / フェーズB）。
+      {/* ★「意思表示」（2026-08-26 / フェーズ1・柴さんの指示）。**1枚だけ。**
+             ⚠️ 統合前は3枚（声をかけられてもよいか / 転職について / 話を聞かれてもよいか）で、
+                1つのスイッチに5段の文字が乗っていた。**3枚に戻さないこと。**
              ⚠️ **右カラムの先頭に置く。** 767px 以下では右カラムごと `order: -1` で
                 本文の上に来るので、モバイルでは最初に目に入る。
-             ⚠️ `ow_profiles.scout_enabled` を**そのまま**読み書きする。主スイッチ用の列は作らない。
-             ⚠️ 「転職について」は**表示だけ**。編集は本文の「転職の希望」に1つだけ置く。 */}
-      <StanceCard
-        initialScoutEnabled={(editorProps as { initialScoutEnabled?: boolean | null }).initialScoutEnabled ?? null}
-      />
-
-      {/* ★「転職の希望」（2026-08-25 / 柴さんの指示）。**本文からここへ移した。**
-             ⚠️ 直前の `StanceCard` が「転職について」を**表示だけ**していたので、
-                同じ値が本文と右カラムの2箇所に出ていた。表示だけの複製を消し、
-                編集ごとこちらへ寄せた（ルール⑧）。
              ⚠️ 値は `editorProps` から読む。`ProfileEditor` → `ProfileTab` の
                 受け渡しは外したので、**本文に戻すならここから外すこと。**
-             ⚠️ 0件でも出す。未設定なら「情報収集として」と灰色で出て、
-                未設定であることがそのまま読める。 */}
-      <CareerIntentBox
-        initialIsOpenToWork={owUser?.is_open_to_work ?? false}
+             ⚠️ 「現職の話を聞かれる」の行は**在籍中かつ企業マスタに紐づく会社がある人だけ**に出る
+                （0件なら行ごと出ない。判定は `IntentCard` 側）。 */}
+      <IntentCard
+        stanceUpdatedAt={intentProps.initialProfilePrefs?.stance_updated_at ?? null}
         initialPrefs={{
+          /* ⚠️ `?? ""` や `?? 既定値` に倒さない。**null は「まだ答えていない」** */
+          career_stance:       intentProps.initialProfilePrefs?.career_stance ?? null,
           desired_role_ids:    intentProps.initialDesiredRoleIds ?? [],
           desired_prefectures: intentProps.initialProfilePrefs?.desired_prefectures ?? null,
           desired_work_styles: intentProps.initialProfilePrefs?.desired_work_styles ?? null,
@@ -338,16 +334,6 @@ export default function MypageClient({
         roles={intentProps.roles ?? []}
         roleAliases={intentProps.roleAliases ?? {}}
         desiredRoleOptions={intentProps.desiredRoleOptions}
-      />
-
-      {/* ★在籍している会社について話を聞かれてもよいか（2026-08-23 / フェーズ2）。
-             ⚠️ 出るのは**在籍中かつ企業マスタに紐づく会社がある人だけ**。
-                0件ならカードごと出ない（TalkToMeCard 側で判定）。
-             ⚠️ 本文側にあった旧「面談対応者の設定」はここへ統合した。
-                2箇所に置くと、状態の出し分けが片方だけ古くなる
-                （旧ウィジェットは display_consent だけを見ており、
-                 申請しただけの人に「公開中」と表示していた）。 */}
-      <TalkToMeCard
         currentCompanies={currentCompanies}
         memberships={ambassadorMemberships}
       />

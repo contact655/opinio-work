@@ -46,7 +46,7 @@ export default async function MypagePage({
     /* ⚠️ 列は「ダッシュボードの表示」と「プロフィール編集」の**両方**をまかなう。
           編集側だけが使う cover_photo_url / visibility を落とすと、
           写真カードと公開範囲が空で初期化され、保存した瞬間に消える。 */
-    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, headline, about_me, birth_date, location, social_links, is_open_to_work, profile_setup_at, username")
+    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, headline, about_me, birth_date, location, social_links, profile_setup_at, username")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -401,13 +401,16 @@ export default async function MypagePage({
     desired_salary_max: number | null;
     transfer_timing: string | null;
     desired_phase: string[] | null;
-    scout_enabled: boolean | null;
+    /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」（2026-08-26 / フェーズ2） */
+    career_stance: string | null;
+    /** 「意思表示を最後に答えた日」。⚠️ null ならカードの最終更新行ごと出さない */
+    stance_updated_at: string | null;
   } | null = null;
   if (owUser) {
     const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
       /* ⚠️ `onboarding_completed` はバナーの判定に使っていたが、バナーごと消した（2026-08-17）。 */
-      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, scout_enabled")
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
@@ -419,7 +422,8 @@ export default async function MypagePage({
         desired_salary_max:  profile.desired_salary_max ?? null,
         transfer_timing:     profile.transfer_timing ?? null,
         desired_phase:       profile.desired_phase ?? null,
-        scout_enabled:       profile.scout_enabled ?? null,
+        career_stance:       profile.career_stance ?? null,
+        stance_updated_at:   profile.stance_updated_at ?? null,
       };
     }
   }
@@ -572,7 +576,6 @@ export default async function MypagePage({
       initialContentLinks={contentLinksRaw as any}
       roles={editorRoles}
       roleAliases={roleAliasMap}
-      initialScoutEnabled={profilePrefs?.scout_enabled ?? null}
       desiredRoleOptions={desiredRoleOptions}
       initialDesiredRoleIds={desiredRoleIds}
       initialProfilePrefs={profilePrefs}

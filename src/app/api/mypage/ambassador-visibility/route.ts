@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 import { mutateOne } from "@/lib/supabase/mutate";
+import { touchStanceUpdatedAt } from "@/lib/profile/stance";
 
 export const dynamic = "force-dynamic";
 
@@ -104,5 +105,10 @@ export async function PATCH(req: NextRequest) {
   }
 
   revalidateCompanyAmbassadors(target.company_id);
+  /* ★「意思表示を最後に答えた日」を打ち直す（2026-08-26 / フェーズ2）。
+     ⚠️ ON / OFF の**どちらでも**打つ。止めるのも意思表示なので。
+     ⚠️ `user.id` は auth 空間。`owUser.id`（ow_users 空間）を渡さないこと。
+     ⚠️ 記録なので失敗しても 500 にしない（本体は既に成功している）。 */
+  await touchStanceUpdatedAt(user.id, "ambassador-visibility stance_updated_at");
   return NextResponse.json({ ok: true, enabled });
 }

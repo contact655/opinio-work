@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import {
   VALID_DESIRED_WORK_STYLES,
   VALID_TRANSFER_TIMINGS,
+  VALID_CAREER_STANCES,
   VALID_DESIRED_PHASES,
   SALARY_MAX_MAN,
   MAX_DESIRED_ROLES,
@@ -54,6 +55,10 @@ export async function PUT(req: Request) {
     desired_salary_max?: number | null;
     transfer_timing?: string | null;
     transfer_timing_updated_at?: string | null;
+    /** 「転職について」の意思表示（2026-08-26 / フェーズ2）。⚠️ null は「まだ答えていない」 */
+    career_stance?: string | null;
+    /** ★「意思表示を最後に答えた日」。⚠️ 希望条件の保存では動かさない（下記） */
+    stance_updated_at?: string | null;
     desired_phase?: string[] | null;
     updated_at?: string | null;
   } = {};
@@ -119,6 +124,9 @@ export async function PUT(req: Request) {
         列は残っているが、**ここで受けない＝もう新しい値は入らない**。 */
   for (const [key, allowed] of [
     ["transfer_timing", VALID_TRANSFER_TIMINGS],
+    /* ⚠️ 許容値は `careerPreferences.ts` の1箇所だけを見る。ここに Set を書かない。
+          DB 側の `ow_profiles_career_stance_check` と同じ4値であること。 */
+    ["career_stance", VALID_CAREER_STANCES],
   ] as const) {
     if (!(key in body)) continue;
     const v = readEnum(key, allowed);
@@ -212,7 +220,7 @@ export async function PUT(req: Request) {
 
   const { data: existing, error: selError } = await supabase
     .from("ow_profiles")
-    .select("id, transfer_timing")
+    .select("id, transfer_timing, career_stance")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -226,6 +234,19 @@ export async function PUT(req: Request) {
   if ("transfer_timing" in patch) {
     const before = existing?.transfer_timing ?? null;
     if (patch.transfer_timing !== before) patch.transfer_timing_updated_at = now;
+  }
+
+  /* ★「意思表示を最後に答えた日」。**`career_stance` が実際に変わったときだけ**打ち直す。
+     ⚠️ このルートは希望職種・勤務地・年収・フェーズも保存するが、
+        **それらの保存ではこの列を動かさない。** 動かすと「年収を直しただけの人」が
+        「今日 意思表示を答えた人」に化ける（`transfer_timing_updated_at` と同じ考え方）。
+     ⚠️ 同じ値を選び直しても更新しない。押し直しただけで新しくなると、
+        「昨日答えた人」と区別がつかなくなる。
+     ⚠️ 「現職の話を聞かれる」の保存でも同じ列を打つ（`lib/profile/stance.ts`）。
+        こちらと同じ意味の列なので、書き方を割らないこと。 */
+  if ("career_stance" in patch) {
+    const before = existing?.career_stance ?? null;
+    if (patch.career_stance !== before) patch.stance_updated_at = now;
   }
 
   if (existing) {

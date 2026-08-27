@@ -79,7 +79,14 @@ import {
   SOCIAL_META,
   SNS_PLATFORMS,
 } from "@/components/SocialIcon";
-import type { SettingsState } from "./SettingsTab";
+/* ★`SettingsState` は 2026-08-26 にここへ移した（`SettingsTab` を削除したため）。
+      ⚠️ `isOpenToWork` は**この型から外した**。「転職について」は
+         `ow_profiles.career_stance` に移り、右カラムの `IntentCard` が持つ。 */
+export type SettingsState = {
+  avatarColor: string;
+  coverColor: string;
+  visibility: "public" | "login_only" | "private";
+};
 import { USERNAME_MIN, USERNAME_MAX, USERNAME_HINT } from "@/lib/constants/username";
 
 /** JSONB キー名は "x"。値は URL 文字列。空文字列 = 未設定。 */
@@ -96,7 +103,6 @@ type OwUser = {
   location: string | null;
   birth_date: string | null;
   about_me: string | null;
-  is_open_to_work: boolean | null;
   social_links: Json | null;
   headline: string | null;
   username: string | null;
@@ -1275,7 +1281,7 @@ export default function ProfileTab({
           </div>
 
           {/* ⚠️ 「転職の希望」は 2026-08-25 に**右カラムへ移した**（柴さんの指示）。
-                 同じ値（転職について）を右カラムの `StanceCard` が表示だけしており、
+                 同じ値（転職について）を右カラムの `IntentCard` が表示だけしており、
                  **同じ情報が本文と右カラムの2箇所**に出ていた。編集ごと右へ寄せた。
               ⚠️ 本文に戻すなら、右カラム側（`MypageClient`）から必ず外すこと。
                  2箇所に出す形へ戻さない。 */}

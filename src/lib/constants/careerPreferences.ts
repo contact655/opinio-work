@@ -52,6 +52,41 @@ export const DESIRED_WORK_STYLE_LABELS: Record<string, string> = {
   flexible: "柔軟に対応",
 };
 
+/**
+ * ★「転職について」の意思表示（`ow_profiles.career_stance`）。2026-08-26 / フェーズ2。
+ *
+ * ── なぜ boolean をやめたか ─────────────────────────────────────────────────
+ * それまでは `ow_users.is_open_to_work`（boolean・NOT NULL・既定 false）で、
+ * 画面には「積極的に探している」/「情報収集として」の2択として出していた。
+ * boolean には **「まだ答えていない」が無い**。実測（2026-08-26）で false は 35件あったが、
+ * その中身は「false と答えた人」と「一度も触っていない人」が混ざっており、区別できない。
+ *
+ * ⚠️★**したがって `null`（未設定）を持てることがこの列の要件。** NOT NULL にしないこと。
+ *    既定値も付けないこと。付けた瞬間に「答えていない人」が消える。
+ *
+ * ⚠️ **`transfer_timing` に相乗りさせない。** あちらの意味は「時期」で、
+ *    既存2件（`1〜3ヶ月以内` / `1年以内`）をこの4値のどれに写すかが決められない。
+ *
+ * ⚠️ 4つ目は**本人の状態のラベルにしない**（「転職を考えていない」と書かない）。
+ *    OPINIO は転職しない人も主役なので、**連絡の希望**として書く。
+ *
+ * ⚠️ 値（slug）と表示（日本語）を分けてある。**日本語をそのまま DB に入れない。**
+ *    文言はこれから動く可能性が高い（フェーズ3で規約と一緒に見直す）。
+ */
+export const CAREER_STANCES = [
+  { value: "active",      label: "積極的に検討中" },
+  { value: "open",        label: "いい話があれば聞きたい" },
+  { value: "researching", label: "情報収集として" },
+  /** ⚠️★フェーズ3で**スカウトの送信可否**をこの値に付け替える。意味を変えないこと。 */
+  { value: "no_contact",  label: "いまは声をかけられたくない" },
+] as const;
+
+export type CareerStance = (typeof CAREER_STANCES)[number]["value"];
+
+/** 値 → 表示ラベル。⚠️ DB に入りうる値をすべて含める */
+export const CAREER_STANCE_LABELS: Record<string, string> =
+  Object.fromEntries(CAREER_STANCES.map((o) => [o.value, o.label]));
+
 export const TRANSFER_TIMINGS = [
   { value: "即時",         label: "すぐにでも（即時）" },
   { value: "1〜3ヶ月以内",  label: "1〜3ヶ月以内" },
@@ -75,6 +110,9 @@ export const VALID_DESIRED_WORK_STYLES = new Set<string>([
 ]);
 
 export const VALID_TRANSFER_TIMINGS = new Set<string>(TRANSFER_TIMINGS.map((o) => o.value));
+
+/** ⚠️ DB の CHECK（`ow_profiles_career_stance_check`）と**同じ4値**。片方だけ足さないこと。 */
+export const VALID_CAREER_STANCES = new Set<string>(CAREER_STANCES.map((o) => o.value));
 
 export const VALID_DESIRED_PHASES = new Set<string>(DESIRED_PHASES);
 

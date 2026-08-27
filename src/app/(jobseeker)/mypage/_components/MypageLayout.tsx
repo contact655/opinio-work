@@ -337,6 +337,16 @@ export default function MypageLayout({
             order: -1;
             position: static !important; height: auto !important; overflow: visible !important;
             border-left: none !important; padding: 16px 16px 0 !important;
+            /* ★2026-08-26 追加。**幅いっぱいに広げる。**
+               インラインの align-self: start は「デスクトップで sticky を上端に貼る」ための
+               指定だが、767px 以下では**縦積みの flex** になるため、同じ指定が
+               **横方向の縮み**として効き、右カラムが中身の max-content 幅に潰れていた。
+               ⚠️ 実測（375px / 2026-08-26）: 375px の枠に対して aside 269px・カード 237px。
+                  **画面の 28% が使われていなかった。** 中身の幅で決まるので、
+                  カードの文言を短くするほど狭くなるという逆向きの挙動にもなっていた。
+               ⚠️ grid（1100px 未満）側には要らない。あちらの align-self は縦方向なので
+                  幅には効かない。 */
+            align-self: stretch !important;
           }
           /* 右カラムのうち**モバイルでは出さないもの**。ここで消す（本文側に控えを作らない） */
           .mypage-hide-mobile { display: none !important; }

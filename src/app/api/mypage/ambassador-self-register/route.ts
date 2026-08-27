@@ -6,6 +6,7 @@ import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { notify } from "@/lib/notify/email";
 import { ambassadorRequestTemplate } from "@/lib/notify/templates";
+import { touchStanceUpdatedAt } from "@/lib/profile/stance";
 
 export const dynamic = "force-dynamic";
 
@@ -158,6 +159,10 @@ export async function POST(req: NextRequest) {
         掲載中79社のうち77社は企業側に宛先が無く、その場合は運営に届く。
      ⚠️ 取引通知なので opt-out 列は要らない（週次のリマインドとは別物）。 */
   await sendRequestNotice(companyId, owUser.id);
+  /* ★「意思表示を最後に答えた日」を打ち直す（2026-08-26 / フェーズ2）。
+     ⚠️ `user.id` は auth 空間。`owUser.id`（ow_users 空間）を渡さないこと。
+     ⚠️ 記録なので失敗しても 201 を返す（行は既に作れている）。 */
+  await touchStanceUpdatedAt(user.id, "ambassador-self-register stance_updated_at");
   /* ⚠️ 状態名を文字列で直書きしない。`MemberState` で縛っておくと、
         改名したときに tsc が落ちて気づける。
      ⚠️ 2026-08-24 に `pending_company` から変更。**もう承認待ちにはならない。** */

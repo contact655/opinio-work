@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
  *    前の人の判定を引き継がないため。
  */
 function completedKey(userId: string): string {
-  return `opinio.onboarded.${userId}`;
+  return `opinio.onboarded.v2.${userId}`;
 }
 
 /**
@@ -34,7 +34,19 @@ function currentHref(fallbackPathname: string): string {
 }
 
 /**
- * ログイン済みで onboarding_completed=false のユーザーを /onboarding へ誘導する。
+ * ログイン済みの誘導。**2つ見る。**
+ *   ① `onboarding_completed = false`            → `/onboarding`
+ *   ② `career_stance` が未設定（2026-08-27 追加） → `/onboarding/stance`
+ *
+ * ⚠️★②を足した理由: スカウトの送信可否を `career_stance` に付け替えたので、
+ *    **未設定のままだと誰からも声がかからない**（未設定を「送れる」に読み替えない
+ *    と決めたため）。既定値で埋めずに、本人に1問だけ答えてもらう。
+ *
+ * ⚠️ **同じ判定が `lib/auth/postAuth.ts` にもある**（ログイン直後の着地先）。
+ *    あちらはログイン時、こちらは遷移のたび。片方だけ条件を変えないこと。
+ *
+ * ⚠️ **`career_stance` を追加のクエリで取らない。** 下の SELECT に列を足すだけ。
+ *    ここは遷移1回ごとに走るので、往復を増やすと体感に直接出る。
  *
  * ── ここは「ページ遷移のたびに走る」場所であることに注意（2026-08-13）────────
  * useEffect の依存に pathname が入っているので、**遷移1回ごとに実行される**。
@@ -59,6 +71,8 @@ export function OnboardingGuard() {
 
   useEffect(() => {
     // onboarding ページ自体・auth系ページでは動かさない
+    // ⚠️ `/onboarding/stance` もここに含まれる（前方一致）。含めないと、
+    //    その画面自身が自分へリダイレクトし続ける。
     if (pathname.startsWith("/onboarding") || pathname.startsWith("/auth")) return;
 
     const supabase = createClient();
@@ -67,6 +81,10 @@ export function OnboardingGuard() {
       const user = session?.user;
       if (!user) return;
 
+      /* ⚠️ キャッシュのキーは「2つとも済んでいる」を意味する。
+            条件を足したので、**古いキーを使い回さない**（`.v2` を付けた）。
+            付けないと、フェーズ3の前に "1" を書き込んだタブでは
+            `career_stance` の判定に一度も入らない。 */
       const key = completedKey(user.id);
       try {
         if (sessionStorage.getItem(key) === "1") return;
@@ -76,12 +94,20 @@ export function OnboardingGuard() {
 
       const { data: profile } = await supabase
         .from("ow_profiles")
-        .select("onboarding_completed")
+        .select("onboarding_completed, career_stance")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (!profile?.onboarding_completed) {
         router.replace(`/onboarding?next=${encodeURIComponent(currentHref(pathname))}`);
+        return;
+      }
+
+      /* ★「転職について」が未設定なら1問だけ聞く（2026-08-27 / フェーズ3）。
+         ⚠️ **キャッシュ（sessionStorage）に入れるのはこの後**。ここで返すと
+            「答えていない」を覚えてしまい、答えた直後も送り返し続ける。 */
+      if (!profile.career_stance) {
+        router.replace(`/onboarding/stance?next=${encodeURIComponent(currentHref(pathname))}`);
         return;
       }
 

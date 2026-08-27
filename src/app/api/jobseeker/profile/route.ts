@@ -36,7 +36,6 @@ export async function PUT(req: Request) {
     location?: string | null;
     social_links?: Json | null;
     visibility?: string;
-    is_open_to_work?: boolean;
     profile_setup_at?: string | null;
     updated_at: string;
     username?: string | null;
@@ -119,7 +118,12 @@ export async function PUT(req: Request) {
       }
       patch.visibility = body.visibility;
     }
-    if ("is_open_to_work" in body) patch.is_open_to_work = body.is_open_to_work === true;
+    /* ⚠️ `is_open_to_work` の受け口は 2026-08-26 に外した（フェーズ2）。
+          「転職について」の正は `ow_profiles.career_stance`（4値・null 可）になり、
+          保存は `PUT /api/jobseeker/career-preferences` が持つ。
+          ⚠️ **ここに書き戻さないこと。** 同じ意思表示を触る経路が2つになる。
+          ⚠️ 列（`ow_users.is_open_to_work`）は DROP していない。写さなかった
+             false 35件の事実を残すため。**読む側も書く側もいない。** */
 
     /* ⚠️ **これは text ではなく timestamptz。** 任意 text の正規化を通さない。
           空文字をそのまま渡すと Postgres が 22007 で弾き、**400 ではなく 500 になる**。

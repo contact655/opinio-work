@@ -83,7 +83,9 @@ export async function jobseekerDestination(params: {
 
   const { data: profile, error: profileError } = await supabase
     .from("ow_profiles")
-    .select("onboarding_completed")
+    /* ⚠️ `career_stance` も**同じ1回で**取る（2026-08-27 / フェーズ3）。
+          別のクエリを足すと、認証の直列段に往復が1つ増える。 */
+    .select("onboarding_completed, career_stance")
     .eq("user_id", session.user.id)
     .maybeSingle();
 
@@ -152,6 +154,17 @@ export async function jobseekerDestination(params: {
 
   if (needsOnboarding) {
     return `${origin}/onboarding?next=${encodeURIComponent(next)}`;
+  }
+
+  /* ★「転職について」に答えていない人は、ログインのたびに1問だけ聞く（2026-08-27 / フェーズ3）。
+     ⚠️ スカウトの送信可否がこの値になったので、**未設定のままだと誰からも届かない。**
+        既定値を付けて埋めるのではなく、本人に選んでもらう。
+     ⚠️ `profileError` のときは飛ばさない（`profile` が null になり
+        `needsOnboarding` 側で既に `/onboarding` へ行く）。
+     ⚠️ **同じ判定が `OnboardingGuard` にもある。** あちらは遷移のたびに効く。
+        片方だけ条件を変えないこと。 */
+  if (!profile?.career_stance) {
+    return `${origin}/onboarding/stance?next=${encodeURIComponent(next)}`;
   }
 
   /* 新規ユーザーはウェルカムバナー付きで着地させる。

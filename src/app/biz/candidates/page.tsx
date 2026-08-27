@@ -167,8 +167,14 @@ export default async function CandidatesPage() {
   const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_phase, transfer_timing, transfer_timing_updated_at, scout_enabled, desired_salary_min, desired_salary_max")
-      .eq("scout_enabled", true)
+      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_phase, transfer_timing, transfer_timing_updated_at, desired_salary_min, desired_salary_max, career_stance")
+      /* ★母集合を `scout_enabled` から `career_stance` に付け替えた（2026-08-27 / フェーズ3）。
+         ⚠️★**未設定（null）は入れない。** 本人が一度も答えていない状態を
+            「受け取る」と読み替えて企業に開示することになる。
+            `can_send_scout()` と**同じ条件**にしてある。片方だけ変えないこと。
+         ⚠️ 止めるのは `no_contact` だけ。`researching`（情報収集として）は入る。 */
+      .not("career_stance", "is", null)
+      .neq("career_stance", "no_contact")
       .then(r => r.data ?? []),
     adminClient
       .from("ow_scout_quotas")
@@ -194,7 +200,7 @@ export default async function CandidatesPage() {
   const blockedCandidateIds = new Set((blockedPlacements).map((p: any) => p.candidate_id as string));
   const scoutedAuthIds = new Set((sentScouts).map((s: any) => s.candidate_id as string));
 
-  // scout_enabled=true ユーザーの auth_id 一覧
+  // 声をかけてよい（career_stance が未設定でも no_contact でもない）ユーザーの auth_id 一覧
   const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
 
   /* ow_users 取得。
@@ -206,7 +212,7 @@ export default async function CandidatesPage() {
   const { data: rawUsers, error: rawUsersError } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
-        .select("id, name, location, is_mentor, is_open_to_work, created_at, auth_id")
+        .select("id, name, location, is_mentor, created_at, auth_id")
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
@@ -229,9 +235,10 @@ export default async function CandidatesPage() {
     desired_phase: string[] | null;
     transfer_timing: string | null;
     transfer_timing_updated_at: string | null;
-    scout_enabled: boolean | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
+    /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」（2026-08-26 / フェーズ2） */
+    career_stance: string | null;
   }>();
   for (const p of profileRows) {
     profilesByAuthId.set(p.user_id as string, p as any);
@@ -347,7 +354,14 @@ export default async function CandidatesPage() {
         name: (u.name as string) || "名前未設定",
         location: (u.location as string) || null,
         isMentor: (u.is_mentor as boolean) || false,
-        isOpenToWork: (u.is_open_to_work as boolean) || false,
+        /* ★「転職検討中」バッジの根拠を `ow_users.is_open_to_work`（boolean）から
+              `ow_profiles.career_stance` に付け替えた（2026-08-26 / フェーズ2）。
+           ⚠️ **バッジを出すのは `active`（積極的に検討中）だけ。** 移行では
+              `is_open_to_work = true` の3件だけを `active` に写しているので、
+              **この画面に出る顔ぶれは変わらない**（移行前後で実測して確認済み）。
+           ⚠️ `open`（いい話があれば聞きたい）でバッジを出すかは**別の判断**。
+              広げると「検討中」の意味が変わるので、決めてから足すこと。 */
+        isActivelyLooking: profile?.career_stance === "active",
         /* ⚠️ 職歴が0件なら `calcTotalExperience` が null を返す。**0年で埋めない**
               （新卒と未登録が同じになる。CLAUDE.md「値が無いことを、ある値に置き換えない」）。
               絞り込み側は null を落とさず、そのまま表示する。 */

@@ -14,7 +14,7 @@ import { FormSection } from "@/components/profile/editor/formKit";
  *    （`SettingsTab` がタブごと外れたため）。`get_blocked_companies` は
  *    2026-08-20 に直したが、**見る場所が無いままだった**。ここが置き場。
  *
- * ⚠️ **同じ列を触る画面を2つにしない。** 公開範囲は `CareerIntentBox`（本文の
+ * ⚠️ **同じ列を触る画面を2つにしない。** 公開範囲は `IntentCard`（右カラムの
  *    「転職の希望」）から外してある。戻さないこと。
  */
 

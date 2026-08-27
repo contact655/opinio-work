@@ -30,7 +30,10 @@ type Candidate = {
   name: string;
   location: string | null;
   isMentor: boolean;
-  isOpenToWork: boolean;
+  /** ★「積極的に検討中」（`ow_profiles.career_stance = 'active'`）。2026-08-26 に改名。
+   *  ⚠️ 旧名 `isOpenToWork` は `ow_users.is_open_to_work`（boolean）由来だった。
+   *     列を移したので名前も合わせる。**列名で grep したときに残らないようにする。** */
+  isActivelyLooking: boolean;
   /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
   tenureMonths: number | null;
   currentRole: string | null;
@@ -798,7 +801,7 @@ export default function CandidatesClient({
                           {tenure && (
                             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>
                           )}
-                          {c.isOpenToWork && (
+                          {c.isActivelyLooking && (
                             <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #6EE7B7" }}>転職検討中</span>
                           )}
                           {c.isMentor && (

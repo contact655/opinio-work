@@ -4,15 +4,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-// GET: scout_enabled + blocked companies (auto + manual) for the current user
+/**
+ * GET: ブロック中の企業（自動＋手動）を返す。
+ *
+ * ⚠️ `scout_enabled` は 2026-08-27 に返すのをやめた（フェーズ3）。
+ *    スカウトの送信可否は `ow_profiles.career_stance` が決める。
+ *    ⚠️ **PUT も削除した。** この列を書く経路はもう無い。
+ *       列は残っているが、読む側も書く側もいない。**新しい参照を足さないこと。**
+ */
 export async function GET() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const admin = createAdminClient();
-  const [profileResult, blockedResult, manualBlocksResult] = await Promise.all([
-    admin.from("ow_profiles").select("scout_enabled").eq("user_id", user.id).maybeSingle(),
+  const [blockedResult, manualBlocksResult] = await Promise.all([
     /* ⚠️ 引数名は関数と**完全に一致**させる。RPC は名前が違うだけで 404（PGRST202）になる。
           2026-08-20 まで `candidate_id` で呼んでおり、**ずっと404だった**。
           関数側も規約に合わせて `p_auth_user_id` に改名済み（20260820200000）。 */
@@ -45,68 +51,9 @@ export async function GET() {
     block_reason: (b.block_reason as "experience" | "manual"),
   }));
 
-  return NextResponse.json({
-    scout_enabled: profileResult.data?.scout_enabled ?? null,
-    blocks,
-  });
+  return NextResponse.json({ blocks });
 }
 
-// PUT: update scout_enabled
-export async function PUT(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  const body = await req.json().catch(() => ({}));
-  const { scout_enabled } = body as { scout_enabled: boolean | null };
-  if (scout_enabled !== true && scout_enabled !== false && scout_enabled !== null) {
-    return NextResponse.json({ error: "invalid value" }, { status: 400 });
-  }
-
-  const admin = createAdminClient();
-  const { data: existing, error: existingError } = await admin
-    .from("ow_profiles")
-    .select("id, scout_enabled")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (existingError) console.error("[scout-settings] ow_profiles select:", existingError.message);
-
-  const now = new Date().toISOString();
-
-  /* ★`stance_updated_at` は**値が実際に変わったときだけ**入れる（2026-08-20）。
-     ⚠️ `transfer_timing_updated_at`（2026-08-07）とまったく同じ作りにしてある。
-        同じ意味の列で書き方が2通りになるほうが害が大きい。
-     ⚠️ **同じ値を選び直しても更新しない。** 「いつ意思表示したか」を出すための列なので、
-        押し直しただけで新しくなると「昨日答えた人」と区別がつかなくなる。
-     ⚠️ trigger にしない（この表には trigger が1本も無い）。 */
-  if (existing) {
-    const changed = existing.scout_enabled !== scout_enabled;
-    const { error } = await admin
-      .from("ow_profiles")
-      .update({
-        scout_enabled,
-        updated_at: now,
-        ...(changed ? { stance_updated_at: now } : {}),
-      })
-      .eq("user_id", user.id);
-    if (error) {
-      console.error("[scout-settings] ow_profiles update:", error.message);
-      return NextResponse.json({ error: "save failed" }, { status: 500 });
-    }
-  } else {
-    /* 行が無い＝初めて答える。**未選択(null)を保存しに来た場合は日時を入れない**
-       （「答えた」ことにならないため）。 */
-    const { error } = await admin
-      .from("ow_profiles")
-      .insert({ user_id: user.id, scout_enabled, ...(scout_enabled === null ? {} : { stance_updated_at: now }) });
-    if (error) {
-      console.error("[scout-settings] ow_profiles insert:", error.message);
-      return NextResponse.json({ error: "save failed" }, { status: 500 });
-    }
-  }
-
-  return NextResponse.json({ ok: true });
-}
 
 // POST: add a manual block
 export async function POST(req: NextRequest) {
