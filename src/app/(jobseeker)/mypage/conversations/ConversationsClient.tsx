@@ -9,6 +9,8 @@ import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
+import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
+
 export type Conversation = {
   id: string;
   kind: string;
@@ -130,6 +132,68 @@ export default function ConversationsClient({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* ── ★複数の宛先へ送る（2026-08-27）────────────────────────────────────────
+        ⚠️ **グループ会話ではない。** 宛先ごとに既存の1対1の会話へ1通ずつ入る。
+           受け取った側からは通常のメッセージと区別がつかず、**他の宛先も見えない。**
+        ⚠️ **新しく会話は作らない。** 選べるのは**すでにある会話**だけなので、
+           面識のない企業へ一斉送信することはできない。 */
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkIds, setBulkIds] = useState<Set<string>>(new Set());
+  const [bulkText, setBulkText] = useState("");
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkNote, setBulkNote] = useState<string | null>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+
+  const toggleBulkId = (id: string) => {
+    setBulkError(null);
+    setBulkIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size >= MAX_BULK_RECIPIENTS) return prev; /* 上限。⚠️ 静かに無視しない（下で件数を出す） */
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitBulk = () => {
+    setBulkMode(false); setBulkIds(new Set()); setBulkText("");
+    setBulkError(null); setBulkNote(null);
+  };
+
+  const handleBulkSend = async () => {
+    if (bulkSending || bulkIds.size === 0 || !bulkText.trim()) return;
+    setBulkSending(true); setBulkError(null); setBulkNote(null);
+    try {
+      const res = await fetch("/api/dm/bulk-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationIds: Array.from(bulkIds), message: bulkText.trim() }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
+      const data = await res.json().catch(() => null);
+      /* ⚠️ **「全部送れた」で片付けない。** 誰に届かなかったかを出す。
+            出さないと、利用者は同じ本文をもう一度全員に送ることになる。 */
+      const sent = typeof data?.sent === "number" ? data.sent : 0;
+      const total = typeof data?.total === "number" ? data.total : bulkIds.size;
+      if (sent === 0) {
+        setBulkError(data?.message ?? "送信できませんでした。もう一度お試しください。");
+        return;
+      }
+      if (sent < total) {
+        setBulkNote(`${total}件中 ${sent}件に送りました。残り${total - sent}件は送れませんでした。`);
+        return;
+      }
+      setBulkNote(`${sent}件に送りました。`);
+      setBulkText("");
+      setBulkIds(new Set());
+      router.refresh();
+    } catch {
+      setBulkError("送信できませんでした。もう一度お試しください。");
+    } finally {
+      setBulkSending(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!inputText.trim() || !selectedConvId || sending) return;
     setSending(true);
@@ -181,9 +245,31 @@ export default function ConversationsClient({
         }}>
           {/* 左ヘッダー */}
           <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--line-soft)", flexShrink: 0 }}>
-            <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-              メッセージ
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+                メッセージ
+              </h1>
+              {/* ⚠️ 会話が2件以上あるときだけ出す。1件しか無い人に「複数に送る」は意味が無い */}
+              {conversations.length >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => (bulkMode ? exitBulk() : setBulkMode(true))}
+                  style={{
+                    border: "none", background: "none", padding: 0, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--royal)",
+                  }}
+                >
+                  {bulkMode ? "やめる" : "複数に送る"}
+                </button>
+              )}
+            </div>
+            {bulkMode && (
+              <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                宛先を選んでください（{bulkIds.size} / {MAX_BULK_RECIPIENTS}）。
+                {/* ★何が起きるかを先に言う。送ったあとで気づく形にしない */}
+                <br />相手ごとに<strong style={{ color: "var(--ink)" }}>別々に届きます</strong>。他の宛先は見えません。
+              </p>
+            )}
           </div>
 
           {conversations.length === 0 ? (
@@ -214,17 +300,28 @@ export default function ConversationsClient({
                 <button
                   key={conv.id}
                   type="button"
-                  onClick={() => setSelectedConvId(conv.id)}
+                  onClick={() => (bulkMode ? toggleBulkId(conv.id) : setSelectedConvId(conv.id))}
+                  aria-pressed={bulkMode ? bulkIds.has(conv.id) : undefined}
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
                     padding: "12px 14px", textAlign: "left", border: "none",
                     borderBottom: "1px solid var(--line-soft)",
-                    background: isSelected ? "var(--royal-50)" : "transparent",
+                    background: (bulkMode ? bulkIds.has(conv.id) : isSelected) ? "var(--royal-50)" : "transparent",
                     cursor: "pointer", width: "100%",
-                    borderLeft: isSelected ? "3px solid var(--royal)" : "3px solid transparent",
+                    borderLeft: (bulkMode ? bulkIds.has(conv.id) : isSelected) ? "3px solid var(--royal)" : "3px solid transparent",
                     transition: "background 0.1s",
                   }}
                 >
+                  {/* ⚠️ 選択モードでは**選ばれているかを形で出す**。背景色だけだと、
+                         いま選ばれているのか開いているだけなのか区別がつかない。 */}
+                  {bulkMode && (
+                    <span aria-hidden style={{
+                      width: 16, height: 16, flexShrink: 0, borderRadius: 4,
+                      border: bulkIds.has(conv.id) ? "none" : "1.5px solid var(--line)",
+                      background: bulkIds.has(conv.id) ? "var(--royal)" : "#fff",
+                      color: "#fff", fontSize: 11, lineHeight: "16px", textAlign: "center", fontWeight: 700,
+                    }}>{bulkIds.has(conv.id) ? "✓" : ""}</span>
+                  )}
                   <ConvAvatar conv={conv} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -252,7 +349,70 @@ export default function ConversationsClient({
 
         {/* ── 右カラム: 会話パネル ── */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-          {!selectedConvId ? (
+          {/* ★複数送信のときは、会話ではなく**本文を書く面**にする（2026-08-27）。
+                 ⚠️ 会話を開いたまま複数送信の欄も出す形にしない。どちらに書いているのか
+                    分からなくなり、開いている相手にだけ送ったつもりで全員に届く。 */}
+          {bulkMode ? (
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: 16, gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                {bulkIds.size === 0 ? "宛先を選んでください" : `${bulkIds.size}件の宛先に送る`}
+              </p>
+              {/* ⚠️ 誰に送るのかを**名前で**出す。件数だけだと選び間違いに気づけない */}
+              {bulkIds.size > 0 && (
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                  {conversations
+                    .filter((c) => bulkIds.has(c.id))
+                    .map((c) =>
+                      c.kind === "direct_message" || c.kind === "mentor"
+                        ? c.mentor?.name ?? "ユーザー"
+                        : c.ow_companies?.name ?? "(企業情報なし)",
+                    )
+                    .join("・")}
+                </p>
+              )}
+              <textarea
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                placeholder="送る内容を入力…"
+                aria-label="複数の宛先へ送るメッセージ"
+                maxLength={MAX_DM_LENGTH}
+                disabled={bulkSending}
+                style={{
+                  flex: 1, minHeight: 160, resize: "none", padding: 12,
+                  border: "1px solid var(--line)", borderRadius: 8,
+                  fontFamily: "inherit", fontSize: 14, lineHeight: 1.7, color: "var(--ink)",
+                }}
+              />
+              {bulkError && (
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{bulkError}</p>
+              )}
+              {/* ⚠️ 部分的に送れたときは**それを出す**。「送りました」だけだと、
+                     届かなかった相手に同じ本文をもう一度送ることになる。 */}
+              {bulkNote && (
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{bulkNote}</p>
+              )}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button type="button" onClick={exitBulk} disabled={bulkSending} style={{
+                  padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)",
+                  background: "#fff", color: "var(--ink-soft)", fontFamily: "inherit",
+                  fontSize: 13, fontWeight: 600, cursor: bulkSending ? "default" : "pointer",
+                }}>やめる</button>
+                <button
+                  type="button"
+                  onClick={() => { void handleBulkSend(); }}
+                  disabled={bulkSending || bulkIds.size === 0 || !bulkText.trim()}
+                  style={{
+                    padding: "9px 18px", borderRadius: 8, border: "none",
+                    background: bulkSending || bulkIds.size === 0 || !bulkText.trim() ? "var(--line)" : "var(--royal)",
+                    color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                    cursor: bulkSending || bulkIds.size === 0 || !bulkText.trim() ? "default" : "pointer",
+                  }}
+                >
+                  {bulkSending ? "送信中…" : "送信"}
+                </button>
+              </div>
+            </div>
+          ) : !selectedConvId ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--ink-mute)" }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}>
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
