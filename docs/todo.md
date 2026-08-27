@@ -170,8 +170,20 @@ join に変えるにはこの2ファイルを書き換える必要があり、�
 流すと相手の未リリースの変更を巻き込む。
 
 ⚠️ **`gen:types` が流せるようになったら `createClient`（RLS 付き）へ戻すこと。**
-   family（資格・言語・メディア・発信コンテンツ）は**すべて `createClient`**で、
-   ここだけが例外。
+
+⚠️ **2026-08-27 に言語も同じ状態になった。** `ow_languages` と
+   `ow_user_languages.language_id` の型が無いため、
+   **`/api/jobseeker/languages`（一覧・追加・更新・削除）と `/api/languages` も
+   `createAdminClient` に変えた。** こちらは**元は `createClient` だった**ので、
+   戻し先がはっきりしている。**戻すときは言語も一緒に戻すこと。**
+
+| ルート | 元 | いま |
+|---|---|---|
+| `/api/jobseeker/skills`（新規） | — | admin |
+| **`/api/jobseeker/languages`** | **createClient** | **admin** |
+| `/api/languages`（新規・公開マスタ） | — | admin |
+
+残る family（資格・メディア・発信コンテンツ）は**すべて `createClient`**。
 
 ### ★戻すまでのあいだ、絶対に入れてはいけない変更
 

@@ -188,11 +188,16 @@ export default async function ProfileDetailsPage({ params }: { params: { section
   }
 
   /* ★言語（2026-08-24）。⚠️ 資格と同じく職歴に紐づかない。 */
+  /* ⚠️ `language_id` も引く（2026-08-27 のマスタ化）。編集モーダルの初期選択に要る。
+        ⚠️ `createAdminClient` なのは `types.ts` にこの列がまだ無いため
+           （`gen:types` が流せない事情は `api/jobseeker/languages` の冒頭）。
+           admin は RLS をバイパスするので `user_id` の条件を必ず付けること。 */
   if (section === "languages") {
-    const { data } = await supabase
+    const { data, error } = await createAdminClient()
       .from("ow_user_languages")
-      .select("id, name, proficiency, sort_order")
+      .select("id, language_id, name, proficiency, sort_order")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
+    if (error) console.error("[details/languages]", error.message);
     return <LanguagesDetails initial={(data ?? []) as never} />;
   }
 

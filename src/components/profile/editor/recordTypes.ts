@@ -84,6 +84,17 @@ export type Certification = {
  */
 export type Language = {
   id: string;
+  /**
+   * 言語マスタ（`ow_languages`）。**正はこちら**（2026-08-27 にマスタ化）。
+   * ⚠️ nullable なのは DB が nullable なため。**入力経路は API が必須にしている。**
+   */
+  language_id: string | null;
+  /**
+   * ⚠️ **マスタの `label` の複製。** 正は `language_id`。
+   *    読み手の `u/[id]/page.tsx` と `mypage/page.tsx` がまだこれを直接読むので残してある。
+   *    API が「マスタの label と一致すること」を検証している（自由入力の復活を防ぐ唯一の防御）。
+   *    → docs/todo.md「name が language_id と二重管理になっている」
+   */
   name: string;
   /** 習熟度。値は `lib/constants/languageProficiency.ts` の5値。未選択は null */
   proficiency: string | null;

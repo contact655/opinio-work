@@ -29,6 +29,7 @@ import {
 import { LANGUAGE_PROFICIENCIES } from "@/lib/constants/languageProficiency";
 import { RoleSearchSelect, type RoleOption } from "@/components/ui/RoleSearchSelect";
 import { SKILL_CATEGORIES, MAX_USER_SKILLS, skillCategoryRank } from "@/lib/constants/skills";
+import { MAX_USER_LANGUAGES } from "@/lib/constants/languages";
 
 type EducationDraft = {
   school:        string;
@@ -1434,23 +1435,67 @@ export function CertificationEditor({
  * ⚠️ 未選択は空文字で持ち、送信時に `null` にする。「初級」を既定にしない。
  */
 
-type LangDraft = { name: string; proficiency: string };
-const EMPTY_LANG_DRAFT: LangDraft = { name: "", proficiency: "" };
+type LangDraft = { language_id: string; proficiency: string };
+const EMPTY_LANG_DRAFT: LangDraft = { language_id: "", proficiency: "" };
 function draftFromLang(l: Language): LangDraft {
-  return { name: l.name, proficiency: l.proficiency ?? "" };
+  return { language_id: l.language_id ?? "", proficiency: l.proficiency ?? "" };
 }
+
+/** 言語マスタ（`ow_languages`）。⚠️ `iso_639_1` は**渡さない**（照合に使わない） */
+export type LanguageMaster = { id: string; label: string; aliases: string[] };
 
 /** ★入力欄だけ。保存行は `ProfileEditModal` のフッターが持つ */
 function LangForm({
-  draft, onDraftChange, isSaving,
-}: { draft: LangDraft; onDraftChange: (d: LangDraft) => void; isSaving: boolean; }) {
+  draft, onDraftChange, isSaving, masters, mastersError, takenIds,
+}: {
+  draft: LangDraft; onDraftChange: (d: LangDraft) => void; isSaving: boolean;
+  masters: LanguageMaster[];
+  /** 取得に失敗したか。⚠️ 「0件」と区別して出す */
+  mastersError: boolean;
+  /** 既に登録済みの language_id。⚠️ 編集中の行の分は呼び出し側で除いてある */
+  takenIds: Set<string>;
+}) {
   const set = useCallback((k: keyof LangDraft, v: string) => onDraftChange({ ...draft, [k]: v }), [draft, onDraftChange]);
+  /* ★**素の `<select>` を使う。`RoleSearchSelect` は流用しない。**
+     ⚠️ スキルでは流用したが、あちらは「区分 → スキル」の**2階層が実在する**。
+        言語は階層が無いので、流用すると「大分類 / 小分類」の2段セレクトと
+        「大分類だけでも保存できます」という**職種向けの文言がそのまま出る**
+        （2026-08-27 に実際に出た）。17件なら素のセレクトで足りる。
+     ⚠️ すぐ下の習熟度も `<select>` なので、見た目もそろう。
+     ⚠️ **既に持っている言語は候補から外す**（選べるのに 409 になる状態を作らない）。
+        ただし編集中の行の言語は残す（開いた瞬間に自分の値が消えないように）。 */
+  const options = masters.filter((m) => !takenIds.has(m.id) || m.id === draft.language_id);
+  const selected = masters.find((m) => m.id === draft.language_id);
   return (
     <div style={formCol}>
       <div>
         <label style={ael()}>言語 *</label>
-        <input type="text" value={draft.name} onChange={(e) => set("name", e.target.value)}
-          placeholder="例：英語、中国語（北京語）" maxLength={60} disabled={isSaving} style={aef()} />
+        {/* ⚠️ **自由入力は無い**（2026-08-27 にマスタ選択へ変えた）。
+               表記が揺れると `/search` で引けなくなるため。
+               入力欄（`<input type="text">`）を戻さないこと。 */}
+        <select
+          aria-label="言語"
+          value={draft.language_id}
+          onChange={(e) => set("language_id", e.target.value)}
+          disabled={isSaving || masters.length === 0}
+          style={aef()}
+        >
+          {/* ⚠️ 未選択を選べる状態にしておく。既定で先頭の言語が入るのを避ける
+                 （「値が無いことを、ある値に置き換えない」） */}
+          <option value="">選択してください</option>
+          {options.map((m) => (
+            <option key={m.id} value={m.id}>{m.label}</option>
+          ))}
+        </select>
+        {/* ⚠️ 選択中の値を必ず見せる。ピッカーは選ぶと入力欄が空に見えることがある */}
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: mastersError ? "var(--error)" : selected ? "var(--ink-soft)" : "var(--ink-mute)", lineHeight: 1.7 }}>
+          {/* ⚠️ 取得に失敗したことを「選択肢が無い」と見せない */}
+          {mastersError
+            ? "言語の一覧を読み込めませんでした。再読み込みしてください。"
+            : selected
+              ? `選択中: ${selected.label}`
+              : "一覧から選ぶ形です（自由入力はできません）。"}
+        </p>
       </div>
       <div>
         <label style={ael()}>習熟度（任意）</label>
@@ -1495,8 +1540,21 @@ export function LanguageEditor({
     setToastVariant(variant); setToastMsg(msg);
   }, []);
 
+  /* ★言語マスタは**この部品が自分で取る**（props で受けない）。
+     ⚠️ 呼び出し元が2つあり、片方（`ProfileTab.tsx`）は別セッションの作業中で
+        触れないため。props を必須にすると、あちらがビルドできなくなる。
+        任意にして既定を空にすると、**選択肢が1つも無いピッカー**が
+        `/mypage` に出る（自由入力だった頃より悪い）。
+     ⚠️ 取りに行くのは**モーダルを開いたときだけ**。この部品は常に描かれているので、
+        マウント時に取ると全ページ表示で1往復増える。 */
+  const [masters, setMasters] = useState<LanguageMaster[]>([]);
+  const [mastersError, setMastersError] = useState(false);
+
+  /* ★送るのは `language_id` と `proficiency` だけ。
+     ⚠️ **`name` は送らない。** API がマスタの `label` を入れる。
+        送ると「マスタと一致すること」の検証に引っかかる余地を作るだけで、得が無い。 */
   const makeBody = (d: LangDraft) => ({
-    name: d.name.trim(),
+    language_id: d.language_id,
     proficiency: d.proficiency || null,
   });
 
@@ -1579,12 +1637,57 @@ export function LanguageEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openDeleteId]);
 
+  /* ★マスタは開いたときに1回だけ取る。⚠️ 失敗を握りつぶさない
+        （選択肢が空なのが「0件」なのか「取得に失敗」なのか区別できなくなる）。 */
+  const modalOpen = adding || editingId !== null;
+  useEffect(() => {
+    if (!modalOpen || masters.length > 0) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/languages");
+        if (!res.ok) throw new Error(String(res.status));
+        const j = await res.json();
+        if (alive) setMasters(j.languages ?? []);
+      } catch (e) {
+        console.error("[LanguageEditor] 言語マスタの取得に失敗:", e);
+        if (alive) setMastersError(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, [modalOpen, masters.length]);
+
+  /* ★★`language_id` が入っていない行を、`name` からマスタに引き当てる。
+     ⚠️ **これが無いと `/mypage` で既存の行を編集できない。**
+        `/mypage` に初期値を渡す `mypage/page.tsx` は別セッションの作業中で、
+        `.select()` に `language_id` を足せない（`id, name, proficiency, sort_order` のまま）。
+        そのままだと編集モーダルが「未選択」で開き、保存が 400 になる。
+     ⚠️ 引き当ては `name`（＝マスタの `label` の複製）が正しいことに依存している。
+        API が一致を検証しているので成り立つ。**その検証を外すとここも壊れる。**
+     ⚠️ あの2ファイルが空いて `language_id` を渡せるようになったら、この救済は消してよい。
+        → docs/todo.md */
+  useEffect(() => {
+    if (!editingId || masters.length === 0) return;
+    if (editDraft.language_id) return;
+    const row = languages.find((l) => l.id === editingId);
+    const hit = row ? masters.find((m) => m.label === row.name) : undefined;
+    if (hit) setEditDraft((d) => (d.language_id ? d : { ...d, language_id: hit.id }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingId, masters, editDraft.language_id]);
+
   /* ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。マウント時に控えた値にしない。 */
   const isEditing = editingId !== null;
   const draft = isEditing ? editDraft : addDraft;
   const savedRow = isEditing ? languages.find((l) => l.id === editingId) : undefined;
-  const base = savedRow ? draftFromLang(savedRow) : EMPTY_LANG_DRAFT;
-  const dirty = !!draft.name.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+  /* ⚠️ 基準側も同じ引き当てを通す。通さないと、救済で入れた値が「変更あり」に見えて
+        何も触っていないのに保存ボタンが立つ。 */
+  const base = savedRow
+    ? { ...draftFromLang(savedRow),
+        language_id: savedRow.language_id
+          ?? masters.find((m) => m.label === savedRow.name)?.id
+          ?? "" }
+    : EMPTY_LANG_DRAFT;
+  const dirty = !!draft.language_id && JSON.stringify(draft) !== JSON.stringify(base);
 
   return (
     <>
@@ -1602,11 +1705,23 @@ export function LanguageEditor({
           onClosedRef.current?.();
         }}
       >
+        {/* ★上限。⚠️ **追加のときだけ効かせる**（編集は件数が変わらない）。
+               API 側でも弾くが、押せてから怒られるより押せないほうがよい。 */}
+        {!isEditing && languages.length >= MAX_USER_LANGUAGES ? (
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+            言語は{MAX_USER_LANGUAGES}個までです。入れ替えるには、どれかを削除してください。
+          </p>
+        ) : (
         <LangForm
           draft={draft}
           onDraftChange={isEditing ? setEditDraft : setAddDraft}
           isSaving={isEditing ? editSaving : addSaving}
+          masters={masters}
+          mastersError={mastersError}
+          /* ⚠️ 編集中の行の言語は候補に残す（開いた瞬間に自分の値が消えないように） */
+          takenIds={new Set(languages.filter((l) => l.id !== editingId).map((l) => l.language_id ?? ""))}
         />
+        )}
       </ProfileEditModal>
       <ConfirmDialog isOpen={!!deleteTarget} title="言語を削除しますか？"
         message={deleteTarget ? `「${deleteTarget.name}」を削除します。この操作は取り消せません。` : ""}
