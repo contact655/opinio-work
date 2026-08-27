@@ -426,7 +426,7 @@ export async function searchPersonHits(
   const db = createAdminClient();
   const tree = await getRoleTree();
 
-  const [userRes, expRes, foreignRes, domainRes, skillRes] = await Promise.all([
+  const [userRes, expRes, foreignRes, domainRes, skillRes, langRes] = await Promise.all([
     db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system"),
     db
       .from("ow_experiences")
@@ -438,10 +438,14 @@ export async function searchPersonHits(
     /* ★人が持つスキル。⚠️ `matchOn: "person"` の条件はここから判定する。
           職歴とは無関係なので `experienceMatches` には渡さない。 */
     db.from("ow_user_skills").select("user_id, skill_id"),
+    /* ★人が話せる言語（2026-08-27）。スキルと同じく `matchOn: "person"`。
+          ⚠️ 引くのは `language_id`。**`name` では引かない**——あれはマスタの
+             複製で、正は `language_id`（docs/todo.md）。 */
+    db.from("ow_user_languages").select("user_id, language_id"),
   ]);
   for (const [label, res] of Object.entries({
     users: userRes, experiences: expRes, companies: foreignRes, domains: domainRes,
-    userSkills: skillRes,
+    userSkills: skillRes, userLanguages: langRes,
   })) {
     if (res.error) console.error(`[searchPersonHits] ${label}:`, res.error.message);
   }
@@ -464,6 +468,15 @@ export async function searchPersonHits(
     const set = skillsByUser.get(r.user_id) ?? new Set<string>();
     set.add(r.skill_id);
     skillsByUser.set(r.user_id, set);
+  }
+
+  const langsByUser = new Map<string, Set<string>>();
+  for (const r of (langRes.data ?? []) as { user_id: string; language_id: string | null }[]) {
+    /* ⚠️ `language_id` が NULL の行は飛ばす。マスタに紐づいていないので引きようがない */
+    if (!r.language_id) continue;
+    const set = langsByUser.get(r.user_id) ?? new Set<string>();
+    set.add(r.language_id);
+    langsByUser.set(r.user_id, set);
   }
 
   const expsByUser = new Map<string, ExpRow[]>();
@@ -518,7 +531,7 @@ export async function searchPersonHits(
     if (expConds.length > 0 && matchedExps.length === 0) continue;
 
     // ② 人側
-    if (!personConds.every((c) => personMatches(u.id, c, skillsByUser))) continue;
+    if (!personConds.every((c) => personMatches(u.id, c, skillsByUser, langsByUser))) continue;
 
     /* `exps` は started_at 昇順なので `matchedExps` もその順序を保つ */
     const earliestMatch: ExpRow | null = matchedExps[0] ?? null;
@@ -560,10 +573,13 @@ function personMatches(
   owUserId: string,
   c: Condition,
   skillsByUser: Map<string, Set<string>>,
+  langsByUser: Map<string, Set<string>>,
 ): boolean {
   switch (c.kind) {
     case "skill":
       return skillsByUser.get(owUserId)?.has(c.skillId) ?? false;
+    case "language":
+      return langsByUser.get(owUserId)?.has(c.languageId) ?? false;
     /* 職歴に当てる条件がここへ来るのは呼び出し側の分け方の誤り。
        黙って通さずに落とす。 */
     case "company":

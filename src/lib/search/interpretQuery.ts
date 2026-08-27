@@ -24,6 +24,9 @@
  *      年収       → ow_jobs.salary_min
  *      社名       → ow_companies.id（掲載79社。2026-08-27 追加）
  *      スキル     → ow_skills.id（標準スキル。2026-08-27 追加）
+ *      言語       → ow_languages.id（話せる言語。2026-08-27 追加）
+ *                   ⚠️ **iso_639_1 は語彙に入れない。** `it` が「IT業界」に、
+ *                      `id` が「Android」に当たる。照合は label と aliases だけ。
  *
  *    ⚠️★**社名と同名のスキルは、常に社名として解決する。**（実測11件:
  *       AWS / Braze / Cloudflare / Datadog / HubSpot / Marketo / New Relic /
@@ -88,7 +91,10 @@ export type Condition =
   | { kind: "salaryMin"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; man: number }
   /* ★スキル。**人にしか当てられない**（求人の required_skills は自由記述で、
         標準スキルの ID と突き合わせられない。企業にスキルの表はそもそも無い）。 */
-  | { kind: "skill"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; skillId: string };
+  | { kind: "skill"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; skillId: string }
+  /* ★言語。スキルと同じく**人にしか当てられない**（2026-08-27 追加）。
+     求人に「英語必須」は自由記述でしか書かれておらず、マスタの ID と突き合わせられない。 */
+  | { kind: "language"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; languageId: string };
 
 export type InterpretResult = {
   primaryKind: SearchKind;
@@ -215,6 +221,8 @@ type Vocabulary = {
   companyMaxLen: number;
   /** 標準スキル。★社名と同名のものは**除いてある**（上の③） */
   skills: { id: string; label: string; terms: string[] }[];
+  /** 話せる言語。⚠️ `iso_639_1` は**入れない**（2文字コードは誤爆源） */
+  languages: { id: string; label: string; terms: string[] }[];
 };
 
 /**
@@ -251,11 +259,12 @@ const COMPANY_KEY_MIN_LEN = 3;
 const DOMAIN_PART_MIN_LEN = 4;
 
 const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary> {
-  const [roleAliases, domainRows, companyRows, skillRows] = await Promise.all([
+  const [roleAliases, domainRows, companyRows, skillRows, languageRows] = await Promise.all([
     getRoleAliases(),
     getBusinessDomainOptions(),
     loadCompanyNames(),
     loadSkills(),
+    loadLanguages(),
   ]);
   const domains = domainRows.map((d) => {
     const parts = d.name.split(/[・/]/).map((s) => s.trim()).filter(Boolean);
@@ -294,7 +303,20 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
       terms: Array.from(new Set([r.label, ...(r.aliases ?? [])])).filter((t) => t.length >= 2),
     }));
 
-  return { roleAliases, domains, companyIndex, companyMaxLen, skills };
+  /* ★言語。⚠️ **`iso_639_1` は読んでいない**（`loadLanguages` が select していない）。
+        2文字コードを索引に入れると `it`（イタリア語）が「IT業界」に当たる。
+     ⚠️ 社名・スキルと同名の語は無い（2026-08-27 に機械的に突き合わせて0件を確認。
+        検出器が効くことも positive control で確かめた）。それでも将来ぶつかったときに
+        黙って二重に立たないよう、**社名と同名のものは落とす**（スキルと同じ扱い）。 */
+  const languages = languageRows
+    .filter((r) => !companyIndex.has(companyKey(r.label)))
+    .map((r) => ({
+      id: r.id,
+      label: r.label,
+      terms: Array.from(new Set([r.label, ...(r.aliases ?? [])])).filter((t) => t.length >= 2),
+    }));
+
+  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages };
 });
 
 type SkillRow = { id: string; label: string; aliases: string[] | null };
@@ -308,6 +330,27 @@ async function loadSkills(): Promise<SkillRow[]> {
   /* ⚠️ error を握りつぶさない。空で返すと「スキルで引けない」が静かに起きる */
   if (error) console.error("[interpretQuery] 標準スキルの取得に失敗:", error.message);
   return (data ?? []) as SkillRow[];
+}
+
+type LanguageRow = { id: string; label: string; aliases: string[] | null };
+
+/**
+ * 話せる言語のマスタ。
+ *
+ * ⚠️ ★**`iso_639_1` を select しない。** 語彙に入れると
+ *    `it`（イタリア語）が「IT業界」「IT企業」に、`id`（インドネシア語）が
+ *    「Android」に当たる。2026-08-27 に `Miro`→`IR` で踏んだのと同じ形。
+ *    **照合してよいのは `label` と `aliases` だけ。**
+ *    ここに列を足すときは、その語が普通の文に当たらないかを先に測ること。
+ */
+async function loadLanguages(): Promise<LanguageRow[]> {
+  const { data, error } = await createPublicClient()
+    .from("ow_languages")
+    .select("id, label, aliases")
+    .eq("is_active", true);
+  /* ⚠️ error を握りつぶさない。空で返すと「言語で引けない」が静かに起きる */
+  if (error) console.error("[interpretQuery] 言語マスタの取得に失敗:", error.message);
+  return (data ?? []) as LanguageRow[];
 }
 
 type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null };
@@ -443,7 +486,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     return { primaryKind: "company", conditions: [], unresolved: [], normalized: "" };
   }
 
-  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills }, roleTree] = await Promise.all([
+  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages }, roleTree] = await Promise.all([
     loadVocabulary(),
     getRoleTree(),
   ]);
@@ -602,6 +645,40 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
         appliesTo: ["person"],
         matchOn: "person",
         skillId: h.id,
+      });
+      consumed.push({ start: h.at, end: h.at + h.term.length });
+    }
+  }
+
+  // ── 言語 → ow_languages ──────────────────────────────────────────────────
+  /* ⚠️ スキルと**同じ形**。`findAliasIndex`（英字の境界チェック）＋ 最長一致。
+        ⚠️ **`iso_639_1` は語彙に入っていない**（`loadLanguages` が読んでいない）。
+           入れると `it`→「IT業界」、`id`→「Android」で誤爆する。
+           2026-08-27 に `Miro`→`IR` で踏んだのと同じ形。 */
+  {
+    const langHits: { term: string; at: number; id: string; label: string }[] = [];
+    for (const lg of languages) {
+      for (const term of lg.terms) {
+        const t = term.toLowerCase();
+        const i = findAliasIndex(normalized, t);
+        if (i < 0) continue;
+        langHits.push({ term: t, at: i, id: lg.id, label: lg.label });
+      }
+    }
+    langHits.sort((x, y) => y.term.length - x.term.length);
+    const keptLangs: typeof langHits = [];
+    for (const h of langHits) {
+      if (keptLangs.some((k) => k.term.includes(h.term))) continue; // 長い語に含まれる
+      if (keptLangs.some((k) => k.id === h.id)) continue;           // 同じ言語を2回立てない
+      keptLangs.push(h);
+    }
+    for (const h of keptLangs.sort((x, y) => x.at - y.at)) {
+      conditions.push({
+        kind: "language",
+        label: h.label, // ★マスタの表示名。入力文字列ではない
+        appliesTo: ["person"],
+        matchOn: "person",
+        languageId: h.id,
       });
       consumed.push({ start: h.at, end: h.at + h.term.length });
     }
