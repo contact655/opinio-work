@@ -8,7 +8,7 @@ import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import type { MemberPreview } from "./CompanyCardCompact";
 import { showToast } from "@/lib/toast";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeCountBand } from "@/lib/utils/employeeCount";
 import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 import { companyDisplayName } from "@/lib/companies/displayName";
 
@@ -270,7 +270,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                {formatEmployeeCount(company.employee_count)}
+                {/* ⚠️ **一覧はレンジ表記**（2026-08-28）。時点や単体/連結の注記は落ちる。
+                       ⚠️ `/companies/[id]` のサイドバーと meta は `formatEmployeeCount`
+                          （原文）のまま。**そちらをこれに差し替えないこと。** */}
+                {formatEmployeeCountBand(company.employee_count)}
               </span>
             )}
 
@@ -377,9 +380,10 @@ export function CompanyCardList({ company, members = [], compact }: Props) {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                {/* ⚠️ 「名」の付与とカンマは formatEmployeeCount に集約（2026-08-08）。
-                       ここで `約` を足さない。入っていない値に推測を足すことになる。 */}
-                {formatEmployeeCount(company.employee_count)}
+                {/* ⚠️ 「名」の付与とカンマは employeeCount.ts に集約（2026-08-08）。
+                       ここで `約` を足さない。入っていない値に推測を足すことになる。
+                   ⚠️ **一覧はレンジ表記**（2026-08-28）。グリッド側と必ず同じ関数を使う。 */}
+                {formatEmployeeCountBand(company.employee_count)}
               </span>
             )}
             {company.job_count > 0 && (
