@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -1767,6 +1768,9 @@ export default function JobsClient({
                   企業を見る
                 </Link>
               </div>
+              {/* ★この窓は職種・会社などの絞り込みで、業種は対象外。
+                     「IT」のような語は0件が正しいが、行き止まりにしない（2026-08-27）。 */}
+              <SearchAllLink q={q} />
             </div>
           ) : (
             <>

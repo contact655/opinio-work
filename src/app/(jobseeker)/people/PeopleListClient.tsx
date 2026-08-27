@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { formatMonths } from "@/lib/profile/tenure";
 import { useRouter } from "next/navigation";
@@ -989,6 +990,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         {sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
             該当する方が見つかりません
+            {/* ★この窓は名前・会社・職種の絞り込みで、業種は対象外。
+                   「IT」のような語は0件が正しいが、行き止まりにしない（2026-08-27）。 */}
+            <SearchAllLink q={keyword} />
           </div>
         ) : (
           view === "list" ? (
