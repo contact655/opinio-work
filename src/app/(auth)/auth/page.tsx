@@ -561,7 +561,7 @@ function AuthPageInner() {
                      **3箇所を同時に直すこと**（規約は改定日が要る）。
                   ⚠️ **行き先の名前を実在するものにする**（2026-08-21）。
                      「プロフィール編集の『公開設定』」と書いてあったが、**その画面は存在しない**。
-                     設定は `/mypage` の「声をかけられてもよいか」にある。
+                     設定は `/mypage` の「意思表示」にある。
                      画面名を変えたら、ここと LP の FAQ の両方を直すこと。
                 */}
                 <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 6 }}>

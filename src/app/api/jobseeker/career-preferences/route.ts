@@ -242,7 +242,7 @@ export async function PUT(req: Request) {
         「今日 意思表示を答えた人」に化ける（`transfer_timing_updated_at` と同じ考え方）。
      ⚠️ 同じ値を選び直しても更新しない。押し直しただけで新しくなると、
         「昨日答えた人」と区別がつかなくなる。
-     ⚠️ 「現職の話を聞かれる」の保存でも同じ列を打つ（`lib/profile/stance.ts`）。
+     ⚠️ 「話を聞かれてもよい」の保存でも同じ列を打つ（`lib/profile/stance.ts`）。
         こちらと同じ意味の列なので、書き方を割らないこと。 */
   if ("career_stance" in patch) {
     const before = existing?.career_stance ?? null;

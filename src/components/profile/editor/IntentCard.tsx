@@ -273,7 +273,7 @@ export default function IntentCard({
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   roleAliases: Record<string, string[]>;
   desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  /** 在籍中かつ企業マスタに紐づく会社。**0件なら「現職の話を聞かれる」の行ごと出ない**
+  /** 在籍中かつ企業マスタに紐づく会社。**0件なら「話を聞かれてもよい」の行ごと出ない**
    *
    * ⚠️ 在籍先が自由入力の人（2026-08-26 時点で実ユーザー11人中**5人**）には行が出ない。
    *    `ow_company_members.company_id` が `ow_companies` への FK なので行を作れないため。
@@ -638,14 +638,18 @@ export default function IntentCard({
         onClose={() => { setOpen(false); setError(null); }}
       >
         {/* ⚠️ `first` は**先頭の行だけ**に付ける（上の区切り線を出さないため）。
-               「現職の話を聞かれる」は在籍中の会社が無い人には出ないので、
-               その場合は次の「転職について」が先頭になる。 */}
+               「話を聞かれてもよい」は在籍中の会社が無い人には出ないので、
+               その場合は次の「転職について」が先頭になる。
+            ⚠️★**ラベルはカードのトグルと同じ語にすること**（2026-08-28 に揃えた）。
+               カードを「話を聞かれてもよい」に変えたとき**ここだけ旧ラベルが残り**、
+               同じ設定が2つの名前で呼ばれていた。片方だけ変えないこと。 */}
         {memberRows.length > 0 && (
-          <CollapsibleRow first label="現職の話を聞かれる" state={
+          <CollapsibleRow first label="話を聞かれてもよい" state={
             memberRows.some(({ m }) => memberState(m) === "listed") ? "ON" : "OFF"
           }>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-              ONにすると、その会社のページに「話を聞ける人」として出ます。
+              ONにすると、<strong style={{ color: "var(--ink)" }}>在籍している会社すべて</strong>のページに
+              「話を聞ける人」として出ます。
               仕事の内容や社内の様子について、転職を考えている人から聞かれる側になります。
               選考の面談ではありません。
               <br />

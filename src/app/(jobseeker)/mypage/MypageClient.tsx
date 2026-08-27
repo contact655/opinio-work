@@ -316,7 +316,7 @@ export default function MypageClient({
                 本文の上に来るので、モバイルでは最初に目に入る。
              ⚠️ 値は `editorProps` から読む。`ProfileEditor` → `ProfileTab` の
                 受け渡しは外したので、**本文に戻すならここから外すこと。**
-             ⚠️ 「現職の話を聞かれる」の行は**在籍中かつ企業マスタに紐づく会社がある人だけ**に出る
+             ⚠️ 「話を聞かれてもよい」の行は**在籍中かつ企業マスタに紐づく会社がある人だけ**に出る
                 （0件なら行ごと出ない。判定は `IntentCard` 側）。 */}
       <IntentCard
         stanceUpdatedAt={intentProps.initialProfilePrefs?.stance_updated_at ?? null}
