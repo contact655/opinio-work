@@ -120,10 +120,14 @@ export default async function CandidatesPage() {
               候補者検索でできること
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {/* ⚠️★ここは「できること」の約束。**実際の絞り込みと必ず一致させること。**
+                     「希望する企業フェーズ」は 2026-08-27 に絞り込みごと外したので
+                     この一覧からも消した（残すと**出来ないことを約束する**ことになる）。
+                     ⚠️ 絞り込みを足す／外すときは、この配列も同時に直す。 */}
               {[
                 "職種（大分類・小分類）", "現在の会社名", "現在の役職",
                 "雇用形態", "社会人年数", "希望勤務地", "希望年収",
-                "希望する職種", "希望する企業フェーズ", "働き方",
+                "希望する職種", "働き方",
               ].map((t) => (
                 <span key={t} style={{
                   fontSize: 12, padding: "5px 11px", borderRadius: 100,
@@ -167,7 +171,11 @@ export default async function CandidatesPage() {
   const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
     adminClient
       .from("ow_profiles")
-      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_phase, transfer_timing, transfer_timing_updated_at, desired_salary_min, desired_salary_max, career_stance")
+      /* ⚠️★`desired_phase` / `transfer_timing` は 2026-08-27 に**引くのをやめた**。
+            同日に本人側の入力欄を消したので、企業に見せると
+            「本人が直せない値で絞り込む／表示する」ことになる。
+            ⚠️ **列と値は残っている。** 入力欄を戻すならここも戻すこと。 */
+      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, career_stance")
       /* ★母集合を `scout_enabled` から `career_stance` に付け替えた（2026-08-27 / フェーズ3）。
          ⚠️★**未設定（null）は入れない。** 本人が一度も答えていない状態を
             「受け取る」と読み替えて企業に開示することになる。
@@ -232,9 +240,6 @@ export default async function CandidatesPage() {
     onboarding_completed: boolean;
     desired_work_styles: string[] | null;
     desired_prefectures: string[] | null;
-    desired_phase: string[] | null;
-    transfer_timing: string | null;
-    transfer_timing_updated_at: string | null;
     desired_salary_min: number | null;
     desired_salary_max: number | null;
     /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」（2026-08-26 / フェーズ2） */
@@ -386,10 +391,7 @@ export default async function CandidatesPage() {
         workStyles: (profile?.desired_work_styles as string[] | null) || null,
         /* 希望勤務地。⚠️ 表示のみ。絞り込みUIの追加は別タスク。 */
         desiredPrefectures: (profile?.desired_prefectures as string[] | null) || null,
-        desiredPhase: profile?.desired_phase || null,
-        transferTiming: profile?.transfer_timing || null,
         /* ⚠️ NULL のときは鮮度を出さない。「不明」とも書かない（既存39件は全て NULL） */
-        transferTimingUpdatedAt: profile?.transfer_timing_updated_at || null,
         desiredSalaryMin: profile?.desired_salary_min ?? null,
         desiredSalaryMax: profile?.desired_salary_max ?? null,
         onboardingCompleted: profile?.onboarding_completed || false,

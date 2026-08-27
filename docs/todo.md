@@ -118,6 +118,19 @@
 
 ---
 
+## `lib/profile/freshness.ts` が参照0件になった（2026-08-27 記録）
+
+`describeFreshness` / `STALE_AFTER_MONTHS` を使っていたのは
+`/biz/candidates` の「転職時期（鮮度つき）」の表示だけだった。
+**2026-08-27 にその表示を消したので、src からの参照が0件になった。**
+
+⚠️ **消していない。** 「転職検討時期」の入力を戻す判断になったときに、
+   鮮度の表示もそのまま戻せるようにしてある
+   （`STALE_AFTER_MONTHS = 3` は選択肢の最短単位「1〜3ヶ月以内」と揃えてあった）。
+
+⚠️ 入力を戻さないと決めたら、この2つと一緒に落としてよい。
+   落とすときは `docs/todo.md` のこの項目も消すこと。
+
 ## ⚠️★`ow_user_languages.name` が `language_id` と二重管理になっている（2026-08-27）
 
 `ow_languages` マスタを作り `language_id` を足したが、**`name`（text）も残してある。**

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { describeFreshness, STALE_AFTER_MONTHS } from "@/lib/profile/freshness";
 import { DESIRED_WORK_STYLE_LABELS } from "@/lib/constants/careerPreferences";
 
 /**
@@ -50,10 +49,7 @@ type Candidate = {
   desiredRoleNames: string[];
   workStyles: string[] | null;
   desiredPrefectures: string[] | null;
-  desiredPhase: string[] | null;
-  transferTiming: string | null;
   /** transfer_timing を最後に「変更」した日時。NULL なら鮮度を出さない */
-  transferTimingUpdatedAt: string | null;
   desiredSalaryMin: number | null;
   desiredSalaryMax: number | null;
   onboardingCompleted: boolean;
@@ -101,8 +97,6 @@ function extractPrefecture(location: string | null): string | null {
   ];
   return PREFS.find((p) => location.startsWith(p)) ?? null;
 }
-
-const PHASE_OPTIONS = ["シリーズA", "シリーズB", "シリーズC", "上場"];
 
 
 // サイドバー内セクションラベル
@@ -187,7 +181,6 @@ export default function CandidatesClient({
 
   // ── 希望条件 ────────────────────────────────────────────────────────
   const [workStyle, setWorkStyle] = useState("");
-  const [phase, setPhase] = useState("");
   // 0 = 指定なし（万円単位）
   const [salaryMin, setSalaryMin] = useState(0);
   // デフォルトON: 年収未設定の候補者も通す
@@ -313,7 +306,6 @@ export default function CandidatesClient({
     const wantRole = childRoleId ?? topRoleId;
     if (wantRole) list = list.filter((c) => c.desiredRoleIds.includes(wantRole));
 
-    if (phase) list = list.filter((c) => c.desiredPhase?.includes(phase));
 
     /* 社会人年数
        ⚠️ **未算出（職歴0件）の人は落とさない。** 落とすと「絞り込んだ瞬間に
@@ -348,7 +340,7 @@ export default function CandidatesClient({
     return list;
   }, [
     candidates, q, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
-    phase, hideAlreadyScouted,
+    hideAlreadyScouted,
     tenureBand, selectedPrefectures,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
@@ -366,7 +358,6 @@ export default function CandidatesClient({
     companyQuery.trim() ? "x" : "",
     workStyle,
     jobTypeFilterActive ? "x" : "",
-    phase,
     selectedEmploymentTypes.length ? "x" : "",
     hideAlreadyScouted ? "x" : "",
     tenureBand ? "x" : "",
@@ -381,7 +372,6 @@ export default function CandidatesClient({
     setWorkStyle("");
     setTopRoleId(null);
     setChildRoleId(null);
-    setPhase("");
     setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
     setTenureBand("");
@@ -546,13 +536,10 @@ export default function CandidatesClient({
           ))}
         </div>
 
-        <SidebarLabel>希望企業フェーズ</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-          <Pill active={phase === ""} onClick={() => setPhase("")}>全て</Pill>
-          {PHASE_OPTIONS.map((v) => (
-            <Pill key={v} active={phase === v} onClick={() => setPhase(phase === v ? "" : v)}>{v}</Pill>
-          ))}
-        </div>
+        {/* ⚠️★「希望企業フェーズ」の絞り込みは 2026-08-27 に削除した。
+               ⚠️ **同日に本人側の入力欄を消した**ので、残すと
+                  「本人が直せない値で企業が絞り込む」ことになる。
+               ⚠️ 入力欄を戻すなら、ここも一緒に戻すこと。 */}
 
         <SidebarLabel>希望年収（下限）</SidebarLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
@@ -835,41 +822,11 @@ export default function CandidatesClient({
                           </div>
                         )}
 
-                        {/* 転職検討時期（鮮度つき）。絞り込みには使わず表示だけ。
-                            ⚠️ 更新日が NULL のときは鮮度を出さない。「不明」とも書かない
-                               （値が無いことをある値に置き換えない）。
-                            ⚠️ しきい値を過ぎたものは淡色＋注記。STALE_AFTER_MONTHS は
-                               選択肢の最短単位「1〜3ヶ月以内」と揃えてある。 */}
-                        {c.transferTiming && (() => {
-                          const fresh = describeFreshness(c.transferTimingUpdatedAt);
-                          const stale = fresh?.isStale ?? false;
-                          return (
-                            <div style={{
-                              display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap",
-                              fontSize: 12, marginBottom: 6,
-                              color: stale ? "var(--ink-mute)" : "var(--ink-soft)",
-                            }}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0 }}>
-                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                              </svg>
-                              <span style={{ fontWeight: stale ? 500 : 700, color: stale ? "var(--ink-mute)" : "var(--ink)" }}>
-                                転職時期: {c.transferTiming}
-                              </span>
-                              {fresh && <span style={{ color: "var(--ink-mute)" }}>（{fresh.label}）</span>}
-                              {stale && (
-                                <span
-                                  title={`${STALE_AFTER_MONTHS}ヶ月以上更新されていません`}
-                                  style={{
-                                    fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100,
-                                    background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)",
-                                  }}
-                                >
-                                  情報が古い可能性
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        {/* ⚠️★「転職検討時期」の表示は 2026-08-27 に削除した。
+                               ⚠️ **同日に本人側の入力欄を消した**ので、残すと
+                                  「企業には見えるのに本人は直せない」状態になる。
+                                  列（`transfer_timing`）と値は残してある。
+                               ⚠️ 入力欄を戻すなら、ここも一緒に戻すこと。 */}
 
                         {/* タグ行: 職種・居住地。
                             職種は ow_roles 由来（2026-08-04）。
