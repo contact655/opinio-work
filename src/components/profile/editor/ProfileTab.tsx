@@ -1,5 +1,8 @@
 "use client";
 
+/* ★カードの幅。公開プロフィール（`/u/[id]`）と同じ 1020 に揃える。
+      ⚠️ 数字を直接書かないこと。片方だけ動かすとまた幅がずれる（2026-08-27）。 */
+import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
 /**
  * 「プロフィール」タブ（写真 / 基本情報 / 職歴〈実績・受賞を内包〉 / 学歴 / メディア掲載 / SNS / 発信コンテンツ）。
  *
@@ -989,7 +992,7 @@ export default function ProfileTab({
                タブバーを畳んだので、ページの操作はこの1行にまとめる。
             ⚠️ 「公開プロフィールを見る」は**この1つだけ**。幅で出し分けない。 */}
         <div style={{
-          maxWidth: 680, display: "flex", alignItems: "center", justifyContent: "flex-end",
+          maxWidth: PROFILE_CONTENT_MAX, display: "flex", alignItems: "center", justifyContent: "flex-end",
           gap: 8, marginBottom: 12, flexWrap: "wrap",
         }}>
           {owUser?.id && (
@@ -1024,7 +1027,7 @@ export default function ProfileTab({
                ⚠️ 自己紹介はここから外し、独立セクション（`#about`）に移した。
                   `/u/[id]` がそうなっているので構造を合わせる。
                ⚠️ 現職・年齢は導出値なので鉛筆の対象外。 */}
-          <div style={{ maxWidth: 680 }}>
+          <div style={{ maxWidth: PROFILE_CONTENT_MAX }}>
             {/* ★編集はモーダル（2026-08-17 / フェーズ2の最後）。
                    ⚠️ **保存は今までと同じ1回の PUT**（名前・肩書き・所在地・生年月日・SNS）。
                       器を変えただけで、送る中身も呼び方も変えていない。 */}
@@ -1294,7 +1297,7 @@ export default function ProfileTab({
                  カードがフォームに化ける形をやめたので、押した場所と入力欄がずれない。 */}
           {/* ⚠️ 0件でも出す（2026-08-24）。未入力なら部品側が
                  「自己紹介を書いて、あなたのことを伝えましょう」の空カードを出す。 */}
-          <div style={{ maxWidth: 680 }}>
+          <div style={{ maxWidth: PROFILE_CONTENT_MAX }}>
             <ProfileAboutSection
               aboutMe={initialBasicInfo.aboutMe || null}
               viewerIsOwner
@@ -1339,7 +1342,7 @@ export default function ProfileTab({
         {activitySlot}
 
         {/* 職歴・学歴タブ */}
-          <div style={{ maxWidth: 680 }}>
+          <div style={{ maxWidth: PROFILE_CONTENT_MAX }}>
 
             {/* ★枠と見出しは公開プロフィールと同じ部品（2026-08-16 / 2-6）。
                    `EditableSection` はやめた。`/u/[id]` の「職歴」「学歴」の見出しは
@@ -1588,7 +1591,7 @@ export default function ProfileTab({
             ⚠️ 4-2 で「実績・受賞」カードは廃止し、数値実績と受賞歴は職歴カードへ移した。
                メディア掲載は個人としての登壇・寄稿・退職後の取材があり、
                在籍先に紐づけられないのでここに残す。 */}
-          <div style={{ maxWidth: 680 }}>
+          <div style={{ maxWidth: PROFILE_CONTENT_MAX }}>
             {/* ★表示は公開プロフィールと同じ部品。行の鉛筆・ゴミ箱・見出しの「追加」だけ足す。
                    編集はモーダル（2026-08-17 / フェーズ2）。 */}
             <ProfileMediaSection
@@ -1626,7 +1629,7 @@ export default function ProfileTab({
                （2-1 で報告した重複がこれで解消した）。編集はヘッダーの鉛筆から。 */}
 
         {/* 発信コンテンツ（SNS・発信タブ内） */}
-          <div style={{ maxWidth: 680 }}>
+          <div style={{ maxWidth: PROFILE_CONTENT_MAX }}>
             {/* ★表示は**公開プロフィールと同じ部品**。編集はモーダル（2026-08-17 / フェーズ2）。
                    行の鉛筆・ゴミ箱・見出しの「追加」だけを `actions` で足す。 */}
             <ProfileContentLinksSection
