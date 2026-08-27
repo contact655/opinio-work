@@ -1657,36 +1657,11 @@ export function LanguageEditor({
     return () => { alive = false; };
   }, [modalOpen, masters.length]);
 
-  /* ★★`language_id` が入っていない行を、`name` からマスタに引き当てる。
-     ⚠️ **これが無いと `/mypage` で既存の行を編集できない。**
-        `/mypage` に初期値を渡す `mypage/page.tsx` は別セッションの作業中で、
-        `.select()` に `language_id` を足せない（`id, name, proficiency, sort_order` のまま）。
-        そのままだと編集モーダルが「未選択」で開き、保存が 400 になる。
-     ⚠️ 引き当ては `name`（＝マスタの `label` の複製）が正しいことに依存している。
-        API が一致を検証しているので成り立つ。**その検証を外すとここも壊れる。**
-     ⚠️ あの2ファイルが空いて `language_id` を渡せるようになったら、この救済は消してよい。
-        → docs/todo.md */
-  useEffect(() => {
-    if (!editingId || masters.length === 0) return;
-    if (editDraft.language_id) return;
-    const row = languages.find((l) => l.id === editingId);
-    const hit = row ? masters.find((m) => m.label === row.name) : undefined;
-    if (hit) setEditDraft((d) => (d.language_id ? d : { ...d, language_id: hit.id }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingId, masters, editDraft.language_id]);
-
   /* ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。マウント時に控えた値にしない。 */
   const isEditing = editingId !== null;
   const draft = isEditing ? editDraft : addDraft;
   const savedRow = isEditing ? languages.find((l) => l.id === editingId) : undefined;
-  /* ⚠️ 基準側も同じ引き当てを通す。通さないと、救済で入れた値が「変更あり」に見えて
-        何も触っていないのに保存ボタンが立つ。 */
-  const base = savedRow
-    ? { ...draftFromLang(savedRow),
-        language_id: savedRow.language_id
-          ?? masters.find((m) => m.label === savedRow.name)?.id
-          ?? "" }
-    : EMPTY_LANG_DRAFT;
+  const base = savedRow ? draftFromLang(savedRow) : EMPTY_LANG_DRAFT;
   const dirty = !!draft.language_id && JSON.stringify(draft) !== JSON.stringify(base);
 
   return (

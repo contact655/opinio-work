@@ -18,21 +18,16 @@ import { MAX_USER_LANGUAGES } from "@/lib/constants/languages";
  *    セッションから作ったものをそのまま渡すこと。ここで作らない
  *    （route と別のクライアントになると、RLS の効き方が変わって気づけない）。
  *
- * ── ★`name` はマスタの `label` の複製（2026-08-27）───────────────────────────
- * 正は `language_id`。`name` を残しているのは、読み手の `u/[id]/page.tsx` と
- * `mypage/page.tsx` が別セッションの作業中で join に変えられないため。
- *
- * ★**この一致検証が、自由入力の復活を防ぐ唯一の防御。** DB 側に制約は無い
- *   （`name` は素の text）。**外さないこと。**
- *   外すと `name` に任意の文字列が入り、`/search` は `language_id` で引くので
- *   **画面に出る名前だけがズレる**という最悪の形になる。
- * ⚠️ 片付け方（`name` を落とす手順）は docs/todo.md。
+ * ── ★正は `language_id` だけ（2026-08-28）──────────────────────────────────
+ * `ow_user_languages.name`（`label` の複製）は**落とした**。
+ * 表示名は**読むときにマスタから作る**（`language:ow_languages(label)`）。
+ * ⚠️ **`name` を復活させないこと。** 複製に戻すと、また
+ *    「`/search` は `language_id` で引くのに、画面に出る名前だけがズレる」形になる。
  */
 
 /** 保存に使う値。`sort_order` と `user_id` は呼び出し側が付ける */
 export type LanguageInput = {
   language_id: string;
-  name: string;
   proficiency: string | null;
 };
 
@@ -68,19 +63,10 @@ export async function parseLanguageBody(
     );
   }
 
-  /* ★`name` が送られてきたら、マスタの `label` と**完全一致**していること。
-     ⚠️ 送られてこなければマスタの値を使う（呼び出し側の書き忘れで
-        自由な値が入る余地を残さない）。 */
-  const label = master.label;
-  if (body.name !== undefined && body.name !== null && body.name !== label) {
-    return NextResponse.json(
-      {
-        error: "NAME_MISMATCH",
-        message: "言語名は一覧の表記と一致している必要があります。選び直してください。",
-      },
-      { status: 400 }
-    );
-  }
+  /* ⚠️★`name` の一致検証は 2026-08-28 に**不要になった**（列を落としたため）。
+        正は `language_id` の1つだけで、表示名は読むときにマスタから作る。
+        ⚠️ `name` を復活させないこと。複製に戻すと、また
+           「画面に出る名前だけがズレる」形になる。 */
 
   /* ★習熟度は任意。⚠️ **空は正常（null）、不正は 400。この2つを混同しない。**
         黙って null に落とすと、選択肢を1つ足し忘れたときに
@@ -99,7 +85,7 @@ export async function parseLanguageBody(
     proficiency = body.proficiency;
   }
 
-  return { language_id: languageId, name: label, proficiency };
+  return { language_id: languageId, proficiency };
 }
 
 /**
@@ -136,6 +122,6 @@ export async function checkLanguageLimit(
 
 /**
  * SELECT で返す列。⚠️ `.select()` を引数なしで呼ばない（列単位 GRANT に弾かれる）。
- * ⚠️ `name` も返す。マスタの複製だが、読み手2ファイルがまだこれを使っている。
+ * ⚠️ 表示名は**マスタから join して返す**（`name` の複製は落とした）。
  */
-export const LANGUAGE_COLS = "id, language_id, name, proficiency, sort_order" as const;
+export const LANGUAGE_COLS = "id, language_id, proficiency, sort_order, language:ow_languages(label)" as const;

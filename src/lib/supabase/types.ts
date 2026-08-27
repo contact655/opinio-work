@@ -5916,7 +5916,6 @@ export type Database = {
           created_at: string
           id: string
           language_id: string | null
-          name: string
           proficiency: string | null
           sort_order: number
           user_id: string
@@ -5925,7 +5924,6 @@ export type Database = {
           created_at?: string
           id?: string
           language_id?: string | null
-          name: string
           proficiency?: string | null
           sort_order: number
           user_id: string
@@ -5934,7 +5932,6 @@ export type Database = {
           created_at?: string
           id?: string
           language_id?: string | null
-          name?: string
           proficiency?: string | null
           sort_order?: number
           user_id?: string

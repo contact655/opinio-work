@@ -288,7 +288,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
        ⚠️ 順番は上の分割代入と揃えること。ずれても型が同じなのでエラーにならない。 */
     adminSupabase
       .from("ow_user_languages")
-      .select("id, name, proficiency, sort_order")
+      /* ⚠️ `name`（複製）は読まない。**表示名はマスタから取る**（2026-08-28）。 */
+      .select("id, language_id, proficiency, sort_order, language:ow_languages(label)")
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
     /* ★スキル（2026-08-27）。⚠️ **admin クライアントで引く。**
@@ -332,10 +333,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
     id: string; name: string; issuer: string | null; issued_at: string | null;
     credential_id: string | null; credential_url: string | null; sort_order: number;
   }>;
-  /* ⚠️ 形は `LanguageRow`（ProfileSections.tsx）と同じにすること。 */
-  const languages = (languagesRaw ?? []) as Array<{
-    id: string; name: string; proficiency: string | null; sort_order: number;
-  }>;
+  /* ⚠️ 形は `LanguageRow`（ProfileSections.tsx）と同じにすること。
+        ★表示名は `ow_languages.label` から作る（2026-08-28 に `name` の複製をやめた）。
+        ⚠️ マスタが引けなかった行は**出さない**。空文字で出すと名前の無い行が並ぶ。 */
+  const languages = ((languagesRaw ?? []) as unknown as Array<{
+    id: string; proficiency: string | null; sort_order: number;
+    language: { label: string } | null;
+  }>)
+    .filter((l) => !!l.language?.label)
+    .map((l) => ({ id: l.id, name: l.language!.label, proficiency: l.proficiency, sort_order: l.sort_order }));
   /* ⚠️ 形は `UserSkillRow`（ProfileSections.tsx）と同じにすること。 */
   const skills = (skillsRaw ?? []) as unknown as Array<{
     id: string; skill_id: string;

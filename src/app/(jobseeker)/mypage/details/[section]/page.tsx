@@ -195,10 +195,21 @@ export default async function ProfileDetailsPage({ params }: { params: { section
   if (section === "languages") {
     const { data, error } = await createAdminClient()
       .from("ow_user_languages")
-      .select("id, language_id, name, proficiency, sort_order")
+      /* ⚠️ `name`（複製）は読まない。**表示名はマスタから取る**（2026-08-28）。 */
+      .select("id, language_id, proficiency, sort_order, language:ow_languages(label)")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
     if (error) console.error("[details/languages]", error.message);
-    return <LanguagesDetails initial={(data ?? []) as never} />;
+    /* ⚠️ マスタが引けなかった行は出さない（空文字の行を並べない） */
+    const rows = ((data ?? []) as unknown as Array<{
+      id: string; language_id: string | null; proficiency: string | null; sort_order: number;
+      language: { label: string } | null;
+    }>)
+      .filter((l) => !!l.language?.label)
+      .map((l) => ({
+        id: l.id, language_id: l.language_id, name: l.language!.label,
+        proficiency: l.proficiency, sort_order: l.sort_order,
+      }));
+    return <LanguagesDetails initial={rows as never} />;
   }
 
   /* ★スキル（2026-08-27）。⚠️ 読み取りは `createAdminClient`。

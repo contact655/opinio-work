@@ -158,7 +158,8 @@ export default async function MypagePage({
       /* ★言語（2026-08-24）。⚠️ 順番は上の分割代入と揃えること。 */
       supabase
         .from("ow_user_languages")
-        .select("id, name, proficiency, sort_order")
+        /* ⚠️ `name`（複製）は読まない。**表示名はマスタから取る**（2026-08-28）。 */
+        .select("id, language_id, proficiency, sort_order, language:ow_languages(label)")
         .eq("user_id", owUser.id).order("sort_order", { ascending: true }),
       /* ★スキル（2026-08-27）。⚠️ 順番は上の分割代入と揃えること。
             ⚠️ `createAdminClient` なのは `types.ts` の型がまだ無かった頃の名残ではなく、
@@ -290,7 +291,17 @@ export default async function MypagePage({
     featuredArticles = (featuredArticlesRaw ?? []) as typeof featuredArticles;
     awardsRaw = (awdRows ?? []) as Record<string, unknown>[];
     certificationsRaw = (certRows ?? []) as Record<string, unknown>[];
-    languagesRaw = (langRows ?? []) as Record<string, unknown>[];
+    /* ★表示名は `ow_languages.label` から作る（2026-08-28 に `name` の複製をやめた）。
+          ⚠️ マスタが引けなかった行は**出さない**。空文字だと名前の無い行が並ぶ。 */
+    languagesRaw = ((langRows ?? []) as unknown as Array<{
+      id: string; language_id: string | null; proficiency: string | null; sort_order: number;
+      language: { label: string } | null;
+    }>)
+      .filter((l) => !!l.language?.label)
+      .map((l) => ({
+        id: l.id, language_id: l.language_id, name: l.language!.label,
+        proficiency: l.proficiency, sort_order: l.sort_order,
+      })) as unknown as Record<string, unknown>[];
     skillsRaw = (skillRows ?? []) as Record<string, unknown>[];
     mediaAppearancesRaw = (medRows ?? []) as Record<string, unknown>[];
     contentLinksRaw = (linkRows ?? []) as Record<string, unknown>[];
