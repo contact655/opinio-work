@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { Json } from "@/lib/supabase/types";
 /* ⚠️ 空入力の扱いは1箇所に寄せる。ここに if を書き足さないこと（lib/api/normalize.ts の冒頭を参照）。 */
-import { optionalText, optionalTextMap, requiredText, InvalidInputError } from "@/lib/api/normalize";
+import { optionalText, optionalUrlMap, requiredText, InvalidInputError } from "@/lib/api/normalize";
 import { normalizeUsername, validateUsername, USERNAME_ERROR_MESSAGE } from "@/lib/constants/username";
 
 export const dynamic = "force-dynamic";
@@ -115,11 +115,17 @@ export async function PUT(req: Request) {
       if (JSON.stringify(body.social_links).length > 2000) {
         return NextResponse.json({ error: "SOCIAL_LINKS_TOO_LARGE", message: "SNS リンクの量が多すぎます。" }, { status: 400 });
       }
-      patch.social_links = optionalTextMap(
+      /* ⚠️ **URL 形式まで見る**（2026-08-28）。以前は文字列でありさえすれば通り、
+            実データに `github: "a"` が入っていた。
+         ⚠️ 有効にする前に、壊れた行を 0 件にしてある
+            （`20260828100000_fix_broken_social_link.sql`）。**順序を逆にしない** ——
+            `social_links` はこの PUT に他の項目と一緒に載るので、壊れた値が残っていると
+            **名前の変更すら保存できなくなる**。 */
+      patch.social_links = optionalUrlMap(
         body.social_links,
         500,
         "ow_users.social_links",
-        "SNS リンクの形式が正しくありません。",
+        "SNS リンクは https:// で始まる URL を入力してください。",
       ) as Json | null;
     }
     /* ⚠️ 公開設定は黙って捨てない。捨てると「非公開にしたのに公開のまま」になる */

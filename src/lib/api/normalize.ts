@@ -96,6 +96,61 @@ export function optionalTextMap(
 }
 
 /**
+ * `optionalTextMap` と同じだが、**値が URL であることまで確かめる**。
+ * `ow_users.social_links` のような「値が全部 URL のマップ」に使う。
+ *
+ * ── ★なぜ DB の CHECK を張らないか（2026-08-28 に決めた）──────────────────
+ * CLAUDE.md の「UI / API / DB の CHECK を3つ揃える」は
+ * **値の集合（選択肢・状態・区分）の制約**が対象で、これは**形式の制約**。
+ * そして JSONB の全キーを見る CHECK は**素では書けない**
+ * （`jsonb_each_text` を使うと副問い合わせになり、CHECK 制約は副問い合わせを許さない）。
+ * 関数に逃がすことはできるが、**テーブル定義を読んでも分からない隠れた挙動**が増える
+ * （`ow_company_members` の `guard_member_consent` で実際にそれを踏んでいる）。
+ *
+ * → **UI と API の2層で守ると決めた。**
+ *   UI: 入力欄が `type="url"` で、placeholder が全て `https://…`（`SOCIAL_META`）。
+ *   API: この関数。
+ * ⚠️ **「縛らないと決めた」ことをここに書き残してある。消さないこと。**
+ *
+ * ── ★入れる前に実データを 0 件にした ───────────────────────────────────────
+ * `social_links` は `PUT /api/jobseeker/profile` に**他の項目と一緒に載る**ので、
+ * 壊れた値が1つでも残っていると、そのユーザーは**名前の変更すら保存できなくなる**。
+ * 2026-08-28 に唯一の壊れた行（`github: "a"`）を
+ * `20260828100000_fix_broken_social_link.sql` で落としてから有効にした。
+ * ⚠️ **順序を逆にしないこと。**
+ *
+ * @param field ログ用の列名。⚠️ 利用者に見せる文言には出さない
+ */
+export function optionalUrlMap(
+  value: unknown,
+  max: number,
+  field: string,
+  userMessage: string,
+): Record<string, string> | null {
+  const map = optionalTextMap(value, max, field, userMessage);
+  if (map === null) return null;
+  for (const [k, v] of Object.entries(map)) {
+    let parsed: URL;
+    try {
+      parsed = new URL(v);
+    } catch {
+      throw new InvalidInputError(`${field}.${k}`, userMessage);
+    }
+    /* ⚠️ プロトコルまで見る。`new URL()` は `javascript:alert(1)` も `mailto:` も
+          通すので、**成功しただけでは足りない**。
+       ★https のみ。`content-links` と揃えてある —— todo の指摘そのものが
+         「同じ外部リンクなのに扱いが揃っていない」だった。
+       ⚠️ **http を通す形に緩めないこと。** 緩めると、画面に出す文言
+          （「https:// で始まる URL を…」）と実装がずれる。SNS 7サービスは
+          いずれも https のみで配信しているので、通して得るものが無い。 */
+    if (parsed.protocol !== "https:") {
+      throw new InvalidInputError(`${field}.${k}`, userMessage);
+    }
+  }
+  return map;
+}
+
+/**
  * 必須の text。**空は 400。黙って null にしない。**
  *
  * ⚠️ 呼ぶ前に「ペイロードにキーが有るか」を判定すること。
