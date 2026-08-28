@@ -62,7 +62,11 @@ function mapCompany(
     tagline: (row.tagline as string) ?? "",
     industry: (row.industry as string) ?? "",
     phase: (row.phase as string) ?? "",
-    employee_count: (row.employee_count as number) ?? 0,
+    /* ⚠️★**`?? 0` にしないこと**（2026-08-28 に直した）。列は text で NULL がありうるのに
+          `as number` で受けて 0 に倒しており、**未入力の企業の詳細ページに「従業員数 0名」**が
+          出ていた。空値の行は描画側が落とすので、null にすれば行ごと消える。
+          CLAUDE.md「値が無いことを、ある値に置き換えない」／「`?? 0` も同じ形」。 */
+    employee_count: (row.employee_count as string | null) ?? null,
     job_count: jobCount,
     current_mentors: 0,
     alumni_mentors: 0,

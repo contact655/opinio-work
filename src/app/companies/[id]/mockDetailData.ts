@@ -417,7 +417,7 @@ function makeDetail(c: Company, overrides: Partial<CompanyDetail> = {}): Company
   const base: CompanyDetail = {
     id: c.id,
     mission: defMission,
-    about: `${c.name}は、${c.tagline.replace(/。$/, "")}。${c.industry}領域をリードする${c.employee_count.toLocaleString()}名規模の組織で、${c.phase}フェーズにおいて事業成長を続けている。`,
+    about: `${c.name}は、${c.tagline.replace(/。$/, "")}。${c.industry}領域をリードする${typeof c.employee_count === "number" ? c.employee_count.toLocaleString() : (c.employee_count ?? "—")}名規模の組織で、${c.phase}フェーズにおいて事業成長を続けている。`,
     established: "2015年4月",
     ceo: "代表取締役 CEO",
     capital: "非公開",

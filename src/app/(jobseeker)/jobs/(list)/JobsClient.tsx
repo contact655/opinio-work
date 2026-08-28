@@ -55,6 +55,7 @@ const SALARY_PILL_TIERS = [
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
+import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { fmtMan } from "@/lib/utils/salary";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1059,9 +1060,14 @@ export default function JobsClient({
       list = [...list].sort((a, b) => (b.salary_max ?? 0) - (a.salary_max ?? 0));
     } else if (sort === "employees") {
       // 社員数順（多い企業の求人が上位）
+      /* ⚠️★**直す前は動いていなかった**（2026-08-28）。`employee_count` は
+            **text**（「約200名」など）なのに `?? 0` で受けて `bE - aE` を計算しており、
+            文字列同士の引き算で **NaN** になっていた。比較関数が NaN を返すと
+            並び順は事実上変わらない。**型が number だと嘘をついていたので気づけなかった。**
+         ⚠️ 数が読めない企業は **-1** で末尾へ。0 にすると「社員0名」と同じ扱いになる。 */
       list = [...list].sort((a, b) => {
-        const aE = companyMap.get(a.company_id)?.employee_count ?? 0;
-        const bE = companyMap.get(b.company_id)?.employee_count ?? 0;
+        const aE = parseEmployeeCount(companyMap.get(a.company_id)?.employee_count) ?? -1;
+        const bE = parseEmployeeCount(companyMap.get(b.company_id)?.employee_count) ?? -1;
         return bE - aE;
       });
     } else if (sort === "disclosure") {

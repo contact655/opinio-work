@@ -1,3 +1,4 @@
+import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 export type CompanyGenre = {
   id: string;
   name: string;
@@ -17,7 +18,11 @@ export type Company = {
   /** 事業領域（主が先頭）。主だけ出すときは `primaryBusinessDomain()` を使う */
   business_domains?: import("@/types/genre").CompanyBusinessDomain[];
   phase: string;
-  employee_count: number;
+  /* ⚠️ **DB の `ow_companies.employee_count` は text**（「約200名」など）。
+        mock だけが数値なので `string | number` の両方を受ける。
+     ⚠️ **`null` を潰さないこと。** 未入力の企業が5社ある（2026-08-28 実測・うち公開2社）。
+        `?? 0` で埋めると画面に「0名」と出る（実際に出ていた）。 */
+  employee_count: string | number | null;
   job_count: number;
   current_mentors: number;
   alumni_mentors: number;
@@ -299,7 +304,13 @@ export function filterCompanies(companies: Company[], params: FilterParams): Com
   if (params.employees) {
     const range = EMPLOYEE_RANGES.find((r) => r.label === params.employees);
     if (range) {
-      result = result.filter((c) => c.employee_count >= range.min && c.employee_count <= range.max);
+      /* ⚠️ `employee_count` は text にも null にもなる（DB の列は text）。
+            実データ用の `parseEmployeeCount` を通す。**数値として直接比較しない。**
+            ⚠️ 数が読めない企業は**落とす**（0 とみなすと「1-10名」に化ける）。 */
+      result = result.filter((c) => {
+        const n = parseEmployeeCount(c.employee_count);
+        return n != null && n >= range.min && n <= range.max;
+      });
     }
   }
   if (params.meeting === "1") {
@@ -308,7 +319,8 @@ export function filterCompanies(companies: Company[], params: FilterParams): Com
 
   // Sort
   if (params.sort === "employees") {
-    result.sort((a, b) => b.employee_count - a.employee_count);
+    /* ⚠️ 数が読めない企業は末尾へ（-1）。`lib/search/companies.ts` の実装と揃えてある。 */
+    result.sort((a, b) => (parseEmployeeCount(b.employee_count) ?? -1) - (parseEmployeeCount(a.employee_count) ?? -1));
   } else {
     // Default: updated (newest first)
     result.sort((a, b) => a.updated_days_ago - b.updated_days_ago);
