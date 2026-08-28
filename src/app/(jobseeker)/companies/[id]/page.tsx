@@ -59,7 +59,7 @@ const BENEFIT_CATEGORY_LIMIT = 3;
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan } from "@/lib/utils/salary";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeCount, parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
@@ -2540,12 +2540,25 @@ export default async function CompanyDetailPage({
             "@context": "https://schema.org",
             "@type": "Organization",
             name: company.name,
-            description: company.tagline ?? undefined,
+            /* ⚠️ `??` ではなく `||`。`mapCompany` が先に `?? ""` で潰しているので
+                  **`?? undefined` は一度も発火せず、空文字がそのまま出ていた**
+                  （2026-08-28 に本番で `description: ""` を確認）。
+                  CLAUDE.md「`?? ""` を挟んだ後の `?? フォールバック` は永久に効かない」。 */
+            description: company.tagline || undefined,
             url: `https://opinio.jp/companies/${companySlug ?? companyId}`,
-            numberOfEmployees: company.employee_count > 0 ? {
-              "@type": "QuantitativeValue",
-              value: company.employee_count,
-            } : undefined,
+            /* ⚠️★**`employee_count` は text 列**。`mapCompany` が `as number` で
+                  受けているので型は number に見えるが、実体は「約100名」のような文字列。
+                  そのため `company.employee_count > 0` は **NaN 比較で常に false** になり、
+                  `numberOfEmployees` は**一度も出力されていなかった**
+                  （2026-08-28 に本番の JSON-LD で確認）。
+               ⚠️ 数値の取り出しは `parseEmployeeCount` に集約する。ここで自前で
+                  パースしないこと（一覧のレンジ表記と規則がずれる）。
+               ⚠️ 「約100名」は 100 として出す。CTC の「単体6,425名 / グループ12,862名」は
+                  **単体（6425）**で、一覧の帯（5,001-10,000名）と同じ側を採る。 */
+            numberOfEmployees: (() => {
+              const n = parseEmployeeCount(company.employee_count);
+              return n == null ? undefined : { "@type": "QuantitativeValue", value: n };
+            })(),
           }),
         }}
       />
