@@ -72,10 +72,25 @@ const TARGETS = [
   { id: '355ce5c6-0412-4512-8864-1d477c97c917', name: 'ミラクル株式会社',
     file: 'scripts/assets/logos-20260828b/mirakl.png',
     origin: 'https://www.mirakl.com/media/favicons/favicon-light.svg' },                                             // SVG → 512x512 PNG
+  /* ★セールスフォースだけ出典が**公式サイトではなく Wikimedia Commons**。
+        公式は 32x32 の favicon しか公開しておらず、ブランドページにも無い（実測）。
+        ⚠️ **ライセンスを確認して採った**: `File:Salesforce.com logo.svg` は
+           **Public domain**（単純な図形・文字なので著作権の閾値を下回る扱い）。
+           商標は残るが、**その企業を指すために使う**用途なので問題にならない。
+        ⚠️ **Commons の検索結果をそのまま使わないこと。** 同じ検索で
+           「Cisco College」「インドネシアの都市の紋章」「ISS の写真」
+           「KDE のアイコンテーマ（Antu mongodb.svg）」が上位に出た。
+           **別会社や第三者の描き直しが混ざる。** ファイル名と中身を必ず確認する。
+        ⚠️ 比 1.43 なので**完全な正方形ではない**が、現行の OGP画像（1.91）より
+           収まりがよく、背景が透過で他のカードと揃う。 */
+  { id: 'c3664ef1-5571-4645-b30f-1474e7961c17', name: '株式会社セールスフォース・ジャパン',
+    file: 'scripts/assets/logos-20260828b/salesforce.png',
+    origin: 'https://commons.wikimedia.org/wiki/File:Salesforce.com_logo.svg' },                                     // 960x672（PD）
 ];
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' };
-const MIN_PX = 150;   // ★根拠は冒頭のコメント
+const MIN_PX = 150;      // ★短辺の下限。根拠は冒頭のコメント
+const MAX_RATIO = 1.6;   // ★縦横比の上限。OGP画像は 1.91 なので確実に弾く
 
 let ok = 0, ng = 0;
 for (const t of TARGETS) {
@@ -94,8 +109,14 @@ for (const t of TARGETS) {
     console.error(`✗ ${t.name}: PNG ではない（${buf.subarray(0, 8).toString('hex')}）`); ng++; continue;
   }
   const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20);
-  if (w !== h)      { console.error(`✗ ${t.name}: ${w}x${h} が正方形でない。中止`); ng++; continue; }
-  if (w < MIN_PX)   { console.error(`✗ ${t.name}: ${w}x${h} は ${MIN_PX}px 未満。中止`); ng++; continue; }
+  /* ⚠️ 正方形を必須にしない。**縦横比の上限で見る。** 差し替えの目的は
+        「OGP画像（1.91:1）をやめる」ことで、1.5 程度までは正方形の枠に収まる。
+        ⚠️ **1.8 を超えるものは受けない**（それが OGP画像の規格そのもの）。 */
+  const ratio = w / h;
+  if (ratio > MAX_RATIO) { console.error(`✗ ${t.name}: ${w}x${h}（比${ratio.toFixed(2)}）は横長すぎる。中止`); ng++; continue; }
+  if (ratio < 1 / MAX_RATIO) { console.error(`✗ ${t.name}: ${w}x${h} は縦長すぎる。中止`); ng++; continue; }
+  /* ⚠️ 短辺で測る。横長のものを長辺で通すと、実際の解像度が足りない */
+  if (Math.min(w, h) < MIN_PX) { console.error(`✗ ${t.name}: 短辺 ${Math.min(w,h)}px は ${MIN_PX}px 未満。中止`); ng++; continue; }
 
   const key = `companies/logos/${t.id}/logo.png`;
   const { error } = await supabase.storage.from('ow-uploads').upload(key, buf, {
