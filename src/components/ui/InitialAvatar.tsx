@@ -40,7 +40,11 @@ export function InitialAvatar({
         justifyContent: "center",
         fontSize: Math.round(size * 0.41),
         fontWeight: 700,
-        fontFamily: "'Inter', sans-serif",
+        /* ⚠★和文の頭文字（「山」「阪」など）が来るので `--font-noto` を後段に置く
+              （2026-08-29）。Inter は和文グリフを持たないので、生の "Inter" だけだと
+              和文がブラウザ既定の書体に落ち、同じ画面の他の和文と別の顔になる。
+              `CompanyLogoImg` の頭文字も同じ形にしてある。 */
+        fontFamily: "var(--font-inter), var(--font-noto)",
         flexShrink: 0,
         userSelect: "none",
       }}

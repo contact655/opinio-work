@@ -779,7 +779,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* ⚠️ 会社名の伏せ字は `buildTimelineCareerEntriesFromRaw` に
                    `viewerIsOwner` を渡して解決済み。そちらは触らない。 */}
             {timelineCareers.length > 0 && (
-              <ProfileTimelineSection id="career" title="職歴">
+              <ProfileTimelineSection id="career" title="職歴" latin="CAREER">
                 <MergedTimeline
                   careers={timelineCareers}
                   educations={[]}
@@ -800,7 +800,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                       既に登録している人が**思い出せない年月の入力を強いられる**
                       （＝推測値の投入を利用者にさせることになる）。 */}
             {(timelineEdus.length > 0 || unplacedEdus.length > 0) && (
-              <ProfileTimelineSection id="education" title="学歴">
+              <ProfileTimelineSection id="education" title="学歴" latin="EDUCATION">
                 {timelineEdus.length > 0 && (
                   <MergedTimeline
                     careers={[]}
@@ -814,7 +814,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   }}>
                     <SchoolLogoImg schoolMaster={e.school_master ?? null} size={28} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: "#111", lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
                         {e.school}
                       </div>
                       {(e.faculty || e.degree) && (
@@ -886,13 +886,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
               borderRadius: 14, padding: "24px 28px", marginBottom: 20,
               boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", minWidth: 0 }}>
+              {/* ⚠ 見出しは他のセクションと同じ形にする（2026-08-29）。
+                     ここだけ Inter 16px で、件数がオレンジ（#D97706）だった。
+                  ⚠★オレンジは**カジュアル面談だけの色**（.claude/skills/ui-conventions）。
+                     求人の件数に使うと、凡例の無い色分けが増える。件数は他節と同じ
+                     ニュートラル（--ink-mute）にした。 */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)", minWidth: 0 }}>
                   {shortCompanyName(currentCareer!.company_name)}の募集中の求人
                 </span>
                 <span style={{
-                  fontSize: "var(--text-xs)", color: "#D97706", fontWeight: 700,
-                  fontFamily: "Inter, sans-serif", flexShrink: 0,
+                  fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
+                  fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0,
                 }}>
                   {currentCompanyJobCount}件
                 </span>

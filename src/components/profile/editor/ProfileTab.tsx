@@ -1389,6 +1389,7 @@ export default function ProfileTab({
             <ProfileTimelineSection
               id="career"
               title="職歴"
+              latin="CAREER"
               onAdd={() => setCareerAddNonce((n) => n + 1)}
               addLabel="職歴を追加"
               /* ★行ごとの操作は一覧ページへ（2026-08-17 / フェーズ3） */
@@ -1473,6 +1474,7 @@ export default function ProfileTab({
             <ProfileTimelineSection
               id="education"
               title="学歴"
+              latin="EDUCATION"
               onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
               addLabel="学歴を追加"
               /* ★行ごとの鉛筆・ゴミ箱は本体から外し、一覧ページに寄せた（2026-08-17 / フェーズ3） */

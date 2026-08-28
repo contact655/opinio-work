@@ -20,7 +20,7 @@ export async function JobseekerFooter() {
           {/* Brand — spans 2 cols on mobile */}
           <div className="col-span-2 sm:col-span-1">
             <div style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), sans-serif",
               fontWeight: 700, fontSize: 24,
               letterSpacing: "-0.02em", color: "#fff",
               marginBottom: 12,

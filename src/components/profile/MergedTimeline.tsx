@@ -850,7 +850,7 @@ function CompanyLogoIcon({
     : "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)";
   return (
     <div style={{ ...wrapStyle, background: fallbackGrad }}>
-      <span style={{ color: "#fff", fontSize: fontPx, fontWeight: 700, fontFamily: "Inter, sans-serif", lineHeight: 1 }}>
+      <span style={{ color: "#fff", fontSize: fontPx, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1 }}>
         {fallbackLetter}
       </span>
     </div>
@@ -892,7 +892,7 @@ function PeriodLine({ start, end, duration, marginBottom = 0 }: {
 }) {
   return (
     <div style={{
-      fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
+      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500,
       color: "var(--ink-mute)", marginBottom, lineHeight: 1.4,
       display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
     }}>
@@ -909,7 +909,7 @@ function PeriodLine({ start, end, duration, marginBottom = 0 }: {
 function DurationPill({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
-      fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 600,
+      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 600,
       color: "var(--ink-mute)", background: "var(--line-soft)",
       borderRadius: 100, padding: "2px 8px", lineHeight: 1.5,
       whiteSpace: "nowrap",
@@ -997,11 +997,11 @@ function CareerContent({
         </span>
         {data.company_id ? (
           <Link href={`/companies/${data.company_id}`} className="company-name-link"
-            style={{ fontSize: 17, fontWeight: 700, color: "#111", textDecoration: "none" }}>
+            style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
             {shortCompanyName(data.company_name)}
           </Link>
         ) : (
-          <span style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>
+          <span style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>
             {shortCompanyName(data.company_name)}
           </span>
         )}
@@ -1082,7 +1082,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: "#111",
+              color: "var(--ink)",
               textDecoration: "none",
             }}
             className="school-name-link"
@@ -1094,7 +1094,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: "#111",
+              color: "var(--ink)",
             }}
           >
             {data.school}
@@ -1246,11 +1246,11 @@ export default function MergedTimeline({
                     </span>
                     {head.company_id ? (
                       <Link href={`/companies/${head.company_id}`} className="company-name-link"
-                        style={{ fontSize: 18, fontWeight: 700, color: "#111", textDecoration: "none" }}>
+                        style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
                         {shortCompanyName(head.company_name)}
                       </Link>
                     ) : (
-                      <span style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
                         {shortCompanyName(head.company_name)}
                       </span>
                     )}

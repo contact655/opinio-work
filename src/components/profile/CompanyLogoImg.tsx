@@ -128,7 +128,11 @@ export function LetterCircle({
         color: "#fff",
         fontSize: size * 0.42,
         fontWeight: 700,
-        fontFamily: "Inter, sans-serif",
+        /* ⚠★`"Inter, sans-serif"` にしない（2026-08-29）。ここに来るのは
+              **企業名・学校名の頭文字**で、「阪」「滝」のような**和文が入る。**
+              Inter は和文グリフを持たないので、和文だけブラウザ既定の書体に落ち、
+              同じ画面の他の和文と別の顔になる。 */
+        fontFamily: "var(--font-inter), var(--font-noto)",
       }}
     >
       {letter ?? ""}

@@ -189,7 +189,7 @@ export function JobseekerHeader() {
           {/* Logo */}
           <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
             <span style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), sans-serif",
               fontWeight: 700,
               fontSize: 22,
               color: "var(--royal)",
