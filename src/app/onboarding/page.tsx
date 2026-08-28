@@ -20,10 +20,21 @@ export default async function OnboardingPage() {
         入口の摩擦を増やすと、そもそも登録されない。
      ⚠️ `merged_into_id` がある行は統合済み、`is_active = false` は停止中。
         どちらも選択肢に出さない。 */
+  /* ★子職種も渡す（2026-08-29 / 柴さんの判断）。**トップレベルだけに戻さないこと。**
+
+     ── なぜ変えたか ────────────────────────────────────────────────────────
+     職歴から「職種 × 年数」を自動で出すようにしたが、**その集計は子職種だけを見る**
+     （親と子が並ぶと重複に見えるため）。ここが親しか出していないと、
+     **新規登録した人は職種スキルが1件も出ない。**
+     実測（2026-08-29）: `ow_experiences` 24件のうち **親職種が10件**。
+
+     ⚠️ 入口の摩擦を増やさない形にしてある —— **親チップを押すとその子だけが開く。**
+        子を選ばずに親のまま進んでもよい（保存は通る）。
+     ⚠️ **154件をフラットに並べない。** 2026-08-06 に職歴エディタで
+        「105件を目視で探させるUIが機能していなかった」と分かっている。 */
   const { data: roleRows, error } = await createAdminClient()
     .from("ow_roles")
-    .select("id, name, display_order")
-    .is("parent_id", null)
+    .select("id, name, parent_id, display_order")
     .is("merged_into_id", null)
     .eq("is_active", true)
     .order("display_order", { ascending: true })
@@ -31,7 +42,11 @@ export default async function OnboardingPage() {
 
   if (error) console.error("[onboarding] ow_roles", error.message);
 
-  const roles = (roleRows ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
+  const roles = (roleRows ?? []).map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    parent_id: (r.parent_id as string | null) ?? null,
+  }));
 
   return <OnboardingClient roles={roles} />;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
@@ -119,7 +119,8 @@ async function postJson(
 
 // ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
 
-export type OnboardingRole = { id: string; name: string };
+/** ⚠️ 2026-08-29 に `parent_id` を足した。親チップを押すと子だけを開くため。 */
+export type OnboardingRole = { id: string; name: string; parent_id: string | null };
 
 /** 入社年の選択肢。⚠️ ビルド時ではなく描画時に現在年を取る */
 const CURRENT_YEAR = new Date().getFullYear();
@@ -144,6 +145,22 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
      ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
         2026-08-10 まではここで会社名だけ聞いて**捨てていた**。 */
+  /* ★親と子を分ける（2026-08-29）。**154件をフラットに並べない。**
+        親チップを押すと、その親の子だけが下に開く。子を選ばず親のまま進んでもよい。
+     ⚠️ 職歴から出す「職種 × 年数」は**子だけを集計する**ので、子まで選んでもらえると
+        プロフィールに職種スキルが出る。選ばなくても保存は通る（摩擦を増やさない）。 */
+  const topRoles = useMemo(() => roles.filter((r) => !r.parent_id), [roles]);
+  const childrenOf = useMemo(() => {
+    const m = new Map<string, OnboardingRole[]>();
+    for (const r of roles) {
+      if (!r.parent_id) continue;
+      const arr = m.get(r.parent_id) ?? [];
+      arr.push(r);
+      m.set(r.parent_id, arr);
+    }
+    return m;
+  }, [roles]);
+
   /* 職種は複数選べる（2026-08-14）。
      ⚠️ 先頭が主職種になる。`ow_experiences.role_category_id` は1つしか持てないので、
         API が先頭をそこへ入れ、全部を `ow_experience_roles` に書く。
@@ -465,16 +482,21 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 当てはまるものを選んでください（{MAX_ROLES}つまで）。あとから詳しく設定できます。
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-                {roles.map((r) => {
-                  const active = roleIds.includes(r.id);
+                {topRoles.map((r) => {
+                  /* ★その親の**子が選ばれていても親を選択中として見せる**（2026-08-29）。
+                        こうしないと、子を選んだ瞬間に**画面から選択が消える**
+                        （親チップ列に子は無いため）。実際にテストで踏んだ。 */
+                  const childIds = (childrenOf.get(r.id) ?? []).map((c) => c.id);
+                  const active = roleIds.includes(r.id) || roleIds.some((id) => childIds.includes(id));
                   return (
                     <button
                       key={r.id}
                       type="button"
                       aria-pressed={active}
                       onClick={() => setRoleIds((prev) =>
-                        prev.includes(r.id)
-                          ? prev.filter((x) => x !== r.id)
+                        /* 選択中なら、親も配下の子もまとめて外す */
+                        active
+                          ? prev.filter((x) => x !== r.id && !childIds.includes(x))
                           /* ⚠️ 上限を超えたら足さない。API 側も5件で切るので、
                                 ここで通すと「選べたのに保存されない」になる。 */
                           : prev.length >= MAX_ROLES ? prev : [...prev, r.id]
@@ -488,11 +510,67 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                         cursor: "pointer", fontFamily: "inherit",
                       }}
                     >
+                      {/* ⚠️★**親チップに子の名前を出さないこと**（2026-08-29 に一度やって戻した）。
+                             子を選ぶと親チップと子チップが**同じラベルで2つ並び**、
+                             どちらを押しているのか分からなくなる（テストでも取り違えた）。
+                             選ばれた子は**下の行でハイライト**して示す。 */}
                       {r.name}
                     </button>
                   );
                 })}
               </div>
+
+              {/* ★選んだ親の子職種（2026-08-29）。⚠️ 選ばなくても進める。
+                     子を選ぶと親の選択は外し、子に置き換える（親と子が両方付くと
+                     「職種 × 年数」の集計で重複して見えるため）。 */}
+              {(() => {
+                /* 親そのものを選んでいる場合と、その配下の子を選んでいる場合の両方で開く */
+                const openParents = topRoles
+                  .filter((p) => {
+                    const ids = (childrenOf.get(p.id) ?? []).map((c) => c.id);
+                    return ids.length > 0 && (roleIds.includes(p.id) || roleIds.some((x) => ids.includes(x)));
+                  })
+                  .map((p) => p.id);
+                if (openParents.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+                      さらに近いものがあれば選んでください（任意）。
+                    </p>
+                    {openParents.map((pid) => (
+                      <div key={pid} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                        {(childrenOf.get(pid) ?? []).map((c) => {
+                          const on = roleIds.includes(c.id);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() => setRoleIds((prev) =>
+                                on
+                                  /* もう一度押したら親に戻す（選択が空になる状態を作らない） */
+                                  ? [...prev.filter((x) => x !== c.id), pid]
+                                  /* 親を外して子に差し替える。⚠️ 上限は親を外したぶん空くので超えない */
+                                  : [...prev.filter((x) => x !== pid), c.id].slice(0, MAX_ROLES)
+                              )}
+                              style={{
+                                padding: "5px 11px", borderRadius: 100,
+                                border: `1px solid ${on ? "var(--royal)" : "var(--line)"}`,
+                                background: on ? "var(--royal-50)" : "#fff",
+                                color: on ? "var(--royal)" : "var(--ink-soft)",
+                                fontSize: 12, fontWeight: on ? 700 : 500,
+                                cursor: "pointer", fontFamily: "inherit",
+                              }}
+                            >
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
                 入社年月
@@ -682,7 +760,14 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                     aria-label={`職歴 ${idx + 1} の職種`}
                   >
                     <option value="">職種</option>
-                    {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    {/* ⚠️ 親の下に子をぶら下げる。`optgroup` は入れ子にできないので
+                           全角スペースで階層を示す（2026-08-29） */}
+                    {topRoles.map((p) => [
+                      <option key={p.id} value={p.id}>{p.name}</option>,
+                      ...(childrenOf.get(p.id) ?? []).map((c) => (
+                        <option key={c.id} value={c.id}>{`　${c.name}`}</option>
+                      )),
+                    ])}
                   </select>
 
                   <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
