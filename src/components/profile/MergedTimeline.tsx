@@ -195,8 +195,6 @@ export interface MergedTimelineProps {
    *    親から渡す形にしてあるのは、次に一覧を作り直しても**渡し忘れれば型で気づける**ため。
    */
   renderCareerExtra?: (careerId: string) => React.ReactNode;
-  /** 生年月日（"YYYY-MM-DD"）。年マーカーに年齢を表示するために使用 */
-  birthDate?: string | null;
 }
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
@@ -222,7 +220,6 @@ type RenderEntry =
   | { kind: "career-same-company"; items: CareerEntry[]; companyKey: string }
   | { kind: "education";           data: EducationEntry };
 
-type EnrichedEntry = RenderEntry | { kind: "year-sep"; year: number; age: number | null };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -861,117 +858,12 @@ function CompanyLogoIcon({
 }
 // EducationIcon は段階6-6 Phase 4 で SchoolLogoImg に完全置換（判断点 #9 案 a）
 
-// ─── Year marker helpers ──────────────────────────────────────────────────────
-
-function getEntryStartYear(entry: RenderEntry): number | null {
-  if (entry.kind === "career") return parseInt(entry.data.started_at.slice(0, 4), 10);
-  /* ★同社グループは **items[0]（＝一番上に描かれる役割）** の年を返す（2026-08-26 / フェーズ2-3）。
-        マーカーの規則は「**そのすぐ下に来るものの開始年**」。ここだけ最古を返していたため、
-        大塚さんは「2012」のマーカーの真下に「2020年7月 –」から始まるカードが来ていた。
-     ⚠️ `Math.min` に戻さないこと。グループの内側の年は
-        `InnerYearLabel`（役割リストの中）が出す。 */
-  if (entry.kind === "career-same-company") {
-    return parseInt(entry.items[0].started_at.slice(0, 4), 10);
-  }
-  if (entry.kind === "education") return parseInt(entry.data.enrolled_at.slice(0, 4), 10);
-  return null;
-}
-
-function calcAgeAtYear(year: number, birthDate: string): number | null {
-  const birthYear = parseInt(birthDate.slice(0, 4), 10);
-  const age = year - birthYear;
-  return age > 0 && age < 100 ? age : null;
-}
-
-function YearSeparator({ year, age }: { year: number; age: number | null }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "80px 1fr",
-        alignItems: "center",
-        position: "relative",
-        zIndex: 2,
-        margin: "8px 0 0",
-      }}
-    >
-      {/* 年チップ — 縦線の上に乗る */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <div
-          style={{
-            background: "#fff",
-            border: "1.5px solid var(--line)",
-            borderRadius: 100,
-            padding: "2px 9px",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--ink-soft)",
-            fontFamily: "Inter, sans-serif",
-            letterSpacing: "0.04em",
-            lineHeight: 1.6,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {year}
-        </div>
-      </div>
-      {/* 年齢 + 横線 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 12 }}>
-        {age !== null && (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--ink-mute)",
-              fontFamily: "Inter, sans-serif",
-              whiteSpace: "nowrap",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {age}歳
-          </span>
-        )}
-        <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-      </div>
-    </div>
-  );
-}
-
-/**
- * ★同社グループの**内側**に出す年ラベル（2026-08-26 / フェーズ2-3）。
- *
- * グループは1つの箱なので、外側のマーカーは**1年しか出せない**。
- * それだけだと、同じ会社で年をまたいで役割が変わった人の年が年表から消える
- * （大塚さんの海光電業は 2020 / 2018 / 2012 のうち **2012 しか出ていなかった**）。
- *
- * ⚠️ **外側（`YearSeparator`）より重さを下げる。** 同じ強さだと年表が二重に見える。
- *    外側 = 80px 列の枠付きチップ（700）／内側 = 枠なし・小さめ・淡い色。
- * ⚠️ **年齢も併記する**（外側と同じ「2012 23歳」の形）。年だけだと外側と語彙が割れる。
- * ⚠️ **タップ対象ではない。** 44px の対象外（押せるものを足さない）。
- */
-function InnerYearLabel({ year, age }: { year: number; age: number | null }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        marginBottom: 6,
-        fontFamily: "Inter, sans-serif",
-        fontSize: 11,
-        fontWeight: 700,
-        color: "var(--ink-mute)",
-        letterSpacing: "0.04em",
-        lineHeight: 1.5,
-        /* ⚠️ 375px でも折り返さない。年＋年齢で最大でも10文字程度 */
-        whiteSpace: "nowrap",
-      }}
-    >
-      <span>{year}</span>
-      {age !== null && <span style={{ fontWeight: 600 }}>{age}歳</span>}
-    </div>
-  );
-}
+/* ★年マーカー（年チップ・年齢・同社グループ内の年ラベル）は 2026-08-29 に削除した。
+      ⚠️ **戻さないこと**（柴さんの判断）。カード自身が「2016年4月 – 現在 · 10年5ヶ月」と
+         期間を持っているので、年チップは同じ情報を2度出していた。
+   ⚠️★**年齢の表示もこれで無くなった。** タイムラインは年齢を出していた唯一の場所で、
+      CLAUDE.md「年齢は詳細だけ」の例外として認められていた箇所。
+      年齢を出したくなったら**別の置き場所**を決めること。ここに戻すと年チップも一緒に戻る。 */
 
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
@@ -1195,7 +1087,6 @@ export default function MergedTimeline({
   careerActions,
   isAuthenticated = true,
   collapseAfter,
-  birthDate,
 }: MergedTimelineProps) {
   /* ★並行の判定。**箱でまとめず、経歴1件ごとに「重なっている他社」を持つ**
         （`lib/profile/parallel.ts`）。同じ会社の複数役割どうしは数えない。 */
@@ -1219,32 +1110,12 @@ export default function MergedTimeline({
 
   if (renderEntries.length === 0) return null;
 
-  // 年区切りマーカーを注入
-  const enrichedEntries: EnrichedEntry[] = [];
-  let prevYear: number | null = null;
-  for (const entry of visibleEntries) {
-    const thisYear = getEntryStartYear(entry);
-    if (thisYear !== null && thisYear !== prevYear) {
-      enrichedEntries.push({
-        kind: "year-sep",
-        year: thisYear,
-        age: birthDate ? calcAgeAtYear(thisYear, birthDate) : null,
-      });
-      prevYear = thisYear;
-    }
-    enrichedEntries.push(entry);
-  }
-
   return (
     <>
       {/* Scoped responsive styles */}
 
       <div className="merged-timeline">
-        {enrichedEntries.map((entry, _idx) => {
-          if (entry.kind === "year-sep") {
-            return <YearSeparator key={`year-${entry.year}-${_idx}`} year={entry.year} age={entry.age} />;
-          }
-
+        {visibleEntries.map((entry, _idx) => {
           if (entry.kind === "career") {
             const c = entry.data;
 
@@ -1361,23 +1232,8 @@ export default function MergedTimeline({
                       // 表示するポジション名: role_title > role_label の優先順
                       const lines = buildPositionLines(c);
 
-                      /* ★グループの内側の年ラベル（2026-08-26 / フェーズ2-3）。
-                            **年が変わる役割の前だけ**出す。
-                            ⚠️ 先頭（idx 0）は出さない。**外側のマーカーがその年を出している**
-                               （`getEntryStartYear` が items[0] の年を返す）。
-                               ここでも出すと同じ年が2つ並ぶ。 */
-                      const yearOf = (x: CareerEntry) => parseInt(x.started_at.slice(0, 4), 10);
-                      const innerYear =
-                        idx > 0 && yearOf(c) !== yearOf(items[idx - 1]) ? yearOf(c) : null;
-
                       return (
                         <div key={c.id} style={{ position: "relative", paddingBottom: isLast ? 0 : 20 }}>
-                          {innerYear !== null && (
-                            <InnerYearLabel
-                              year={innerYear}
-                              age={birthDate ? calcAgeAtYear(innerYear, birthDate) : null}
-                            />
-                          )}
                           {/* ドットマーカー */}
                           <div style={{
                             position: "absolute", left: -20 + 5 - 4, top: 6,

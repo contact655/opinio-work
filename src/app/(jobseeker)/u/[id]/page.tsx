@@ -793,7 +793,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   careers={timelineCareers}
                   educations={[]}
                   collapseAfter={4}
-                  birthDate={birthDate}
                 />
               </ProfileTimelineSection>
             )}
@@ -815,7 +814,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <MergedTimeline
                     careers={[]}
                     educations={timelineEdus}
-                    birthDate={birthDate}
                   />
                 )}
                 {unplacedEdus.map((e) => (

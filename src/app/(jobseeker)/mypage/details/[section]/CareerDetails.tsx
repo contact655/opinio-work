@@ -29,12 +29,11 @@ import { DetailsFrame, DetailsEmpty } from "./DetailsFrame";
  * ⚠️ 2026-08-16 の 2-6 で `CareerHistoryEditor` の自前の一覧を差し替えたとき、
  *    その中にあった `<StoryAccordion>` が一緒に消え、**入口が1週間なくなっていた。**
  */
-export default function CareerDetails({ initialExperiences, roles, roleAliases, companyLogoInfo, birthDate }: {
+export default function CareerDetails({ initialExperiences, roles, roleAliases, companyLogoInfo }: {
   initialExperiences: Stint[];
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   roleAliases: Record<string, string[]>;
   companyLogoInfo: ({ id: string } & CompanyLogoInfo)[];
-  birthDate: string | null;
 }) {
   const [stints, setStints] = useState<Stint[]>(initialExperiences);
   const [addNonce, setAddNonce] = useState(0);
@@ -55,7 +54,6 @@ export default function CareerDetails({ initialExperiences, roles, roleAliases, 
         <MergedTimeline
           careers={careers}
           educations={[]}
-          birthDate={birthDate ?? undefined}
           careerActions={{
             onEditRow:   (id) => setEditId(id),
             onDeleteRow: (id) => setDeleteId(id),

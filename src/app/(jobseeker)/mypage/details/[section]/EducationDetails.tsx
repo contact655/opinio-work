@@ -15,10 +15,9 @@ import { DetailsFrame, DetailsEmpty } from "./DetailsFrame";
  *    違うのは「全件出す」ことと「行ごとの鉛筆・ゴミ箱を出す」ことだけ。
  * ⚠️ 編集・削除は本体と同じ `EducationEditor`（モーダル＋確認ダイアログ）を使う。
  */
-export default function EducationDetails({ initialEducations, schools, birthDate }: {
+export default function EducationDetails({ initialEducations, schools }: {
   initialEducations: Education[];
   schools: School[];
-  birthDate: string | null;
 }) {
   const [educations, setEducations] = useState<Education[]>(initialEducations);
   const [addNonce, setAddNonce] = useState(0);
@@ -38,7 +37,6 @@ export default function EducationDetails({ initialEducations, schools, birthDate
           <MergedTimeline
             careers={[]}
             educations={toTimelineEducationEntries(educations as RawEducation[])}
-            birthDate={birthDate ?? undefined}
             educationActions={actions}
           />
           {/* ⚠️ `toTimelineEducationEntries` は**入学年月が無い行を落とす**（年表に置けない）。

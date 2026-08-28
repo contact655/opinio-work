@@ -1442,7 +1442,6 @@ export default function ProfileTab({
               <MergedTimeline
                 careers={shownCareers.careers}
                 educations={[]}
-                birthDate={owUser?.birth_date}
               />
               {careerStints.length === 0 && (
                 <SectionAddCircle label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
@@ -1507,9 +1506,6 @@ export default function ProfileTab({
                   <MergedTimeline
                     careers={[]}
                     educations={shownEducations}
-                    /* ⚠️ `birthDate` を渡す。渡さないと年マーカーに年齢が出ず、
-                          `/u/[id]` の学歴（「2014 19歳」）と食い違う（2026-08-16 の通しで発見） */
-                    birthDate={owUser?.birth_date}
                   />
                   {/* ⚠️ 入学年月が無い行・N件を超えた行はここには出ない。
                          **拾うのは `/mypage/details/education`**（下の「すべて表示」から行ける）。

@@ -89,7 +89,6 @@ export default async function ProfileDetailsPage({ params }: { params: { section
           sort_order: e.sort_order as number,
         }))}
         schools={(schools ?? []) as never}
-        birthDate={(owUser.birth_date as string | null) ?? null}
       />
     );
   }
@@ -171,7 +170,6 @@ export default async function ProfileDetailsPage({ params }: { params: { section
         }))}
         roleAliases={aliasMap}
         companyLogoInfo={companyLogoInfo}
-        birthDate={(owUser.birth_date as string | null) ?? null}
       />
     );
   }
