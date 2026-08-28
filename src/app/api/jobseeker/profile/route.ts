@@ -29,8 +29,6 @@ export async function PUT(req: Request) {
   const patch: {
     name?: string;
     headline?: string | null;
-    avatar_color?: string | null;
-    cover_color?: string | null;
     about_me?: string | null;
     birth_date?: string | null;
     location?: string | null;
@@ -51,8 +49,6 @@ export async function PUT(req: Request) {
     if ("name" in body) {
       patch.name = requiredText(body.name, "ow_users.name", "お名前を入力してください", 100);
     }
-    /* ⚠️ avatar_color / cover_color は値のホワイトリスト検証が本来要る（docs に宿題として記載）。
-          ここでは空→null だけを揃える。形式の検証は入れない。 */
     /* 肩書き1行。⚠️ 上限は DB の CHECK（ow_users_headline_length）と同じ 40。
           超過は **切らずに 400**。切ると「入力したのに途中で消えた」になる。 */
     if ("headline" in body) {
@@ -62,8 +58,23 @@ export async function PUT(req: Request) {
       }
       patch.headline = h;
     }
-    if ("avatar_color" in body) patch.avatar_color = optionalText(body.avatar_color, 100);
-    if ("cover_color"  in body) patch.cover_color  = optionalText(body.cover_color, 100);
+    /* ⚠️★**`avatar_color` / `cover_color` は受け付けない**（2026-08-28 に外した）。
+          ── なぜ検証ではなく受け付けをやめたか ────────────────────────────
+          **色を変える UI が1つも存在しない**（送信するクライアントを src 全体で
+          探して0件。読む側＝表示だけが12箇所）。書き込み経路はここだけだった。
+          値は `style={{ background: … }}` にそのまま入るので、**API を直接叩けば
+          任意の CSS が入る**状態だった（100字以内という制限しか無かった）。
+
+          ⚠️ 当初の宿題は「既定のグラデーション一覧をホワイトリストにする」だったが、
+             **その一覧がどこにも無い**。無い選択肢のホワイトリストを発明するより、
+             書き手がいない受け口を閉じるほうが筋が通る。
+
+          ⚠️ **色を選ばせる UI を作る日に、ここを開けると同時に許容値の定数を
+             `src/lib/constants/` に置くこと**（CLAUDE.md「UI / API / DB を3つ揃える」）。
+             ここだけ開けない。
+
+          ⚠️ **列と既存データは残してある。** 実データは3件
+             （`linear-gradient(135deg, #002366, #3B5FD9)` 等）で、表示側が読んでいる。 */
     if ("about_me" in body) patch.about_me = optionalText(body.about_me, 2000);
     if ("location" in body) patch.location = optionalText(body.location, 100);
 
