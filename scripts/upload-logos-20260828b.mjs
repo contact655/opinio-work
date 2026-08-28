@@ -64,6 +64,14 @@ const TARGETS = [
   { id: 'a1a7036b-a5c4-4328-b5db-96ac1d5e29df', name: 'キリバ株式会社',
     file: 'scripts/assets/logos-20260828b/kyriba.png',
     origin: 'https://www.kyriba.com/favicon.ico' },                                                                  // 156x156（ICO → PNG）
+  /* ★ミラクルは SVG しか無い。2026-08-28 の1回目は**ほぼ空白**になって落とした。
+        原因は `<style>` の中に `path { fill: #03182F }` があり、**qlmanage が SVG 内の
+        CSS を適用しない**こと（root は `fill="none"`）。fill を path に直接書いてから
+        ラスタライズすると出る。さらに qlmanage は**白背景を焼き込む**ので、
+        四隅から flood fill して外側だけ透明にしてある（円の内側の白い盾は残す）。 */
+  { id: '355ce5c6-0412-4512-8864-1d477c97c917', name: 'ミラクル株式会社',
+    file: 'scripts/assets/logos-20260828b/mirakl.png',
+    origin: 'https://www.mirakl.com/media/favicons/favicon-light.svg' },                                             // SVG → 512x512 PNG
 ];
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' };
