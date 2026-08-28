@@ -253,7 +253,12 @@ export default function ProfileEditor({
   const initialSettingsForTab: SettingsState = {
     avatarColor:  owUser?.avatar_color  ?? DEFAULT_AVATAR_COLOR,
     coverColor:   owUser?.cover_color   ?? DEFAULT_COVER_COLOR,
-    visibility:   (owUser?.visibility ?? "public") as SettingsState["visibility"],
+    /* ⚠️★フォールバックは **DB の既定と同じ `login_only`**（2026-08-28 に "public" から変更）。
+          `ow_users.visibility` は **NOT NULL / DEFAULT 'login_only'** なので、
+          ここが発火するのは `owUser` ごと null のときだけ ── つまり**稀**だが、
+          そのとき「公開」と表示して保存させるのは**向きが逆**。
+       ⚠️ 迷ったら狭いほうに倒す。公開範囲の既定を広いほうにしない。 */
+    visibility:   (owUser?.visibility ?? "login_only") as SettingsState["visibility"],
   };
   /* 保存済みの公開設定。写真カードのプレビューが見る。
      ⚠️ 右カラムの「企業からの見え方」は 2026-08-16 に外した（本体は設定タブにある）。 */
