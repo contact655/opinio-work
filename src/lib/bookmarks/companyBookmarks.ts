@@ -8,6 +8,9 @@
  *   CompanyCardList     … `_listBookmarkPromise` で**同じ内容をコピーした**自前キャッシュ
  *   CompanySearchBar    … キャッシュ無しの素の fetch
  *
+ * ⚠️ `CompanyCardCompact` は **2026-08-28 に削除済み**（描画元が無い孤児だった）。
+ *    上は当時の記録。いまこの helper を使うのは CompanyCardList と CompanySearchBar。
+ *
  * 各自の中では重複を防げていたが、**コンポーネントをまたぐと防げない**。
  * `/companies` の実測で同じリクエストが2本飛んでいた。
  *

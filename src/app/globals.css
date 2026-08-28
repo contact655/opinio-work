@@ -648,7 +648,10 @@ details > summary:hover { background: var(--bg-tint); }
   }
 }
 
-/* ── genre-card (CompanyCardCompact) — 全ページ共通 ── */
+/* ── genre-card — 絞り込み結果のカード ──
+   ⚠️ 名前の由来は削除済みの CompanyCardCompact（2026-08-28）。
+      **いま使っているのは CompanySearchResults** で、あちらは同じセレクタを
+      自前の <style> でも定義している。片方だけ変えると食い違う。 */
 .genre-card {
   display: flex;
   flex-direction: column;
@@ -860,10 +863,6 @@ body {
   .clc-cta { display: none !important; }
 }
 
-/* CompanyCardCompact: 比較ボタン hover 表示 */
-.ccc-compare-btn { opacity: 0; transition: opacity 0.15s; }
-.genre-card:hover .ccc-compare-btn { opacity: 1; }
-.ccc-compare-btn.active { opacity: 1; }
 
 /* ── Company jobs list ────────────────────────────────────────────── */
 .company-job-card { transition: box-shadow 0.15s, transform 0.15s; }

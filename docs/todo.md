@@ -902,19 +902,28 @@ trigger が無かった時期のもの。内訳は
    `ow_experience_stories` / `ow_story_sections` の扱い**も一緒に決める
    （どちらも0行なので、DROP するかは別途）
 
-## CompanyCardCompact は本体が未使用・型だけ生きている（2026-08-20 記録）
+## ~~CompanyCardCompact は本体が未使用・型だけ生きている~~（**2026-08-28 に削除済み**）
 
-`GenreCarousel` を削除した結果、**このカードを描画している画面が無くなった。**
-それでもファイルを残しているのは、`MemberPreview` 型を
-`CompanyCardList` と `RecentlyViewedSection` が import しているため。
+`GenreCarousel` を削除した結果このカードを描画する画面が無くなり、
+`MemberPreview` 型のためだけにファイルが残っていた。
 
-消すときの手順（今回はやらない）:
+**手順1〜3は不要になった。** 同日の `a5f40cac`（常に空になるメンバー取得の除去）で
+`MemberPreview` を使う3箇所（`CompanyCardList` の import・`page.tsx` のローカル定義・
+`members` prop）がまとめて消え、**型の置き場を決める必要が無くなった**ため、
+`CompanyCardCompact.tsx` をそのまま削除した（286行）。
 
-1. `MemberPreview` の置き場を決める（`components/companies/types.ts` など）
-2. `CompanyCardList` / `RecentlyViewedSection` の import を差し替える
-3. ⚠️ `app/(jobseeker)/companies/(list)/page.tsx` には**同じ形の型がローカル定義**で
-   もう1つある（14行目）。**そこも同じ置き場に寄せる**か、寄せない理由を書く
-4. `CompanyCardCompact.tsx` を削除
+⚠️ **当時の記録に誤りがあった。** 「`RecentlyViewedSection` が import している」と
+   書いていたが、**実際には import していなかった**（2026-08-28 に grep で確認）。
+   唯一の import 元は `CompanyCardList` だった。
+
+あわせて片付けたもの:
+
+| | |
+|---|---|
+| `globals.css` の `.ccc-compare-btn` 3ルール | **削除**。`ccc-` は CompanyCardCompact の中でも使われておらず、**削除前から死んでいた** |
+| `globals.css` の `.genre-card` | **残す。** `CompanySearchResults` が自前の `<style>` で再定義したうえで使っている（絞り込み結果のビュー） |
+| `stageCfg.ts` / `CompanyCardList.tsx` のコメント | 現在形で「別実装がある」「共有している」と書いていたので**訂正** |
+| `companyBookmarks.ts` / `displayName.ts` のコメント | 過去の経緯の記録なので**残し、ファイルが無いことを注記** |
 
 ## social_links に URL 形式の検証が無い（2026-08-16 記録・未着手）
 

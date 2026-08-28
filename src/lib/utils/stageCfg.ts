@@ -6,8 +6,9 @@
  *    段階はラベルの文字で伝わるので、色はすべてニュートラルにする。
  *    → src/lib/utils/chipVariant.ts
  *
- * ⚠️ `components/companies/CompanyCardCompact.tsx` に**別実装の getStageCfg** がある。
- *    そちらは一覧カード用で、この定義とは繋がっていない。
+ * ⚠️ かつて `components/companies/CompanyCardCompact.tsx` に**別実装の getStageCfg**
+ *    があったが、**そのファイルごと 2026-08-28 に削除した**（描画元が無い孤児だった）。
+ *    いま別実装は無い。**増やさないこと。**
  */
 export type StageCfgEntry = {
   label: string;

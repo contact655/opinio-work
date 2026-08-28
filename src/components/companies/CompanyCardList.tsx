@@ -16,7 +16,10 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 
 
 
-// ── Bookmark fetch deduplication（CompanyCardCompactと共有） ──────────────────
+/* ── Bookmark fetch deduplication ───────────────────────────────────────────
+   ⚠️ かつて CompanyCardCompact と共有していたが、**そのファイルは 2026-08-28 に
+      削除した**。いまこの重複排除を使うのはこのカードだけ。
+      実体は lib/bookmarks/companyBookmarks.ts。 */
 type Props = {
   company: CompanyForCarousel;
   compact?: boolean;  // compact=true: 縦カード（2列グリッド）/ false: 横カード（リスト）

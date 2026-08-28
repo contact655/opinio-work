@@ -10,6 +10,9 @@
  * | `CompanyCardCompact`（カルーセル） | しない | **しない** |
  * | `companies/[id]/page.tsx` の h1 | しない | （name_en が無いとき素の name） |
  *
+ * ⚠️ 表の `CompanyCardCompact` は **2026-08-28 に削除済み**（描画元が無い孤児だった）。
+ *    上は当時の記録。いまの実装は一覧と詳細の2つ。
+ *
  * 結果、**同じ会社が一覧では「HPE」、詳細ページでは「HPE Japan」**と表示されていた。
  * カルーセルでは「株式会社PKSHA Technology」が法人格ごと出ていた。
  *
