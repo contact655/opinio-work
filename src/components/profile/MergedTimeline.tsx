@@ -8,6 +8,7 @@ import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
 import { rankLabel, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
+import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { buildOverlapMap } from "@/lib/profile/parallel";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
@@ -127,6 +128,11 @@ export interface CareerEntry {
   department?: string | null;
   /** 役職ランクの**生値**（"manager" 等）。描画時は必ず rankLabel() を通す */
   rank?: string | null;
+  /** ★勤務地（都道府県）。**その職で実際に働いていた場所**（2026-08-29）。
+   *  ⚠️ SELECT に含めていない画面では undefined。**その画面では出ないのが正しい。** */
+  prefecture?: string | null;
+  /** ★勤務形態の生値。⚠️ 描画時は必ず `remoteWorkLabel()` を通すこと（"hybrid" を出さない） */
+  remote_work_status?: string | null;
   started_at: string;       // "YYYY-MM-DD"
   ended_at: string | null;  // "YYYY-MM-DD" | null when is_current
   is_current: boolean;
@@ -919,6 +925,49 @@ function DurationPill({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * ★勤務地の行（2026-08-29）。「京都府 · フルリモート」のように出す。
+ *
+ * ── 何を指す値か ────────────────────────────────────────────────────────────
+ * `prefecture` は **その職で本人が実際に働いていた場所**。**会社の本社ではない。**
+ * 東京の会社に京都から리モートで勤めていたなら「京都府 · フルリモート」になる。
+ * ⚠️ 2軸に分かれているので、**どちらか一方を選ぶ必要はない。**
+ *
+ * ── 出さない条件 ────────────────────────────────────────────────────────────
+ * ⚠️ 両方とも無ければ**行ごと出さない。** 「未設定」とは書かない
+ *    （CLAUDE.md「値が無いことを、ある値に置き換えない」）。
+ * ⚠️ 片方だけでも出す。`filter(Boolean).join(" · ")` にしてあるので、
+ *    **区切りだけが残ることはない**（CLAUDE.md「?? "" を挟んだ後の ?? は効かない」の隣の罠）。
+ *
+ * ⚠️★`remote_work_status` は**生値**（full_remote / hybrid / on_site）。
+ *    必ず `REMOTE_WORK_STATUSES` のラベルに変換すること。生値をそのまま出すと
+ *    画面に "hybrid" と出る。
+ */
+function WorkPlaceLine({ prefecture, remoteWorkStatus, marginBottom = 0 }: {
+  prefecture?: string | null;
+  remoteWorkStatus?: string | null;
+  marginBottom?: number;
+}) {
+  const remote = REMOTE_WORK_STATUSES.find((o) => o.value === remoteWorkStatus)?.label ?? null;
+  const parts = [prefecture, remote].filter(Boolean) as string[];
+  if (parts.length === 0) return null;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 5,
+      fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
+      lineHeight: 1.4, marginBottom, minWidth: 0,
+    }}>
+      {/* ⚠️ プロフィールヘッダーの所在地と同じピン。別の絵にしない */}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+      <span style={{ overflowWrap: "anywhere" }}>{parts.join(" · ")}</span>
+    </div>
+  );
+}
+
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
 function DescriptionGate() {
@@ -1022,7 +1071,9 @@ function CareerContent({
       ))}
 
       {/* 期間 */}
-      <PeriodLine start={startLabel} end={endLabel} duration={duration} marginBottom={hasDesc ? 12 : 0} />
+      <PeriodLine start={startLabel} end={endLabel} duration={duration} marginBottom={4} />
+      <WorkPlaceLine prefecture={data.prefecture} remoteWorkStatus={data.remote_work_status}
+                     marginBottom={hasDesc ? 12 : 0} />
       {/* ★並行は期間の下に1行。バッジではなく言葉で示す（フェーズ2-2） */}
       <ParallelNote companies={parallelWith} />
 
@@ -1324,8 +1375,12 @@ export default function MergedTimeline({
                             start={formatYM(c.started_at)}
                             end={c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
                             duration={posDuration}
-                            marginBottom={c.description ? 8 : 0}
+                            marginBottom={4}
                           />
+                          {/* ⚠️ 勤務地は**役割ごと**に出す。同じ会社でも転勤やリモート化で
+                                 変わるので、グループの見出しにまとめない。 */}
+                          <WorkPlaceLine prefecture={c.prefecture} remoteWorkStatus={c.remote_work_status}
+                                         marginBottom={c.description ? 8 : 0} />
                           {/* ★同社グループの中でも並行は出す。
                                  ⚠️ **同じ会社の役割どうしは数えていない**（`buildOverlapMap`）。
                                     ここに出るのは「この役割と重なっている**他社**」だけ。 */}

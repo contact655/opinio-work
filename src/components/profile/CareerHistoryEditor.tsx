@@ -1384,10 +1384,18 @@ function StintForm({
            入力を促す仕掛けとして機能していなかった。案内に置き換えている。
       */}
       <div>
+        {/* ⚠★「勤務地」だけだと**会社の所在地**と読まれる（2026-08-29）。
+               入れてほしいのは**本人が実際に働いていた場所**。東京の会社に京都から
+               リモートで勤めていたなら「京都府 ＋ フルリモート」になる。
+            ⚠ 2軸あるので**どちらか一方を選ばせない。** 説明文をここから消さないこと。 */}
         <label style={labelStyle()}>
           勤務地
           <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>（任意）</span>
         </label>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -2, marginBottom: 6, lineHeight: 1.5 }}>
+          会社の所在地ではなく、<strong style={{ fontWeight: 700 }}>あなたが実際に働いていた場所</strong>を選んでください。
+          東京の会社に京都から在宅で勤めていたなら「京都府 ＋ フルリモート」です。
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <select
             aria-label="勤務地（都道府県）"

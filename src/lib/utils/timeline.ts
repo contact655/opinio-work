@@ -121,6 +121,13 @@ export type RawExperienceRow = {
   employment_type: string | null;
   /** プロフィールページでの企業名表示制御 */
   visibility_company_profile?: "real" | "masked" | "hidden" | null;
+  /** ★勤務地（都道府県）。**その職で実際に働いていた場所**で、会社の本社ではない（2026-08-29）。
+   *  ⚠️ 任意 —— SELECT に含めない画面では undefined。`?? null` に倒さないこと
+   *     （「未入力」と「取得していない」が区別できなくなる）。 */
+  prefecture?: string | null;
+  /** ★勤務形態の**生値**（full_remote / hybrid / on_site）。表示は必ずラベルに変換する。
+   *  ⚠️ 任意。上と同じ理由で `?? null` に倒さない。 */
+  remote_work_status?: string | null;
 };
 
 /** ow_roles の id → 名前 + 親カテゴリ名 の Map value 型 */
@@ -232,6 +239,10 @@ export function buildTimelineCareerEntriesFromRaw(
       description:     r.description,
       join_reason:     r.join_reason ?? null,
       employment_type: r.employment_type,
+      /* ⚠️ `?? null` を付けない。`department` / `rank` と同じ理由で、
+            SELECT に無い画面では **undefined のまま**渡して表示側で落とす。 */
+      prefecture:         r.prefecture,
+      remote_work_status: r.remote_work_status,
     };
   });
   return results.filter((e): e is CareerEntry => e !== null);

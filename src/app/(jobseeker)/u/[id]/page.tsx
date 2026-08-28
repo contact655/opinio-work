@@ -225,8 +225,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
            **この SELECT に無かったので一度も表示されたことがなかった**
            （employment_type は同社グループのヘッダーバッジ）。
            admin クライアントで引いているので列単位 GRANT の制約は受けない。
+
+         ⚠️★`prefecture` / `remote_work_status` は 2026-08-29 に足した。
+            **ここに無いと `WorkPlaceLine` は何も出さない**（型は optional なので
+            tsc も lint も通り、その行だけ黙って消える）。`/mypage` 側は
+            `EXPERIENCE_EDITOR_COLS` に元から入っている。
       */
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
