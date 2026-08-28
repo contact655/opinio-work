@@ -865,6 +865,60 @@ function CompanyLogoIcon({
       CLAUDE.md「年齢は詳細だけ」の例外として認められていた箇所。
       年齢を出したくなったら**別の置き場所**を決めること。ここに戻すと年チップも一緒に戻る。 */
 
+/**
+ * ★在籍期間を示す1行（2026-08-29）。
+ *
+ * ── なぜ部品にしたか ────────────────────────────────────────────────────────
+ * `{開始} – {終了} · {期間}` を**3箇所が別々に書いていた**（単独カード・学歴・
+ * 同社グループの中）。1箇所だけ直すと、同じ画面の中で書式が割れる。
+ *
+ * ── ★在籍年数をピルにした理由 ───────────────────────────────────────────────
+ * 素の中黒だと「2023年6月 – 2024年1月 · 8ヶ月」が**数字の連なりに見え、
+ * どこまでが日付でどこからが在籍年数か見分けがつかない**（柴さんの指摘）。
+ * 日付と在籍年数は**別の種類の値**なので、囲って区別する。
+ *
+ * ⚠️ **色は付けない。** `--line-soft` の中間色ピル（タブの件数バッジと同じ形）。
+ *    色に意味を持たせない（`.claude/skills/ui-conventions`「色の役割」）。
+ * ⚠️ **押せるものにしない。** 見分けるための囲みであって、操作ではない。
+ * ⚠️ 中黒（`·`）はピルが区切りになるので**置かない**。両方あると二重になる。
+ */
+function PeriodLine({ start, end, duration, marginBottom = 0 }: {
+  start: string;
+  /** 「現在」や空文字が来る。⚠️ 空でも `–` は出す（終わりが不明であることを示す） */
+  end: string;
+  /** 「8ヶ月」。無ければピルごと出さない */
+  duration?: string | null;
+  marginBottom?: number;
+}) {
+  return (
+    <div style={{
+      fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
+      color: "var(--ink-mute)", marginBottom, lineHeight: 1.4,
+      display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+    }}>
+      <span>{start} – {end}</span>
+      {duration && <DurationPill>{duration}</DurationPill>}
+    </div>
+  );
+}
+
+/**
+ * 在籍年数のピル。⚠️ 期間の行と、同社グループの見出し（会社名の右）で**同じ形**を使う。
+ * 片方だけ変えると「同じ値なのに見た目が違う」になる。
+ */
+function DurationPill({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{
+      fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 600,
+      color: "var(--ink-mute)", background: "var(--line-soft)",
+      borderRadius: 100, padding: "2px 8px", lineHeight: 1.5,
+      whiteSpace: "nowrap",
+    }}>
+      {children}
+    </span>
+  );
+}
+
 // ─── Description gate (未ログイン時) ─────────────────────────────────────────
 
 function DescriptionGate() {
@@ -968,12 +1022,7 @@ function CareerContent({
       ))}
 
       {/* 期間 */}
-      <div style={{
-        fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
-        color: "var(--ink-mute)", marginBottom: hasDesc ? 12 : 0, lineHeight: 1.4,
-      }}>
-        {startLabel} – {endLabel}{duration && ` · ${duration}`}
-      </div>
+      <PeriodLine start={startLabel} end={endLabel} duration={duration} marginBottom={hasDesc ? 12 : 0} />
       {/* ★並行は期間の下に1行。バッジではなく言葉で示す（フェーズ2-2） */}
       <ParallelNote companies={parallelWith} />
 
@@ -1062,12 +1111,7 @@ function EducationContent({ data }: { data: EducationEntry }) {
       )}
 
       {/* Date + duration — always inline */}
-      <div style={{
-        fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
-        color: "var(--ink-mute)", lineHeight: 1.4,
-      }}>
-        {startLabel} – {endLabel}{duration && ` · ${duration}`}
-      </div>
+      <PeriodLine start={startLabel} end={endLabel} duration={duration} />
     </div>
   );
 }
@@ -1210,11 +1254,8 @@ export default function MergedTimeline({
                         {shortCompanyName(head.company_name)}
                       </span>
                     )}
-                    {duration && (
-                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                        {duration}
-                      </span>
-                    )}
+                    {/* ⚠️ 期間の行と**同じピル**を使う。同じ値なので見た目を揃える */}
+                    {duration && <DurationPill>{duration}</DurationPill>}
                     {anyIsCurrent && <CurrentBadge />}
                   </div>
 
@@ -1274,10 +1315,12 @@ export default function MergedTimeline({
                           ))}
 
                           {/* 期間 */}
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: c.description ? 8 : 0, lineHeight: 1.4 }}>
-                            {formatYM(c.started_at)} – {c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
-                            {posDuration && ` · ${posDuration}`}
-                          </div>
+                          <PeriodLine
+                            start={formatYM(c.started_at)}
+                            end={c.is_current ? "現在" : c.ended_at ? formatYM(c.ended_at) : ""}
+                            duration={posDuration}
+                            marginBottom={c.description ? 8 : 0}
+                          />
                           {/* ★同社グループの中でも並行は出す。
                                  ⚠️ **同じ会社の役割どうしは数えていない**（`buildOverlapMap`）。
                                     ここに出るのは「この役割と重なっている**他社**」だけ。 */}
