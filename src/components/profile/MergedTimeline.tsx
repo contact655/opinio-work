@@ -1057,11 +1057,16 @@ function EducationContent({ data }: { data: EducationEntry }) {
      ⚠️ **「現在」と書かない。** それは `is_current` の人にだけ言えること。
         卒業したかどうか分からない行を「在学中」に見せるのは、
         CLAUDE.md「値が無いことを、ある値に置き換えない」に反する。
-     ⚠️ **期間も出さない。** 終わりが分からないのに月数だけ出すと、
-        伸び続ける数字を事実として見せることになる。 */
-  const endUnknown = !data.is_current && !data.graduated_at;
 
-  const duration = endUnknown ? "" : formatDuration(data.enrolled_at, data.graduated_at);
+     ★在籍年数（「4年」）は 2026-08-29 に**学歴からは外した**（柴さんの判断）。
+       ⚠️ **戻さないこと。** 大学4年・高校3年は年月を見れば分かるので、
+          職歴と違って情報が増えない。
+       ⚠️ **職歴側（`CareerContent` / 同社グループ）には残してある。** 転職の間隔は
+          年月から暗算しないと分からないため、あちらでは意味がある。
+          「揃っていないから揃える」で学歴に戻さない。
+       ⚠️ したがって上にあった `endUnknown`（終わりが不明なら期間を出さない判定）は
+          **不要になった**ので消してある。期間を戻すなら、あの判定も一緒に戻すこと
+          （戻し忘れると「· 21年4ヶ月」が毎月伸び続ける）。 */
   const startLabel = formatYM(data.enrolled_at);
   const endLabel = data.is_current
     ? "現在"
@@ -1110,8 +1115,8 @@ function EducationContent({ data }: { data: EducationEntry }) {
         </div>
       )}
 
-      {/* Date + duration — always inline */}
-      <PeriodLine start={startLabel} end={endLabel} duration={duration} />
+      {/* 期間。⚠️ 学歴に在籍年数は出さない（上のコメントを参照） */}
+      <PeriodLine start={startLabel} end={endLabel} />
     </div>
   );
 }
