@@ -33,6 +33,7 @@ import {
   ProfileSkillsSection,
   ProfileMediaSection,
   ProfileTimelineSection,
+  SectionTitle,
   ProfileArticlesSection,
   ActivitySection,
   ProfileContentLinksSection,
@@ -892,14 +893,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
                      求人の件数に使うと、凡例の無い色分けが増える。件数は他節と同じ
                      ニュートラル（--ink-mute）にした。 */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)", minWidth: 0 }}>
-                  {shortCompanyName(currentCareer!.company_name)}の募集中の求人
-                </span>
-                <span style={{
-                  fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
-                  fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0,
-                }}>
-                  {currentCompanyJobCount}件
+                {/* ⚠️ `SectionTitle` の `latin` は使わない。ここの2つ目は**件数**で、
+                       大文字化（`textTransform: uppercase`）も字間も要らないため。
+                    ⚠️ ただし**足元を揃える包みは同じ**にする（`alignItems: baseline`）。
+                       `center` だと 15px と 12px でベースラインが 4px ずれる。 */}
+                <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
+                  <SectionTitle title={`${shortCompanyName(currentCareer!.company_name)}の募集中の求人`} />
+                  <span style={{
+                    fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
+                    fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0,
+                  }}>
+                    {currentCompanyJobCount}件
+                  </span>
                 </span>
                 <div style={{ flex: 1, height: 1, background: "var(--line)", minWidth: 0 }} />
               </div>

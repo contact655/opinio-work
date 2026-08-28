@@ -82,6 +82,38 @@ export type FeaturedArticleRow = {
 
 
 // ─── ProfileAboutSection ───────────────────────────────────────────────────────────
+/**
+ * セクション見出しの「和文タイトル ＋ ラテン副題」（2026-08-29）。
+ *
+ * ── なぜ部品にしたか ────────────────────────────────────────────────────────
+ * **10箇所が同じ2つの span を書き写していた。** 1箇所直しても他が残る。
+ *
+ * ── ★`baseline` にする理由 ─────────────────────────────────────────────────
+ * 和文タイトル(15px セリフ)とラテン副題(12px サンセリフ)は**文字の大きさも書体も
+ * 違う**ので、`alignItems: center`（箱の中心で揃える）だと**ベースラインがずれる。**
+ * 実測で**ラテン側が 4px 浮いていた**（6節すべて同じ差）。揃えるのは文字の足元。
+ *
+ * ⚠️ **外側の行は `center` のまま。** あちらには罫線（高さ1px）と操作ボタンが乗っており、
+ *    `baseline` にすると**ベースラインを持たない要素の下端**が文字の足元に合わさって
+ *    位置が変わる。だから**この2つだけを内側で包む。**
+ * ⚠️ 見出しどうしの間隔（gap:10）は**この内側**が持つ。外側の gap は
+ *    「見出しの塊 ↔ 罫線・ボタン」の間隔になる。
+ */
+export function SectionTitle({ title, latin }: { title: string; latin?: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
+      <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+        {title}
+      </span>
+      {latin && (
+        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+          {latin}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** 自己紹介。⚠️ 空のときは本人にだけ「書きましょう」のカードを出す（元の挙動のまま） */
 export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
   aboutMe: string | null;
@@ -98,12 +130,7 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-            <span style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              自己紹介
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              ABOUT
-            </span>
+            <SectionTitle title="自己紹介" latin="ABOUT" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {onEdit && (
               <button type="button" className="tap-target tap-target-end" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
@@ -173,12 +200,7 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              数値実績
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              ACHIEVEMENTS
-            </span>
+            <SectionTitle title="数値実績" latin="ACHIEVEMENTS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
@@ -289,12 +311,7 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              受賞・表彰
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              AWARDS
-            </span>
+            <SectionTitle title="受賞・表彰" latin="AWARDS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 0件のときは出さない（2026-08-24）。他のセクションは元からそうしており、
                    ここだけ「0件」と出ていた。空であることは本文の空状態が伝えている。 */}
@@ -427,12 +444,7 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              資格
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              CERTIFICATIONS
-            </span>
+            <SectionTitle title="資格" latin="CERTIFICATIONS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {certifications.length > 0 && (
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
@@ -573,12 +585,7 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              言語
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              LANGUAGES
-            </span>
+            <SectionTitle title="言語" latin="LANGUAGES" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {languages.length > 0 && (
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
@@ -713,12 +720,7 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              スキル
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              SKILLS
-            </span>
+            <SectionTitle title="スキル" latin="SKILLS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {totalCount > 0 && (
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
@@ -841,12 +843,7 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              メディア掲載
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              MEDIA
-            </span>
+            <SectionTitle title="メディア掲載" latin="MEDIA" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 本人のときだけ。`/u/[id]` は `actions` を渡さないので出ない＝DOM 不変 */}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
@@ -992,12 +989,7 @@ export function ProfileArticlesSection({ featuredArticles }: { featuredArticles:
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              OPINIO掲載記事
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              FEATURED
-            </span>
+            <SectionTitle title="OPINIO掲載記事" latin="FEATURED" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
@@ -1077,12 +1069,7 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-            <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              発信コンテンツ
-            </span>
-            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              CONTENT
-            </span>
+            <SectionTitle title="発信コンテンツ" latin="CONTENT" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ `/mypage` では同じページなので**リンクにしない**（押しても何も起きない）。
                    `onAdd` が渡されたときだけボタンにする。 */}
@@ -1320,14 +1307,7 @@ export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, mana
              書体もサイズも違う見出しが並んでいた。
              他11節は「Noto Serif 15px ＋ Inter のラテン副題 ＋ 罫線」。 */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-          {title}
-        </span>
-        {latin && (
-          <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-            {latin}
-          </span>
-        )}
+        <SectionTitle title={title} latin={latin} />
         <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
         {onAdd && (
           <button type="button" className="tap-target" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
@@ -1396,12 +1376,7 @@ export function ActivitySection({
       boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <span style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif JP', serif", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-          アクティビティ
-        </span>
-        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-          ACTIVITY
-        </span>
+        <SectionTitle title="アクティビティ" latin="ACTIVITY" />
         <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
         {posts.length > 0 && (
           <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 600, color: "var(--ink-mute)" }}>
