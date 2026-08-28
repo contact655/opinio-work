@@ -19,6 +19,7 @@ import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
 import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { resizeImageForUpload, MAX_EDGE, formatBytes } from "@/lib/images/resize";
 import Toast from "@/components/ui/Toast";
 import {
   FormGroup,
@@ -185,11 +186,26 @@ function ProfilePhotoUploader({
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  /** ⚠️ エラーではなく**お知らせ**。縮めたことを黙っていないための表示 */
+  const [uploadNote, setUploadNote] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const uploadPhoto = async (file: File, type: "avatar" | "cover") => {
+  const uploadPhoto = async (rawFile: File, type: "avatar" | "cover") => {
     if (!owUser?.id) return;
+
+    /* ★アップロード前に縮める（2026-08-28）。直す前は**アバター 2.4MB / カバー 1.4MB**が
+          そのまま公開プロフィールに載っていた（表示は 120×120 と高さ 200px）。
+       ⚠️ `resizeImageForUpload` は**例外を投げず、失敗したら元のファイルを返す**。
+          縮小は最適化であって前提条件ではないので、ここで止めない。
+       ⚠️ **縮めたことは画面に出す**（下の `setUploadNote`）。黙って落とさない。 */
+    const r = await resizeImageForUpload(rawFile, MAX_EDGE[type]);
+    const file = r.file;
+    if (r.resized) {
+      setUploadNote(`大きな画像だったので縮小しました（${formatBytes(r.beforeBytes)} → ${formatBytes(r.afterBytes)}）`);
+      setTimeout(() => setUploadNote(null), 5000);
+    }
+
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `users/${type}s/${owUser.id}/${Date.now()}.${ext}`;
 
@@ -295,6 +311,18 @@ function ProfilePhotoUploader({
             background: "none", border: "none", cursor: "pointer",
             color: "var(--error)", fontSize: 16, padding: "0 4px",
           }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      )}
+      {/* ★縮小のお知らせ。⚠️ エラーではないので配色を分けている（赤くしない） */}
+      {uploadNote && (
+        <div role="status" aria-live="polite" style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "10px 14px", marginBottom: 14, borderRadius: 8,
+          background: "var(--bg-soft)", border: "1px solid var(--line)",
+          fontSize: "var(--text-sm)", color: "var(--ink-soft)", fontWeight: 600,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          {uploadNote}
         </div>
       )}
       {/* Preview */}
