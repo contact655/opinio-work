@@ -687,11 +687,13 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
          「並べ替えているつもりの何もしないコード」になる）。 */
   /* ★自動値は「職種」「業界」という**別の区分**として先に出す（2026-08-29）。
         `ow_skills.category`（product / method / sales_domain）とは語彙が違うので混ぜない。
-     ⚠️ `sales_domain`（売り先の業界）と「業界」（在籍企業の事業領域）は**別物**。
-        見出しを「業界」だけにすると紛らわしいので **「経験した業界」** と書く。 */
+     ⚠️ `sales_domain` の見出しは **「売り先の業界」**（在籍した業界とは別物）。
+        修飾語が付いているので、こちらは素の「業界」でよい。
+        ⚠️ **`sales_domain` の見出しを「業界」に短縮しないこと。** 短縮した瞬間に
+           同じ画面へ「業界」が2つ並び、どちらが在籍先か分からなくなる。 */
   const autoGroups = [
     { label: "職種", rows: autoSkills.filter((a) => a.kind === "role") },
-    { label: "経験した業界", rows: autoSkills.filter((a) => a.kind === "domain") },
+    { label: "業界", rows: autoSkills.filter((a) => a.kind === "domain") },
   ].filter((g) => g.rows.length > 0);
 
   const groups = SKILL_CATEGORIES
