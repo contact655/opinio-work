@@ -6491,6 +6491,10 @@ export type Database = {
           updated_educations_count: number
         }[]
       }
+      auth_is_active_company_admin: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
       auth_is_admin: { Args: never; Returns: boolean }
       auth_is_company_admin: {
         Args: { target_company_id: string }

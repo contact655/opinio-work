@@ -755,7 +755,11 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {g.rows.map((a) => (
                     <span key={`${a.kind}:${a.label}`} style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
+                      /* ⚠️ `center` にしない（2026-08-29）。名前(13px) と年数(12px) は
+                            **文字の大きさが違う**ので、箱の中心で揃えると
+                            **ベースラインがずれて年数だけ下がって見える。**
+                            揃えるのは文字の足元（baseline）。 */
+                      display: "inline-flex", alignItems: "baseline", gap: 6,
                       padding: "6px 12px", borderRadius: 100,
                       background: "var(--royal-50)", color: "var(--royal)",
                       border: "1px solid var(--royal-100)",
