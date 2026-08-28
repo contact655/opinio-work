@@ -200,35 +200,28 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     // DB側でソート済み（updated_at DESC for "newest", employee_count DESC for "employees"）
                     /* ⚠️ "jobs"（募集中あり優先）は 2026-08-18 に廃止した。
                           「募集あり」フィルタと同じ用途で、入口が2つあった（ルール⑧）。 */
-                    const paged = allCompaniesResult.companies.map(c => ({
-                      ...c,
-                    }));
-                    if (sort === "disclosure") {
-                      // reality_disclosure が null でないものを上位に
-                      paged.sort((a, b) => {
-                        const aHas = !!((a as Record<string, unknown>).reality_disclosure);
-                        const bHas = !!((b as Record<string, unknown>).reality_disclosure);
-                        return (bHas ? 1 : 0) - (aHas ? 1 : 0);
-                      });
-                    }
-                    if (sort === "startup") {
-                      const STARTUP_ORDER: Record<string, number> = {
-                        "シード": 1, "seed": 1,
-                        "シリーズA": 2, "series-a": 2, "series_a": 2,
-                        "シリーズB": 3, "series-b": 3, "series_b": 3,
-                        "プレシード": 4, "pre-seed": 4,
-                        "ブートストラップ": 5, "bootstrap": 5,
-                        "シリーズC": 6, "series-c": 6, "series_c": 6,
-                        "シリーズD以降": 7, "series-d": 7, "series_d": 7,
-                        "IPO準備中": 8, "ipo": 8,
-                        "上場": 9, "listed": 9,
-                        "ユニコーン": 10, "unicorn": 10,
-                      };
-                      paged.sort((a, b) =>
-                        (STARTUP_ORDER[a.funding_stage ?? ""] ?? 99) -
-                        (STARTUP_ORDER[b.funding_stage ?? ""] ?? 99)
-                      );
-                    }
+                    /* ★並び替えは**すべて `searchCompanies`（DB と lib/search/companies.ts）で完結する。**
+                          ここで再ソートしない。
+
+                       ── ⚠️★ここにあった2つの再ソートは 2026-08-28 に削除した ──────────
+                       ① `sort === "disclosure"` … `reality_disclosure` の有無で並べ替えていた。
+                          実測: **掲載79社すべてが `{}`（空の jsonb）** で入力UIも無い。
+                          ⚠️ 「null だから false」ではない。**`{}` は JS では truthy** なので、
+                             この列に値が入り始めた日に**本物の開示スコアを上書きする**
+                             （`lib/search/companies.ts` の `disclosureScore` が正）。
+                       ② `sort === "startup"` … **UI に選択肢が無い**（`GridSortBar` の
+                          `SORT_OPTIONS` は newest / employees / disclosure の3つだけ）。
+                          `funding_stage` が入っているのは 6社だけで、値も `listed` / `seed` の2種類。
+
+                       ⚠️★**どちらも `paged`（＝現在ページの12件）しか並べ替えていなかった。**
+                          2ページ目以降の企業は絶対に上がってこない**部分ソート**で、
+                          「全体を並べ替えた」ように見えるのが一番まずい形だった。
+
+                       ⚠️ 再ソートを足したくなったら、**`searchCompanies` 側に足すこと。**
+                          ページングの後ろで並べ替えると必ずこの問題が出る。
+                       ⚠️ 旧 URL の `?sort=startup` は既定（新着順）に落ちる。壊れない
+                          （`?sort=jobs` / `?sort=salary` を外したときと同じ）。 */
+                    const paged = allCompaniesResult.companies;
 
                     // totalCount は DB の COUNT クエリから取得済み
                     const totalPages = Math.max(1, Math.ceil(allCompaniesResult.totalCount / PAGE_SIZE));

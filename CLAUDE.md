@@ -373,15 +373,18 @@ ALTER TABLE ow_companies
 ⚠️ **admin クライアントに変えないこと。** 変えると `login_only` の氏名と顔写真が
    未ログインに配られる（`f9d6d051` で詳細ページ側を直したのと同じ事故になる）。
 
-### ③ 並び替え「開示充実順」の実装が、同じページに2つある
+### ③ 並び替え「開示充実順」の実装は**1つに戻した**（2026-08-28）
 
-| 場所 | 内容 |
-|---|---|
-| [lib/search/companies.ts](src/lib/search/companies.ts) の `disclosureScore` | 記事3 + 求人1 + 特徴1 + 現役2 + OB1（8点）。**これが本体** |
-| `companies/(list)/page.tsx` の `sort === "disclosure"` | `reality_disclosure` の有無で**再ソート**。全社空なので実害なし |
+**実体は [lib/search/companies.ts](src/lib/search/companies.ts) の `disclosureScore` だけ**
+（記事3 + 求人1 + 特徴1 + 現役2 + OB1 ＝ 8点）。
 
-⚠️ **廃止するなら2つとも消すこと。** 片方だけだと残る。
-   `/biz` の `lib/utils/disclosureScore.ts`（95点満点）と `/jobs` の同名ソートは**別物**。
+⚠️ `companies/(list)/page.tsx` にあった**ページ描画時の再ソート**（`reality_disclosure` の
+   有無で並べ替え）は **2026-08-28 に削除した。**
+   ⚠️★**`paged`（現在ページの12件）しか並べ替えていなかった。** 2ページ目以降は
+      絶対に上がってこない**部分ソート**で、「全体を並べ替えた」ように見えるのが
+      一番まずい形だった。**再ソートを足すなら `searchCompanies` 側に足すこと。**
+
+⚠️ `/biz` の `lib/utils/disclosureScore.ts`（95点満点）と `/jobs` の同名ソートは**別物**。
 
 ### ⚠️★「社員数順」の結果は、画面から検証できない（2026-08-28）
 
@@ -427,16 +430,21 @@ ALTER TABLE ow_companies
 |---|---|---|---|---|
 | 1 | [lib/utils/disclosureScore.ts](src/lib/utils/disclosureScore.ts) `calcDisclosureScore` | `/biz/dashboard` `/biz/company` の「開示充実度」 | 95 | **含まない** |
 | 2 | [lib/search/companies.ts](src/lib/search/companies.ts) の**ローカル関数** `disclosureScore` | `/companies` の並び替え「開示充実順」 | 8（旧10） | **含んでいた → 2026-08-11 に削除** |
-| 3 | [companies/(list)/page.tsx](src/app/(jobseeker)/companies/(list)/page.tsx) の `sort === "disclosure"` 分岐 | 同上（2の後段） | — | 無関係 |
+| ~~3~~ | ~~`companies/(list)/page.tsx` の `sort === "disclosure"` 分岐~~ | **2026-08-28 に削除** | — | — |
 | 4 | [jobs/(list)/JobsClient.tsx](src/app/(jobseeker)/jobs/(list)/JobsClient.tsx) の `sort === "disclosure"` | `/jobs` の並び替え | 7 | 無関係 |
 
 ⚠️ **CLAUDE.md 冒頭の「開示充実度スコア 取材データの実態」表と、
    メモ `project-disclosurescore-redesign`（実質35点満点問題）が指すのは 1 だけ。**
 
-⚠️ **3 は全社同値の列で並べ替えている無意味な処理。** `reality_disclosure` は
-   87社すべてが空で、入力UIも無く一度も値が入っていない。
-   `Array.prototype.sort` は安定ソートなので比較が全件0のときは前段（2）の順序が保たれ、
-   結果として実害は無い。**後で消す候補**（今回は触っていない）。
+✅ **3 は 2026-08-28 に削除した。** 全社同値の列で並べ替えている無意味な処理だった。
+
+⚠️★**「全社が空だから false になって no-op」は誤り。** 実測すると
+   `reality_disclosure` は**掲載79社すべてが `{}`（空の jsonb）で、NULL ではない**。
+   **JS では `!!{}` は truthy** なので、全件 true で比較が0になり、
+   結果として no-op だっただけ。**この列に値が入り始めた日に、本物の開示スコア（2）を
+   上書きするところだった。** 実害が無い理由を取り違えないこと。
+
+⚠️ 削除が真に no-op であることは、**dev と本番の並びが完全一致する**ことで確かめた。
    `disclosureScore.ts` の `reality_disclosure` 40点が全社0点だったのと同じ根。
 
 ---
