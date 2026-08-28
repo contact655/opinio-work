@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { buildLogoStoragePath } from '@/lib/business/photos';
+import { uploadCompanyLogo } from '@/lib/business/photos';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import CompanyToolsTab from './CompanyToolsTab';
@@ -278,17 +278,9 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
 
     setIsUploading(true);
     try {
-      const supabase = createClient();
-      const path = buildLogoStoragePath(company.id, file.name);
-      const { error: uploadError } = await supabase.storage
-        .from('ow-uploads')
-        .upload(path, file, { cacheControl: '3600', upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('ow-uploads')
-        .getPublicUrl(path);
-
+      /* ⚠️ アップロードとURLの組み立ては `uploadCompanyLogo` の内側。
+            **ここで path を組み立て直さないこと**（固定名と `?v=` の扱いが割れる）。 */
+      const publicUrl = await uploadCompanyLogo(createClient(), company.id, file);
       update('logo_url', publicUrl);
       showToast('ロゴをアップロードしました');
     } catch (err) {

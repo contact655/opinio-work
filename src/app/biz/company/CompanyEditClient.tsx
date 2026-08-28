@@ -17,7 +17,7 @@ import {
   type CompanySectionId,
 } from "@/lib/business/mockCompany";
 import { createClient } from "@/lib/supabase/client";
-import { buildLogoStoragePath, type OfficePhoto } from "@/lib/business/photos";
+import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
@@ -492,17 +492,9 @@ export function CompanyEditClient({
     }
 
     try {
-      const supabase = createClient();
-      const path = buildLogoStoragePath(companyId, file.name);
-      const { error: uploadError } = await supabase.storage
-        .from("ow-uploads")
-        .upload(path, file, { cacheControl: "3600", upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("ow-uploads")
-        .getPublicUrl(path);
-
+      /* ⚠️ アップロードとURLの組み立ては `uploadCompanyLogo` の内側。
+            **ここで path を組み立て直さないこと**（固定名と `?v=` の扱いが割れる）。 */
+      const publicUrl = await uploadCompanyLogo(createClient(), companyId, file);
       hasInteracted.current = true;
       setForm((prev) => ({ ...prev, logoUrl: publicUrl }));
     } catch (err) {
