@@ -29,7 +29,7 @@ export function FollowUserButton({
 
   const toggle = async () => {
     if (!isAuthenticated) {
-      router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
     // 楽観更新 → 失敗したら戻す

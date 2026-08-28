@@ -59,7 +59,7 @@ export function BookmarkButton({
   const toggle = async () => {
     if (selfManaged && !fetched.ready) return; // 取得前は状態が確定しないので待つ
     if (!authed) {
-      router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
     const next = !bookmarked;

@@ -28,7 +28,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
       // まず既存会話を探す
       const getRes = await fetch(`/api/dm/start?targetUserId=${targetUserId}`);
       if (getRes.status === 401) {
-        router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+        router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         return;
       }
       if (getRes.ok) {
@@ -46,7 +46,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
         body: JSON.stringify({ targetUserId }),
       });
       if (postRes.status === 401) {
-        router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+        router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         return;
       }
       if (postRes.ok) {

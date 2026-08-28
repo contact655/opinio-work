@@ -292,7 +292,7 @@ export function FollowButton({ companyId }: { companyId: string }) {
   const toggle = async () => {
     if (!viewer.ready) return;            // 取得前は押せても状態が確定しないので待つ
     if (!viewer.authenticated) {
-      router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
     const next = !followed;
@@ -359,7 +359,7 @@ export default function BookmarkButton({
   const toggle = async () => {
     if (!viewer.ready) return;
     if (!viewer.authenticated) {
-      router.push(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
 
