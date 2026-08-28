@@ -7,6 +7,7 @@ import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
 import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
+import SchoolLogoImg from "@/components/profile/SchoolLogoImg";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
@@ -68,6 +69,10 @@ type Education = {
   graduated_at: string | null;
   is_current: boolean;
   sort_order: number;
+  /* ★下2つは select では前から取っていたが、型に無かったので使えなかった（2026-08-28 に追加）。
+        入学年月の無い学歴を年表の外に出すときにロゴを揃えるため。 */
+  school_id: string | null;
+  school_master: { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null } | null;
 };
 
 
@@ -309,7 +314,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
       .limit(6),
   ]);
 
-  const educations     = (educationsRaw     ?? []) as Education[];
+  /* ⚠️★埋め込み（`school_master:ow_schools!school_id(...)`）は**配列で返る**。
+        畳まずに渡すと受け手は `undefined` になり、**型が optional なので tsc も lint も
+        通ったままロゴだけ黙って消える**（CLAUDE.md「埋め込みで取ったら畳んでから渡す」）。 */
+  const educations     = ((educationsRaw ?? []) as Array<Record<string, unknown>>).map((e) => ({
+    ...e,
+    school_master: Array.isArray(e.school_master) ? (e.school_master[0] ?? null) : (e.school_master ?? null),
+  })) as unknown as Education[];
   const contentLinks   = (contentLinksRaw  ?? []) as Array<{
     id: string; url: string; platform: string | null;
     title: string | null; description: string | null;
@@ -426,6 +437,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
     viewerIsOwner,
   );
   const timelineEdus    = toTimelineEducationEntries(educations as RawEducation[]);
+  /* ★年表に置けない学歴（入学年月が無い）。⚠️ ここで拾わないと公開側から消える */
+  const unplacedEdus    = educations.filter((e) => !e.enrolled_at);
   // Current company for sidebar card（company_id の有無は問わない — 在籍中なら表示）
   const currentCareer = timelineCareers.find((c) => c.is_current) ?? null;
   // timeline.ts が company_id を null にするのは「ow_companies に未登録」の場合のみ
@@ -768,14 +781,48 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </ProfileTimelineSection>
             )}
 
-            {/* ── 学歴セクション ── */}
-            {timelineEdus.length > 0 && (
+            {/* ── 学歴セクション ──
+                   ⚠️★`timelineEdus`（＝`toTimelineEducationEntries`）は
+                      **入学年月の無い行を落とす**。年表は「年」で並べるので置き場が無い。
+                      2026-08-28 まで、その行は**公開プロフィールから黙って消えていた**
+                      （実データ2件。本人にも閲覧者にも欠けていることが伝わらない）。
+                   → **年表の下に、年の分からない学歴として出す。**
+                   ⚠️ 「入学年月 未入力」と書く。**推測した年を置かない**
+                      （CLAUDE.md「値が無いことを、ある値に置き換えない」）。
+                   ⚠️ **入力を必須にする案は採っていない。** 必須にすると、
+                      既に登録している人が**思い出せない年月の入力を強いられる**
+                      （＝推測値の投入を利用者にさせることになる）。 */}
+            {(timelineEdus.length > 0 || unplacedEdus.length > 0) && (
               <ProfileTimelineSection id="education" title="学歴">
-                <MergedTimeline
-                  careers={[]}
-                  educations={timelineEdus}
-                  birthDate={birthDate}
-                />
+                {timelineEdus.length > 0 && (
+                  <MergedTimeline
+                    careers={[]}
+                    educations={timelineEdus}
+                    birthDate={birthDate}
+                  />
+                )}
+                {unplacedEdus.map((e) => (
+                  <div key={e.id} style={{
+                    display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                    paddingTop: 8, paddingBottom: 18,
+                  }}>
+                    <SchoolLogoImg schoolMaster={e.school_master ?? null} size={28} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "#111", lineHeight: 1.3 }}>
+                        {e.school}
+                      </div>
+                      {(e.faculty || e.degree) && (
+                        <div style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 2 }}>
+                          {[e.faculty, e.degree].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                      {/* ⚠️ 期間は出さない。始まりが分からないので月数を出しようがない */}
+                      <div style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 2 }}>
+                        入学年月 未入力
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </ProfileTimelineSection>
             )}
 
