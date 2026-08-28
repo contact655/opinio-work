@@ -797,9 +797,9 @@ export default function IntentCard({
           {/* ⚠️★「転職検討時期」の入力は 2026-08-27 に**削除した**（柴さんの指示）。
                  ⚠️ 列（`transfer_timing`）と値は**残している**。`prefsPatch` は
                     保存済みの値をそのまま送り続けるので、既存の値は壊れない。
-                 ⚠️ **`/biz/candidates` は今もこの値を企業に見せている。**
-                    入力だけ消したので、値を持つ人は**直せないまま表示される**。
-                    企業側の表示も外すかどうかは別途判断する。 */}
+                 ⚠️ **企業側も同日に外してある**（`biz/candidates/page.tsx` が
+                    `transfer_timing` を select しなくなった）。本人が直せない値を
+                    企業に見せる状態は残っていない。**入力欄を戻すなら両方戻すこと。** */}
         </CollapsibleRow>
 
         <CollapsibleRow
@@ -826,7 +826,7 @@ export default function IntentCard({
 
         {/* ⚠️★「興味のある企業フェーズ」の入力は 2026-08-27 に**削除した**（柴さんの指示）。
                ⚠️ 列（`desired_phase`）と値は**残している**（上の `transfer_timing` と同じ）。
-               ⚠️ **`/biz/candidates` は今もこの値を企業に見せている。** */}
+               ⚠️ **企業側も同日に外してある。** 戻すなら両方戻すこと。 */}
       </ProfileEditModal>
     </>
   );

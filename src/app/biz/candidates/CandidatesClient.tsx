@@ -49,7 +49,6 @@ type Candidate = {
   desiredRoleNames: string[];
   workStyles: string[] | null;
   desiredPrefectures: string[] | null;
-  /** transfer_timing を最後に「変更」した日時。NULL なら鮮度を出さない */
   desiredSalaryMin: number | null;
   desiredSalaryMax: number | null;
   onboardingCompleted: boolean;
