@@ -1105,9 +1105,28 @@ function CareerContent({
 }
 
 function EducationContent({ data }: { data: EducationEntry }) {
-  const duration = formatDuration(data.enrolled_at, data.graduated_at);
+  /* ⚠️★**卒業年月も「在学中」も無い行がある**（2026-08-28 実測: 学歴12件中1件）。
+        フォームが止めていないので誰でも作れる。
+
+     直す前はこうなっていた:
+       endLabel   … 空文字 → 「2005年4月 – 」と**終わりが欠けたまま**出る
+       duration   … `formatDuration(start, null)` が **今日まで**で数えるので
+                    「· 21年4ヶ月」と**毎月伸び続ける**
+
+     ⚠️ **「現在」と書かない。** それは `is_current` の人にだけ言えること。
+        卒業したかどうか分からない行を「在学中」に見せるのは、
+        CLAUDE.md「値が無いことを、ある値に置き換えない」に反する。
+     ⚠️ **期間も出さない。** 終わりが分からないのに月数だけ出すと、
+        伸び続ける数字を事実として見せることになる。 */
+  const endUnknown = !data.is_current && !data.graduated_at;
+
+  const duration = endUnknown ? "" : formatDuration(data.enrolled_at, data.graduated_at);
   const startLabel = formatYM(data.enrolled_at);
-  const endLabel = data.is_current ? "現在" : data.graduated_at ? formatYM(data.graduated_at) : "";
+  const endLabel = data.is_current
+    ? "現在"
+    : data.graduated_at
+      ? formatYM(data.graduated_at)
+      : "卒業年月 未入力";
 
   return (
     <div className="tl-content tl-content-edu" style={{ paddingTop: 8, paddingBottom: 18 }}>
