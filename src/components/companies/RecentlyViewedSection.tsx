@@ -5,21 +5,29 @@ import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 import type { CompanyForCarousel } from "@/types/genre";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
-// フェーズバッジ色（コンパクト版）
-const STAGE_COLORS: Record<string, { color: string; bg: string }> = {
-  "上場":       { color: "#065F46", bg: "#ECFDF5" },
-  "ユニコーン": { color: "#6D28D9", bg: "#F3E8FF" },
-  "IPO準備中":  { color: "#9A3412", bg: "#FFEDD5" },
-  "シリーズA":  { color: "#065F46", bg: "#D1FAE5" },
-  "シリーズB":  { color: "#1E40AF", bg: "#DBEAFE" },
-  "シリーズC":  { color: "#5B21B6", bg: "#EDE9FE" },
-  "シリーズD以降": { color: "#991B1B", bg: "#FEE2E2" },
-  "外資系":     { color: "#3730A3", bg: "#E0E7FF" },
-};
-function getStageColor(stage: string | null) {
-  if (!stage) return null;
-  return STAGE_COLORS[stage] ?? { color: "#475569", bg: "#F1F5F9" };
-}
+/* ⚠️★ここにあった「資金調達ステージ」のバッジは 2026-08-29 に削除した。**戻さないこと。**
+
+   ── 何が起きていたか ──────────────────────────────────────────────────────
+   `{c.funding_stage}` を**変換せずそのまま**出していたため、画面に **`listed`**
+   （英語の内部値）が出ていた。
+
+   ⚠️★**色分けは一度も機能していなかった。** `STAGE_COLORS` のキーは日本語
+      （"上場" "ユニコーン" "シリーズA" …）だが、DB の実値は **`listed` / `seed`** の
+      2種類だけ。8キーとも**一度も一致せず**、`?? グレー` に落ちていた。
+
+   ── なぜ翻訳ではなく削除にしたか ──────────────────────────────────────────
+   ⚠️ `ow_companies.funding_stage` は **`/admin` の自由入力テキスト**
+      （`placeholder="例: Series A"`・CHECK 無し）。値の集合が決まっていないので、
+      翻訳表を作っても**未知の値は結局そのまま英語で出る。**
+   ⚠️ 値がある企業は掲載79社中 **6社**、種類は **2つ**（listed 3 / seed 3）だけ。
+      `/companies` から「募集中あり優先」「年収高い順」を外したのと同じ理由
+      （動くデータが無い）。
+   ⚠️ このバッジは**この部品にしか無かった**。本体のカードには元から出ておらず、
+      同じ企業が場所によって違って見える状態だった。
+
+   ⚠️ **列とデータは残してある。** 運営が入力した値なので消していない。
+      再び出すなら、先に **UI / API / DB の CHECK を3つ揃える**こと（CLAUDE.md）。
+*/
 
 export function RecentlyViewedSection() {
   const { items, clearItems } = useRecentlyViewed();
@@ -115,7 +123,6 @@ export function RecentlyViewedSection() {
       {/* 横スクロールカルーセル */}
       <div className="rv-scroll">
         {companies.map((c) => {
-          const stageColor = getStageColor(c.funding_stage ?? null);
           const initial = c.logo_letter ?? c.name.slice(0, 1);
           const gradient = c.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
 
@@ -171,12 +178,6 @@ export function RecentlyViewedSection() {
 
                 {/* バッジ */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                  {stageColor && c.funding_stage && (
-                    <span style={{
-                      fontSize: 12, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
-                      background: stageColor.bg, color: stageColor.color,
-                    }}>{c.funding_stage}</span>
-                  )}
                   {c.accepting_casual_meetings && (
                     <span style={{
                       fontSize: 12, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
