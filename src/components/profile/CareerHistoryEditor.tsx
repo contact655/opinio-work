@@ -449,7 +449,27 @@ function ReasonChip({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={active}
+      /* ⚠️★**タップ領域を 44px にする**（2026-08-28）。
+            直す前は **36px**（実測）で、44px の推奨タップ領域を満たしていなかった。
+            375px の職歴モーダルにこのチップが46個並ぶ。
+
+         ── ★`::after` で当たり判定だけ広げる案は捨てた（実測で動かなかった）──
+         `position: absolute` の `::after` を上下 -4.5px で重ねたが、
+         `elementFromPoint` で**拾えなかった**。`z-index: 0` を足しても、
+         親の `gap` を 6 → 9px に広げても**下側が当たらないまま**だった。
+         **疑似要素のヒットテストは当てにしない。**
+
+         → **`min-height: 44px` で実体を大きくする。** 上下の余白は増えるが、
+            `border-radius: 100` と背景色は変わらないので**見た目の印象は保たれる**。
+         ⚠️ 46個並ぶので縦に伸びる。それでも**押せないより押せるほうがよい**。
+
+         ⚠️ `reason-chip` に**当たる CSS は無い**。ブラウザで高さを測るための目印
+            （`document.querySelectorAll(".reason-chip")`）。消すと再計測できなくなる。 */
+      className="reason-chip"
       style={{
+        minHeight: 44,
+        display: "inline-flex",
+        alignItems: "center",
         padding: "7px 14px",
         borderRadius: 100,
         border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
@@ -1078,7 +1098,7 @@ function StintForm({
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
                   {g.axisLabel}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 9, minWidth: 0 }}  /* ⚠️ チップは minHeight 44px。隣接しすぎると押し間違えるので gap は 9 */>
                   {g.options.map((o) => (
                     <ReasonChip
                       key={o.value}
@@ -1105,7 +1125,7 @@ function StintForm({
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
               その中で、いちばんの決め手は
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}  /* ⚠️ 上と同じ理由で 9 */>
               {JOIN_REASONS.filter((o) => draft.joinReasons.includes(o.value)).map((o) => (
                 <ReasonChip
                   key={o.value}
@@ -1135,7 +1155,7 @@ function StintForm({
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
                     {g.axisLabel}
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 9, minWidth: 0 }}  /* ⚠️ チップは minHeight 44px。隣接しすぎると押し間違えるので gap は 9 */>
                     {g.options.map((o) => (
                       <ReasonChip
                         key={o.value}
@@ -1174,7 +1194,7 @@ function StintForm({
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
                   {axis.label}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 9, minWidth: 0 }}  /* ⚠️ チップは minHeight 44px。隣接しすぎると押し間違えるので gap は 9 */>
                   {GAP_RATINGS.map((r) => (
                     <ReasonChip
                       key={r.value}
