@@ -54,6 +54,33 @@ UPDATE ow_companies SET accepting_casual_meetings = true WHERE is_published = tr
 | `avg_salary` | 68 → 0 | archive/157（65社）/ archive/137（3社）。**どちらも出典の記載なし** |
 | 求人の `work_style` / `location` | 18 → 5 | archive/147「サンプル求人データ追加」/ archive/152 |
 
+### 4. ★行を消す migration では、その行が指していた Storage も一緒に消す（2026-08-28 確立）
+
+**FK の CASCADE は Storage を掃除しない。** DB の行だけ消えて、ファイルは残り続ける。
+
+⚠️ **アプリ側にフックを足しても防げない。** 2026-08-28 に確かめたところ、
+   `ow_companies` を DELETE するコードは **src に1件も無い**。
+   企業が消えるのは **migration か手動SQL のときだけ**なので、
+   **掃除もそこで書くしかない。**
+
+実測（2026-08-28）: `companies/logos/` の孤児16件のうち **9件**は、
+`ow_companies` に該当する行が無いフォルダ（`59879917` / `17e171bb` / `f1481f96` /
+`f98f5d13`）に入っていた。**企業ごと消したときの残骸。**
+
+| 消す対象 | 一緒に消す Storage |
+|---|---|
+| `ow_companies` | `companies/logos/{id}/` / `companies/office-photos/{id}/` |
+| `ow_users` | `avatars/{id}/` などプロフィール画像 |
+| `ow_company_office_photos` | その行の `photo_url` が指すファイル |
+
+⚠️ **消す前に必ず退避する。Supabase の日次バックアップに Storage は含まれない**
+   （このスキルの「バックアップの3つの制約」③）。**消したら戻せない。**
+   退避の形は `.dumps/20260828-storage-orphans/`（`_manifest.json` ＋ 実ファイル）が手本。
+
+⚠️ **バケットは `.remove()` にキーの配列を渡すだけで消える。**
+   `ow_company_office_photos` の削除（`api/biz/company/photos/[id]/route.ts`）は
+   既にこの形で掃除している。**書き方はそこを見ること。**
+
 ---
 
 
