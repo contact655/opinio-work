@@ -34,10 +34,12 @@
  * 透過は New Relic とザクトリーのみ。**白い正方形と色付き正方形が混在する**が、
  * 横長バナーとの混在よりは揃う、という判断（柴さん・2026-08-28）。
  *
- * ── 保留2社 ─────────────────────────────────────────────────────────────────
- * ⚠️ **PKSHA Technology / フライルは入れない。** 候補は 32×32 / 36×36 しか無く、
- *    現行の letter フォールバックのほうが良い可能性があるため判断を保留。
- *    **`logo_url` は NULL のままにすること。**
+ * ── 保留していた2社のその後（2026-08-29）─────────────────────────────────────
+ * ✅ **フライルは入れた**（36×36・第3バッチ）。
+ * ⚠️★**PKSHA は入れない。** 候補（32×32 の黒い三角）を 68px 枠で 1.7倍に拡大すると
+ *    **再生ボタンに誤読される。** letter（紫グラデに白い "P"）のほうが識別性が高い。
+ *    **`logo_url` は NULL のまま維持すること。**
+ *    ⚠️ letter は**破綻ではなく「ロゴが無い」ことの表現**。埋めにいかない。
  *
  * ── 実行 ────────────────────────────────────────────────────────────────────
  *   node scripts/upload-logos-20260828d.mjs            … 6社ぶん
@@ -81,6 +83,14 @@ const TARGETS = [
   { key: 'palantir',  id: 'be74d989-db8f-4be1-882c-40cf94e07fe2', name: 'パランティア・テクノロジーズ',
     file: 'scripts/assets/logos-20260828d/palantir.png',  before: '2996x1955 比1.53',
     origin: 'https://www.palantir.com/ の <link rel=icon>（ICO 32px フレーム）' },
+  /* ★第3バッチ（2026-08-29）。**保留していた2社のうちフライルだけ**を入れる。
+        ⚠️ `logo_url` は **NULL** だったので、migration で**新しく設定する**
+           （他6社は既存URLの上書き or 拡張子の変更だった）。
+        ⚠️ **PKSHA はここに足さないこと。** letter フォールバックのまま残すと決めた
+           （理由は `20260829090000_logo_url_flyle.sql` のコメント）。 */
+  { key: 'flyle',     id: 'cb386dd2-427c-49d1-b3f8-1e1d3a921fd8', name: '株式会社フライル',
+    file: 'scripts/assets/logos-20260828d/flyle.png',     before: 'logo_url が NULL（letter フォールバック "F"）',
+    origin: 'https://flyle.io/ の <link rel=icon>' },
 ];
 
 const only = process.argv[2];
@@ -117,9 +127,16 @@ for (const t of list) {
   });
   if (error) { console.error(`✗ ${t.name}: ${error.message}`); ng++; continue; }
 
-  const pointsHere = row?.logo_url?.endsWith('/logo.png');
+  /* ⚠️ 3通りある。**二択で書かないこと**（フライルを .jpg と誤って表示した）。
+        NULL         … 新しく設定する（migration が要る）
+        別の拡張子    … 差し替える（migration が要る。旧ファイルは孤児として残る）
+        logo.png     … 同じキーを上書きしたので DB は触らなくてよい */
+  const cur = row?.logo_url;
+  const state = cur == null ? '★NULL（migration で新しく設定する）'
+    : cur.endsWith('/logo.png') ? 'logo.png（このまま反映される）'
+    : `★${cur.split('/').pop()}（migration で更新が要る）`;
   console.log(`✓ ${t.name}  ${t.before} → ${w}x${h}  ${buf.length}bytes`);
-  console.log(`   DB の指す先: ${pointsHere ? 'logo.png（このまま反映される）' : '★logo.jpg（migration で更新が要る）'}`);
+  console.log(`   DB の指す先: ${state}`);
   ok++;
 }
 console.log(`\n成功 ${ok} / 失敗 ${ng}`);
