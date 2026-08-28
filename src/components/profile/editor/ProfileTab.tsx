@@ -59,7 +59,6 @@ import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow } from "./formKit";
 import { calcTotalExperience, formatYmLabel } from "@/lib/profile/tenure";
-import { getUserAge } from "@/lib/age";
 import { ContentLinksEditor, type ContentLink } from "./ContentLinksEditor";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import {
@@ -544,20 +543,11 @@ function SocialLinksEditor({
       2026-08-16 に削除した。**公開プロフィールと同じ `ProfileContentLinksSection`**
       を使う。ここに描き直さないこと。 */
 
-/**
- * 生年月日3つ（入力中の年/月/日）から年齢を出す。★揃っていなければ null（「0歳」を出さない）
- *
- * ⚠️ **計算は `lib/age.ts` の `getUserAge()` に任せる**（2026-08-20）。
- *    年齢の計算式をアプリ内に複数持たない。以前はここに独自の実装があり、
- *    他にも「年を引くだけ」で誕生日前の人を1歳上に出す実装が3つあった。
- */
-function ageFromBirth({ year, month, day }: { year: string; month: string; day: string }): number | null {
-  if (!year || !month || !day) return null;
-  const y = Number(year), m = Number(month), d = Number(day);
-  if (!y || !m || !d) return null;
-  const age = getUserAge(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
-  return age !== null && age < 130 ? age : null;
-}
+/* ★`ageFromBirth`（生年月日3つ → 年齢）は 2026-08-29 に削除した。
+      ヘッダーの年齢表示が唯一の呼び出し元で、その表示ごと外したため。
+   ⚠️ 年齢が要るようになったら `lib/age.ts` の `getUserAge()` を使うこと。
+      年齢の計算式をアプリ内に複数持たない（年を引くだけの実装が過去に3つあった）。 */
+
 
 export default function ProfileTab({
   owUser,
@@ -891,7 +881,6 @@ export default function ProfileTab({
   /* ★ヘッダーの鉛筆で編集する範囲（2026-08-16 / 2-7）。自己紹介は含めない。 */
   const isHeaderDirty = isBasicDirty || isSocialDirty;
   /* 年齢は導出値（生年月日から作る）。**保存済みの値**から作る */
-  const headerAge = ageFromBirth({ year: initialBirthYear, month: initialBirthMonth, day: initialBirthDay });
 
   /* ── ★セクションは0件でも常に出す（2026-08-24 / 柴さんの指示）───────────
         **「セクションを追加」は撤去した。** 項目そのものが見えていないと、
@@ -1265,7 +1254,6 @@ export default function ProfileTab({
                 avatarColor={settings.avatarColor}
                 coverPhotoUrl={savedCoverPhotoUrl}
                 coverColor={settings.coverColor || settings.avatarColor}
-                ageDisplay={headerAge !== null ? `${headerAge}歳` : null}
                 location={initialBasicInfo.location}
                 followCounts={followCounts ?? { followers: 0, following: 0 }}
                 /* ★氏名の右の「面談可」（2026-08-25 / 柴さんの指示）。

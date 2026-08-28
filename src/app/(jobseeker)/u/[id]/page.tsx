@@ -16,7 +16,6 @@ import {
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 import { getAllRoleRowsCached } from "@/lib/supabase/queries";
-import { getUserAge } from "@/lib/age";
 import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
@@ -165,18 +164,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
         違うだけで、取っている行は同一）。 */
   /* ⚠️ `canUserPost` はここでは引かない（2026-08-17）。投稿フォームを
         `/mypage` だけにしたので、このページに投稿できるかの判定は要らなくなった。 */
-  const [followCounts, viewerRowRes, birthRes] = await Promise.all([
+  const [followCounts, viewerRowRes] = await Promise.all([
     // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
     getFollowCounts(owUser.id),
     // 閲覧者自身の ow_users.id（本人の行なので admin で引いても見える範囲は広がらない）
     authUser
       ? adminSupabase.from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null }),
-    /* 年齢表示: birth_date をサーバ側で計算（NULL = 非公開）
-       ⚠️ birth_date は admin で取り直す。authenticated から SELECT 権限を剥がしたため。
-          上の RLS 判定（404 になるかどうか）は既に通過しているので、
-          ここで admin を使っても見せる範囲は広がらない。 */
-    adminSupabase.from("ow_users").select("birth_date").eq("id", resolvedId).maybeSingle(),
+    /* ★`birth_date` の取得は 2026-08-29 に外した（年齢を画面から消したため）。
+          ⚠️ 年齢を戻すなら、ここも戻すこと。`birth_date` は authenticated から
+             SELECT 権限を剥がしてあるので、**admin クライアントで取り直す必要がある。** */
   ]);
 
   /** 閲覧者自身の ow_users.id。未ログインなら null。以降で使い回す */
@@ -195,11 +192,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
     isFollowingUser = !!fol;
   }
 
-  const { data: birthRow, error: birthErr } = birthRes;
-  if (birthErr) console.error("[u/[id]] birth_date", birthErr.message);
-  const birthDate = (birthRow?.birth_date as string | null) ?? null;
-  const age = getUserAge(birthDate);
-  const ageDisplay = age !== null ? `${age}歳` : null;
 
   /* ⚠️ 抽出と並び順は `ProfileSocialLinks` が持つ（2026-08-16 に切り出し）。
         ここで `activeSocials` を作り直さないこと。 */
@@ -638,7 +630,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
           avatarColor={avatarColor}
           coverPhotoUrl={owUser.cover_photo_url}
           coverColor={coverColor}
-          ageDisplay={ageDisplay}
           location={owUser.location}
           followCounts={followCounts}
           socialLinks={socialLinks}

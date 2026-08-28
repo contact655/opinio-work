@@ -36,7 +36,7 @@ export function shortCompanyName(name: string): string {
  */
 export function ProfileHeader({
   name, headline, initial, avatarUrl, avatarColor, coverPhotoUrl, coverColor,
-  ageDisplay, location, followCounts, socialLinks,
+  location, followCounts, socialLinks,
   currentCareer, isCurrentCompanyKnown, talkableBadge,
   topRight, metaActions, promos,
 }: {
@@ -47,8 +47,6 @@ export function ProfileHeader({
   avatarColor: string;
   coverPhotoUrl?: string | null;
   coverColor: string;
-  /** 「32歳」。生年月日が無ければ null（**空欄も既定値も出さない**） */
-  ageDisplay?: string | null;
   location?: string | null;
   followCounts: Counts;
   socialLinks: Record<string, string> | null;
@@ -209,14 +207,11 @@ export function ProfileHeader({
             </div>
           )}
           <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap" }}>
-            {ageDisplay && (
-              <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-                </svg>
-                {ageDisplay}
-              </span>
-            )}
+            {/* ★年齢は 2026-08-29 に外した（柴さんの判断）。⚠️ **戻さないこと。**
+                   同日にタイムラインの年チップ（年＋年齢）も外しており、
+                   **求職者側で年齢を出す場所は無くなった。**
+                   ⚠️ 戻すなら、CLAUDE.md「年齢は詳細だけ。一覧に出さず、年齢で絞り込ませない」
+                      の節も合わせて更新すること（あの節はこの行を前提に書かれている）。 */}
             {location && (
               <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 5 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
