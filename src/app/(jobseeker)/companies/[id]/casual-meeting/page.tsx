@@ -104,60 +104,22 @@ export default async function CasualMeetingPage({
     isCurrentEmployee = !!currentExp;
   }
 
-  if (isCurrentEmployee) {
-    return (
-      <main style={{ maxWidth: 640, margin: "80px auto", padding: "0 24px" }}>
-        <div style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 16, padding: "48px 40px", textAlign: "center",
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: "var(--warm-soft)", color: "#B45309",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px", fontSize: 24,
-          }}>
-            🏢
-          </div>
-          <h1 style={{
-            fontFamily: 'var(--font-noto-serif)', fontSize: 20,
-            fontWeight: 600, color: "var(--ink)", marginBottom: 12,
-          }}>
-            現在ご在籍中の企業です
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-            <strong style={{ color: "var(--ink)" }}>{company.name}</strong> は、あなたのプロフィールで現在の在籍企業として登録されています。
-            <br />在籍中の企業へのカジュアル面談申し込みはできません。
-          </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <a
-              href={`/companies/${params.id}`}
-              style={{
-                display: "inline-block", padding: "10px 28px",
-                background: "var(--royal)", color: "#fff",
-                borderRadius: 8, fontSize: 13, fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              ← 企業ページに戻る
-            </a>
-            <a
-              href="/companies"
-              style={{
-                display: "inline-block", padding: "10px 28px",
-                background: "#fff", color: "var(--ink-soft)",
-                border: "1px solid var(--line)",
-                borderRadius: 8, fontSize: 13, fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              他の企業を探す
-            </a>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  /* ── ★在籍中でも申し込めるようにした（2026-08-29 / 柴さんの判断）─────────
+        ⚠️★**ここにあった「現在ご在籍中の企業です」のブロックは撤去した。戻さないこと。**
+
+        理由: **プロフィールの更新が漏れているだけの場合がある。**
+        既に退職しているのに `is_current = true` のままの人が、申し込めずに止まっていた。
+        判定材料が本人の自己申告である以上、それを根拠に**入口を塞ぐのは強すぎる**。
+
+        ⚠️ ただし**黙って通すのではなく、注意書きを出す**（案B）。
+           止めないが、更新漏れに気づく機会は残す。
+           → `isCurrentEmployee` はここで**捨てずにフォームへ渡す**。
+
+        ⚠️★**API 側には元からブロックが無い**（`POST /api/casual-meetings`）。
+           したがって、この画面を外すと**止める仕組みは1つも無くなる**。
+           承知のうえでそうしている。**「API が守ってくれる」と思わないこと。**
+
+        ⚠️ CLAUDE.md の「Hisato 思想」6番（在籍企業制約）も同日に書き換えてある。 */
 
   /* ── 指名された「話を聞きたい人」（2026-08-25）────────────────────────────
         ⚠️★**URL の値をそのまま信じない。** 誰でも書き換えられるので、
@@ -200,6 +162,7 @@ export default async function CasualMeetingPage({
 
   return (
     <CasualMeetingForm
+      isCurrentEmployee={isCurrentEmployee}
       companyId={company.id}
       companyName={company.name}
       companyInitial={companyInitial}

@@ -81,6 +81,7 @@ function SuccessScreen({ companyName, contactEmail }: { companyName: string; con
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 export default function CasualMeetingForm({
+  isCurrentEmployee,
   companyId,
   companyName,
   companyInitial,
@@ -90,6 +91,10 @@ export default function CasualMeetingForm({
   requestedUserId,
   requestedName,
 }: {
+  /** ★本人のプロフィールで「この企業に在籍中」になっているか（2026-08-29）。
+   *  ⚠️ **申し込みは止めない。** 注意書きを出すためだけに使う。
+   *     更新漏れで止まる人がいたので、2026-08-29 にブロックを撤去した。 */
+  isCurrentEmployee: boolean;
   companyId: string;
   companyName: string;
   companyInitial: string;
@@ -198,6 +203,27 @@ export default function CasualMeetingForm({
           選考前の段階でも OK。<strong>転職を決めていなくても大丈夫です。</strong>
         </p>
       </div>
+
+      {/* ★在籍中として登録されている人への注意書き（2026-08-29）。
+             ⚠️ **警告ではなく気づきの機会。** 赤くしない・止めない。
+                「プロフィールの更新が漏れているだけ」の人が大半という前提で書く。
+             ⚠️ **企業には伝えない。** 本人が更新し忘れている事実を、断りなく
+                企業へ渡すことになるため（申込内容にも含めていない）。 */}
+      {isCurrentEmployee && (
+        <div style={{
+          background: "var(--warm-soft)", border: "1px solid #FDE68A",
+          borderRadius: 12, padding: "12px 16px", marginBottom: 20,
+          fontSize: 12, lineHeight: 1.9, color: "#92400E",
+        }}>
+          あなたのプロフィールでは、<strong>{companyName}</strong> に<strong>現在も在籍中</strong>として登録されています。
+          <br />
+          退職済みの場合は、
+          <Link href="/mypage/details/experience" style={{ color: "#92400E", fontWeight: 700, textDecoration: "underline" }}>
+            職歴の更新
+          </Link>
+          をご検討ください。<strong>このまま申し込むこともできます。</strong>
+        </div>
+      )}
 
       {/* Target company card */}
       <div style={{
