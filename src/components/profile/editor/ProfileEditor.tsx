@@ -17,6 +17,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
+import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { Json } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import ProfileTab, { type ProfileSavedSnapshot, type SettingsState } from "./ProfileTab";
@@ -115,6 +116,7 @@ export default function ProfileEditor({
   initialCertifications,
   initialLanguages,
   initialSkills,
+  autoSkills,
   initialMediaAppearances,
   initialExperiences,
   initialContentLinks,
@@ -153,6 +155,9 @@ export default function ProfileEditor({
   initialLanguages: Language[];
   /** ★スキル（2026-08-27）。⚠️ 資格・言語と同じ流し方 */
   initialSkills: UserSkill[];
+  /** ★職歴から自動で出すスキル（2026-08-29）。⚠️ **保存されていない値**なので
+   *  削除ボタンは出さない。算出は `lib/profile/autoSkillsServer.ts`。 */
+  autoSkills?: AutoSkill[];
   initialMediaAppearances: MediaAppearance[];
   initialExperiences: Stint[];
   initialContentLinks: ContentLink[];
@@ -429,6 +434,7 @@ export default function ProfileEditor({
             initialCertifications={initialCertifications}
             initialLanguages={initialLanguages}
             initialSkills={initialSkills}
+            autoSkills={autoSkills}
             initialMediaAppearances={initialMediaAppearances}
             initialSocialLinks={initialSocialLinks}
             initialContentLinks={initialContentLinks}

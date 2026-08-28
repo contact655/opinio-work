@@ -22,6 +22,7 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
+import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
 import {
@@ -428,6 +429,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
       });
     }
   }
+
+  /* ★職歴から自動で出すスキル（2026-08-29）。⚠️ **保存していない。都度計算する。**
+        ⚠️ `expRows`（生の行）から作る。`timelineCareers` は匿名化や
+           `visibility_company_profile` の処理を経ており、**会社が伏せられた行でも
+           在籍した事実は変わらない**ので、集計は生の行で行う。
+        ⚠️ 組み立ては `buildAutoSkills` に集約してある。**ここに書き写さないこと**
+           （`/mypage` と食い違うと、同じ人が画面によって違うスキルを出す）。 */
+  const autoSkills = await buildAutoSkills(
+    adminSupabase,
+    /* ⚠️ `?? []` を落とさない。取得に失敗すると `expRows` は undefined で、
+          そのまま渡すと `.map` で落ちる（ページ全体が 500 になる）。 */
+    (expRows ?? []) as unknown as { company_id?: string | null; role_category_id?: string | null;
+                            started_at?: string | null; ended_at?: string | null }[],
+    roleInfoById,
+    "u/[id]",
+  );
 
   // MergedTimeline 用データ整形（isOwner=true なら visibility_company_profile を無視して実名表示）
   const timelineCareers = buildTimelineCareerEntriesFromRaw(
@@ -846,7 +863,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             {/* ★スキル（2026-08-27）。⚠️ **`actions` を渡さない。**
                    渡すと他人の画面に追加・削除の導線が出る。
                    0件なら部品側が何も描かない（他人が見る DOM は1バイトも変わらない）。 */}
-            <ProfileSkillsSection skills={skills} />
+            <ProfileSkillsSection skills={skills} autoSkills={autoSkills} />
 
 
             {/* ── アクティビティ（最近の投稿）──

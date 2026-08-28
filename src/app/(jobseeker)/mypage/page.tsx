@@ -15,6 +15,8 @@ import {
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 import { rowsToStints } from "@/lib/experiences/toStint";
+import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
+import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
@@ -75,6 +77,10 @@ export default async function MypagePage({
   let certificationsRaw: Record<string, unknown>[] = [];
   let languagesRaw: Record<string, unknown>[] = [];
   let skillsRaw: Record<string, unknown>[] = [];
+  /* ★職歴から自動で出すスキル（2026-08-29）。⚠️ **保存していない。都度計算する。**
+        ⚠️ `/u/[id]` と同じ `buildAutoSkills` を通すこと。ここに組み立てを書き写すと
+           片方だけ規則が古くなり、同じ人が画面によって違うスキルを出す。 */
+  let autoSkills: AutoSkill[] = [];
   let mediaAppearancesRaw: Record<string, unknown>[] = [];
   let contentLinksRaw: Record<string, unknown>[] = [];
   let desiredRoleIds: string[] = [];
@@ -230,6 +236,11 @@ export default async function MypagePage({
         },
       ])
     );
+
+    /* ⚠️ `supabase`（RLS 付き・本人セッション）で引く。事業領域は公開情報なので
+          anon にも開いており、本人のセッションでも同じ行が読める。
+       ⚠️ `expRows` が undefined でも `?? []` で受けているので落ちない。 */
+    autoSkills = await buildAutoSkills(supabase, (expRows ?? []), roleNameById, "mypage");
 
     // master 企業の会社名 + ロゴ 3 フィールドを二次取得（A-1: logo_url / logo_letter / logo_gradient 追加）
     const masterCompanyIds = (expRows ?? [])
@@ -592,6 +603,7 @@ export default async function MypagePage({
       initialLanguages={languagesRaw as any}
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       initialSkills={skillsRaw as any}
+      autoSkills={autoSkills}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialMediaAppearances={mediaAppearancesRaw as any}
       initialExperiences={initialExperiences}

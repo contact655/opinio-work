@@ -3,6 +3,7 @@
 /* ★カードの幅。公開プロフィール（`/u/[id]`）と同じ 1020 に揃える。
       ⚠️ 数字を直接書かないこと。片方だけ動かすとまた幅がずれる（2026-08-27）。 */
 import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
+import type { AutoSkill } from "@/lib/profile/autoSkills";
 /**
  * 「プロフィール」タブ（写真 / 基本情報 / 職歴〈実績・受賞を内包〉 / 学歴 / メディア掲載 / SNS / 発信コンテンツ）。
  *
@@ -571,6 +572,7 @@ export default function ProfileTab({
   initialCertifications,
   initialLanguages,
   initialSkills,
+  autoSkills,
   initialMediaAppearances,
   initialSocialLinks,
   initialContentLinks,
@@ -630,6 +632,9 @@ export default function ProfileTab({
   initialLanguages: Language[];
   /** ★スキル（2026-08-27）。⚠️ 資格・言語と同じ流し方 */
   initialSkills: UserSkill[];
+  /** ★職歴から自動で出すスキル（2026-08-29）。⚠️ **保存されていない値**なので
+   *  削除ボタンは出さない。算出は `lib/profile/autoSkillsServer.ts`。 */
+  autoSkills?: AutoSkill[];
   initialMediaAppearances: MediaAppearance[];
   initialSocialLinks: SocialLinks;
   initialContentLinks: ContentLink[];
@@ -1632,6 +1637,9 @@ export default function ProfileTab({
                    ⚠️ 0件でも出す。未入力なら部品側が空状態と「スキルを追加する」を出す。 */}
             <ProfileSkillsSection
               skills={skills}
+              /* ⚠️ 自動値は `actions` の対象外。部品側が削除ボタンを出さない。
+                    消したいときは**職歴を直す**（同じ事実に2つの正を作らない）。 */
+              autoSkills={autoSkills}
               actions={{
                 manageHref: skills.length > 0 ? "/mypage/details/skills" : undefined,
                 manageLabel: "スキルを編集",

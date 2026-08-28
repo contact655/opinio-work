@@ -19,6 +19,7 @@ import { PLATFORM_META, ARTICLE_TYPE_LABEL } from "@/lib/profile/platformMeta";
 /* 言語の習熟度ラベル（2026-08-24）。⚠️ 生の値（`native` 等）を画面に出さない */
 import { languageProficiencyLabel } from "@/lib/constants/languageProficiency";
 import { SKILL_CATEGORIES } from "@/lib/constants/skills";
+import type { AutoSkill } from "@/lib/profile/autoSkills";
 import { PostCard } from "@/components/profile/PostCard";
 import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
 /* ⚠️ `SocialIcon.tsx` は `"use client"` を**持たない**素のモジュール。
@@ -667,8 +668,12 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
  *    区分名は `skillCategoryLabel` を通す（**生の値（`product` 等）を出さない**）。
  * ⚠️ 年数や習熟度は**持たない**。ここに「3年」などを足さないこと。
  */
-export function ProfileSkillsSection({ skills, actions, showAll }: {
+export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll }: {
   skills: UserSkillRow[];
+  /** ★職歴から自動で出すスキル（2026-08-29）。`lib/profile/autoSkills.ts` が作る。
+   *  ⚠️ **保存されていない値**なので、削除ボタンは出さない（消す手段は職歴を直すこと）。
+   *  ⚠️ 手動スキルと**見た目で区別しない**（案A・柴さんの判断）。区分の見出しだけ分ける。 */
+  autoSkills?: AutoSkill[];
   /** ★本人の編集用。渡さなければ他人が見る DOM と1バイトも変わらない */
   actions?: RowActions;
   /** ★上限で切ったときの「すべて表示」。渡さなければ描かない */
@@ -680,12 +685,23 @@ export function ProfileSkillsSection({ skills, actions, showAll }: {
   /* ⚠️ 並び順は `SKILL_CATEGORIES` の並びそのもの。ここで sort しない
         （`skillCategoryRank` は**値**を取る関数で、ラベルを渡すと全件が同じ順位になり、
          「並べ替えているつもりの何もしないコード」になる）。 */
+  /* ★自動値は「職種」「業界」という**別の区分**として先に出す（2026-08-29）。
+        `ow_skills.category`（product / method / sales_domain）とは語彙が違うので混ぜない。
+     ⚠️ `sales_domain`（売り先の業界）と「業界」（在籍企業の事業領域）は**別物**。
+        見出しを「業界」だけにすると紛らわしいので **「経験した業界」** と書く。 */
+  const autoGroups = [
+    { label: "職種", rows: autoSkills.filter((a) => a.kind === "role") },
+    { label: "経験した業界", rows: autoSkills.filter((a) => a.kind === "domain") },
+  ].filter((g) => g.rows.length > 0);
+
   const groups = SKILL_CATEGORIES
     .map((c) => ({ label: c.label, rows: skills.filter((s) => s.skill?.category === c.value) }))
     .filter((g) => g.rows.length > 0);
+  /* ⚠️ 件数は**自動値も数える**。数えないと「3件」と出ているのに5個並ぶ。 */
+  const totalCount = skills.length + autoSkills.length;
   return (
     <>
-      {(skills.length > 0 || hasActions) && (
+      {(totalCount > 0 || hasActions) && (
         <section id="skills" style={{
           background: "#fff", border: "1px solid var(--line)",
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
@@ -699,14 +715,14 @@ export function ProfileSkillsSection({ skills, actions, showAll }: {
               SKILLS
             </span>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            {skills.length > 0 && (
+            {totalCount > 0 && (
               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-                {skills.length}件
+                {totalCount}件
               </span>
             )}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧）。 */}
-            {actions?.onAdd && skills.length > 0 && (
+            {actions?.onAdd && totalCount > 0 && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -717,7 +733,7 @@ export function ProfileSkillsSection({ skills, actions, showAll }: {
           </div>
 
           {/* ⚠️ 空のときは**1行だけ**。説明を足さないこと（柴さんの指示） */}
-          {skills.length === 0 && hasActions && (
+          {totalCount === 0 && hasActions && (
             <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
               まだスキルを登録していません。
               {actions?.onAdd && (
@@ -729,6 +745,29 @@ export function ProfileSkillsSection({ skills, actions, showAll }: {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* ★自動値。⚠️ **削除ボタンを出さない**（保存されていないので消せない）。
+                   見た目は手動スキルと同じチップにする（案A）。 */}
+            {autoGroups.map((g) => (
+              <div key={g.label}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 8 }}>
+                  {g.label}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {g.rows.map((a) => (
+                    <span key={`${a.kind}:${a.label}`} style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "6px 12px", borderRadius: 100,
+                      background: "var(--royal-50)", color: "var(--royal)",
+                      border: "1px solid var(--royal-100)",
+                      fontSize: 13, fontWeight: 600, whiteSpace: "nowrap",
+                    }}>
+                      {a.label}
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>{a.band}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
             {groups.map((g) => (
               <div key={g.label}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.06em", marginBottom: 8 }}>
