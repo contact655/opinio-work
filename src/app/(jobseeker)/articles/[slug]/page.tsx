@@ -58,9 +58,20 @@ export async function generateMetadata({
     : article.type === "ceo" ? "CEO取材"
     : "組織レポート";
 
+  /* ⚠️★**読了時間は入っているときだけ足す**（2026-08-28）。
+        直す前は `読了${article.read_min}分。` を無条件に埋めており、
+        `mapDbArticle` の `?? 5` と合わせて**測っていない「5分」を meta に出していた**。
+     ⚠️ **文ごと落とす。** 「読了分。」のように**単位だけ残さない**
+        （CLAUDE.md「ある項目だけ集めて join する」と同じ形）。
+     ⚠️★**この行は tsc が守ってくれない。** テンプレート文字列に null を埋めても
+        型エラーにならないので、既定値を外すときは grep で表示箇所を全部見ること。 */
   const description = article.subtitle
     ? article.subtitle
-    : `${article.company_name}の${typeLabel}。読了${article.read_min}分。IT/SaaS業界のリアルな働き方をOPINIOが取材。`;
+    : [
+        `${article.company_name}の${typeLabel}。`,
+        article.read_min ? `読了${article.read_min}分。` : "",
+        "IT/SaaS業界のリアルな働き方をOPINIOが取材。",
+      ].join("");
 
   const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}&v=2`;
 
@@ -529,9 +540,12 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             <span style={{ color: INK_MUTE }}>
               {article.date.replace(/-/g, "/")}
             </span>
-            <span style={{ color: INK_MUTE }}>
-              {article.read_min} min read
-            </span>
+            {/* ⚠️ 未入力なら**この span ごと出さない**。「 min read」だけが残らないように */}
+            {article.read_min ? (
+              <span style={{ color: INK_MUTE }}>
+                {article.read_min} min read
+              </span>
+            ) : null}
           </div>
         </div>
 

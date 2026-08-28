@@ -1790,9 +1790,12 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                               {badge.label}
                             </span>
                           </div>
-                          <div style={{ position: "absolute", top: 12, right: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 600, zIndex: 1 }}>
-                            {article.read_min} min
-                          </div>
+                          {/* ⚠️ 未入力なら div ごと出さない（「 min」だけ残さない） */}
+                          {article.read_min ? (
+                            <div style={{ position: "absolute", top: 12, right: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter, sans-serif", fontWeight: 600, zIndex: 1 }}>
+                              {article.read_min} min
+                            </div>
+                          ) : null}
                           <p style={{ position: "relative", zIndex: 1, margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 14, fontWeight: 800, lineHeight: 1.55, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}>
                             {article.title}
                           </p>
@@ -1868,9 +1871,12 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                           {/* Royal overlay */}
                           <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.18)", mixBlendMode: "multiply" }} />
                           <span style={{ fontSize: 32, opacity: 0.3, position: "relative", zIndex: 1 }}>{icon}</span>
-                          <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
-                            {article.read_min} min
-                          </div>
+                          {/* ⚠️ 未入力なら div ごと出さない（「 min」だけ残さない） */}
+                          {article.read_min ? (
+                            <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "Inter, sans-serif", fontWeight: 500, zIndex: 1 }}>
+                              {article.read_min} min
+                            </div>
+                          ) : null}
                         </div>
                         <div style={{ padding: "12px 16px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

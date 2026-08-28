@@ -2063,7 +2063,11 @@ function mapDbArticle(row: Record<string, any>): Article {
     title: row.title as string,
     subtitle: (row.subtitle as string) ?? "",
     date,
-    read_min: (row.read_min as number) ?? 5,
+    /* ⚠️★**`?? 5` にしないこと**（2026-08-28 に外した）。未入力の記事に
+          「5分で読める」「読了5分。」と、**測っていない数字を事実として出していた**。
+          表示側は truthy でガードしているので、null にすれば**項目ごと消える**。
+          CLAUDE.md「値が無いことを、ある値に置き換えない」。 */
+    read_min: (row.read_min as number | null) ?? null,
     // company_id is used in URL fragments; we store the slug for display linking
     company_id: (row.company_slug as string) ?? "",
     company_name: (row.company_name_text as string) ?? "",
@@ -2130,7 +2134,13 @@ export async function getArticles(filter?: ArticleFilter): Promise<Article[]> {
     );
   }
   if (filter?.sort === "popular") {
-    articles = [...articles].sort((a: Article, b: Article) => b.read_min - a.read_min);
+    /* ⚠️ 未入力（null）は **-1 で末尾**に置く。**`0` にしないこと** ——
+          `0` は「0分」という意味のある値で、実在する短い記事と混ざる。
+       ⚠️ `sort === "popular"` は内部値。**UI のラベルは「読了時間順」**で挙動と一致している
+          （`ArticleFilterBar`）。「人気順」ではないので、閲覧数などに読み替えないこと。 */
+    articles = [...articles].sort(
+      (a: Article, b: Article) => (b.read_min ?? -1) - (a.read_min ?? -1),
+    );
   }
 
   return articles;

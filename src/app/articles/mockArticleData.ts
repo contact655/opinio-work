@@ -33,7 +33,12 @@ export type Article = {
   title: string;
   subtitle: string;
   date: string;
-  read_min: number;
+  /* ⚠️★**`number | null`。既定値で埋めないこと**（2026-08-28）。
+        直す前は `mapDbArticle` が `?? 5` で埋めており、**読了時間を測っていない記事に
+        「5分で読める」と出していた**。表示側は `{article.read_min && …}` で
+        ちゃんとガードしているのに、**そのガードが永久に発火しない**状態だった。
+     ⚠️ `ow_articles.read_min` の DB 既定 `5` も同日に外してある。片方だけ直すと DB が埋める。 */
+  read_min: number | null;
   company_id: string;
   company_name: string;
   company_initial: string;
