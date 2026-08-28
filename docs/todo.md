@@ -714,7 +714,52 @@ select count(distinct c.relname) as 表, count(*) as ポリシー
    `/companies` の「募集中 N件」「募集あり」・sitemap・LP が anon キーでここを読む。
    **403 は `?? []` で受けているので、画面は落ちず数字だけが静かに消える。**
 
-### やること
+### ⚠️★2026-08-28 に8本を置き換えた（**完了ではない**）
+
+`20260828080000_policies_use_auth_ow_user_id.sql` で、
+**式が `ow_users` の副問い合わせ「だけ」の8本**を `auth_ow_user_id()` に置き換えた。
+
+| | |
+|---|---|
+| 置き換えた | `ow_bookmarks_own` / `ow_casual_meetings_seeker_read` / `users can read own applications` / `user_follows_own_manage` / `notifications_select_own` / `user can manage own reservations` / `Users can view their own join requests` / `recommendations_owner_read` |
+| **残した** | **7本**（下記） |
+
+### ⚠️★残した7本と、その理由（「ついでに」揃えないこと）
+
+**【B】`ow_company_admins` 経由の4本**
+`ow_casual_meetings_company_read` / `ow_matches_company_read` /
+`company_admin_all`（`ow_company_posts`）/ `company_admins_read_applications`
+
+⚠️★**`auth_is_company_admin()` に置き換えてはいけない。**
+   あの関数は **`permission = 'admin'` を追加で要求する**が、この4本は
+   **`is_active` だけ**を見ている。実測（2026-08-28）: `ow_company_admins` は
+   admin 10（有効）/ admin 1（無効）/ **member 1（有効）**。
+   置き換えると**その member が面談・応募・マッチを見られなくなる。**
+   **権限の意味が変わる置換は「同じことの言い換え」ではない。**
+
+**【C】参加者判定と admin ロールの複合3本**
+`ow_conversation_messages_select` / `ow_conversation_participants_select` /
+`ow_conversations_select`
+
+⚠️ `ow_conversation_participants` や `ow_company_admins` との結合が混ざっており、
+   `ow_users` の部分だけ置き換えても**表の権限要求は消えない**。
+   **中途半端に置き換えると「直った」と誤認する。**
+
+### ⚠️ したがって `REVOKE SELECT ON ow_users FROM anon` はまだできない
+
+【B】【C】が片付くまで anon の SELECT 権限は外せない。**この migration は前進であって完了ではない。**
+
+### 検証（2026-08-28）
+
+- **適用前後で anon / 本人 / 第三者 / admin の4者の結果が完全一致**（8表）
+- ⚠️ ただし多くが0件なので、**0件が遮断か空かを区別する陽性対照**を別に取った。
+  `ow_notifications` に本人宛の行を1件作り、**本人=1件 / anon=0件 / 第三者=0件**を確認。
+  ⚠️ 検証行は削除して元の1件に戻した
+- 置き換え前の15本の定義は `.dumps/20260828-policies-before.sql`
+
+---
+
+### （元の記録）やること
 
 19本のポリシーの `IN (SELECT ow_users.id FROM ow_users WHERE auth_id = auth.uid())` を、
 既存の SECURITY DEFINER 関数 **`public.auth_ow_user_id()`**（anon 実行可）に置き換える。
