@@ -185,6 +185,52 @@
 
 ---
 
+## ✅ 本番ログから「いま壊れているもの」を探した ── 0件（2026-08-28）
+
+過去に**この方法で `/mypage` の未読バッジのバグ**が見つかっている
+（存在しない列で引いて 400。`?? 0` で「未読0」に化けていた）。24時間ぶんを洗い直した。
+
+### 結果: **本番アプリ由来の不具合は見つからなかった**
+
+| 発信元 | 4xx | 中身 |
+|---|---|---|
+| **Vercel（本番アプリ / `18.181.x` `18.183.x`）** | **2** | `POST ow_user_roles` の **409 のみ**。`UNIQUE(user_id, role)` の**想定どおり**（23505 を正常扱い） |
+| このマシン（`113.37.244.225`） | 7 | 調査スクリプトの探り（`ow_mentors` / `ow_company_photos` の存在確認、`cover_url` の打ち間違い等） |
+| 別マシン（`180.20.181.60`） | 3 | 同上 |
+
+DB 側（`postgres_logs`）のエラーも **`ow_user_roles` の duplicate key ×2**（＝上と同じもの）と、
+**自分が MCP から流した read-only transaction のエラー ×2** だけだった。
+
+### ⚠️★手順（次に同じことをする人へ）
+
+**① 発信元 IP で切り分ける。これをやらないと、自分の探りをバグとして報告することになる。**
+   実際、`/rest/v1/` の 4xx **12件のうち10件が調査由来**だった。
+   先に自分のIPを調べておく: `curl -s https://api.ipify.org`。
+   本番アプリは **AWS ap-northeast-1（`18.x`）** から来る。
+
+```sql
+select log_attributes['request.headers.cf_connecting_ip'] as ip,
+       log_attributes['request.path'] as path,
+       log_attributes['request.method'] as method,
+       log_attributes['response.status_code'] as status, count() as n
+  from logs
+ where source='edge_logs'
+   and toInt32OrZero(toString(log_attributes['response.status_code'])) >= 400
+   and log_attributes['request.path'] like '/rest/v1/%'
+ group by ip, path, method, status order by n desc;
+```
+
+**② `postgres_logs` を `ERROR` の語で探さない。0件に見える。**
+   ⚠️ **実際にこれで空振りした。** 重大度は `event_message` ではなく metadata 側にあり、
+   本文には `duplicate key value violates unique constraint …` のように**内容だけ**が入る。
+   ⚠️ CLAUDE.md「0件だったときは、検出器が効いていることを先に確かめる」。
+   `select substring(toString(event_message),1,120), count() from logs
+      where source='postgres_logs' group by 1 order by 2 desc` で**中身を先に見る。**
+
+⚠️ **ログは24時間しか遡れない。** 週次で回すなら、この期間を前提に運用を決めること。
+
+---
+
 ## 日本語側の別名の誤爆が残っている
 
 **対象**: `/search` の職種照合（`lib/search/interpretQuery.ts` の `findAliasIndex`）。
@@ -899,9 +945,60 @@ select count(distinct c.relname) as 表, count(*) as ポリシー
    `ow_users` の部分だけ置き換えても**表の権限要求は消えない**。
    **中途半端に置き換えると「直った」と誤認する。**
 
-### ⚠️ したがって `REVOKE SELECT ON ow_users FROM anon` はまだできない
+### ✅★残り7本を片付けた（2026-08-28 / `20260828140000`）── **対象 7 → 0**
 
-【B】【C】が片付くまで anon の SELECT 権限は外せない。**この migration は前進であって完了ではない。**
+**7本を2通りに分けた。理由が違うので同じ手を当てない。**
+
+| | 表 | どうしたか |
+|---|---|---|
+| **①** | `ow_company_posts` | **ポリシーの式を書き換えた**。同じ表に `public_read_published_posts`（`is_published = true` / 全ロール）があり、**anon が公開投稿を読むのは意図どおり**（実測でも anon に1件返る）。権限は剥がせない |
+| **②** | `ow_casual_meetings` `ow_conversations` `ow_conversation_messages` `ow_conversation_participants` `ow_job_applications` `ow_matches` | **anon から SELECT を剥がした**。実測で anon には全部 200/0件、**src に anon 経由の参照が1つも無い**（admin か認証済みセッションのみ） |
+| **③** | `ow_message_reads` | **巻き添えの1件**。`ow_message_reads_select` が `ow_conversation_participants` を副問い合わせしている。**src からの参照0件**なので一緒に剥がした |
+
+⚠️★**`auth_is_company_admin()` に寄せなかった。** あれは `permission='admin'` を追加で
+   要求するが、`company_admin_all` は **`is_active` だけ**を見ている。
+   → **`auth_is_active_company_admin(company_id)` を新設**（`is_active` のみ・
+     `SECURITY DEFINER` / `row_security = off` / `search_path` 固定）。
+
+   **寄せていたら実害が出ていた**（適用前に SQL で確認）:
+
+   | | 結果 |
+   |---|---|
+   | 新しい関数の条件・**自社** | **true** |
+   | 新しい関数の条件・他社 | false |
+   | **`auth_is_company_admin()` の条件（permission='admin'）・自社** | **false ← 締め出されていた** |
+
+   該当は **柴さんご本人**（株式会社Third Box の `member`）。
+
+### ⚠️ 検証（2026-08-28 / 実際に PostgREST を叩いた）
+
+| 表 | anon | 認証(一般) | 運営 |
+|---|---|---|---|
+| 剥がした7表 | **401（42501）** | **200** | **200**（`ow_conversations` と `ow_conversation_participants` は **1件**） |
+| `ow_company_posts` | **200 / 1件** | 200 / 1件 | 200 / 1件 |
+
+⚠️★**運営に1件返っているのが陽性対照。** 全部0件だと「遮断された」のか「元から空」なのか
+   区別できない（CLAUDE.md「RLS で弾かれても 403 ではない。200＋0件が返る」）。
+   **行数ではなくステータスで権限を判定した**（200 = 権限あり / 401 = 権限なし）。
+
+⚠️ 画面も確認: 未ログインの `/` `/companies` `/companies/salesforce` `/jobs` `/jobs/[id]`
+   `/sitemap.xml` が 200、ログイン済みの `/mypage` `/mypage/conversations`
+   `/mypage/applications` `/people` も 200。
+   （`/companies/third-box` の 404 は `is_published=false` / `is_test=true` のためで**無関係**）
+
+### ▶ 残り: `REVOKE SELECT ON ow_users FROM anon`（**前提は揃った。未実施**）
+
+2026-08-28 時点で、塞いでいた2つの条件が**どちらも消えた**:
+
+| 条件 | 状態 |
+|---|---|
+| anon が読める表のポリシーが `ow_users` を副問い合わせしている | **0本**（この migration で解消） |
+| anon の経路が `ow_users` を直接読んでいる | **0件**（`runSearch.ts` の2箇所は **admin クライアント**。`JobseekerHeader` は `authUser` が解決した後にしか読まない） |
+| 埋め込み（`ow_users(...)`）で引いている | **6件あるが全部 `/biz` `/mypage` `/api/dm`＝認証済み** |
+
+⚠️ **それでも別の作業として切る。** ここは過去に一度失敗している場所で、
+   剥がすと**列単位 GRANT（anon 23列）の設定ごと意味が変わる**。
+   実施するなら **anon / 非admin / admin の4者実測＋公開ページの通し確認**をセットで行うこと。
 
 ### 検証（2026-08-28）
 
@@ -1101,23 +1198,21 @@ POST/PUT で INSERT）。6件 → 10件に増えていたのは**実際に書か
 | ③ | — | `careerReasons.ts` のコメント「DB 側でも GRANT を付けていないので admin 以外読めない」は **`ow_experience_gaps` については誤り**。同テーブルは `authenticated` に SELECT/INSERT/UPDATE/DELETE があり RLS で本人に絞っている（**2026-08-19 に当該コメントは修正済み**）。正しいのは `ow_experiences` の3列のほう |
 | ④ | 「UI / API / DB の CHECK を3つ揃える」 | ~~`ow_experiences.employment_type` に CHECK が無い~~ → **2026-08-26 に解消**（上の節）。CLAUDE.md 側にも追記済み |
 
-## 生年が2箇所にあり、年が食い違っている実ユーザーが1人（2026-08-20 記録・本人確認が必要）
+## ~~生年が2箇所にあり、年が食い違っている実ユーザーが1人~~（**2026-08-28 に解決**）
 
-**データは書き換えていない。** どちらが本人の申告か分からないため。
+生藤 弘樹（`0c99e403-…`・実ユーザー）の生年が
+`ow_users.birth_date` = **1996**-11-05 / `ow_career_profiles.birth_year` = **1991** で
+5年ずれていた。**2026-08-28 に柴さんが「1996 です」と確定**したので、
+`20260828130000` で `birth_year` を 1996 に寄せた（食い違い 0 件）。
 
-| | 実測（2026-08-19） |
-|---|---|
-| `ow_users.birth_date` と `ow_career_profiles.birth_year` の**両方**を持つ人 | **1** |
-| そのうち**年が一致しない**人 | **1**（1件中1件） |
-| その人の属性 | `is_test = false`（実ユーザー）／`ow_career_profiles.is_published = true` |
+⚠️ 画面に出るのは `ow_users.birth_date` の側だけなので、**表示は元から正しかった。**
+   直したのは「食い違いが残っていること」自体で、表示バグの修正ではない。
 
-⚠️ **正は `ow_users.birth_date`** と決めた（CLAUDE.md）。`birth_year` は表示にも集計にも
-使わず、anon の GRANT も外した（`20260820090000`）ので、**実害は出ない状態にはなっている。**
+⚠️ **NULL にはしなかった。** 消すと「本人が答えていない」のか「運営が消した」のかが
+   分からなくなるため。⚠️ **ただし正は `ow_users.birth_date`。**
+   `ow_career_profiles.birth_year` を新しく読み書きしないこと。
 
-やること: 本人に確認して `ow_users.birth_date` を正す **か**、
-`ow_career_profiles.birth_year` の列ごと落とす（1行しか使っていない）。
-⚠️ **確認せずに片方へ揃えない。** どちらが正しいか分からないまま上書きすると、
-   「推測値の投入」になる（CLAUDE.md「値が無いことを、ある値に置き換えない」の同型）。
+⚠️ `ow_career_profiles` は **全部で1行**（2026-08-28 実測）。その1行がこれだった。
 
 ## Storage はバックアップされていない（2026-08-20 記録・今回は実装しない）
 
