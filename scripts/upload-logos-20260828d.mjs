@@ -88,6 +88,16 @@ const TARGETS = [
            （他6社は既存URLの上書き or 拡張子の変更だった）。
         ⚠️ **PKSHA はここに足さないこと。** letter フォールバックのまま残すと決めた
            （理由は `20260829090000_logo_url_flyle.sql` のコメント）。 */
+  /* ★第4バッチ（2026-08-29）。**デル・テクノロジーズは todo.md の「残り9社」に
+        載っていなかった**（未着手だった1社）。他8社は「一巡済み」で掘り直さない。
+     ⚠️ 取得元は **dell.com/ja-jp の apple-touch-icon**。curl は 403 で弾かれるので、
+        実ブラウザから取得した（Scene7 の画像も curl では 403）。
+     ⚠️ 採ったのは **Dell の四角アイコン**で、いま入っている
+        「Dell Technologies」の**積み重ね型ワードマーク（1346x780・比1.73）**とは別の意匠。
+        公式サイトが自ら apple-touch-icon に使っている素材で、68px 枠で読める。 */
+  { key: 'dell',      id: 'f4acddc0-c746-4537-9edf-6f3c1f2c90b3', name: 'デル・テクノロジーズ株式会社',
+    file: 'scripts/assets/logos-20260828d/dell.png',      before: '1346x780 比1.73（Dell Technologies の横長ワードマーク）',
+    origin: 'https://www.dell.com/apple-touch-icon.png（180x180）' },
   { key: 'flyle',     id: 'cb386dd2-427c-49d1-b3f8-1e1d3a921fd8', name: '株式会社フライル',
     file: 'scripts/assets/logos-20260828d/flyle.png',     before: 'logo_url が NULL（letter フォールバック "F"）',
     origin: 'https://flyle.io/ の <link rel=icon>' },
