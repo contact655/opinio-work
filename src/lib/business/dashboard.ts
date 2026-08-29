@@ -206,7 +206,15 @@ export async function getTenantContext(): Promise<TenantContext | null> {
 // ─── To-Do Counts ─────────────────────────────────────
 
 export async function getTodoCounts(tenantId: string): Promise<TodoCounts> {
-  const supabase = createClient();
+  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
+        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
+        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
+        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
+     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
+        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
+     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
+        **呼び出し側で検証していない id をここに渡さないこと。** */
+  const supabase = createAdminClient();
   try {
     const { data } = await supabase
       .from("ow_business_todo_counts")
@@ -226,7 +234,15 @@ export async function getTodoCounts(tenantId: string): Promise<TodoCounts> {
 // ─── Monthly Stats ────────────────────────────────────
 
 export async function getMonthlyStats(tenantId: string): Promise<MonthlyStatsWithDelta> {
-  const supabase = createClient();
+  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
+        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
+        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
+        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
+     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
+        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
+     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
+        **呼び出し側で検証していない id をここに渡さないこと。** */
+  const supabase = createAdminClient();
   const cur = monthStart();
   const prev = previousMonthStart();
   try {
@@ -267,7 +283,15 @@ export async function getMonthlyStats(tenantId: string): Promise<MonthlyStatsWit
 // ─── Job Status Counts ────────────────────────────────
 
 export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCounts> {
-  const supabase = createClient();
+  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
+        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
+        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
+        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
+     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
+        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
+     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
+        **呼び出し側で検証していない id をここに渡さないこと。** */
+  const supabase = createAdminClient();
   try {
     const { data } = await supabase
       .from("ow_jobs")
@@ -289,7 +313,15 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
 // ─── Job Performance ──────────────────────────────────
 
 export async function getJobPerformance(tenantId: string, limit = 10): Promise<JobPerformance[]> {
-  const supabase = createClient();
+  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
+        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
+        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
+        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
+     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
+        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
+     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
+        **呼び出し側で検証していない id をここに渡さないこと。** */
+  const supabase = createAdminClient();
   try {
     const { data } = await supabase
       .from("ow_business_job_performance")

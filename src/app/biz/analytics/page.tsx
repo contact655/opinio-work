@@ -2,6 +2,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext, getMonthlyStats, getJobPerformance, getTodoCounts } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   BarChart2, Users, Briefcase, MessageSquare, TrendingUp, TrendingDown,
   Eye, ClipboardList, AlertCircle, CheckCircle2, Minus,
@@ -12,7 +13,7 @@ export const metadata = { title: { absolute: "分析 | OPINIO Business" }, robot
 
 // ─── 6ヶ月 monthly stats 取得 ───────────────────────────────────────────────
 
-async function fetchSixMonthStats(supabase: ReturnType<typeof createClient>, tenantId: string) {
+async function fetchSixMonthStats(supabase: ReturnType<typeof createAdminClient>, tenantId: string) {
   const now = new Date();
   const months: string[] = [];
   for (let i = 5; i >= 0; i--) {
@@ -259,9 +260,16 @@ export default async function AnalyticsPage() {
   const tenantId = ctx.tenantId;
 
   // 並列フェッチ
+  /* ⚠️★`fetchSixMonthStats` は `ow_business_monthly_stats`（ビュー）を引く。
+        あのビューは 2026-08-29 に **service_role 限定**にしたので、
+        **セッションクライアントでは 401 になる**（`?? []` で受けており、
+        グラフが全部 0 になって気づけない）。ここだけ admin を渡す。
+     ⚠️ `fetchMeetingFunnel` / `fetchCompanyProfile` は実テーブルを引くので
+        **セッションのままでよい**（RLS で自社に絞られるほうが安全）。 */
+  const adminForViews = createAdminClient();
   const [monthly, sixMonth, jobPerf, todos, meetings, profile, selection] = await Promise.all([
     getMonthlyStats(tenantId),
-    fetchSixMonthStats(supabase, tenantId),
+    fetchSixMonthStats(adminForViews, tenantId),
     getJobPerformance(tenantId, 15),
     getTodoCounts(tenantId),
     fetchMeetingFunnel(supabase, tenantId),
