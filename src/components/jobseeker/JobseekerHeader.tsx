@@ -8,12 +8,21 @@ import { ChevronDown } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
+/* ⚠️★`highlight` を廃止した（2026-08-30）。**5項目すべて `false` で、
+      琥珀色の分岐（デスクトップ・モバイルの2箇所）は一度も描画されていなかった。**
+      色は `#FEF3C7` / `#FDE68A` / `#D97706` / `#B45309` / `#92400E` で、
+      `.claude/skills/ui-conventions`「色の役割」の**黄色背景は使わない**と
+      **オレンジはカジュアル面談のみ**の両方に反する。
+   ⚠️ ヘッダーは全ページに出るので、誰かが1つ `true` にした日に**サイト全体**へ出る。
+      「使われていないから無害」ではなく、**選べる状態にしないこと**が対処
+      （`88fae279` で `SecTitle` の未使用の色の選択肢を塞いだのと同じ）。
+   ⚠️ ナビを強調したくなったら、**濃紺（主要な遷移）か太さ**で示す。 */
 const NAV_LINKS = [
-  { href: "/companies", label: "企業", highlight: false },
-  { href: "/jobs", label: "募集", highlight: false },
-  { href: "/people", label: "ユーザー", highlight: false },
-  { href: "/feed", label: "フィード", highlight: false },
-  { href: "/articles", label: "記事", highlight: false },
+  { href: "/companies", label: "企業" },
+  { href: "/jobs", label: "募集" },
+  { href: "/people", label: "ユーザー" },
+  { href: "/feed", label: "フィード" },
+  { href: "/articles", label: "記事" },
 ];
 
 type SuggestResult = {
@@ -201,34 +210,12 @@ export function JobseekerHeader() {
 
           {/* Nav — desktop only */}
           <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 8, flex: 1, alignItems: "center" }}>
-            {NAV_LINKS.map(({ href, label, highlight }) => {
+            {NAV_LINKS.map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
               const active = hrefTab
                 ? pathname === hrefPath && searchParams.get("tab") === hrefTab
                 : pathname.startsWith(hrefPath) && !searchParams.get("tab");
-              if (highlight) {
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    aria-current={active ? "page" : undefined}
-                    style={{
-                      fontSize: 13, fontWeight: 700,
-                      color: active ? "#D97706" : "#B45309",
-                      textDecoration: "none", whiteSpace: "nowrap",
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "5px 12px", borderRadius: 100,
-                      background: active ? "#FEF3C7" : "#FFFBEB",
-                      border: "1.5px solid #FDE68A",
-                      transition: "background 0.15s, border-color 0.15s",
-                    }}
-                  >
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#D97706", flexShrink: 0, animation: "pulseDot 2.5s ease-in-out infinite" }} />
-                    {label}
-                  </Link>
-                );
-              }
               return (
                 <Link
                   key={href}
@@ -636,34 +623,12 @@ export function JobseekerHeader() {
 
         {/* Nav links */}
         <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
-          {NAV_LINKS.map(({ href, label, highlight }) => {
+          {NAV_LINKS.map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab
               ? pathname === hrefPath && searchParams.get("tab") === hrefTab
               : pathname.startsWith(hrefPath) && !searchParams.get("tab");
-            if (highlight) {
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "14px 24px", fontSize: 15, fontWeight: 700,
-                    color: active ? "#B45309" : "#92400E",
-                    textDecoration: "none",
-                    background: active ? "#FEF3C7" : "transparent",
-                    borderLeft: active ? "3px solid #D97706" : "3px solid transparent",
-                    transition: "background 0.15s",
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D97706", flexShrink: 0 }} />
-                  {label}
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", marginLeft: "auto" }}>無料</span>
-                </Link>
-              );
-            }
             return (
               <Link
                 key={href}
