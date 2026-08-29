@@ -308,9 +308,11 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
           }}>
             <span style={{
               fontFamily: "var(--font-inter), var(--font-noto)", fontSize: "var(--text-sm)", fontWeight: 700,
-              color: "var(--purple)", letterSpacing: "0.1em",
+              /* ⚠️ 紫にしない（2026-08-30）。ui-conventions「色の役割」で**紫は使わない**。
+                    章番号は装飾ではなく本文の目印なので、アクセント色（royal）に揃える。 */
+              color: "var(--royal)", letterSpacing: "0.1em",
               padding: "2px 10px",
-              border: "2px solid #7C3AED",
+              border: "2px solid var(--royal)",
               borderRadius: 6, flexShrink: 0,
             }}>
               CHAPTER {ch.num}
@@ -374,7 +376,10 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
         </h3>
         <span style={{
           fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
-          color: "var(--purple)", letterSpacing: "0.2em", textTransform: "uppercase",
+          /* ⚠️ 紫にしない（2026-08-30）。ui-conventions「色の役割」で**紫は使わない**。
+                これは「見出し + ラテン副題」の型なので、プロフィールの `SectionTitle`
+                （`components/profile/view/ProfileSections.tsx`）と同じ**副題色**に揃える。 */
+          color: "var(--ink-mute)", letterSpacing: "0.2em", textTransform: "uppercase",
         }}>
           CONTRIBUTORS
         </span>
