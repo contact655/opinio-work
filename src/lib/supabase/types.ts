@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1369,6 +1369,61 @@ export type Database = {
           },
           {
             foreignKeyName: "ow_company_culture_tags_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_data_sources: {
+        Row: {
+          company_id: string
+          created_at: string
+          field: string
+          note: string | null
+          source_kind: string
+          source_url: string | null
+          updated_at: string
+          verified_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          field: string
+          note?: string | null
+          source_kind: string
+          source_url?: string | null
+          updated_at?: string
+          verified_at: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          field?: string
+          note?: string | null
+          source_kind?: string
+          source_url?: string | null
+          updated_at?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_data_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_data_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_data_sources_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
