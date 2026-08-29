@@ -1,10 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 import Link from "next/link";
 
 async function getStats() {
-  const supabase = createClient();
+  /* ⚠️★セッションクライアント（`createClient`）はこのページから外した（2026-08-29）。
+        **運営も `authenticated` ロールで来るので RLS が効き、数え上げが静かに減る。**
+        `/admin` の読みは `createAdminClient` に統一する（CLAUDE.md）。
+     ⚠️ 認証・権限の判定は `layout.tsx` が済ませている。ここで取り直さない。 */
   const admin = createAdminClient();
 
   const [
@@ -14,12 +16,29 @@ async function getStats() {
     selfListed,
     onboardingCompleted, profileFilled, appliedOrMet,
   ] = await Promise.all([
-    supabase.from("ow_users").select("id", { count: "exact", head: true }),
-    supabase.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
-    supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published"),
-    supabase.from("ow_job_applications").select("id", { count: "exact", head: true }),
-    supabase.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
-    supabase.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    /* ⚠️★ここは `supabase`（運営本人のセッション）で数えていた（〜2026-08-29）。
+          **運営も `authenticated` ロールで来るので RLS が効く。**
+          実測（2026-08-29 / 運営セッション vs service_role）:
+            ow_jobs 全件          **7 / 20**  ← 13件見えていない（他社の下書き）
+            ow_company_admins     **6 / 13**  ← 7件見えていない
+          CLAUDE.md 2026-08-11 の「`/admin/jobs` が20件中7件しか出なかった」と同じ形で、
+          **数え上げ側が取り残されていた。**
+       ⚠️★とくに「求人審査待ち」「面談申込待ち」は**運営を呼び出すためのアラート**。
+          他社の行が RLS で落ちると、**審査すべきものがあるのに 0 件と出て誰も気づけない。**
+          いま 0/0 なのは、たまたま該当が0件だから。**運が良いだけ。**
+       ⚠️ したがって `/admin` の数え上げは必ず `admin`（service_role）で行う。 */
+    /* ⚠️ `is_system` を除く。運営セッションでは RLS が落としていたので**除外が既定だった**。
+          `admin` にすると数えてしまい、表示が 38 → 39 に増える（システムユーザーは
+          フィード投稿の主体で、登録ユーザーではない）。
+       ⚠️ `is_test` は**あえて除いていない**。運営画面はテストデータも見える方が正しい
+          （CLAUDE.md「完全に隠さないこと」）。⚠️ ただし実測では 38人中 32人が is_test で、
+          **実ユーザーは6人**。この数字を対外的な指標に使わないこと。 */
+    admin.from("ow_users").select("id", { count: "exact", head: true }).eq("is_system", false),
+    admin.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
+    admin.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published"),
+    admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
+    admin.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+    admin.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("status", "pending"),
     // BIZ担当者数。
     // ⚠️ 2026-08-05 から、保留中の招待（user_id が null）はここに数えられない。
     //    招待の作成時に is_active を立てるのをやめ、承諾時に立てるようにしたため。
@@ -81,12 +100,17 @@ async function getStats() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  // Recent companies
-  const { data: recentCompanies } = await supabase
+  /* Recent companies
+     ⚠️ ここも `admin` で引く（2026-08-29）。企業は運営セッションでも全件見えていたが
+        （実測 89/89）、**RLS を締めた日に静かに減る**。`/admin` の読みは admin に揃える。
+     ⚠️ `error` を捨てない。捨てると RLS も 400 も「0件」に化け、
+        「最近の企業」が空になっただけに見える。 */
+  const { data: recentCompanies, error: recentCompaniesErr } = await admin
     .from("ow_companies")
     .select("id, name, industry, is_published, created_at")
     .order("created_at", { ascending: false })
     .limit(5);
+  if (recentCompaniesErr) console.error("[admin] ow_companies(recent):", recentCompaniesErr.message);
 
   return {
     usersCount: users.count ?? 0,
