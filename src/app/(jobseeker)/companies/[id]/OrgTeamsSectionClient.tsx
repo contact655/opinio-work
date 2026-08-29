@@ -346,8 +346,12 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                             <Link href={`/companies/${companyId}/jobs`} style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 7,
-                              background: "#FEF3C7", color: "#92400E",
-                              border: "1px solid #FDE68A",
+                              /* ⚠️ 黄色にしない（2026-08-30）。ui-conventions は
+                                    **黄色背景は使わない** / **別ページへ遷移するボタンは濃紺の塗り**
+                                    と定めている。これは求人一覧への遷移なので後者に当たる。
+                                 ⚠️ 同じページの「N件すべての求人を見る」も濃紺の塗り。揃えてある。 */
+                              background: "var(--royal)", color: "#fff",
+                              border: "1px solid var(--royal)",
                               fontSize: 12, fontWeight: 700, textDecoration: "none",
                             }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>

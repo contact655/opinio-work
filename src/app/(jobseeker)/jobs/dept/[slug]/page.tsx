@@ -243,7 +243,12 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                         {job.is_new && (
                           <span style={{
                             fontSize: 12, fontWeight: 700, padding: "2px 7px", borderRadius: 100,
-                            background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A",
+                            /* ⚠️ 黄色にしない（2026-08-30）。ui-conventions「色の役割」で
+                                  **黄色背景は使わない**。NEW は新着を示すだけで、
+                                  注意でも面談でも金銭でもない。
+                               ⚠️ NEW バッジはこのページにしか無い一点物。他の一覧に足すときは
+                                  ここと同じ royal にすること（別の色を持ち込まない）。 */
+                            background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
                           }}>
                             NEW
                           </span>

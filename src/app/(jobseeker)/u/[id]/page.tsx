@@ -1003,8 +1003,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "10px 22px", borderRadius: 8,
-                      border: "1.5px solid #FCD34D", background: "#FFFBEB",
-                      color: "#92400E", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                      /* ⚠️ 面談の色でよいが、**黄色寄りの #FCD34D / #FFFBEB / #92400E ではなく
+                            面談の淡い版に揃える**（2026-08-30）。この3色は
+                            `TalkableBadge` / `PeopleListClient` / `CompanyEmployeeSections` が
+                            使っている「話を聞けます」の淡い版と同じもの。
+                         ⚠️ このページ上部の面談ボタン（metaActions）は**塗り**で主、こちらは**淡い版**で従。
+                            塗りと淡いで主従を示す形は変えないこと。 */
+                      border: "1.5px solid #FED7AA", background: "#FFF7ED",
+                      color: "#C2410C", fontSize: 13, fontWeight: 700, textDecoration: "none",
                     }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
