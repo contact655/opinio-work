@@ -3,6 +3,11 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { COVERAGE_COLUMNS } from "./columns";
+import { COMPANY_SOURCE_KIND_LABELS, isCompanySourceStale,
+         COMPANY_SOURCE_STALE_AFTER_DAYS, type CompanySourceKind } from "@/lib/constants/companySources";
+
+/** 本社所在地の出典（`ow_company_data_sources`）。⚠️ 運営専用。求職者にも企業にも出さない。 */
+export type AddressSource = { kind: CompanySourceKind; url: string | null; verifiedAt: string };
 
 export type CoverageRow = {
   id: string;
@@ -11,6 +16,13 @@ export type CoverageRow = {
   /** 列key → 埋まっているか */
   filled: Record<string, boolean>;
   filledCount: number;
+  /** ⚠️ null は「出典が記録されていない」。住所が入っているのに null なら記録漏れ。 */
+  addressSource: AddressSource | null;
+};
+
+/** 本社のマスに出す1文字の印。⚠️ 色分けはしない（凡例のない色を増やさない）。 */
+const SOURCE_MARK: Record<CompanySourceKind, string> = {
+  registry: "登", official_site: "公", company_input: "社", unknown: "?",
 };
 
 const TOTAL = COVERAGE_COLUMNS.length;
@@ -23,7 +35,10 @@ const TOTAL = COVERAGE_COLUMNS.length;
  *
  * ⚠️ 76社を1画面で俯瞰したいので、ページネーションは置かない。密度を優先する。
  */
-export default function CoverageClient({ rows, testCount }: { rows: CoverageRow[]; testCount: number }) {
+export default function CoverageClient(
+  { rows, testCount, sourcesUnavailable }:
+  { rows: CoverageRow[]; testCount: number; sourcesUnavailable: boolean },
+) {
   /** 「この項目が空の企業だけ」に絞る。列ヘッダのクリックで切り替える */
   const [emptyOnly, setEmptyOnly] = useState<string | null>(null);
   /** 空が多い順（既定） / 社名順 */
@@ -35,6 +50,24 @@ export default function CoverageClient({ rows, testCount }: { rows: CoverageRow[
       sortByEmpty ? a.filledCount - b.filledCount || a.name.localeCompare(b.name, "ja")
                   : a.name.localeCompare(b.name, "ja"));
   }, [rows, emptyOnly, sortByEmpty]);
+
+  /** 本社の出典の内訳。⚠️ 母数は「住所が入っている企業」であって全社ではない。 */
+  const srcStat = useMemo(() => {
+    const withAddr = rows.filter((r) => r.filled.headquarters_address);
+    const byKind: Record<string, number> = {};
+    let noUrl = 0, missing = 0, stale = 0;
+    for (const r of withAddr) {
+      const s = r.addressSource;
+      if (!s) { missing++; continue; }
+      byKind[s.kind] = (byKind[s.kind] ?? 0) + 1;
+      /* ⚠️ `unknown` は**数えない**。出所そのものが分かっていないので定義上URLを持てず
+            （DB の CHECK で禁じている）、「? 不明」として別に出している。
+            ここに混ぜると**二重計上**になり、「URLを調べれば埋まる件数」がずれる。 */
+      if (!s.url && s.kind !== "unknown") noUrl++;
+      if (isCompanySourceStale(s.verifiedAt)) stale++;
+    }
+    return { withAddr: withAddr.length, byKind, noUrl, missing, stale };
+  }, [rows]);
 
   /** 列ごとの空件数。ヘッダに出して「どの項目が遅れているか」を見る */
   const emptyCount = useMemo(() => {
@@ -76,6 +109,60 @@ export default function CoverageClient({ rows, testCount }: { rows: CoverageRow[
         空のマスは、運営画面に入力欄がある項目は <strong style={{ color: "#B45309" }}>＋</strong>（押すと該当タブが開く）、
         migration で投入する項目は <strong>−</strong> で示しています。
       </p>
+
+      {/* ── 本社所在地の出典（`ow_company_data_sources`）────────────────────────
+             ⚠️ **取得に失敗したら「0件」と出さない。** 判定できないことを明示する
+                （CLAUDE.md「取得に失敗したら『0件』と表示しない」）。 */}
+      <div style={{
+        marginBottom: 14, padding: "10px 14px", borderRadius: 8,
+        background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 12, color: "#475569", lineHeight: 1.9,
+      }}>
+        {sourcesUnavailable ? (
+          <span role="alert" style={{ color: "#991B1B", fontWeight: 700 }}>
+            出典の取得に失敗しました（0件という意味ではありません）
+          </span>
+        ) : (
+          <>
+            <strong style={{ color: "#0F172A" }}>本社所在地の出典</strong>
+            {" — 住所あり "}<strong style={{ color: "#0F172A" }}>{srcStat.withAddr}</strong>{" 社のうち "}
+            {(Object.keys(SOURCE_MARK) as CompanySourceKind[])
+              .filter((k) => srcStat.byKind[k])
+              .map((k) => `${SOURCE_MARK[k]} ${COMPANY_SOURCE_KIND_LABELS[k]} ${srcStat.byKind[k]}`)
+              .join(" ／ ")}
+            {srcStat.noUrl > 0 && (
+              <>
+                {" ／ "}
+                <strong style={{ color: "#0F172A" }} title="出典の種別は分かっているが、確認したページのURLが記録されていない">
+                  URL未記録 {srcStat.noUrl}
+                </strong>
+              </>
+            )}
+            {srcStat.missing > 0 && (
+              <>
+                {" ／ "}
+                <strong style={{ color: "#DC2626" }} title="住所は入っているのに出典の記録が無い。入れた人が記録し忘れている">
+                  出典なし {srcStat.missing}
+                </strong>
+              </>
+            )}
+            {srcStat.stale > 0 && (
+              <>
+                {" ／ "}
+                <strong style={{ color: "#DC2626" }} title={`最後に突き合わせてから ${COMPANY_SOURCE_STALE_AFTER_DAYS} 日を超えている`}>
+                  要再確認 {srcStat.stale}
+                </strong>
+              </>
+            )}
+            <br />
+            {/* ⚠️★登記と公式サイトは**意味が違う**。ここを読む人が混同しないよう毎回書く。 */}
+            <span style={{ color: "#64748B" }}>
+              ⚠️ <strong>登</strong>＝登記上の<strong>本店</strong>所在地（国税庁）、
+              <strong>公</strong>＝公式サイトの<strong>オフィス</strong>所在地。
+              一致する保証はありません。本社のマスの印にカーソルを当てると出典が出ます。
+            </span>
+          </>
+        )}
+      </div>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <button
@@ -147,7 +234,34 @@ export default function CoverageClient({ rows, testCount }: { rows: CoverageRow[
                   <td key={col.key} style={{ ...td, background: r.filled[col.key] ? undefined : "#FFFBEB" }}>
                     {/* ⚠️ 空のマスだけリンクにする。埋まっているマスまでリンクにすると
                            どこを押せばよいか分からなくなる */}
-                    {r.filled[col.key] ? (
+                    {/* ★本社だけ、埋まっているマスに**出典の印**を出す（2026-08-30）。
+                           ⚠️ 色分けはしない。印は1文字（登/公/社/?）で、詳細は title に入れる。
+                              凡例のない色を増やさないため（ui-conventions「色の役割」）。
+                           ⚠️ **住所があるのに出典が無い行を「✓」で流さない。**
+                              記録漏れが読めなくなる。 */}
+                    {r.filled[col.key] && col.key === "headquarters_address" ? (
+                      r.addressSource ? (
+                        <span
+                          title={[
+                            `出典: ${COMPANY_SOURCE_KIND_LABELS[r.addressSource.kind]}`,
+                            r.addressSource.url ?? "URLは記録されていません",
+                            `最終確認: ${r.addressSource.verifiedAt.slice(0, 10)}`,
+                            isCompanySourceStale(r.addressSource.verifiedAt)
+                              ? `⚠️ ${COMPANY_SOURCE_STALE_AFTER_DAYS}日を超えています` : "",
+                          ].filter(Boolean).join("\n")}
+                          style={{
+                            display: "inline-block", minWidth: 18, padding: "0 4px", borderRadius: 4,
+                            border: "1px solid #E2E8F0", background: "#F8FAFC",
+                            fontSize: 11, fontWeight: 700, color: "#475569", cursor: "help",
+                          }}
+                        >
+                          {SOURCE_MARK[r.addressSource.kind]}
+                        </span>
+                      ) : (
+                        <span title="住所は入っているが、出典が記録されていません"
+                              style={{ color: "#DC2626", fontWeight: 700 }} aria-label="出典なし">✓!</span>
+                      )
+                    ) : r.filled[col.key] ? (
                       <span style={{ color: "#059669" }} aria-label="入力済み">✓</span>
                     ) : col.editable ? (
                       <Link

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import CoverageClient, { type CoverageRow } from "./CoverageClient";
+import CoverageClient, { type CoverageRow, type AddressSource } from "./CoverageClient";
 import { COVERAGE_COLUMNS } from "./columns";
+import type { CompanySourceKind } from "@/lib/constants/companySources";
 
 /**
  * 企業データの充填状況一覧（運営の作業管理用）。
@@ -64,6 +65,29 @@ export default async function CoveragePage() {
     );
   }
 
+  /* ★本社所在地の出典（`ow_company_data_sources`）。
+        ⚠️ **この表を読む画面はここが最初**（2026-08-30）。作った当日に読み手を付けている。
+           読む主体が無いまま置くと、`ow_match_scores`（書き込むコードが存在しないまま
+           残っている）と同じ死蔵になる。
+        ⚠️ **運営専用の表**（RLS 有効・ポリシー0本・anon/authenticated に GRANT 無し）。
+           admin クライアント以外から読まないこと。
+        ⚠️ error を握り潰さない。失敗したら「出典なし」ではなく**判定できない**と出す
+           （CLAUDE.md「403 は『0件』として静かに素通りする」）。 */
+  const { data: srcData, error: srcError } = await supabase
+    .from("ow_company_data_sources")
+    .select("company_id, source_kind, source_url, verified_at")
+    .eq("field", "headquarters_address");
+  if (srcError) console.error("[admin/companies/coverage] sources:", srcError.message);
+
+  const sourceById = new Map<string, AddressSource>();
+  for (const r of srcData ?? []) {
+    sourceById.set(r.company_id as string, {
+      kind: r.source_kind as CompanySourceKind,
+      url: (r.source_url as string | null) ?? null,
+      verifiedAt: r.verified_at as string,
+    });
+  }
+
   const all = (data ?? []) as unknown as Record<string, unknown>[];
   const testCount = all.filter((c) => c.is_test === true).length;
 
@@ -78,8 +102,11 @@ export default async function CoveragePage() {
       name: (c.brand_name as string | null)?.trim() || (c.name as string),
       filled,
       filledCount: Object.values(filled).filter(Boolean).length,
+      /* ⚠️ 住所が入っているのに出典が無い ＝ **今日以降に足されて記録し忘れた**行。
+            それが読めるように、埋まっているかどうかとは別に持つ。 */
+      addressSource: sourceById.get(c.id as string) ?? null,
     };
   });
 
-  return <CoverageClient rows={rows} testCount={testCount} />;
+  return <CoverageClient rows={rows} testCount={testCount} sourcesUnavailable={!!srcError} />;
 }
