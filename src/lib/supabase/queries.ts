@@ -2043,12 +2043,24 @@ const ARTICLE_LIST_COLS = [
   "published_at", "company_slug", "company_name_text",
   "company_initial_text", "company_gradient_text",
   "subject_freeze", "subjects_freeze",
+  /* ★`themes_blocks` は 2026-08-29 に足した。**一覧がテーマタグを描いているのに、
+        この列を取っていなかった。**`mapDbArticle` は
+        `themes: row.themes_blocks ? ... : undefined` なので、取らないと常に undefined。
+        `{article.themes && ...}` のガードが効いて**節ごと静かに消えていた。**
+     ⚠️ 実測（2026-08-29 / 本番）: 記事16件中**4件**がテーマを持っており、
+        3〜5個ずつ入っているのに **`/articles` に1つも出ていなかった。**
+     ⚠️★型では気づけない。`Article.themes` は optional なので tsc も lint も通る
+        （CLAUDE.md「COLS 定数と mapper を突き合わせる」）。
+        **一覧に項目を足すときは、この配列にも足すこと。** */
+  "themes_blocks",
 ].join(", ");
 
 const ARTICLE_DETAIL_COLS = [
   ARTICLE_LIST_COLS,
+  /* ⚠️ `themes_blocks` は LIST 側へ移した（2026-08-29）。ここに残すと
+        select が `themes_blocks, ..., themes_blocks` と重複する。 */
   "editor_note", "body_blocks", "quote", "qa_blocks",
-  "themes_blocks", "chapters", "editor_outro",
+  "chapters", "editor_outro",
   "related_job_ids", "related_article_slugs",
 ].join(", ");
 
