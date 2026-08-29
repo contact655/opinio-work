@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getStageCfg } from "@/lib/utils/stageCfg";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
@@ -1511,12 +1512,28 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 5,
                     }}>
                       {company.name}
-                      <span style={{
-                        fontSize: 12, padding: "2px 8px", borderRadius: 100,
-                        background: "var(--warm-soft)", color: "#B45309", fontWeight: 600,
-                      }}>
-                        {company.phase}
-                      </span>
+                      {/* ⚠★`{company.phase}` を**そのまま**出していた（2026-08-29 に修正）。
+                             本番の公開ページに「株式会社セールスフォース・ジャパン **listed**」と
+                             出ていた。`phase` は生値（listed / non_listed / unicorn /
+                             series_b / series_d）なので、必ず `getStageCfg()` を通す。
+                             知らない値は null が返り、**バッジごと出ない**（生値を出さない）。
+                          ⚠★色も直した。前はオレンジ（--warm-soft / #B45309）だったが、
+                             **オレンジはカジュアル面談だけの色**（ui-conventions「色の役割」）。
+                             `getStageCfg` が返すニュートラルを使う。企業詳細と同じ見た目。 */}
+                      {(() => {
+                        const sc = getStageCfg(company.phase);
+                        if (!sc) return null;
+                        return (
+                          <span style={{
+                            fontSize: 12, padding: "2px 8px", borderRadius: 100,
+                            background: sc.bg, color: sc.color,
+                            border: `1px solid ${sc.border}`,
+                            fontWeight: sc.fontWeight ?? 600,
+                          }}>
+                            {sc.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, flexWrap: "wrap" }}>
                       {/* ⚠️ 求職者に見せる分類は**事業領域**。`industry`(text) は運用側の軸で、
