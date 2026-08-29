@@ -159,11 +159,6 @@ export default async function PeopleRolePage({ params }: { params: { slug: strin
             <span style={{ display: "inline-block", padding: "4px 14px", borderRadius: 100, fontSize: 13, fontWeight: 700, background: "#fff", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>
               {people.length}名が登録
             </span>
-            {role.salarySlug && (
-              <Link href={`/salary/${role.salarySlug}`} style={{ display: "inline-block", padding: "4px 14px", borderRadius: 100, fontSize: 12, fontWeight: 600, background: "var(--success-soft)", color: "var(--success)", textDecoration: "none", border: "1px solid #A7F3D0" }}>
-                💰 年収相場を見る
-              </Link>
-            )}
           </div>
         </div>
       </div>

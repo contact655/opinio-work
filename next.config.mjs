@@ -59,6 +59,11 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      /* ★`/salary`（年収相場）は 2026-08-29 に削除した。**sitemap に10URL 載せていた**ので、
+            404 にせず 301 で `/jobs` へ送る（年収レンジは求人一覧で見られる）。
+         ⚠️ 削除の理由は `src/app/sitemap.ts` のコメントを参照。**復活させないこと。** */
+      { source: "/salary", destination: "/jobs", permanent: true },
+      { source: "/salary/:slug", destination: "/jobs", permanent: true },
       {
         source: "/for-companies",
         destination: "/business",

@@ -74,14 +74,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
-    // ── Static: salary pages ─────────────────────────────────────────────────
-    { url: `${baseUrl}/salary`, lastModified: new Date(), changeFrequency: "weekly" as const, priority: 0.85 },
-    ...["enterprise-sales", "customer-success", "sales-engineer", "solutions-architect", "backend-engineer", "ml-engineer", "product-manager", "smb-sales", "other"].map((slug) => ({
-      url: `${baseUrl}/salary/${slug}`,
-      lastModified: new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })),
+    /* ⚠️ `/salary`（年収相場）は 2026-08-29 に削除した。**戻さないこと。**
+          年収データを増やす予定が無く、しかも画面が「自分の年収を報告すると全データが
+          閲覧できます（Glassdoor方式）」と書いていたのに**報告フォームが存在しなかった**
+          （CTA は /mypage に飛ぶだけ／`ow_salary_reports` は DROP 済み）。
+          出していた数字も求人票のレンジ集計で、「匿名で報告した実績年収」ではなかった。
+       ⚠️ sitemap に載せていた10URLは `next.config.mjs` で 301 を張ってある。 */
     // ── Static: job dept pages ───────────────────────────────────────────────
     // ow_roles の9大分類の slug と一致させること（2026-08-03 に独自7スラッグから移行）。
     // 旧 management / infra は next.config.mjs で 301 を張っている。

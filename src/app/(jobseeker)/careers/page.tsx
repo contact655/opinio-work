@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS転職ガイド | OPINIO" },
   description:
-    "外資系・SaaS企業への転職を考えているあなたへ。企業情報・求人・年収相場・先輩の声を一気に比較できるOPINIOの転職ガイド。",
+    "外資系・SaaS企業への転職を考えているあなたへ。企業情報・求人・先輩の声を一気に比較できるOPINIOの転職ガイド。",
   keywords: ["IT転職", "SaaS転職", "外資転職", "転職ガイド", "キャリアチェンジ", "エンタープライズ営業 転職"],
   alternates: { canonical: "/careers" },
   openGraph: {
@@ -39,16 +39,6 @@ const STEPS = [
     bg: "#ECFDF5",
   },
   {
-    step: "03",
-    icon: "💰",
-    title: "年収相場を把握する",
-    desc: "実際の求人データから集計した職種別年収レンジで、自分の市場価値と交渉の余地を確認する。",
-    href: "/salary",
-    cta: "年収相場を見る →",
-    color: "#B45309",
-    bg: "#FEF3C7",
-  },
-  {
     step: "04",
     icon: "💬",
     title: "先輩に話を聞く",
@@ -76,7 +66,7 @@ const FAQS = [
   },
   {
     q: "登録なしで使えますか？",
-    a: "企業情報・求人・年収相場・記事は登録不要で閲覧できます。カジュアル面談の申込みには無料会員登録が必要です。",
+    a: "企業情報・求人・記事は登録不要で閲覧できます。カジュアル面談の申込みには無料会員登録が必要です。",
   },
   {
     q: "どんな企業が掲載されていますか？",
@@ -118,9 +108,6 @@ export default function CareersPage() {
             <Link href="/companies" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
               まず企業を見る →
             </Link>
-            <Link href="/salary" style={{ display: "inline-block", padding: "12px 24px", borderRadius: 100, background: "rgba(0,35,102,0.07)", color: "var(--royal)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-              年収相場を確認
-            </Link>
           </div>
         </div>
       </div>
@@ -154,7 +141,7 @@ export default function CareersPage() {
           <h2 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(18px,2.5vw,26px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 8px" }}>
             職種別 転職マップ
           </h2>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 20px" }}>職種を選ぶと、その職種の先輩・求人・年収相場を一気に確認できます。</p>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 20px" }}>職種を選ぶと、その職種の先輩と求人を一気に確認できます。</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 10 }}>
             {ROLE_GUIDES.map((r) => (
               <Link key={r.slug} href={`/people/role/${r.slug}`} className="cg-role-chip">
