@@ -3,6 +3,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { createClient } from "@/lib/supabase/server";
 import { PlacementTermsPanel } from "./PlacementTermsPanel";
+import { SCOUT_MONTHLY_LIMIT_DEFAULT, usedThisMonth as usedThisMonthOf } from "@/lib/constants/scoutQuota";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcTotalExperience } from "@/lib/profile/tenure";
 import CandidatesClient from "./CandidatesClient";
@@ -249,11 +250,14 @@ export default async function CandidatesPage() {
     profilesByAuthId.set(p.user_id as string, p as any);
   }
 
-  // 送信枠
-  const monthlyLimit = quotaRow?.monthly_limit ?? 30;
+  /* 送信枠。⚠️ 行が無い企業には DB の DEFAULT が効くので、既定値は
+        `SCOUT_MONTHLY_LIMIT_DEFAULT`（DB の `DEFAULT 30` と同じ値）を使う。
+     ⚠️★`used_this_month` は素で読まない。月次リセットは `can_send_scout()` の中でしか
+        起きないので、**次の送信まで先月の数字が残る**（トリガーも cron も無い）。 */
+  const monthlyLimit = quotaRow?.monthly_limit ?? SCOUT_MONTHLY_LIMIT_DEFAULT;
   const bonusCredits = quotaRow?.bonus_credits ?? 0;
-  const usedThisMonth = quotaRow?.used_this_month ?? 0;
-  const remainingQuota = Math.max(0, monthlyLimit + bonusCredits - usedThisMonth);
+  const used = usedThisMonthOf(quotaRow?.used_this_month, quotaRow?.period_start);
+  const remainingQuota = Math.max(0, monthlyLimit + bonusCredits - used);
 
   // 転職勧奨禁止除外
   const eligibleUsers = (rawUsers ?? []).filter((u: any) => !blockedCandidateIds.has(u.id as string));
@@ -429,7 +433,7 @@ export default async function CandidatesPage() {
     currentTenantId: ctx.tenantId,
   };
 
-  const scoutQuota = { monthlyLimit, bonusCredits, usedThisMonth, remaining: remainingQuota };
+  const scoutQuota = { monthlyLimit, bonusCredits, usedThisMonth: used, remaining: remainingQuota };
   const jobOptions = (companyJobs ?? []).map((j: any) => ({ id: j.id as string, title: j.title as string }));
 
   return (

@@ -11,6 +11,9 @@ type Quota = {
   bonusCredits: number;
   usedThisMonth: number;
   periodStart: string | null;
+  /** ★枠の行が実在するか（2026-08-29）。false = DB の既定値が効いているだけで、
+   *  運営はまだ何も決めていない。**数字は正しいが、決めた値ではない。** */
+  configured: boolean;
 };
 
 export default function ScoutQuotasClient({ quotas: initial }: { quotas: Quota[] }) {
@@ -49,7 +52,13 @@ export default function ScoutQuotasClient({ quotas: initial }: { quotas: Quota[]
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>スカウト枠管理</h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-            企業ごとのスカウト送信枠を管理します。月次リセットはDBトリガーで自動的に行われます。
+            {/* ⚠★「月次リセットはDBトリガーで自動的に行われます」と書いてあったが**事実と違う**
+                   （2026-08-29 に訂正）。**トリガーも cron も存在しない。**
+                   `used_this_month` を 0 に戻すのは `can_send_scout()` の中だけ。
+                   運営がこの表を信じて枠を判断するので、ここに嘘を書かないこと。 */}
+            企業ごとのスカウト送信枠を管理します。
+            「既定」は枠をまだ設定していない企業で、DB の初期値がそのまま効いています。
+            月次の使用数は次にスカウトが送られた時点でリセットされます（自動の定期実行はありません）。
           </p>
         </div>
         {msg && (
@@ -74,7 +83,23 @@ export default function ScoutQuotasClient({ quotas: initial }: { quotas: Quota[]
               return (
                 <tr key={q.companyId} style={{ borderBottom: "1px solid var(--line-soft)" }}>
                   <td style={TD}><span style={{ fontWeight: 600 }}>{q.companyName}</span></td>
-                  <td style={TD}>{q.monthlyLimit} 通</td>
+                  {/* ⚠★「30 通」は**嘘ではない**（行が無ければ DB の DEFAULT が効く）。
+                         ただし「運営が決めた」のか「まだ決めていない」のかが
+                         見分けられなかったので、未設定であることを添える。
+                      ⚠ 数字を「—」にしないこと。実際に適用される値なので、
+                         隠すと運営が枠を把握できなくなる。 */}
+                  <td style={TD}>
+                    {q.monthlyLimit} 通
+                    {!q.configured && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
+                        background: "var(--line-soft)", borderRadius: 100, padding: "1px 7px",
+                        whiteSpace: "nowrap",
+                      }}>
+                        既定
+                      </span>
+                    )}
+                  </td>
                   <td style={TD}>
                     {q.bonusCredits > 0
                       ? <span style={{ color: "var(--success)", fontWeight: 700 }}>+{q.bonusCredits}</span>
