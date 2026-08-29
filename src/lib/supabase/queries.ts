@@ -862,11 +862,16 @@ export const resolvePublishedCompanyHref = cache(async function resolvePublished
 export const getParentRoles = unstable_cache(
   async (): Promise<{ id: string; name: string }[]> => {
     const supabase = createPublicClient();
-    const { data } = await supabase
+    /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+          捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+          側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+          ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+    const { data, error: qErr } = await supabase
       .from("ow_roles")
       .select("id, name, display_order")
       .is("parent_id", null)
       .order("display_order", { ascending: true, nullsFirst: false });
+    if (qErr) console.error("[supabase/queries] ow_roles:", qErr.message);
     return (data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
   },
   ["parent-roles"],
@@ -1535,10 +1540,11 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   const roleMap = await getRoleNameMap();
 
   // 企業が非表示にした experience_id を取得
-  const { data: hiddenRows } = await supabase
+  const { data: hiddenRows, error: hiddenRowsErr } = await supabase
     .from("ow_company_hidden_experiences")
     .select("experience_id")
     .eq("company_id", companyId);
+  if (hiddenRowsErr) console.error("[supabase/queries] ow_company_hidden_experiences:", hiddenRowsErr.message);
   const hiddenIds = (hiddenRows ?? []).map((r) => r.experience_id as string);
 
   // 現役社員 (is_current = true)
@@ -1673,11 +1679,12 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // OB/OG の「退職後の現在キャリア」を取得（is_current=true の経験から）
   if (alumniEmps.length > 0) {
     const alumniUserIds = alumniEmps.map((e) => e.userId);
-    const { data: currentExpRows } = await supabase
+    const { data: currentExpRows, error: currentExpRowsErr } = await supabase
       .from("ow_experiences")
       .select("user_id, role_title, company_text, ow_companies(name, brand_name)")
       .in("user_id", alumniUserIds)
       .eq("is_current", true);
+    if (currentExpRowsErr) console.error("[supabase/queries] ow_experiences:", currentExpRowsErr.message);
 
     if (currentExpRows) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2249,7 +2256,8 @@ export type RoleAlias = { alias: string; roleId: string };
 const getRoleAliasRows = unstable_cache(
   async (): Promise<RoleAlias[]> => {
     const supabase = createPublicClient();
-    const { data } = await supabase.from("ow_role_aliases").select("alias, role_id");
+    const { data, error: qErr } = await supabase.from("ow_role_aliases").select("alias, role_id");
+    if (qErr) console.error("[supabase/queries] ow_role_aliases:", qErr.message);
     return (data ?? []).map((r) => ({ alias: r.alias as string, roleId: r.role_id as string }));
   },
   ["role-aliases"],

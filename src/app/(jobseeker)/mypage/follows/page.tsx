@@ -44,11 +44,16 @@ export default async function FollowsPage() {
 
   let companies: FollowedCompany[] = [];
   if (companyIds.length > 0) {
-    const { data } = await admin
+    /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+          捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+          側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+          ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+    const { data, error: qErr } = await admin
       .from("ow_companies")
       /* ⚠️ サブテキストは**事業領域**。`industry`(text) は廃止予定で新規企業では空。 */
       .select("id, slug, name, brand_name, logo_url, logo_letter, logo_gradient, ow_company_business_domains(is_primary, ow_business_domains(name))")
       .in("id", companyIds);
+    if (qErr) console.error("[mypage/follows] ow_companies:", qErr.message);
     /* ⚠️ 埋め込みを `industry` に**畳んでから**渡す。畳まないと FollowsClient 側は
           `c.industry` が undefined になり、**型は optional なので tsc も lint も通ったまま
           サブテキストだけが黙って消える**（フィードで同じ形を踏んだ）。
@@ -68,10 +73,11 @@ export default async function FollowsPage() {
 
   let users: FollowedUser[] = [];
   if (userIds.length > 0) {
-    const { data } = await admin
+    const { data, error: qErr } = await admin
       .from("ow_users")
       .select("id, name, avatar_url, avatar_color, visibility")
       .in("id", userIds);
+    if (qErr) console.error("[mypage/follows] ow_users:", qErr.message);
     // ⚠️ private の人は出さない。フォローしていても本人の非公開の意思が優先。
     const byId = new Map((data ?? []).filter((u) => u.visibility !== "private").map((u) => [u.id, u]));
     users = userIds.map((id) => byId.get(id)).filter(Boolean) as FollowedUser[];

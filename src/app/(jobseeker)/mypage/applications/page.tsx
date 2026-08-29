@@ -28,7 +28,11 @@ export default async function ApplicationsPage() {
   let applications: Application[] = [];
 
   if (owUser) {
-    const { data } = await admin
+    /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+          捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+          側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+          ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+    const { data, error: qErr } = await admin
       .from("ow_job_applications")
       .select(
         `*,
@@ -40,6 +44,7 @@ export default async function ApplicationsPage() {
       )
       .eq("user_id", owUser.id)
       .order("created_at", { ascending: false });
+    if (qErr) console.error("[mypage/applications] ow_job_applications:", qErr.message);
     applications = (data as Application[]) ?? [];
   }
 

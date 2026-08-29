@@ -116,10 +116,15 @@ export default async function ProfileDetailsPage({ params }: { params: { section
     const companyLogoInfo: ({ id: string } & CompanyLogoInfo)[] = [];
     const companyNameById = new Map<string, string>();
     if (companyIds.length > 0) {
-      const { data: companies } = await supabase
+      /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+            捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+            側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+            ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+      const { data: companies, error: companiesErr } = await supabase
         .from("ow_companies")
         .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
         .in("id", companyIds);
+      if (companiesErr) console.error("[mypage/details/[section]] ow_companies:", companiesErr.message);
       for (const c of companies ?? []) {
         companyNameById.set(c.id as string, c.name as string);
         companyLogoInfo.push({
@@ -178,10 +183,11 @@ export default async function ProfileDetailsPage({ params }: { params: { section
   /* ★資格（2026-08-24）。⚠️ **職歴に紐づかない**ので、下の実績・受賞のように
         職歴の表示名を組み立てる必要がない。media / content と同じ形。 */
   if (section === "certifications") {
-    const { data } = await supabase
+    const { data, error: qErr } = await supabase
       .from("ow_user_certifications")
       .select("id, name, issuer, issued_at, credential_id, credential_url, sort_order")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
+    if (qErr) console.error("[mypage/details/[section]] ow_user_certifications:", qErr.message);
     return <CertificationsDetails initial={(data ?? []) as never} />;
   }
 
@@ -235,18 +241,20 @@ export default async function ProfileDetailsPage({ params }: { params: { section
   }
 
   if (section === "media") {
-    const { data } = await supabase
+    const { data, error: qErr } = await supabase
       .from("ow_user_media_appearances")
       .select("id, title, media_name, url, thumbnail_url, appeared_at, description, sort_order")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
+    if (qErr) console.error("[mypage/details/[section]] ow_user_media_appearances:", qErr.message);
     return <MediaDetails initial={(data ?? []) as never} />;
   }
 
   if (section === "content") {
-    const { data } = await supabase
+    const { data, error: qErr } = await supabase
       .from("ow_user_content_links")
       .select("id, url, platform, title, description, thumbnail_url, sort_order")
       .eq("user_id", owUser.id).order("sort_order", { ascending: true });
+    if (qErr) console.error("[mypage/details/[section]] ow_user_content_links:", qErr.message);
     return <ContentDetails initial={(data ?? []) as never} />;
   }
 
@@ -270,7 +278,8 @@ export default async function ProfileDetailsPage({ params }: { params: { section
   const expCompanyIds = (expRows ?? []).filter((r) => r.company_id).map((r) => r.company_id as string);
   const nameById = new Map<string, string>();
   if (expCompanyIds.length > 0) {
-    const { data: companies } = await supabase.from("ow_companies").select("id, name").in("id", expCompanyIds);
+    const { data: companies, error: companiesErr } = await supabase.from("ow_companies").select("id, name").in("id", expCompanyIds);
+    if (companiesErr) console.error("[mypage/details/[section]] ow_companies:", companiesErr.message);
     for (const c of companies ?? []) nameById.set(c.id as string, c.name as string);
   }
   const experienceOptions = (expRows ?? []).map((r) => {

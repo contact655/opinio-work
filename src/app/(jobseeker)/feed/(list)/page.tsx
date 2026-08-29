@@ -317,11 +317,16 @@ export default async function FeedPage() {
   const bookmarkedJobIds = (bookmarkResult.data ?? []).map((r: { job_id: string }) => r.job_id).filter(Boolean);
   let sidebarSavedJobs: SidebarJob[] = [];
   if (bookmarkedJobIds.length > 0) {
-    const { data: jobRows } = await adminSupabase
+    /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+          捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+          側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+          ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+    const { data: jobRows, error: jobRowsErr } = await adminSupabase
       .from("ow_jobs")
       .select("id, slug, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
       .in("id", bookmarkedJobIds)
       .eq("status", "published").eq("is_test", false);
+    if (jobRowsErr) console.error("[feed/(list)] ow_jobs:", jobRowsErr.message);
     sidebarSavedJobs = (jobRows ?? []).map((j: Record<string, unknown>) => {
       const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;
       return {

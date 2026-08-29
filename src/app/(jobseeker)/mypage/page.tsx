@@ -248,10 +248,15 @@ export default async function MypagePage({
       .map((r) => r.company_id as string);
     const companyInfoById = new Map<string, CompanyLogoInfo>();
     if (masterCompanyIds.length > 0) {
-      const { data: companies } = await supabase
+      /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+            捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+            側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+            ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+      const { data: companies, error: companiesErr } = await supabase
         .from("ow_companies")
         .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
         .in("id", masterCompanyIds);
+      if (companiesErr) console.error("[mypage] ow_companies:", companiesErr.message);
       for (const c of companies ?? []) {
         companyInfoById.set(c.id as string, {
           name: c.name as string,
@@ -396,11 +401,12 @@ export default async function MypagePage({
       .map((e) => e.school_id as string);
     if (schoolIds.length > 0) {
       const adminForSchools = createAdminClient();
-      const { data: peerRows } = await adminForSchools
+      const { data: peerRows, error: peerRowsErr } = await adminForSchools
         .from("ow_user_educations")
         .select("school_id, ow_users!inner(visibility, is_test)")
         .in("school_id", schoolIds)
         .neq("user_id", owUser.id);
+      if (peerRowsErr) console.error("[mypage] ow_user_educations:", peerRowsErr.message);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const row of (peerRows ?? []) as Array<Record<string, any>>) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

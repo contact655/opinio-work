@@ -114,11 +114,16 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Grad
 
   // ── STEP 2: 出身者の職歴を一括取得 ────────────────────────────────────────
   const userIds = baseGraduates.map((g) => g.userId);
-  const { data: expRows } = await supabase
+  /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+        捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+        側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+        ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+  const { data: expRows, error: expRowsErr } = await supabase
     .from("ow_experiences")
     .select(`user_id, role_title, is_current, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
     .in("user_id", userIds)
     .order("started_at", { ascending: true });
+  if (expRowsErr) console.error("[schools/[id]] ow_experiences:", expRowsErr.message);
 
   // user_id → experiences のマップ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

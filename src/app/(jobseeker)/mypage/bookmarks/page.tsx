@@ -24,20 +24,26 @@ export default async function BookmarksPage() {
   if (!user) redirect("/auth?next=/mypage/bookmarks");
 
   const admin = createAdminClient();
-  const { data: owUserRows } = await admin
+  /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+        捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+        側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+        ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+  const { data: owUserRows, error: owUserRowsErr } = await admin
     .from("ow_users").select("id").eq("auth_id", user.id).limit(1);
+  if (owUserRowsErr) console.error("[mypage/bookmarks] ow_users:", owUserRowsErr.message);
   const owUserId = owUserRows?.[0]?.id;
 
   let companyBookmarks: Bookmark[] = [];
   let jobBookmarks: Bookmark[] = [];
 
   if (owUserId) {
-    const { data: bmarks } = await admin
+    const { data: bmarks, error: bmarksErr } = await admin
       .from("ow_bookmarks")
       .select("id, target_id, target_type")
       .eq("user_id", owUserId)
       .in("target_type", ["company", "job"])
       .order("created_at", { ascending: false });
+    if (bmarksErr) console.error("[mypage/bookmarks] ow_bookmarks:", bmarksErr.message);
 
     if (bmarks && bmarks.length > 0) {
       const companyBmarks = bmarks.filter((b) => b.target_type === "company");
@@ -45,12 +51,13 @@ export default async function BookmarksPage() {
 
       if (companyBmarks.length > 0) {
         const ids = companyBmarks.map((b) => b.target_id as string);
-        const { data: companies } = await admin
+        const { data: companies, error: companiesErr } = await admin
           /* ⚠️ 求職者に見せる分類は**事業領域**。`industry`(text) は廃止予定で
                 新規企業では空になる（CLAUDE.md「求職者側の読み手を事業領域へ移した」）。 */
           .from("ow_companies")
           .select("id, name, employee_count, ow_company_business_domains(is_primary, ow_business_domains(name))")
           .in("id", ids);
+        if (companiesErr) console.error("[mypage/bookmarks] ow_companies:", companiesErr.message);
         if (companies) {
           const map = new Map(companies.map((c) => [c.id, c]));
           companyBookmarks = companyBmarks.flatMap((b) => {
@@ -77,14 +84,16 @@ export default async function BookmarksPage() {
 
       if (jobBmarks.length > 0) {
         const ids = jobBmarks.map((b) => b.target_id as string);
-        const { data: jobs } = await admin
+        const { data: jobs, error: jobsErr } = await admin
           .from("ow_jobs").select("id, title, job_category, company_id").in("id", ids);
+        if (jobsErr) console.error("[mypage/bookmarks] ow_jobs:", jobsErr.message);
         if (jobs) {
           // 職種の表示は会社呼称 ?? 標準職種名。job_category は使わない
           const roleLabels = await fetchJobRoleLabels(jobs.map((j) => j.id as string));
           const companyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
-          const { data: companies } = await admin
+          const { data: companies, error: companiesErr } = await admin
             .from("ow_companies").select("id, name").in("id", companyIds);
+          if (companiesErr) console.error("[mypage/bookmarks] ow_companies:", companiesErr.message);
           const cMap = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
           const jMap = new Map(jobs.map((j) => [j.id, j]));
           jobBookmarks = jobBmarks.flatMap((b) => {

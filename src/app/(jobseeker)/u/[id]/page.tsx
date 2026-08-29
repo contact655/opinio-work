@@ -367,11 +367,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
   /* ⚠️ 配列で持つ。`ActivitySection` は `"use client"` なので `Set` を渡さない */
   const likedPostIds: string[] = [];
   if (viewerOwUserId && recentPostsTyped.length > 0) {
-    const { data: likedRows } = await supabase
+    /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+          捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+          側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+          ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+    const { data: likedRows, error: likedRowsErr } = await supabase
       .from("ow_post_likes")
       .select("post_id")
       .eq("user_id", viewerOwUserId)
       .in("post_id", recentPostsTyped.map((p) => p.id));
+    if (likedRowsErr) console.error("[u/[id]] ow_post_likes:", likedRowsErr.message);
     for (const r of likedRows ?? []) likedPostIds.push(r.post_id as string);
   }
 
@@ -407,12 +412,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const companySlugById = new Map<string, string | null>();
   if (allCompanyIds.length > 0) {
     // adminSupabase を使い is_published=false の企業名も取得（プロフィール表示用）
-    const { data: expCompanies } = await adminSupabase
+    const { data: expCompanies, error: expCompaniesErr } = await adminSupabase
       .from("ow_companies")
       /* ⚠️ slug は `/jobs?company=` を組むために足した（2026-08-15）。
             CompanyLogoInfo には載せない（タイムライン側では使わないため）。 */
       .select("id, slug, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
       .in("id", allCompanyIds);
+    if (expCompaniesErr) console.error("[u/[id]] ow_companies:", expCompaniesErr.message);
     for (const c of expCompanies ?? []) {
       companySlugById.set(c.id as string, (c.slug as string | null) ?? null);
       companyInfoById.set(c.id as string, {

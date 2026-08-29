@@ -105,7 +105,11 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   const { data: { user } } = await supabase.auth.getUser();
 
   const adminSupabase = createAdminClient();
-  const { data: raw } = await adminSupabase
+  /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
+        捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
+        側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
+        ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
+  const { data: raw, error: rawErr } = await adminSupabase
     .from("ow_posts_visible")
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
@@ -117,6 +121,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     `)
     .eq("id", params.postId)
     .maybeSingle();
+  if (rawErr) console.error("[feed/[postId]] ow_posts_visible:", rawErr.message);
 
   // ⚠️ ow_posts_visible に無い＝参照先が消えた投稿。ここで 404 になる。
   //    f34ba43d で is_system の例外を入れた結果いったん 200 になっていたのを、
