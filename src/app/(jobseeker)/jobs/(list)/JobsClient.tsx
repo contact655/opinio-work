@@ -81,26 +81,26 @@ function hasSalaryData(min: number | null, max: number | null): boolean {
 
 
 
-// ─── Role color map for colorStyle chips ─────────────────────────────────────
+/* ─── 職種の色分けは廃止した（2026-08-30）────────────────────────────────────
+   ⚠️★**戻さないこと。** 以前は職種ごとに9通りの色を割り当てていた
+      （エンジニア青 / デザイン・プロダクト・PdM **紫** / 営業・CS **緑** /
+        マーケティング **黄色背景** / コーポレート緑 / 経営赤）。
 
-const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
-  "エンジニア":         { color: "#1D4ED8", bg: "#EFF6FF" },
-  "デザイン":           { color: "#7C3AED", bg: "#F5F3FF" },
-  "プロダクト":         { color: "#7C3AED", bg: "#F5F3FF" },
-  "PdM / PM":           { color: "#7C3AED", bg: "#F5F3FF" },
-  "営業":               { color: "var(--success)", bg: "#ECFDF5" },
-  "カスタマーサクセス": { color: "var(--success)", bg: "#ECFDF5" },
-  "マーケティング":     { color: "#B45309", bg: "#FEF3C7" },
-  "コーポレート":       { color: "#16A34A", bg: "#F0FDF4" },
-  "経営":               { color: "#DC2626", bg: "#FEF2F2" },
-};
+   ① `.claude/skills/ui-conventions`「色の役割」が禁じている色を3つ含んでいた
+      —— **紫は使わない** / **黄色背景は使わない** / **緑は金銭的にプラスの条件のみ**。
+   ② **凡例が無い。** 「デザインが紫」に意味は無く、読み手は解釈できない。
+   ③ ★**選択状態の見た目が9通りある**のが一番まずい。ここの色は
+      「その職種が何であるか」ではなく「**その絞り込みが効いている**」を表しており、
+      1つの意味に9つの見た目を与えていた（規約の「1つの色が2つ以上の意味を持たない」の逆）。
 
-function getRoleColor(name: string): { color: string; bg: string } {
-  for (const [key, style] of Object.entries(ROLE_COLORS)) {
-    if (name.includes(key)) return style;
-  }
-  return { color: "var(--royal)", bg: "var(--royal-50)" };
-}
+   ⚠️ 職種を色で見分けたくなったら、**色ではなく文言・順序・件数**で示すこと。
+      `--royal` は globals.css で「ヘッダー・CTA・**アクティブ**」と定義されている色で、
+      絞り込みの選択状態はこれ1つに揃える。
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/** 絞り込みの選択状態。**職種によらず常に同じ**（上のコメントを読むこと）。 */
+const ACTIVE_FILTER = { color: "var(--royal)", bg: "var(--royal-50)" } as const;
+
 
 
 
@@ -408,8 +408,15 @@ function JobListItem({
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,
-            backgroundColor: "#FFF7ED", color: "#C2410C",
-            border: "1.5px solid #FDBA74",
+            /* ⚠️★オレンジにしない（2026-08-29）。**#FFF7ED / #C2410C は
+                  「面談可」バッジの色**（`components/profile/view/TalkableBadge.tsx`）で、
+                  `.claude/skills/ui-conventions`「色の役割」でも
+                  **オレンジ＝カジュアル面談だけ**と定めている。
+                  応募に使うと、同じ一覧の中で同じ色が2つの意味を持つ。
+               ⚠️ 隣の「詳細」は濃紺の塗り（主要な遷移）、「保存」は中立。
+                  応募はその中間なので**濃紺の輪郭**にして、面談の色と混ざらないようにする。 */
+            backgroundColor: "var(--royal-50)", color: "var(--royal)",
+            border: "1.5px solid var(--royal-100)",
             fontSize: 12, fontWeight: 700, textDecoration: "none",
             whiteSpace: "nowrap",
           }}
@@ -556,7 +563,7 @@ function SidebarFilters({
           <div style={{ padding: "2px 4px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
             {sortedRoles.map((role) => {
               const isActive = categorySet.has(role.id);
-              const rc = getRoleColor(role.name);
+              const rc = ACTIVE_FILTER;
               return (
                 <button key={role.id} type="button" onClick={() => toggleParamFn("category", role.id, category)}
                   style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
@@ -1478,7 +1485,7 @@ export default function JobsClient({
           <div className="jobs-mobile-role-pills" style={{ display: "none", gap: 6, overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch" }}>
             {parentRoles.slice(0, 10).map((role) => {
               const active = category === role.id;
-              const rc = getRoleColor(role.name);
+              const rc = ACTIVE_FILTER;
               return (
                 <button
                   key={role.id}
@@ -1543,7 +1550,7 @@ export default function JobsClient({
               )}
               {category && (() => {
                 const r = parentRoles.find(r => r.id === category);
-                const rc = r ? getRoleColor(r.name) : { color: "var(--royal)", bg: "var(--royal-50)" };
+                const rc = ACTIVE_FILTER;
                 return r ? (
                   <button key="cat" type="button" onClick={() => setParam("category", "")} style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
@@ -1560,8 +1567,8 @@ export default function JobsClient({
                 <button key="ws" type="button" onClick={() => setParam("work_style", "")} style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
-                  background: "var(--success-soft)", border: "1.5px solid #6EE7B7",
-                  color: "#065F46", fontSize: 12, fontWeight: 700,
+                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
+                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
                   勤務形態: {work_style} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
@@ -1573,8 +1580,8 @@ export default function JobsClient({
                   <button key="sal" type="button" onClick={() => setParam("salary", "")} style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
                     padding: "3px 10px", borderRadius: 100,
-                    background: "#FEF3C7", border: "1.5px solid #FDE68A",
-                    color: "#92400E", fontSize: 12, fontWeight: 700,
+                    background: "var(--royal-50)", border: "1.5px solid var(--royal)",
+                    color: "var(--royal)", fontSize: 12, fontWeight: 700,
                     cursor: "pointer", fontFamily: "inherit",
                   }}>
                     年収: {tier.label} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
@@ -1585,7 +1592,7 @@ export default function JobsClient({
                 <button key="emp" type="button" onClick={() => setParam("emp_type", "")} style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
                   color: "var(--royal)", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
@@ -1596,8 +1603,8 @@ export default function JobsClient({
                 <button key="pref" type="button" onClick={() => setParam("prefecture", "")} style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "3px 10px", borderRadius: 100,
-                  background: "#F0FDF4", border: "1.5px solid #BBF7D0",
-                  color: "#16A34A", fontSize: 12, fontWeight: 700,
+                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
+                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
                   地域: {prefecture} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
