@@ -877,8 +877,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   {/* ⚠★オレンジにしない（2026-08-29）。**オレンジはカジュアル面談だけの色**
                          （.claude/skills/ui-conventions「色の役割」）。必須スキルの見出しに使うと、
                          同じページのカジュアル面談 CTA と同じ色が別の意味を持つ。
-                      ⚠ 強調は**太さ**で足りる。 */}
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--ink-soft)", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                      ⚠ 強調は**太さ**で足りる。
+                      ⚠ 2026-08-30: 中立色にしていたが、**すぐ下の歓迎スキルが royal** なので
+                         必須だけ色が違うと弱く見えた。**必須と歓迎は同じ royal** にし、
+                         区別は見出しの文言に任せる。 */}
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                     必須スキル
                   </div>
@@ -887,8 +890,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                       <span key={i} style={{
                         display: "inline-flex", alignItems: "center", gap: 5,
                         padding: "6px 14px", borderRadius: 100,
-                        background: "#FFFBEB", border: "1.5px solid #FDE68A",
-                        color: "#92400E", fontSize: 13, fontWeight: 600,
+                        /* ⚠️ 黄色にしない（2026-08-30）。ui-conventions「色の役割」で
+                              **黄色背景は使わない**。すぐ下の歓迎スキルは royal なので、
+                              必須だけ色が違うと「必須＝警告」に読める。
+                           ⚠️ 必須と歓迎の区別は**見出しの文言**が担う。色で差をつけない
+                              （このすぐ上のコメント「強調は太さで足りる」と同じ考え方）。 */
+                        background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
+                        color: "var(--royal)", fontSize: 13, fontWeight: 600,
                       }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
                         {s}
@@ -1336,9 +1344,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* チーム構成 */}
               {job.team_composition && (
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "#f5faf2", borderBottom: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--success)" }}>チーム構成</span>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>チーム構成</span>
                 </div>
                 <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
                   {job.team_composition}
@@ -1349,7 +1357,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {/* なぜ今採用するか */}
               {job.why_hire && (
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--warm-soft)", borderBottom: "1px solid #fde68a", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                   {/* ⚠ 同上。オレンジはカジュアル面談だけ。ここは royal（主要な情報）にする */}
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>なぜ今採用するか</span>
