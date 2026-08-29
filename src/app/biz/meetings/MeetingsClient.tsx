@@ -289,7 +289,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
         }}>
           カジュアル面談
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 9, fontWeight: 700, letterSpacing: "0.15em",
             textTransform: "uppercase", color: "var(--ink-mute)",
             opacity: 0.7,
@@ -302,7 +302,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
           marginTop: 8, marginLeft: 8,
         }}>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 11, color: "var(--ink-mute)",
           }}>
             合計 <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{totalCount}</strong> 件
@@ -314,7 +314,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
                 display: "inline-flex", alignItems: "center", gap: 4,
                 padding: "2px 8px", borderRadius: 100,
                 background: "#FEF3C7",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 11, fontWeight: 700,
                 color: "#D97706",
               }}>
@@ -359,7 +359,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
             <div style={{
               padding: "14px 0 18px",
               textAlign: "center",
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 11,
               color: "var(--ink-mute)",
               letterSpacing: "0.05em",

@@ -86,7 +86,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
 
               {/* 大きな年収表示 */}
               <div style={{ marginBottom: 20 }}>
-                <span style={{ fontSize: "clamp(28px,5vw,48px)", fontWeight: 900, color: "var(--success)", fontFamily: "Inter,sans-serif", lineHeight: 1 }}>
+                <span style={{ fontSize: "clamp(28px,5vw,48px)", fontWeight: 900, color: "var(--success)", fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1 }}>
                   {fmtMan(myStat.avgMin)}〜{fmtMan(myStat.avgMax)}
                 </span>
                 <span style={{ fontSize: 16, color: "var(--ink-soft)", marginLeft: 8 }}>万円</span>
@@ -131,7 +131,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                 ].map(({ label, val, highlight }) => (
                   <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: highlight ? "var(--royal-50)" : "var(--bg-tint)", borderRadius: 10, border: `1px solid ${highlight ? "var(--royal-100)" : "var(--line)"}` }}>
                     <div style={{ fontSize: 12, color: highlight ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: highlight ? "var(--royal)" : "var(--ink)", fontFamily: "Inter,sans-serif" }}>{val}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: highlight ? "var(--royal)" : "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{val}</div>
                   </div>
                 ))}
               </div>
@@ -179,7 +179,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                           {(job.salaryMin > 0 || job.salaryMax > 0) && (
-                            <span style={{ fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                               {job.salaryMin > 0 && job.salaryMax > 0
                                 ? `${fmtMan(job.salaryMin)}〜${fmtMan(job.salaryMax)}万円`
                                 : job.salaryMin > 0 ? `${fmtMan(job.salaryMin)}万円〜` : `〜${fmtMan(job.salaryMax)}万円`}
@@ -222,7 +222,7 @@ export default async function SalaryDetailPage({ params }: { params: { slug: str
               {otherStats.map((s) => (
                 <Link key={s.slug} href={`/salary/${s.slug}`} className="sd-other-chip">
                   <div style={{ marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, fontFamily: "Inter,sans-serif" }}>
+                  <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     {s.avgMin}〜{s.avgMax}万
                   </div>
                 </Link>

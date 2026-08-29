@@ -317,7 +317,7 @@ function TypeBadge({ type }: { type: StoryType }) {
         display: "inline-block",
         fontSize: 12,
         fontWeight: 700,
-        fontFamily: "Inter, sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
         letterSpacing: "0.06em",
         padding: "2px 6px",
         borderRadius: 4,
@@ -429,7 +429,7 @@ function StoryCard({
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
             <TypeBadge type={story.type} />
             {formatPeriod(story.period_start, story.period_end) && (
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 {formatPeriod(story.period_start, story.period_end)}
               </span>
             )}
@@ -487,7 +487,7 @@ function StoryCard({
               ) : (
                 /* 非 YouTube or ID 抽出失敗 → URL truncate テキストにフォールバック */
                 story.video_url && (
-                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", wordBreak: "break-all", marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", wordBreak: "break-all", marginBottom: 4 }}>
                     {truncateUrl(story.video_url)}
                   </div>
                 )
@@ -597,7 +597,7 @@ function StoryCard({
                       style={{
                         fontSize: 12, fontWeight: 500,
                         color: "var(--ink-mute)",
-                        fontFamily: "Inter, sans-serif",
+                        fontFamily: "var(--font-inter), var(--font-noto)",
                       }}
                     >
                       {domain}
@@ -647,7 +647,7 @@ function TypeSelector({
                 padding: "5px 14px",
                 fontSize: 12,
                 fontWeight: 700,
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 letterSpacing: "0.05em",
                 borderRadius: 6,
                 border: selected ? `1.5px solid ${cfg.color}` : "1.5px solid var(--line)",

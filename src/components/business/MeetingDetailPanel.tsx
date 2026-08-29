@@ -119,7 +119,7 @@ function ActionBtn({
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
       fontSize: 12, fontWeight: 700,
       color: "var(--ink-mute)",
       letterSpacing: "0.15em",
@@ -149,7 +149,7 @@ function BlockField({ label, children }: { label: string; children: React.ReactN
   return (
     <div style={{ paddingLeft: 12, borderLeft: "2px solid var(--line)" }}>
       <div style={{
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
         fontSize: 12, fontWeight: 700,
         color: "var(--ink-mute)",
         letterSpacing: "0.05em",
@@ -485,7 +485,7 @@ export function MeetingDetailPanel({
               </div>
               {m.jobSalary && (
                 <div style={{
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 12, fontWeight: 700, color: "var(--royal)",
                   whiteSpace: "nowrap", flexShrink: 0,
                 }}>
@@ -559,7 +559,7 @@ export function MeetingDetailPanel({
                 fontSize: 12,
               }}>
                 <div style={{
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
                 }}>
                   {c.period}
@@ -598,7 +598,7 @@ export function MeetingDetailPanel({
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
             </svg>
             <span style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 12, fontWeight: 700, color: "#B45309", letterSpacing: "0.15em",
             }}>
               INTERNAL NOTE

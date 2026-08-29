@@ -82,7 +82,7 @@ export function JobEditSubNav({
               <span>{s.label}</span>
               {s.showStatus && (
                 <span style={{
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 10, fontWeight: 600,
                   flexShrink: 0,
                   color: s.isComplete ? "var(--success)" : "var(--warm)",

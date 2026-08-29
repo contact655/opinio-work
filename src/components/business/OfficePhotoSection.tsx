@@ -480,7 +480,7 @@ function PhotoCategorySection({
           {def.label}
         </div>
         <div style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 12, fontWeight: 600, color: "var(--ink-mute)",
         }}>
           <strong style={{ color: "var(--ink)" }}>{photos.length}</strong> / {MAX_PHOTOS_PER_CATEGORY}枚

@@ -136,7 +136,7 @@ export function JobsEmptyState({ hasFilters }: Props) {
               borderRadius: "50%",
               background: "var(--royal-50)",
               color: "var(--royal)",
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 12, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>

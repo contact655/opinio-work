@@ -150,7 +150,7 @@ export function TextareaField({
         <div style={{
           fontSize: "var(--text-xs)",
           color: isOver ? "var(--warm)" : "var(--ink-mute)",
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           flexShrink: 0,
           lineHeight: 1.6,
         }}>

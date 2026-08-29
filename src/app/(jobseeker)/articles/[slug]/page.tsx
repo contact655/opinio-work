@@ -158,7 +158,7 @@ function QASection({ qa }: { qa: QA[] }) {
           {/* Q */}
           <div style={{ display: "flex", gap: 14, alignItems: "baseline", marginBottom: "var(--space-4)" }}>
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
               color: ROYAL, letterSpacing: "0.1em", flexShrink: 0, paddingTop: 4,
             }}>
               Q.{String(idx + 1).padStart(2, "0")}
@@ -256,7 +256,7 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
             display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap",
           }}>
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: "var(--text-sm)", fontWeight: 700,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: "var(--text-sm)", fontWeight: 700,
               color: "var(--purple)", letterSpacing: "0.1em",
               padding: "2px 10px",
               border: "2px solid #7C3AED",
@@ -289,7 +289,7 @@ function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
                   display: "flex", gap: "var(--space-3)",
                 }}>
                   <strong style={{
-                    color: ROYAL, fontFamily: "Inter, sans-serif",
+                    color: ROYAL, fontFamily: "var(--font-inter), var(--font-noto)",
                     fontWeight: 700, minWidth: 80, flexShrink: 0,
                   }}>
                     {item.key}
@@ -322,7 +322,7 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
           取材協力
         </h3>
         <span style={{
-          fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+          fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
           color: "var(--purple)", letterSpacing: "0.2em", textTransform: "uppercase",
         }}>
           CONTRIBUTORS
@@ -377,7 +377,7 @@ function RelatedArticles({ articles }: { articles: Article[] }) {
         }}>
           関連記事
           <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+            fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
             color: INK_MUTE, letterSpacing: "0.2em", textTransform: "uppercase",
           }}>
             RELATED ARTICLES
@@ -565,7 +565,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 marginBottom: "var(--space-8)",
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S NOTE
@@ -610,7 +610,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 background: "var(--bg-tint)", borderRadius: 12,
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S OUTRO
@@ -636,7 +636,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 marginBottom: "var(--space-8)",
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S NOTE
@@ -657,7 +657,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 background: "var(--bg-tint)", borderRadius: 12,
               }}>
                 <div style={{
-                  fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
                   color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
                 }}>
                   EDITOR&apos;S OUTRO

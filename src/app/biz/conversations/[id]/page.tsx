@@ -228,7 +228,7 @@ export default async function BizConversationDetailPage({
             alignItems: "center",
             justifyContent: "center",
             color: "#fff",
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700,
             fontSize: 16,
             flexShrink: 0,
@@ -237,7 +237,7 @@ export default async function BizConversationDetailPage({
           </div>
           <div>
             <h1 style={{
-              fontFamily: "'Noto Serif JP', serif",
+              fontFamily: "var(--font-noto-serif)",
               fontWeight: 700,
               fontSize: 18,
               color: "var(--ink)",
@@ -253,7 +253,7 @@ export default async function BizConversationDetailPage({
                 borderRadius: 100,
                 fontSize: 11,
                 fontWeight: 600,
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 color: stageCfg.color,
                 background: stageCfg.bg,
                 marginTop: 4,
@@ -419,7 +419,7 @@ export default async function BizConversationDetailPage({
               color: "var(--ink-mute)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               marginBottom: 14,
             }}>
               候補者
@@ -436,7 +436,7 @@ export default async function BizConversationDetailPage({
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#fff",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontWeight: 700,
                 fontSize: 16,
                 flexShrink: 0,
@@ -535,7 +535,7 @@ export default async function BizConversationDetailPage({
               color: "var(--ink-mute)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               marginBottom: 12,
             }}>
               参加者 ({participants.length})

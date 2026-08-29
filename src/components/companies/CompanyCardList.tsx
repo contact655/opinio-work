@@ -174,7 +174,7 @@ export function CompanyCardList({ company, compact }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span className="clv-name" style={{
                 fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
-                fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
+                fontFamily: isEnName ? "var(--font-inter), var(--font-noto)" : "var(--font-noto-sans)",
                 letterSpacing: isEnName ? "-0.02em" : "0",
                 transition: "color 0.15s",
                 overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
@@ -319,7 +319,7 @@ export function CompanyCardList({ company, compact }: Props) {
             <span className="clc-name" style={{
               fontSize: 16, fontWeight: 800,
               color: "var(--ink)",
-              fontFamily: isEnName ? "Inter, sans-serif" : "var(--font-noto-sans)",
+              fontFamily: isEnName ? "var(--font-inter), var(--font-noto)" : "var(--font-noto-sans)",
               letterSpacing: isEnName ? "-0.02em" : "0",
               transition: "color 0.15s",
             }}>
@@ -451,7 +451,7 @@ function StatCol({ label, value, unit, highlight }: { label: string; value: numb
       <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
         <span style={{
           fontSize: 20, fontWeight: 700,
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           color: highlight ? "var(--royal)" : "var(--ink)",
         }}>{value}</span>
         <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{unit}</span>

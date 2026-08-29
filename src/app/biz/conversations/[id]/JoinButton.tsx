@@ -66,7 +66,7 @@ export function JoinButton({ conversationId }: Props) {
           borderRadius: 8,
           border: "none",
           cursor: submitting ? "default" : "pointer",
-          fontFamily: "'Noto Sans JP', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontWeight: 600,
           fontSize: 14,
           background: submitting ? "var(--line)" : "var(--royal)",

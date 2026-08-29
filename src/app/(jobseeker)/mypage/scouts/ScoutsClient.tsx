@@ -231,7 +231,7 @@ function ScoutCard({
               "企業"
             )}
           </div>
-          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
+          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
             {formatDate(scout.sentAt)}
           </div>
         </div>
@@ -252,7 +252,7 @@ function ScoutCard({
             marginBottom: 12,
           }}
         >
-          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700, color: "var(--royal)", marginBottom: 2 }}>
+          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700, color: "var(--royal)", marginBottom: 2 }}>
             この求人について
           </div>
           <div

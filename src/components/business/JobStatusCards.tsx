@@ -58,7 +58,7 @@ export function JobStatusCards({ counts }: Props) {
       }}>
         求人ステータス
         <span style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 9, fontWeight: 700,
           color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
         }}>Job Status</span>
@@ -118,7 +118,7 @@ export function JobStatusCards({ counts }: Props) {
             }}
           >
             <div style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 28, fontWeight: 700, color: c.color,
               lineHeight: 1, marginBottom: 6,
             }}>
@@ -128,7 +128,7 @@ export function JobStatusCards({ counts }: Props) {
               {c.label}
             </div>
             <div style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 9, fontWeight: 700,
               color: "var(--ink-mute)", letterSpacing: "0.12em", textTransform: "uppercase",
             }}>

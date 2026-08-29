@@ -84,7 +84,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
         </div>
 
         <div style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 12, fontWeight: 500,
           color: "var(--ink-mute)",
           whiteSpace: "nowrap",
@@ -121,7 +121,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
           <span style={{
             padding: "2px 7px",
             borderRadius: 3,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: "0.05em",
@@ -140,7 +140,7 @@ export function MeetingCard({ meeting: m, isSelected, onClick }: Props) {
           <span style={{
             padding: "2px 7px",
             borderRadius: 3,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: "0.05em",

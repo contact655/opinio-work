@@ -55,7 +55,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
               {t.label}
               {/* ⚠️ 0件のときは数字を出さない（いいね・コメントと同じ方針） */}
               {t.count > 0 && (
-                <span style={{ marginLeft: 6, fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600 }}>{t.count}</span>
+                <span style={{ marginLeft: 6, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600 }}>{t.count}</span>
               )}
             </button>
           );
@@ -105,7 +105,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
                   width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
                   background: u.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "Inter, sans-serif",
+                  color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)",
                 }}>
                   {(u.name ?? "?").charAt(0)}
                 </div>

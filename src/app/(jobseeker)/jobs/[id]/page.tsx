@@ -333,7 +333,7 @@ function JobEmployeesSection({
               </span>
               この職種の現役メンバー
             </div>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>{current.length}名</span>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{current.length}名</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
             {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
@@ -370,7 +370,7 @@ function JobEmployeesSection({
               </span>
               この職種を経験したOB/OG
             </div>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>{alumni.length}名</span>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{alumni.length}名</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
             {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
@@ -710,7 +710,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   padding: "4px 10px", borderRadius: 6, marginBottom: "var(--space-2)",
                   background: "#FEE2E2", color: "#DC2626",
                   fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
-                  fontFamily: "Inter, sans-serif", border: "1px solid #FECACA",
+                  fontFamily: "var(--font-inter), var(--font-noto)", border: "1px solid #FECACA",
                 }}>
                   🔥 積極採用中
                 </div>
@@ -736,7 +736,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     padding: "5px 14px", borderRadius: 100,
                     background: "var(--success-soft)", border: "1px solid #A7F3D0",
                     color: "var(--success)", fontSize: 15, fontWeight: 700,
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}>
                   {job.salary_min && job.salary_max
                     ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
@@ -761,7 +761,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     padding: "5px 14px", borderRadius: 100,
                     background: "#EFF6FF", border: "1px solid #BFDBFE",
                     color: "#1D4ED8", fontSize: 15, fontWeight: 700,
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}>
                     OTE&nbsp;{job.ote_min && job.ote_max
                       ? `${fmtMan(job.ote_min)}〜${fmtMan(job.ote_max)}万円`
@@ -943,7 +943,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           想定年収
                         </span>
                       </div>
-                      <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {job.salary_min && job.salary_max
                           ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
                           : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
@@ -961,7 +961,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         </span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: "#1D4ED8" }}>OTE（目標達成時）</span>
                       </div>
-                      <span style={{ fontSize: 22, fontWeight: 700, color: "#1D4ED8", fontFamily: "Inter, sans-serif" }}>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: "#1D4ED8", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {job.ote_min && job.ote_max
                           ? `${fmtMan(job.ote_min)}〜${fmtMan(job.ote_max)}万円`
                           : job.ote_min ? `${fmtMan(job.ote_min)}万円〜`
@@ -1084,7 +1084,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                             background: "var(--royal-50)", color: "var(--royal)",
                             border: "1.5px solid var(--royal-100)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 12, fontWeight: 800, fontFamily: "Inter", marginTop: 2,
+                            fontSize: 12, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", marginTop: 2,
                           }}>{i + 1}</span>
                           <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
                             {sentence.trim().replace(/。$/, "")}。
@@ -1195,7 +1195,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     </span>
                     <h2 style={{ fontSize: "var(--text-md)", fontWeight: 700, color: "var(--ink)" }}>
                       {company.name}でこの職種を経験した人
-                      <span style={{ fontFamily: "Inter, sans-serif", color: "var(--royal)", marginLeft: 6 }}>
+                      <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--royal)", marginLeft: 6 }}>
                         {job.position_members.length}名
                       </span>
                     </h2>
@@ -1302,7 +1302,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
                         color: "#fff",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, fontWeight: 800, fontFamily: "Inter, sans-serif",
+                        fontSize: 12, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
                       }}>
                         {i + 1}
                       </span>
@@ -1382,7 +1382,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                             border: isLast ? "none" : isFirst ? "none" : "2px solid var(--line)",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             color: (isFirst || isLast) ? "#fff" : "var(--ink-mute)",
-                            fontSize: 13, fontWeight: 800, fontFamily: "Inter, sans-serif",
+                            fontSize: 13, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
                             boxShadow: isFirst || isLast ? "0 4px 12px rgba(0,35,102,0.2)" : "none",
                           }}>
                             {isLast ? (
@@ -1545,7 +1545,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                              廃止予定のため新規企業では空になる。隣の「従業員」に合わせて
                              無いときは「—」を出す（項目ごと消すと行が揃わない）。 */}
                       <span>事業領域 <strong style={{ color: "var(--ink)" }}>{primaryBusinessDomain(company.business_domains)?.name ?? "—"}</strong></span>
-                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{formatEmployeeCount(company.employee_count) ?? "—"}</strong></span>
+                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{formatEmployeeCount(company.employee_count) ?? "—"}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -1732,7 +1732,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                   <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, flexShrink: 0 }}>想定年収</span>
                   <span style={{
                     fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--royal)",
-                    fontFamily: "Inter, sans-serif", textAlign: "right" as const,
+                    fontFamily: "var(--font-inter), var(--font-noto)", textAlign: "right" as const,
                   }}>
                     {job.salary_min && job.salary_max
                       ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`

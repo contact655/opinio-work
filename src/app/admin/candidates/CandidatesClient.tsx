@@ -209,7 +209,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     {/* メール */}
                     <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontSize: 12 }}>{u.email}</td>
                     {/* 年代 */}
-                    <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                    <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                       {u.birth_date ? `${getUserAge(u.birth_date)}歳` : <span style={{ color: "var(--ink-mute)" }}>—</span>}
                     </td>
                     {/* BIZ */}
@@ -238,7 +238,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     {/* 最終ログイン */}
                     <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
                       {u.lastLogin ? (
-                        <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+                        <span style={{ fontSize: 12, color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                           {formatRelative(u.lastLogin)}
                         </span>
                       ) : (
@@ -246,7 +246,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                       )}
                     </td>
                     {/* 登録日 */}
-                    <td style={{ padding: "11px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+                    <td style={{ padding: "11px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                       {new Date(u.created_at).toLocaleDateString("ja-JP")}
                     </td>
                     {/* 経歴編集 */}
@@ -281,7 +281,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
           boxShadow: "0 8px 32px rgba(15,23,42,0.35)",
           zIndex: 1000, whiteSpace: "nowrap",
         }}>
-          <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>
             {selected.size}名 を選択中
           </span>
           <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.2)" }} />

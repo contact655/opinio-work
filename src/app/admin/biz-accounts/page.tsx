@@ -173,7 +173,7 @@ export default async function AdminBizAccountsPage({
       <div style={{ marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 800,
+            fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 9, fontWeight: 800,
             letterSpacing: "0.18em", textTransform: "uppercase",
             background: "#DC2626", color: "#fff", padding: "3px 8px", borderRadius: 4,
           }}>ADMIN</span>
@@ -199,7 +199,7 @@ export default async function AdminBizAccountsPage({
               background: color, borderRadius: "14px 14px 0 0",
             }} />
             <div style={{
-              fontFamily: "Inter, sans-serif", fontSize: 34, fontWeight: 800,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 34, fontWeight: 800,
               color, lineHeight: 1, marginBottom: 6,
             }}>
               {value}
@@ -365,7 +365,7 @@ export default async function AdminBizAccountsPage({
                         </span>
                       ) : (
                         <span style={{
-                          fontFamily: "Inter, sans-serif", fontSize: 12, color: "#475569",
+                          fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "#475569",
                         }}>
                           {formatRelative(acc.lastLogin)}
                         </span>
@@ -381,7 +381,7 @@ export default async function AdminBizAccountsPage({
                     */}
                     <td style={{
                       padding: "12px 16px", color: "#94A3B8",
-                      fontFamily: "Inter, sans-serif", fontSize: 12,
+                      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12,
                     }}>
                       {formatDate(acc.createdAt)}
                     </td>

@@ -25,7 +25,7 @@ function BoldNumbers({ text }: { text: string }) {
     <>
       {parts.map((part, i) =>
         /[\d,]+(?:\.\d+)?/.test(part) ? (
-          <strong key={i} style={{ fontSize: 14, fontWeight: 800, color: "#047857", fontFamily: "Inter, sans-serif" }}>{part}</strong>
+          <strong key={i} style={{ fontSize: 14, fontWeight: 800, color: "#047857", fontFamily: "var(--font-inter), var(--font-noto)" }}>{part}</strong>
         ) : part
       )}
     </>
@@ -71,7 +71,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
                 fontSize: 12, fontWeight: 600, color: s.color,
                 background: s.bg, border: `1px solid ${s.border}`,
                 borderRadius: 100, padding: "2px 8px",
-                fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+                fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap",
               }}>
                 {p}
               </span>

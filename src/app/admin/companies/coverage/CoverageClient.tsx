@@ -139,7 +139,7 @@ export default function CoverageClient({ rows, testCount }: { rows: CoverageRow[
                     {r.name}
                   </Link>
                 </td>
-                <td style={{ ...td, fontFamily: "Inter, sans-serif", fontWeight: 700,
+                <td style={{ ...td, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700,
                              color: r.filledCount === TOTAL ? "#059669" : r.filledCount <= 3 ? "#DC2626" : "#475569" }}>
                   {r.filledCount}
                 </td>

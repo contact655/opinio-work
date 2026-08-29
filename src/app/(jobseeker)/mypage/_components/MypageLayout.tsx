@@ -39,7 +39,7 @@ function SidebarItem({
       {badge !== undefined && badge > 0 && (
         <span style={{
           background: "var(--royal)", color: "#fff",
-          fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+          fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
           padding: "1px 7px", borderRadius: 100, minWidth: 18, textAlign: "center",
         }}>
           {badge}
@@ -207,7 +207,7 @@ export default function MypageLayout({
                       position: "absolute", top: -6, left: 10,
                       background: "var(--error)", color: "#fff",
                       borderRadius: 100, fontSize: 10, fontWeight: 700,
-                      padding: "0 4px", fontFamily: "Inter, sans-serif", lineHeight: "14px",
+                      padding: "0 4px", fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: "14px",
                     }}>{badge}</span>
                   )}
                 </span>
@@ -237,7 +237,7 @@ export default function MypageLayout({
           height: `calc(100vh - ${topOffset}px)`, overflowY: "auto",
         }}>
           <div style={{
-            fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+            fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
             color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
             padding: "0 24px 10px",
           }}>
@@ -255,7 +255,7 @@ export default function MypageLayout({
                  プロフィールの中身は「ホーム」（/mypage）そのものになったので、
                  同じ場所へ行く入口が2つ並んでいた（ルール⑧）。 */}
           <div style={{
-            fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 700,
+            fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
             color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase",
             padding: "24px 24px 10px",
           }}>

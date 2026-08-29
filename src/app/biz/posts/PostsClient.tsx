@@ -105,7 +105,7 @@ function Badge({ bg, color, children }: { bg: string; color: string; children: R
       display: "inline-flex", alignItems: "center",
       padding: "2px 8px", borderRadius: 100,
       fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
       background: bg, color,
     }}>
       {children}
@@ -126,7 +126,7 @@ export function PostsClient({ companyId, companyName: _cn, initialPosts, initial
           <h1 style={{
             margin: 0, fontSize: 22, fontWeight: 700,
             color: "var(--ink)", letterSpacing: "-0.02em",
-            fontFamily: "'Noto Serif JP', serif",
+            fontFamily: "var(--font-noto-serif)",
             display: "inline",
           }}>
             発信管理
@@ -134,7 +134,7 @@ export function PostsClient({ companyId, companyName: _cn, initialPosts, initial
           <span style={{
             marginLeft: 10,
             fontSize: 13, fontWeight: 600, letterSpacing: "0.08em",
-            color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+            color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)",
             textTransform: "uppercase",
           }}>
             Posts
@@ -179,7 +179,7 @@ export function PostsClient({ companyId, companyName: _cn, initialPosts, initial
                 fontSize: 10, fontWeight: 700,
                 background: activeTab === tab.id ? "var(--royal)" : "var(--line)",
                 color: activeTab === tab.id ? "#fff" : "var(--ink-mute)",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
               }}>
                 {tab.count}
               </span>
@@ -292,7 +292,7 @@ function StoriesTab({ companyId, initialStories }: { companyId: string; initialS
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {stories.length > 0 && (
             <>
-              <span style={{ fontSize: 13, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+              <span style={{ fontSize: 13, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 合計 <strong style={{ color: "var(--ink)" }}>{stories.length}</strong> 件
               </span>
               {publishedCount > 0 && (
@@ -528,7 +528,7 @@ function StoryCard({
             {story.is_published ? "公開中" : "下書き"}
           </Badge>
           {story.published_at && (
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {formatDate(story.published_at)}
             </span>
           )}
@@ -708,7 +708,7 @@ function StoryEditor({
           borderBottom: "1px solid var(--line)",
         }}>
           <div>
-            <h2 style={{ margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+            <h2 style={{ margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
               {isEdit ? "ストーリーを編集" : "新しいストーリーを書く"}
             </h2>
             <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>
@@ -764,7 +764,7 @@ function StoryEditor({
                   width: "100%", padding: "9px 12px", boxSizing: "border-box",
                   border: "1px solid var(--line)", borderRadius: "var(--radius-md)",
                   fontSize: 13, color: "var(--ink)", outline: "none",
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                 }}
               />
             </div>
@@ -784,7 +784,7 @@ function StoryEditor({
                 width: "100%", padding: "10px 14px", boxSizing: "border-box",
                 border: "1px solid var(--line)", borderRadius: "var(--radius-md)",
                 fontSize: 15, fontWeight: 600, color: "var(--ink)", outline: "none",
-                fontFamily: "'Noto Serif JP', serif",
+                fontFamily: "var(--font-noto-serif)",
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = "var(--line)"; }}
@@ -797,7 +797,7 @@ function StoryEditor({
               <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
                 本文 <span style={{ color: "var(--error)" }}>*</span>
               </label>
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 {body.length} 文字
               </span>
             </div>
@@ -1088,7 +1088,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <div>
-                <h2 style={{ margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+                <h2 style={{ margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
                   {editingId ? "発信リンクを編集" : "発信コンテンツを追加"}
                 </h2>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>
@@ -1126,7 +1126,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
                     flex: 1, padding: "9px 12px",
                     border: "1px solid var(--line)", borderRadius: "var(--radius-md)",
                     fontSize: 13, color: "var(--ink)", outline: "none",
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 />
                 <button type="button" onClick={handleFetchOgp} disabled={ogpFetching || !url.trim()}
@@ -1191,7 +1191,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
                     width: "100%", padding: "9px 12px", boxSizing: "border-box",
                     border: "1px solid var(--line)", borderRadius: "var(--radius-md)",
                     fontSize: 13, color: "var(--ink)", outline: "none",
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 />
               </div>
@@ -1217,7 +1217,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
                     width: "100%", padding: "9px 12px", boxSizing: "border-box",
                     border: "1px solid var(--line)", borderRadius: "var(--radius-md)",
                     fontSize: 13, color: "var(--ink)", outline: "none",
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 />
               </div>
@@ -1303,7 +1303,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
             padding: "11px 20px", borderBottom: "1px solid var(--line-soft)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
+            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 600 }}>
               {posts.length} 件の外部リンク
             </span>
             <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>最新順</span>
@@ -1431,10 +1431,10 @@ function LinkCard({
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
           <Badge bg={c.bg} color={c.color}>{TYPE_LABELS[t] ?? t}</Badge>
           {post.source_name && (
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>{post.source_name}</span>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{post.source_name}</span>
           )}
           {post.published_at && (
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif" }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {formatDate(post.published_at)}
             </span>
           )}

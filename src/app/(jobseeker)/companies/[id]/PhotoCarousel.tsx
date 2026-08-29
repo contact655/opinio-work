@@ -163,7 +163,7 @@ function Lightbox({
       <div
         style={{
           position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)",
-          color: "rgba(255,255,255,0.6)", fontSize: "var(--text-sm)", fontFamily: "Inter, sans-serif",
+          color: "rgba(255,255,255,0.6)", fontSize: "var(--text-sm)", fontFamily: "var(--font-inter), var(--font-noto)",
         }}
       >
         {idx + 1} / {photos.length}
@@ -369,7 +369,7 @@ function PhotoStrip({
           textAlign: "right",
           fontSize: "var(--text-xs)",
           color: "var(--ink-mute)",
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           marginTop: 6,
           marginBottom: "var(--space-4)",
         }}
@@ -520,7 +520,7 @@ export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
               >
                 {tab.label}
                 <span style={{
-                  fontSize: 12, fontFamily: "Inter, sans-serif",
+                  fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)",
                   background: active ? "rgba(255,255,255,0.25)" : "var(--royal-50)",
                   color: active ? "#fff" : "var(--royal)",
                   borderRadius: 99, padding: "1px 5px", fontWeight: 700,

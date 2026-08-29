@@ -136,7 +136,7 @@ export function BusinessLayout({
     <div style={{
       minHeight: "100vh",
       background: "var(--bg-tint)",
-      fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
       WebkitFontSmoothing: "antialiased",
     }}>
       {/* ── Topbar ── */}
@@ -154,13 +154,13 @@ export function BusinessLayout({
         {/* Brand */}
         <Link href="/biz/dashboard" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700, fontSize: 20,
             color: "var(--royal)",
             letterSpacing: "-0.02em",
           }}>OPINIO</span>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 9, fontWeight: 700,
             letterSpacing: "0.15em",
             padding: "2px 7px",
@@ -190,7 +190,7 @@ export function BusinessLayout({
                 background: logoGradient,
                 color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 13,
+                fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 13,
                 flexShrink: 0,
               }}>
                 {logoLetter}
@@ -231,7 +231,7 @@ export function BusinessLayout({
               {userInitial ?? null}
             </div>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontFamily: "'Noto Sans JP', sans-serif", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>
+              <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>
                 {userName}
               </div>
               <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>Admin</div>
@@ -320,7 +320,7 @@ export function BusinessLayout({
           outline: "none",
         }}>
           <div style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
             letterSpacing: "0.1em", textTransform: "uppercase",
             padding: "0 20px 8px",
@@ -378,7 +378,7 @@ export function BusinessLayout({
                       <span style={{
                         minWidth: 18, height: 18, borderRadius: 100,
                         background: "var(--error)", color: "#fff",
-                        fontSize: 10, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                        fontSize: 10, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         padding: "0 5px", flexShrink: 0,
                       }}>

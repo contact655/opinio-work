@@ -1141,7 +1141,7 @@ export default function ProfileTab({
                 <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                   <span style={{
                     fontSize: 13, color: "var(--ink-mute)", whiteSpace: "nowrap",
-                    padding: "0 8px 0 0", fontFamily: "Inter, sans-serif",
+                    padding: "0 8px 0 0", fontFamily: "var(--font-inter), var(--font-noto)",
                   }}>opinio.jp/u/</span>
                   <input
                     id="pe-username"

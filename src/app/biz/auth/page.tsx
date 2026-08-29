@@ -112,7 +112,7 @@ function BizAuthInner() {
     return (
       <div style={{
         minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Noto Sans JP', -apple-system, sans-serif", background: "#fff",
+        fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff",
       }}>
         <div style={{ textAlign: "center", color: "var(--ink-mute)", fontSize: 14 }}>
           <div style={{
@@ -130,7 +130,7 @@ function BizAuthInner() {
     return (
       <div style={{
         minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Noto Sans JP', -apple-system, sans-serif", background: "#fff", padding: "24px",
+        fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "24px",
       }}>
         <div style={{ maxWidth: 480, width: "100%", textAlign: "center" }}>
           {/* ロゴ */}
@@ -140,7 +140,7 @@ function BizAuthInner() {
                 width: 36, height: 36, background: "var(--royal)", borderRadius: 10,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "Inter, sans-serif" }}>O</span>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>O</span>
               </div>
               <span style={{ fontSize: 18, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.5px" }}>OPINIO</span>
             </a>
@@ -219,7 +219,7 @@ function BizAuthInner() {
         minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
-        fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
       }}
     >
       <style>{`

@@ -87,7 +87,7 @@ function Pagination({
     minWidth: 36, height: 36, padding: "0 10px", borderRadius: 8,
     border: "1px solid var(--line)", background: "#fff",
     color: "var(--ink-soft)", fontSize: 13, fontWeight: 500,
-    textDecoration: "none", fontFamily: "Inter, sans-serif",
+    textDecoration: "none", fontFamily: "var(--font-inter), var(--font-noto)",
   };
   const active: React.CSSProperties = { ...base, background: "var(--royal)", borderColor: "var(--royal)", color: "#fff" };
   const disabled: React.CSSProperties = { ...base, opacity: 0.4, cursor: "not-allowed" };

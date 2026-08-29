@@ -244,7 +244,7 @@ export function CompanyAdminDndOverlay() {
                 }}
               >
                 <span style={{ color: "var(--ink-mute)", fontSize: 16, flexShrink: 0, lineHeight: 1 }}>⠿</span>
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0, minWidth: 18, textAlign: "right" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0, minWidth: 18, textAlign: "right" }}>
                   {i + 1}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>

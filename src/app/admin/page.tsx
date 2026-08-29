@@ -226,7 +226,7 @@ export default async function AdminDashboard() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <span style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 9, fontWeight: 800,
               letterSpacing: "0.18em", textTransform: "uppercase",
               background: "#DC2626", color: "#fff",
@@ -298,7 +298,7 @@ export default async function AdminDashboard() {
                   {kpi.icon}
                 </div>
                 <div style={{
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 34, fontWeight: 800, color: "#0F172A",
                   lineHeight: 1, letterSpacing: "-0.02em",
                 }}>
@@ -311,7 +311,7 @@ export default async function AdminDashboard() {
                 {kpi.label}
               </div>
               <div style={{
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 9, fontWeight: 700,
                 color: "#94A3B8", letterSpacing: "0.14em", textTransform: "uppercase",
                 borderTop: "1px solid #F1F5F9", paddingTop: 8, marginTop: 8,
@@ -363,7 +363,7 @@ export default async function AdminDashboard() {
                       padding: "14px 16px", marginLeft: i > 0 ? 12 : 0,
                     }}>
                       <div style={{
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-inter), var(--font-noto)",
                         fontSize: 28, fontWeight: 800, color: step.color, lineHeight: 1, marginBottom: 4,
                       }}>
                         {step.count}
@@ -376,7 +376,7 @@ export default async function AdminDashboard() {
                       <div style={{ height: 4, background: "#E2E8F0", borderRadius: 2, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${pct}%`, background: step.color, borderRadius: 2, transition: "width 0.5s" }} />
                       </div>
-                      <div style={{ fontSize: 10, color: step.color, fontWeight: 700, fontFamily: "'Inter', sans-serif", marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: step.color, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", marginTop: 4 }}>
                         {pct}%
                       </div>
                     </div>
@@ -719,7 +719,7 @@ export default async function AdminDashboard() {
                   </div>
                   <span style={{
                     fontSize: 10, color: "#94A3B8", flexShrink: 0,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}>
                     {new Date(u.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
                   </span>
@@ -793,7 +793,7 @@ export default async function AdminDashboard() {
                     <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{label}</span>
                   )}
                   <span style={{
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                     fontSize: 14, fontWeight: 700, color,
                   }}>{value}</span>
                 </div>
@@ -898,7 +898,7 @@ export default async function AdminDashboard() {
                   </td>
                   <td style={{
                     padding: "10px 10px", color: "#94A3B8",
-                    fontFamily: "'Inter', sans-serif", fontSize: 12,
+                    fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12,
                   }}>
                     {new Date(c.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })}
                   </td>

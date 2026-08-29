@@ -169,7 +169,7 @@ export default function AdminRolesPage() {
         <td style={{ padding: "9px 12px", textAlign: "center" }}>
           {role.is_it_saas && <span style={{ fontSize: 12 }}>✓</span>}
         </td>
-        <td style={{ padding: "9px 12px", textAlign: "center", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif", fontSize: 11 }}>
+        <td style={{ padding: "9px 12px", textAlign: "center", whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11 }}>
           {usageLabel(role.experience_count ?? 0, role.job_count ?? 0) === null ? (
             <span style={{ color: "var(--ink-mute)" }}>—</span>
           ) : (
@@ -308,7 +308,7 @@ export default function AdminRolesPage() {
                           <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
                             子職種 {sec.childCount}件
                           </span>
-                          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             {usageLabel(sec.expSum, sec.jobSum) ?? "使用なし"}
                           </span>
                         </button>

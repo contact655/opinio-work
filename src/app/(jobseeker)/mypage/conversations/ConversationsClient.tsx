@@ -246,7 +246,7 @@ export default function ConversationsClient({
           {/* 左ヘッダー */}
           <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--line-soft)", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <h1 style={{ fontFamily: '"Noto Serif JP", serif', fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+              <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
                 メッセージ
               </h1>
               {/* ⚠️ 会話が2件以上あるときだけ出す。1件しか無い人に「複数に送る」は意味が無い */}

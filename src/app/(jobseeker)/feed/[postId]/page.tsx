@@ -221,7 +221,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
                   color: "#fff",
                   fontWeight: 700,
                   fontSize: 16,
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                 }}
               >
                 {p.user?.avatar_url ? (
@@ -245,7 +245,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
                 {[roleTitle, company].filter(Boolean).join(" · ")}
               </div>
             )}
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
+            <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
               {formatDate(p.created_at)}
             </div>
           </div>

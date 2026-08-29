@@ -656,7 +656,7 @@ export default function CandidatesClient({
             display: "flex", alignItems: "center", gap: 6,
           }}>
             <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>残り</span>
-            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Inter, sans-serif", color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--ink)" }}>
+            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--ink)" }}>
               {scoutQuota.remaining}
             </span>
             <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>/ {scoutQuota.monthlyLimit + scoutQuota.bonusCredits} 通</span>
@@ -710,7 +710,7 @@ export default function CandidatesClient({
           {/* 件数バー */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-              <strong style={{ fontSize: 16, fontFamily: "Inter, sans-serif", color: "var(--royal)" }}>{filtered.length}</strong>
+              <strong style={{ fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--royal)" }}>{filtered.length}</strong>
               {" "}件 / 全{candidates.length}件
             </span>
             {/* アクティブフィルターチップ */}

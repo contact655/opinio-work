@@ -212,7 +212,11 @@ export function CompanyLogo({
         ...containerStyle,
         background: gradient,
         color: "#fff",
-        fontFamily: "Inter, 'Noto Sans JP', sans-serif",
+        /* ⚠️ 生の "Inter" / 'Noto Sans JP' を書かない（2026-08-29）。
+              next/font が読み込むのは Inter と Noto Serif JP だけで、
+              **'Noto Sans JP' は読み込んでいない**ので指定しても効かない。
+              和文は `--font-noto`（OS標準の和文ゴシック）に任せる。 */
+        fontFamily: "var(--font-inter), var(--font-noto)",
         fontWeight: 700,
         fontSize,
         letterSpacing: "-0.02em",

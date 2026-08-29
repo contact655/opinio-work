@@ -857,7 +857,7 @@ function PendingInvitesSection({
             招待中
           </span>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 11,
             fontWeight: 700,
             padding: "0px 6px",
@@ -1379,7 +1379,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         <div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
             <h1 style={{
-              fontFamily: "'Noto Serif JP', serif",
+              fontFamily: "var(--font-noto-serif)",
               fontWeight: 700,
               fontSize: 22,
               color: "var(--ink)",
@@ -1390,7 +1390,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             </h1>
             <span style={{
               fontSize: 13, fontWeight: 600, letterSpacing: "0.08em",
-              color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+              color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)",
               textTransform: "uppercase",
             }}>
               Members
@@ -1458,7 +1458,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             >
               {tab.label}
               <span style={{
-                fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700,
+                fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700,
                 padding: "1px 6px", borderRadius: 100,
                 background: isSelected ? "var(--royal-50)" : "var(--line-soft)",
                 color: isSelected ? "var(--royal)" : "var(--ink-mute)",

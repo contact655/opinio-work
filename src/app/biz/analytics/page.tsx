@@ -127,7 +127,7 @@ function KpiCard({
         {icon}
       </div>
       <div style={{
-        fontFamily: "Inter, sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
         fontSize: 28, fontWeight: 700, color: "var(--ink)", lineHeight: 1,
       }}>
         {value}
@@ -380,7 +380,7 @@ export default async function AnalyticsPage() {
         }}>
           <Briefcase size={15} color="var(--royal)" strokeWidth={2.2} />
           <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>公開求人</span>
-          <span style={{ marginLeft: "auto", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 18, color: "var(--royal)" }}>
+          <span style={{ marginLeft: "auto", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 18, color: "var(--royal)" }}>
             {jobStats.published}
           </span>
           <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>/ {jobStats.total}件</span>
@@ -392,7 +392,7 @@ export default async function AnalyticsPage() {
         }}>
           <TrendingUp size={15} color="var(--warm)" strokeWidth={2.2} />
           <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>面談転換率</span>
-          <span style={{ marginLeft: "auto", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 18, color: "var(--warm)" }}>
+          <span style={{ marginLeft: "auto", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 18, color: "var(--warm)" }}>
             {conversionRate}%
           </span>
           <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>完了{meetings.completed} / 申込{meetings.total}</span>
@@ -417,7 +417,7 @@ export default async function AnalyticsPage() {
                   padding: "16px 14px", textAlign: "center",
                 }}>
                   <div style={{
-                    fontFamily: "Inter, sans-serif", fontSize: 28, fontWeight: 800,
+                    fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 28, fontWeight: 800,
                     color: step.color, lineHeight: 1, marginBottom: 4,
                   }}>
                     {step.count}
@@ -455,7 +455,7 @@ export default async function AnalyticsPage() {
             <div key={row.label}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{row.label}</span>
-                <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink)" }}>
+                <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--ink)" }}>
                   {row.count}<span style={{ fontSize: 10, fontWeight: 400, color: "var(--ink-mute)" }}> / {row.total}</span>
                 </span>
               </div>
@@ -507,15 +507,15 @@ export default async function AnalyticsPage() {
                       )}
                     </td>
                     <td style={{ padding: "10px 12px" }}><StatusBadge status={j.status} /></td>
-                    <td style={{ padding: "10px 12px", fontFamily: "Inter, sans-serif", color: "var(--ink-soft)", textAlign: "right" }}>
+                    <td style={{ padding: "10px 12px", fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--ink-soft)", textAlign: "right" }}>
                       {j.view_count.toLocaleString()}
                     </td>
-                    <td style={{ padding: "10px 12px", fontFamily: "Inter, sans-serif", color: "var(--ink-soft)", textAlign: "right" }}>
+                    <td style={{ padding: "10px 12px", fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--ink-soft)", textAlign: "right" }}>
                       {j.application_count}
                     </td>
                     <td style={{ padding: "10px 12px", textAlign: "right" }}>
                       <span style={{
-                        fontFamily: "Inter, sans-serif", fontWeight: 700,
+                        fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700,
                         color: j.isUnderperforming ? "var(--error)" : j.conversion_rate_pct >= 5 ? "var(--success)" : "var(--ink)",
                       }}>
                         {j.conversion_rate_pct.toFixed(1)}%
@@ -545,7 +545,7 @@ export default async function AnalyticsPage() {
               <div style={{
                 width: 46, height: 46, borderRadius: "50%", background: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 14, color: "var(--royal)",
+                fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 14, color: "var(--royal)",
               }}>
                 {profile.score}%
               </div>

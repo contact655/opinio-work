@@ -140,18 +140,18 @@ export default async function AdminApplicationsPage() {
       {/* サマリ */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ padding: "10px 18px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "var(--ink)" }}>{applications.length}</div>
+          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 20, fontWeight: 800, color: "var(--ink)" }}>{applications.length}</div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", marginTop: 2 }}>応募</div>
         </div>
         {counts.map((c) => (
           <div key={c.status} style={{ padding: "10px 18px", borderRadius: 10, background: "#fff", border: "1px solid var(--line)" }}>
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: c.color }}>{c.count}</div>
+            <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 20, fontWeight: 800, color: c.color }}>{c.count}</div>
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", marginTop: 2 }}>{c.labelJa}</div>
           </div>
         ))}
         {undelivered > 0 && (
           <div style={{ padding: "10px 18px", borderRadius: 10, background: "var(--error-soft)", border: "1px solid #FCA5A5" }}>
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 20, fontWeight: 800, color: "#DC2626" }}>{undelivered}</div>
+            <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 20, fontWeight: 800, color: "#DC2626" }}>{undelivered}</div>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#991B1B", marginTop: 2 }}>企業に届いていない</div>
           </div>
         )}
@@ -187,7 +187,7 @@ export default async function AdminApplicationsPage() {
                 const cfg = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.pending;
                 return (
                   <tr key={a.id} style={{ borderBottom: "1px solid var(--line-soft)" }}>
-                    <td style={{ ...TD, whiteSpace: "nowrap", color: "var(--ink-mute)", fontFamily: "Inter, sans-serif", fontSize: 12 }}>
+                    <td style={{ ...TD, whiteSpace: "nowrap", color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12 }}>
                       {formatDate(a.createdAt)}
                     </td>
 

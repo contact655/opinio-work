@@ -188,7 +188,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
           >
             組織体制・チームのミッション
           </SecTitle>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", fontFamily: "Inter, sans-serif" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
             {detail.orgTeams.length} チーム · {grouped.size} 部門
           </span>
         </div>
@@ -224,7 +224,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                 <span style={{ fontSize: 14, fontWeight: 800, color: config.color, fontFamily: "var(--font-noto-sans)" }}>
                   {config.label}
                 </span>
-                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                   {teams.length} チーム
                 </span>
               </div>
@@ -275,7 +275,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                           background: isOpen ? "#fff" : config.bg,
                           border: `1px solid ${config.border}`,
                           padding: "2px 7px", borderRadius: 100,
-                          fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+                          fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap",
                         }}>
                           {team.en_name}
                         </span>
@@ -334,7 +334,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                                   fontSize: 12, fontWeight: 600, color: config.color,
                                   background: "#fff", border: `1px solid ${config.border}`,
                                   padding: "2px 8px", borderRadius: 100,
-                                  fontFamily: "Inter, sans-serif",
+                                  fontFamily: "var(--font-inter), var(--font-noto)",
                                 }}>
                                   {role}
                                 </span>

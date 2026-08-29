@@ -705,7 +705,7 @@ function CompanySearch({
                   {c.logo_url ? (
                     <Image src={c.logo_url} alt={c.name} width={36} height={36} style={{ objectFit: "contain" }} />
                   ) : (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", fontFamily: "Inter, sans-serif" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                       {c.name.charAt(0)}
                     </span>
                   )}
@@ -1015,7 +1015,7 @@ function StintForm({
           </div>
         )}
         {periodInvalid && (
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
             退職年月は入社年月以降に設定してください
           </div>
         )}
@@ -1293,7 +1293,7 @@ function StintForm({
         {/* ⚠️ 300字は UI / POST / PUT の3つで揃えている（2026-08-20）。
                以前は UI 300 / PUT 2000 / POST 5000 と3つとも違い、
                画面の警告を無視すれば黙って長い文が保存できた。 */}
-        <div style={{ fontSize: 12, fontWeight: 600, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "var(--font-inter), var(--font-noto)" }}>
           {draft.joinReason.length > 300 ? `${draft.joinReason.length - 300} 文字超過` : `残り ${300 - draft.joinReason.length} 文字`}
         </div>
       </div>
@@ -1454,7 +1454,7 @@ function StintForm({
           rows={3}
           style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7 }}
         />
-        <div style={{ fontSize: 12, fontWeight: 600, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: descOver ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "var(--font-inter), var(--font-noto)" }}>
           {descOver ? `${descLen - 500} 文字超過` : `残り ${500 - descLen} 文字`}
         </div>
       </div>

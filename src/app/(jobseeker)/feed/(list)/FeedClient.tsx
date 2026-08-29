@@ -240,7 +240,7 @@ function Avatar({
         alignItems: "center",
         justifyContent: "center",
         color: "#fff",
-        fontFamily: "Inter, sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
         fontWeight: 700,
         fontSize: size * 0.4,
         flexShrink: 0,
@@ -281,7 +281,7 @@ function CharCountRing({ remaining, max }: { remaining: number; max: number }) {
       {isNear && (
         <span style={{
           position: "absolute",
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 12,
           fontWeight: 700,
           color: isOver ? "var(--error)" : "#f59e0b",
@@ -938,7 +938,7 @@ function CommentSection({
                 </Link>
                 <span
                   style={{
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                     fontSize: 12, fontWeight: 500,
                     color: "var(--ink-mute)",
                   }}
@@ -1389,7 +1389,7 @@ function FeedSidebar({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.photo_url} alt={m.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   ) : (
-                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: m.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "Inter, sans-serif", flexShrink: 0 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: m.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>
                       {(m.name ?? "?").charAt(0)}
                     </div>
                   )}
@@ -1539,7 +1539,7 @@ function FeedSidebar({
                     width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
                     background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Inter, sans-serif",
+                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-inter), var(--font-noto)",
                     overflow: "hidden",
                   }}
                 >
@@ -1586,7 +1586,7 @@ function FeedSidebar({
                       {job.companyName}
                     </span>
                   )}
-                  <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
                     {formatSalary(job.salary_min, job.salary_max)}
                   </span>
                 </div>
@@ -1770,7 +1770,7 @@ function PostCard({
                 width: 38, height: 38, borderRadius: 8, flexShrink: 0,
                 background: post.user.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 15,
+                color: "#fff", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 15,
                 overflow: "hidden",
               }}
             >
@@ -1808,7 +1808,7 @@ function PostCard({
               )}
               {/* バッジ。企業が主体のときもシステム名義のときも「企業」のまま */}
               {(actor.kind === "company" || actor.kind === "system") && (
-                <span style={{ fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
+                <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
                   企業
                 </span>
               )}
@@ -1833,7 +1833,7 @@ function PostCard({
                 );
               })()}
               {/* 日付インライン */}
-              <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+              <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                 · {relativeTime(post.created_at)}
               </span>
               {/* 公開範囲。⚠️ 本人にだけ出す。他人に「この人は限定公開にしている」と
@@ -2023,7 +2023,7 @@ function PostCard({
               const hasMn = mn != null && mn > 0;
               const hasMx = mx != null && mx > 0;
               return hasMn || hasMx ? (
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
                   {hasMn && hasMx ? `${fmtMan(mn)}〜${fmtMan(mx)}万円` : hasMn ? `${fmtMan(mn)}万円〜` : `〜${fmtMan(mx)}万円`}
                 </div>
               ) : (
@@ -2080,7 +2080,7 @@ function PostCard({
                 width: 74, height: 74, borderRadius: 8, flexShrink: 0,
                 background: grad,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 26,
+                color: "#fff", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 800, fontSize: 26,
                 overflow: "hidden",
               }}
             >
@@ -2123,7 +2123,7 @@ function PostCard({
                 {post.event_title}
               </div>
               {post.event_starts_at && (
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 4 }}>
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 4 }}>
                   🕐 {new Date(post.event_starts_at).toLocaleString("ja-JP", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </div>
               )}
@@ -2240,7 +2240,7 @@ function PostCard({
             padding: "6px 12px",
             borderRadius: 8,
             color: post.liked_by_me ? "var(--error)" : "var(--ink-soft)",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 13,
             fontWeight: post.liked_by_me ? 700 : 500,
             transition: "background 0.15s, color 0.15s",
@@ -2273,7 +2273,7 @@ function PostCard({
                   position: "relative",
                   background: liker.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontWeight: 700, fontSize: 12, fontFamily: "Inter, sans-serif",
+                  color: "#fff", fontWeight: 700, fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)",
                   overflow: "hidden", flexShrink: 0,
                 }}
               >
@@ -2283,7 +2283,7 @@ function PostCard({
               </div>
             ))}
             {post.like_count > 3 && (
-              <span style={{ marginLeft: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+              <span style={{ marginLeft: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 +{post.like_count - 3}
               </span>
             )}
@@ -2303,7 +2303,7 @@ function PostCard({
             padding: "6px 12px",
             borderRadius: 8,
             color: showComments ? "var(--royal)" : "var(--ink-soft)",
-            fontFamily: "Inter, sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 13,
             fontWeight: 500,
             transition: "background 0.15s, color 0.15s",
@@ -2333,7 +2333,7 @@ function PostCard({
               background: "none", border: "none", cursor: "pointer",
               padding: "6px 10px", borderRadius: 8,
               color: copied ? "var(--royal)" : "var(--ink-mute)",
-              fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 500,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500,
               transition: "background 0.15s, color 0.15s",
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-tint)"; }}

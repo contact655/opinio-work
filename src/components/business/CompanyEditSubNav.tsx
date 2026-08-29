@@ -172,7 +172,7 @@ export function CompanyEditSubNav({
               <span>{s.label}</span>
               {s.showStatus && s.hasDraft && (
                 <span style={{
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 12,
                   fontWeight: 700,
                   color: "var(--warm)",
@@ -206,7 +206,7 @@ export function CompanyEditSubNav({
           </div>
           {lastPublishedAgo && (
             <div style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 12, fontWeight: 500,
               color: "var(--ink-mute)",
               marginBottom: 8,
@@ -269,7 +269,7 @@ export function CompanyEditSubNav({
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
               <span>あなたが入力できる項目</span>
-              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--royal)" }}>{bizScore} / 45</span>
+              <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--royal)" }}>{bizScore} / 45</span>
             </div>
             <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.round(bizScore / 45 * 100)}%`, background: "linear-gradient(to right, var(--royal), var(--accent))", borderRadius: 100, transition: "width 0.3s ease" }} />
@@ -278,7 +278,7 @@ export function CompanyEditSubNav({
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
               <span>取材・投稿で埋まる項目</span>
-              <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / {DISCLOSURE_INTERVIEW_MAX}</span>
+              <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / {DISCLOSURE_INTERVIEW_MAX}</span>
             </div>
             <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.round(interviewScore / DISCLOSURE_INTERVIEW_MAX * 100)}%`, background: "var(--ink-mute)", borderRadius: 100, transition: "width 0.3s ease" }} />

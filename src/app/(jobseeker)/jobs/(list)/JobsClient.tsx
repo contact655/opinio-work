@@ -334,7 +334,7 @@ function JobListItem({
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 700,
               color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success)" : "var(--ink-mute)",
             }}>
               {formatSalary(job.salary_min, job.salary_max)}
@@ -533,7 +533,7 @@ function SidebarFilters({
           {label}
         </span>
         {count !== undefined && (
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>({count})</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>({count})</span>
         )}
       </label>
     );
@@ -565,7 +565,7 @@ function SidebarFilters({
                 >
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.4 }} />
                   <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 12, fontWeight: 500, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "Inter, sans-serif", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
+                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 12, fontWeight: 500, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
                   {isActive && <svg style={{ flexShrink: 0 }} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                 </button>
               );
@@ -1467,7 +1467,7 @@ export default function JobsClient({
               )}
               <div style={{ width: 1, height: 20, background: "var(--line)" }} />
               <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-                <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "Inter, sans-serif", fontSize: 16 }}>{filteredForDisplay.length}</strong>
+                <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
                 <span style={{ marginLeft: 2 }}>件</span>
                 {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
               </span>
@@ -1695,7 +1695,7 @@ export default function JobsClient({
                           </div>
                         )}
                         {(job.salary_min ?? 0) > 0 && (
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "Inter, sans-serif" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             {fmtMan(job.salary_min)}
                             {job.salary_max && job.salary_max > job.salary_min! ? `〜${fmtMan(job.salary_max)}` : ""}万円
                           </div>
@@ -1801,9 +1801,9 @@ export default function JobsClient({
               <div style={{ marginTop: 16, marginBottom: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                    <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{paged.length}</strong>
+                    <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{paged.length}</strong>
                     {" / "}
-                    <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{filteredForDisplay.length}</strong>
+                    <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{filteredForDisplay.length}</strong>
                     {" 件表示中"}
                   </span>
                   {hasMore && (

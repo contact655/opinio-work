@@ -42,7 +42,7 @@ export function BusinessHeader() {
         {/* ── Logo: Opinio + Business badge ── */}
         <Link href="/business" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700,
             fontSize: 20,
             color: "var(--royal)",
@@ -51,7 +51,7 @@ export function BusinessHeader() {
             OPINIO
           </span>
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700,
             fontSize: 12,
             color: "var(--ink-mute)",

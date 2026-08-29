@@ -33,7 +33,7 @@ export function JobRejectionBanner({ reason, date, reviewer }: Props) {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 10, fontWeight: 700,
           color: "var(--error)",
           letterSpacing: "0.15em",

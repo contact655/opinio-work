@@ -478,7 +478,7 @@ function ListRow({ card, myUserId, followedUserIds }: {
         <div className="ppl-row-stats" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 2 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "Inter, sans-serif", color: "var(--ink)" }}>
+              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--ink)" }}>
                 {tenureYears > 0 ? tenureYears : tenureRest}
               </span>
               <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>

@@ -189,7 +189,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             </div>
             <div style={{ width: 1, height: 16, background: LINE }} />
             <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
-              <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "Inter, sans-serif" }}>{total}</strong> 本
+              <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>{total}</strong> 本
             </span>
           </div>
         </div>

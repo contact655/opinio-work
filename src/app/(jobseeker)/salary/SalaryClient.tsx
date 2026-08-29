@@ -163,7 +163,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
             { step: "03", title: "コミュニティで相場を共有する", desc: "みんながデータを出し合うことで、IT/SaaS業界の透明な年収相場が作られます。", color: "#7C3AED" },
           ].map(({ step, title, desc, color }) => (
             <div key={step} style={{ display: "flex", gap: 16, alignItems: "flex-start", padding: "14px 0", borderBottom: step !== "03" ? "1px solid var(--line-soft)" : "none" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "Inter,sans-serif", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                 {step}
               </div>
               <div>
@@ -251,7 +251,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line-soft)", opacity: 0.4 }}>
                   <span style={{ flex: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.role}</span>
                   <span style={{ flex: 2, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>{r.company}</span>
-                  <span style={{ flex: 1, textAlign: "right", fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "Inter,sans-serif" }}>{r.salary}万</span>
+                  <span style={{ flex: 1, textAlign: "right", fontSize: 14, fontWeight: 800, color: "var(--success)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{r.salary}万</span>
                   <span style={{ flex: 1, textAlign: "right", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{r.yoe}年</span>
                 </div>
               ))}
@@ -311,7 +311,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
                       </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                      <span style={{ fontSize: 20, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {fmtMan(s.avgMin)}〜{fmtMan(s.avgMax)}
                       </span>
                       <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>万円（求人票平均レンジ）</span>
@@ -319,7 +319,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
                     <div className="sc-bar-outer" style={{ marginTop: 10 }}>
                       <div style={{ height: 8, borderRadius: 100, background: "linear-gradient(90deg,#d97706,#f59e0b)", width: `${barPct}%` }} />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "Inter,sans-serif" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                       <span>下限 {fmtMan(s.avgMin)}万</span>
                       <span>中央 {Math.round((s.avgMin + s.avgMax) / 2)}万</span>
                       <span>上限 {fmtMan(s.avgMax)}万</span>
@@ -327,7 +327,7 @@ export function SalaryClient({ stats, maxBar }: Props) {
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 2 }}>求人票最高</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "Inter,sans-serif" }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                       {fmtMan(s.maxSalary)}<span style={{ fontSize: 12, fontWeight: 500 }}>万円</span>
                     </div>
                     <div style={{ marginTop: 6, fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>

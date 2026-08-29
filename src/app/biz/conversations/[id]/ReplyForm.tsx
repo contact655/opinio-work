@@ -126,7 +126,7 @@ export function ReplyForm({ conversationId }: Props) {
               outline: "none",
               background: "transparent",
               resize: "none",
-              fontFamily: "'Noto Sans JP', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 14,
               color: "var(--ink)",
               lineHeight: 1.6,
@@ -151,7 +151,7 @@ export function ReplyForm({ conversationId }: Props) {
                 style={{
                   fontSize: 11,
                   color: text.length > 4800 ? "var(--error)" : "var(--ink-mute)",
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                 }}
               >
                 {text.length} / 5000
@@ -170,7 +170,7 @@ export function ReplyForm({ conversationId }: Props) {
                 borderRadius: 8,
                 border: "none",
                 cursor: canSubmit ? "pointer" : "default",
-                fontFamily: "'Noto Sans JP', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontWeight: 600,
                 fontSize: 13,
                 background: canSubmit

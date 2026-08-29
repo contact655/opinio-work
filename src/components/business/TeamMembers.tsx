@@ -46,7 +46,7 @@ export function TeamMembers({ members }: Props) {
         }}>
           チームメンバー
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 9, fontWeight: 700,
             color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
           }}>Team</span>

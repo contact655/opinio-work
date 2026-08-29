@@ -41,7 +41,7 @@ export function CompanyCard({
         width: 64, height: 64, borderRadius: 14,
         background: gradient, color: "#fff",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 28,
+        fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 28,
         boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
         flexShrink: 0,
       }}>

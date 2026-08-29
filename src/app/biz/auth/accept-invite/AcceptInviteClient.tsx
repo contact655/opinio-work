@@ -17,7 +17,7 @@ export function AcceptInviteClient(props: Props) {
       alignItems: "center",
       justifyContent: "center",
       background: "var(--bg-tint)",
-      fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
       padding: "24px 16px",
     }}>
       <div style={{
@@ -36,7 +36,7 @@ export function AcceptInviteClient(props: Props) {
           color: "#fff",
         }}>
           <div style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700,
             fontSize: 20,
             letterSpacing: "-0.02em",
@@ -238,7 +238,7 @@ function ReadyState({ token, companyName }: { token: string; companyName: string
           border: "none",
           cursor: loading ? "wait" : "pointer",
           opacity: loading ? 0.7 : 1,
-          fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
         } as React.CSSProperties}
       >
         {loading ? "処理中..." : "参加を受諾する"}
@@ -295,7 +295,7 @@ function MismatchState({
           border: "none",
           cursor: loading ? "wait" : "pointer",
           opacity: loading ? 0.7 : 1,
-          fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           marginTop: 24,
         } as React.CSSProperties}
       >
@@ -386,7 +386,7 @@ const primaryButtonStyle: React.CSSProperties = {
   background: "var(--royal)",
   color: "#fff",
   borderRadius: 10,
-  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+  fontFamily: "var(--font-inter), var(--font-noto)",
   fontSize: 14,
   fontWeight: 700,
   textAlign: "center",
@@ -404,7 +404,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "var(--royal)",
   border: "1.5px solid var(--royal)",
   borderRadius: 10,
-  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+  fontFamily: "var(--font-inter), var(--font-noto)",
   fontSize: 14,
   fontWeight: 600,
   textAlign: "center",

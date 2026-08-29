@@ -74,7 +74,10 @@ function ArticleCard({ article }: { article: Article }) {
             position: "absolute", inset: 0,
             backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px)",
           }} />
-          {/* 引用マーク（インタビュー系記事） */}
+          {/* 引用マーク（インタビュー系記事）
+                 ⚠️ `Georgia` は**意図的**（2026-08-29 に確認）。装飾の " 1文字だけを描くもので、
+                    Georgia の引用符の形を使っている。本文用フォントの統一対象ではない。
+                    トークン（--font-inter / --font-noto-serif）に置き換えないこと。 */}
           {(article.type === "employee" || article.type === "mentor" || article.type === "ceo") && (
             <span style={{
               position: "absolute", left: 14, bottom: 10, zIndex: 1,
@@ -123,7 +126,7 @@ function ArticleCard({ article }: { article: Article }) {
             <div style={{
               position: "absolute", bottom: 10, right: 12, zIndex: 2,
               fontSize: 12, color: "rgba(255,255,255,0.85)",
-              fontFamily: "Inter, sans-serif", fontWeight: 500,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 500,
               display: "flex", alignItems: "center", gap: 3,
             }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -267,14 +270,14 @@ function ArticleListRow({ article }: { article: Article }) {
           {/* 読了時間 + 日付（右寄せ） */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {article.read_min && (
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, fontFamily: "Inter, sans-serif" }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 2, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
                 {article.read_min}分
               </span>
             )}
-            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {article.date.replace(/-/g, "/").slice(2)}
             </span>
           </div>
@@ -447,7 +450,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                           {featured.read_min && (
                             <span style={{
                               fontSize: "var(--text-xs)", color: "var(--ink-mute)",
-                              fontFamily: "Inter, sans-serif",
+                              fontFamily: "var(--font-inter), var(--font-noto)",
                               display: "inline-flex", alignItems: "center", gap: 3,
                             }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

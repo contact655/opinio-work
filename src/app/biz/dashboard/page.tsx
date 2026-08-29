@@ -259,7 +259,7 @@ export default async function BizDashboardPage({
               position: "relative",
             }}>
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: "Inter, sans-serif", fontSize: 18, fontWeight: 800, color: scoreColor(disclosureScore.total) }}>
+                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 18, fontWeight: 800, color: scoreColor(disclosureScore.total) }}>
                   {disclosureScore.total}
                 </span>
               </div>
@@ -356,7 +356,7 @@ export default async function BizDashboardPage({
           }}>
             求人パフォーマンス
             <span style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 9, fontWeight: 700,
               color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
             }}>Job Performance</span>

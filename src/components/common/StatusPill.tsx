@@ -86,7 +86,7 @@ export function StatusPill({ variant, size = "md", children, className }: Status
       style={{
         display: "inline-flex", alignItems: "center",
         background: style.bg, color: style.color,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
         whiteSpace: "nowrap",
         ...SIZE_STYLES[size],
       }}

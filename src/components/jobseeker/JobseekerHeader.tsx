@@ -470,7 +470,7 @@ export function JobseekerHeader() {
                 style={{
                   flex: 1, height: "100%", border: "none", outline: "none",
                   fontSize: 16, color: "var(--ink)",
-                  fontFamily: "'Noto Sans JP', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   background: "transparent",
                 }}
               />

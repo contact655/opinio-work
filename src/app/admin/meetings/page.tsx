@@ -136,7 +136,7 @@ export default async function AdminMeetingsPage() {
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <span style={{
-            fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 800,
+            fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 9, fontWeight: 800,
             letterSpacing: "0.18em", textTransform: "uppercase",
             background: "#DC2626", color: "#fff", padding: "3px 8px", borderRadius: 4,
           }}>ADMIN</span>
@@ -163,7 +163,7 @@ export default async function AdminMeetingsPage() {
             padding: "20px 22px", position: "relative", overflow: "hidden",
           }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: "14px 14px 0 0" }} />
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 34, fontWeight: 800, color, lineHeight: 1, marginBottom: 6 }}>
+            <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 34, fontWeight: 800, color, lineHeight: 1, marginBottom: 6 }}>
               {value}
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: "#0F172A" }}>{label}</div>
@@ -198,7 +198,7 @@ export default async function AdminMeetingsPage() {
                 return (
                   <tr key={m.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
                     {/* 申込日 */}
-                    <td style={{ padding: "12px 16px", color: "#94A3B8", fontFamily: "Inter, sans-serif", fontSize: 12, whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "12px 16px", color: "#94A3B8", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, whiteSpace: "nowrap" }}>
                       {formatDate(m.createdAt)}
                     </td>
 
@@ -330,19 +330,19 @@ export default async function AdminMeetingsPage() {
                       </Link>
                     </td>
                     <td style={{ padding: "12px 16px", color: "#475569" }}>{s.companyName ?? "—"}</td>
-                    <td style={{ padding: "12px 16px", fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#0F172A" }}>
+                    <td style={{ padding: "12px 16px", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "#0F172A" }}>
                       {s.total}件
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       {s.completed > 0 ? (
-                        <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#059669" }}>
+                        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "#059669" }}>
                           {s.completed}件
                         </span>
                       ) : <span style={{ color: "#CBD5E1" }}>0件</span>}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       {s.thisMonthCompleted > 0 ? (
-                        <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#B45309" }}>
+                        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "#B45309" }}>
                           {s.thisMonthCompleted}件
                         </span>
                       ) : <span style={{ color: "#CBD5E1" }}>0件</span>}

@@ -174,7 +174,7 @@ export function GridSortBar({ totalCount }: Props) {
           <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
             <strong style={{
               color: "var(--ink)", fontWeight: 800,
-              fontFamily: "Inter, sans-serif", fontSize: 16,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16,
             }}>{totalCount}</strong>
             <span style={{ marginLeft: 2 }}>社</span>
           </span>

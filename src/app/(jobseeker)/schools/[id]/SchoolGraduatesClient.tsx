@@ -372,7 +372,7 @@ export default function SchoolGraduatesClient({ graduates, posts }: Props) {
                 width: 20, height: 20, borderRadius: 10,
                 background: tab === key ? "var(--royal-50)" : "var(--line-soft)",
                 color: tab === key ? "var(--royal)" : "var(--ink-mute)",
-                fontSize: 12, fontWeight: 700, fontFamily: "Inter, sans-serif",
+                fontSize: 12, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)",
               }}>
                 {count}
               </span>

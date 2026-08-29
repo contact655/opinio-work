@@ -109,7 +109,7 @@ export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }
                 background: "transparent",
                 border: "none",
                 borderRadius: 5,
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 11,
                 fontWeight: 700,
                 color: "var(--ink-soft)",
@@ -167,11 +167,11 @@ export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }
         color: "var(--ink-mute)",
         lineHeight: 1.6,
       }}>
-        <code style={{ fontFamily: "'Inter', sans-serif", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>##</code>{" "}
+        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>##</code>{" "}
         見出し2 ·{" "}
-        <code style={{ fontFamily: "'Inter', sans-serif", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>**太字**</code> ·{" "}
-        <code style={{ fontFamily: "'Inter', sans-serif", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>- リスト</code> ·{" "}
-        <code style={{ fontFamily: "'Inter', sans-serif", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>&gt; 引用</code>
+        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>**太字**</code> ·{" "}
+        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>- リスト</code> ·{" "}
+        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>&gt; 引用</code>
       </div>
     </div>
   );

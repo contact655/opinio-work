@@ -148,7 +148,7 @@ export function AddByUrlClient() {
             background: loading || url.trim() === "" ? "var(--ink-mute)" : "var(--royal)",
             color: "#fff",
             border: "none", borderRadius: 10,
-            fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 14, fontWeight: 700,
             cursor: loading || url.trim() === "" ? "not-allowed" : "pointer",
             transition: "background 0.15s, opacity 0.15s",

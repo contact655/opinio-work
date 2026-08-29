@@ -347,7 +347,7 @@ function FormTextarea({
           color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
           fontWeight: nearLimit ? 600 : 400,
           pointerEvents: "none",
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
         }}>
           {value.length} / {maxLength}
         </span>
@@ -638,7 +638,7 @@ export function CompanyEditClient({
                     width: 90, height: 90, borderRadius: 16,
                     background: form.logoGradient, color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 38,
+                    fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 38,
                     boxShadow: "0 6px 16px rgba(0,0,0,0.12)", flexShrink: 0,
                   }}>
                     {form.logoLetter}

@@ -346,7 +346,7 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
                       {standardRoleName(j) || "—"}
                     </td>
                     {/* 年収 */}
-                    <td style={{ padding: "12px 14px", color: "#475569", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+                    <td style={{ padding: "12px 14px", color: "#475569", whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                       {j.salary_min || j.salary_max
                         ? `¥${j.salary_min ?? "?"}–${j.salary_max ?? "?"}万`
                         : "—"}

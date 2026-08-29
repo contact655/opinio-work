@@ -62,7 +62,7 @@ export default async function OrganizationPage({
       currentTenantId={ctx.tenantId}
     >
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 32px 0" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px", fontFamily: "'Noto Serif JP', serif" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px", fontFamily: "var(--font-noto-serif)" }}>
           組織体制
         </h1>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 24px" }}>

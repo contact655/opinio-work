@@ -321,7 +321,7 @@ function CurrentEmployeesSection({
           現役社員
           <span
             style={{
-              fontFamily: "Inter, sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: "var(--text-sm)",
               fontWeight: 400,
               color: "var(--ink-mute)",
@@ -364,7 +364,7 @@ function CurrentEmployeesSection({
                 <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0, display: "inline-block" }} />
                   {name}
-                  <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>{count}</span>名
+                  <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{count}</span>名
                 </div>
               ))}
             </div>
@@ -435,7 +435,7 @@ function CurrentEmployeesSection({
                   </span>
                   <span
                     style={{
-                      fontFamily: "Inter, sans-serif",
+                      fontFamily: "var(--font-inter), var(--font-noto)",
                       fontSize: "var(--text-xs)",
                       fontWeight: 400,
                       color: "var(--ink-mute)",
@@ -479,7 +479,7 @@ function CurrentEmployeesSection({
                             </span>
                             <span
                               style={{
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: "var(--font-inter), var(--font-noto)",
                                 fontSize: "var(--text-xs)",
                                 fontWeight: 400,
                                 color: "var(--ink-mute)",
@@ -751,7 +751,7 @@ function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: Compan
           OB・OG社員
           <span
             style={{
-              fontFamily: "Inter, sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: "var(--text-sm)",
               fontWeight: 400,
               color: "var(--ink-mute)",

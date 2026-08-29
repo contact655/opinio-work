@@ -139,7 +139,7 @@ export function RecentlyViewedSection() {
                   position: "absolute", right: -4, bottom: -8,
                   fontSize: 38, fontWeight: 900,
                   color: "rgba(255,255,255,0.1)",
-                  fontFamily: "Inter, sans-serif", lineHeight: 1,
+                  fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1,
                   userSelect: "none", pointerEvents: "none",
                 }}>{initial}</span>
                 {usableLogoUrl(c.logo_url) ? (
@@ -155,7 +155,7 @@ export function RecentlyViewedSection() {
                   <span style={{
                     fontSize: 20, fontWeight: 800,
                     color: "rgba(255,255,255,0.9)",
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                     position: "relative", zIndex: 1,
                   }}>{initial}</span>
                 )}

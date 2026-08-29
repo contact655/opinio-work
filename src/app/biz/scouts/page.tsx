@@ -87,7 +87,7 @@ export default async function BizScoutsPage() {
               }}>
                 {tab.label}
                 {tab.count !== null && (
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
+                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
                     {tab.count}
                   </span>
                 )}

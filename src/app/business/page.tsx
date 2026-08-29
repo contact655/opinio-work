@@ -297,7 +297,7 @@ export default async function ForCompaniesPage() {
                 <div key={num}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
                     <span style={{
-                      fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 800,
+                      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800,
                       color: "var(--royal)", letterSpacing: "0.08em", flexShrink: 0,
                     }}>{num}</span>
                     <h3 style={{ fontSize: "clamp(17px, 2.6vw, 20px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>
@@ -421,7 +421,7 @@ export default async function ForCompaniesPage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 22, flexWrap: "wrap" }}>
                     <span style={{
-                      fontFamily: "Inter, sans-serif", fontSize: "clamp(22px, 3vw, 28px)",
+                      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: "clamp(22px, 3vw, 28px)",
                       fontWeight: 800, color: key === "paid" ? "var(--royal)" : "var(--ink)",
                       letterSpacing: "-0.02em", lineHeight: 1.2,
                     }}>{price}</span>
@@ -531,7 +531,7 @@ export default async function ForCompaniesPage() {
                     borderRadius: 12, border: "1px solid var(--line)",
                     height: "100%", display: "flex", flexDirection: "column",
                   }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)", marginBottom: 12 }}>
                       {step}
                     </div>
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
@@ -560,7 +560,7 @@ export default async function ForCompaniesPage() {
                 background: "var(--royal)", marginBottom: 18,
                 boxShadow: "0 4px 16px rgba(0,35,102,0.20)",
               }}>
-                <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: 24, color: "#fff", lineHeight: 1 }}>?</span>
+                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 800, fontSize: 24, color: "#fff", lineHeight: 1 }}>?</span>
               </div>
               <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)", marginBottom: 10 }}>
                 よくある質問

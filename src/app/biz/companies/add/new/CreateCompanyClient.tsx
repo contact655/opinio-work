@@ -51,7 +51,7 @@ const selectStyle: React.CSSProperties = {
   borderRadius: 8, outline: "none",
   background: "#fff",
   boxSizing: "border-box",
-  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+  fontFamily: "var(--font-inter), var(--font-noto)",
   appearance: "none",
   backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
   backgroundRepeat: "no-repeat",
@@ -66,7 +66,7 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 8, outline: "none",
   color: "var(--ink)", background: "#fff",
   boxSizing: "border-box",
-  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+  fontFamily: "var(--font-inter), var(--font-noto)",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -415,7 +415,7 @@ export function CreateCompanyClient({
             fontSize: 12, fontWeight: 600,
             color: "var(--ink-soft)",
             cursor: "pointer",
-            fontFamily: "'Noto Sans JP', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             textAlign: "center",
           }}
         >
@@ -476,7 +476,7 @@ export function CreateCompanyClient({
                   fontSize: 13, fontWeight: 600,
                   color: "var(--ink-soft)",
                   cursor: switchingOut ? "not-allowed" : "pointer",
-                  fontFamily: "'Noto Sans JP', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                 }}
               >
                 キャンセル
@@ -493,7 +493,7 @@ export function CreateCompanyClient({
                   fontSize: 13, fontWeight: 600,
                   color: "#fff",
                   cursor: switchingOut ? "not-allowed" : "pointer",
-                  fontFamily: "'Noto Sans JP', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                 }}
               >
                 {switchingOut ? "ログアウト中..." : "ログアウトして新規登録へ"}
@@ -541,7 +541,7 @@ export function CreateCompanyClient({
                 border: "none", borderRadius: 7,
                 fontSize: 12, fontWeight: 700,
                 cursor: "pointer",
-                fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
               }}
             >
               はい、{domainMatch.name} で登録する
@@ -555,7 +555,7 @@ export function CreateCompanyClient({
                 border: "1.5px solid var(--line)", borderRadius: 7,
                 fontSize: 12, fontWeight: 600,
                 cursor: "pointer",
-                fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
               }}
             >
               別の会社名で登録する
@@ -603,7 +603,7 @@ export function CreateCompanyClient({
                     borderRadius: 6,
                     fontSize: 11, color: "var(--royal)",
                     cursor: "pointer",
-                    fontFamily: "'Noto Sans JP', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                     fontWeight: 600,
                   }}
                 >
@@ -660,7 +660,7 @@ export function CreateCompanyClient({
                       width: "100%", padding: "8px 12px",
                       background: "transparent", border: "none", textAlign: "left",
                       cursor: "pointer",
-                      fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                      fontFamily: "var(--font-inter), var(--font-noto)",
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -772,7 +772,7 @@ export function CreateCompanyClient({
                     border: "none", borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
                     cursor: joinRequestLoading ? "not-allowed" : "pointer",
-                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 >
                   {/*
@@ -793,7 +793,7 @@ export function CreateCompanyClient({
                     borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
                     cursor: "pointer",
-                    fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 >
                   別の会社名で探す
@@ -809,7 +809,7 @@ export function CreateCompanyClient({
                   padding: "0", background: "transparent", color: "var(--ink-mute)",
                   border: "none", fontSize: 11,
                   cursor: loading ? "not-allowed" : "pointer",
-                  fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   textDecoration: "underline",
                 }}
               >
@@ -877,7 +877,7 @@ export function CreateCompanyClient({
               background: canSubmit ? "var(--royal)" : "var(--ink-mute)",
               color: "#fff",
               border: "none", borderRadius: 10,
-              fontFamily: "'Noto Sans JP', -apple-system, sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 14, fontWeight: 700,
               cursor: canSubmit ? "pointer" : "not-allowed",
               transition: "background 0.15s",

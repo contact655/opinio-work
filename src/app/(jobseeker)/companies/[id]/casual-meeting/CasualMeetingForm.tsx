@@ -240,7 +240,7 @@ export default function CasualMeetingForm({
           {companyInitial}
         </div>
         <div>
-          <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, letterSpacing: "0.08em", fontFamily: "Inter, sans-serif", marginBottom: 3 }}>
+          <div style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, letterSpacing: "0.08em", fontFamily: "var(--font-inter), var(--font-noto)", marginBottom: 3 }}>
             申し込み先
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>

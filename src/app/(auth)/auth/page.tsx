@@ -767,7 +767,7 @@ const s = {
   } as React.CSSProperties,
 
   logoLink: {
-    fontFamily: "Inter,sans-serif",
+    fontFamily: "var(--font-inter), var(--font-noto)",
     fontWeight: 800,
     fontSize: 20,
     letterSpacing: "-0.02em",

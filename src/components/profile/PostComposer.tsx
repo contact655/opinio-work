@@ -99,7 +99,7 @@ export function PostComposer({
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{
               fontSize: 12,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               color: remaining < 50 ? "var(--error)" : "var(--ink-mute)",
               fontWeight: remaining < 50 ? 700 : 400,
             }}>

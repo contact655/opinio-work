@@ -77,7 +77,7 @@ export function LinkPreviewCard({
           {/* ドメイン */}
           <div
             style={{
-              fontFamily: "Inter, sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 12, fontWeight: 500,
               color: "var(--ink-mute)",
               overflow: "hidden",

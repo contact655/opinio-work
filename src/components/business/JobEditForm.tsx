@@ -221,7 +221,7 @@ function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaL
           fontSize: 12,
           color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
           fontWeight: nearLimit ? 600 : 400, pointerEvents: "none",
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
         }}>
           {value.length} / {maxLength}
         </span>
@@ -950,7 +950,7 @@ export function JobEditForm({
                       {(i === 2 || i === 4) && <div key={`div-${i}`} style={{ width: 1, background: "var(--line)", margin: "4px 4px" }} />}
                       <button key={tool} type="button" onClick={() => {}} style={{
                         padding: "5px 10px", background: "transparent", border: "none", borderRadius: 5,
-                        fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700,
+                        fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
                         color: "var(--ink-soft)", cursor: "pointer",
                       }}>{tool}</button>
                     </>
@@ -1147,7 +1147,7 @@ export function JobEditForm({
                     >
                       <div style={{
                         fontSize: 15, fontWeight: 800, color: isSelected ? opt.color : "var(--ink-mute)",
-                        fontFamily: "Inter, sans-serif", letterSpacing: "0.05em", marginBottom: 3,
+                        fontFamily: "var(--font-inter), var(--font-noto)", letterSpacing: "0.05em", marginBottom: 3,
                       }}>
                         {opt.label}
                       </div>

@@ -114,7 +114,7 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
                       color: "var(--accent)",
                       background: "var(--royal-100)",
                       borderRadius: 4, padding: "1px 6px",
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: "var(--font-inter), var(--font-noto)",
                       letterSpacing: "0.04em",
                     }}>
                       DEFAULT

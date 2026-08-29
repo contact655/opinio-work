@@ -67,7 +67,7 @@ function EmptyStateTotal() {
       <div style={{ textAlign: "center" }}>
         <p style={{
           margin: "0 0 6px", fontSize: 16, fontWeight: 700,
-          color: "var(--ink)", fontFamily: "'Noto Sans JP', sans-serif",
+          color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)",
         }}>
           まだ応募はありません
         </p>
@@ -82,7 +82,7 @@ function EmptyStateTotal() {
           padding: "9px 20px", borderRadius: 8,
           background: "var(--royal)", color: "#fff",
           fontSize: 13, fontWeight: 600, textDecoration: "none",
-          fontFamily: "'Noto Sans JP', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           marginTop: 4,
         }}
       >
@@ -244,7 +244,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                 border: "none", borderRadius: 100,
                 cursor: "pointer",
                 color: isActive ? "#fff" : "var(--ink-soft)",
-                fontFamily: "'Noto Sans JP', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 13, fontWeight: isActive ? 700 : 500,
                 display: "inline-flex", alignItems: "center", gap: 6,
                 whiteSpace: "nowrap",
@@ -313,7 +313,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                     background: avatarGradient(app.id),
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#fff", fontWeight: 800, fontSize: 15,
-                    fontFamily: "'Noto Sans JP', sans-serif",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                     boxShadow: isSelected ? "0 0 0 2px #fff, 0 0 0 4px var(--royal)" : "none",
                     transition: "box-shadow .12s",
                   }}>
@@ -326,7 +326,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                     <div style={{
                       fontSize: 16, fontWeight: 700, color: "var(--ink)",
                       marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      fontFamily: "'Noto Sans JP', sans-serif",
+                      fontFamily: "var(--font-inter), var(--font-noto)",
                     }}>
                       {app.name}
                     </div>
@@ -342,7 +342,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
                       <AppStatusPill status={app.status} />
                       <span style={{
                         fontSize: 11, color: "var(--ink-mute)",
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-inter), var(--font-noto)",
                       }}>
                         {appliedDate}
                       </span>
@@ -424,7 +424,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
             background: avatarGradient(app.id),
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontWeight: 800, fontSize: 22,
-            fontFamily: "'Noto Sans JP', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             boxShadow: "0 0 0 3px #fff, 0 0 0 5px var(--royal-100)",
           }}>
             {nameInitial(app.name)}
@@ -432,7 +432,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
           <div style={{ minWidth: 0 }}>
             <div style={{
               fontSize: 20, fontWeight: 800, color: "var(--ink)",
-              fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 6,
+              fontFamily: "var(--font-inter), var(--font-noto)", marginBottom: 6,
               letterSpacing: "-0.01em",
             }}>
               {app.name}
@@ -441,7 +441,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
               <AppStatusPill status={app.status} />
               <span style={{
                 fontSize: 12, color: "var(--ink-mute)",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
               }}>
                 {new Date(app.createdAt).toLocaleDateString("ja-JP", {
                   year: "numeric", month: "short", day: "numeric",
@@ -454,7 +454,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
         {/* Status selector */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
           <label htmlFor={`app-status-${app.id}`} style={{
-            fontSize: 10, color: "var(--ink-mute)", fontFamily: "'Inter', sans-serif",
+            fontSize: 10, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
           }}>
             ステータス変更
@@ -474,7 +474,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
               border: "1px solid var(--royal-100)",
               background: isUpdating ? "var(--bg-tint)" : "#fff",
               fontSize: 13, color: "var(--ink)",
-              fontFamily: "'Noto Sans JP', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               cursor: isUpdating ? "not-allowed" : "pointer",
               outline: "none",
               boxShadow: "0 1px 3px rgba(0,35,102,0.06)",
@@ -669,7 +669,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                     style={{
                       width: 140, padding: "9px 12px", borderRadius: 8,
                       border: "1.5px solid #6EE7B7", fontSize: 14,
-                      fontFamily: "Inter, sans-serif", outline: "none",
+                      fontFamily: "var(--font-inter), var(--font-noto)", outline: "none",
                       background: "#fff",
                     }}
                   />
@@ -739,7 +739,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h3 style={{
         margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
         textTransform: "uppercase", color: "var(--ink-mute)",
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
       }}>
         {title}
       </h3>

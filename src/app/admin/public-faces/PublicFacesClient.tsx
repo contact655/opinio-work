@@ -87,10 +87,10 @@ export function PublicFacesClient({ faces }: { faces: PublicFace[] | null }) {
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: "8px 10px", color: "var(--ink-soft)", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "8px 10px", color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" }}>
                         {f.email ?? "—"}
                       </td>
-                      <td style={{ padding: "8px 10px", color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+                      <td style={{ padding: "8px 10px", color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {f.createdAt ? f.createdAt.slice(0, 10) : "—"}
                       </td>
                       <td style={{ padding: "8px 10px", color: "var(--ink-soft)", lineHeight: 1.6 }}>

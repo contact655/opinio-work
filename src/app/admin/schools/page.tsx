@@ -53,7 +53,7 @@ export default async function AdminSchoolsPage() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <span style={{
-              fontFamily: "Inter, sans-serif", fontSize: 9, fontWeight: 800,
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 9, fontWeight: 800,
               letterSpacing: "0.18em", textTransform: "uppercase",
               background: "#DC2626", color: "#fff", padding: "3px 8px", borderRadius: 4,
             }}>ADMIN</span>
@@ -110,7 +110,7 @@ export default async function AdminSchoolsPage() {
                   {/* 学校名 */}
                   <td style={{ padding: "10px 16px" }}>
                     <div style={{ fontWeight: 600, color: "#0F172A" }}>{s.name}</div>
-                    <div style={{ fontSize: 10, color: "#94A3B8", fontFamily: "Inter, sans-serif", marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-inter), var(--font-noto)", marginTop: 2 }}>
                       {s.id.slice(0, 8)}…
                     </div>
                   </td>
@@ -131,7 +131,7 @@ export default async function AdminSchoolsPage() {
                   </td>
 
                   {/* 登録日 */}
-                  <td style={{ padding: "10px 16px", color: "#94A3B8", fontFamily: "Inter, sans-serif", fontSize: 12 }}>
+                  <td style={{ padding: "10px 16px", color: "#94A3B8", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12 }}>
                     {formatDate(s.createdAt)}
                   </td>
                 </tr>

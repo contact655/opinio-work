@@ -67,14 +67,14 @@ export default async function AdminCandidatesPage({
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
             登録ユーザー{" "}
-            <strong style={{ color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
+            <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {users.length}
             </strong>{" "}名
           </span>
           {mentorCount > 0 && (
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
               うちメンター{" "}
-              <strong style={{ color: "#7C3AED", fontFamily: "Inter, sans-serif" }}>
+              <strong style={{ color: "#7C3AED", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 {mentorCount}
               </strong>{" "}名
             </span>
@@ -82,7 +82,7 @@ export default async function AdminCandidatesPage({
           {bizAdminCount > 0 && (
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
               うちBIZ担当者{" "}
-              <strong style={{ color: "#001233", fontFamily: "Inter, sans-serif" }}>
+              <strong style={{ color: "#001233", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                 {bizAdminCount}
               </strong>{" "}名
             </span>

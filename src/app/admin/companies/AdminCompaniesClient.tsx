@@ -243,7 +243,7 @@ export default function AdminCompaniesClient(
             { label: "未認証",           count: noneCount,       bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0" },
           ].map(({ label, count, bg, color, border }) => (
             <div key={label} style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Inter, sans-serif", lineHeight: 1.2 }}>{count}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1.2 }}>{count}</div>
               <div style={{ fontSize: 10, fontWeight: 700, color, marginTop: 2 }}>{label}</div>
             </div>
           ))}
@@ -496,7 +496,7 @@ export default function AdminCompaniesClient(
                                 background: active > 0 ? "var(--royal-50)" : "var(--line-soft)",
                                 color: active > 0 ? "var(--royal)" : "var(--ink-mute)",
                                 border: `1px solid ${active > 0 ? "var(--royal-100)" : "var(--line)"}`,
-                                fontFamily: "Inter, sans-serif",
+                                fontFamily: "var(--font-inter), var(--font-noto)",
                               }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                               {list.length}
@@ -623,12 +623,12 @@ export default function AdminCompaniesClient(
                           {esCfg.label}
                         </span>
                         {es === "verified" && c.verified_at && (
-                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif" }}>
+                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             認証: {new Date(c.verified_at).toLocaleDateString("ja-JP")}
                           </div>
                         )}
                         {es === "contracted" && c.contracted_at && (
-                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "Inter, sans-serif" }}>
+                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             契約: {new Date(c.contracted_at).toLocaleDateString("ja-JP")}
                           </div>
                         )}
@@ -652,7 +652,7 @@ export default function AdminCompaniesClient(
                       {/* 求人数 */}
                       <td style={{ padding: "10px 14px" }}>
                         {(c.job_count ?? 0) > 0 ? (
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontFamily: "Inter, sans-serif" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             {c.job_count}件
                           </span>
                         ) : (
@@ -670,7 +670,7 @@ export default function AdminCompaniesClient(
                       </td>
 
                       {/* 更新日 */}
-                      <td style={{ padding: "10px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "Inter, sans-serif" }}>
+                      <td style={{ padding: "10px 14px", color: "var(--ink-mute)", fontSize: 11, whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {new Date(c.updated_at).toLocaleDateString("ja-JP")}
                       </td>
                     </tr>

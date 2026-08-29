@@ -231,7 +231,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
                 }}
               >
                 {tab.labelJa}
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
+                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
                   {counts[tab.status]}
                 </span>
               </button>

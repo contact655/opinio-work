@@ -52,7 +52,7 @@ function AvatarCircle({ name, avatarUrl, size = 44 }: { name: string | null; ava
       width: size, height: size, borderRadius: "50%", flexShrink: 0,
       background: `linear-gradient(135deg, ${colors[colorIdx]}, ${colors[(colorIdx + 1) % colors.length]})`,
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "Inter, sans-serif", fontSize: size * 0.38, fontWeight: 700, color: "#fff",
+      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: size * 0.38, fontWeight: 700, color: "#fff",
     }}>
       {initial}
     </div>
@@ -103,7 +103,7 @@ function EmployeeCard({
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "Inter, sans-serif" }}>
+            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {formatPeriod(emp.startedAt, emp.endedAt, emp.isCurrent)}
             </span>
             <span style={{
@@ -111,7 +111,7 @@ function EmployeeCard({
               color: emp.isCurrent ? "var(--success)" : "var(--ink-mute)",
               background: emp.isCurrent ? "var(--success-soft)" : "var(--line-soft)",
               border: `1px solid ${emp.isCurrent ? "#A7F3D0" : "var(--line)"}`,
-              borderRadius: 4, padding: "1px 6px", fontFamily: "Inter, sans-serif",
+              borderRadius: 4, padding: "1px 6px", fontFamily: "var(--font-inter), var(--font-noto)",
             }}>
               {calcDuration(emp.startedAt, emp.endedAt, emp.isCurrent)}
             </span>
@@ -203,7 +203,7 @@ function HiddenCard({
           <span style={{
             fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
             color: "#92400E", background: "#FEF3C7", border: "1px solid #FDE68A",
-            borderRadius: 4, padding: "1px 6px", fontFamily: "Inter, sans-serif",
+            borderRadius: 4, padding: "1px 6px", fontFamily: "var(--font-inter), var(--font-noto)",
           }}>
             非表示中
           </span>
@@ -279,7 +279,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
 
       {/* ページヘッダー */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+        <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
           社員管理
         </h1>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
@@ -319,7 +319,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
             {label}
             {count > 0 && (
               <span style={{
-                fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700,
+                fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700,
                 padding: "1px 6px", borderRadius: 10,
                 background: tab === key ? (key === "hidden" ? "#FEF3C7" : "var(--royal-50)") : "var(--line-soft)",
                 color: tab === key ? (key === "hidden" ? "#92400E" : "var(--royal)") : "var(--ink-mute)",

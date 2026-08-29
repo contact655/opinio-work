@@ -46,7 +46,7 @@ function StageTag({ stage }: { stage: string | null }) {
       borderRadius: 100,
       fontSize: 11,
       fontWeight: 600,
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
       color: cfg.color,
       background: cfg.bg,
       flexShrink: 0,
@@ -126,7 +126,7 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
             >
               {tab.label}
               <span style={{
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 10,
                 fontWeight: 700,
                 padding: "1px 5px",
@@ -297,7 +297,7 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
                   alignItems: "center",
                   justifyContent: "center",
                   color: "#fff",
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontWeight: 700,
                   fontSize: 17,
                   flexShrink: 0,

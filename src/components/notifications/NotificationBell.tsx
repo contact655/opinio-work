@@ -83,7 +83,7 @@ function ActorAvatar({ notif }: { notif: NotificationItem }) {
         color: "#fff",
         fontWeight: 700,
         fontSize: 12,
-        fontFamily: "Inter, sans-serif",
+        fontFamily: "var(--font-inter), var(--font-noto)",
       }}
     >
       {avatarUrl ? (
@@ -193,7 +193,7 @@ export function NotificationBell() {
               color: "#fff",
               fontSize: 12,
               fontWeight: 700,
-              fontFamily: "Inter, sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -308,7 +308,7 @@ export function NotificationBell() {
                       )}
                       <div
                         style={{
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: "var(--font-inter), var(--font-noto)",
                           fontSize: 12, fontWeight: 500,
                           color: "var(--ink-mute)",
                           marginTop: 3,

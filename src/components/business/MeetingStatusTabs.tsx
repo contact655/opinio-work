@@ -60,7 +60,7 @@ export function MeetingStatusTabs({ counts, activeStatus, onStatusChange }: Prop
           >
             {label}
             <span style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 10,
               fontWeight: 700,
               opacity: 0.8,

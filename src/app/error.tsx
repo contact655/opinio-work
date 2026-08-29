@@ -29,7 +29,7 @@ export default function GlobalError({
       alignItems: "center",
       justifyContent: "center",
       padding: "40px 20px",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
     }}>
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         {/* Logo */}

@@ -280,12 +280,12 @@ export default function PlacementsClient({ placements: initial, users, companies
                 <td style={TD}>{p.joined_at}</td>
                 <td style={TD}>{CHANNEL_LABELS[p.channel] ?? p.channel}</td>
                 {/* 金額は内部データ。求職者側・企業側には出していない（参照は /admin/placements のみ） */}
-                <td style={{ ...TD, fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                <td style={{ ...TD, fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" }}>
                   {p.annual_salary != null
                     ? `${p.annual_salary.toLocaleString("ja-JP")}円`
                     : <span style={{ color: "var(--ink-mute)" }}>—</span>}
                 </td>
-                <td style={{ ...TD, fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                <td style={{ ...TD, fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" }}>
                   {p.fee_amount != null
                     ? `${p.fee_amount.toLocaleString("ja-JP")}円`
                     : <span style={{ color: "var(--ink-mute)" }}>—</span>}

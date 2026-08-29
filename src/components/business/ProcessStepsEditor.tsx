@@ -42,7 +42,7 @@ export function ProcessStepsEditor({ steps, onStepsChange }: Props) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700,
             fontSize: 13,
             flexShrink: 0,

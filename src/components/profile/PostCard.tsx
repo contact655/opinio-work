@@ -128,7 +128,7 @@ export function PostCard({ post }: { post: Post }) {
         {/* 投稿時間 */}
         <span style={{
           fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           flex: 1,
         }}>
           {relativeTime(post.created_at)}

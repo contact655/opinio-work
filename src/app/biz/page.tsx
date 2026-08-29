@@ -57,7 +57,7 @@ export default function BizLandingPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Noto Sans JP', sans-serif",
+      fontFamily: "var(--font-inter), var(--font-noto)",
       color: "#0f172a",
     }}>
       <style>{`

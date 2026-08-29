@@ -80,7 +80,7 @@ export default function AdminUserExperiencesPage() {
         ← 候補者一覧へ戻る
       </Link>
 
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: "16px 0 4px", color: "var(--ink)", fontFamily: "'Noto Serif JP', serif" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 800, margin: "16px 0 4px", color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
         経歴の企業紐付け
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 28px" }}>

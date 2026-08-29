@@ -294,7 +294,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
 
         {/* 給与 */}
         <div style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 18, fontWeight: 700, color: "var(--royal)",
           whiteSpace: "nowrap", flexShrink: 0,
         }}>
@@ -374,7 +374,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
               <strong style={{
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: job.meetingCount > 0 ? 13 : 11,
                 color: job.meetingCount > 0 ? "var(--royal)" : "var(--ink-mute)",
               }}>
@@ -392,7 +392,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
               <strong style={{
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: job.applicationCount > 0 ? 13 : 11,
                 color: job.applicationCount > 0 ? "var(--success)" : "var(--ink-mute)",
               }}>
