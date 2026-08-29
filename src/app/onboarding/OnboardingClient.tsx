@@ -34,8 +34,8 @@ type CompanyResult = {
   /** 英語社名。表示名を作るのに使う（`companyDisplayName`） */
   name_en: string | null;
   brand_name: string | null;
+  /** 業種（`ow_industries.name`）。⚠️ 廃止列 `ow_companies.industry` ではない */
   industry: string | null;
-  phase: string | null;
 };
 
 /* これまでの職歴（任意・複数）。
@@ -1186,9 +1186,12 @@ function CompanyPicker({
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {companyLabel(c)}
                   </div>
-                  {(c.industry || c.phase) && (
+                  {/* ⚠️★`phase` を戻さないこと（2026-08-29）。生値（listed / unicorn /
+                         series_d …）がそのまま出ていた。ここは企業を見分けるための行なので
+                         業種だけでよい。上場かどうかは見分けの役に立たない。 */}
+                  {c.industry && (
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                      {[c.industry, c.phase].filter(Boolean).join(" · ")}
+                      {c.industry}
                     </div>
                   )}
                 </div>
