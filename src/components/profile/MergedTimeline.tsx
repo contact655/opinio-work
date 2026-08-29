@@ -521,24 +521,36 @@ function EnrolledBadge() {
       同じ値が経路によって3通りに見えていた。**ここ以外に描かないこと。**
       （いま残っているのは `career` と `career-same-company` の2経路）
 
-   ⚠️ **色は「種類が読める」ための色分けであって、良し悪しの序列ではない。**
-      正社員が上位で業務委託が下位、という意味を持たせない。
    ⚠️ 語彙は `careerOptions.ts` の `EMPLOYMENT_TYPES`（6値）と DB の
       `ow_experiences_employment_type_check` に揃えてある。**値を足すときは3つとも直す。**
-      ここに無い値が来ても落とさず、灰色で**値そのものを出す**（握りつぶさない）。
-   ⚠️ 緑（在籍中）と橙（旧・並行バッジ）を避けた色にしてある。 */
-const EMPLOYMENT_COLORS: Record<string, { fg: string; bg: string; border: string }> = {
-  "正社員":             { fg: "#002366", bg: "#EFF3FC", border: "#DCE5F7" },
-  "契約社員":           { fg: "#0F766E", bg: "#F0FDFA", border: "#99F6E4" },
-  "派遣社員":           { fg: "#6D28D9", bg: "#F5F3FF", border: "#DDD6FE" },
-  "業務委託":           { fg: "#BE123C", bg: "#FFF1F2", border: "#FECDD3" },
-  "アルバイト・パート": { fg: "#C2410C", bg: "#FFF7ED", border: "#FED7AA" },
-  "その他":             { fg: "#475569", bg: "#F1F5F9", border: "#E2E8F0" },
-};
-const EMPLOYMENT_FALLBACK = { fg: "#475569", bg: "#F1F5F9", border: "#E2E8F0" };
+      ここに無い値が来ても落とさず、**値そのものを出す**（握りつぶさない）。
+
+   ── ★雇用形態ごとの色分けは廃止した（2026-08-30）───────────────────────────
+   ⚠️★**戻さないこと。** 以前は6値それぞれに色を割り当てていた
+      （正社員=濃紺 / 契約社員=teal / 派遣社員=**紫** / 業務委託=rose /
+        アルバイト・パート=**橙** / その他=灰）。
+
+   ① ★**「アルバイト・パート」が `#FFF7ED` / `#C2410C` / `#FED7AA` で、
+        「面談可」バッジ（`components/profile/view/TalkableBadge.tsx`）と3色とも一致していた。**
+        `/u/[id]` は**両方が同時に出るページ**なので、同じ画面に同じ色の橙バッジが並び、
+        片方は「この人に話を聞ける」、もう片方は「この職歴はアルバイトだった」を意味していた。
+   ② 紫と橙は `.claude/skills/ui-conventions`「色の役割」が使わないと定めた色。
+   ③ ★**この直上のコメント自身が「緑（在籍中）と橙（旧・並行バッジ）を避けた色にしてある」と
+        書いていたが、実際には橙を使っていた。** 宣言と実装が食い違っていた。
+   ④ 色に凡例が無く、「派遣社員が紫」を読み手が解釈する手がかりが無かった。
+      ここで情報を運んでいるのは**バッジの文字そのもの**であって、色ではない。
+
+   ⚠️ **本番では一度も描画されていない衝突だった**（2026-08-30 実測: `employment_type` は
+      **正社員6件と NULL 18件だけ**）。だから見た目は変わらない。**踏むのは値が増えた日。**
+
+   ⚠️ 正社員だけ色を残す案は採らない。**それをやると「正社員が上位」という序列になる**
+      （旧コメントが明示的に禁じていたもの）。**全値とも同じ見た目にする。**
+   ⚠️ 未知の値だけ灰色にする案も採らない。読み手は語彙一覧を知らないので、
+      灰と濃紺の差が何を意味するのか解釈できない。**不正値は DB の CHECK で止める。** */
+const EMPLOYMENT_BADGE = { fg: "#002366", bg: "#EFF3FC", border: "#DCE5F7" } as const;
 
 function EmploymentBadge({ value }: { value: string }) {
-  const c = EMPLOYMENT_COLORS[value] ?? EMPLOYMENT_FALLBACK;
+  const c = EMPLOYMENT_BADGE;
   return (
     <span
       style={{
