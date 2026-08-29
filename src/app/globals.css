@@ -67,13 +67,13 @@
   --purple-soft:  #F3E8FF;
   --error:        #DC2626;  /* エラー・declined */
   --error-soft:   #FEE2E2;
-  /* ⚠️ **未使用**（2026-08-30 実測: `src` `content` からの参照 0 件。
-        `var(--${...})` のような動的なトークン名の組み立ても 0 件）。
-        旧 StatusPill の名残で、説明の「scheduled」は現在 `--purple` が担っている
-        （`components/common/StatusPill.tsx` の `scheduled` は purple）。
-     ⚠️ **新しく使い始めないこと。** 使うなら、上の紫と役割が重ならないことを先に確かめる。 */
-  --pink:         #DB2777;
-  --pink-soft:    #FCE7F3;
+  /* ⚠️ `--pink` / `--pink-soft`（#DB2777 / #FCE7F3）は 2026-08-30 に削除した。
+        旧 StatusPill の名残で、**参照が0件**だった（`var(--${...})` のような
+        動的なトークン名の組み立ても0件）。説明は「scheduled」だったが、その役割は
+        現在 `--purple` が担っており（`components/common/StatusPill.tsx` の
+        `scheduled` は purple）、**同じ意味を主張するトークンが2つある**状態だった。
+     ⚠️ `#DB2777` はアバターのグラデーション（`companies/[id]/avatarGradients.tsx` ほか）に
+        直書きで残っている。**あれはトークンとは無関係**なので、混同して消さないこと。 */
 
   /* === Spacing Scale (8px grid) === */
   --space-1:   4px;   /* atomic — アイコンとテキスト間など極小間隔 */
