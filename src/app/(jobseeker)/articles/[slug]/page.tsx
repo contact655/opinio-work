@@ -8,6 +8,7 @@ import {
   type ArticleSubject,
   type QA,
   type Chapter,
+  type ThemeItem,
 } from "@/app/articles/mockArticleData";
 import {
   getArticleBySlug,
@@ -145,6 +146,56 @@ function SubjectCard({ subject }: { subject: ArticleSubject }) {
             <span style={{ color: INK_SOFT, fontWeight: 500 }}>{subject.current_status}</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ★「この記事で分かること」（2026-08-29）。`ow_articles.themes_blocks` を描く。
+ *
+ * ── なぜ足したか ────────────────────────────────────────────────────────────
+ * ⚠️★**編集で書いた内容が、どこにも出ていなかった。**
+ *    実測（2026-08-29）: 記事16件のうち**4件**が themes_blocks を持ち、
+ *    1件あたり**4テーマ**（アイコン＋見出し＋説明）＝**16件ぶんの本文**が入っていた。
+ *    出ていたのは `/articles?view=grid` のカードの**見出しだけ**（しかも最大2件）で、
+ *    **説明文は一度も表示されたことがなかった。** 記事詳細にも出ていなかった。
+ *
+ * ⚠️ 内容は「PdMのJD読み方、面接での経験の伝え方、給与交渉のコツ」のように
+ *    **読者が何を得られるか**を書いたもの。Q&A の前に置いて、読む前の見取り図にする。
+ *
+ * ⚠️ 空なら**節ごと出さない**（見出しだけ残さない）。
+ */
+function ThemesSection({ themes }: { themes: ThemeItem[] }) {
+  if (!themes.length) return null;
+  return (
+    <div style={{ marginTop: 40, padding: "var(--space-5) var(--space-6)", background: "var(--bg-tint)", borderRadius: 12 }}>
+      <div style={{
+        fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
+        color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-4)",
+      }}>
+        WHAT YOU&apos;LL LEARN
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        {themes.map((t, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            {/* ⚠️ アイコンは絵文字1文字。無い記事もあるので、無ければ枠ごと出さない */}
+            {t.icon && <span style={{ fontSize: 18, lineHeight: 1.4, flexShrink: 0 }} aria-hidden>{t.icon}</span>}
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontFamily: "var(--font-noto-serif)", fontSize: "var(--text-base)",
+                fontWeight: 700, color: INK, lineHeight: 1.5, marginBottom: 2,
+              }}>
+                {t.title}
+              </div>
+              {t.desc && (
+                <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.8, color: INK_SOFT, margin: 0 }}>
+                  {t.desc}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -599,6 +650,9 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 {article.quote}
               </blockquote>
             )}
+
+            {/* ★この記事で分かること（Q&A の前に置いて見取り図にする） */}
+            {article.themes && <ThemesSection themes={article.themes} />}
 
             {/* Q&A */}
             {article.qa && <QASection qa={article.qa} />}
