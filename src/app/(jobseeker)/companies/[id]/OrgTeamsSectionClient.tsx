@@ -54,7 +54,7 @@ const DIVISION_ORDER = ["Sales", "Inside Sales", "Solution Engineering", "Custom
 // ─── SecTitle (local copy since this is a client component file) ───────────────
 function SecTitle({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+    <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
       {icon && (
         <span style={{
           width: 28, height: 28, borderRadius: 8, background: "var(--royal-50)",
@@ -221,7 +221,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                 }}>
                   {config.icon}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: config.color, fontFamily: "var(--font-noto-sans)" }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: config.color, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                   {config.label}
                 </span>
                 <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
@@ -262,7 +262,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                         {/* Team name */}
                         <span style={{
                           fontSize: 13, fontWeight: 700, color: "var(--ink)",
-                          fontFamily: "var(--font-noto-sans)", flexShrink: 0,
+                          fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0,
                           minWidth: 140,
                         }}>
                           {team.name}
@@ -378,7 +378,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                     borderRadius: 8, color: config.color,
                     fontSize: 12, fontWeight: 700, cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    fontFamily: "var(--font-noto-sans)",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -396,7 +396,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                     borderRadius: 8, color: "var(--ink-mute)",
                     fontSize: 12, fontWeight: 600, cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    fontFamily: "var(--font-noto-sans)",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                   }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">

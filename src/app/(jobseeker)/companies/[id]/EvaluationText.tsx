@@ -73,7 +73,7 @@ export default function EvaluationText({ text }: { text: string }) {
             background: "var(--royal-50)",
             border: "1px solid var(--royal-100)",
             cursor: "pointer",
-            fontFamily: "var(--font-noto-sans)",
+            fontFamily: "var(--font-inter), var(--font-noto)",
           }}
         >
           {expanded ? (

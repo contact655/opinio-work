@@ -1062,7 +1062,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {company.about && (
                   <div style={{ marginBottom: company.why_join ? 24 : 0 }}>
                     {company.about.split("\n").filter((line: string) => line.trim()).map((line: string, i: number) => (
-                      <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>
+                      <p key={i} style={{ margin: i > 0 ? "14px 0 0" : 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {line.trim()}
                       </p>
                     ))}
@@ -1071,7 +1071,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {company.why_join && (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" }}>
+                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" }}>
                         この会社の魅力
                       </h3>
                       <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
@@ -1086,7 +1086,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                             display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: 12, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", marginTop: 2,
                           }}>{i + 1}</span>
-                          <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
+                          <p style={{ margin: 0, fontSize: 15, color: "var(--ink)", lineHeight: 1.9, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             {sentence.trim().replace(/。$/, "")}。
                           </p>
                         </div>

@@ -36,7 +36,7 @@ export function SecTitle({
         display: "flex",
         alignItems: "center",
         gap: "var(--space-3)",
-        fontFamily: 'var(--font-noto-sans)',
+        fontFamily: 'var(--font-inter), var(--font-noto)',
         fontWeight: 800,
         fontSize: 20,
         color: "var(--ink)",

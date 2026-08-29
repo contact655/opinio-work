@@ -24,7 +24,7 @@ export function Markdown({ children }: { children: string }) {
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => (
-            <p style={{ margin: "0 0 14px", fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-noto-sans)" }}>{children}</p>
+            <p style={{ margin: "0 0 14px", fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-inter), var(--font-noto)" }}>{children}</p>
           ),
           h1: ({ children }) => <h3 style={H}>{children}</h3>,
           h2: ({ children }) => <h3 style={H}>{children}</h3>,
@@ -32,7 +32,7 @@ export function Markdown({ children }: { children: string }) {
           ul: ({ children }) => <ul style={LIST}>{children}</ul>,
           ol: ({ children }) => <ol style={LIST}>{children}</ol>,
           li: ({ children }) => (
-            <li style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.85, marginBottom: 4, fontFamily: "var(--font-noto-sans)" }}>{children}</li>
+            <li style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.85, marginBottom: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>{children}</li>
           ),
           strong: ({ children }) => <strong style={{ fontWeight: 700, color: "var(--ink)" }}>{children}</strong>,
           /* ⚠️ 企業が書いたリンクは新規タブ＋ noopener。rel を外さないこと。 */
@@ -52,7 +52,7 @@ export function Markdown({ children }: { children: string }) {
 
 const H = {
   margin: "20px 0 8px", fontSize: 16, fontWeight: 700,
-  color: "var(--ink)", lineHeight: 1.6, fontFamily: "var(--font-noto-sans)",
+  color: "var(--ink)", lineHeight: 1.6, fontFamily: "var(--font-inter), var(--font-noto)",
 } as const;
 
 const LIST = { margin: "0 0 14px", paddingLeft: "1.4em" } as const;

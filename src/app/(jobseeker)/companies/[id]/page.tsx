@@ -281,7 +281,7 @@ function Hero({
                   fontWeight: 700,
                   letterSpacing: "0.13em",
                   textTransform: "uppercase" as const,
-                  fontFamily: "Inter, var(--font-inter), sans-serif",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                 }}
               >
                 {/* ⚠️ 値が無いときは**要素ごと出さない。** 2026-08-25 まで無条件に
@@ -546,7 +546,7 @@ function AboutSection({
 
         {/* ② 組織文化の説明文（見出しなし、本文直後に統合） */}
         {detail.culture_description && (
-          <p style={{ margin: 0, marginBottom: "var(--space-6)", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, fontFamily: "var(--font-noto-sans)" }}>
+          <p style={{ margin: 0, marginBottom: "var(--space-6)", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, fontFamily: "var(--font-inter), var(--font-noto)" }}>
             {detail.culture_description}
           </p>
         )}
@@ -655,7 +655,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         {hasProducts && (
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な製品・サービス</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" as const }}>主な製品・サービス</h3>
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
@@ -732,7 +732,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     {/* ⚠️ minWidth: 0 が要る。これが無いと flex item が
                            min-content まで広がり、ellipsis が効かない。 */}
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-noto-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-inter), var(--font-noto)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {name}
                       </p>
                       {sub && (
@@ -741,7 +741,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                         <p style={{
                           margin: "2px 0 0", fontSize: "var(--text-xs)", fontWeight: 500,
                           color: "var(--ink-mute)", lineHeight: 1.3,
-                          fontFamily: "var(--font-noto-sans)",
+                          fontFamily: "var(--font-inter), var(--font-noto)",
                           display: "-webkit-box", WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical" as const, overflow: "hidden",
                         }}>
@@ -765,7 +765,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         {hasCases && (
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" as const }}>主な導入事例</h3>
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>{detail.customer_cases!.length}社</span>
               <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             </div>
@@ -777,7 +777,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         {!hasCases && hasCustomers && (
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-noto-sans)", letterSpacing: "0.02em" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)", letterSpacing: "0.02em" }}>
                 主な顧客
               </span>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
@@ -799,7 +799,7 @@ function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                     fontSize: "var(--text-sm)",
                     fontWeight: 600,
                     color: "var(--royal)",
-                    fontFamily: "var(--font-noto-sans)",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
                     lineHeight: 1.4,
                   }}
                 >
@@ -873,11 +873,11 @@ function LocationsCapitalSection({ detail }: { detail: CompanyDetail }) {
         `p { color: #334155 }` には当たらないが、様式を揃えるため書いておく。 */
   const MAIN: React.CSSProperties = {
     fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.7,
-    fontFamily: "var(--font-noto-sans)",
+    fontFamily: "var(--font-inter), var(--font-noto)",
   };
   const SUB: React.CSSProperties = {
     fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7,
-    fontFamily: "var(--font-noto-sans)",
+    fontFamily: "var(--font-inter), var(--font-noto)",
   };
 
   return (
@@ -1387,7 +1387,7 @@ function JobsSection({
           /* 先頭以外は前のカテゴリとの間を空ける（元の marginBottom: 20 相当） */
           marginTop: ci === 0 ? 0 : 14, marginBottom: 4,
         }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
             {cat.cat}
           </span>
           <span style={{
@@ -2275,7 +2275,7 @@ function Sidebar({
             letterSpacing: "0.02em",
             color: "#334155",
             marginBottom: "var(--space-3)",
-            fontFamily: "var(--font-noto-sans)",
+            fontFamily: "var(--font-inter), var(--font-noto)",
           }}
         >
           企業情報
@@ -2683,7 +2683,7 @@ export default async function CompanyDetailPage({
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     ACTIVITY
                   </div>
-                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)" }}>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     更新情報
                   </h2>
                 </div>
@@ -2781,7 +2781,7 @@ export default async function CompanyDetailPage({
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     NEXT STEP
                   </div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", lineHeight: 1.4 }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1.4 }}>
                     気になったら、気軽に話してみませんか？
                   </h3>
                   <p style={{ margin: "5px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>

@@ -174,7 +174,7 @@ export function CompanyCardList({ company, compact }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span className="clv-name" style={{
                 fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
-                fontFamily: isEnName ? "var(--font-inter), var(--font-noto)" : "var(--font-noto-sans)",
+                fontFamily: isEnName ? "var(--font-inter), var(--font-noto)" : "var(--font-inter), var(--font-noto)",
                 letterSpacing: isEnName ? "-0.02em" : "0",
                 transition: "color 0.15s",
                 overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
@@ -183,7 +183,7 @@ export function CompanyCardList({ company, compact }: Props) {
               {showSubtitle && company.name && (
                 <span style={{
                   fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.3,
-                  fontFamily: "var(--font-noto-sans)",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
                   display: "block",
                 }}>{company.name}</span>
@@ -319,7 +319,7 @@ export function CompanyCardList({ company, compact }: Props) {
             <span className="clc-name" style={{
               fontSize: 16, fontWeight: 800,
               color: "var(--ink)",
-              fontFamily: isEnName ? "var(--font-inter), var(--font-noto)" : "var(--font-noto-sans)",
+              fontFamily: isEnName ? "var(--font-inter), var(--font-noto)" : "var(--font-inter), var(--font-noto)",
               letterSpacing: isEnName ? "-0.02em" : "0",
               transition: "color 0.15s",
             }}>

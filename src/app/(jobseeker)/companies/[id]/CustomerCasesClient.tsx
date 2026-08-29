@@ -18,14 +18,23 @@ function productStyle(_name: string): { bg: string; border: string; color: strin
   return CHIP_STYLES.neutral;
 }
 
-/** 数値・パーセント・倍数を太字にする */
+/**
+ * 数値・パーセント・倍数を太字にする。
+ *
+ * ⚠️★**色を付けないこと（2026-08-29）。** 以前は緑（#047857）にしていたが、
+ *    `.claude/skills/ui-conventions`「色の役割」で**緑は金銭的にプラスの条件のみ**と
+ *    決めている。ここで緑になっていたのは「48%」「3.2倍」「2年」のような
+ *    **導入の成果**で、金銭ではない。同じページに年収レンジの緑があるため、
+ *    **凡例の無い緑が2つの意味で使われていた。**
+ * ⚠️ 強調は**太さだけ**で足りる（fontWeight 800）。色を足さない。
+ */
 function BoldNumbers({ text }: { text: string }) {
   const parts = text.split(/([\d,]+(?:\.\d+)?(?:倍|%|件|名|社|万|億|円|ヶ月|ヵ月|か月|時間|分|日|年|割|本|個|台|回|人)?)/g);
   return (
     <>
       {parts.map((part, i) =>
         /[\d,]+(?:\.\d+)?/.test(part) ? (
-          <strong key={i} style={{ fontSize: 14, fontWeight: 800, color: "#047857", fontFamily: "var(--font-inter), var(--font-noto)" }}>{part}</strong>
+          <strong key={i} style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{part}</strong>
         ) : part
       )}
     </>
@@ -49,7 +58,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
     >
       {/* ヘッダー行: 企業名 + 業種バッジ + 製品ピル */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-sans)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", display: "inline-flex", alignItems: "center", gap: 6 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
@@ -59,7 +68,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
           fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 100, padding: "2px 9px",
-          fontFamily: "var(--font-noto-sans)", whiteSpace: "nowrap",
+          fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap",
         }}>
           {c.industry}
         </span>
@@ -84,11 +93,11 @@ function CaseCard({ c }: { c: CustomerCase }) {
         <span style={{
           fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-soft)",
           background: "#F1F5F9", borderRadius: 6, padding: "2px 7px",
-          whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)",
+          whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-inter), var(--font-noto)",
         }}>
           活用内容
         </span>
-        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontFamily: "var(--font-noto-sans)" }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontFamily: "var(--font-inter), var(--font-noto)" }}>
           {c.usecase}
         </p>
       </div>
@@ -98,11 +107,11 @@ function CaseCard({ c }: { c: CustomerCase }) {
           /* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */
           fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)",
           background: "var(--bg-tint)", borderRadius: 6, padding: "2px 7px",
-          whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-noto-sans)",
+          whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-inter), var(--font-noto)",
         }}>
           成果
         </span>
-        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-noto-sans)" }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>
           <BoldNumbers text={c.result} />
         </p>
       </div>

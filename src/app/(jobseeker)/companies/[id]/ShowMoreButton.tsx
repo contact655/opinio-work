@@ -21,7 +21,7 @@ const BASE: React.CSSProperties = {
   fontWeight: 700,
   textDecoration: "none",
   cursor: "pointer",
-  fontFamily: "var(--font-noto-sans)",
+  fontFamily: "var(--font-inter), var(--font-noto)",
   transition: "background 0.15s, border-color 0.15s",
 };
 
