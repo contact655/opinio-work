@@ -135,26 +135,22 @@ function SecTitle({
   color: string;
   children: React.ReactNode;
 }) {
-  // Map solid color → pastel bg / colored fg (matches companies/[id] pattern)
+  /* アイコンの色。塗り色 → 淡い背景＋濃い前景（companies/[id] と同じ形）。
+     ⚠️★2026-08-29 に **purple / warm / ink / ink-mute / #0891B2 を削除した。**
+        実測で**呼び出しは `var(--royal)` 9件と `var(--accent)` 1件だけ**で、
+        残りは一度も使われていなかった。
+        `.claude/skills/ui-conventions`「色の役割」は**紫＝使わない／
+        オレンジ＝カジュアル面談だけ**と定めているので、選べる状態にしない。
+     ⚠️ `--success` は残す（「金銭的にプラス」の役割が定義されている）。 */
   const iconBgMap: Record<string, string> = {
     "var(--royal)":   "var(--royal-50)",
     "var(--accent)":  "var(--royal-50)",
     "var(--success)": "var(--success-soft,#ECFDF5)",
-    "var(--purple)":  "var(--purple-soft,#F3E8FF)",
-    "var(--warm)":    "var(--warm-soft,#FEF3C7)",
-    "var(--ink)":     "var(--bg-tint,#F8FAFC)",
-    "var(--ink-mute)":"var(--bg-tint,#F8FAFC)",
-    "#0891B2":        "#E0F2FE",
   };
   const iconFgMap: Record<string, string> = {
     "var(--royal)":   "var(--royal)",
     "var(--accent)":  "var(--accent)",
     "var(--success)": "var(--success)",
-    "var(--purple)":  "var(--purple)",
-    "var(--warm)":    "#B45309",
-    "var(--ink)":     "var(--ink-soft)",
-    "var(--ink-mute)":"var(--ink-mute)",
-    "#0891B2":        "#0891B2",
   };
   const iconBg = iconBgMap[color] ?? "var(--royal-50)";
   const iconFg = iconFgMap[color] ?? color;
@@ -878,7 +874,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 {/* 必須スキル — pill tags */}
                 {job.required_skills.length > 0 && (
                 <div style={{ marginBottom: job.preferred_skills.length > 0 ? "var(--space-5)" : 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#B45309", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                  {/* ⚠★オレンジにしない（2026-08-29）。**オレンジはカジュアル面談だけの色**
+                         （.claude/skills/ui-conventions「色の役割」）。必須スキルの見出しに使うと、
+                         同じページのカジュアル面談 CTA と同じ色が別の意味を持つ。
+                      ⚠ 強調は**太さ**で足りる。 */}
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--ink-soft)", letterSpacing: "0.05em", marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                     必須スキル
                   </div>
@@ -890,7 +890,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         background: "#FFFBEB", border: "1.5px solid #FDE68A",
                         color: "#92400E", fontSize: 13, fontWeight: 600,
                       }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
                         {s}
                       </span>
                     ))}
@@ -1344,8 +1344,9 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               {job.why_hire && (
               <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
                 <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--warm-soft)", borderBottom: "1px solid #fde68a", display: "flex", alignItems: "center", gap: 8 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "#B45309" }}>なぜ今採用するか</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  {/* ⚠ 同上。オレンジはカジュアル面談だけ。ここは royal（主要な情報）にする */}
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>なぜ今採用するか</span>
                 </div>
                 <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
                   {job.why_hire}

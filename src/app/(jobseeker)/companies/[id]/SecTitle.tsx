@@ -15,19 +15,23 @@ export function SecTitle({
 }: {
   icon: React.ReactNode;
   children: React.ReactNode;
-  iconColor?: "default" | "green" | "purple" | "warm";
+  /**
+   * ⚠️★`purple` と `warm` は 2026-08-29 に削除した。**戻さないこと。**
+   *  実測で**呼び出し4箇所すべてが `default`** で、一度も使われていなかった。
+   *  `.claude/skills/ui-conventions`「色の役割」は
+   *    **紫＝使わない／オレンジ＝カジュアル面談だけ**
+   *  と定めているので、選べる状態にしておくと規約違反を招く。
+   * ⚠️ `green` は残す（`--success` は「金銭的にプラス」の役割で定義がある）。
+   */
+  iconColor?: "default" | "green";
 }) {
   const iconBg: Record<string, string> = {
     default: "var(--royal-50)",
     green: "var(--success-soft,#ECFDF5)",
-    purple: "var(--purple-soft,#F3E8FF)",
-    warm: "var(--warm-soft,#FEF3C7)",
   };
   const iconFg: Record<string, string> = {
     default: "var(--royal)",
     green: "var(--success)",
-    purple: "var(--purple)",
-    warm: "#B45309",
   };
 
   return (
