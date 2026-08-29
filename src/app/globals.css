@@ -49,11 +49,30 @@
   --success-soft: #ECFDF5;
   --warm:         #F59E0B;  /* 注意・pending */
   --warm-soft:    #FEF3C7;
-  --purple:       #7C3AED;  /* scheduling */
+  /* ⚠️★この2つの説明は「scheduling」だったが、実態と違っていた（2026-08-30 に書き直し）。
+        実際の用途は次のとおりで、**5つの無関係な意味を1色で運んでいる**（37箇所）:
+          ① 日程調整中・面談予定・調整中  … StatusPill / MeetingStatusTabs / ConversationsClient
+          ② 運営審査中（pending_review） … StatusPill / JobListCard
+          ③ 面接中（interview）          … StatusPill / lib/business/applications.ts
+          ④ ★求職者側の分類色            … OB/OG（求人詳細）・在学中（職歴）・
+                                            イベントカード（フィード）・video/audio タグ
+          ⑤ 編集者ロール / オフィス写真アイコン / 職歴エディタの補助欄
+     ⚠️★**新しく使わないこと。** `.claude/skills/ui-conventions`「色の役割」は
+        **紫は使わない**と定めている。①②③（運営・企業側の状態表示）は凡例があり
+        当面残すが、**④のような求職者向けの分類色をここに足さない。**
+        足すと「1つの色が2つ以上の意味を持たない」という規約の目的が崩れる。
+     ⚠️ 用途を数え直すときは `grep -rn 'var(--purple' src`。**定義の文言では判断しない**
+        （それがこの書き直しの理由）。 */
+  --purple:       #7C3AED;
   --purple-soft:  #F3E8FF;
   --error:        #DC2626;  /* エラー・declined */
   --error-soft:   #FEE2E2;
-  --pink:         #DB2777;  /* scheduled */
+  /* ⚠️ **未使用**（2026-08-30 実測: `src` `content` からの参照 0 件。
+        `var(--${...})` のような動的なトークン名の組み立ても 0 件）。
+        旧 StatusPill の名残で、説明の「scheduled」は現在 `--purple` が担っている
+        （`components/common/StatusPill.tsx` の `scheduled` は purple）。
+     ⚠️ **新しく使い始めないこと。** 使うなら、上の紫と役割が重ならないことを先に確かめる。 */
+  --pink:         #DB2777;
   --pink-soft:    #FCE7F3;
 
   /* === Spacing Scale (8px grid) === */
