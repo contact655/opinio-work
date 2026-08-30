@@ -18,8 +18,7 @@ import {
   type PublicAmbassador,
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
-import { InfoCard } from "./InfoCard";
-import { CHIP_STYLES, type ChipVariant } from "@/lib/utils/chipVariant";
+import { CHIP_STYLES } from "@/lib/utils/chipVariant";
 import { SecTitle } from "./SecTitle";
 import AmbassadorWidget from "./AmbassadorWidget";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
@@ -43,6 +42,7 @@ import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, F
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import CustomerCasesClient from "./CustomerCasesClient";
 import { CollapsibleList } from "./CollapsibleList";
+import { BenefitsList } from "@/components/companies/BenefitsList";
 import { ShowMoreButton } from "./ShowMoreButton";
 
 /*
@@ -57,7 +57,9 @@ import { ShowMoreButton } from "./ShowMoreButton";
 */
 const PRODUCTS_LIMIT = 5;
 const JOBS_LIMIT = 3;
-const BENEFIT_CATEGORY_LIMIT = 3;
+/* ⚠️ 実体は共通部品に移した（2026-08-30）。求人詳細と同じ値を見るため。
+      ⚠️ ここで再定義しないこと。二重管理になる。 */
+// BENEFIT_CATEGORY_LIMIT は @/components/companies/BenefitsList にある
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan } from "@/lib/utils/salary";
@@ -860,112 +862,14 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
       <div style={{ padding: "var(--space-6)" }}>
 
       {/* ── 福利厚生 ── */}
-      {/* Benefit keyword → emoji mapping */}
-      {(() => {
-        // SVGベースの福利厚生アイコン（キーワード → SVG）
-        /* ⚠️ 色は個別に持たない。役割（neutral / money）だけを返す。
-              以前は紫（書籍・学習）とオレンジ（育休・産休）を独自に当てており、
-              凡例が無いので読み手には意味が分からなかった。
-              緑を残すのは**金銭的にプラスの条件だけ**（→ lib/utils/chipVariant.ts）。 */
-        type BenefitIconDef = { svg: React.ReactNode; variant?: ChipVariant };
-        function getBenefitIconDef(benefit: string): BenefitIconDef {
-          const b = benefit;
-          const royal: BenefitIconDef = {
-            svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
-          };
-          if (b.includes("リモート") || b.includes("在宅") || b.includes("テレワーク") || b.includes("フルリモート"))
-            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> };
-          if (b.includes("フレックス") || b.includes("時差出勤"))
-            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> };
-          if (b.includes("副業") || b.includes("兼業"))
-            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> };
-          if (b.includes("ストックオプション") || b.includes("SO") || b.includes("持株"))
-            return { variant: "money", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
-          if (b.includes("書籍") || b.includes("学習") || b.includes("研修") || b.includes("勉強会") || b.includes("資格"))
-            return { svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
-          if (b.includes("育休") || b.includes("産休") || b.includes("子育て") || b.includes("保育"))
-            return { svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> };
-          if (b.includes("食事") || b.includes("ランチ") || b.includes("社食"))
-            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> };
-          if (b.includes("健康") || b.includes("医療") || b.includes("保険"))
-            return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> };
-          if (b.includes("確定拠出") || b.includes("退職金"))
-            return { variant: "money", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> };
-          // default: checkmark
-          return royal;
-        }
-        const BENEFIT_CATEGORIES = [
-          { key: "work_style", label: "働き方", keywords: ["リモート", "在宅", "テレワーク", "フルリモート", "フレックス", "時差", "副業", "兼業"] },
-          /* ⚠️ 「株式」を足した（2026-08-08）。ラベルが「報酬・株式」なのに
-                キーワードに無く、「RSU（譲渡制限付き株式）」がその他に落ちていた。 */
-          { key: "rewards",    label: "報酬・株式", keywords: ["ストックオプション", "SO", "持株", "株式", "確定拠出", "退職金", "給与", "賞与", "インセンティブ"] },
-          { key: "growth",     label: "学習・成長", keywords: ["書籍", "学習", "研修", "勉強会", "資格", "セミナー"] },
-          /* ⚠️ 「育児」「介護」を足した（2026-08-08）。ラベルが「育児・家族」なのに
-                キーワードは「育休」だけで、「育児・介護休暇制度」がその他に落ちていた。 */
-          { key: "family",     label: "育児・家族", keywords: ["育休", "産休", "育児", "介護", "子育て", "保育"] },
-          { key: "health",     label: "食事・健康", keywords: ["食事", "ランチ", "社食", "健康", "医療", "保険"] },
-        ];
-        function categorize(b: string) {
-          for (const cat of BENEFIT_CATEGORIES) {
-            if (cat.keywords.some(kw => b.includes(kw))) return cat.key;
-          }
-          return "other";
-        }
-        const grouped = new Map<string, string[]>();
-        if (detail.benefits) {
-          for (const b of detail.benefits) {
-            const key = categorize(b);
-            if (!grouped.has(key)) grouped.set(key, []);
-            grouped.get(key)!.push(b);
-          }
-        }
-        return (
+      {/* ⚠️★中身は共通部品に移した（2026-08-30）。求人詳細と**同じデータ・同じ見せ方**にするため。
+             アイコン判定・カテゴリ・上限は @/components/companies/BenefitsList にある。
+             ⚠️ ここに分岐を書き戻さないこと。求人詳細と食い違う（それが移した理由）。
+          ⚠️ 空状態（カジュアル面談でご確認ください）は**この画面だけ**が出す。
+             求人詳細はセクションごと出さないので、部品には持たせていない。 */}
       <div>
         {detail.benefits && detail.benefits.length > 0 ? (
-          /* ⚠️ カテゴリごとに見出しを付ける（2026-08-08）。
-                categorize() と grouped は前から計算されていたのに使われておらず、
-                全件を平坦に並べていた。
-             ⚠️ **1件も欠けさせない。** どのキーワードにも当たらない値は
-                categorize() が "other" を返すので、必ず最後に「その他」として出す
-                （カテゴリ定義だけを回すと、その値が画面から消える）。
-             ⚠️ 1件も無いカテゴリは見出しごと出さない。 */
-          /* ⚠️ 上限は**カテゴリ数**。カテゴリの途中で切ると
-                「働き方」の一部だけ見えている状態になり、何が隠れているか分からない。 */
-          (() => {
-            const activeCats = [...BENEFIT_CATEGORIES, { key: "other", label: "その他", keywords: [] }]
-              .filter((cat) => (grouped.get(cat.key)?.length ?? 0) > 0);
-            return (
-              <CollapsibleList
-                limit={BENEFIT_CATEGORY_LIMIT}
-                labelCollapsed={`すべて見る（残り ${activeCats.length - BENEFIT_CATEGORY_LIMIT}）`}
-                containerStyle={{ display: "flex", flexDirection: "column", gap: 18 }}
-                buttonWrapperStyle={{ marginTop: "var(--space-4)" }}
-                items={activeCats.map((cat) => (
-                  <div key={cat.key}>
-                    <div style={{
-                      fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
-                      letterSpacing: "0.04em", marginBottom: 8,
-                    }}>
-                      {cat.label}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-                      {(grouped.get(cat.key) ?? []).map((b) => {
-                        const def = getBenefitIconDef(b);
-                        return (
-                          <InfoCard
-                            key={b}
-                            icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
-                            label={b}
-                            variant={def.variant}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              />
-            );
-          })()
+          <BenefitsList benefits={detail.benefits} />
         ) : (
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
@@ -980,8 +884,6 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
       </div>
-        );
-      })()}
 
       </div>
     </section>

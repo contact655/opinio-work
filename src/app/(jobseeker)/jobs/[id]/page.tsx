@@ -25,6 +25,7 @@ import { primaryBusinessDomain } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
 import ToolsSectionClient from "@/app/(jobseeker)/companies/[id]/ToolsSectionClient";
 import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
+import { BenefitsList } from "@/components/companies/BenefitsList";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -1245,59 +1246,21 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 </SecTitle>
 
                 {/* 福利厚生 */}
-                {company.benefits && company.benefits.length > 0 && (() => {
-                  type BenefitIconDef = { svg: React.ReactNode; color: string; bg: string; border: string };
-                  function getBenefitIconDef(b: string): BenefitIconDef {
-                    const royal: BenefitIconDef = {
-                      color: "var(--royal)", bg: "var(--royal-50)", border: "var(--royal-100)",
-                      svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
-                    };
-                    if (b.includes("リモート") || b.includes("在宅") || b.includes("テレワーク"))
-                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> };
-                    if (b.includes("フレックス") || b.includes("時差出勤"))
-                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> };
-                    if (b.includes("副業") || b.includes("兼業"))
-                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> };
-                    /* ⚠️★色を持つのは**緑（金銭的にプラス）だけ**。他は royal に倒す（2026-08-30）。
-                          以前は 学習・研修＝**紫**、育休・産休＝**橙**にしていたが、
-                          `.claude/skills/ui-conventions`「色の役割」で
-                          **紫は使わない** / **オレンジはカジュアル面談のみ**と定めている。
-                       ⚠️ とくに橙は「話を聞けます」バッジと**同じ意味に見える**。
-                          福利厚生に新しい分岐を足すときも、**緑以外は royal のまま**にすること。 */
-                    if (b.includes("ストックオプション") || b.includes("SO") || b.includes("確定拠出") || b.includes("退職金"))
-                      return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> };
-                    if (b.includes("書籍") || b.includes("学習") || b.includes("研修") || b.includes("資格"))
-                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
-                    if (b.includes("育休") || b.includes("産休") || b.includes("子育て"))
-                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> };
-                    if (b.includes("健康") || b.includes("医療") || b.includes("保険"))
-                      return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> };
-                    if (b.includes("RSU") || b.includes("持株"))
-                      return { color: "#065f46", bg: "#d1fae5", border: "#a7f3d0", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
-                    return royal;
-                  }
-                  return (
-                    <div style={{ marginBottom: company.evaluationSystem ? 24 : 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", whiteSpace: "nowrap" as const }}>福利厚生</h3>
-                        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
-                        {company.benefits!.map((b: string) => {
-                          const def = getBenefitIconDef(b);
-                          return (
-                            <div key={b} style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, padding: "14px 14px", background: def.bg, border: `1px solid ${def.border}`, borderRadius: 12 }}>
-                              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", border: `1px solid ${def.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: def.color, flexShrink: 0 }}>
-                                <span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>
-                              </div>
-                              <span style={{ fontSize: 12, color: def.color, fontWeight: 700, lineHeight: 1.4 }}>{b}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                {/* ⚠️★中身は共通部品にした（2026-08-30）。**企業詳細とまったく同じ**
+                       データ（`ow_companies.benefits`）・同じ見せ方（カテゴリ分け + すべて見る）。
+                    ⚠️ 以前はここに**独自のアイコン判定**があり、企業詳細と食い違っていた
+                       （`介護` `育児` `食事` `ランチ` `社食` `株式` `勉強会` `セミナー` `資格` を
+                        拾えず、緑の色も直書きしていた）。**書き戻さないこと。**
+                    ⚠️ 見出しの罫線は残す。下に「評価制度」が続くので、区切りが要る。 */}
+                {company.benefits && company.benefits.length > 0 && (
+                  <div style={{ marginBottom: company.evaluationSystem ? 24 : 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", whiteSpace: "nowrap" as const }}>福利厚生</h3>
+                      <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
                     </div>
-                  );
-                })()}
+                    <BenefitsList benefits={company.benefits} />
+                  </div>
+                )}
 
                 {/* 評価制度 */}
                 {company.evaluationSystem && (
