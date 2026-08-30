@@ -229,31 +229,52 @@ Datadog の「NYSE上場」は事実誤りだったので NASDAQ に訂正して
 ⚠️ 構造は `name` / `industry` / `usecase` / `result` / `products` の5キー。
    入力UIは無く、**migration でしか入らない**。
 
-### 出典の記録（設計メモ・まだ実装していない）
+### ✅ 出典の記録（2026-08-30 に実装。⚠️ 設計メモから形を変えた）
 
-求人には `source_url` / `source_verified_at` を入れた。企業にも同じ型を入れる想定だが、
-**実際に数社埋めてから形を決める**（出典の粒度は作業のやり方が決まらないと分からない）。
+企業データの項目ごとの出典は **`ow_company_data_sources`**（`(company_id, field)` が主キー）。
+実体と語彙は [lib/constants/companySources.ts](src/lib/constants/companySources.ts)。
 
-推奨案:
+| | |
+|---|---|
+| 列 | `company_id` / `field` / `source_kind` / `source_url` / `verified_at` / `note` |
+| `source_kind` | `registry`（登記・国税庁）／ `official_site` ／ `company_input` ／ `unknown` |
+| 権限 | **運営専用**。RLS 有効・ポリシー0本・anon / authenticated に GRANT 無し（`ow_transitions` と同じ形） |
+| 読む画面 | **`/admin/companies/coverage`**（本社のマスに 登/公/社/? の印、上部に内訳） |
+| 鮮度 | `COMPANY_SOURCE_STALE_AFTER_DAYS = 365` |
 
-```sql
-ALTER TABLE ow_companies
-  ADD COLUMN source_urls text[],              -- 参照した公開情報のURL（複数可）
-  ADD COLUMN source_verified_at timestamptz;  -- 最後に全体を突き合わせた日時
-```
+**実測（2026-08-30 / `headquarters_address` 73行）: 登記 42 ／ 公式サイト 30 ／ 不明 1。
+うち URL が記録されているのは 55（公式サイト30社中13社のみ）。**
 
-| 論点 | 判断 | 理由 |
-|---|---|---|
-| 列を1組か | **1組** | 求人と同じ形。運用が同じなら形も同じにする |
-| 項目ごとに持つか | **持たない** | 12項目 × 2列 = 24列になる。実作業は「1社の公式サイト・IR・採用ページを一巡してまとめて埋める」なので出典と項目が1対1にならない |
-| 別テーブルか | **しない** | 1出典が複数社にまたがる等の必然が無い |
-| 鮮度判定 | **365日**（求人とは別のしきい値） | 設立年・資本区分・親会社はまず変わらない |
+#### ⚠️★設計メモの前提が2つとも実態と違った
+
+メモは「`ow_companies` に `source_urls text[]` を1組足す・別テーブルにしない」だったが、
+**実際に埋めてみたら根拠が両方とも崩れた**（メモ自身が「実際に数社埋めてから形を決める」と
+書いていたので、これは想定どおりの結論）。
+
+| メモの前提 | 実際 |
+|---|---|
+| 「1社を**一巡してまとめて埋める**ので出典と項目が1対1にならない」 | **項目ごとのバッチ**だった（住所だけを73社に）。企業単位に1組だと、別項目を別の出所で埋めた日に**混ざる** |
+| 「1出典が**複数社にまたがる必然が無い**」 | **国税庁の1サイトが42社にまたがった** |
+
+⚠️ **`ow_companies` に `source_urls` 列を足さないこと。** その案は採らなかった。
+
+#### ⚠️ 分かったことを消さない
+
+- **`registry` と `official_site` は意味が違う。** 登記は**本店**所在地、公式サイトは
+  **オフィス**所在地で、一致する保証がない。**同じ住所として扱わない。**
+- **`source_url` の NULL は「URLが記録されていない」という事実。** 推測で埋めない。
+  ⚠️ **公式サイト由来30社のうち17社は、投入時の migration にURLが残っていない。**
+- **`unknown` に URL を持たせない**（DB の CHECK で禁止）。集計でも「URL未記録」に**数えない**
+  （二重計上になる）。
 
 ⚠️ しきい値の定数は `src/lib/constants/` に置き、画面にハードコードしない
    （`DISCLOSURE_MAX` を表示側に直書きして取り残された前例がある）。
 
-⚠️ 既存の鮮度判定は `src/lib/profile/freshness.ts` の **`STALE_AFTER_MONTHS = 3`** だけで、
-   **求職者プロフィール用**。求人にも企業にも鮮度判定はまだ無い。
+⚠️ 鮮度判定は3つある。**混同しないこと。**
+   `src/lib/profile/freshness.ts` の `STALE_AFTER_MONTHS = 3`（**求職者プロフィール**）／
+   `companySources.ts` の `COMPANY_SOURCE_STALE_AFTER_DAYS = 365`（**企業データの出典**）／
+   求人は `ow_jobs.source_verified_at`（**しきい値の定数はまだ無く、`/admin/jobs` の
+   「出典なし（公開中）」タブで見る運用**）。
 
 ---
 
@@ -793,7 +814,8 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
 - **「画面が動いている」は検証にならない。** 画面は正しく作られていても、
   PostgREST を直接叩く経路だけが漏れているのが過去に見つかった穴の共通形。
 - **検証を自社だけで完結させない。** 他社を混ぜて「開いてはいけない相手に開いていないか」を数える。
-- **`ow_companies.user_id` に依存しない**（85社中2社にしか入っていない実質未使用の列）。
+- **`ow_companies.user_id` に依存しない**（**89社中2社**にしか入っていない実質未使用の列。
+  2026-08-30 実測。⚠️ 分母は増えるので**割合ではなく実測で書く**）。
   企業の管理者判定は `public.auth_is_company_admin(company_id)`。
 - **`auth.uid()` が返すのは `auth.users.id` で、`ow_users.id` とは別物。**
   どちらの空間かはテーブルごとに違う。ポリシーを書く前に
@@ -1816,10 +1838,11 @@ const prefRaw = pickFilled(row.preferred_skills, row.preferred);  // 空配列�
 
 ⚠️ **企業側の列を先に置く。** 企業が編集した内容が旧データに負けてはいけない。
 
-⚠️ **`description_markdown` は `pickFilled` に入れていない。** `overview` は
-   plain text として描画され（`white-space: pre-wrap`）JSON-LD にも素で入るので、
-   markdown を流し込むと記号がそのまま出る。**本番0件なので現時点の実害は無い。**
-   ⚠️ ただし**企業が本文を書いた日に、求職者側へ何も出ない**状態は残っている。
+⚠️ ~~**`description_markdown` は `pickFilled` に入れていない。**~~
+   ✅ **2026-08-26 に `description` へ統合して解消した**（`20260826160000`）。
+   `description_markdown` は**【廃止】列**で、`pickFilled` ごと削除されている。
+   **「企業が本文を書いた日に求職者側へ何も出ない」状態はもう無い**（2026-08-30 確認）。
+   ⚠️ **【廃止】列を新しく読み書きしないこと。** 読む先が2つに戻る。
 
 ##### ⚠️ 本来は列を統合するべき
 
@@ -2922,28 +2945,46 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
    `ow_jobs` に `is_published` 列は無く、`expires_at` も判定に使っていない（全件 NULL）。
    **`status` を1つ変えた瞬間に公開される。** 審査や掲載期間のゲートは無い。
 
-### Salesforce の公開5件は維持する。ただし2点が残っている（2026-08-13 判断）
+### ✅ Salesforce の5件は突き合わせ済み。公開は2件に減った（2026-08-30）
 
-**`archive/152` 由来の5件は取り下げない。** 出典が皆無だった13件とは状態が違う。
+**2026-08-13 の「①鮮度の確認が要る ②`source_url` は空のまま」は両方とも解消した。**
 
-```
--- Migration 152: Salesforce Japan 求人登録（公式採用ページより手動キュレーション）
--- 出典: https://careers.salesforce.com/jp/ジョブ/?country=Japan
--- 登録日: 2026-06-03
-```
+登録から **87日**経っていたので、採用ページの**日本の求人87件を5ページ全部**取得して
+突き合わせ、見つからなかったものは**国フィルタを外したキーワード検索でも**確認した。
 
-`description` も205〜242字あり、`requirements` も4行の箇条書きが入っている。
-機械生成された13件（`description` 全件 NULL・`created_at` がミリ秒まで同一）とは別物。
+| 当方の求人 | 判定 | 対応 |
+|---|---|---|
+| Account Executive, MuleSoft | **JR325032**（Japan-Tokyo / 応募可 / **Posted 02 June 2026** が当方の公開日と一致） | 個別URLを `source_url` に記録して**公開維持** |
+| Account Solution Engineer, Tableau | **JR332827**（タイトル完全一致） | 同上 |
+| Lead Solution Engineer, Tableau | **無い** | **`private`** |
+| Director, Customer Success Management（金融業界） | **無い** | **`private`** |
+| Business Operations - AI Methodology & Enablement | **無い** | **`private`** |
 
-⚠️ **① 鮮度の確認が要る。** 登録は **2026-06-03** で、2か月以上が経過している。
-   **募集が終了している可能性がある。** 公開を続けるなら定期的に採用ページと突き合わせること。
-   求人には鮮度判定の仕組みが無い（`expires_at` は全件 NULL、期限切れ遷移も無効）ので、
-   **自動では落ちない。放置すると古いまま出続ける。**
+⚠️★**似た名前を同一と見なさなかった。** 日本の Tableau 求人7件に Lead SE は無く
+   （「Lead Solution Engineer - **MuleSoft**」は製品が違う）、金融CSM は
+   **Director ではなく Manager**（`Customer Success Manager, Financial Service`）だった。
 
-⚠️ **② `ow_jobs.source_url` は空のまま。** 出典は migration のコメントにしかない。
-   しかも記録されているのは**求人検索ページのURL**であって、個別求人のURLではない。
-   本来は1件ずつ個別URLを `source_url` に入れる。
-   それまでは `/admin/jobs` の「出典なし（公開中）」タブに出続ける（**出続けるのが正しい**）。
+⚠️★**`status` は `draft` ではなく `private`。** CLAUDE.md の定義で
+   `private` =「一度公開したものを運営が止めた」で、今回はまさにそれ。
+   前例（`20260811155028`）が `draft` を使ったのは、あちらが**実在を確認できなかった
+   サンプルデータ**で「そもそも公開すべきでなかった」から。**性質が違うので混ぜない**
+   （混ぜるとあの13件と区別がつかなくなる）。
+
+⚠️ **取り下げた3件の `source_url` は空のまま。** それらしいURLで埋めない。
+   突き合わせた事実は `source_verified_at` が示す。
+
+⚠️ **「採用ページに無い＝募集終了」と断定はできない。** 充足・保留・掲載方法の変更も
+   ありうる。**出典を示せない求人を公開し続けない**方針に従って取り下げただけで、
+   出典が取れた日に戻せる。
+
+⚠️ **残す2件も本文・年収・勤務地までは突き合わせていない。** 確認したのは
+   「その求人が今も募集されていること」まで。
+
+⚠️★**求人の鮮度は今も自動では落ちない。** `expires_at` は全件 NULL、期限切れ遷移も無効。
+   **定期的に人が突き合わせるしかない。** 87日放置した実績があるので、間隔を決めること。
+
+実測（2026-08-30 適用後）: `ow_jobs` 20行 → **published 2 / private 3 / draft 15**。
+「出典なし（公開中）」タブは **0件**。
 
 ---
 
@@ -3140,9 +3181,14 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
    `unsubscribeUrl()` で `/profile/edit?tab=account` に直した。
    リンク先を変えるときは、そのタブが実在するか確かめること。
 
-### ①（残っているもの）
+### ✅ ①（解消済み。2026-08-30 に確認）
 
-- weekly-match の「75%」と「プロフィールに基づいて」を消す
+「75%」と「プロフィールに基づいて」は**既に消えている**。
+`api/cron/weekly-match/route.ts` の冒頭に「① マッチ度「75%」に根拠が無い → ✅ 解消」と
+書かれており、いま残っている `75` の記述は**すべて経緯を説明するコメント**。
+
+⚠️ **メール自体は今も停止中**（`WEEKLY_EMAIL_ENABLED` 未設定 ＋ `vercel.json` の
+   `crons` が空）。再開は**両方**戻す必要がある。
 
 ⚠️ **`ow_match_scores` を作り直す必要は無い。** 希望条件
 （`ow_profile_desired_roles` と `ow_profiles.desired_*`）と
