@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getStageCfg } from "@/lib/utils/stageCfg";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
@@ -1495,113 +1494,21 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </section>
               )}
 
-              {/* Company summary */}
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--royal)" icon={
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <rect x="2" y="7" width="20" height="14" rx="2"/>
-                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                  </svg>
-                }>
-                  企業について
-                </SecTitle>
+              {/* ⚠️★「企業について」の2つ目（Company summary）は削除した（2026-08-30）。
+                     **同じ見出しがページ内に2つあり、下の方は中身がほぼ重複していた。**
 
-                {/* ⑥ Mission statement — Wantedly style */}
-                {company.mission && (
-                <div style={{
-                  padding: "16px 20px", borderRadius: 12, marginBottom: "var(--space-3)",
-                  background: "linear-gradient(135deg, var(--royal-50) 0%, #EEF4FF 100%)",
-                  borderLeft: "4px solid var(--royal)",
-                }}>
-                  <p style={{
-                    fontFamily: 'var(--font-noto-serif)', fontSize: 14, fontWeight: 600,
-                    color: "var(--royal)", lineHeight: 1.75, margin: 0,
-                  }}>
-                    {company.mission}
-                  </p>
-                </div>
-                )}
+                     実測（本番 / 全文と出現回数を数えた）:
+                       事業領域 2回 ／ 従業員 3,500名以上 2回 ／ 上場 2回 ／ CRM・営業支援 3回
+                       企業ページへのリンク **3回**（ヘッダー・上の「企業について」末尾・ここ。
+                                                 すべて同じ `/companies/[slug]`）
+                     つまり**ここにしか無いのは `company.mission` の1行だけ**だった。
 
-                {/* Logo + info card */}
-                <div style={{
-                  display: "flex", gap: "var(--space-4)", alignItems: "flex-start",
-                  padding: "var(--space-4)", background: "var(--bg-tint)", borderRadius: 12,
-                }}>
-                  <CompanyLogo
-                    name={company.name}
-                    logoUrl={company.logo_url}
-                    logoLetter={company.logo_letter}
-                    logoGradient={company.gradient}
-                    size={52}
-                    borderRadius={12}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap",
-                      fontSize: "var(--text-base)", fontWeight: 700, color: "var(--ink)", marginBottom: 5,
-                    }}>
-                      {company.name}
-                      {/* ⚠★`{company.phase}` を**そのまま**出していた（2026-08-29 に修正）。
-                             本番の公開ページに「株式会社セールスフォース・ジャパン **listed**」と
-                             出ていた。`phase` は生値（listed / non_listed / unicorn /
-                             series_b / series_d）なので、必ず `getStageCfg()` を通す。
-                             知らない値は null が返り、**バッジごと出ない**（生値を出さない）。
-                          ⚠★色も直した。前はオレンジ（--warm-soft / #B45309）だったが、
-                             **オレンジはカジュアル面談だけの色**（ui-conventions「色の役割」）。
-                             `getStageCfg` が返すニュートラルを使う。企業詳細と同じ見た目。 */}
-                      {(() => {
-                        const sc = getStageCfg(company.phase);
-                        if (!sc) return null;
-                        return (
-                          <span style={{
-                            fontSize: 12, padding: "2px 8px", borderRadius: 100,
-                            background: sc.bg, color: sc.color,
-                            border: `1px solid ${sc.border}`,
-                            fontWeight: sc.fontWeight ?? 600,
-                          }}>
-                            {sc.label}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <div style={{ display: "flex", gap: "var(--space-4)", fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, flexWrap: "wrap" }}>
-                      {/* ⚠️ 求職者に見せる分類は**事業領域**。`industry`(text) は運用側の軸で、
-                             廃止予定のため新規企業では空になる。隣の「従業員」に合わせて
-                             無いときは「—」を出す（項目ごと消すと行が揃わない）。 */}
-                      <span>事業領域 <strong style={{ color: "var(--ink)" }}>{primaryBusinessDomain(company.business_domains)?.name ?? "—"}</strong></span>
-                      <span>従業員 <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{formatEmployeeCount(company.employee_count) ?? "—"}</strong></span>
-                    </div>
-                  </div>
-                </div>
+                  ⚠️ ミッションは英語1行で、上の「企業について」には既に日本語の説明と
+                     「この会社の魅力」3点がある。**企業ページには残る**ので情報は失われない
+                     （柴さんの判断・2026-08-30）。
 
-                {/* ⚠️ 「こんな人に向いている」（fit_positives）は 2026-08-11 に削除した。
-                       **運営の推測であって企業が言ったことではない。**
-                       「グローバルキャリア」「Ohana文化」等が archive/137 / 157 で
-                       出典なしに一括投入されており、公開72社に入っていた。
-                       企業詳細ページ側は同じ理由で先に削除済みで、求人ページだけ残っていた。
-                    ⚠️ データ（fit_positives / fit_negatives）は残してある。
-                       企業が自分で書けるようにするなら、入力欄と一緒に作り直すこと。 */}
-
-                {/* ⑥ Prominent CTA to company page。非公開企業では出さない */}
-                {companyHref && (
-                <Link
-                  href={companyHref}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                    marginTop: "var(--space-4)", padding: "13px var(--space-6)",
-                    background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
-                    color: "var(--royal)", borderRadius: 10,
-                    fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2"/>
-                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                  </svg>
-                  {company.name} の企業ページで詳細を見る →
-                </Link>
-                )}
-              </section>
+                  ⚠️★**同じ見出しを2つ置かないこと。** 企業の情報を足したくなったら、
+                     上の「企業について」（同名の JSX コメントがある箇所）に足す。 */}
 
               {/* Share — bottom of main content */}
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
