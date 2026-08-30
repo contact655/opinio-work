@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getRoleTree, resolvePublishedCompanyHref, getJobs, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, getJobs, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
+/* ⚠️ 企業詳細ページと同じ形（`companies/[id]/page.tsx` の `getCompanyBySlugOrIdCached`）。
+      `cache()` で包むのは、metadata と本体で2回呼んでも1回で済ませるため。 */
+const getCompanyForJobCached = cache(getCompanyBySlugOrId);
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
@@ -20,6 +23,8 @@ import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { primaryBusinessDomain } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
+import ToolsSectionClient from "@/app/(jobseeker)/companies/[id]/ToolsSectionClient";
+import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -295,17 +300,37 @@ function JobEmployeeCard({ emp, companyId: _companyId }: { emp: CompanyEmployee;
   );
 }
 
+/**
+ * 現役社員・OB/OG のセクション。
+ *
+ * ⚠️★**このページで2回使う**（2026-08-30）。
+ *    ① 職種一致（この職種の現役メンバー / この職種を経験したOB/OG）
+ *    ② 会社全体から①を差し引いた残り（この会社の他の現役社員 / OB・OG）
+ *    **同じ人を2回出さないよう、②は呼び出し側で差集合にしてから渡す。**
+ *
+ * ⚠️ 見出しは props で受ける。既定は①の文言なので、②では必ず渡すこと。
+ *    渡し忘れると同じ見出しが2つ並び、読み手が違いを判断できない。
+ */
 function JobEmployeesSection({
   current,
   alumni,
   companyId,
   casualHref,
+  currentTitle,
+  alumniTitle,
+  currentSubtitle,
 }: {
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
   companyId: string;
   /** 非公開企業では null。飛べない導線を置かないため CTA ごと出さない */
   casualHref: string | null;
+  /** 既定「この職種の現役メンバー」。会社全体を出すときは必ず渡す */
+  currentTitle?: string;
+  /** 既定「この職種を経験したOB/OG」 */
+  alumniTitle?: string;
+  /** 見出しの下に出す1行。関係を説明したいときだけ渡す */
+  currentSubtitle?: string;
 }) {
   if (current.length === 0 && alumni.length === 0) return null;
 
@@ -330,10 +355,20 @@ function JobEmployeesSection({
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
               </span>
-              この職種の現役メンバー
+              {currentTitle ?? "この職種の現役メンバー"}
             </div>
             <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{current.length}名</span>
           </div>
+          {/* ⚠️ 会社全体のセクションでだけ出す1行。**上の職種一致セクションとの違い**を
+                 説明する。見出しだけだと「なぜ2つあるのか」が伝わらない。 */}
+          {currentSubtitle && (
+            <p style={{
+              margin: "0 0 var(--space-3)", fontSize: 12, lineHeight: 1.7,
+              color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)",
+            }}>
+              {currentSubtitle}
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
             {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
           </div>
@@ -371,7 +406,7 @@ function JobEmployeesSection({
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
               </span>
-              この職種を経験したOB/OG
+              {alumniTitle ?? "この職種を経験したOB/OG"}
             </div>
             <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{alumni.length}名</span>
           </div>
@@ -512,6 +547,29 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
   // 求人ロールに紐づいた現役社員・OBOG
   const jobEmployees = await getJobEmployees(job.company_id, job.role_category_id ?? null);
+
+  /* ★企業側の情報を求人詳細にも出す（2026-08-30）。企業詳細と同じ関数を使う。
+     ⚠️ **人物は「職種一致した人を会社セクションから除く」。** そうしないと
+        同じ人が「この職種の現役メンバー」と「この会社の現役社員」に2回出る。
+        2026-08-30 に「企業について」の重複を消したばかりで、同じ形を作らない。
+     ⚠️ `getJobEmployees` は `getCompanyEmployees` を職種で絞ったものなので、
+        **同じ元から引いて差集合を取る**（別々に引くと基準がずれる）。
+     ⚠️ どちらも `unstable_cache` 付き。ここで生のクライアントを使わない。 */
+  const [allEmployees, companyTools, companyResult] = await Promise.all([
+    getCompanyEmployeesCached(job.company_id),
+    getCompanyToolsCached(job.company_id),
+    /* ⚠️ `detail`（拠点・資本関係）はここからしか取れない。
+          企業詳細ページと同じ `getCompanyBySlugOrIdCached` を使う。 */
+    getCompanyForJobCached(job.company_id),
+  ]);
+  const companyDetail = companyResult?.detail ?? null;
+  const matchedIds = new Set<string>(
+    [...jobEmployees.current, ...jobEmployees.alumni].map((e) => e.userId),
+  );
+  const otherEmployees = {
+    current: (allEmployees?.current ?? []).filter((e) => !matchedIds.has(e.userId)),
+    alumni: (allEmployees?.alumni ?? []).filter((e) => !matchedIds.has(e.userId)),
+  };
 
   /* ⚠️ ブックマーク状態はここで引かない（2026-08-09）。
         引くと `auth.getUser()` が要り、ルートが動的化して
@@ -1522,6 +1580,58 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 companyId={job.company_id}
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
               />
+
+              {/* ★この会社の現役社員・OB/OG（職種一致を除く）── 2026-08-30 追加
+                     ⚠️★**上の `JobEmployeesSection` と同じ人を出さない。**
+                        `otherEmployees` は職種一致した人を差し引いた残り。
+                        差し引かないと、生藤さんのように「この職種の現役メンバー」と
+                        ここの両方に出る（2026-08-30 に「企業について」で消した重複と同じ形）。
+                     ⚠️ 見出しで関係を明示する。「現役社員」だけだと、上の職種一致セクションと
+                        何が違うのか読み手に伝わらない。 */}
+              <JobEmployeesSection
+                current={otherEmployees.current}
+                alumni={otherEmployees.alumni}
+                companyId={job.company_id}
+                casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
+                currentTitle={`${company.name} の他の現役社員`}
+                alumniTitle={`${company.name} の OB・OG`}
+                currentSubtitle="この求人の職種とは違う人たちです"
+              />
+
+              {/* ★ツール（企業詳細と同じ内容）── 2026-08-30 追加 */}
+              {companyTools.length > 0 && (
+                <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                  <SecTitle color="var(--royal)" icon={
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                  }>
+                    ツール
+                  </SecTitle>
+                  {/* ⚠️ 企業詳細と同じ `ToolsSectionClient` を使う。大グループへの束ね方や
+                         「すべて見る」の挙動を2つ持たない（ui-conventions「ツール表示」）。 */}
+                  <ToolsSectionClient tools={companyTools} />
+                </section>
+              )}
+
+              {/* ★拠点・資本関係（企業詳細と同じコンポーネント）── 2026-08-30 追加
+                     ⚠️ 実体は `components/companies/LocationsCapitalSection.tsx`。
+                        企業詳細から切り出して共通化した。**ここに複製しないこと。** */}
+              {companyDetail && (
+                <LocationsCapitalSection
+                  detail={companyDetail}
+                  title={
+                    <SecTitle color="var(--royal)" icon={
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    }>
+                      拠点・資本関係
+                    </SecTitle>
+                  }
+                />
+              )}
 
               {/* Position members — role-matched alumni/current employees */}
               <PositionMembersSection members={positionMembers} jobCategory={job.dept ?? ""} />
