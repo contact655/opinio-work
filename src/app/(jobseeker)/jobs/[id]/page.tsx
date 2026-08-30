@@ -369,6 +369,7 @@ function JobEmployeesSection({
   currentTitle,
   alumniTitle,
   currentSubtitle,
+  alwaysShowAlumni = false,
 }: {
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
@@ -379,12 +380,23 @@ function JobEmployeesSection({
   talkableIds: Set<string>;
   /** 既定「この職種の現役メンバー」。会社全体を出すときは必ず渡す */
   currentTitle?: string;
-  /** 既定「この職種を経験したOB/OG」 */
+  /** 既定「この職種のOB・OG」 */
   alumniTitle?: string;
   /** 見出しの下に出す1行。関係を説明したいときだけ渡す */
   currentSubtitle?: string;
+  /**
+   * OB・OG を**0件でも枠ごと出す**（2026-08-30 / 柴さん）。
+   *
+   * ⚠️★**「無い」ことを見せるための表示。** この職種を経験して退職した人が
+   *    まだ登録されていない、という事実をそのまま出す。
+   *    ⚠️ 埋め合わせに会社全体のOB・OGを出さないこと。**それが元の実装で、
+   *       求人と関係のない職種の人が「OB・OG」として並んでいた。**
+   * ⚠️ 現役メンバー側には効かない。0件のときは今までどおり枠ごと出さない
+   *    （現役が居ないことは求人ページで強調する情報ではない）。
+   */
+  alwaysShowAlumni?: boolean;
 }) {
-  if (current.length === 0 && alumni.length === 0) return null;
+  if (current.length === 0 && alumni.length === 0 && !alwaysShowAlumni) return null;
 
   return (
     <>
@@ -436,7 +448,7 @@ function JobEmployeesSection({
       )}
 
       {/* OB/OG */}
-      {alumni.length > 0 && (
+      {(alumni.length > 0 || alwaysShowAlumni) && (
         <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
@@ -444,21 +456,50 @@ function JobEmployeesSection({
                      大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
                      3つとも 20px だった。⚠️ 見出しを新しく足すときは SecTitle を使うこと。 */
                 fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18, color: "var(--ink)" }}>
-              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {/* ⚠️★紫をやめた（2026-08-30）。`.claude/skills/ui-conventions`「色の役割」は
+                     **紫は使わない**と定めており、`SecTitle` からも 2026-08-29 に
+                     purple を削除している（「戻さないこと」と書いてある）。
+                     ここは SecTitle を使わず手で組んでいたため、削除から漏れていた。
+                  ⚠️ **企業詳細の「OB・OG社員」は SecTitle の既定色（royal）**。揃える。
+                  ⚠️ アイコンも人型に変える。**地図ピンは「拠点」の意味**で、
+                     同じページの「拠点・資本関係」と同じ絵だった。 */}
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
                 </svg>
               </span>
-              {alumniTitle ?? "この職種を経験したOB/OG"}
+              {alumniTitle ?? "この職種のOB・OG"}
             </div>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{alumni.length}名</span>
+            {/* ⚠️ 0件のときは件数を出さない。「0名」は**居ないこと**ではなく
+                   **数えた結果0人だった**ように読める（CLAUDE.md「0件を読むときは、
+                   起きなかった0か起こせなかった0かを分ける」）。 */}
+            {alumni.length > 0 && (
+              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{alumni.length}名</span>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
-            {/* ⚠️ OB/OG には指名CTAを出さない。**退職者に「話を聞く」導線は出さない**
-                    （企業詳細も現役社員にしか出していない）。 */}
-            {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} casualBase={null} />)}
-          </div>
+          {alumni.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
+              {/* ⚠️ OB/OG には指名CTAを出さない。**退職者に「話を聞く」導線は出さない**
+                      （企業詳細も現役社員にしか出していない）。 */}
+              {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} casualBase={null} />)}
+            </div>
+          ) : (
+            /* ⚠️★空状態。**「まだ居ない」を、それ以外の何かで埋めない。**
+                  以前はここに会社全体のOB・OGを出していたが、求人の職種と関係の無い人が
+                  「OB・OG」として並ぶため、読み手には区別が付かなかった。 */
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "14px 16px", borderRadius: 10,
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+              この職種を経験して退職された方は、まだ登録されていません。
+            </div>
+          )}
         </section>
       )}
     </>
@@ -620,9 +661,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         `CompanyEmployee` 型には入っていないので、ここで突き合わせる。 */
   const talkableIds = new Set<string>((ambassadors ?? []).map((a) => a.user_id));
 
+  /* ⚠️★`alumni` は組み立てない（2026-08-30 に取りやめ / 柴さん）。
+        会社全体のOB・OGを求人ページに出すと、求人の職種と無関係な人が
+        「OB・OG」として並び、「この求人を経験した人」と区別が付かなかった。
+        OB・OG は `jobEmployees.alumni`（職種一致）だけが出す。
+     ⚠️ ここに alumni を足し戻さないこと。足すと同じ状態に戻る。 */
   const otherEmployees = {
     current: (allEmployees?.current ?? []).filter((e) => !matchedIds.has(e.userId)),
-    alumni: (allEmployees?.alumni ?? []).filter((e) => !matchedIds.has(e.userId)),
   };
 
   /* ⚠️ ブックマーク状態はここで引かない（2026-08-09）。
@@ -1589,30 +1634,42 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
               </div>
 
-              {/* 現役社員・OB/OG — 職種マッチ */}
+              {/* 現役社員・OB/OG — 職種マッチ
+                     ⚠️★OB・OG は**0件でも枠ごと出す**（`alwaysShowAlumni`）。
+                        「この求人の職種を経験して退職した人」という項目そのものを
+                        見せたい、という判断（柴さん・2026-08-30）。 */}
               <JobEmployeesSection
                 current={jobEmployees.current}
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
                 talkableIds={talkableIds}
+                alwaysShowAlumni
               />
 
-              {/* ★この会社の現役社員・OB/OG（職種一致を除く）── 2026-08-30 追加
+              {/* ★この会社の他の現役社員（職種一致を除く）── 2026-08-30 追加
                      ⚠️★**上の `JobEmployeesSection` と同じ人を出さない。**
                         `otherEmployees` は職種一致した人を差し引いた残り。
                         差し引かないと、生藤さんのように「この職種の現役メンバー」と
                         ここの両方に出る（2026-08-30 に「企業について」で消した重複と同じ形）。
                      ⚠️ 見出しで関係を明示する。「現役社員」だけだと、上の職種一致セクションと
-                        何が違うのか読み手に伝わらない。 */}
+                        何が違うのか読み手に伝わらない。
+
+                     ⚠️★**会社全体の OB・OG は出さない**（2026-08-30 に取りやめ / 柴さん）。
+                        求人の職種と無関係な人が「OB・OG」として並び、読み手には
+                        「この求人を経験した人」と区別が付かなかった。
+                        実例: Salesforce の求人（エンタープライズセールス）に、
+                        **インサイドセールス / アカウントエグゼクティブ**の退職者が出ていた。
+                        OB・OG は上の職種一致セクションだけが出す。**ここに戻さないこと。**
+                     ⚠️ 現役社員のほうは残す。「この会社には他にどんな人がいるか」は
+                        職種と無関係でも読み手の役に立つ。**OB・OG とは意味が違う。** */}
               <JobEmployeesSection
                 current={otherEmployees.current}
-                alumni={otherEmployees.alumni}
+                alumni={[]}
                 companyId={job.company_id}
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
                 talkableIds={talkableIds}
                 currentTitle={`${company.name} の他の現役社員`}
-                alumniTitle={`${company.name} の OB・OG`}
                 currentSubtitle="この求人の職種とは違う人たちです"
               />
 
