@@ -19,6 +19,7 @@ import { isCasualMeetingOpen } from "@/lib/company/casualMeeting";
 import { isJobApplicationOpen } from "@/lib/jobs/application";
 import type { Company, CompanyGenre } from "@/app/companies/mockCompanies";
 import type { Job } from "@/app/jobs/mockJobData";
+import { normalizeBenefits } from "@/lib/companies/benefits";
 import type {
   CompanyDetail,
   CompanyNumbers,
@@ -103,7 +104,9 @@ function mapCompany(
       if (typeof wj === "string" && wj.trim() && wj.trim() !== (desc ?? "").trim()) return wj.trim();
       return null;
     })(),
-    benefits: Array.isArray(row.benefits) && (row.benefits as string[]).length > 0 ? (row.benefits as string[]) : null,
+    /* ⚠️ 正規化は `lib/companies/benefits.ts` に集約。ここで形を判定しない。
+          旧形式（text[]）も受けるので、migration の前後どちらでも動く。 */
+    benefits: normalizeBenefits(row.benefits),
     evaluationSystem: (row.evaluation_system as string | null) ?? null,
   };
 }
@@ -310,9 +313,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     nearestStation: (row.nearest_station as string | null) ?? null,
     workTimeSystem: (row.work_time_system as string | null) ?? null,
     workstyleDescription: (row.workstyle_description as string | null) ?? null,
-    benefits: Array.isArray(row.benefits) && (row.benefits as string[]).length > 0
-      ? (row.benefits as string[])
-      : null,
+    benefits: normalizeBenefits(row.benefits),
     evaluationSystem: (row.evaluation_system as string | null) ?? null,
     // Fit section
     fit_positives: Array.isArray(row.fit_positives) && (row.fit_positives as string[]).length > 0

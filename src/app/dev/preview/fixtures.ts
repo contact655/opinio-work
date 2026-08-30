@@ -1,5 +1,6 @@
 import type { CompanyEmployee, CompanyTool } from "@/lib/supabase/queries";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
+import type { Benefit } from "@/lib/companies/benefits";
 import type { CompanyForCarousel } from "@/types/genre";
 import type { Job } from "@/app/jobs/mockJobData";
 import type { Company } from "@/app/companies/mockCompanies";
@@ -17,45 +18,65 @@ import type { CareerEntry, EducationEntry } from "@/components/profile/MergedTim
 /* ── 福利厚生 ────────────────────────────────────────────────────────────────
    ⚠️ カテゴリは5つ + その他。`BENEFIT_CATEGORY_LIMIT = 3` なので、
       4カテゴリ目から「すべて見る」が挟まる。**そこが境界。** */
-export const BENEFITS_WORKSTYLE_ONLY = ["フルフレックス制度", "リモートワーク可（ハイブリッド）"];
+/** 名前だけ（詳細なし）。**押せないカード**になるのが正しい */
+const n = (name: string): Benefit => ({ name });
 
-export const BENEFITS_THREE_CATS = [
+export const BENEFITS_WORKSTYLE_ONLY: Benefit[] = ["フルフレックス制度", "リモートワーク可（ハイブリッド）"].map(n);
+
+export const BENEFITS_THREE_CATS: Benefit[] = [
   "フルフレックス制度",
   "リモートワーク可（ハイブリッド）",
   "確定拠出年金（401k相当）",
   "RSU（譲渡制限付き株式）",
   "書籍・学習費用補助",
-];
+].map(n);
 
 /** 6カテゴリすべて（その他を含む）。「すべて見る（残り 3）」が出る */
-export const BENEFITS_ALL_CATS = [
+export const BENEFITS_ALL_CATS: Benefit[] = [
   ...BENEFITS_THREE_CATS,
-  "育児・介護休暇制度",
-  "各種社会保険完備",
-  "社内コミュニティ活動",
+  ...["育児・介護休暇制度", "各種社会保険完備", "社内コミュニティ活動"].map(n),
 ];
 
 /** ⚠️ 色の役割の確認用。緑になってよいのは株式報酬と年金だけ */
-export const BENEFITS_MONEY_EDGE = [
+export const BENEFITS_MONEY_EDGE: Benefit[] = [
   "確定拠出年金", "退職金制度", "ストックオプション", "RSU（譲渡制限付き株式）", "従業員持株会",
   "SO付与", "SOMPO健康保険組合", "SODEXO食事補助",
   "住宅手当（月2万円）", "引越し祝い金10万円", "社員紹介手当",
-];
+].map(n);
 
 /** ⚠️ 極端に長い1件。折り返しとカード高さの確認 */
-export const BENEFITS_LONG = [
+export const BENEFITS_LONG: Benefit[] = [
   "リモートワーク可（週2日までの出社を基本とし、チームの合意があればフルリモートも選択できる制度）",
   "書籍・学習費用補助（年間20万円まで、技術書・オンライン講座・カンファレンス参加費に利用可）",
   "フルフレックス制度",
-];
+].map(n);
 
 /** ⚠️ 20件。カテゴリ内が増えたときにグリッドが縦に伸びるだけかを見る */
-export const BENEFITS_MANY = [
+export const BENEFITS_MANY: Benefit[] = [
   ...BENEFITS_ALL_CATS,
-  "時差出勤制度", "副業・兼業可", "在宅勤務手当", "健康診断（人間ドック補助）",
-  "社食・ランチ補助", "資格取得支援", "勉強会費用補助", "セミナー参加費補助",
-  "産休・育休（男性取得実績あり）", "介護休暇", "ボランティア休暇（年7日）", "ウェルネス費用補助",
+  ...["時差出勤制度", "副業・兼業可", "在宅勤務手当", "健康診断（人間ドック補助）",
+      "社食・ランチ補助", "資格取得支援", "勉強会費用補助", "セミナー参加費補助",
+      "産休・育休（男性取得実績あり）", "介護休暇", "ボランティア休暇（年7日）", "ウェルネス費用補助"].map(n),
 ];
+
+/* ── ★詳細つき（2026-08-31 追加）────────────────────────────────────────────
+   ⚠️ `detail` があるカードだけが**押せる**。無いカードは押せないのが正しい。
+   ⚠️ ホバーとタップの両方で開く。**ホバーだけにしないこと**
+      （スマホに届かない。`BenefitCard` のコメント参照）。
+   ⚠️ 詳細の長さは実際に企業が書きそうな幅を入れる。カードと同じ幅で折り返すので、
+      **長い詳細が縦にどれだけ伸びるか**をここで見る。 */
+export const BENEFITS_WITH_DETAIL: Benefit[] = [
+  { name: "書籍・学習費用補助", detail: "年間65万円（学習機関の指定あり）" },
+  { name: "確定拠出年金（401k相当）", detail: "会社拠出は給与の5%。本人拠出との合算も可。" },
+  { name: "フルフレックス制度" },                       // ← 詳細なし。押せない
+  { name: "リモートワーク可（ハイブリッド）", detail: "週2〜3日の出社を基本としつつ、チームの合意があれば週1日まで減らせます。四半期に一度、全社出社日があります。" },
+  { name: "各種社会保険完備" },                          // ← 詳細なし
+];
+
+/** ⚠️ 全件に詳細がある場合。「?」が並びすぎて煩くないか */
+export const BENEFITS_ALL_DETAIL: Benefit[] = BENEFITS_THREE_CATS.map((b, i) => ({
+  ...b, detail: `検証用の詳細${i + 1}。実際の運用条件をここに書きます。`,
+}));
 
 /* ── 社員 / OB・OG ──────────────────────────────────────────────────────────
    ⚠️ `visibility` は "public" | "login_only"。プレビューは表示確認なので public 固定。 */

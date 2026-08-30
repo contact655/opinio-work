@@ -1,4 +1,5 @@
 import type { Company } from "../mockCompanies";
+import type { Benefit } from "@/lib/companies/benefits";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,7 +105,9 @@ export type CompanyDetail = {
   nearestStation: string | null;
   workTimeSystem: string | null;
   workstyleDescription: string | null;
-  benefits: string[] | null;
+  /* ⚠️ 2026-08-31 に `string[]` から変えた。DB は jsonb。
+        型は `lib/companies/benefits.ts` の `Benefit` を使う（ここで書き直さない）。 */
+  benefits: Benefit[] | null;
   evaluationSystem: string | null;
   // Fit section
   fit_positives: string[] | null;

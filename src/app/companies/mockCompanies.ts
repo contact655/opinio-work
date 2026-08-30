@@ -1,4 +1,5 @@
 import { parseEmployeeCount } from "@/lib/utils/employeeCount";
+import type { Benefit } from "@/lib/companies/benefits";
 export type CompanyGenre = {
   id: string;
   name: string;
@@ -59,7 +60,8 @@ export type Company = {
   saas_category_id?: string | null;
   about?: string | null;
   why_join?: string | null;
-  benefits?: string[] | null;
+  /* ⚠️ 2026-08-31 に `string[]` から変えた。型は `lib/companies/benefits.ts` に集約 */
+  benefits?: Benefit[] | null;
   evaluationSystem?: string | null;
 };
 

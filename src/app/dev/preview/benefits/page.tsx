@@ -4,6 +4,7 @@ import { Variant, PreviewHeader } from "../Variant";
 import {
   BENEFITS_WORKSTYLE_ONLY, BENEFITS_THREE_CATS, BENEFITS_ALL_CATS,
   BENEFITS_MONEY_EDGE, BENEFITS_LONG, BENEFITS_MANY,
+  BENEFITS_WITH_DETAIL, BENEFITS_ALL_DETAIL,
 } from "../fixtures";
 
 /**
@@ -53,6 +54,28 @@ export default function BenefitsPreview() {
 
       <Variant label="20件" note="⚠️ カテゴリ内が増えたとき。縦に伸びるだけで崩れないか">
         <BenefitsList benefits={BENEFITS_MANY} />
+      </Variant>
+
+      {/* ★詳細つき（2026-08-31 追加）。企業が `/biz/company` で任意に入力する。 */}
+      <Variant
+        label="詳細つき（一部の項目だけ）"
+        note="⚠️★「?」が付いた2枚だけ押せる。ホバーでもタップでも開く。詳細の無い項目は押せないのが正しい"
+      >
+        <BenefitsList benefits={BENEFITS_WITH_DETAIL} />
+      </Variant>
+
+      <Variant
+        label="詳細つき（長い詳細）"
+        note="⚠️ 3枚目の詳細は 60字超。カードと同じ幅で折り返すので、縦にどれだけ伸びるかを見る"
+      >
+        <BenefitsList benefits={[BENEFITS_WITH_DETAIL[3]]} />
+      </Variant>
+
+      <Variant
+        label="全件に詳細がある"
+        note="⚠️「?」が並びすぎて煩くないか。実データではここまで揃うことは少ないはず"
+      >
+        <BenefitsList benefits={BENEFITS_ALL_DETAIL} />
       </Variant>
     </div>
   );

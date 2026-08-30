@@ -1,5 +1,8 @@
 import React from "react";
-import { InfoCard } from "@/app/(jobseeker)/companies/[id]/InfoCard";
+/* ⚠️ カードは `BenefitCard` が描く。詳細がある項目だけ押せるようにするため。
+      ⚠️ ここで `InfoCard` を直接使わないこと（詳細が出ない経路が生まれる）。 */
+import { BenefitCard } from "@/components/companies/BenefitCard";
+import type { Benefit } from "@/lib/companies/benefits";
 import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
 import type { ChipVariant } from "@/lib/utils/chipVariant";
 
@@ -114,12 +117,14 @@ function categorize(b: string): string {
   return "other";
 }
 
-export function BenefitsList({ benefits }: { benefits: string[] | null | undefined }) {
+export function BenefitsList({ benefits }: { benefits: Benefit[] | null | undefined }) {
   if (!benefits || benefits.length === 0) return null;
 
-  const grouped = new Map<string, string[]>();
+  /* ⚠️ 分類も色も**名前だけ**で決める。`detail` は判定に使わない
+        （詳細を書いた項目だけ別カテゴリに落ちる、といった事故を避ける）。 */
+  const grouped = new Map<string, Benefit[]>();
   for (const b of benefits) {
-    const key = categorize(b);
+    const key = categorize(b.name);
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(b);
   }
@@ -146,12 +151,12 @@ export function BenefitsList({ benefits }: { benefits: string[] | null | undefin
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
             {(grouped.get(cat.key) ?? []).map((b) => {
-              const def = getBenefitIconDef(b);
+              const def = getBenefitIconDef(b.name);
               return (
-                <InfoCard
-                  key={b}
+                <BenefitCard
+                  key={b.name}
+                  benefit={b}
                   icon={<span style={{ display: "flex", alignItems: "center", transform: "scale(1.5)" }}>{def.svg}</span>}
-                  label={b}
                   variant={def.variant}
                 />
               );
