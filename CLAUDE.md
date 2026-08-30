@@ -1915,13 +1915,27 @@ const prefRaw = pickFilled(row.preferred_skills, row.preferred);  // 空配列�
 ⚠️ nullable なのは **`ow_profiles.scout_enabled`** だけで、**`??` を当てているコードは0件**
    （`can_send_scout()` が NULL を false 扱いにする設計どおり）。
 
-##### 5. ⚠️ まだ残っている（2026-08-28 時点・未修正）
+##### 5. ✅ スカウト枠の「30通」は解消した（2026-08-29 / `ab1fba42`）
 
-**`quotaRow?.monthly_limit ?? 30`**（`biz/candidates/page.tsx` / `admin/scout-quotas/page.tsx`）。
-`ow_scout_quotas` は **0行**で、**実ユーザー企業86社すべてに quota 行が無い**。
-`/admin/scout-quotas` は全社に「**30 通**」と、**設定された値であるかのように**表示する。
-⚠️ スカウトは `SCOUT_SENDING_ENABLED` 未設定で停止中なので急がないが、
-   **再開する日には枠の意味が効く。**
+`quotaRow?.monthly_limit ?? 30` が、行の無い86社すべてに「**30 通**」を
+**設定された値であるかのように**出していた件。
+
+⚠️★**ただし「30」は嘘ではなかった。** `ow_scout_quotas.monthly_limit` には
+   **`DEFAULT 30`** があり、`can_send_scout()` が最初の送信時に行を作るので、
+   **行が無い企業に実際に効く値が 30**。捏造ではない。
+   問題は「**運営が決めた 30**」と「**まだ決めていない**」が画面から区別できないこと。
+
+→ [lib/constants/scoutQuota.ts](src/lib/constants/scoutQuota.ts) に
+   `SCOUT_MONTHLY_LIMIT_DEFAULT` を置き、表示側は **`configured`（行が実在するか）**を
+   別に持って区別する。`usedThisMonth()` も同ファイル。
+
+⚠️ この定数は **DB の `DEFAULT 30` と二重管理**。片方だけ変えると食い違う。
+   **migration と定数を同じコミットで動かすこと。**
+⚠️ **行を作るコードに `monthly_limit` を書かない**（DB の DEFAULT を通らなくなる）。
+   運営が上限を明示して作るとき（`updateMonthlyLimit`）だけ書いてよい。
+⚠️★**月次リセットはトリガーでも cron でもない。** `can_send_scout()` の中だけ。
+   つまり**次に誰かが送信するまで先月の数字が残る**ので、表示は必ず
+   `usedThisMonth()`（`period_start` が今月でなければ 0 に倒す）を通す。
 
 #### ★洗い方は grep ではなく型で（2026-08-26 確立）
 
