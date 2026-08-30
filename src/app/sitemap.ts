@@ -3,6 +3,29 @@ import type { MetadataRoute } from "next";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { getDeptJobs } from "@/lib/jobs/deptJobs";
 
+/**
+ * ★1時間で作り直す（2026-08-30 に追加）。
+ *
+ * ⚠️★**宣言が無いと、sitemap は「デプロイしたときだけ」更新される。**
+ *    実測（2026-08-30 / 本番）: `x-vercel-cache: HIT` /
+ *    `cache-control: public, max-age=0, must-revalidate`。
+ *    `revalidate` も `dynamic` も無く、ビルド時に固めたものを配り続けていた。
+ *
+ * ⚠️★**`revalidatePath("/sitemap.xml")` を呼んでいる箇所は0件**（同日実測）。
+ *    admin の各操作は `/admin/jobs` `/jobs` 等は revalidate するが sitemap は触らない。
+ *    **さらに migration で状態を変えた場合は `revalidatePath` 自体が走らない**
+ *    ——実際、同日に求人3件を `private` にしたのは migration だった。
+ *    だから**時間ベースで作り直す**のが要る。
+ *
+ * ⚠️ 放置すると、取り下げた求人・非掲載にした企業の URL を検索エンジンに
+ *    知らせ続け、クローラが 404 を踏む。
+ *
+ * ⚠️ 1時間にしたのは、sitemap がクロールされる間隔に対して十分細かく、
+ *    かつ `getDeptJobs()`（`unstable_cache` / revalidate 300）より粗いため。
+ *    **これより短くしても、中で読む値のほうが最大5分古い。**
+ */
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createAdminClient();
 

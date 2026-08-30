@@ -61,6 +61,11 @@ dev と本番で挙動が異なる場合がある。
 層ごとに切り分け方も対処も違う。**`export const revalidate` を書いても効いているとは限らない。**
 
 - **`(jobseeker)` 配下で `createAdminClient` を使うページは `revalidate` か `dynamic` の宣言が必須。**
+- ⚠️★**`sitemap.ts` も同じ**（2026-08-30 に踏んだ）。宣言が無いと**デプロイしたときだけ**
+  更新される（実測: `x-vercel-cache: HIT`）。しかも **`revalidatePath("/sitemap.xml")` を
+  呼んでいる箇所は0件**で、**migration で状態を変えた場合は `revalidatePath` 自体が走らない。**
+  取り下げた求人・非掲載にした企業のURLを検索エンジンに知らせ続けることになる。
+  → `export const revalidate = 3600` を入れてある。
 - **`unstable_cache` の中で `cache: "no-store"` のクライアントを使わない。**
   ビルドは失敗せず、**その項目だけ黙って消えたページが生成される。**
 - **「効いている」と言う前に応答ヘッダで確かめる。** 宣言値では判断しない。
