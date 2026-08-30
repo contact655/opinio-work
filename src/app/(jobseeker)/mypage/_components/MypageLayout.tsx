@@ -186,7 +186,22 @@ export default function MypageLayout({
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 style={{
-                  /* ★等幅。375px なら6項目で1項目 62px 前後に収まる */
+                  /* ★等幅。375px なら6項目で1項目 61px に収まる（実測 2026-08-30）
+                     ⚠️★**ここだけ 10px。「12px 未満を作らない」の意図的な例外。**
+                        12px にすると「ブックマーク」が **66px 必要**で 61px の枠に入らない
+                        （11px でも 63px で入らない。字間 -0.06em・padding 削減でも 67px）。
+                     ⚠️ 代案はどれも採らないと決めた（2026-08-30 / 柴さん）:
+                        ・折り返す      … 12px で入るが**バーが 49px → 73px**。
+                                          親が `sticky` なので**画面を24px 恒久的に食う**
+                        ・「保存」に改名 … 入るが、ページ見出し・サイドバー・空状態が
+                                          「ブックマーク」なので**語彙が割れる**
+                        ・項目を5つに   … 75px で入るが、スカウトの0件は
+                                          `SCOUT_SENDING_ENABLED` で**意図的に止めている**ぶん。
+                                          再開時に戻す作業になる
+                     ⚠️ **切れてはいない**（全項目 61px で収まっている）。アイコン＋ラベルの
+                        タブバーは 10px が慣例（iOS 標準のタブバーが 10pt）で、
+                        意味はアイコンが担いラベルは補助。**本文の可読性の規則とは別。**
+                     ⚠️ 上げるなら**ラベルを短くするしかない。** サイズだけ変えると溢れる。 */
                   flex: "1 1 0", minWidth: 0,
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                   padding: "6px 2px", fontSize: 10, fontWeight: isActive ? 700 : 500,
