@@ -82,19 +82,42 @@ BEGIN
 END $$;
 
 -- ── 型を変える ─────────────────────────────────────────────────────────────
-/* ⚠️ 順序を保つ。`with ordinality` を落とすと並び順が変わりうる。
-   ⚠️ `detail` は入れない（未入力を表すのはキーの不在）。 */
-ALTER TABLE public.ow_companies
-  ALTER COLUMN benefits TYPE jsonb
-  USING (
-    CASE
-      WHEN benefits IS NULL THEN NULL
-      ELSE (
-        SELECT coalesce(jsonb_agg(jsonb_build_object('name', b) ORDER BY ord), '[]'::jsonb)
-          FROM unnest(benefits) WITH ORDINALITY AS t(b, ord)
-      )
-    END
-  );
+/* ⚠️★**`ALTER COLUMN ... USING` に副問い合わせは書けない**（SQLSTATE 0A000
+      "cannot use subquery in transform expression"）。2026-08-31 に実際に踏んだ。
+      `unnest(...) WITH ORDINALITY` を USING に書いたら弾かれた。
+
+   → **列を足して移送し、入れ替える**形にする。UPDATE なら副問い合わせを書ける。
+
+   ⚠️ この方法だと列の**物理的な並び順が最後に移る**。`SELECT *` の順が変わるが、
+      アプリは列を明示列挙しているので影響しない（`COMPANY_LIST_COLS` など）。
+   ⚠️ 依存（ビュー・インデックス・制約・ポリシー・関数）は**0件**であることを
+      2026-08-31 に確認済み。DROP COLUMN で壊れるものは無い。 */
+ALTER TABLE public.ow_companies ADD COLUMN benefits_jsonb jsonb;
+
+/* ⚠️ 順序を保つ。`WITH ORDINALITY` を落とすと並び順が変わりうる。
+   ⚠️ `detail` は入れない（未入力を表すのはキーの不在）。
+   ⚠️ NULL の行は NULL のまま（空配列で埋めない）。 */
+UPDATE public.ow_companies
+   SET benefits_jsonb = (
+         SELECT coalesce(jsonb_agg(jsonb_build_object('name', b) ORDER BY ord), '[]'::jsonb)
+           FROM unnest(benefits) WITH ORDINALITY AS t(b, ord)
+       )
+ WHERE benefits IS NOT NULL;
+
+/* ★入れ替える前に、移送できたことを確かめる */
+DO $$
+DECLARE v_src int; v_dst int;
+BEGIN
+  SELECT coalesce(sum(array_length(benefits,1)),0) INTO v_src FROM public.ow_companies;
+  SELECT coalesce(sum(jsonb_array_length(benefits_jsonb)),0) INTO v_dst FROM public.ow_companies;
+  IF v_src <> v_dst THEN
+    RAISE EXCEPTION '移送前 % 件 → 移送後 % 件。数が合わない。中止', v_src, v_dst;
+  END IF;
+  RAISE NOTICE '移送: % 件 → % 件', v_src, v_dst;
+END $$;
+
+ALTER TABLE public.ow_companies DROP COLUMN benefits;
+ALTER TABLE public.ow_companies RENAME COLUMN benefits_jsonb TO benefits;
 
 COMMENT ON COLUMN public.ow_companies.benefits IS
   '福利厚生。[{"name": 必須, "detail": 任意}] の配列。detail が無いときはキーごと省く（null を入れない）。2026-08-31 に text[] から移行。';
