@@ -19,6 +19,7 @@ const SECTIONS = [
   { href: "/dev/preview/cases",     label: "導入事例" },
   { href: "/dev/preview/teams",     label: "組織体制" },
   { href: "/dev/preview/products",  label: "製品・導入事例" },
+  { href: "/dev/preview/company-cards", label: "企業カード" },
 ];
 
 export default function PreviewLayout({ children }: { children: React.ReactNode }) {

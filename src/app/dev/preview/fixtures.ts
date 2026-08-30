@@ -1,5 +1,6 @@
 import type { CompanyEmployee, CompanyTool } from "@/lib/supabase/queries";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
+import type { CompanyForCarousel } from "@/types/genre";
 
 /**
  * プレビュー用の固定データ（2026-08-30）。
@@ -356,3 +357,91 @@ export const CUSTOMERS_7 = [
   "検証自動車株式会社", "検証銀行", "検証コミュニケーションズ",
   "検証リテール", "検証エナジー", "検証ロジスティクス", "検証メディア",
 ];
+
+/* ── 企業カード（一覧） ───────────────────────────────────────────────────
+   ⚠️ 実データは掲載79社あるが、**欠けのパターンが偏っている**。
+      tagline は 78/79 社にあり、**空は1社だけ**。logo_url が NULL も2社だけ。
+      「全部欠けている企業」「ロゴが横長の企業」を並べて見るのが目的。
+
+   ⚠️★CLAUDE.md に記録された既知の論点:
+      ・**375px は1列**なので行内に他のカードが無く、**tagline が空の1社だけ 19px 低い**
+        （124px vs 143px）。1440px/1199px/768px では全カード 161px で一致
+      ・ロゴの本当の問題は判読性より**不揃い**——白背景の正方形と色付きの横長バナーの混在
+      ・`employee_count` が空だと以前は「**0名**」と出ていた（2ad7eb31 で解消）。
+        **空のときに項目ごと消えるか**をここで確かめる */
+function company(over: Partial<CompanyForCarousel> = {}): CompanyForCarousel {
+  return {
+    id: "preview-co-1",
+    slug: "preview-co-1",
+    name: "検証ソリューションズ株式会社",
+    name_en: "Preview Solutions",
+    tagline: "現場の合意から、企業のDXを動かす。",
+    industry: null,
+    funding_stage: null,
+    employee_count: "約200名",
+    description: "検証用の企業説明です。",
+    accepting_casual_meetings: true,
+    jobs_public: true,
+    remote_work_status: "hybrid",
+    location: "東京都",
+    branch_locations: ["大阪", "名古屋"],
+    logo_letter: "検",
+    logo_gradient: "linear-gradient(135deg,#002366,#3B5FA8)",
+    logo_url: null,
+    updated_at: "2026-08-01T00:00:00Z",
+    job_count: 3,
+    current_member_count: 0,
+    obog_count: 0,
+    live_current_count: 4,
+    live_obog_count: 2,
+    article_count: 1,
+    business_domains: [],
+    founded_year: 2015,
+    company_features: ["リモート可", "副業OK"],
+    top_job_titles: ["エンタープライズ営業", "セールスエンジニア"],
+    ...over,
+  };
+}
+
+/** ⚠️★欠けのパターン。**空の項目が「0名」や「—」に化けないか**を1枚ずつ見る */
+export const COMPANY_CARDS_MISSING: CompanyForCarousel[] = [
+  company({ id: "c-full", name: "検証フル株式会社" }),
+  company({ id: "c-no-tagline", name: "検証タグラインなし株式会社", tagline: null }),
+  company({ id: "c-no-emp", name: "検証従業員数なし株式会社", employee_count: null }),
+  company({ id: "c-no-loc", name: "検証所在地なし株式会社", location: null, branch_locations: null }),
+  company({ id: "c-no-jobs", name: "検証求人0件株式会社", job_count: 0, top_job_titles: null }),
+  /* ⚠️ 社名に「0名」を入れないこと。「0名」で grep したときに自分の名前が当たり、
+        誤検知になる（2026-08-31 に実際にやった）。 */
+  company({ id: "c-no-members", name: "検証メンバー未登録株式会社", live_current_count: 0, live_obog_count: 0 }),
+  company({
+    id: "c-empty", name: "検証すべて空株式会社",
+    tagline: null, employee_count: null, location: null, branch_locations: null,
+    job_count: 0, live_current_count: 0, live_obog_count: 0, article_count: 0,
+    company_features: null, top_job_titles: null, founded_year: null, description: null,
+  }),
+];
+
+/** ⚠️ 長い社名・長いタグライン・タグが多い。折り返しと省略の確認 */
+export const COMPANY_CARDS_LONG: CompanyForCarousel[] = [
+  company({
+    id: "c-long-name",
+    name: "検証エンタープライズソリューションホールディングス株式会社",
+    name_en: "Preview Enterprise Solution Holdings Corporation",
+    tagline: "業種を越えた大規模アカウントに対し、複数プロダクトを横断した提案で経営課題の解決まで伴走するチームをつくる。",
+    company_features: ["リモート可", "副業OK", "フレックス", "書籍補助", "産育休実績あり", "ストックオプション"],
+    top_job_titles: ["エンタープライズコーポレートセールス本部 アカウントエグゼクティブ", "ソリューションエンジニア"],
+    branch_locations: ["大阪", "名古屋", "福岡", "札幌", "仙台", "京都", "徳島", "新潟"],
+  }),
+  company({ id: "c-short", name: "A社", name_en: null, tagline: "短い。", company_features: null }),
+];
+
+/** ⚠️ 件数が多いときの一覧。12件（1ページぶん） */
+export const COMPANY_CARDS_12: CompanyForCarousel[] = Array.from({ length: 12 }, (_, i) =>
+  company({
+    id: `c-${i}`, slug: `c-${i}`,
+    name: `検証${i + 1}株式会社`,
+    tagline: i % 3 === 0 ? null : `検証${i + 1}のキャッチコピー。`,
+    employee_count: ["約50名", "約200名", "1000名以上", null][i % 4],
+    job_count: i % 4,
+  }),
+);

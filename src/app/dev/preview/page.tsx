@@ -37,6 +37,8 @@ const ITEMS = [
     desc: "部門での束ね方。division 未設定のチームが消えないか" },
   { href: "/dev/preview/products",  label: "製品・導入事例",
     desc: "2製品のときに右が空く件。事例があると主な顧客が出なくなる分岐" },
+  { href: "/dev/preview/company-cards", label: "企業カード（一覧）",
+    desc: "項目が欠けた企業。空が「0名」「—」に化けないか。グリッドとリストの2形態" },
 ];
 
 export default function PreviewIndex() {
