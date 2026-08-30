@@ -26,8 +26,17 @@ export function Variant({
           <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>{note}</p>
         )}
       </div>
-      {/* ⚠️ 実ページと同じ「白いカードの中」に置く。背景が違うと色の印象が変わる */}
-      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+      {/* ⚠️ 実ページと同じ「白いカードの中」に置く。背景が違うと色の印象が変わる。
+             ⚠️★`data-preview-body` を付けてある。**計測はここだけを対象にすること。**
+                `<section>` 全体を読むと、上の `label` と `note`（＝**自分で書いた注意文**）が
+                一緒に当たる。2026-08-31 に**同じ誤検知を2回**やった:
+                  ・「`hybrid` が生で出ている」→ 実際は注記の「『hybrid』がそのまま出ていないこと」
+                  ・「年マーカーが 2020 → 2023 の順」→ 実際はラベルの「（2020〜2023 が空き）」
+                実際の描画は正しかった。**自分の注意書きを検出結果に混ぜない。**
+
+                  document.querySelectorAll("[data-preview-body]")  ← これで拾う
+          */}
+      <div data-preview-body style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
         {children}
       </div>
     </section>

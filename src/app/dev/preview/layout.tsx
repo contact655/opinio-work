@@ -21,6 +21,7 @@ const SECTIONS = [
   { href: "/dev/preview/products",  label: "製品・導入事例" },
   { href: "/dev/preview/company-cards", label: "企業カード" },
   { href: "/dev/preview/job-cards", label: "求人カード" },
+  { href: "/dev/preview/timeline", label: "職歴タイムライン" },
 ];
 
 export default function PreviewLayout({ children }: { children: React.ReactNode }) {

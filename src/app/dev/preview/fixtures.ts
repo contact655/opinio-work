@@ -3,6 +3,7 @@ import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import type { CompanyForCarousel } from "@/types/genre";
 import type { Job } from "@/app/jobs/mockJobData";
 import type { Company } from "@/app/companies/mockCompanies";
+import type { CareerEntry, EducationEntry } from "@/components/profile/MergedTimeline";
 
 /**
  * プレビュー用の固定データ（2026-08-30）。
@@ -558,3 +559,121 @@ export const PREVIEW_COMPANY_MAP: Map<string, Company> = new Map([
     phase: null,
   } as unknown as Company],
 ]);
+
+/* ── 職歴タイムライン ───────────────────────────────────────────────────────
+   ⚠️ 実データは **職歴のある実ユーザー4人 / 経歴24件**（2026-08-30 実測）。
+      同社グループ・出戻り・並行職・長期ブランクを**まとめて持つ人がいない。**
+
+   ⚠️★実装が記録している分岐（`MergedTimeline.tsx` のコメント）:
+      ・`career`（単独）と **`career-same-company`（同社で連続する2件以上）** の**2経路**
+      ・**出戻り**（連続しない同社）は自然に別グループになる（意図どおり）
+      ・⚠️ **`career-group`（同一開始月の並行職を1枚にまとめる箱）は廃止済み。**
+         箱に戻さないこと。並行は**言葉で示す**（`lib/profile/parallel.ts`）
+      ・年マーカーは**新しい順**（2026-08-26 に「古い順に並んでいた」不具合を修正）
+
+   ⚠️ `department` / `prefecture` は **SELECT に含めていない画面では undefined**。
+      その画面で出ないのが正しいので、**両方のパターン**を入れてある。 */
+function career(over: Partial<CareerEntry> = {}): CareerEntry {
+  return {
+    id: "pv-c1",
+    company_id: "preview-co-1",
+    company_name: "検証ソリューションズ株式会社",
+    logo_url: null,
+    logo_letter: "検",
+    logo_gradient: "linear-gradient(135deg,#002366,#3B5FA8)",
+    role_label: "エンタープライズセールス",
+    role_parent_name: "営業",
+    role_title: "アカウントエグゼクティブ",
+    department: null,
+    rank: null,
+    prefecture: null,
+    remote_work_status: null,
+    started_at: "2021-04-01",
+    ended_at: "2024-03-31",
+    is_current: false,
+    description: null,
+    join_reason: null,
+    employment_type: "正社員",
+    ...over,
+  };
+}
+
+/** ⚠️ 1件だけ。グループ化も年マーカーの複数行も起きない最小形 */
+export const CAREERS_1: CareerEntry[] = [career({ id: "c1", is_current: true, ended_at: null })];
+
+/** ⚠️★同社で連続する2件 → `career-same-company` にまとまるはず */
+export const CAREERS_SAME_COMPANY: CareerEntry[] = [
+  career({ id: "sc2", role_title: "シニアアカウントエグゼクティブ", rank: "manager",
+           started_at: "2023-04-01", ended_at: null, is_current: true }),
+  career({ id: "sc1", role_title: "アカウントエグゼクティブ",
+           started_at: "2021-04-01", ended_at: "2023-03-31" }),
+];
+
+/** ⚠️★出戻り。同じ会社だが**連続しない**ので、別グループになるのが正しい */
+export const CAREERS_BOOMERANG: CareerEntry[] = [
+  career({ id: "b3", company_name: "検証ソリューションズ株式会社", role_title: "営業部長",
+           rank: "director", started_at: "2024-04-01", ended_at: null, is_current: true }),
+  career({ id: "b2", company_id: "other-co", company_name: "検証テック株式会社",
+           role_label: "フィールドセールス", role_title: "AE",
+           started_at: "2022-04-01", ended_at: "2024-03-31" }),
+  career({ id: "b1", role_title: "アカウントエグゼクティブ",
+           started_at: "2019-04-01", ended_at: "2022-03-31" }),
+];
+
+/** ⚠️★並行職（開始月が同じ2件）。**箱にまとめず、言葉で示す**のが現在の仕様 */
+export const CAREERS_PARALLEL: CareerEntry[] = [
+  career({ id: "p1", started_at: "2022-04-01", ended_at: null, is_current: true }),
+  career({ id: "p2", company_id: "side-co", company_name: "検証スタジオ合同会社",
+           role_label: "プロダクトマネージャー", role_parent_name: "プロダクト",
+           role_title: "PdM（副業）", employment_type: "業務委託",
+           started_at: "2022-04-01", ended_at: null, is_current: true }),
+];
+
+/** ⚠️★長期ブランク（3年空き）。年マーカーが飛ぶときの見え方 */
+export const CAREERS_GAP: CareerEntry[] = [
+  career({ id: "g2", company_id: "other-co", company_name: "検証テック株式会社",
+           started_at: "2023-04-01", ended_at: null, is_current: true }),
+  career({ id: "g1", started_at: "2016-04-01", ended_at: "2020-03-31" }),
+];
+
+/** ⚠️ 自由入力の会社（`company_id` が null）。**ロゴが無く、リンクも張られない** */
+export const CAREERS_CUSTOM: CareerEntry[] = [
+  career({ id: "cu1", company_id: null, company_name: "検証フリー株式会社",
+           logo_letter: null, logo_gradient: null, is_current: true, ended_at: null }),
+  career({ id: "cu2", company_id: null, company_name: "非公開",
+           logo_letter: null, logo_gradient: null,
+           started_at: "2018-04-01", ended_at: "2021-03-31" }),
+];
+
+/** ⚠️ 項目が埋まっているとき（部署・勤務地・勤務形態・入社理由・説明） */
+export const CAREERS_RICH: CareerEntry[] = [
+  career({
+    id: "r1", is_current: true, ended_at: null,
+    department: "エンタープライズコーポレートセールス本部・Solution Sales 1G",
+    prefecture: "東京都", remote_work_status: "hybrid", rank: "manager",
+    join_reason: "現場に入り込んで意思決定まで伴走する営業の型を、事業会社側で作りたかった。",
+    description: "従業員1,000名以上のアカウントを担当。経営層と現場の双方に入り込み、導入から定着まで一貫して responsibility を持つ。四半期ごとに担当アカウントの経営層とレビューを実施。",
+  }),
+];
+
+/** ⚠️ 8件。折りたたみ（`collapseAfter`）の境界 */
+export const CAREERS_8: CareerEntry[] = Array.from({ length: 8 }, (_, i) =>
+  career({
+    id: `m${i}`,
+    company_id: `co-${i}`,
+    company_name: `検証${i + 1}株式会社`,
+    started_at: `${2010 + i * 2}-04-01`,
+    ended_at: i === 7 ? null : `${2012 + i * 2}-03-31`,
+    is_current: i === 7,
+  }),
+);
+
+/** 学歴。⚠️ `enrolled_at` が無い学歴は 2026-08 に「公開プロフィールから消えていた」前例がある */
+export const EDUCATIONS_2: EducationEntry[] = [
+  { id: "e1", school: "検証大学", school_id: null, school_master: null,
+    faculty: "経済学部", degree: "bachelor",
+    enrolled_at: "2012-04-01", graduated_at: "2016-03-31", is_current: false },
+  { id: "e2", school: "検証高等学校", school_id: null, school_master: null,
+    faculty: null, degree: "high_school",
+    enrolled_at: "2009-04-01", graduated_at: "2012-03-31", is_current: false },
+];

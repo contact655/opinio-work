@@ -41,6 +41,8 @@ const ITEMS = [
     desc: "項目が欠けた企業。空が「0名」「—」に化けないか。グリッドとリストの2形態" },
   { href: "/dev/preview/job-cards", label: "求人カード（一覧）",
     desc: "年収なし・下限だけ・上限だけ。会社が引けないときに落ちないか" },
+  { href: "/dev/preview/timeline", label: "職歴タイムライン",
+    desc: "同社グループ・出戻り・並行職・長期ブランク。行の2経路に編集操作が出るか" },
 ];
 
 export default function PreviewIndex() {
