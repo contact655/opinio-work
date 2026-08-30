@@ -1,4 +1,5 @@
 import type { CompanyEmployee, CompanyTool } from "@/lib/supabase/queries";
+import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 
 /**
  * プレビュー用の固定データ（2026-08-30）。
@@ -145,3 +146,172 @@ export const TOOLS_5_GROUPS = [
 export const TOOLS_MANY = Array.from({ length: 30 }, (_, i) =>
   tool(i + 1, `検証ツール${i + 1}`, ["crm", "marketing", "communication", "development", "data", "ai"][i % 6]),
 );
+
+/* ── 導入事例 ──────────────────────────────────────────────────────────────
+   ⚠️★境界は CLAUDE.md「`customer_cases` の書き方」に実測で書いてある。
+      ・**初期表示は3件。4件目から折りたたみが挟まる**（`INITIAL_CASES = 3`）
+      ・`usecase` は **100字まで**カード高さが 159px で一定。超えると1行ずつ伸びる
+      ・`result` は **60字以内**が目安
+      ・`products` は **3つまで**。4つ目からヘッダー行に乗らず独立行になり、
+        カードが**約37px 高くなる**
+   ⚠️★**`products` キーは必須。** 描画が `c.products.map(...)` なので、
+      空配列は安全だが**キーごと省くと `undefined.map` で落ちる。** */
+type PreviewCase = { name: string; industry: string; products: string[]; usecase: string; result: string };
+
+function kase(over: Partial<PreviewCase> = {}): PreviewCase {
+  return {
+    name: "検証製造株式会社",
+    industry: "製造",
+    products: ["検証CRM", "検証BI"],
+    usecase: "全国12拠点の営業情報が拠点ごとに分断されており、案件の進捗を本社が把握できなかった。",
+    result: "案件の可視化により受注率が18%改善。報告工数は月40時間削減。",
+    ...over,
+  };
+}
+
+export const CASES_1 = [kase()];
+
+/** ⚠️ 上限ちょうど。折りたたみは出ないはず */
+export const CASES_3 = [
+  kase(),
+  kase({ name: "検証フィナンシャル株式会社", industry: "金融", products: ["検証CRM"] }),
+  kase({ name: "検証リテール株式会社", industry: "小売", products: ["検証CRM", "検証BI", "検証MA"] }),
+];
+
+/** ⚠️★境界。4件目から「すべての導入事例を見る」が挟まり、フェードで最後が隠れる */
+export const CASES_4 = [...CASES_3, kase({ name: "検証ロジスティクス株式会社", industry: "物流" })];
+
+export const CASES_8 = [
+  ...CASES_4,
+  kase({ name: "検証ヘルスケア株式会社", industry: "医療" }),
+  kase({ name: "検証エナジー株式会社", industry: "エネルギー" }),
+  kase({ name: "検証エデュケーション株式会社", industry: "教育" }),
+  kase({ name: "検証トラベル株式会社", industry: "旅行" }),
+];
+
+/** ⚠️ 崩れの確認用。products 4つ / 長い usecase / 空配列 を1枚ずつ */
+export const CASES_EDGE = [
+  kase({
+    name: "検証プロダクツ4つ株式会社",
+    products: ["検証CRM", "検証BI", "検証MA", "検証SFA"],
+    result: "⚠️ products が4つ。ヘッダー行に乗らず独立行になり、カードが約37px 高くなる",
+  }),
+  kase({
+    name: "検証ロングユースケース株式会社",
+    usecase: "全国12拠点の営業情報が拠点ごとに分断され、案件の進捗を本社が把握できなかった。加えて見積の承認が紙とメールで行われており、決裁までに平均5営業日かかっていた。監査対応のたびに過去の承認履歴を人手で集める必要もあり、四半期ごとに延べ80時間を費やしていた。",
+    result: "⚠️ usecase が100字超。カードが縦に伸びるだけで崩れないかを見る",
+  }),
+  kase({
+    name: "検証プロダクツなし株式会社",
+    result: "⚠️ products が空配列。ピルの行ごと出ないこと（キー自体を省くと落ちる）",
+  }),
+];
+
+/* ── 組織体制 ──────────────────────────────────────────────────────────────
+   ⚠️ 実データは **Salesforce 1社（23チーム / 8部門）だけ**。0件・1件・部門なしを踏めない。
+   ⚠️ `division` は任意。**無い場合の束ね方**が確認したい形のひとつ。 */
+type PreviewTeam = { name: string; en_name: string; division?: string; mission: string; description: string; roles: string[] };
+
+function team(over: Partial<PreviewTeam> = {}): PreviewTeam {
+  return {
+    name: "エンタープライズ営業",
+    en_name: "Enterprise Sales",
+    division: "営業",
+    mission: "大企業のDXを、現場の合意から動かす。",
+    description: "従業員1,000名以上の企業を担当し、経営層と現場の双方に入り込んで導入を進めるチーム。",
+    roles: ["アカウントエグゼクティブ", "セールスエンジニア"],
+    ...over,
+  };
+}
+
+export const TEAMS_1 = [team()];
+
+/** ⚠️ 部門が1つだけ。束ねる意味が出るか */
+export const TEAMS_ONE_DIVISION = [
+  team(),
+  team({ name: "インサイドセールス", en_name: "Inside Sales", roles: ["SDR", "BDR"] }),
+  team({ name: "パートナー営業", en_name: "Partner Sales", roles: ["アライアンス"] }),
+];
+
+/** ⚠️ 部門が5つ。畳まれ方と「すべて見る」の境界 */
+export const TEAMS_5_DIVISIONS = [
+  ...TEAMS_ONE_DIVISION,
+  team({ division: "エンジニア", name: "プラットフォーム", en_name: "Platform", roles: ["バックエンド", "SRE"] }),
+  team({ division: "エンジニア", name: "フロントエンド", en_name: "Frontend", roles: ["フロントエンド"] }),
+  team({ division: "マーケティング", name: "デマンドジェネレーション", en_name: "Demand Gen", roles: ["マーケター"] }),
+  team({ division: "カスタマーサクセス", name: "オンボーディング", en_name: "Onboarding", roles: ["CSM"] }),
+  team({ division: "コーポレート", name: "人事", en_name: "People", roles: ["人事", "採用"] }),
+];
+
+/** ⚠️★`division` が無いチーム。**未設定のときにどこへ入るか**（消えないこと） */
+export const TEAMS_NO_DIVISION = [
+  team({ division: undefined }),
+  team({ division: undefined, name: "データ基盤", en_name: "Data Platform", roles: ["データエンジニア"] }),
+  team({ division: "営業", name: "フィールドセールス", en_name: "Field Sales", roles: ["AE"] }),
+];
+
+/** ⚠️ 極端に長い値と、roles が空・多いケース */
+export const TEAMS_EDGE = [
+  team({
+    name: "エンタープライズコーポレートセールス本部 第一営業部",
+    en_name: "Enterprise Corporate Sales Division, First Sales Department",
+    mission: "業種を越えた大規模アカウントに対し、複数プロダクトを横断した提案で経営課題の解決まで伴走する。",
+    description: "従業員5,000名以上のアカウントを担当。営業・SE・カスタマーサクセスが同じチームとして動き、導入後の定着まで一貫して責任を持つ。四半期ごとに担当アカウントの経営層とレビューを行う。",
+    roles: ["アカウントエグゼクティブ", "セールスエンジニア", "カスタマーサクセスマネージャー", "インサイドセールス", "パートナーアライアンス"],
+  }),
+  team({ name: "ロール未設定チーム", en_name: "No Roles", roles: [] }),
+];
+
+/** ⚠️ 23チーム。Salesforce の実データと同じ規模 */
+export const TEAMS_23 = Array.from({ length: 23 }, (_, i) =>
+  team({
+    division: ["営業", "エンジニア", "マーケティング", "カスタマーサクセス", "コーポレート", "プロダクト", "データ", "人事"][i % 8],
+    name: `検証チーム${i + 1}`,
+    en_name: `Preview Team ${i + 1}`,
+    roles: ["ロールA", "ロールB"],
+  }),
+);
+
+/**
+ * `CompanyDetail` を要求する部品（`OrgTeamsSectionClient` など）に渡す最小の値。
+ *
+ * ⚠️ この型は**必須39項目**あるが、部品が実際に読むのは一部だけ。
+ *    全部を「それらしく」埋めると、どれが効いているのか分からなくなる。
+ *    **見たい項目だけを `over` で渡し、残りは空にする。**
+ *
+ * ⚠️ 実在の企業名を使わないこと。`mockDetailData` の LAYERX 等は流用しない。
+ */
+export function detailWith(over: Partial<CompanyDetail>): CompanyDetail {
+  return {
+    id: "preview-company",
+    mission: "",
+    about: "",
+    established: null,
+    ceo: null,
+    hq: null,
+    url: "",
+    company_features: [],
+    freshness: [],
+    jobs: [],
+    current: [],
+    alumni: [],
+    interviews: [],
+    articles: [],
+    related: [],
+    mentor_avatars: [],
+    mentor_current: 0,
+    mentor_alumni: 0,
+    numbers: {} as CompanyDetail["numbers"],
+    nearestStation: null,
+    workTimeSystem: null,
+    workstyleDescription: null,
+    benefits: null,
+    evaluationSystem: null,
+    fit_positives: null,
+    fit_negatives: null,
+    why_join: null,
+    numbersUpdatedAt: null,
+    orgTeams: null,
+    ...over,
+  };
+}

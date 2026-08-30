@@ -51,6 +51,19 @@ export function PreviewHeader({ title, children }: { title: string; children: Re
         幅の確認は<strong>ブラウザ自体をリサイズ</strong>してください（375 / 768 / 1300）。
         固定幅の箱に入れていないので、全バリエーションが同時に追従します。
       </p>
+      {/* ⚠️★2026-08-30 に実際に誤読しかけた。導入事例のカード高さを CLAUDE.md の
+             実測値（1280px・企業ページ列幅 946px で 159px）と比べようとしたが、
+             この画面の本文幅は最大 980px でカード幅が違うため一致しない。 */}
+      <p style={{
+        margin: "8px 0 0", padding: "10px 12px", borderRadius: 8,
+        background: "#FFFBEB", border: "1px solid #FDE68A",
+        fontSize: 12, color: "#92400E", lineHeight: 1.7,
+      }}>
+        <strong>絶対値（px）を実ページと比べないでください。</strong>
+        この画面の本文幅は最大 980px で、企業詳細・求人詳細の列幅とは違います。
+        ここで見るのは<strong>バリエーション同士の差</strong>（何件目で折りたたみが挟まるか、
+        長文で崩れないか）です。実寸を測るときは実ページで測ってください。
+      </p>
     </div>
   );
 }

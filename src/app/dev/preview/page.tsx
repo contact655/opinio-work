@@ -31,6 +31,10 @@ const ITEMS = [
     desc: "0件の空状態、1件、3件、12件。長い氏名・役職での折り返し" },
   { href: "/dev/preview/tools",     label: "ツール",
     desc: "5グループへの束ね方と、グループ内が増えたときの伸び方" },
+  { href: "/dev/preview/cases",     label: "導入事例",
+    desc: "4件目から挟まる折りたたみ。products 4つ・長い usecase でのカードの伸び方" },
+  { href: "/dev/preview/teams",     label: "組織体制・チーム",
+    desc: "部門での束ね方。division 未設定のチームが消えないか" },
 ];
 
 export default function PreviewIndex() {
