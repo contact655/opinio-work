@@ -10,9 +10,24 @@ import { MEMBER_CREATED_VIA } from "@/lib/constants/companyMembers";
  * ⚠️ 条件をここ以外に書かないこと。
  *
  * ── 条件 ────────────────────────────────────────────────────────────────────
- *   ① `created_via = 'self'`（本人が自分で載せた行）
+ *   ① `created_via` が **`'self'` または NULL**（＝**誰も確認していない行**）
  *   ② `is_public = true`
  *   ③ **その企業に `is_current = true` の経歴がある**
+ *
+ * ⚠️★**①に NULL を含めるのを外さないこと（2026-08-30 に直した本体）。**
+ *    それまでは `'self'` だけで引いており、**掲載中5名のうち4名がこの一覧に出ていなかった。**
+ *    `created_via` は 2026-08-23（`20260823040000`）に追加され、既存行は
+ *    **意図的にバックフィルしていない**ので NULL のまま残っている
+ *    （「推測値を投入しない」に従った正しい判断。**列の側は直さない**）。
+ *    ⚠️ 公開側（企業ページ・/people・talkable.ts）は `created_via` で**絞っていない**。
+ *       取得条件だけが厳しく、**出ている人と監視できる人が食い違っていた。**
+ *
+ * ⚠️ NULL は「不明」であって「企業が招待した」ではない。**確認済みとして扱えない。**
+ *    実測（2026-08-30 / 本番）: `ow_company_members` 7行中 **6行が NULL**、
+ *    うち掲載中4行。`approved_at` は**全行 0件**で、企業が承認した実績も無い。
+ *
+ * ⚠️ `invite` / `admin` は除く。**企業か運営が相手を知っている**経路なので、
+ *    なりすましを後から探す対象ではない。**ここを緩めて全件にしないこと。**
  *
  * ⚠️★③を落とさないこと。公開側（企業ページ・/people・/u）は `is_current` を要求しており、
  *    **退職した人は既に降りている**。③が無いと、降りている人まで
@@ -38,7 +53,10 @@ export async function fetchSelfListed(): Promise<SelfListedRow[]> {
   const { data, error } = await admin
     .from("ow_company_members")
     .select("id, user_id, company_id, consent_at, created_at, ops_reviewed_at")
-    .eq("created_via", MEMBER_CREATED_VIA.SELF)
+    /* ⚠️★`'self'` **と NULL** の両方。`.eq()` だけにすると NULL 行が落ち、
+          **企業ページに出ているのに運営から見えない人**が生まれる（上のコメント）。
+       ⚠️ PostgREST の `.or()` で書く。`.in()` に null は渡せない。 */
+    .or(`created_via.eq.${MEMBER_CREATED_VIA.SELF},created_via.is.null`)
     .eq("is_public", true)
     /* ⚠️ **未確認が先・その中で新しい順**。運営が上から見て、確認したら消えていく形。 */
     .order("ops_reviewed_at", { ascending: true, nullsFirst: true })
@@ -74,8 +92,40 @@ export async function fetchSelfListed(): Promise<SelfListedRow[]> {
   return rows.filter((r) => pairs.has(`${r.user_id}:${r.company_id}`));
 }
 
-/** 運営がまだ確認していない件数。⚠️ **0にできる数**なので要対応に数えてよい */
-export async function countSelfListedUnreviewed(): Promise<number> {
+/**
+ * 運営がまだ確認していない件数と、**最も古いものの経過日数**。
+ * ⚠️ **0にできる数**なので要対応に数えてよい。
+ *
+ * ── なぜ経過日数まで返すか（2026-08-30）─────────────────────────────────────
+ * ⚠️★**件数だけでは「放置されていること」が分からない。**
+ *    事前の承認を廃止した以上、なりすましは**後から見つけて外すしかなく**、
+ *    掲載中の大半は**企業側に気づける人がいない**（宛先0件の会社）。
+ *    つまり「何名いるか」より「**何日誰も見ていないか**」が判断材料になる。
+ *    実測（2026-08-30）: 掲載5名すべて未確認で、**最も古いものが47日**経っていた。
+ *
+ * ⚠️ しきい値で色を変えたり警告にしたりはしない。**何日で問題かは決まっていない**
+ *    （見る人と頻度が未決）。数字だけ出して、判断は運営に委ねる。
+ *    CLAUDE.md「値が無いことを、ある値に置き換えない」と同じ筋で、
+ *    **決まっていない基準を勝手に作らない。**
+ *
+ * ⚠️ `oldestDays` は未確認が0件のとき `null`（**0ではない**）。
+ *    0 にすると「今日から放置が始まった」と読めてしまう。
+ */
+export async function countSelfListedUnreviewed(): Promise<{ count: number; oldestDays: number | null }> {
   const rows = await fetchSelfListed();
-  return rows.filter((r) => r.ops_reviewed_at === null).length;
+  const unreviewed = rows.filter((r) => r.ops_reviewed_at === null);
+  if (unreviewed.length === 0) return { count: 0, oldestDays: null };
+
+  /* ⚠️ 起点は `consent_at ?? created_at`。**一覧の「◯日前」と同じ値**を使う
+        （一覧は appliedAt = consent_at ?? created_at で日数を出している）。
+        別の起点にすると、ダッシュボードと一覧で日数が食い違う。 */
+  const now = Date.now();
+  const days = unreviewed
+    .map((r) => {
+      const t = Date.parse(r.consent_at ?? r.created_at);
+      return Number.isNaN(t) ? null : Math.floor((now - t) / 86_400_000);
+    })
+    .filter((d): d is number => d !== null);
+
+  return { count: unreviewed.length, oldestDays: days.length ? Math.max(...days) : null };
 }

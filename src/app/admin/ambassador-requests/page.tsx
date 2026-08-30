@@ -101,8 +101,14 @@ export default async function AmbassadorRequestsPage() {
       {/* ⚠️★ここの文言を「申請」「承認」に戻さないこと（2026-08-24）。
              会社の事前承認は廃止した。**この一覧に出ている人は既に掲載されている。**
              承認を促す文面にすると、運営が押すべき操作が無いのに待つことになる。 */}
+      {/* ⚠️★「本人がONにした人」とだけ書かないこと（2026-08-30）。
+             ここには `created_via` が **NULL の行（＝経路が記録される前に作られた行）も含む。**
+             実測では掲載中5名のうち**4名がその NULL 行**で、
+             文言を狭くすると「自分がONにした人だけの一覧」と読まれ、
+             **残り4名を誰も見に来なくなる。** */}
       <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        本人が「話を聞かれてもよい」をONにして、<strong style={{ color: "var(--ink)" }}>その企業のページに出ている人</strong>です。
+        <strong style={{ color: "var(--ink)" }}>企業ページに「話を聞けます」と出ている人</strong>のうち、
+        <strong style={{ color: "var(--ink)" }}>企業も運営も確認した記録が無い人</strong>です。
         （企業の掲載・求人の掲載とは別物）<strong style={{ color: "var(--ink)" }}>未確認が上に並びます。</strong>
       </p>
       <p style={{ margin: "0 0 20px", fontSize: 12, color: "#92400e", lineHeight: 1.7, fontWeight: 600 }}>

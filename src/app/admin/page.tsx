@@ -121,7 +121,10 @@ async function getStats() {
     pendingMeetingsCount: pendingMeetings.count ?? 0,
     pendingReservationsCount: 0,
     bizAdminsCount: bizAdmins.count ?? 0,
-    selfUnreviewedCount: selfListed,
+    selfUnreviewedCount: selfListed.count,
+    /* ★未確認のうち**最も古いものの経過日数**。0件なら null（0 ではない）。
+          ⚠️ 件数だけだと「放置されている」ことが読み取れない（2026-08-30）。 */
+    selfUnreviewedOldestDays: selfListed.oldestDays,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
@@ -571,6 +574,14 @@ export default async function AdminDashboard() {
                       面談対応者（自己申告） 未確認 {stats.selfUnreviewedCount}名
                     </p>
                     <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
+                      {/* ★何日誰も見ていないかを出す（2026-08-30）。
+                             ⚠️ しきい値で色を変えない。**何日で問題かは決めていない**
+                                （見る人と頻度が未決）。数字だけ出して判断は運営に委ねる。
+                             ⚠️ 一覧の「◯日前」と**同じ起点**（consent_at ?? created_at）。
+                                別々に計算すると数字が食い違う。 */}
+                      {stats.selfUnreviewedOldestDays !== null && stats.selfUnreviewedOldestDays >= 1 && (
+                        <>最も古いもので {stats.selfUnreviewedOldestDays} 日前 ・ </>
+                      )}
                       企業ページに出ている人です。在籍確認はしていません
                     </p>
                   </div>
