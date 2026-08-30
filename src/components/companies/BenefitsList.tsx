@@ -36,6 +36,30 @@ import type { ChipVariant } from "@/lib/utils/chipVariant";
  *  状態になり、何が隠れているか分からない。件数で切らないこと。 */
 export const BENEFIT_CATEGORY_LIMIT = 3;
 
+/**
+ * 株式報酬（緑＝money にする対象）かどうか。
+ *
+ * ⚠️★**`RSU` を落とさないこと（2026-08-30 に実際に落とした）。**
+ *    統合前の求人詳細には `b.includes("RSU")` があり緑だったが、企業詳細側の
+ *    実装に寄せたときに消えた。本番の「RSU（譲渡制限付き株式）」が青くなっていた。
+ *    `.claude/skills/ui-conventions`「色の役割」は
+ *    **緑＝金銭的にプラスの条件のみ（年収レンジ / 確定拠出年金・退職金 / SO・RSU）**
+ *    と定めており、RSU は明記されている対象。
+ *
+ * ⚠️★**`SO` を素の部分一致にしないこと。** `b.includes("SO")` は
+ *    **`SOMPO健康保険組合` や `SODEXO食事補助` まで緑にする。**
+ *    英字の前後が英字でないときだけ拾う（`SO付与` `SO（ストックオプション）` は拾う）。
+ *
+ * ⚠️ **手当・補助・祝い金をここに足さないこと。** 実データ19種のうち
+ *    住宅手当・引越し祝い金・社員紹介手当・ウェルネス費用補助・予防接種手当が
+ *    該当してしまい、**ほとんどのカードが緑になって区別の意味が消える。**
+ *    規約が挙げているのは「年収レンジ / 確定拠出年金・退職金 / SO・RSU」の3つだけ。
+ */
+function isEquity(b: string): boolean {
+  return b.includes("ストックオプション") || b.includes("RSU") || b.includes("持株")
+    || /(^|[^A-Za-z])SO([^A-Za-z]|$)/.test(b);
+}
+
 type BenefitIconDef = { svg: React.ReactNode; variant?: ChipVariant };
 function getBenefitIconDef(benefit: string): BenefitIconDef {
   const b = benefit;
@@ -48,7 +72,7 @@ function getBenefitIconDef(benefit: string): BenefitIconDef {
     return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> };
   if (b.includes("副業") || b.includes("兼業"))
     return { ...royal, svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> };
-  if (b.includes("ストックオプション") || b.includes("SO") || b.includes("持株"))
+  if (isEquity(b))
     return { variant: "money", svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> };
   if (b.includes("書籍") || b.includes("学習") || b.includes("研修") || b.includes("勉強会") || b.includes("資格"))
     return { svg: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> };
@@ -67,7 +91,9 @@ const BENEFIT_CATEGORIES = [
   { key: "work_style", label: "働き方", keywords: ["リモート", "在宅", "テレワーク", "フルリモート", "フレックス", "時差", "副業", "兼業"] },
   /* ⚠️ 「株式」を足した（2026-08-08）。ラベルが「報酬・株式」なのに
         キーワードに無く、「RSU（譲渡制限付き株式）」がその他に落ちていた。 */
-  { key: "rewards",    label: "報酬・株式", keywords: ["ストックオプション", "SO", "持株", "株式", "確定拠出", "退職金", "給与", "賞与", "インセンティブ"] },
+  /* ⚠️ `SO` を素の部分一致で入れないこと。`SOMPO健康保険組合` が「報酬・株式」に落ちる。
+        英字の判定は `isEquity()` が持つ（`categorize` が先に呼ぶ）。 */
+  { key: "rewards",    label: "報酬・株式", keywords: ["ストックオプション", "RSU", "持株", "株式", "確定拠出", "退職金", "給与", "賞与", "インセンティブ"] },
   { key: "growth",     label: "学習・成長", keywords: ["書籍", "学習", "研修", "勉強会", "資格", "セミナー"] },
   /* ⚠️ 「育児」「介護」を足した（2026-08-08）。ラベルが「育児・家族」なのに
         キーワードは「育休」だけで、「育児・介護休暇制度」がその他に落ちていた。 */
@@ -78,6 +104,9 @@ const BENEFIT_CATEGORIES = [
 /* ⚠️ どのキーワードにも当たらない値は "other" を返す。
       **1件も欠けさせない**ため、描画側で必ず「その他」として出す。 */
 function categorize(b: string): string {
+  /* ⚠️ 英字の `SO` だけは前後を見る必要があるので、キーワード表ではなく関数で判定する
+        （表に "SO" と書くと `SOMPO健康保険組合` を拾う）。色の判定と同じ関数を使う。 */
+  if (isEquity(b)) return "rewards";
   for (const cat of BENEFIT_CATEGORIES) {
     if (cat.keywords.some((kw) => b.includes(kw))) return cat.key;
   }
