@@ -18,7 +18,6 @@ import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
 import { isBusinessRole } from "@/lib/roles/jobRoles";
-import EvaluationText from "@/app/(jobseeker)/companies/[id]/EvaluationText";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { primaryBusinessDomain } from "@/types/genre";
@@ -1279,44 +1278,32 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </section>
               )}
 
-              {/* ── 福利厚生・評価制度 ── */}
-              {((company.benefits && company.benefits.length > 0) || company.evaluationSystem) && (
+              {/* ── 福利厚生 ──
+                     ⚠️★**評価制度は 2026-08-30 に削除した（柴さん）。戻さないこと。**
+                        `/biz/company` の入力欄は **2026-07-28 に既に撤去済み**で
+                        （CLAUDE.md「biz/company フォームから削除した項目」）、
+                        **入力できないのに表示だけ残っていた。** 本番でも 89社中2社。
+                     ⚠️ `ow_companies.evaluation_system` 列と `mapCompany` の
+                        `evaluationSystem` は**残してある**（撤去済み5項目と同じ扱い）。
+                        **新しい表示先を作らないこと。** 作るなら入力欄とセットで。
+                     ⚠️ 内側の `<h3>福利厚生</h3>` と罫線も落とした。評価制度が無くなり
+                        `SecTitle` と**同じ文字が2つ並ぶ**ため（企業詳細も SecTitle だけ）。 */}
+              {company.benefits && company.benefits.length > 0 && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
                 }>
-                  福利厚生・評価制度
+                  福利厚生
                 </SecTitle>
 
-                {/* 福利厚生 */}
-                {/* ⚠️★中身は共通部品にした（2026-08-30）。**企業詳細とまったく同じ**
+                {/* ⚠️★中身は共通部品（2026-08-30）。**企業詳細とまったく同じ**
                        データ（`ow_companies.benefits`）・同じ見せ方（カテゴリ分け + すべて見る）。
                     ⚠️ 以前はここに**独自のアイコン判定**があり、企業詳細と食い違っていた
                        （`介護` `育児` `食事` `ランチ` `社食` `株式` `勉強会` `セミナー` `資格` を
-                        拾えず、緑の色も直書きしていた）。**書き戻さないこと。**
-                    ⚠️ 見出しの罫線は残す。下に「評価制度」が続くので、区切りが要る。 */}
-                {company.benefits && company.benefits.length > 0 && (
-                  <div style={{ marginBottom: company.evaluationSystem ? 24 : 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", whiteSpace: "nowrap" as const }}>福利厚生</h3>
-                      <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                    </div>
-                    <BenefitsList benefits={company.benefits} />
-                  </div>
-                )}
-
-                {/* 評価制度 */}
-                {company.evaluationSystem && (
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", whiteSpace: "nowrap" as const }}>評価制度</h3>
-                      <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-                    </div>
-                    <EvaluationText text={company.evaluationSystem} />
-                  </div>
-                )}
+                        拾えず、緑の色も直書きしていた）。**書き戻さないこと。** */}
+                <BenefitsList benefits={company.benefits} />
               </section>
               )}
 
