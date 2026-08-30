@@ -1,6 +1,8 @@
 import type { CompanyEmployee, CompanyTool } from "@/lib/supabase/queries";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import type { CompanyForCarousel } from "@/types/genre";
+import type { Job } from "@/app/jobs/mockJobData";
+import type { Company } from "@/app/companies/mockCompanies";
 
 /**
  * プレビュー用の固定データ（2026-08-30）。
@@ -445,3 +447,89 @@ export const COMPANY_CARDS_12: CompanyForCarousel[] = Array.from({ length: 12 },
     job_count: i % 4,
   }),
 );
+
+/* ── 求人カード（一覧） ───────────────────────────────────────────────────
+   ⚠️ 公開求人は **2件だけ**（2026-08-30 実測）。しかも両方 Salesforce で
+      年収もキャッチコピーも入っている。**欠けた形を実データで踏めない。**
+   ⚠️ `JobListItem` が読むのは9項目だけ（id / slug / company_id / role /
+      highlight / location / work_style / salary_min / salary_max）。
+      それ以外は型を満たすためのダミーでよい。
+   ⚠️★`employment_type` は **null を「正社員」に倒さない**（2026-08-07 の判断）。 */
+function job(over: Partial<Job> = {}): Job {
+  return {
+    id: "preview-job-1",
+    slug: "preview-job-1",
+    company_id: "preview-co-1",
+    role: "エンタープライズ営業（アカウントエグゼクティブ）",
+    dept: "営業",
+    employment_type: "正社員",
+    location: "東京都",
+    work_style: "ハイブリッド",
+    salary_min: 900,
+    salary_max: 1800,
+    experience: "3年以上",
+    tags: ["営業", "SaaS"],
+    highlight: "現場の合意から、大企業のDXを動かす。",
+    updated_days_ago: 3,
+    is_new: false,
+    urgency: "open",
+    dept_members: 0,
+    member_avatars: [],
+    overview: "",
+    main_tasks: [],
+    required_skills: [],
+    preferred_skills: [],
+    benefits: [],
+    selection_flow: [],
+    selection_note: "",
+    position_members: [],
+    related_article_title: "",
+    related_article_excerpt: "",
+    ...over,
+  };
+}
+
+/** ⚠️★欠けのパターン。**年収なしで「年収0万円〜」等に化けないこと** */
+export const JOB_CARDS_MISSING: Job[] = [
+  job({ id: "j-full", role: "検証フル求人" }),
+  job({ id: "j-no-salary", role: "検証 年収なし", salary_min: 0, salary_max: 0 }),
+  job({ id: "j-min-only", role: "検証 下限だけ", salary_min: 800, salary_max: 0 }),
+  job({ id: "j-max-only", role: "検証 上限だけ", salary_min: 0, salary_max: 1200 }),
+  job({ id: "j-no-highlight", role: "検証 キャッチコピーなし", highlight: "" }),
+  job({ id: "j-no-location", role: "検証 勤務地なし", location: "", work_style: "" }),
+  job({
+    id: "j-empty", role: "検証 すべて空",
+    highlight: "", location: "", work_style: "", salary_min: 0, salary_max: 0,
+  }),
+];
+
+/** ⚠️ 長い職種名・長いキャッチコピー。折り返しと省略 */
+export const JOB_CARDS_LONG: Job[] = [
+  job({
+    id: "j-long",
+    role: "エンタープライズコーポレートセールス本部 第一営業部 アカウントエグゼクティブ（金融・通信担当）",
+    highlight: "業種を越えた大規模アカウントに対し、複数プロダクトを横断した提案で経営課題の解決まで伴走する。導入後の定着まで一貫して責任を持つ。",
+    location: "東京都 / 大阪府 / 愛知県 / 福岡県",
+    salary_min: 12000, salary_max: 25000,
+  }),
+  job({ id: "j-short", role: "AE", highlight: "短い。", location: "東京" }),
+];
+
+/** ⚠️ 会社が見つからないとき（companyMap に無い） */
+export const JOB_CARD_NO_COMPANY: Job[] = [
+  job({ id: "j-orphan", role: "検証 会社情報なし", company_id: "does-not-exist" }),
+];
+
+/** `JobListItem` に渡す会社。⚠️ 実ページと同じく Map で渡す */
+export const PREVIEW_COMPANY_MAP: Map<string, Company> = new Map([
+  ["preview-co-1", {
+    id: "preview-co-1",
+    slug: "preview-co-1",
+    name: "検証ソリューションズ株式会社",
+    name_en: "Preview Solutions",
+    logo_letter: "検",
+    logo_gradient: "linear-gradient(135deg,#002366,#3B5FA8)",
+    logo_url: null,
+    phase: null,
+  } as unknown as Company],
+]);

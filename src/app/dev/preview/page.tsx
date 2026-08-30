@@ -39,6 +39,8 @@ const ITEMS = [
     desc: "2製品のときに右が空く件。事例があると主な顧客が出なくなる分岐" },
   { href: "/dev/preview/company-cards", label: "企業カード（一覧）",
     desc: "項目が欠けた企業。空が「0名」「—」に化けないか。グリッドとリストの2形態" },
+  { href: "/dev/preview/job-cards", label: "求人カード（一覧）",
+    desc: "年収なし・下限だけ・上限だけ。会社が引けないときに落ちないか" },
 ];
 
 export default function PreviewIndex() {
