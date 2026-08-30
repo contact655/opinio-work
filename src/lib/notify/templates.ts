@@ -86,6 +86,10 @@ export function casualMeetingAdminTemplate(params: {
   intent: string | null;
   interestReason: string | null;
   questions: string | null;
+  /** ★指名された社員の氏名（2026-08-30）。**任意。null なら行ごと出さない。**
+      ⚠️ 「値が無いことを、ある値に置き換えない」——「（指名なし）」とは書かない。
+         指名は任意の機能で、無いことに意味がある。 */
+  requestedName?: string | null;
 }) {
   const intentLabel: Record<string, string> = {
     info_gathering: "情報収集中",
@@ -102,6 +106,7 @@ export function casualMeetingAdminTemplate(params: {
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
+        ${params.requestedName ? `<tr><td style="${TD_LABEL}">指名</td><td style="${TD_VALUE}"><strong>${esc(params.requestedName)}</strong> さんに聞きたい</td></tr>` : ""}
         <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
         <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
         <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
@@ -460,6 +465,10 @@ export function casualMeetingCompanyAdminTemplate(params: {
   intent: string | null;
   interestReason: string | null;
   questions: string | null;
+  /** ★指名された社員の氏名（2026-08-30）。**任意。null なら行ごと出さない。**
+      ⚠️ 「値が無いことを、ある値に置き換えない」——「（指名なし）」とは書かない。
+         指名は任意の機能で、無いことに意味がある。 */
+  requestedName?: string | null;
   /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
   viaOps?: boolean;
 }) {
@@ -477,6 +486,7 @@ export function casualMeetingCompanyAdminTemplate(params: {
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
+        ${params.requestedName ? `<tr><td style="${TD_LABEL}">指名</td><td style="${TD_VALUE}"><strong>${esc(params.requestedName)}</strong> さんに聞きたい</td></tr>` : ""}
         <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
         <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
         <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>

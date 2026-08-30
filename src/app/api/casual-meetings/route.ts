@@ -177,6 +177,24 @@ export async function POST(req: NextRequest) {
     .eq("id", company_id as string)
     .maybeSingle();
 
+  /* ★指名された人の氏名を通知にも入れる（2026-08-30）。
+     ⚠️ **企業が最初に受け取るのはメール**で、そこに「誰に聞きたいか」が無かった。
+        DB には `requested_user_id` として入り、`/biz/meetings` の詳細パネルには
+        「◯◯さんに聞きたい」と出ていたが、**メールだけが落としていた。**
+        担当者は企業側が自己アサインする仕組みなので、最初の通知に指名が無いと
+        別の人が付く。
+     ⚠️ `requestedUserId` は**検証を通った値だけ**（在籍中かつ掲載中の面談対応者）。
+        ここで引き直さず、その値をそのまま使う。
+     ⚠️ 氏名が引けなくても通知は送る（`null` のままテンプレート側が行ごと省く）。
+        通知を止めるほうが害が大きい。 */
+  let requestedName: string | null = null;
+  if (requestedUserId) {
+    const { data: ru, error: ruErr } = await supabase
+      .from("ow_users").select("name").eq("id", requestedUserId).maybeSingle();
+    if (ruErr) console.error("[casual-meetings] 指名の氏名取得に失敗:", ruErr.message);
+    requestedName = (ru?.name as string | null) ?? null;
+  }
+
   if (companyForNotify) {
     // OPINIO 運営への通知
     await notify(
@@ -186,6 +204,7 @@ export async function POST(req: NextRequest) {
         intent: (intent as string | null) ?? null,
         interestReason: (interest_reason as string | null) ?? null,
         questions: (questions as string | null) ?? null,
+        requestedName,
       })
     );
     // 申込者本人への確認メール
@@ -217,6 +236,7 @@ export async function POST(req: NextRequest) {
           intent: (intent as string | null) ?? null,
           interestReason: (interest_reason as string | null) ?? null,
           questions: (questions as string | null) ?? null,
+          requestedName,
           /* ⚠️ 印は同じ判定から出す */
           viaOps: companyEmails.viaOps,
         })
