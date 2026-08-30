@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobs, getRoleTree } from "@/lib/supabase/queries";
+import { getDeptJobs } from "@/lib/jobs/deptJobs";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { fmtMan } from "@/lib/utils/salary";
 
@@ -57,10 +58,20 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const title = `${cat.label}の求人 | OPINIO`;
   const description = `${cat.description} IT/SaaS業界特化の転職プラットフォームOPINIOで探す。`;
 
+  /* ★求人が0件なら noindex（2026-08-30）。
+     ⚠️ 実測（2026-08-30）で**9部門のうち8つが0件**なのに `index, follow` だった。
+        中身の無いページを検索結果に出しても、来た人に見せるものが無い。
+     ⚠️ **sitemap 側と同じ `getDeptJobs()` を使う。** 片方だけ直すと
+        「sitemap にはあるのに noindex」という矛盾になる。
+     ⚠️ ページ自体は 404 にしない。**求人が入れば自動で index に戻る**し、
+        内部リンクから来た人には分類の説明が読める。 */
+  const empty = (( await getDeptJobs()).get(params.slug)?.length ?? 0) === 0;
+
   return {
     title: { absolute: title },
     description,
     keywords: [cat.label, "IT転職", "SaaS求人", "転職", cat.labelEn],
+    ...(empty ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: `/jobs/dept/${params.slug}` },
     openGraph: {
       title,

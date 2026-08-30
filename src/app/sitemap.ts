@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetadataRoute } from "next";
 import { filterListedCompanies } from "@/lib/companies/visibility";
+import { getDeptJobs } from "@/lib/jobs/deptJobs";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createAdminClient();
@@ -19,6 +20,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from("ow_articles")
     .select("slug, updated_at")
     .eq("is_published", true);
+
+  /* ★求人が1件も無い部門ページは sitemap に載せない（2026-08-30）。
+        ⚠️ 実測（2026-08-30 / 本番）: **9部門のうち8つが0件**なのに、9つとも
+           priority 0.8 で載っており `index, follow` だった。
+        ⚠️ 同じ形を既に2回外している —— `/salary` の10URL（2026-08-29）と
+           `/people/role/[slug]` の7ページ（2026-08-04）。**中身の無いページを
+           自分から知らせない。**
+        ⚠️★**画面側と同じ `getDeptJobs()` を使う。** ここで数え直すと、
+           「sitemap にはあるのに中身0件」「noindex なのに sitemap にある」が起きる。 */
+  const deptJobs = await getDeptJobs();
 
   const baseUrl = "https://opinio.jp";
 
@@ -83,7 +94,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ── Static: job dept pages ───────────────────────────────────────────────
     // ow_roles の9大分類の slug と一致させること（2026-08-03 に独自7スラッグから移行）。
     // 旧 management / infra は next.config.mjs で 301 を張っている。
-    ...["exec", "bizdev", "sales", "cs", "marketing", "product", "data-ai", "engineer", "corporate"].map((slug) => ({
+    ...["exec", "bizdev", "sales", "cs", "marketing", "product", "data-ai", "engineer", "corporate"]
+      .filter((slug) => (deptJobs.get(slug)?.length ?? 0) > 0)   // ★0件の部門は載せない
+      .map((slug) => ({
       url: `${baseUrl}/jobs/dept/${slug}`,
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
