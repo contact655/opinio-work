@@ -656,14 +656,23 @@ export default async function ForCompaniesPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
             </Link>
             {/* ⚠️ 「入社まで費用なし（成果報酬制）」を戻さないこと（2026-08-21 に削除） */}
+            {/* ⚠️★白の不透明度を上げた（2026-08-31）。**0.55 / 0.5 に戻さないこと。**
+                   濃紺グラデ（rgb(0,31,91)→rgb(0,59,181)）の**明るい側**で実測すると
+                   コントラスト比が **0.55 → 3.79 / 0.5 → 3.38** で、
+                   12px の小さい文字に必要な **4.5:1 を下回っていた**（WCAG AA）。
+                   0.78 なら **6.1** で通る。
+                ⚠️ サイズも 12 → 13px にした。ここはCTA直下の補足で、
+                   **読ませる前提の文**。12px は本文の最小としても小さい。
+                ⚠️ 測るときは**グラデーションの明るい側**で計算すること。
+                   暗い側だけで測ると通ってしまう。 */}
             <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
               {["求人掲載は無料", "既存媒体と並行可能"].map((txt) => (
-                <div key={txt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
+                <div key={txt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.78)" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {txt}
                 </div>
               ))}
-              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>相談する</a>
+              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.78)", textDecoration: "underline" }}>相談する</a>
             </div>
           </div>
         </section>
