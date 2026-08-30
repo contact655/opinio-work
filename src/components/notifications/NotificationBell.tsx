@@ -232,7 +232,7 @@ export function NotificationBell() {
               justifyContent: "space-between",
             }}
           >
-            <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
               通知
             </span>
             {loading && (
@@ -247,7 +247,7 @@ export function NotificationBell() {
                 style={{
                   padding: "32px 16px",
                   textAlign: "center",
-                  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 13,
                   color: "var(--ink-mute)",
                 }}
@@ -282,7 +282,7 @@ export function NotificationBell() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                          fontFamily: "var(--font-inter), var(--font-noto)",
                           fontSize: 12, fontWeight: 500,
                           color: "var(--ink)",
                           lineHeight: 1.5,
@@ -294,7 +294,7 @@ export function NotificationBell() {
                       {notif.postPreview && (
                         <div
                           style={{
-                            fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                            fontFamily: "var(--font-inter), var(--font-noto)",
                             fontSize: 12, fontWeight: 500,
                             color: "var(--ink-mute)",
                             marginTop: 2,

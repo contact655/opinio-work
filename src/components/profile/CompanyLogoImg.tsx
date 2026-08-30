@@ -74,7 +74,10 @@ export default function CompanyLogoImg({
             alignItems: "center",
             justifyContent: "center",
             color: "#fff",
-            fontSize: size * 0.42,
+          /* ⚠️ 端数を出さない（2026-08-30）。`size * 0.42` は 38px のとき
+                15.959999999999999px になり、実測でその1種類だけ他と揃わなかった。
+                `components/ui/InitialAvatar.tsx` は元から `Math.round` している。 */
+            fontSize: Math.round(size * 0.42),
             fontWeight: 700,
           }}
         >
@@ -126,7 +129,8 @@ export function LetterCircle({
         justifyContent: "center",
         flexShrink: 0,
         color: "#fff",
-        fontSize: size * 0.42,
+        /* ⚠️ 端数を出さない（上と同じ理由） */
+        fontSize: Math.round(size * 0.42),
         fontWeight: 700,
         /* ⚠★`"var(--font-inter), var(--font-noto)"` にしない（2026-08-29）。ここに来るのは
               **企業名・学校名の頭文字**で、「阪」「滝」のような**和文が入る。**
