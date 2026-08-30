@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
-import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, getJobs, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getPublicAmbassadorsCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, getJobs, type JobPositionMember, type CompanyEmployee } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
@@ -257,12 +257,33 @@ const JOB_AVATAR_COLORS: { bg: string; text: string }[] = [
   { bg: "linear-gradient(135deg, #1E40AF 0%, #0891B2 100%)", text: "rgba(255,255,255,0.9)" },
 ];
 
-function JobEmployeeCard({ emp, companyId: _companyId }: { emp: CompanyEmployee; companyId: string }) {
+/**
+ * 求人詳細の社員カード。
+ *
+ * ⚠️★**面談CTAはカードの中に置く**（2026-08-30 に変更）。
+ *    それまではセクションの末尾に「話を聞く（カジュアル面談）」を1つだけ置いていたが、
+ *    **リンクに `?person=` が無く企業宛の申込**だった。人物カードのすぐ下にあるので
+ *    「この人と話せる」と誤解される（柴さんの指摘）。
+ *    ⚠️ 企業詳細（`CompanyEmployeeSections`）は**元からカードごとに指名付き**。
+ *       同じ部品の見た目と挙動を2つ持たないよう、そちらに揃えた。
+ *
+ * ⚠️ CTA を出す条件は2つとも要る。
+ *      ① その人が**面談可**（`ow_company_members` の同意＋掲載）
+ *      ② 企業が**受付中**（`accepting_casual_meetings`）
+ *    ②が無いと、押した先が「現在受け付けていません」になる。
+ */
+function JobEmployeeCard({ emp, companyId, casualBase }: {
+  emp: CompanyEmployee;
+  companyId: string;
+  /** `/companies/{id}/casual-meeting`。受付停止・非公開企業では null */
+  casualBase: string | null;
+}) {
   const colorIdx = emp.userId.charCodeAt(0) % JOB_AVATAR_COLORS.length;
   const color = JOB_AVATAR_COLORS[colorIdx];
   const initial = emp.avatarInitial ?? emp.name.charAt(0);
+  void companyId;
 
-  return (
+  const card = (
     <a
       href={`/u/${emp.userId}`}
       style={{
@@ -298,6 +319,33 @@ function JobEmployeeCard({ emp, companyId: _companyId }: { emp: CompanyEmployee;
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
     </a>
   );
+
+  if (!casualBase) return card;
+
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", gap: 10,
+      padding: "12px 14px", borderRadius: 12,
+      /* ⚠️ 面のオレンジで塗らない。面談であることはバッジとリンクが示す
+            （企業詳細の同じカードと同じ判断）。 */
+      background: "#fff", border: "1px solid #FED7AA",
+    }}>
+      {card}
+      <Link
+        /* ★`person` は `ow_users.id`。API 側で「その企業に在籍中かつ掲載中の面談対応者」を
+              検証してから記録する（`POST /api/casual-meetings`）。URL の値をそのまま信じない。 */
+        href={`${casualBase}?person=${emp.userId}`}
+        style={{
+          display: "block", textAlign: "center", padding: "8px 16px",
+          background: "linear-gradient(135deg, #F59E0B, #F97316)",
+          color: "#fff", borderRadius: 8,
+          fontSize: 12, fontWeight: 700, textDecoration: "none",
+        }}
+      >
+        {emp.name.split(/[\s　]/)[0]}さんに話を聞く →
+      </Link>
+    </div>
+  );
 }
 
 /**
@@ -316,6 +364,7 @@ function JobEmployeesSection({
   alumni,
   companyId,
   casualHref,
+  talkableIds,
   currentTitle,
   alumniTitle,
   currentSubtitle,
@@ -323,8 +372,10 @@ function JobEmployeesSection({
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
   companyId: string;
-  /** 非公開企業では null。飛べない導線を置かないため CTA ごと出さない */
+  /** 非公開企業・受付停止では null。飛べない導線を置かないため CTA ごと出さない */
   casualHref: string | null;
+  /** 面談可の `ow_users.id`。⚠️ ここに居る人だけ指名CTAを出す */
+  talkableIds: Set<string>;
   /** 既定「この職種の現役メンバー」。会社全体を出すときは必ず渡す */
   currentTitle?: string;
   /** 既定「この職種を経験したOB/OG」 */
@@ -370,24 +421,16 @@ function JobEmployeesSection({
             </p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
-            {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
+            {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId}
+              casualBase={casualHref && talkableIds.has(emp.userId) ? casualHref : null} />)}
           </div>
-          {casualHref && (
-          <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-4)", borderTop: "1px solid var(--line-soft)" }}>
-            <a
-              href={casualHref}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "10px 20px", borderRadius: 10, width: "100%",
-                background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
-                color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
-            </a>
-          </div>
-          )}
+          {/* ⚠️★セクション末尾の一括CTA「話を聞く（カジュアル面談）」は削除した（2026-08-30）。
+                 **リンクに `?person=` が無く企業宛の申込**だったのに、人物カードのすぐ下に
+                 あるため「この人と話せる」と誤解される（柴さんの指摘）。
+              ⚠️ **代わりにカードごとに指名付きCTAを出す**（`JobEmployeeCard`）。
+                 企業詳細は元からその形で、同じ部品の挙動を2つ持たないために揃えた。
+              ⚠️ 複数人いるときに1つの一括CTAを置くと、**誰を指名するか決められない**。
+                 これが「指名なし」になっていた根本の理由。**戻さないこと。** */}
         </section>
       )}
 
@@ -411,7 +454,9 @@ function JobEmployeesSection({
             <span style={{ fontSize: 12, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{alumni.length}名</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
-            {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
+            {/* ⚠️ OB/OG には指名CTAを出さない。**退職者に「話を聞く」導線は出さない**
+                    （企業詳細も現役社員にしか出していない）。 */}
+            {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} casualBase={null} />)}
           </div>
         </section>
       )}
@@ -555,17 +600,25 @@ export default async function JobDetailPage({ params }: { params: { id: string }
      ⚠️ `getJobEmployees` は `getCompanyEmployees` を職種で絞ったものなので、
         **同じ元から引いて差集合を取る**（別々に引くと基準がずれる）。
      ⚠️ どちらも `unstable_cache` 付き。ここで生のクライアントを使わない。 */
-  const [allEmployees, companyTools, companyResult] = await Promise.all([
+  const [allEmployees, companyTools, companyResult, ambassadors] = await Promise.all([
     getCompanyEmployeesCached(job.company_id),
     getCompanyToolsCached(job.company_id),
     /* ⚠️ `detail`（拠点・資本関係）はここからしか取れない。
           企業詳細ページと同じ `getCompanyBySlugOrIdCached` を使う。 */
     getCompanyForJobCached(job.company_id),
+    /* ★「話を聞ける人」の一覧（2026-08-30）。企業詳細と同じ関数。
+          ⚠️ これが無いと**誰を指名できるか判断できない**。判断できないまま
+             セクション末尾に一括CTAを置いていたのが、今回直す誤解の原因。 */
+    getPublicAmbassadorsCached(job.company_id),
   ]);
   const companyDetail = companyResult?.detail ?? null;
   const matchedIds = new Set<string>(
     [...jobEmployees.current, ...jobEmployees.alumni].map((e) => e.userId),
   );
+  /* ⚠️ 面談可かどうかは `ow_company_members`（本人の同意 + 掲載）で決まる。
+        `CompanyEmployee` 型には入っていないので、ここで突き合わせる。 */
+  const talkableIds = new Set<string>((ambassadors ?? []).map((a) => a.user_id));
+
   const otherEmployees = {
     current: (allEmployees?.current ?? []).filter((e) => !matchedIds.has(e.userId)),
     alumni: (allEmployees?.alumni ?? []).filter((e) => !matchedIds.has(e.userId)),
@@ -1579,6 +1632,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
+                talkableIds={talkableIds}
               />
 
               {/* ★この会社の現役社員・OB/OG（職種一致を除く）── 2026-08-30 追加
@@ -1593,6 +1647,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 alumni={otherEmployees.alumni}
                 companyId={job.company_id}
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
+                talkableIds={talkableIds}
                 currentTitle={`${company.name} の他の現役社員`}
                 alumniTitle={`${company.name} の OB・OG`}
                 currentSubtitle="この求人の職種とは違う人たちです"
