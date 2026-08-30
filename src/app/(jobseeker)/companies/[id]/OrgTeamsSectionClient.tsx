@@ -49,6 +49,23 @@ const DIVISION_CONFIG: Record<string, { label: string; icon: React.ReactNode; co
   },
 };
 
+/**
+ * 部門の**並び順**。⚠️★**絞り込みに使わないこと。**
+ *
+ * ⚠️ 2026-08-30 まで `DIVISION_ORDER.filter(div => grouped.has(div))` と書かれており、
+ *    **このリストに無い部門のチームが画面から丸ごと消えていた。**
+ *    しかも `hiddenTeamCount` は消えたぶんも数えるので、
+ *    「すべて見る（残り N）」は出るのに**押しても出てこない**（`visibleDivisions` は
+ *    展開後も同じフィルタを通るため）。
+ *
+ * ⚠️ 実害が出ていなかったのは、**唯一データを持つ Salesforce の23チームが
+ *    偶然この8語にすべて収まっていた**から（2026-08-30 実測）。
+ *    日本語の部門名・`Engineering`・`Product`、あるいは `division` 未設定（→ "Other"）が
+ *    1件でも入った瞬間に消える状態だった。
+ *
+ * ⚠️ 描画側は未知の部門に**元から対応していた**（`DIVISION_CONFIG[div] ?? { label: div, ... }`）。
+ *    落としていたのは並び順の配列だけ。
+ */
 const DIVISION_ORDER = ["Sales", "Inside Sales", "Solution Engineering", "Customer Success", "Professional Services", "Marketing", "Operations", "People"];
 
 // ─── SecTitle (local copy since this is a client component file) ───────────────
@@ -107,7 +124,11 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
   // Group teams by division
   const grouped = new Map<string, typeof detail.orgTeams>();
   for (const team of detail.orgTeams) {
-    const div = team.division ?? "Other";
+    /* ⚠️ 未設定は "Other" に束ねる。**捨てない。**
+          ⚠️ 画面には `DIVISION_CONFIG` のフォールバックでこの文字列がそのまま出るので、
+             日本語の見出しにする（`DIVISION_CONFIG` に "Other" を足すのではなく、
+             キー自体を表示に耐える文字列にしておく）。 */
+    const div = team.division ?? "その他";
     if (!grouped.has(div)) grouped.set(div, []);
     grouped.get(div)!.push(team);
   }
@@ -121,7 +142,14 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
     });
   };
 
-  const allDivisions = DIVISION_ORDER.filter(div => grouped.has(div));
+  /* ⚠️★**1件も欠けさせない。** `DIVISION_ORDER` は並び順であって、許可リストではない。
+        既知の部門を定義順に並べ、**残りは元の出現順で後ろに続ける。**
+        ⚠️ `filter` だけにすると、リストに無い部門のチームが静かに消える（上のコメント）。 */
+  const knownDivisions = DIVISION_ORDER.filter((div) => grouped.has(div));
+  /* ⚠️ `[...map.keys()]` は tsconfig の target では使えない（TS2802）。
+        `Array.from` で取る。**Map の挿入順が保たれる**ので出現順になる。 */
+  const unknownDivisions = Array.from(grouped.keys()).filter((div) => !DIVISION_ORDER.includes(div));
+  const allDivisions = [...knownDivisions, ...unknownDivisions];
   const visibleDivisions = showAll ? allDivisions : allDivisions.slice(0, INITIAL_DIVISIONS);
   const hiddenCount = allDivisions.length - INITIAL_DIVISIONS;
   /* ⚠️ **見えている部門の中で隠れているチームも数える**（2026-08-13 修正）。
