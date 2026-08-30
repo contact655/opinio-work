@@ -951,6 +951,26 @@ function StintForm({
           disabled={isSaving}
           ariaLabel="職種"
         />
+        {/* ★大分類のままなら、より細かい職種を選べることを伝える（2026-08-30）
+            ⚠️★**これは「直せ」ではない。** `selectableParent` は意図して true で、
+               過去の非IT職は「営業」「販売・サービス」で十分（上のコメント）。
+               **止めない・赤くしない・保存もできる。**
+            ⚠️ **現職のときだけ出す。** 過去の職歴まで促すと上の方針と衝突する。
+               実測（2026-08-30）: 大分類のままの職歴10件のうち**現職が8件**。
+            ⚠️ 効果は2つ。①「職種×年数」の自動集計は**子職種だけを見る**ので、
+               親のままだとスキルとして出ない。②求人との突き合わせが具体的になる。
+               **理由を書かずに促さない。**
+            ⚠️ バナーにしない。/mypage のバナーは3回とも「同じ操作への入口が2つ」に
+               なって撤去されている（MypageClient のコメント）。**入口はここ1つ。** */}
+        {draft.isCurrent && draft.roleCategoryId
+          && roles.some((r) => r.parent_id === draft.roleCategoryId) && (
+          <p style={{
+            margin: "6px 0 0", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)",
+            fontFamily: "var(--font-inter), var(--font-noto)",
+          }}>
+            大分類のままです。より近い職種を選ぶと、スキルの年数や求人との一致が具体的になります（任意）。
+          </p>
+        )}
       </div>
 
 
