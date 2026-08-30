@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
+import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 
 /**
  * 求人詳細の「現役社員 / OB・OG」セクション（2026-08-30 に求人ページから切り出した）。
@@ -17,13 +18,30 @@ import type { CompanyEmployee } from "@/lib/supabase/queries";
  * ⚠️ 切り出しただけで**中身は1文字も変えていない**（実HTMLの一致で確認済み）。
  */
 
-const JOB_AVATAR_COLORS: { bg: string; text: string }[] = [
-  { bg: "linear-gradient(135deg, #002366 0%, #3B5FD9 100%)", text: "rgba(255,255,255,0.9)" },
-  { bg: "linear-gradient(135deg, #065F46 0%, #059669 100%)", text: "rgba(255,255,255,0.9)" },
-  { bg: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)", text: "rgba(255,255,255,0.9)" },
-  { bg: "linear-gradient(135deg, #92400E 0%, #F59E0B 100%)", text: "rgba(255,255,255,0.9)" },
-  { bg: "linear-gradient(135deg, #1E40AF 0%, #0891B2 100%)", text: "rgba(255,255,255,0.9)" },
-];
+/* ⚠️★ここにあった `JOB_AVATAR_COLORS`（5色のグラデーション）は 2026-08-31 に削除した。
+      **戻さないこと。**
+
+   ── なぜ消したか ──────────────────────────────────────────────────────────
+   同じ人が企業ページと求人ページで**別人のように見えていた。**
+
+   | | 色の決め方 | 見た目 |
+   |---|---|---|
+   | 企業ページ | `resolveAvatarColor(職種)` | 淡い背景 + 濃い文字 |
+   | 求人ページ（旧） | `userId.charCodeAt(0) % 5` | 濃いグラデ + 白文字 |
+
+   ⚠️ 求人ページ側の色は `userId` の先頭文字で決まるだけで、**何も意味していなかった。**
+      UUID が 4 / 9 / a / f で始まる **25% のユーザーが紫**（`#6D28D9`）。
+      ⚠️ 紫そのものは規約違反ではない（globals.css:「アバターのグラデーションは
+         トークンとは無関係」）。問題は**2ページで食い違うこと**のほう。
+
+   ⚠️★**「企業ページ側は職種で色が決まるから意味がある」は誤りだった**（2026-08-31 に訂正）。
+      `JOB_CATEGORY_COLORS` の7キーは「2026-05 時点の実値」とコメントされているが、
+      **現在の `ow_roles` の親カテゴリ UUID と1つも一致しない。**
+      つまり `resolveAvatarColor` は**全員にフォールバック色を返している。**
+      ⚠️ 意図した職種別の色は**1人にも出ていない。**（→ `docs/todo.md` / 未決）
+
+   ⚠️ それでも揃える先を企業ページにした。**判定が1箇所になる**ので、
+      UUID を直せば両ページが同時に直る。**ここに色表を作り直さないこと。** */
 
 /**
  * 求人詳細の社員カード。
@@ -46,8 +64,8 @@ export function JobEmployeeCard({ emp, companyId, casualBase }: {
   /** `/companies/{id}/casual-meeting`。受付停止・非公開企業では null */
   casualBase: string | null;
 }) {
-  const colorIdx = emp.userId.charCodeAt(0) % JOB_AVATAR_COLORS.length;
-  const color = JOB_AVATAR_COLORS[colorIdx];
+  /* ⚠️ 企業ページの社員カードと**同じ関数**を使う。色は職種で決まる（上のコメント）。 */
+  const color = resolveAvatarColor(emp.roleParentId, emp.roleCategoryId);
   const initial = emp.avatarInitial ?? emp.name.charAt(0);
   void companyId;
 

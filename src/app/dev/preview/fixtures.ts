@@ -58,6 +58,26 @@ export const BENEFITS_MANY = [
 
 /* ── 社員 / OB・OG ──────────────────────────────────────────────────────────
    ⚠️ `visibility` は "public" | "login_only"。プレビューは表示確認なので public 固定。 */
+/**
+ * `ow_roles` の**実在する親カテゴリ UUID**（2026-08-31 に本番から取得）。
+ *
+ * ⚠️★**`lib/jobCategoryColors.ts` のキーを使わないこと。** あの表の7キーは
+ *    「2026-05 時点の実値」とコメントされているが、**実データと1つも一致しない。**
+ *    表のキーを使うと**本番では絶対に出ない色**をプレビューが見せることになる
+ *    （2026-08-31 に実際にやった）。**プレビューは本番と同じ結果を出さないと意味が無い。**
+ *
+ * ⚠️ したがって現状、`resolveAvatarColor` は**全員フォールバック色**を返す。
+ *    このプレビューでアバターが1色なのは**バグではなく本番どおり**。
+ */
+const PARENT_ROLE_IDS = [
+  "c8140123-e29a-43b3-9dbf-1a3d21a68966", // エンジニア
+  "168cd1ab-d096-46cc-ad7e-5baf7f10a0b1", // プロダクト
+  "38429140-f784-44c0-8eec-407495044272", // マーケティング
+  "6938712f-0b29-4682-ac6e-ad112734a3f1", // 営業
+  "ad47e554-e328-4aec-abd1-dab9953ddf9d", // カスタマーサクセス
+  "166bebdf-0c26-40df-9713-5f3b958cc96f", // 経営・CxO
+];
+
 const GRADIENTS = [
   "linear-gradient(135deg,#002366,#3B5FA8)",
   "linear-gradient(135deg,#0F766E,#14B8A6)",
@@ -83,10 +103,15 @@ function emp(i: number, over: Partial<CompanyEmployee> = {}): CompanyEmployee {
     roleTitle: "エンタープライズ営業部 / アカウントエグゼクティブ",
     startedAt: "2021-04",
     endedAt: null,
-    roleCategoryId: "preview-role",
-    roleCategoryIds: ["preview-role"],
+    /* ⚠️★アバターの色は `resolveAvatarColor(roleParentId, roleCategoryId)` が
+          **職種で**決める（2026-08-31 に企業ページと揃えた）。
+          ⚠️ 全員を同じ職種にすると**色が1つしか出ず、散り方を確認できない。**
+             実在の親カテゴリ UUID（`lib/jobCategoryColors.ts` の表のキー）を
+             順番に当てて、7色すべてが出るようにする。 */
+    roleCategoryId: null,
+    roleCategoryIds: [],
     roleCategoryName: "エンタープライズセールス",
-    roleParentId: "preview-parent",
+    roleParentId: PARENT_ROLE_IDS[i % PARENT_ROLE_IDS.length],
     roleParentName: "営業",
     currentRoleTitle: null,
     currentCompanyName: null,
