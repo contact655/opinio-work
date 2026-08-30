@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizCompany } from "./mockCompany";
 import type { Json } from "@/lib/supabase/types";
+import { normalizeBenefits, serializeBenefits } from "@/lib/companies/benefits";
 
 export type DbCompany = {
   id: string;
@@ -114,7 +115,8 @@ export function transformDbToForm(row: DbCompany, currentPublishedGenres: string
     fundingTotal: row.funding_total ?? "",
     genderRatio: row.female_ratio ?? "",
     evaluationSystem: row.evaluation_system ?? "",
-    benefitsTags: Array.isArray(row.benefits) ? row.benefits : [],
+    /* ⚠️ 旧形式（text[]）も受ける。migration の前後どちらでも動く */
+    benefitsTags: normalizeBenefits(row.benefits) ?? [],
     fitPositives: Array.isArray(row.fit_positives) ? row.fit_positives : [],
     fitNegatives: Array.isArray(row.fit_negatives) ? row.fit_negatives : [],
     showFitNegatives: row.show_fit_negatives ?? false,
@@ -186,7 +188,9 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
     /* ⚠️ **正は `female_ratio`。** `gender_ratio` は本番0件のまま廃止した。 */
     female_ratio: form.genderRatio || null,
     evaluation_system: form.evaluationSystem || null,
-    benefits: form.benefitsTags.length > 0 ? form.benefitsTags : null,
+    /* ⚠️ 空の name を落とし、空の detail はキーごと省く。0件なら null。
+          ⚠️ ここで自前に整形しないこと（`serializeBenefits` に集約） */
+    benefits: serializeBenefits(form.benefitsTags),
     fit_positives: form.fitPositives.length > 0 ? form.fitPositives : null,
     fit_negatives: form.fitNegatives.length > 0 ? form.fitNegatives : null,
     show_fit_negatives: form.showFitNegatives,

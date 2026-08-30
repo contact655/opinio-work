@@ -1,3 +1,4 @@
+import type { Benefit } from "@/lib/companies/benefits";
 // BizCompany — 企業側プロダクト用の型定義とモックデータ
 
 export type PhotoCategory = "workspace" | "meeting" | "welfare" | "event";
@@ -42,7 +43,9 @@ export type BizCompany = {
   fundingTotal: string;
   genderRatio: string;
   evaluationSystem: string;
-  benefitsTags: string[];
+  /* ⚠️ 2026-08-31 に `string[]` から変えた。名前＋任意の詳細を持つ。
+        型は `lib/companies/benefits.ts` に集約（ここで書き直さない）。 */
+  benefitsTags: Benefit[];
 
   // ── 働き方 ───────────────────────────────────────────────
   location: string;

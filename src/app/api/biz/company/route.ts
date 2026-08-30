@@ -10,6 +10,7 @@ import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { isValidIndustry } from "@/lib/search/industryGroups";
 import type { BizCompany } from "@/lib/business/mockCompany";
+import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/companies/benefits";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 
 
@@ -180,6 +181,19 @@ export async function PATCH(req: Request) {
   const sa = (v: unknown): string[] | null | undefined =>
     v === undefined ? undefined : Array.isArray(v) ? v as string[] : null;
 
+  /* ⚠️★福利厚生は **jsonb**（2026-08-31 に text[] から移行）。`sa()` を使わないこと。
+        あれは `as string[]` でキャストするだけなので、**オブジェクトの配列が
+        「文字列の配列」として通り、型の嘘が残る。**
+     ⚠️ `serializeBenefits` を通す。空の name を落とし、空の detail は
+        キーごと省き、0件なら null にする。**ここで自前に整形しない。**
+     ⚠️ `undefined`（draft_data にキーが無い）は**触らない**。上のコメントの
+        「キーがあって空」と「キーが無い」の区別をここでも守る。 */
+  const bene = (v: unknown): Benefit[] | null | undefined => {
+    if (v === undefined) return undefined;
+    const norm = normalizeBenefits(v);
+    return norm ? serializeBenefits(norm) : null;
+  };
+
   const mainRes = await mutateOne(
     supabase
     .from("ow_companies")
@@ -187,7 +201,14 @@ export async function PATCH(req: Request) {
       tagline:                  s(d.tagline),
       description:              s(d.description),
       mission:                  s(d.mission),
-      benefits:                 sa(d.benefits),
+      /* ⚠️★`as unknown as string[]` は**移行が終わるまでの橋渡し**（2026-08-31）。
+            `types.ts` は自動生成物で、migration を当てて `npm run gen:types` を
+            走らせるまで `benefits: string[]` のまま。実体は jsonb になる。
+         ⚠️★**migration を当てたら、型を生成し直してこのキャストを外すこと。**
+            外し忘れると「型が嘘をついている」状態が残り、
+            CLAUDE.md「`as number` のキャストが食い違いを隠していた」（employee_count）
+            と同じ事故の種になる。 */
+      benefits:                 bene(d.benefits) as unknown as string[] | null | undefined,
       avg_salary:               s(d.avg_salary),
       avg_age:                  n(d.avg_age),
       female_ratio:             s(d.female_ratio),

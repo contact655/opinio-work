@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/business/CompanyEditSubNav";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
-import { RequirementsTagInput } from "@/components/business/RequirementsTagInput";
+import { BenefitsEditor } from "@/components/business/BenefitsEditor";
 import { TERMS_VERSION } from "@/lib/constants/terms";
 import {
   COMPANY_SECTIONS,
@@ -986,13 +986,18 @@ export function CompanyEditClient({
             <SectionCard title="福利厚生">
               <FormGroup>
                 <FormLabel>福利厚生</FormLabel>
-                <RequirementsTagInput
-                  tags={form.benefitsTags}
-                  onTagsChange={(tags) => update("benefitsTags", tags)}
-                  placeholder="タグを追加して Enter..."
-                  color="royal"
+                {/* ⚠️★2026-08-31 に `RequirementsTagInput` から差し替えた。
+                       あれは**名前だけ**の共通部品で、求人フォームでも使う。
+                       福利厚生は**項目ごとに詳細（任意）**を持つので専用部品にした。
+                    ⚠️ ここを戻すと、企業が詳細を入力できなくなる。 */}
+                <BenefitsEditor
+                  items={form.benefitsTags}
+                  onChange={(items) => update("benefitsTags", items)}
                 />
-                <FormHint>求職者側ではタグ形式で表示されます</FormHint>
+                <FormHint>
+                  求職者側ではタグ形式で表示されます。
+                  <strong>詳細を入れると、その項目を押したときに表示されます</strong>（任意）。
+                </FormHint>
               </FormGroup>
             </SectionCard>
             <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>

@@ -25,6 +25,25 @@
 --   ⚠️ `detail` は**任意**。無いときは **キーごと省く**（null を入れない）。
 --      「未入力」と「空文字を入れた」を後から区別できるようにするため。
 --
+-- ── ★当てる日にやること（この順で）─────────────────────────────────────────
+--   1. 作業前ダンプ:  ./scripts/dump-tables.sh ow_companies
+--   2. このファイルを supabase/migrations/ へ移す
+--      ⚠️ `supabase migration list` で**他人の保留分が無いか**必ず確認する
+--         （`db push` は保留を全部当てる / CLAUDE.md）
+--   3. supabase db push
+--   4. **npm run gen:types** を実行して types.ts を作り直す
+--   5. ★`src/app/api/biz/company/route.ts` の
+--        `bene(d.benefits) as unknown as string[] | null | undefined`
+--      から **`as unknown as ...` を外す**（型が jsonb になるので不要になる）
+--      ⚠️ 外し忘れると「型が嘘をついている」状態が残る。CLAUDE.md の
+--         `employee_count` に `as number` を当てて食い違いを隠していた件と同じ形。
+--   6. 実測: 企業詳細・求人詳細で福利厚生が19件そのまま出ること、
+--      `/biz/company` で詳細を保存 → 再読込で残ること（0行更新を成功にしない）
+--
+-- ⚠️ コードは `normalizeBenefits` が**旧形式（text[]）も受ける**ので、
+--    2 と 3 の間で画面が壊れることはない。**それでも同時に出すこと**
+--    （逆順にすると、詳細を保存できるのに列が text[] のまま、という状態になる）。
+--
 -- ── 戻し方 ──────────────────────────────────────────────────────────────────
 --   作業前ダンプ: .dumps/20260831-0207-ow_companies.sql（スキーマ+データ / 89行）
 --   ⚠️ .dumps/ は .gitignore 済み。コミットしない。
