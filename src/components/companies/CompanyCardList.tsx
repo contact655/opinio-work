@@ -151,11 +151,14 @@ export function CompanyCardList({ company, compact }: Props) {
             style={{
               position: "absolute", top: 10, right: 12,
               width: 26, height: 26, flexShrink: 0,
-              background: bookmarked ? "#ef4444" : "transparent",
-              border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
+              /* ⚠️ 保存済みは royal（2026-08-30）。赤の塗り（#ef4444）にしない
+                    ——`--error` と紛らわしく、他3箇所の保存ボタンとも色が違っていた。
+                    状態はアイコンの塗りが担うので、色で強調する必要はない。 */
+              background: bookmarked ? "var(--royal-50)" : "transparent",
+              border: `1.5px solid ${bookmarked ? "var(--royal-100)" : "var(--line)"}`,
               borderRadius: "50%",
               cursor: "pointer", padding: 0,
-              color: bookmarked ? "#fff" : "var(--ink-mute)", fontSize: 12,
+              color: bookmarked ? "var(--royal)" : "var(--ink-mute)", fontSize: 12,
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "all 0.15s",
               boxShadow: bookmarked ? "0 2px 6px rgba(239,68,68,0.30)" : "none",
@@ -417,9 +420,9 @@ export function CompanyCardList({ company, compact }: Props) {
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
               padding: "8px 16px", borderRadius: 999,
-              background: bookmarked ? "#ef4444" : "transparent",
-              border: `1.5px solid ${bookmarked ? "#ef4444" : "var(--line)"}`,
-              color: bookmarked ? "#fff" : "var(--ink-mute)",
+              background: bookmarked ? "var(--royal-50)" : "transparent",
+              border: `1.5px solid ${bookmarked ? "var(--royal-100)" : "var(--line)"}`,
+              color: bookmarked ? "var(--royal)" : "var(--ink-mute)",
               fontSize: 12, fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",

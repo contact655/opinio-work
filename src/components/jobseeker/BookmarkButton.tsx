@@ -89,9 +89,18 @@ export function BookmarkButton({
         style={{
           width: "100%",
           padding: "11px 0",
-          background: bookmarked ? "var(--warm-soft)" : "var(--bg-tint)",
-          color: bookmarked ? "#B45309" : "var(--ink-soft)",
-          border: `1px solid ${bookmarked ? "var(--warm)" : "var(--line)"}`,
+        /* ⚠️★保存済みの色は **royal に統一した**（2026-08-30）。琥珀・赤にしないこと。
+              以前は4通りに割れていた（BookmarkButton と CompanyDetailClient が琥珀、
+              CompanyCardList が赤の塗り、JobsClient が薄い赤）。**同じ操作に4つの見た目。**
+           ① 琥珀は `--warm`＝「注意・pending」の色。保存は注意ではない。
+           ② 赤は `--error` と紛らわしい。
+           ③ ★**状態はアイコンの塗り（中抜き→塗り）とラベル（保存→保存済）が既に担っている。**
+              色は重複しているだけだった。
+           ⚠️ `.claude/skills/ui-conventions` は保存を「ゴースト」と定めている。
+              未保存はゴースト、保存済みは royal の淡い塗り、という関係にする。 */
+          background: bookmarked ? "var(--royal-50)" : "var(--bg-tint)",
+          color: bookmarked ? "var(--royal)" : "var(--ink-soft)",
+          border: `1px solid ${bookmarked ? "var(--royal-100)" : "var(--line)"}`,
           borderRadius: 8,
           fontSize: 13,
           fontWeight: 600,
@@ -104,7 +113,7 @@ export function BookmarkButton({
           opacity: loading ? 0.6 : 1,
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? "#B45309" : "none"} stroke="currentColor" strokeWidth={2.5}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2.5}>
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
         </svg>
         {bookmarked ? "保存済" : label}
@@ -124,13 +133,13 @@ export function BookmarkButton({
       style={{
         width: 40,
         height: 40,
-        border: `1px solid ${bookmarked ? "var(--warm)" : "var(--line)"}`,
-        background: bookmarked ? "var(--warm-soft)" : "#fff",
+        border: `1px solid ${bookmarked ? "var(--royal-100)" : "var(--line)"}`,
+        background: bookmarked ? "var(--royal-50)" : "#fff",
         borderRadius: 8,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: bookmarked ? "var(--warm)" : "var(--ink-soft)",
+        color: bookmarked ? "var(--royal)" : "var(--ink-soft)",
         cursor: loading ? "default" : "pointer",
         fontSize: 18,
         transition: "all 0.2s",

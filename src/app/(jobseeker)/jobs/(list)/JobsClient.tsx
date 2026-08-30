@@ -437,16 +437,19 @@ function JobListItem({
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,
-            backgroundColor: bookmarked ? "#FEF2F2" : "#fff",
-            color: bookmarked ? "#e24b4a" : "#475569",
-            border: `1.5px solid ${bookmarked ? "#FECACA" : "#E2E8F0"}`,
+            /* ⚠️ 保存済みは royal（2026-08-30）。赤にしない——他3箇所と色が違っていた。
+                  ⚠️ アイコンは Heart のまま残してある。**色だけ揃えた。**
+                     しおり型に統一するかは別の判断（4箇所でアイコンも割れている）。 */
+            backgroundColor: bookmarked ? "var(--royal-50)" : "#fff",
+            color: bookmarked ? "var(--royal)" : "#475569",
+            border: `1.5px solid ${bookmarked ? "var(--royal-100)" : "#E2E8F0"}`,
             fontSize: 12, fontWeight: 700, cursor: "pointer",
             whiteSpace: "nowrap",
             transform: bookmarkAnim ? "scale(1.05)" : "scale(1)",
             transition: "all 0.2s",
           }}
         >
-          <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "#e24b4a" : "#F87171", fill: bookmarked ? "#e24b4a" : "none", flexShrink: 0 }} />
+          <Heart size={11} strokeWidth={2} style={{ color: bookmarked ? "var(--royal)" : "var(--ink-mute)", fill: bookmarked ? "currentColor" : "none", flexShrink: 0 }} />
           {bookmarked ? "保存済" : "保存"}
         </button>
       </div>
