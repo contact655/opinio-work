@@ -692,7 +692,7 @@ export type Database = {
           avg_selection_weeks: number | null
           avg_tenure: string | null
           avg_tenure_years: string | null
-          benefits: string[] | null
+          benefits: Json | null
           biz_model_deal_size: string | null
           biz_model_new_pct: number | null
           biz_model_note: string | null
@@ -845,7 +845,7 @@ export type Database = {
           avg_selection_weeks?: number | null
           avg_tenure?: string | null
           avg_tenure_years?: string | null
-          benefits?: string[] | null
+          benefits?: Json | null
           biz_model_deal_size?: string | null
           biz_model_new_pct?: number | null
           biz_model_note?: string | null
@@ -998,7 +998,7 @@ export type Database = {
           avg_selection_weeks?: number | null
           avg_tenure?: string | null
           avg_tenure_years?: string | null
-          benefits?: string[] | null
+          benefits?: Json | null
           biz_model_deal_size?: string | null
           biz_model_new_pct?: number | null
           biz_model_note?: string | null

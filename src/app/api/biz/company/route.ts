@@ -201,14 +201,9 @@ export async function PATCH(req: Request) {
       tagline:                  s(d.tagline),
       description:              s(d.description),
       mission:                  s(d.mission),
-      /* ⚠️★`as unknown as string[]` は**移行が終わるまでの橋渡し**（2026-08-31）。
-            `types.ts` は自動生成物で、migration を当てて `npm run gen:types` を
-            走らせるまで `benefits: string[]` のまま。実体は jsonb になる。
-         ⚠️★**migration を当てたら、型を生成し直してこのキャストを外すこと。**
-            外し忘れると「型が嘘をついている」状態が残り、
-            CLAUDE.md「`as number` のキャストが食い違いを隠していた」（employee_count）
-            と同じ事故の種になる。 */
-      benefits:                 bene(d.benefits) as unknown as string[] | null | undefined,
+      /* ⚠️ 2026-08-31 に migration を当て、型を生成し直したので**キャストは外した**
+            （`types.ts` の `benefits` は `Json | null`）。**戻さないこと。** */
+      benefits:                 bene(d.benefits),
       avg_salary:               s(d.avg_salary),
       avg_age:                  n(d.avg_age),
       female_ratio:             s(d.female_ratio),
