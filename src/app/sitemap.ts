@@ -88,6 +88,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    /* ⚠️ 料金は 2026-08-31 に `/business` から `/business/pricing` へ移設した。
+          掲載利用規約 第4条2項が「本サービス上に表示する」と定めているので、
+          **インデックス対象として残す**（noindex にしないこと）。 */
+    {
+      url: `${baseUrl}/business/pricing`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.4,
+    },
     /* ⚠️ **`/biz` は sitemap に入れない**（2026-08-20 に外した）。
           企業向けLPは `/business`（上の行）で、`/biz` は**常に 307 で
           `/biz/auth` へ転送するだけ**のルート。しかも `/biz/auth` は

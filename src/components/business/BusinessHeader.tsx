@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import React, { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 /*
@@ -9,15 +10,50 @@ import { Menu, X } from "lucide-react";
  *    2026-08-21 まで「強み」が `#pricing` を指していたが、そんな id はページに無く、
  *    押しても何も起きなかった（scrollIntoView が `if (el)` で握り潰していた）。
  *    同日、料金セクションに `id="pricing"` を作って実体を与え、項目名も「料金」にした。
+ *
+ * ⚠️★**このヘッダーは /business と /business/pricing の両方が使う（2026-08-31）。**
+ *    したがって **`#` から始まる項目は「トップにしか無いもの」を指せない。**
+ *    pricing ページで押すと、その id がそのページに無いので**何も起きない**。
+ *    → **ページをまたぐ行き先は必ずパス（`/business/...`）で書くこと。**
+ *
+ * ⚠️ 料金は 2026-08-31 に `#pricing`（アンカー）から `/business/pricing`（遷移）へ
+ *    変えた。**アンカーに戻さないこと。** トップにその id はもう無い。
+ *
+ * ⚠️★**アンカーもパスを付けた絶対形（`/business#flow`）で書く。**
+ *    裸の `#flow` にすると pricing 上では現在のパス基準で解決され、
+ *    `/business/pricing#flow` という**存在しない行き先**になる（＝死にアンカー）。
+ *    絶対形なら、トップに居るときは下の handler がスクロールで処理し、
+ *    別ページに居るときは Next がトップへ遷移してからハッシュへ飛ぶ。
  */
-const NAV_LINKS = [
-  { href: "#pricing", label: "料金" },
-  { href: "#flow",    label: "導入の流れ" },
-  { href: "#faq",     label: "FAQ" },
+const BUSINESS_TOP = "/business";
+
+const NAV_LINKS: { href: string; label: string }[] = [
+  { href: `${BUSINESS_TOP}#flow`, label: "導入の流れ" },
+  { href: "/business/pricing",    label: "料金" },
 ];
 
 export function BusinessHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  /**
+   * ナビ項目のクリック。
+   *
+   * 同じページ内のアンカーだけを横取りしてスムーススクロールする。
+   * それ以外（別ページのアンカー・ページ遷移）は既定の遷移に任せる。
+   *
+   * ⚠️ **要素が見つからないときに preventDefault しないこと。**
+   *    握り潰すと「押しても何も起きない」になる（2026-08-21 に踏んだ形）。
+   *    ここで何もしなければ、ブラウザが素直にそのURLへ遷移する。
+   */
+  const handleNavClick = (href: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const [path, hash] = href.split("#");
+    if (!hash || path !== pathname) return;
+    const el = document.getElementById(hash);
+    if (!el) return;
+    e.preventDefault();
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <header style={{
@@ -66,14 +102,10 @@ export function BusinessHeader() {
         {/* ── Desktop Nav ── */}
         <nav aria-label="ビジネスページナビゲーション" style={{ gap: 24, flex: 1 }} className="hidden md:flex">
           {NAV_LINKS.map(({ href, label }) => (
-            <a
+            <Link
               key={href}
               href={href}
-              onClick={(e) => {
-                const id = href.replace("#", "");
-                const el = document.getElementById(id);
-                if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
-              }}
+              onClick={handleNavClick(href)}
               style={{
                 fontSize: 14,
                 fontWeight: 500,
@@ -85,7 +117,7 @@ export function BusinessHeader() {
               onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)"; }}
             >
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -175,15 +207,10 @@ export function BusinessHeader() {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {NAV_LINKS.map(({ href, label }) => (
-              <a
+              <Link
                 key={href}
                 href={href}
-                onClick={(e) => {
-                  const id = href.replace("#", "");
-                  const el = document.getElementById(id);
-                  if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
-                  setMenuOpen(false);
-                }}
+                onClick={(e) => { handleNavClick(href)(e); setMenuOpen(false); }}
                 style={{
                   fontSize: 15,
                   fontWeight: 500,
@@ -192,7 +219,7 @@ export function BusinessHeader() {
                 }}
               >
                 {label}
-              </a>
+              </Link>
             ))}
 
             <hr style={{ border: "none", borderTop: "1px solid var(--line-soft)", margin: "4px 0" }} />

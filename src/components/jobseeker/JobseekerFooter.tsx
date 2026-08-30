@@ -66,6 +66,12 @@ export async function JobseekerFooter() {
               {[
                 { href: "/biz/auth",  label: "企業登録" },
                 { href: "/business", label: "掲載について" },
+                /* ⚠️★**この行を外さないこと（2026-08-31）。**
+                      掲載利用規約 第4条2項が料金の「本サービス上」での表示を
+                      義務づけており、掲示先は /business/pricing の1枚しかない。
+                      2026-08-31 にトップから料金セクションを外したため、
+                      **フッターとヘッダーのナビが唯一の常設導線になっている。** */
+                { href: "/business/pricing", label: "料金" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
                   fontSize: 13, textDecoration: "none",
