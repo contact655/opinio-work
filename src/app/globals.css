@@ -1466,7 +1466,10 @@ body {
           align-items: center;
           gap: 5px;
           white-space: nowrap;
-          font-family: var(--font-noto), "Noto Sans JP", sans-serif;
+          /* ⚠️ Inter を落とさない（2026-08-30）。`--font-noto` は OS標準の和文ゴシックで
+                Inter を含まないので、単独で書くと数字と英字が body と違う顔になる。
+                実測で `/companies` の並び替え・表示切替ボタン5つだけ書体が違っていた。 */
+          font-family: var(--font-inter), var(--font-noto);
         }
         .sort-btn:hover {
           border-color: var(--royal-100);
@@ -1517,7 +1520,10 @@ body {
           font-size: 12px;
           font-weight: 600;
           transition: all 0.15s;
-          font-family: var(--font-noto), "Noto Sans JP", sans-serif;
+          /* ⚠️ Inter を落とさない（2026-08-30）。`--font-noto` は OS標準の和文ゴシックで
+                Inter を含まないので、単独で書くと数字と英字が body と違う顔になる。
+                実測で `/companies` の並び替え・表示切替ボタン5つだけ書体が違っていた。 */
+          font-family: var(--font-inter), var(--font-noto);
           white-space: nowrap;
           border: none;
         }
