@@ -35,6 +35,8 @@ const ITEMS = [
     desc: "4件目から挟まる折りたたみ。products 4つ・長い usecase でのカードの伸び方" },
   { href: "/dev/preview/teams",     label: "組織体制・チーム",
     desc: "部門での束ね方。division 未設定のチームが消えないか" },
+  { href: "/dev/preview/products",  label: "製品・導入事例",
+    desc: "2製品のときに右が空く件。事例があると主な顧客が出なくなる分岐" },
 ];
 
 export default function PreviewIndex() {
