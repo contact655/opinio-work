@@ -254,7 +254,8 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
               {typeof count === "number" && count > 0 && (
                 <span
                   style={{
-                    fontSize: 11,
+                    /* ⚠️ 12px 未満にしない（2026-08-30）。 */
+                    fontSize: 12,
                     fontWeight: 600,
                     lineHeight: 1,
                     padding: "3px 6px",

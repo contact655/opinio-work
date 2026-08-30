@@ -229,7 +229,8 @@ export function CompanyCardList({ company, compact }: Props) {
                    廃止予定で、新規企業には書かれないためタグが黙って消える。 */}
             {primaryBusinessDomain(company.business_domains)?.name && (
               <span style={{
-                fontSize: 11, color: "var(--ink-soft)",
+                /* ⚠️ 12px 未満にしない（2026-08-30）。375px の実機で 12px でも切れ・はみ出し・横スクロールとも0件だった。 */
+                fontSize: 12, color: "var(--ink-soft)",
                 background: "var(--bg-tint)", border: "1px solid var(--line)",
                 /* ⚠️ `var(--radius)` は**存在しない**。未定義の var() は宣言ごと無効になり
                       角丸が 0 になる。タグ用は `--radius-sm`（6px、globals.css:100）。 */
@@ -258,7 +259,8 @@ export function CompanyCardList({ company, compact }: Props) {
               <span style={{
                 marginLeft: "auto", flexShrink: 0,
                 display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 11, fontWeight: 800,
+                /* ⚠️ 12px 未満にしない（2026-08-30）。375px の実機で 12px でも切れ・はみ出し・横スクロールとも0件だった。 */
+                fontSize: 12, fontWeight: 800,
                 padding: "3px 9px", borderRadius: 100,
                 background: "var(--royal)", color: "#fff",
                 whiteSpace: "nowrap",

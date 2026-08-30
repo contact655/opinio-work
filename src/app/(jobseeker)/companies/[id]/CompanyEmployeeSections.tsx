@@ -534,7 +534,9 @@ function CurrentEmployeesSection({
              ⚠️ 0件のときは出さない（誰も載っていないのに免責だけ出ることになる）。 */}
       {employees.length > 0 && (
         <p style={{
-          margin: "var(--space-4) 0 0", fontSize: 11, lineHeight: 1.7, color: "var(--ink-mute)",
+          /* ⚠️ 12px 未満にしない（2026-08-30）。なりすまし対策の注記なので、
+                小さくして読み飛ばされると困る文言（CLAUDE.md「文言を消さないこと」）。 */
+          margin: "var(--space-4) 0 0", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)",
         }}>
           在籍・職種はご本人の登録内容です。OPINIO は在籍確認を行っていません。
         </p>
