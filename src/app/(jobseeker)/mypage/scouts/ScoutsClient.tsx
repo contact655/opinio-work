@@ -47,7 +47,7 @@ export function ScoutsClient({ scouts: initial }: { scouts: ScoutItem[] }) {
     <div style={{ maxWidth: 720, paddingBottom: 64 }}>
       <h1
         style={{
-          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 22,
           fontWeight: 800,
           color: "var(--ink)",
@@ -58,7 +58,7 @@ export function ScoutsClient({ scouts: initial }: { scouts: ScoutItem[] }) {
       </h1>
       <p
         style={{
-          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 13,
           color: "var(--ink-soft)",
           margin: "0 0 22px",
@@ -103,7 +103,7 @@ function EmptyState() {
       <div style={{ fontSize: 26, marginBottom: 10 }}>📬</div>
       <div
         style={{
-          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 14,
           fontWeight: 700,
           color: "var(--ink)",
@@ -114,7 +114,7 @@ function EmptyState() {
       </div>
       <p
         style={{
-          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 13,
           color: "var(--ink-soft)",
           lineHeight: 1.8,
@@ -136,7 +136,7 @@ function EmptyState() {
           background: "var(--royal)",
           color: "#fff",
           textDecoration: "none",
-          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 13,
           fontWeight: 700,
         }}
@@ -213,7 +213,7 @@ function ScoutCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 14,
               fontWeight: 700,
               color: "var(--ink)",
@@ -257,7 +257,7 @@ function ScoutCard({
           </div>
           <div
             style={{
-              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 13,
               fontWeight: 700,
               color: "var(--ink)",
@@ -275,7 +275,7 @@ function ScoutCard({
       {/* 本文 */}
       <p
         style={{
-          fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+          fontFamily: "var(--font-inter), var(--font-noto)",
           fontSize: 13.5,
           color: "var(--ink-soft)",
           lineHeight: 1.9,
@@ -290,14 +290,14 @@ function ScoutCard({
       <div style={{ marginTop: 16, borderTop: "1px solid var(--line-soft)", paddingTop: 14 }}>
         {scout.status === "interested" ? (
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-soft)" }}>
+            <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--ink-soft)" }}>
               興味があると返答しました
             </span>
             {scout.conversationId && (
               <Link
                 href={`/mypage/conversations/${scout.conversationId}`}
                 style={{
-                  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 13,
                   fontWeight: 700,
                   color: "var(--royal)",
@@ -309,7 +309,7 @@ function ScoutCard({
             )}
           </div>
         ) : scout.status === "declined" ? (
-          <span style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 13, color: "var(--ink-mute)" }}>
+          <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--ink-mute)" }}>
             今回は見送りました
           </span>
         ) : replyOpen ? (
@@ -326,7 +326,7 @@ function ScoutCard({
                 padding: 12,
                 borderRadius: 8,
                 border: "1px solid var(--line)",
-                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 13,
                 lineHeight: 1.8,
                 resize: "vertical",
@@ -345,7 +345,7 @@ function ScoutCard({
                   color: "#fff",
                   cursor: sending ? "default" : "pointer",
                   opacity: sending ? 0.6 : 1,
-                  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 13,
                   fontWeight: 700,
                 }}
@@ -363,7 +363,7 @@ function ScoutCard({
                   background: "#fff",
                   color: "var(--ink-soft)",
                   cursor: sending ? "default" : "pointer",
-                  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                  fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 13,
                   fontWeight: 700,
                 }}
@@ -373,7 +373,7 @@ function ScoutCard({
             </div>
             <p
               style={{
-                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 12,
                 color: "var(--ink-mute)",
                 margin: "10px 0 0",
@@ -395,7 +395,7 @@ function ScoutCard({
                 background: "var(--royal)",
                 color: "#fff",
                 cursor: "pointer",
-                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 13,
                 fontWeight: 700,
               }}
@@ -414,7 +414,7 @@ function ScoutCard({
                 color: "var(--ink-soft)",
                 cursor: sending ? "default" : "pointer",
                 opacity: sending ? 0.6 : 1,
-                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 13,
                 fontWeight: 700,
               }}
@@ -427,7 +427,7 @@ function ScoutCard({
         {error && (
           <p
             style={{
-              fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+              fontFamily: "var(--font-inter), var(--font-noto)",
               fontSize: 12,
               color: "var(--error)",
               margin: "10px 0 0",
@@ -456,7 +456,7 @@ function StatusPill({ status }: { status: ScoutItem["status"] }) {
         borderRadius: 100,
         background: s.bg,
         color: s.fg,
-        fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+        fontFamily: "var(--font-inter), var(--font-noto)",
         fontSize: 11,
         fontWeight: 700,
         whiteSpace: "nowrap",

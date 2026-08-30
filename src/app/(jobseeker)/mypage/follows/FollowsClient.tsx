@@ -31,7 +31,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
   /* ⚠️ 中央寄せにしない（2026-08-25）。器はレイアウトが持つ */
   return (
     <div style={{ maxWidth: 720, paddingBottom: 64 }}>
-      <h1 style={{ fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 18px" }}>
+      <h1 style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 18px" }}>
         フォロー中
       </h1>
 
@@ -48,7 +48,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
                 padding: "10px 16px", marginBottom: -1,
                 borderBottom: `2px solid ${active ? "var(--royal)" : "transparent"}`,
                 color: active ? "var(--royal)" : "var(--ink-soft)",
-                fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif',
+                fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 14, fontWeight: 700,
               }}
             >
@@ -126,17 +126,17 @@ const ROW: React.CSSProperties = {
   background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px",
 };
 const NAME: React.CSSProperties = {
-  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 14, fontWeight: 700,
+  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 14, fontWeight: 700,
   color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
 };
 const SUB: React.CSSProperties = {
-  fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif', fontSize: 12, fontWeight: 500,
+  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500,
   color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
 };
 
 function Empty({ title, body, href, cta }: { title: string; body: string; href: string; cta: string }) {
   return (
-    <div style={{ textAlign: "center", padding: "48px 20px", fontFamily: 'var(--font-noto), "Noto Sans JP", sans-serif' }}>
+    <div style={{ textAlign: "center", padding: "48px 20px", fontFamily: "var(--font-inter), var(--font-noto)" }}>
       <p style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--ink)" }}>{title}</p>
       <p style={{ fontSize: 13, margin: "8px 0 0", color: "var(--ink-soft)", lineHeight: 1.8 }}>{body}</p>
       <Link
