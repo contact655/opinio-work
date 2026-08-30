@@ -320,7 +320,11 @@ function JobEmployeesSection({
       {current.length > 0 && (
         <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: "var(--text-lg)", color: "var(--ink)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
+                     `var(--text-lg)` は 20px で、ここだけ他のセクション見出しより
+                     大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
+                     3つとも 20px だった。⚠️ 見出しを新しく足すときは SecTitle を使うこと。 */
+                fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18, color: "var(--ink)" }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -357,7 +361,11 @@ function JobEmployeesSection({
       {alumni.length > 0 && (
         <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: "var(--text-lg)", color: "var(--ink)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
+                     `var(--text-lg)` は 20px で、ここだけ他のセクション見出しより
+                     大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
+                     3つとも 20px だった。⚠️ 見出しを新しく足すときは SecTitle を使うこと。 */
+                fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18, color: "var(--ink)" }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--purple-soft,#F3E8FF)", color: "var(--purple)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -395,7 +403,8 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
           </svg>
         </span>
         <div>
-          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
+          {/* ⚠️ 18px。SecTitle と同じ大きさに揃える（2026-08-30。--text-lg は 20px）。 */}
+          <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
             このポジションを経験した先輩
           </h2>
           <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 2 }}>
@@ -1640,6 +1649,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           {initial}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* ⚠️ 12.5px のまま残す（2026-08-30 に実測）。13px に上げると
+                                 求人名が **1行 → 2行**に折り返してカードが 18px → 36px に伸びる。
+                                 ⚠️ このページで唯一の端数だが、**揃えるために折り返させない。**
+                                 ⚠️ 12.5px はこのリポジトリで広く使われている中間値
+                                    （`/search`・`/companies` ほか）で、ここだけの値ではない。 */}
                           <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 3 }}>
                             {rj.role}
                           </div>
