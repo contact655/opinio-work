@@ -1,7 +1,7 @@
-"use client";
-
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import { Variant, PreviewHeader } from "../Variant";
+import { devOnly } from "../guard";
+import { EditableTimeline } from "./EditableTimeline";
 import {
   CAREERS_1, CAREERS_SAME_COMPANY, CAREERS_BOOMERANG, CAREERS_PARALLEL,
   CAREERS_GAP, CAREERS_CUSTOM, CAREERS_RICH, CAREERS_8, EDUCATIONS_2,
@@ -18,20 +18,13 @@ import {
  *    ・`/mypage`  … `careerActions` を渡す（鉛筆・ゴミ箱・役割追加）
  *    ⚠️ `careerActions` を渡さなければ **DOM は1バイトも変わらない**。
  *
- * ⚠️★このファイルは `"use client"`。`careerActions` は関数を渡すので、
- *    サーバーコンポーネントからは境界を越えられない。
- *    ⚠️ そのため `devOnly()`（`notFound()`）はここでは呼べない。
- *       **本番での遮断は親の `layout.tsx` が担う**（あちらはサーバーコンポーネント）。
+ * ⚠️★**このページはサーバーコンポーネントのまま**にしてある。他の8ページと同じく
+ *    自分で `devOnly()` を呼ぶため（本番での遮断を親の layout 頼みにしない）。
+ *    `careerActions` は**関数**で境界を越えられないので、その1変種だけを
+ *    `EditableTimeline`（`"use client"`）に切り出してある。
  */
 export default function TimelinePreview() {
-  /* ⚠️ 押しても何も起きないダミー。プレビューは表示の確認だけで、
-        実データを書き換えない（この配下は DB を触らない）。 */
-  const noopActions = {
-    onEditRow: () => {},
-    onDeleteRow: () => {},
-    onAddRole: () => {},
-  };
-
+  devOnly();
   return (
     <div>
       <PreviewHeader title="職歴タイムライン">
@@ -98,7 +91,7 @@ export default function TimelinePreview() {
         label="編集アフォーダンスあり（/mypage と同じ）"
         note="⚠️★行は career と career-same-company の2経路。**どちらにも鉛筆・ゴミ箱が出ること**"
       >
-        <MergedTimeline careers={CAREERS_BOOMERANG} educations={[]} careerActions={noopActions} />
+        <EditableTimeline careers={CAREERS_BOOMERANG} />
       </Variant>
     </div>
   );
