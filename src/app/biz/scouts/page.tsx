@@ -15,6 +15,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 };
 
 export default async function BizScoutsPage() {
+  /* ★スカウト送信が止まっているかを見る（2026-09-01）。
+        ⚠️ `/biz/candidates` と `POST /api/biz/scouts` と**同じ判定**にすること。
+           片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。
+        ⚠️ ここでは env だけを見る。人材紹介の同意（`placementAgreed`）は
+           **送信の可否**の条件で、この画面が言いたい「機能自体がまだ開いていない」
+           とは別の話。混ぜると「同意すれば送れる」と読めてしまう。 */
+  const scoutSendingEnabled = process.env.SCOUT_SENDING_ENABLED === "true";
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -117,18 +124,42 @@ export default async function BizScoutsPage() {
             background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
             padding: "48px 32px", textAlign: "center",
           }}>
+            {/* ★★「起こせなかった0」を「まだ起きていない0」として見せない（2026-09-01）。
+                   ⚠️ 直す前は、送信が止まっている状態でも常に
+                      「まだスカウトを送信していません」＋「候補者を探す →」と出していた。
+                      **送れるのに送っていない、と読める。** さらにその CTA の行き先
+                      （`/biz/candidates`）は有料プランで閉じており、
+                      押すと「有料プランの機能です」に着く**行き止まり**だった。
+                   ⚠️ CLAUDE.md「0件を読むときは、起きなかった0か起こせなかった0かを分ける」。
+                      画面に出す0も同じ。**区別が付く文言にする。** */}
             <div style={{ fontSize: 36, marginBottom: 12 }}>📤</div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
-              まだスカウトを送信していません
-            </p>
-            <Link href="/biz/candidates" style={{
-              display: "inline-block", marginTop: 12,
-              background: "var(--royal)", color: "#fff",
-              padding: "10px 24px", borderRadius: 8,
-              fontSize: 13, fontWeight: 600, textDecoration: "none",
-            }}>
-              候補者を探す →
-            </Link>
+            {scoutSendingEnabled ? (
+              <>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+                  まだスカウトを送信していません
+                </p>
+                <Link href="/biz/candidates" style={{
+                  display: "inline-block", marginTop: 12,
+                  background: "var(--royal)", color: "#fff",
+                  padding: "10px 24px", borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, textDecoration: "none",
+                }}>
+                  候補者を探す →
+                </Link>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+                  スカウトはまだご利用いただけません
+                </p>
+                <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8, margin: 0 }}>
+                  現在は登録者を増やしている段階のため、スカウトの送信を止めています。<br />
+                  送れるようになりましたら、こちらからご案内します。
+                </p>
+                {/* ⚠️ CTA は出さない。行き先（候補者検索）も閉じているので、
+                       押させると必ず行き止まりになる。 */}
+              </>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

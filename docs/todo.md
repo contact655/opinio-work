@@ -2236,9 +2236,13 @@ CompanyEmployeeSections.tsx の tone / toneSoft
 `/biz/members` `/biz/posts` `/biz/organization` — **すべて 0件**。
 1280px では sidebar 240px / header padding 12px 28px / 企業カード 64px 1fr auto と**元のまま**。
 
-⚠️★**残っている多カラムがある。** 28箇所のうち付与したのは実測で壊れた8箇所だけ。
-   **`/biz/employees` `/biz/conversations` `/biz/scouts` `/biz/candidates` は未測定。**
-   壊れていないとは言っていない ——**測っていない**という意味。
+✅ **残り4ページも測った（2026-09-01）。** `/biz/employees` `/biz/conversations`
+   `/biz/scouts` `/biz/candidates` ── **4ページとも切り取り0件・縦潰れ0件。**
+   ＝ **`/biz` の12ページすべてで 375px の切り取りは0**になった。
+
+⚠️ 多カラム28箇所のうちクラスを付けたのは**8箇所のまま**。残り20箇所は
+   **測って壊れていなかった**か、**そのページに出ていなかった**かのどちらか。
+   新しいページや条件分岐で出てくる可能性はある。
 
 ⚠️★**`BusinessLayout` の `<style>` ブロックにバッククォートを書かないこと。**
    テンプレートリテラルがそこで閉じ、以降が JSX として解釈される（同日に踏んだ）。
