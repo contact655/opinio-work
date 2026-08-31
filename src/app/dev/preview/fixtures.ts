@@ -698,3 +698,81 @@ export const EDUCATIONS_2: EducationEntry[] = [
     faculty: null, degree: "high_school",
     enrolled_at: "2009-04-01", graduated_at: "2012-03-31", is_current: false },
 ];
+
+/* ── ★本番の分布をそのまま再現する（2026-08-31）──────────────────────────
+   ⚠️ 判断を「見て決める」ためのフィクスチャ。実測（2026-08-31 / 掲載79社）:
+
+     | 現役 | OB | 求人 | 社数 |
+     |---|---|---|---|
+     | 0 | 0 | 0 | **74** |
+     | 0 | 1 | 0 | 2 |
+     | 1 | 0 | 0 | 2 |
+     | 1 | 4 | 2 | 1 |
+
+   ⚠️★**79社中74社（94%）が3つとも0。** リストカードは右端に
+      「現役社員 / OB・OG / 募集中」を**0でも必ず**出すので、
+      ほぼ全社が「0名 / 0名 / 0件」になる。
+      値そのものは正しい（0人・0件は事実）ので不具合ではない。
+      **出すかどうかは製品の判断**なので、ここでは実際の見え方だけを再現する。 */
+export const COMPANY_CARDS_REAL_MIX: CompanyForCarousel[] = [
+  /* 値を持つ5社（実測の内訳どおり） */
+  company({ id: "r-1", name: "検証セールス株式会社", live_current_count: 1, live_obog_count: 4, job_count: 2 }),
+  company({ id: "r-2", name: "検証テック株式会社", live_current_count: 1, live_obog_count: 0, job_count: 0, top_job_titles: null }),
+  company({ id: "r-3", name: "検証ラボ株式会社", live_current_count: 1, live_obog_count: 0, job_count: 0, top_job_titles: null }),
+  company({ id: "r-4", name: "検証データ株式会社", live_current_count: 0, live_obog_count: 1, job_count: 0, top_job_titles: null }),
+  company({ id: "r-5", name: "検証クラウド株式会社", live_current_count: 0, live_obog_count: 1, job_count: 0, top_job_titles: null }),
+  /* 残り。**本番ではこれが74社続く** */
+  ...Array.from({ length: 7 }, (_, i) =>
+    company({
+      id: `r-z${i}`, name: `検証${i + 6}株式会社`,
+      live_current_count: 0, live_obog_count: 0, job_count: 0, top_job_titles: null,
+      employee_count: ["約50名", "約200名", "1000名以上", null][i % 4],
+    }),
+  ),
+];
+
+/* ── ★職種別カラーの判断材料（2026-08-31）──────────────────────────────────
+   ⚠️ `lib/jobCategoryColors.ts` の7キーは「2026-05 時点の ow_roles 実値」と
+      コメントされているが、**現在の親カテゴリ UUID と1つも一致しない**（実測 0/7）。
+      そのため `resolveAvatarColor` は**全員にフォールバック色**を返している。
+
+   ⚠️★**2つを並べて見るためのフィクスチャ。** 片方は本番と同じ、もう片方は
+      「UUID を直したらこう見える」。**どちらを採るかは製品の判断**なので、
+      私（Claude）は `jobCategoryColors.ts` を変えていない。
+      → 選択肢と根拠は `docs/todo.md`。 */
+
+/** いまの本番。実在する親カテゴリ UUID を渡す → **色表に無いので全員フォールバック** */
+const REAL_PARENT_IDS = PARENT_ROLE_IDS;
+
+/** UUID を直した場合。**色表に載っているキー**を渡す → 職種別に色がつく
+ *  ⚠️ これらは**現在の ow_roles には存在しない**古い UUID。
+ *     「直したらこう見える」を示すためだけに使う。**本番のデータではない。** */
+const COLORMAP_KEYS = [
+  "a905184b-2a26-4be6-8881-fa96e3b0d94a", // エンジニア
+  "15077bd6-0b80-49bf-875c-b5068a615de5", // PdM / PM
+  "9ff6eb0c-4726-4d71-9d84-863b2e674f19", // マーケティング
+  "89b056f4-ef14-4e4a-a71c-5fd5e4c4618a", // 営業
+  "093cd4bb-e610-464a-90b7-8caae04996c9", // カスタマーサクセス
+  "3b29af59-7601-43ff-8a32-beec3ac5b084", // 経営・CxO
+];
+
+const ROLE_LABELS = ["エンジニア", "プロダクト", "マーケティング", "営業", "カスタマーサクセス", "経営・CxO"];
+
+function empWithParent(i: number, parentIds: string[]): CompanyEmployee {
+  return emp(i + 60, {
+    userId: `${HEX[i % HEX.length]}-cmp-${i}`,
+    name: `検証 ${ROLE_LABELS[i % ROLE_LABELS.length]}`,
+    roleParentId: parentIds[i % parentIds.length],
+    roleParentName: ROLE_LABELS[i % ROLE_LABELS.length],
+    roleCategoryName: ROLE_LABELS[i % ROLE_LABELS.length],
+    roleTitle: null,
+  });
+}
+
+/** A案（いまの本番）: 全員が同じ淡いグレー */
+export const EMPLOYEES_COLOR_NOW: CompanyEmployee[] =
+  Array.from({ length: 6 }, (_, i) => empWithParent(i, REAL_PARENT_IDS));
+
+/** B案（UUID を直した場合）: 職種ごとに色がつく */
+export const EMPLOYEES_COLOR_FIXED: CompanyEmployee[] =
+  Array.from({ length: 6 }, (_, i) => empWithParent(i, COLORMAP_KEYS));

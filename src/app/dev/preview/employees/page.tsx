@@ -1,7 +1,8 @@
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { EMPLOYEES_1, EMPLOYEES_3, EMPLOYEES_12, ALUMNI_3, ALUMNI_12 } from "../fixtures";
+import { EMPLOYEES_1, EMPLOYEES_3, EMPLOYEES_12, ALUMNI_3, ALUMNI_12,
+  EMPLOYEES_COLOR_NOW, EMPLOYEES_COLOR_FIXED } from "../fixtures";
 
 /**
  * 現役社員 / OB・OG のプレビュー（2026-08-30）。
@@ -77,6 +78,42 @@ export default function EmployeesPreview() {
           casualHref={null} talkableIds={talkableSome}
         />
       </Variant>
+
+      {/* ★判断のための並置（2026-08-31）。**不具合探しではなく製品の判断材料。** */}
+      <Variant
+        label="★A案：いまの本番（アバターは全員おなじ色）"
+        note="⚠️ 色表の7キーが現在の ow_roles と1つも一致しないため、resolveAvatarColor が全員フォールバックを返している"
+      >
+        <JobEmployeesSection
+          current={EMPLOYEES_COLOR_NOW} alumni={[]} companyId={COMPANY_ID}
+          casualHref={null} talkableIds={new Set()}
+          currentTitle="A案：いまの本番（6人とも別の職種）"
+        />
+      </Variant>
+
+      <Variant
+        label="★B案：UUID を直した場合（職種ごとに色がつく）"
+        note="⚠️ 色表に載っているキーを渡した場合の見え方。**凡例はどこにも無い**ので、色の意味は読み手に伝わらない点も併せて判断してください"
+      >
+        <JobEmployeesSection
+          current={EMPLOYEES_COLOR_FIXED} alumni={[]} companyId={COMPANY_ID}
+          casualHref={null} talkableIds={new Set()}
+          currentTitle="B案：UUID を直した場合（同じ6人）"
+        />
+      </Variant>
+
+      <div style={{
+        marginTop: 8, marginBottom: 28, padding: "12px 14px", borderRadius: 8,
+        background: "#FFFBEB", border: "1px solid #FDE68A",
+        fontSize: 12, color: "#92400E", lineHeight: 1.8,
+      }}>
+        ⚠️ <strong>私（Claude）は <code>jobCategoryColors.ts</code> を変えていません。</strong>
+        どちらを採るかは製品の判断です。選択肢と根拠は <code>docs/todo.md</code>。
+        <br />
+        ⚠️ B案を採るなら、<strong>UUID をハードコードし直さないこと</strong>と
+        <strong>一致しなかったことを検知する手段</strong>をセットで入れてください。
+        無いと、次に <code>ow_roles</code> が変わった日にまた静かに A案 に戻ります。
+      </div>
 
       <Variant label="現役・OB とも0件（alwaysShowAlumni なし）" note="⚠️ 何も描画されないこと（会社セクション側の挙動）">
         <JobEmployeesSection

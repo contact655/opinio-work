@@ -1,7 +1,7 @@
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { COMPANY_CARDS_MISSING, COMPANY_CARDS_LONG, COMPANY_CARDS_12 } from "../fixtures";
+import { COMPANY_CARDS_MISSING, COMPANY_CARDS_LONG, COMPANY_CARDS_12, COMPANY_CARDS_REAL_MIX } from "../fixtures";
 
 /**
  * 企業カード（一覧）のプレビュー（2026-08-31）。
@@ -90,6 +90,33 @@ export default function CompanyCardsPreview() {
           {COMPANY_CARDS_12.map((c) => <CompanyCardList key={c.id} company={c} compact />)}
         </Grid>
       </Variant>
+
+      {/* ★判断のための実データ再現（2026-08-31）。
+             実測（掲載79社）: 0/0/0 が **74社**、値を持つのは5社だけ。
+             ⚠️ ここは「不具合を見つける」ためではなく、**製品の判断材料**として置いている。 */}
+      <Variant
+        label="★リスト：本番と同じ分布（値を持つ5社 ＋ 0/0/0 が7社）"
+        note="⚠️★本番では 0/0/0 が 74社続く。右端の「0名 / 0名 / 0件」が並ぶ見え方をここで判断してください"
+      >
+        <List>
+          {COMPANY_CARDS_REAL_MIX.map((c) => <CompanyCardList key={c.id} company={c} />)}
+        </List>
+      </Variant>
+
+      <div style={{
+        marginTop: 8, padding: "12px 14px", borderRadius: 8,
+        background: "#FFFBEB", border: "1px solid #FDE68A",
+        fontSize: 12, color: "#92400E", lineHeight: 1.8,
+      }}>
+        ⚠️ <strong>これは不具合ではありません。</strong>0人・0件は事実で、
+        「値が無いのに既定値を出す」には当たりません。
+        <strong>出すかどうかは製品の判断</strong>なので、私（Claude）は変えていません。
+        <br />
+        変えるなら選択肢は3つ：
+        <strong>①このまま</strong> ／
+        <strong>②0のときはその列だけ出さない</strong>（残りは詰める）／
+        <strong>③3つとも0なら列ごと出さない</strong>。
+      </div>
     </div>
   );
 }
