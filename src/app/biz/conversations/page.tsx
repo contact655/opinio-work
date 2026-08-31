@@ -66,6 +66,16 @@ export default async function BizConversationsPage() {
       : c.candidate ?? null,
   }));
 
+  /* ★空状態の文言を分けるためだけに数える（2026-08-31）。件数は使わず**あるか無いか**だけ。
+        ⚠️ 失敗したら false に倒す（fail-closed）。 */
+  const { count: publishedJobCount, error: pubErr } = await supabase
+    .from("ow_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", ctx.tenantId)
+    .eq("status", "published");
+  if (pubErr) console.error("[biz/conversations] published job count:", pubErr.message);
+  const hasPublishedJobs = (publishedJobCount ?? 0) > 0;
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -75,7 +85,7 @@ export default async function BizConversationsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <ConversationsClient conversations={convList} />
+      <ConversationsClient conversations={convList} hasPublishedJobs={hasPublishedJobs} />
     </BusinessLayout>
   );
 }

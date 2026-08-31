@@ -75,7 +75,8 @@ export default async function EmployeesPage() {
         id,
         name,
         avatar_url,
-        is_mentor
+        is_mentor,
+        is_test
       )
     `)
     .eq("company_id", ctx.tenantId)
@@ -94,9 +95,21 @@ export default async function EmployeesPage() {
     .eq("company_id", ctx.tenantId);
   const hiddenIds = new Set((hiddenRows ?? []).map((r: any) => r.experience_id as string));
 
+  /* ★検証用アカウント（`is_test`）を除外する（2026-08-31）。
+        ⚠️ **企業の管理画面に検証用アカウントが「現役社員」として出ていた。**
+           実測（2026-08-31 / 本番）: セールスフォース・ジャパンは
+           `visibility_company = 'real'` の経歴9件のうち**4件が検証用**で、
+           そのうち**3名が現役社員**として並んでいた（実在するのは1名だけ）。
+        ⚠️ **求職者側（`/companies/[id]`）は元から除外している**（`queries.ts`）。
+           企業側だけが除外していなかったので、**企業が見る自社の社員一覧と、
+           訪問者が見る社員一覧が食い違っていた。** 揃えるのが目的。
+        ⚠️ 運営が検証用を見たいときは `/admin` 側で見る。**ここは企業の画面。**
+           `/admin/ambassador-requests` が `is_test` を「ラベルを付けて出す」のは
+           **運営向けの一覧だから**で、方針が違う（CLAUDE.md に明記されている）。 */
   const employees: BizEmployee[] = (rows ?? []).flatMap((row: any) => {
     const user = row.ow_users;
     if (!user) return [];
+    if (user.is_test === true) return [];
     return [{
       experienceId: row.id as string,
       userId: user.id as string,
@@ -118,13 +131,18 @@ export default async function EmployeesPage() {
         管理アカウント＝採用管理の権限）。**同じ一覧に混ぜず、区分を分けて出す。** */
   const { data: adminRows, error: adminErr } = await admin
     .from("ow_company_admins")
-    .select("user_id, permission, is_active, ow_users (id, name, email, avatar_url)")
+    .select("user_id, permission, is_active, ow_users (id, name, email, avatar_url, is_test)")
     .eq("company_id", ctx.tenantId)
     .eq("is_active", true);
   if (adminErr) console.error("[biz/employees] admins fetch failed:", adminErr.message);
 
-  const experienceUserIds = new Set((rows ?? []).map((r: any) => r.user_id as string));
+  /* ⚠️ `employees` から作る（`rows` からではない）。`rows` のままだと、
+        除外した検証用アカウントが「経歴あり」と判定される。 */
+  const experienceUserIds = new Set(employees.map((e) => e.userId));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* ⚠️ 管理アカウントは**除外しない。** ここは「この管理画面を使える人」の一覧で、
+        検証用アカウントも実際に使えてしまう以上、隠すと**誰が入れるのか分からなくなる**。
+        経歴（＝公開される在籍情報）とは目的が違う。 */
   const teamMembers: BizTeamMember[] = (adminRows ?? []).flatMap((r: any) => {
     const u = r.ow_users;
     if (!u) return [];

@@ -19,9 +19,11 @@ type Props = {
   tenantName: string;
   currentUser: CurrentUser;
   initialTab?: "meetings" | "applications";
+  /** 空状態の文言に使う。⚠️ 既定 false（fail-closed） */
+  hasPublishedJobs?: boolean;
 };
 
-export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings" }: Props) {
+export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings", hasPublishedJobs = false }: Props) {
   const [tab, setTab] = useState<"meetings" | "applications">(initialTab);
 
   return (
@@ -71,7 +73,7 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
             currentUser={currentUser}
           />
         ) : (
-          <ApplicationsClient applications={applications} />
+          <ApplicationsClient applications={applications} hasPublishedJobs={hasPublishedJobs} />
         )}
       </div>
     </div>

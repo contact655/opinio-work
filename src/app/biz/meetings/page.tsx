@@ -53,6 +53,18 @@ export default async function BizMeetingsPage({
     conversationId: convMap.get(a.userId) ?? undefined,
   }));
 
+  /* ★空状態の文言を分けるためだけに数える（2026-08-31）。
+        ⚠️ 件数は使わない。**あるか無いか**だけ。`head: true` で行は取らない。
+        ⚠️ 失敗したら false に倒す。「待てば来ます」と言うより
+           「公開しましょう」のほうが害が小さい（fail-closed）。 */
+  const { count: publishedJobCount, error: pubErr } = await supabase
+    .from("ow_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", ctx.tenantId)
+    .eq("status", "published");
+  if (pubErr) console.error("[biz/meetings] published job count:", pubErr.message);
+  const hasPublishedJobs = (publishedJobCount ?? 0) > 0;
+
   const initialTab = searchParams.tab === "applications" ? "applications" : "meetings";
 
   return (
@@ -76,6 +88,7 @@ export default async function BizMeetingsPage({
           gradient: ctx.currentOwnerGradient,
         }}
         initialTab={initialTab}
+        hasPublishedJobs={hasPublishedJobs}
       />
     </BusinessLayout>
   );

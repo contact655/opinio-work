@@ -11,6 +11,8 @@ import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 type Props = {
   jobs: BizJob[];
   isAdmin?: boolean;
+  /** `?status=` 由来の初期タブ。⚠️ 検証済みの値だけが来る（page.tsx を参照） */
+  initialStatus?: JobStatus | "all";
 };
 
 const CHEVRON_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`;
@@ -63,10 +65,10 @@ function FilterSelect({ value, onChange, options, placeholder }: {
   );
 }
 
-export function JobsClient({ jobs: initialJobs, isAdmin = true }: Props) {
+export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all" }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
-  const [activeStatus, setActiveStatus] = useState<JobStatus | "all">("all");
+  const [activeStatus, setActiveStatus] = useState<JobStatus | "all">(initialStatus);
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");

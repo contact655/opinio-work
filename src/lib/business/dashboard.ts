@@ -48,7 +48,17 @@ export type JobStatusCounts = {
   active: number;
   review: number;
   draft: number;
-  closed: number;
+  /**
+   * ★`rejected` と `private` を分けて持つ（2026-08-31）。
+   *
+   * ⚠️ それまでは2つを `closed` にまとめていたが、**意味が違う**。
+   *    `rejected` = 運営が差し戻した（企業が直して再申請する）
+   *    `private`  = 運営が公開を止めた（取り下げ）
+   *    `/biz/jobs` のタブは元から「差し戻し」「非公開」に分かれており、
+   *    ダッシュボードだけがまとめていた。
+   */
+  rejected: number;
+  private: number;
 };
 
 export type TodoCounts = {
@@ -303,10 +313,11 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
       active: rows.filter((r: any) => r.status === "published").length,
       review: rows.filter((r: any) => r.status === "pending_review").length,
       draft: rows.filter((r: any) => r.status === "draft").length,
-      closed: rows.filter((r: any) => ["rejected", "private"].includes(r.status)).length,
+      rejected: rows.filter((r: any) => r.status === "rejected").length,
+      private: rows.filter((r: any) => r.status === "private").length,
     };
   } catch {
-    return { active: 0, review: 0, draft: 0, closed: 0 };
+    return { active: 0, review: 0, draft: 0, rejected: 0, private: 0 };
   }
 }
 

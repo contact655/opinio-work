@@ -46,7 +46,18 @@ function avatarGradient(id: string): string {
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
-function EmptyStateTotal() {
+/**
+ * ★公開求人があるかで文言を変える（2026-08-31）。
+ *
+ * ⚠️ それまでは常に「**求人を公開すると、応募者が集まり始めます**」と出していた。
+ *    実測（2026-08-31 / 本番）: セールスフォース・ジャパンは**公開求人が2件ある**のに
+ *    この文が出ており、**既にやったことを勧めていた。**
+ *
+ * ⚠️ 「0件」の意味が2つある（CLAUDE.md「起きなかった0か起こせなかった0か」）。
+ *      公開求人が無い  → まだ応募の入口が無い。**求人を公開してもらう**
+ *      公開求人がある  → 入口はある。**待つしかない**。急かす文は出さない
+ */
+function EmptyStateTotal({ hasPublishedJobs }: { hasPublishedJobs: boolean }) {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
@@ -72,7 +83,9 @@ function EmptyStateTotal() {
           まだ応募はありません
         </p>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
-          求人を公開すると、応募者が集まり始めます
+          {hasPublishedJobs
+            ? "公開中の求人に応募があると、ここに表示されます"
+            : "求人を公開すると、応募者が集まり始めます"}
         </p>
       </div>
       <Link
@@ -123,9 +136,12 @@ function EmptyState({ status }: { status: ApplicationStatus | "all" }) {
 
 type Props = {
   applications: BizApplication[];
+  /** ⚠️ 空状態の文言を変えるためだけの値。**既定を true にしない**（未公開の企業に
+      「待てば来ます」と言うことになる）。渡されなければ従来どおり「公開しましょう」。 */
+  hasPublishedJobs?: boolean;
 };
 
-export function ApplicationsClient({ applications: initialApplications }: Props) {
+export function ApplicationsClient({ applications: initialApplications, hasPublishedJobs = false }: Props) {
   const [applications, setApplications] = useState<BizApplication[]>(initialApplications);
   const [activeStatus, setActiveStatus] = useState<ApplicationStatus | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -271,7 +287,7 @@ export function ApplicationsClient({ applications: initialApplications }: Props)
 
       {/* 2-pane layout */}
       {applications.length === 0 ? (
-        <EmptyStateTotal />
+        <EmptyStateTotal hasPublishedJobs={hasPublishedJobs} />
       ) : (
       <div style={{
         display: "grid",

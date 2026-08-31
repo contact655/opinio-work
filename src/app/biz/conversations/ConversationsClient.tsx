@@ -58,7 +58,11 @@ function StageTag({ stage }: { stage: string | null }) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ConversationsClient({ conversations }: { conversations: ConversationRow[] }) {
+export function ConversationsClient({ conversations, hasPublishedJobs = false }: {
+  conversations: ConversationRow[];
+  /** 空状態の文言に使う。⚠️ 既定 false（fail-closed） */
+  hasPublishedJobs?: boolean;
+}) {
   const [activeStage, setActiveStage] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -202,8 +206,11 @@ export function ConversationsClient({ conversations }: { conversations: Conversa
               対話がありません
             </div>
             <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-              求人を公開すると、候補者からの問い合わせがここに表示されます。<br />
-              カジュアル面談申込みも対話として管理できます。
+              {/* ⚠️ 公開求人があるのに「公開すると〜」と言わない（2026-08-31）。
+                     実測で公開求人2件の企業にこの文が出ていた。 */}
+              {hasPublishedJobs
+                ? <>公開中の求人やカジュアル面談から問い合わせが届くと、<br />ここに表示されます。</>
+                : <>求人を公開すると、候補者からの問い合わせがここに表示されます。<br />カジュアル面談申込みも対話として管理できます。</>}
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/biz/jobs" style={{

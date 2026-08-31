@@ -2,7 +2,16 @@
 import Link from "next/link";
 import type { JobStatusCounts } from "@/lib/business/dashboard";
 
-const totalJobs = (counts: JobStatusCounts) => counts.active + counts.review + counts.draft;
+/**
+ * ★**すべての状態を数える**（2026-08-31 に `rejected` / `private` を足した）。
+ *
+ * ⚠️ それまでは `active + review + draft` だったので、
+ *    **求人が全部取り下げられている企業に「求人がまだありません」と出る**状態だった
+ *    （2026-08-31 時点で該当0社。**踏むのは1社目が全件取り下げられた日**）。
+ *    CLAUDE.md「値が無いことを、ある値に置き換えない」。
+ */
+const totalJobs = (counts: JobStatusCounts) =>
+  counts.active + counts.review + counts.draft + counts.rejected + counts.private;
 
 type Props = { counts: JobStatusCounts };
 
@@ -23,15 +32,20 @@ export function JobStatusCards({ counts }: Props) {
       count: counts.active,
       color: "var(--success-ink)",
       bg: "var(--success-soft)",
-      href: "/biz/jobs?status=active",
+      /* ⚠️ `?status=` の値は `JOB_STATUS_TABS` の `status` と**同じ綴り**にする。
+            旧: `active` / `review` は DB にも タブにも無い値で、`/biz/jobs` 側が
+            知らない値として「すべて」に落としていた。 */
+      href: "/biz/jobs?status=published",
     },
     {
       label: "審査中",
       subLabel: "In Review",
       count: counts.review,
-      color: "var(--warm)",
+      /* ⚠️ 数字は 28px なので基準は 3.0 だが、`--warm` は白の上で **2.15** で届かない。
+            塗り（`bg`）は `--warm-soft` のままで、**文字だけ** `--warm-ink`(5.02)。 */
+      color: "var(--warm-ink)",
       bg: "var(--warm-soft)",
-      href: "/biz/jobs?status=review",
+      href: "/biz/jobs?status=pending_review",
     },
     {
       label: "下書き",
@@ -40,6 +54,31 @@ export function JobStatusCards({ counts }: Props) {
       color: "var(--ink-mute)",
       bg: "var(--line-soft)",
       href: "/biz/jobs?status=draft",
+    },
+    /* ★「差し戻し」「非公開」を足した（2026-08-31）。
+          ⚠️ それまで3枚しか無く、**運営が取り下げた求人がダッシュボードに一切出なかった。**
+             実測（2026-08-31 / 本番）: セールスフォースは求人5件のうち**3件が非公開**なのに、
+             ダッシュボードは「公開中 2 / 審査中 0 / 下書き 0」としか出しておらず、
+             **自社の求人が3件下ろされたことに企業が気づけなかった。**
+          ⚠️ 件数（`closed`）は `getJobStatusCounts` が**元から計算していた**。
+             **描いていなかっただけ。**
+          ⚠️ 0件でも出す。`/biz/jobs` のタブが0件でも常に出るのと揃える
+             （出したり消したりすると「なぜ増えたのか」が分からなくなる）。 */
+    {
+      label: "差し戻し",
+      subLabel: "Rejected",
+      count: counts.rejected,
+      color: "var(--error)",
+      bg: "var(--error-soft)",
+      href: "/biz/jobs?status=rejected",
+    },
+    {
+      label: "非公開",
+      subLabel: "Unlisted",
+      count: counts.private,
+      color: "var(--ink)",
+      bg: "var(--line-soft)",
+      href: "/biz/jobs?status=private",
     },
   ];
 
@@ -99,7 +138,8 @@ export function JobStatusCards({ counts }: Props) {
           </Link>
         </div>
       ) : (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+      /* ⚠️ 5枚になったので `repeat(3, 1fr)` 固定をやめる。狭い幅で2列・1列に落ちる */
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", gap: 10 }}>
         {cards.map((c) => (
           <Link key={c.label} href={c.href} style={{
             display: "block", textDecoration: "none",
