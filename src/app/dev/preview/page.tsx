@@ -45,6 +45,8 @@ const ITEMS = [
     desc: "同社グループ・出戻り・並行職・長期ブランク。行の2経路に編集操作が出るか" },
   { href: "/dev/preview/benefits-editor", label: "福利厚生の入力 → 保存 → 表示",
     desc: "企業が入力したものがどう保存され、求職者にどう見えるかを1画面で" },
+  { href: "/dev/preview/meeting-cta", label: "カジュアル面談CTA の色（判断待ち）",
+    desc: "現行は白文字 on #F59E0B で 2.15（必要 4.5）。橙を保ったまま直す3案を実寸で並べる" },
 ];
 
 export default function PreviewIndex() {
