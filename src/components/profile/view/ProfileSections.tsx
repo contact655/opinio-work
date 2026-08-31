@@ -101,8 +101,18 @@ export type FeaturedArticleRow = {
  */
 export function SectionTitle({ title, latin }: { title: string; latin?: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-      <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
+      {/* ⚠️★`title` に `whiteSpace: "nowrap"` を付けないこと（2026-08-31 に外した）。
+             呼び出しの大半は「職歴」「スキル」など短い固定文だが、`/u/[id]` の1箇所だけ
+             **会社名から組み立てた可変長**（`${会社名}の募集中の求人`）を渡している。
+             セールスフォース・ジャパンで **297px** になり、`body { overflow-x: hidden }` が
+             **画面幅346px 未満で末尾を切り落としていた**（320px で 26px ぶん・実測）。
+          ⚠️ `document.documentElement.scrollWidth` では見つからない。
+             body の overflow-x が隠すので**横スクロールは出ない**
+             （.claude/rules/ui-debugging.md「横はみ出し」）。
+          ⚠️ `latin` 側の nowrap は残す。あれは CAREER / SKILLS のような短い固定文で、
+             途中で折り返ると読めなくなる。 */}
+      <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
         {title}
       </span>
       {latin && (

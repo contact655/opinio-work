@@ -191,10 +191,20 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
        この画面で集めたデータがそのまま使えなくなる。
        LinkedIn / Wantedly にも社名を伏せる設定は無く、実名が前提になっている。
 
-       公開範囲を変えたい人は `/mypage?tab=profile` の経歴ごとの
-       「会社名の公開設定」でいつでも変えられる（`CareerHistoryEditor` の
-       `visibilityCompany` / `visibilityCompanyProfile`）。
-       **列も編集UIも消していない。** 入口では既定の `real` で保存するだけ。
+       ⚠️★**この下に「あとから /mypage で変えられる」と書いてあったが、事実ではない**
+          （2026-08-31 に訂正）。その2日後の 2026-08-16 に `CareerHistoryEditor` から
+          「公開設定」の入力欄が外されており、**いま社名を伏せる手段は1つも無い。**
+          `CareerHistoryEditor.tsx` 側にも「入力欄が無い＝本人が掲載を断る手段が無い」と
+          書いてある。**2つのコメントが食い違ったまま2週間残っていた。**
+
+       実測（2026-08-31 / 本番）: `ow_experiences` 24件は
+       `visibility_company` / `visibility_company_profile` とも **全件 `real`**。
+       ⚠️ これは「誰も伏せたがらなかった」ではなく**選べなかった**という意味
+          （CLAUDE.md「0件を読むときは、起きなかった0か起こせなかった0かを分ける」）。
+
+       ⚠️ 列と描画側のフィルタは生きている。`masked` / `hidden` の行が入れば正しく効く。
+          戻すときは `CareerHistoryEditor.tsx` の注意書き（1件ずつではなく
+          「職歴全体をどう見せるか」の1設定にする）を先に読むこと。
   */
   /* これまでの職歴・学歴（どちらも任意・既定は0件）。
      ⚠️ 既定で行を1つ出さない。出すと「埋めなければいけない」に見えて入口が重くなる。 */
