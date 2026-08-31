@@ -2002,3 +2002,47 @@ CLAUDE.md「403 は『0件』として静かに素通りする」と同じ形で
 
 ⚠️ これで**判定が1箇所になった**ので、上の A/B/C のどれを選んでも
    `lib/jobCategoryColors.ts` を直せば両ページが同時に直る。
+
+---
+
+## ⚠️ 記事の `related_job_ids` は、参照先が全滅していて、そもそも誰も読んでいない（2026-08-31 実測）
+
+`ow_articles.related_job_ids` に **11 種類の求人 slug** が入っており、
+**そのうち実在するものは0件**。参照している10記事すべてで死んでいる。
+
+```
+freee-csm / freee-engineer-platform / hubspot-solutions-engineer /
+layerx-eng-backend / layerx-pdm-bakuraku / pksha-ml-engineer /
+salesforce-ae-enterprise / sansan-pdm / smarthr-csm /
+smarthr-eng-fullstack / ubie-backend-engineer
+```
+
+⚠️ **描画側からの参照が0件なので、画面には何も出ていない**（実害なし）。
+   読んでいるのは `mapDbArticle` と型定義だけで、
+   `articles/[slug]/page.tsx` は `related_article_slugs` しか使っていない。
+
+### だから「関連求人」を作るときに、ここを拾わないこと
+
+- **値が slug なのに列名が `_ids`。** `related_article_slugs` と対称でない
+- **求人が消えても列は残る。** FK ではないので DB は守ってくれない
+- **公開求人は2件しかない**（2026-08-30 時点）。10記事に2件を貼るなら
+  「関連求人」ではなく別の見せ方になる
+
+→ 作るなら **`ow_jobs.slug` を引いて実在するものだけ出す**
+（`resolvePublishedCompanyHref` と同じ形。CLAUDE.md「企業ページへのリンクは
+env に関係なく is_published を見る」）。
+
+⚠️ **列は消していない。** 消すか作り直すかを決めてから触ること。
+
+⚠️ `related_article_slugs` のほうは**9件すべて実在・公開中**で、正常に動いている。
+
+### ついでに: 企業が実在しない記事が4件ある
+
+`archi-village-cto-dx-journey` / `freee-platform-infra-report` /
+`layerx-nakamura-why-mentor` / `layerx-suzuki-backend-career` の
+`company_slug` は **`ow_companies` に無い**（migration 238/239 で企業側を削除した）。
+
+⚠️ **CTA は出ない**（`resolvePublishedCompanyHref` が null を返し、
+   `CompanyCTA` がブロックごと出さない）。**リンク切れにはなっていない。**
+   ただし記事本文は「LayerX の〜」と語り続けるので、**掲載していない企業の記事が
+   4件公開されている**という状態そのものは残る。取り下げるかは運営の判断。

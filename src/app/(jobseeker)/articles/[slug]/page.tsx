@@ -363,8 +363,12 @@ function ContributorsSection({ subjects }: { subjects: ArticleSubject[] }) {
     <div style={{
       marginTop: 56,
       padding: "var(--space-6) var(--space-8)",
-      background: "linear-gradient(135deg, #F3E8FF 0%, #fff 100%)",
-      border: "1px solid #E9D5FF",
+      /* ⚠️ 紫にしない（2026-08-31）。ui-conventions「色の役割」で**紫は使わない**。
+            2026-08-30 に見出し脇の CONTRIBUTORS だけを直したが、**この箱の背景と枠が
+            紫のまま残っていた**（本番の freee / HubSpot の2記事で実際に出ていた）。
+            EDITOR'S NOTE / OUTRO と同じ中立色に揃える。中のカードが白なので沈まない。 */
+      background: "var(--bg-tint)",
+      border: `1px solid ${LINE}`,
       borderRadius: 16,
     }}>
       <div style={{ marginBottom: "var(--space-2)", display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
@@ -516,7 +520,6 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   const badge = TYPE_BADGE[article.type];
   const icon  = TYPE_EYECATCH_ICON[article.type];
-  const mainSubject = article.subject ?? article.subjects?.[0];
 
   return (
     <>
@@ -605,132 +608,106 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           </div>
         </div>
 
-        {/* Subject card */}
-        {article.type !== "report" && mainSubject && (
-          <SubjectCard subject={mainSubject} />
+        {/* ★★描き分けは「種別」ではなく「データの有無」で行う（2026-08-31）
+
+              ⚠️ 以前は `type !== "report"` と `type === "report"` の2分岐で、
+                 report 側は editor_note / chapters / subjects / editor_outro しか
+                 描いていなかった。**report 型で本文・引用・テーマ・Q&A・取材対象者を
+                 持つ記事は、その全部が黙って消えていた。**
+
+              ⚠️ 実害（2026-08-31 実測 / 本番）: `thinca-omnichannel-product-story` と
+                 `timee-pm-growth-product` の2記事で **本文3段落・Q&A 5問・取材対象者1名**が
+                 1文字も出ていなかった。可視テキストは他の記事の約2,600字に対し**約810字**で、
+                 出ていたのは見出しと編集後記だけ。それでいて「9 min read」と表示し、
+                 一覧カードは「シニアエンジニア / シンカ株式会社」と取材相手を約束していた。
+
+              ⚠️★**型でも lint でも気づけない。** `Article` の該当プロパティはすべて
+                 optional なので tsc は通り、**画面からは「そういう記事」に見える**
+                 （CLAUDE.md「値が無いことを、ある値に置き換えない」の裏返し。
+                  こちらは「値があるのに出さない」）。
+
+              → **種別の分岐を増やさないこと。** 項目を足すときは、この並びに
+                 `{article.xxx && ...}` を1行足す。種別で出し分けたくなったら、
+                 理由を書いたうえで**その項目だけ**に条件を付ける。 */}
+
+        {/* 主役1人 — 単数の `subject`。複数の `subjects` は末尾の「取材協力」で出す
+              （両方あれば両方出る。現在のデータは必ずどちらか一方） */}
+        {article.subject && <SubjectCard subject={article.subject} />}
+
+        {/* EDITOR'S NOTE */}
+        {article.editor_note && (
+          <div style={{
+            padding: "var(--space-4) var(--space-6)", background: "var(--bg-tint)",
+            borderLeft: `3px solid ${ROYAL}`, borderRadius: "0 10px 10px 0",
+            marginBottom: "var(--space-8)",
+          }}>
+            <div style={{
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
+              color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
+            }}>
+              EDITOR&apos;S NOTE
+            </div>
+            <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
+              {article.editor_note}
+            </p>
+          </div>
         )}
 
-        {/* ── employee / mentor / ceo body ── */}
-        {article.type !== "report" && (
-          <>
-            {/* EDITOR'S NOTE */}
-            {article.editor_note && (
-              <div style={{
-                padding: "var(--space-4) var(--space-6)", background: "var(--bg-tint)",
-                borderLeft: `3px solid ${ROYAL}`, borderRadius: "0 10px 10px 0",
-                marginBottom: "var(--space-8)",
-              }}>
-                <div style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
-                }}>
-                  EDITOR&apos;S NOTE
-                </div>
-                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
-                  {article.editor_note}
-                </p>
-              </div>
-            )}
+        {/* 本文 */}
+        {article.body?.map((para, i) => (
+          <p key={i} style={{
+            fontSize: "var(--text-md)", lineHeight: 2, color: INK,
+            marginBottom: "var(--space-4)",
+          }}>
+            {para}
+          </p>
+        ))}
 
-            {/* Body paragraphs */}
-            {article.body?.map((para, i) => (
-              <p key={i} style={{
-                fontSize: "var(--text-md)", lineHeight: 2, color: INK,
-                marginBottom: "var(--space-4)",
-              }}>
-                {para}
-              </p>
-            ))}
-
-            {/* Pull quote */}
-            {article.quote && (
-              <blockquote style={{
-                padding: "var(--space-4) 0 var(--space-4) var(--space-4)",
-                margin: "var(--space-6) 0",
-                borderLeft: `3px solid ${ROYAL}`,
-                fontFamily: 'var(--font-noto-serif)',
-                fontSize: "var(--text-md)", color: INK,
-                fontStyle: "italic", lineHeight: 1.8,
-              }}>
-                {article.quote}
-              </blockquote>
-            )}
-
-            {/* ★この記事で分かること（Q&A の前に置いて見取り図にする） */}
-            {article.themes && <ThemesSection themes={article.themes} />}
-
-            {/* Q&A */}
-            {article.qa && <QASection qa={article.qa} />}
-
-            {/* Editor outro */}
-            {article.editor_outro && (
-              <div style={{
-                marginTop: 48, padding: "var(--space-6)",
-                background: "var(--bg-tint)", borderRadius: 12,
-              }}>
-                <div style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
-                }}>
-                  EDITOR&apos;S OUTRO
-                </div>
-                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
-                  {article.editor_outro}
-                </p>
-              </div>
-            )}
-
-            {/* Company CTA — all interview types */}
-            <CompanyCTA article={article} companyHref={companyHref} />
-          </>
+        {/* 引用 */}
+        {article.quote && (
+          <blockquote style={{
+            padding: "var(--space-4) 0 var(--space-4) var(--space-4)",
+            margin: "var(--space-6) 0",
+            borderLeft: `3px solid ${ROYAL}`,
+            fontFamily: 'var(--font-noto-serif)',
+            fontSize: "var(--text-md)", color: INK,
+            fontStyle: "italic", lineHeight: 1.8,
+          }}>
+            {article.quote}
+          </blockquote>
         )}
 
-        {/* ── report body ── */}
-        {article.type === "report" && (
-          <>
-            {article.editor_note && (
-              <div style={{
-                padding: "var(--space-4) var(--space-6)", background: "var(--bg-tint)",
-                borderLeft: `3px solid ${ROYAL}`, borderRadius: "0 10px 10px 0",
-                marginBottom: "var(--space-8)",
-              }}>
-                <div style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
-                }}>
-                  EDITOR&apos;S NOTE
-                </div>
-                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
-                  {article.editor_note}
-                </p>
-              </div>
-            )}
+        {/* ★この記事で分かること（Q&A の前に置いて見取り図にする） */}
+        {article.themes && <ThemesSection themes={article.themes} />}
 
-            {article.chapters && <ChaptersSection chapters={article.chapters} />}
+        {/* Q&A */}
+        {article.qa && <QASection qa={article.qa} />}
 
-            {article.subjects && <ContributorsSection subjects={article.subjects} />}
+        {/* 章立て（組織レポート） */}
+        {article.chapters && <ChaptersSection chapters={article.chapters} />}
 
-            {article.editor_outro && (
-              <div style={{
-                marginTop: 48, padding: "var(--space-6)",
-                background: "var(--bg-tint)", borderRadius: 12,
-              }}>
-                <div style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
-                  color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
-                }}>
-                  EDITOR&apos;S OUTRO
-                </div>
-                <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
-                  {article.editor_outro}
-                </p>
-              </div>
-            )}
+        {/* 取材協力（複数人） */}
+        {article.subjects && <ContributorsSection subjects={article.subjects} />}
 
-            {/* report型にも企業CTA */}
-            <CompanyCTA article={article} companyHref={companyHref} />
-          </>
+        {/* EDITOR'S OUTRO */}
+        {article.editor_outro && (
+          <div style={{
+            marginTop: 48, padding: "var(--space-6)",
+            background: "var(--bg-tint)", borderRadius: 12,
+          }}>
+            <div style={{
+              fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
+              color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-2)",
+            }}>
+              EDITOR&apos;S OUTRO
+            </div>
+            <p style={{ fontSize: "var(--text-base)", lineHeight: 1.9, color: INK_SOFT, margin: 0 }}>
+              {article.editor_outro}
+            </p>
+          </div>
         )}
+
+        <CompanyCTA article={article} companyHref={companyHref} />
       </article>
 
       {/* Related section */}
