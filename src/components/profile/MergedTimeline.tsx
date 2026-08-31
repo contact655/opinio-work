@@ -764,7 +764,7 @@ function ParallelNote({ companies }: { companies: string[] | undefined }) {
       style={{
         fontSize: 12,
         fontWeight: 600,
-        color: "var(--warm)",
+        color: "var(--warm-ink)",
         lineHeight: 1.4,
         marginTop: 2,
       }}

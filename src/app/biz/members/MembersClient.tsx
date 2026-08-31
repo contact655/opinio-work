@@ -853,7 +853,7 @@ function PendingInvitesSection({
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
             <polyline points="22,6 12,13 2,6"/>
           </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--warm)", letterSpacing: "0.04em" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--warm-ink)", letterSpacing: "0.04em" }}>
             招待中
           </span>
           <span style={{
@@ -862,7 +862,11 @@ function PendingInvitesSection({
             fontWeight: 700,
             padding: "0px 6px",
             borderRadius: 100,
-            background: "var(--warm)",
+            /* ⚠️ 白文字 on `--warm`(#F59E0B) は **2.15**（11px には 4.5 が要る）。
+                  塗りを `--warm-ink`(#B45309) にすると白で 5.02。
+               ⚠️ これは「文字色の移行」とは別の系統（白文字を塗りに載せている側）。
+                  同じ形が `/companies/[id]` の掲載設定バナーなどに残っている（docs/todo.md）。 */
+            background: "var(--warm-ink)",
             color: "#fff",
           }}>
             {invites.length}
@@ -927,7 +931,7 @@ function PendingInvitesSection({
                       padding: "1px 7px",
                       borderRadius: 100,
                       background: "var(--warm-soft)",
-                      color: "var(--warm)",
+                      color: "var(--warm-ink)",
                     }}>
                       招待中
                     </span>

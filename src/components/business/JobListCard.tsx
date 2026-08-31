@@ -405,7 +405,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
 
         {/* 下書き完成度 */}
         {job.status === "draft" && (
-          <span style={{ color: job.completionPercent === 100 ? "var(--success-ink)" : "var(--warm)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+          <span style={{ color: job.completionPercent === 100 ? "var(--success-ink)" : "var(--warm-ink)", display: "inline-flex", alignItems: "center", gap: 3 }}>
             {job.completionPercent === 100
               ? `✓ 全項目入力済み`
               : <><AlertTriangle size={12} style={{ flexShrink: 0 }} />{Math.round((100 - job.completionPercent) / 10)}/{10}項目が未入力</>

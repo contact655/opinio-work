@@ -25,7 +25,7 @@ export function RequirementsTagInput({
   const pillColor =
     color === "purple" ? "var(--purple)"
     : color === "success" ? "var(--success-ink)"
-    : color === "warm" ? "var(--warm)"
+    : color === "warm" ? "var(--warm-ink)"
     : "var(--royal)";
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

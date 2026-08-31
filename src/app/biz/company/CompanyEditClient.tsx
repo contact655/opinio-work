@@ -344,7 +344,7 @@ function FormTextarea({
           bottom: 6,
           right: 10,
           fontSize: 10,
-          color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
+          color: atLimit ? "var(--error)" : nearLimit ? "var(--warm-ink)" : "var(--ink-mute)",
           fontWeight: nearLimit ? 600 : 400,
           pointerEvents: "none",
           fontFamily: "var(--font-inter), var(--font-noto)",

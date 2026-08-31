@@ -73,7 +73,7 @@ const TYPE_COLORS: Record<ContentType, { bg: string; color: string }> = {
   video:   { bg: "var(--error-soft)",  color: "var(--error)" },
   audio:   { bg: "var(--purple-soft)", color: "var(--purple)" },
   social:  { bg: "var(--success-soft)", color: "var(--success-ink)" },
-  event:   { bg: "var(--warm-soft)",   color: "var(--warm)" },
+  event:   { bg: "var(--warm-soft)",   color: "var(--warm-ink)" },
   other:   { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
 };
 

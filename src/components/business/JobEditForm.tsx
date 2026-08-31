@@ -219,7 +219,7 @@ function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaL
         <span style={{
           position: "absolute", bottom: 6, right: 10,
           fontSize: 12,
-          color: atLimit ? "var(--error)" : nearLimit ? "var(--warm)" : "var(--ink-mute)",
+          color: atLimit ? "var(--error)" : nearLimit ? "var(--warm-ink)" : "var(--ink-mute)",
           fontWeight: nearLimit ? 600 : 400, pointerEvents: "none",
           fontFamily: "var(--font-inter), var(--font-noto)",
         }}>
@@ -502,7 +502,7 @@ export function JobEditForm({
     display: "inline-flex", alignItems: "center", gap: 6,
     fontSize: 12, padding: "4px 10px", borderRadius: 100,
     transition: "all 0.3s", flexShrink: 0,
-    ...(saveState === "saving" ? { color: "var(--warm)", background: "var(--warm-soft)" }
+    ...(saveState === "saving" ? { color: "var(--warm-ink)", background: "var(--warm-soft)" }
       : saveState === "saved"  ? { color: "var(--success-ink)", background: "var(--success-soft)" }
       : saveState === "error"  ? { color: "var(--error)", background: "var(--error-soft)" }
       : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
@@ -798,7 +798,7 @@ export function JobEditForm({
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>最高給与は最低給与以上に設定してください</p>
                 )}
                 {form.salaryMin && form.salaryMax && Number(form.salaryMax) >= Number(form.salaryMin) && (Number(form.salaryMax) - Number(form.salaryMin)) > 250 && (
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
                 )}
                 {/* 未入力時の注意文 */}
                 {(!form.salaryMin && !form.salaryMax) && (

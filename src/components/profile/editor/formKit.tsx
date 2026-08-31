@@ -141,7 +141,7 @@ export function TextareaField({
         alignItems: "flex-start", marginTop: 6, gap: "var(--space-2)",
       }}>
         {isOver ? (
-          <div style={{ fontSize: "var(--text-xs)", color: "var(--warm)", lineHeight: 1.6, flex: 1 }}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--warm-ink)", lineHeight: 1.6, flex: 1 }}>
             {softLimit}字の目安を超えています。保存は可能ですが、読み手が読みやすい長さを意識してみてください。
           </div>
         ) : (
@@ -149,7 +149,7 @@ export function TextareaField({
         )}
         <div style={{
           fontSize: "var(--text-xs)",
-          color: isOver ? "var(--warm)" : "var(--ink-mute)",
+          color: isOver ? "var(--warm-ink)" : "var(--ink-mute)",
           fontFamily: "var(--font-inter), var(--font-noto)",
           flexShrink: 0,
           lineHeight: 1.6,

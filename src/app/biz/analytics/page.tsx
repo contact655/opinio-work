@@ -221,7 +221,7 @@ function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, { label: string; bg: string; color: string }> = {
     published: { label: "公開中", bg: "var(--success-soft)", color: "var(--success-ink)" },
     active:    { label: "公開中", bg: "var(--success-soft)", color: "var(--success-ink)" }, // 旧ステータス
-    pending_review: { label: "審査中", bg: "var(--warm-soft)", color: "var(--warm)" },
+    pending_review: { label: "審査中", bg: "var(--warm-soft)", color: "var(--warm-ink)" },
     draft: { label: "下書き", bg: "var(--line-soft)", color: "var(--ink-mute)" },
     private: { label: "非公開", bg: "var(--line-soft)", color: "var(--ink-mute)" },
     rejected: { label: "差戻し", bg: "var(--error-soft)", color: "var(--error)" },
@@ -390,9 +390,9 @@ export default async function AnalyticsPage() {
           background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
           padding: "10px 18px", flex: "1 1 200px",
         }}>
-          <TrendingUp size={15} color="var(--warm)" strokeWidth={2.2} />
+          <TrendingUp size={15} color="var(--warm-ink)" strokeWidth={2.2} />
           <span style={{ fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>面談転換率</span>
-          <span style={{ marginLeft: "auto", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 18, color: "var(--warm)" }}>
+          <span style={{ marginLeft: "auto", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 18, color: "var(--warm-ink)" }}>
             {conversionRate}%
           </span>
           <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>完了{meetings.completed} / 申込{meetings.total}</span>
@@ -408,7 +408,10 @@ export default async function AnalyticsPage() {
               { label: "面談申込", sub: "カジュアル面談", count: meetings.total, color: "var(--accent)", bg: "#EEF2FF" },
               { label: "面談完了", sub: "カジュアル面談", count: meetings.completed, color: "var(--purple)", bg: "var(--purple-soft)" },
               { label: "応募", sub: "書類選考", count: selection.applied, color: "var(--royal)", bg: "var(--royal-50)" },
-              { label: "面接", sub: "選考・面接中", count: selection.interview1, color: "#0EA5E9", bg: "#E0F2FE" },
+              /* ⚠️ #0EA5E9 は #E0F2FE の上で 2.42。数字は 28px なので基準は 3.0 だが届かない
+                    （他の4段階は基準を満たしていた。ここだけ生の hex だった）。
+                    sky-700 #0369A1 にして 5.17。塗り（bg）は変えていない。 */
+              { label: "面接", sub: "選考・面接中", count: selection.interview1, color: "#0369A1", bg: "#E0F2FE" },
               { label: "内定・オファー", sub: "採用確定", count: selection.offered + selection.hired, color: "var(--success-ink)", bg: "var(--success-soft)" },
             ].map((step, i, arr) => (
               <div key={step.label} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
@@ -449,7 +452,7 @@ export default async function AnalyticsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {[
             { label: "公開中", count: jobStats.published, total: jobStats.total, color: "var(--success-ink)" },
-            { label: "審査中", count: jobStats.pending, total: jobStats.total, color: "var(--warm)" },
+            { label: "審査中", count: jobStats.pending, total: jobStats.total, color: "var(--warm-ink)" },
             { label: "下書き", count: jobStats.draft, total: jobStats.total, color: "var(--ink-mute)" },
           ].map((row) => (
             <div key={row.label}>

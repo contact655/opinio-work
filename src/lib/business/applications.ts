@@ -23,7 +23,7 @@ export type ApplicationStatusTab = {
 
 export const APPLICATION_STATUS_TABS: ApplicationStatusTab[] = [
   { status: "all",       label: "All",       labelJa: "すべて",     color: "var(--ink-mute)" },
-  { status: "pending",   label: "New",        labelJa: "新着",       color: "var(--warm)" },
+  { status: "pending",   label: "New",        labelJa: "新着",       color: "var(--warm-ink)" },
   { status: "reviewing", label: "Reviewing",  labelJa: "確認中",     color: "var(--accent)" },
   { status: "interview", label: "Interview",  labelJa: "面接中",     color: "var(--purple)" },
   { status: "accepted",  label: "Accepted",   labelJa: "採用",       color: "var(--success-ink)" },

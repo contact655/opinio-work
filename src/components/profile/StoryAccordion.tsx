@@ -301,7 +301,7 @@ function buildNewStoriesAfterDrag(
 // ─── Type badge config ────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<StoryType, { label: string; bg: string; color: string }> = {
-  image: { label: "image", bg: "var(--warm-soft)",   color: "var(--warm)"     },
+  image: { label: "image", bg: "var(--warm-soft)",   color: "var(--warm-ink)"     },
   video: { label: "video", bg: "var(--purple-soft)", color: "var(--purple)"   },
   card:  { label: "card",  bg: "var(--royal-50)",    color: "var(--royal)"    },
   link:  { label: "link",  bg: "var(--line-soft)",   color: "var(--ink-mute)" },

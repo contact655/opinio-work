@@ -175,7 +175,7 @@ export function CompanyEditSubNav({
                   fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "var(--warm)",
+                  color: "var(--warm-ink)",
                   background: "var(--warm-soft)",
                   padding: "1px 6px",
                   borderRadius: 4,
