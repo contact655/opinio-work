@@ -327,7 +327,9 @@ export default async function BizDashboardPage({
       )}
 
       {/* ── 2-col: JobStatusCards + TeamMembers ── */}
-      <div style={{
+      {/* ⚠️ 375px では1列に畳む（globals.css の `.biz-2col`）。
+             畳まないと各カラムが 163px になり、見出しが1文字ずつ折り返す。 */}
+      <div className="biz-2col" style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: 16,

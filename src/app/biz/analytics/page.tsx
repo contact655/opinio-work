@@ -530,7 +530,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* ── プロフィール完成度 + アクティビティ ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="biz-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
 
         {/* プロフィール完成度 */}
         <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "20px 22px" }}>

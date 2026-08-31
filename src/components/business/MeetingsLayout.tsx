@@ -5,7 +5,7 @@ type Props = {
 
 export function MeetingsLayout({ listPanel, detailPanel }: Props) {
   return (
-    <div style={{
+    <div className="biz-2col" style={{
       display: "grid",
       gridTemplateColumns: "360px 1fr",
       height: "calc(100vh - 57px)",

@@ -2192,7 +2192,7 @@ CompanyEmployeeSections.tsx の tone / toneSoft
 
 ---
 
-## ⚠️ `/biz`（企業側）はモバイル幅で崩れる（2026-08-31 実測・未対応）
+## ✅ ~~`/biz`（企業側）はモバイル幅で崩れる~~（2026-08-31 に実測 → **同日対応済み**）
 
 実測（`/biz/dashboard` / 375px / ログイン済み）:
 
@@ -2217,3 +2217,30 @@ CompanyEmployeeSections.tsx の tone / toneSoft
 
 ⚠️ `scrollWidth` では見つからない。**各要素の右端を画面幅と比べること**
    （`.claude/rules/ui-debugging.md`「横はみ出し」）。
+
+### ✅ 対応した（2026-08-31）── 「支えない」ではなく「実装の漏れ」だった
+
+⚠️★**方針を決め直す必要は無かった。** `BusinessLayout` には**元から ≤768px の対応があった**
+（サイドバーを畳む）。つまり「モバイルを支える」は既に決まっていて、
+**ヘッダーとページ内の多カラムが漏れていた**だけだった。
+
+| 何が | 直し方 |
+|---|---|
+| ヘッダーが `@media` の**対象外**だった | `.biz-header` ほかにクラスを付け、768px で詰め、480px で BUSINESS バッジと氏名を畳む |
+| サイドバーの `flex-direction: row` が**効いていなかった** | `nav` が素の `display:block`。**`display:flex` を先に当てる**必要があった |
+| 企業カードのロゴが社名に**重なっていた** | 列幅を 48px にしただけでは足りず、**ロゴ本体（64px）も縮める** |
+| ページ内の2列・3列が畳まれない | `.biz-2col` / `.biz-3col` を globals.css に置き、実測で壊れた箇所に付与 |
+
+実測（375px / 切り取られている要素の数）:
+`/biz/dashboard` `/biz/jobs` `/biz/company` `/biz/meetings` `/biz/analytics`
+`/biz/members` `/biz/posts` `/biz/organization` — **すべて 0件**。
+1280px では sidebar 240px / header padding 12px 28px / 企業カード 64px 1fr auto と**元のまま**。
+
+⚠️★**残っている多カラムがある。** 28箇所のうち付与したのは実測で壊れた8箇所だけ。
+   **`/biz/employees` `/biz/conversations` `/biz/scouts` `/biz/candidates` は未測定。**
+   壊れていないとは言っていない ——**測っていない**という意味。
+
+⚠️★**`BusinessLayout` の `<style>` ブロックにバッククォートを書かないこと。**
+   テンプレートリテラルがそこで閉じ、以降が JSX として解釈される（同日に踏んだ）。
+   CLAUDE.md の「`<style>` 内で `>` と引用符を使わない」と**同じ場所の別の罠**。
+   → だから `/biz` のレスポンシブは **globals.css**（素の CSS）に書いている。

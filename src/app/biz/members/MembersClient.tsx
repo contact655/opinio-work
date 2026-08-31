@@ -1478,7 +1478,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               採用担当メンバーがいません
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+            <div className="biz-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
               {activeMembers.map((member) => {
                 const isSelf = member.user_id === currentUserId;
                 const isAdminMember = member.permission === "admin";
@@ -1674,7 +1674,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               在籍は本人の申告で、OPINIO は在籍確認を行っていません。
               <strong style={{ color: "var(--ink)" }}>掲載を止めたいときは公開トグルを切ってください。</strong>
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            <div className="biz-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).map((a) => (
                 <div key={a.id} style={{
                   background: "#fff", border: "1px solid var(--line)",
@@ -1784,7 +1784,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
               招待中（本人の確認待ち） {ambassadors.filter((a) => stateOf(a) === "pending_user").length}件
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            <div className="biz-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               {ambassadors.filter((a) => stateOf(a) === "pending_user").map((a) => (
                 <div key={a.id} style={{
                   background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px", opacity: 0.85,

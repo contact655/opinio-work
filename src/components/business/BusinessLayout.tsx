@@ -140,7 +140,13 @@ export function BusinessLayout({
       WebkitFontSmoothing: "antialiased",
     }}>
       {/* ── Topbar ── */}
-      <header style={{
+      {/* ⚠️★ヘッダーは 2026-08-31 まで `@media` の対象外だった。
+             `display:flex` / `gap:24` / `padding:12px 28px` の固定で、
+             375px では**企業切り替えが右端 443px、ユーザーメニューが 601px** まで出ており、
+             `body { overflow-x: hidden }` に**切り取られていた**（横スクロールは出ない）。
+             ＝ スマホでは企業の切り替えとアカウントメニューに触れなかった。
+          ⚠️ サイドバー側の ≤768px 対応は元からあった。**ヘッダーだけ漏れていた。** */}
+      <header className="biz-header" style={{
         position: "sticky", top: 0, zIndex: 100,
         background: "rgba(255,255,255,0.96)",
         backdropFilter: "blur(12px)",
@@ -152,7 +158,7 @@ export function BusinessLayout({
         gap: 24,
       }}>
         {/* Brand */}
-        <Link href="/biz/dashboard" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+        <Link href="/biz/dashboard" className="biz-header-brand" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
           <span style={{
             fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700, fontSize: 20,
@@ -167,22 +173,22 @@ export function BusinessLayout({
             background: "var(--royal)", color: "#fff",
             borderRadius: 3,
             textTransform: "uppercase",
-          }}>Business</span>
+          }} className="biz-header-badge">Business</span>
         </Link>
 
         {/* Company identifier / switcher */}
         {tenantName && (
           memberships && currentTenantId ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="biz-header-company" style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <CompanySwitcher
                 currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
                 memberships={memberships}
               />
             </div>
           ) : (
-            <div style={{
+            <div className="biz-header-company" style={{
               display: "flex", alignItems: "center", gap: 8,
-              paddingLeft: 20,
+              paddingLeft: 20, minWidth: 0,
               borderLeft: "1px solid var(--line)",
             }}>
               <div style={{
@@ -195,7 +201,7 @@ export function BusinessLayout({
               }}>
                 {logoLetter}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {tenantName}
               </span>
             </div>
@@ -205,7 +211,7 @@ export function BusinessLayout({
         <div style={{ flex: 1 }} />
 
         {/* User menu */}
-        <div className="relative" ref={avatarRef}>
+        <div className="relative biz-header-user" ref={avatarRef} style={{ flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => setAvatarOpen(!avatarOpen)}
@@ -230,8 +236,10 @@ export function BusinessLayout({
             }}>
               {userInitial ?? null}
             </div>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink)", fontWeight: 500 }}>
+            {/* ⚠️ 狭い画面ではこの2行を隠す（アバターとシェブロンは残す）。
+                   隠さないと押せる領域ごと画面外へ出る。 */}
+            <div className="biz-header-username" style={{ textAlign: "left", minWidth: 0 }}>
+              <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {userName}
               </div>
               <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>Admin</div>
@@ -319,7 +327,8 @@ export function BusinessLayout({
           overflowY: "auto",
           outline: "none",
         }}>
-          <div style={{
+          {/* ⚠️ 狭い画面では隠す（横スクロールの列に見出しを混ぜない）。クラスは CSS 側で使う */}
+          <div className="biz-nav-heading" style={{
             fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
             letterSpacing: "0.1em", textTransform: "uppercase",
@@ -341,7 +350,7 @@ export function BusinessLayout({
               const badgeCount = 0;
 
               return (
-                <div key={item.href}>
+                <div key={item.href} className="biz-nav-item">
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
@@ -394,6 +403,9 @@ export function BusinessLayout({
                       <Link
                         key={child.href}
                         href={child.href}
+                        /* ⚠️ 狭い画面では隠す。横スクロールの列に子リンクを混ぜると
+                              親と子の区別が付かなくなる（インデントが効かないため） */
+                        className="biz-nav-child"
                         style={{
                           display: "flex", alignItems: "center",
                           padding: "6px 20px 6px 38px",
@@ -445,6 +457,22 @@ export function BusinessLayout({
 
       {/* Mobile fallback nav (≤768px) */}
       <style>{`
+        /* ── ヘッダー（2026-08-31 追加）──────────────────────────────────
+           ⚠️ 段階を2つに分ける。768px では詰めるだけ、480px で要素を落とす。
+              いきなり落とすとタブレットで情報が減りすぎる。 */
+        @media (max-width: 768px) {
+          .biz-header { padding: 10px 14px !important; gap: 10px !important; }
+          .biz-header-company { padding-left: 10px !important; }
+        }
+        @media (max-width: 480px) {
+          /* ⚠️ ロゴの「BUSINESS」バッジは落とす。OPINIO の文字だけで区別は付く */
+          .biz-header-badge { display: none !important; }
+          /* ⚠️ 氏名と Admin は落とす。**アバターとシェブロンは残す**
+                （押せる場所が消えるとメニューを開けなくなる） */
+          .biz-header-username { display: none !important; }
+          .biz-header-user button { padding: 6px !important; gap: 0 !important; }
+        }
+
         @media (max-width: 768px) {
           .biz-layout-grid { grid-template-columns: 1fr !important; }
           .biz-layout-sidebar {
@@ -452,9 +480,31 @@ export function BusinessLayout({
             height: auto !important;
             border-right: none !important;
             border-bottom: 1px solid var(--line) !important;
-            padding: 12px 0 !important;
+            padding: 8px 0 !important;
           }
-          .biz-layout-sidebar nav { flex-direction: row; overflow-x: auto; }
+          /* ⚠️★flex-direction: row だけでは効かなかった（2026-08-31 に実測）。
+                nav は素の display:block なので、方向を指定しても縦のままで、
+                12項目がフルハイトで縦に並び、本文が画面のはるか下に押し出されていた。
+                display:flex を先に当てる必要がある。
+             ⚠️★この style ブロックの中でバッククォートを使わないこと。
+                テンプレートリテラルがそこで閉じ、以降が JSX として解釈される
+                （2026-08-31 に実際に踏んだ。tsc が「nav に閉じタグが無い」と言い出す）。
+                CLAUDE.md の「子孫セレクタの記号と引用符を使わない」と同じ場所の話。 */
+          .biz-layout-sidebar nav {
+            display: flex !important;
+            flex-direction: row !important;
+            overflow-x: auto !important;
+            gap: 2px;
+            padding: 0 12px;
+            scrollbar-width: none;
+          }
+          .biz-layout-sidebar nav::-webkit-scrollbar { display: none; }
+          .biz-nav-item { flex: 0 0 auto; }
+          .biz-layout-sidebar nav a { white-space: nowrap; }
+          /* ⚠️ 見出し（採用活動）と、開いている項目の子リンクは畳む。
+                横スクロールの列に混ぜると、親と子の区別が付かなくなる。 */
+          .biz-nav-heading { display: none !important; }
+          .biz-nav-child { display: none !important; }
           .biz-layout-main { padding: 20px 16px 48px !important; }
         }
       `}</style>

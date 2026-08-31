@@ -1131,7 +1131,7 @@ export function CompanyEditClient({
       }}>
 
         {/* 2カラム本体 */}
-        <div style={{
+        <div className="biz-2col" style={{
           display: "grid",
           gridTemplateColumns: "240px 1fr",
           flex: 1,

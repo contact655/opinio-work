@@ -1659,3 +1659,54 @@ body {
           background: linear-gradient(90deg, rgba(5,150,105,0.06) 0%, transparent 60%);
           border-radius: 8px;
         }
+
+/* ── /biz（企業側）のモバイル対応 ──────────────────────────────────────────
+   ⚠️★**ここに書く理由**: `BusinessLayout` の `<style>{`…`}</style>` は
+      **テンプレートリテラル**なので、中に**バッククォート**を置くと文字列がそこで閉じ、
+      以降が JSX として解釈される（2026-08-31 に実際に踏んだ）。
+      CLAUDE.md の「`<style>` 内で子孫セレクタの `>` と引用符を使わない」も同じ場所の話。
+      **素の CSS ファイルなら制約が無い。** /biz のレスポンシブはこちらに書く。
+
+   ⚠️ `/biz` は「モバイルを支えない」方針ではない。`BusinessLayout` には
+      **元から ≤768px の対応があった**（サイドバーを畳む）。欠けていたのは
+      ヘッダーとページ内の多カラムで、**方針ではなく実装の漏れ**だった。 */
+
+@media (max-width: 768px) {
+  /* 企業カード（ダッシュボード上部）。
+     ⚠️ 既定は `64px 1fr auto` で、375px だと名前の列に **39px** しか残らず、
+        社名が1〜2文字ずつ縦に折り返し、**操作ボタンと重なっていた。**
+        ロゴ＋社名を1行、ボタンを次の行に落とす。 */
+  .biz-company-card {
+    grid-template-columns: 48px 1fr !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+  .biz-company-card-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .biz-company-card-actions > * { flex: 1 1 0; justify-content: center; }
+  /* ⚠️ 列幅だけ縮めても、ロゴ本体が 64px のままだと社名に重なる */
+  .biz-company-card-logo {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 10px !important;
+    font-size: 20px !important;
+  }
+
+  /* ページ内の2カラム。⚠️ `.biz-layout-grid`（サイドバー＋本文）とは別物。
+     あちらは畳まれていたが、**ページ側の 1fr 1fr は畳まれていなかった。** */
+  .biz-2col { grid-template-columns: 1fr !important; }
+  /* ⚠️ 3列は 375px だと1枚あたり 100px 弱になり、氏名とメールが枠から出る
+        （実測: メンバー行が右端 385〜402px でクリップされていた）。
+        2列でも足りないので1列にする。 */
+  .biz-3col { grid-template-columns: 1fr !important; }
+  /* ⚠️ 高さ固定の2カラム（面談・企業情報編集・求人編集）は
+        1列に畳むと **`height: calc(100vh - 57px)` + `overflow: hidden` のせいで
+        下半分が見えなくなる。** 縦に積むなら高さの固定を外す。 */
+  .biz-2col[style*="overflow:hidden"],
+  .biz-2col[style*="overflow: hidden"] {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

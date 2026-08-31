@@ -25,7 +25,9 @@ export function CompanyCard({
   const letter = logoLetter || tenantName.trim().charAt(0).toUpperCase();
 
   return (
-    <div style={{
+    /* ⚠️ 狭い画面の畳み方は globals.css の `.biz-company-card`。
+          ここに `@media` は書けない（インラインスタイルなので）。 */
+    <div className="biz-company-card" style={{
       background: "#fff",
       border: "1px solid var(--line)",
       borderRadius: 14,
@@ -37,7 +39,9 @@ export function CompanyCard({
       alignItems: "center",
     }}>
       {/* Logo */}
-      <div style={{
+      {/* ⚠️ 狭い画面では 48px に縮める（globals.css）。列幅だけ縮めると
+             64px のロゴが列からはみ出し、**社名の上に重なる**（2026-08-31 に実測）。 */}
+      <div className="biz-company-card-logo" style={{
         width: 64, height: 64, borderRadius: 14,
         background: gradient, color: "#fff",
         display: "flex", alignItems: "center", justifyContent: "center",
@@ -69,7 +73,7 @@ export function CompanyCard({
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+      <div className="biz-company-card-actions" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         <Link
           href={`/companies/${tenantId}`}
           target="_blank"

@@ -1340,7 +1340,7 @@ export function JobEditForm({
       </div>
 
       {/* 2カラム：サブナビ + フォーム */}
-      <div style={{
+      <div className="biz-2col" style={{
         display: "grid",
         gridTemplateColumns: "240px 1fr",
         flex: 1,

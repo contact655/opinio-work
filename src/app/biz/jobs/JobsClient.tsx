@@ -287,7 +287,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
       </div>
 
       {/* サイドバー + メインコンテンツ */}
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
+      <div className="biz-2col" style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
 
         {/* 左サイドバー */}
         <aside style={{

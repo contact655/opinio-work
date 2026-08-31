@@ -731,7 +731,7 @@ function StoryEditor({
 
         <div style={{ padding: "24px 28px" }}>
           {/* 上段: カテゴリ + カバー画像 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 16 }}>
+          <div className="biz-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 16 }}>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                 カテゴリ
@@ -1159,7 +1159,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", marginBottom: 16 }}>
+            <div className="biz-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 16px", marginBottom: 16 }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>
                   タイトル <span style={{ color: "var(--error)" }}>*</span>
