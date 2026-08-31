@@ -66,6 +66,7 @@ import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
+import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -399,9 +400,9 @@ function Hero({
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 7,
                       padding: "10px 22px", borderRadius: 100, fontSize: 14, fontWeight: 800,
-                      background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
+                      background: MEETING_CTA_BG, color: "#fff",
                       textDecoration: "none",
-                      boxShadow: "0 3px 10px rgba(245,158,11,0.35)",
+                      boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
                     }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
                     <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
@@ -853,8 +854,8 @@ function JobsSection({
             <Link href={`/companies/${company.id}/casual-meeting`} style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-              background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "#fff",
-              textDecoration: "none", boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+              background: MEETING_CTA_BG, color: "#fff",
+              textDecoration: "none", boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
             }}>
               カジュアル面談でまず話してみる
             </Link>
@@ -1482,7 +1483,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
             justifyContent: "center",
             gap: "var(--space-2)",
             padding: "var(--space-3) 0",
-            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+            background: MEETING_CTA_BG,
             color: "#fff",
             borderRadius: 8,
             fontSize: "var(--text-base)",
@@ -1490,7 +1491,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
             textAlign: "center",
             textDecoration: "none",
             marginBottom: hasJobs ? "var(--space-2)" : 0,
-            boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
+            boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
           }}
         >
           <span
@@ -1620,14 +1621,14 @@ function Sidebar({
                     gap: "var(--space-2)",
                     width: "100%",
                     padding: "14px 0",
-                    background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                    background: MEETING_CTA_BG,
                     color: "#fff",
                     borderRadius: 8,
                     fontSize: "var(--text-base)",
                     fontWeight: 700,
                     textAlign: "center",
                     textDecoration: "none",
-                    boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
+                    boxShadow: `0 4px 16px rgba(${MEETING_CTA_SHADOW_RGB},0.4)`,
                     boxSizing: "border-box",
                   }}
                 >
@@ -2131,9 +2132,9 @@ export default async function CompanyDetailPage({
                 <Link href={`/companies/${company.id}/casual-meeting`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
                   padding: "8px 18px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "#fff",
+                  background: MEETING_CTA_BG, color: "#fff",
                   textDecoration: "none", whiteSpace: "nowrap",
-                  boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+                  boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
                 }}>
                   話を聞く →
                 </Link>
@@ -2329,9 +2330,9 @@ export default async function CompanyDetailPage({
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                      background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff",
+                      background: MEETING_CTA_BG, color: "#fff",
                       textDecoration: "none",
-                      boxShadow: "0 3px 12px rgba(245,158,11,0.35)",
+                      boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
                     }}
                   >
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />

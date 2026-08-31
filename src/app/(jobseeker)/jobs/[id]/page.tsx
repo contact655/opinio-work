@@ -28,6 +28,7 @@ import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-30 にページから切り出した。`/dev/preview/employees` から見るため
       （ページ内のローカル関数だと preview で import できない）。 */
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
+import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // 5分間ページキャッシュ（ISR）
 export const revalidate = 60;
@@ -1527,10 +1528,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     <Link href={`${companyHref}/casual-meeting?job_id=${job.id}`} style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                       width: "100%", padding: "15px var(--space-6)",
-                      background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                      background: MEETING_CTA_BG,
                       color: "#fff", borderRadius: 10,
                       fontSize: "var(--text-base)", fontWeight: 700, textDecoration: "none", textAlign: "center",
-                      boxShadow: "0 4px 16px rgba(245,158,11,0.38)",
+                      boxShadow: `0 4px 16px rgba(${MEETING_CTA_SHADOW_RGB},0.38)`,
                     }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>

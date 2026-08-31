@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 type Props = {
   casualHref?: string;
@@ -80,13 +81,13 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
             justifyContent: "center",
             gap: 6,
             height: 48,
-            background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+            background: MEETING_CTA_BG,
             color: "#fff",
             borderRadius: 10,
             fontSize: 14,
             fontWeight: 700,
             textDecoration: "none",
-            boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+            boxShadow: `0 4px 14px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
           }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">

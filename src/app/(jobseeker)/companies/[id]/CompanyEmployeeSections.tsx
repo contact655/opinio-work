@@ -19,6 +19,7 @@ import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
 import type { CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
+import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 
 type AmbassadorInfo = { memberId: string };
 
@@ -163,7 +164,7 @@ function EmployeeCard({
             style={{
               display: "block", textAlign: "center",
               padding: "8px 16px",
-              background: "linear-gradient(135deg, #F59E0B, #F97316)",
+              background: MEETING_CTA_BG,
               color: "#fff", borderRadius: 8,
               fontSize: 12, fontWeight: 700, textDecoration: "none",
             }}

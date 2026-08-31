@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
 import { resolveAvatarColor } from "@/lib/jobCategoryColors";
+import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 
 /**
  * 求人詳細の「現役社員 / OB・OG」セクション（2026-08-30 に求人ページから切り出した）。
@@ -123,7 +124,7 @@ export function JobEmployeeCard({ emp, companyId, casualBase }: {
         href={`${casualBase}?person=${emp.userId}`}
         style={{
           display: "block", textAlign: "center", padding: "8px 16px",
-          background: "linear-gradient(135deg, #F59E0B, #F97316)",
+          background: MEETING_CTA_BG,
           color: "#fff", borderRadius: 8,
           fontSize: 12, fontWeight: 700, textDecoration: "none",
         }}

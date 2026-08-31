@@ -39,6 +39,7 @@ import {
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
 import { ProfileHeader, shortCompanyName } from "@/components/profile/view/ProfileHeader";
+import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -670,10 +671,10 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
-                    background: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+                    background: MEETING_CTA_BG,
                     color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
                     textDecoration: "none", flexShrink: 0,
-                    boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                    boxShadow: `0 4px 14px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
                     whiteSpace: "nowrap",
                   }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
