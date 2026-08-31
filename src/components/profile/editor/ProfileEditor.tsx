@@ -391,7 +391,7 @@ export default function ProfileEditor({
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "4px 10px", borderRadius: 100, fontSize: 12, fontWeight: 600,
               background: globalSaveStatus === "saved" ? "var(--success-soft)" : globalSaveStatus === "error" ? "var(--error-soft)" : "var(--bg-tint)",
-              color: globalSaveStatus === "saved" ? "var(--success)" : globalSaveStatus === "error" ? "var(--error)" : "var(--ink-mute)",
+              color: globalSaveStatus === "saved" ? "var(--success-ink)" : globalSaveStatus === "error" ? "var(--error)" : "var(--ink-mute)",
               border: `1px solid ${globalSaveStatus === "saved" ? "#6ee7b7" : globalSaveStatus === "error" ? "#FCA5A5" : "var(--line)"}`,
               transition: "all 0.2s",
             }}>

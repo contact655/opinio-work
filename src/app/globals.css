@@ -45,8 +45,19 @@
   --bg-tint:    #F8FAFC;    /* ページ背景 (薄グレー) */
 
   /* === Status === */
-  --success:      #059669;  /* 成功・published・accepted */
+  --success:      #059669;  /* 成功・published・accepted。★塗り・枠・アイコン専用 */
   --success-soft: #ECFDF5;
+  /* ⚠️★文字色にはこちらを使う（2026-08-31 に追加）。
+        `--success`(#059669) は**文字色として使うと基準を満たさない**:
+          on #FFFFFF = 3.77 ／ on --success-soft(#ECFDF5) = 3.58 ／ on --bg-tint = 3.60
+        12px・13px の文字に必要なのは 4.5（3.0 が使えるのは 24px 以上か 18.66px 以上の太字）。
+        つまり **どの背景に置いても足りない。** 実測で 77箇所が該当していた。
+     ⚠️ `--success` 自体を濃くしない。**塗りにも使われている**
+        （在籍中バッジのパルスドット `globals.css` 内・アバターのグラデ・
+         進捗バー・SVG の stroke/fill）。濃くすると塗りまで変わる。
+     ⚠️ 逆に、**白文字を載せる背景に `--success-ink` を使わない**（暗くなりすぎる）。
+        背景は `--success` のまま。 */
+  --success-ink:  #047857;  /* 文字色。on #FFFFFF = 5.48 ／ on --success-soft = 5.21 */
   --warm:         #F59E0B;  /* 注意・pending */
   --warm-soft:    #FEF3C7;
   /* ⚠️★この2つの説明は「scheduling」だったが、実態と違っていた（2026-08-30 に書き直し）。

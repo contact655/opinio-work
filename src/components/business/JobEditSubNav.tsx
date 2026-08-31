@@ -85,7 +85,7 @@ export function JobEditSubNav({
                   fontFamily: "var(--font-inter), var(--font-noto)",
                   fontSize: 10, fontWeight: 600,
                   flexShrink: 0,
-                  color: s.isComplete ? "var(--success)" : "var(--warm)",
+                  color: s.isComplete ? "var(--success-ink)" : "var(--warm)",
                 }}>
                   {s.isComplete ? "✓" : "未入力"}
                 </span>

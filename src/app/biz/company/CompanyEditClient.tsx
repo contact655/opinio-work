@@ -806,7 +806,7 @@ export function CompanyEditClient({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+                <span style={{ fontSize: 13, color: "var(--success-ink)", fontWeight: 600 }}>
                   掲載利用規約に同意済み
                 </span>
                 <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-soft)", textDecoration: "underline" }}>
@@ -928,7 +928,7 @@ export function CompanyEditClient({
                 {numbersRegisteredAt ? (
                   <>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+                    <span style={{ fontSize: 13, color: "var(--success-ink)", fontWeight: 600 }}>
                       回答済み · {new Date(numbersRegisteredAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long" })}
                     </span>
                   </>

@@ -210,7 +210,7 @@ export function JobListItem({
             {job.work_style && (
               <span style={{
                 fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 3,
-                color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? "var(--success)" : "var(--ink-soft)",
+                color: job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? "var(--success-ink)" : "var(--ink-soft)",
               }}>
                 {job.work_style.includes("リモート") || job.work_style.includes("フルリモート") ? (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -233,7 +233,7 @@ export function JobListItem({
             )}
             <span style={{
               fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 700,
-              color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success)" : "var(--ink-mute)",
+              color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success-ink)" : "var(--ink-mute)",
             }}>
               {formatSalary(job.salary_min, job.salary_max)}
             </span>

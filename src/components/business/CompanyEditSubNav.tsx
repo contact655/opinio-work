@@ -128,7 +128,7 @@ export function CompanyEditSubNav({
             background: "var(--success-soft)", border: "1px solid #A7F3D0",
           }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>公開済み・最新</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success-ink)" }}>公開済み・最新</span>
           </div>
         )}
       </div>

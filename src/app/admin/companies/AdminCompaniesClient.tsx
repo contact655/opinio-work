@@ -27,7 +27,7 @@ type ListingStatus = "draft" | "listed";
 const ENGAGEMENT_CONFIG: Record<EngagementStatus, { label: string; bg: string; color: string; border: string; dot: string }> = {
   none:       { label: "未認証",         bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0", dot: "#94A3B8" },
   verified:   { label: "ドメイン認証済", bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7", dot: "#3B5FD9" },
-  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0", dot: "var(--success)" },
+  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0", dot: "var(--success)" },
 };
 
 const STATUS_TABS = [
@@ -238,7 +238,7 @@ export default function AdminCompaniesClient(
         {/* KPI バッジ */}
         <div style={{ display: "flex", gap: 10 }}>
           {[
-            { label: "契約済み",         count: contractedCount, bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
+            { label: "契約済み",         count: contractedCount, bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0" },
             { label: "ドメイン認証済",   count: verifiedCount,   bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7" },
             { label: "未認証",           count: noneCount,       bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0" },
           ].map(({ label, count, bg, color, border }) => (
@@ -517,7 +517,7 @@ export default function AdminCompaniesClient(
                       <td style={{ padding: "10px 14px" }}>
                         {c.is_approved ? (
                           <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
-                                         background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
+                                         background: "#ECFDF5", color: "var(--success-ink)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
                             ✓ 承認済み
                           </span>
                         ) : (

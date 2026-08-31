@@ -119,7 +119,7 @@ export function ProfileShareButton({ userId, name, userSlug }: { userId: string;
               padding: "9px 12px",
               borderRadius: 7,
               background: copied ? "var(--success-soft)" : "transparent",
-              color: copied ? "var(--success)" : "var(--ink)",
+              color: copied ? "var(--success-ink)" : "var(--ink)",
               border: "none",
               fontSize: 13,
               fontWeight: 600,

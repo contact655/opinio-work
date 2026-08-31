@@ -108,7 +108,7 @@ function EmployeeCard({
             </span>
             <span style={{
               fontSize: 10, fontWeight: 600,
-              color: emp.isCurrent ? "var(--success)" : "var(--ink-mute)",
+              color: emp.isCurrent ? "var(--success-ink)" : "var(--ink-mute)",
               background: emp.isCurrent ? "var(--success-soft)" : "var(--line-soft)",
               border: `1px solid ${emp.isCurrent ? "#A7F3D0" : "var(--line)"}`,
               borderRadius: 4, padding: "1px 6px", fontFamily: "var(--font-inter), var(--font-noto)",
@@ -221,7 +221,7 @@ function HiddenCard({
         onClick={() => onUnhide(emp.experienceId)}
         style={{
           fontSize: 11, fontWeight: 600, padding: "5px 12px",
-          background: "#fff", color: "var(--success)",
+          background: "#fff", color: "var(--success-ink)",
           border: "1px solid #A7F3D0", borderRadius: 6, cursor: "pointer",
           whiteSpace: "nowrap", flexShrink: 0,
         }}
@@ -380,7 +380,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
                       {m.permission === "admin" ? "管理者" : m.permission}
                     </span>
                   )}
-                  <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: m.hasExperience ? "var(--success)" : "var(--ink-mute)" }}>
+                  <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: m.hasExperience ? "var(--success-ink)" : "var(--ink-mute)" }}>
                     {m.hasExperience ? "経歴も登録済み" : "経歴は未登録"}
                   </span>
                 </div>

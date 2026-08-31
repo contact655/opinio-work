@@ -37,7 +37,7 @@ export function JobInlineShare({
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           width: 30, height: 30, borderRadius: 8,
           background: copied ? "var(--success-soft)" : "var(--bg-tint)",
-          color: copied ? "var(--success)" : "var(--ink-mute)",
+          color: copied ? "var(--success-ink)" : "var(--ink-mute)",
           border: `1px solid ${copied ? "#A7F3D0" : "var(--line)"}`,
           cursor: "pointer", transition: "all 0.2s",
         }}

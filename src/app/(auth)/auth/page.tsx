@@ -60,7 +60,7 @@ function PwStrength({ password }: { password: string }) {
             key={label}
             style={{
               fontSize: 12, fontWeight: 600,
-              color: ok ? "var(--success)" : "var(--ink-mute)",
+              color: ok ? "var(--success-ink)" : "var(--ink-mute)",
               display: "flex", alignItems: "center", gap: 3,
             }}
           >
@@ -407,7 +407,7 @@ function AuthPageInner() {
                       style={{
                         ...s.authErrorBody,
                         marginTop: 10,
-                        color: resendState === "sent" ? "var(--success)" : "var(--error)",
+                        color: resendState === "sent" ? "var(--success-ink)" : "var(--error)",
                       }}
                     >
                       {resendMessage}

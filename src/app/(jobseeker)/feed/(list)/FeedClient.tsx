@@ -1608,7 +1608,7 @@ function FeedSidebar({
                       {job.companyName}
                     </span>
                   )}
-                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, flexShrink: 0 }}>
                     {formatSalary(job.salary_min, job.salary_max)}
                   </span>
                 </div>
@@ -1835,7 +1835,7 @@ function PostCard({
                 </span>
               )}
               {!post.user.is_system && post.post_type === "mentor_post" && (
-                <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 4, padding: "1px 5px" }}>
+                <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--success-ink)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 4, padding: "1px 5px" }}>
                   面談OK
                 </span>
               )}
@@ -2045,7 +2045,7 @@ function PostCard({
               const hasMn = mn != null && mn > 0;
               const hasMx = mx != null && mx > 0;
               return hasMn || hasMx ? (
-                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success)", fontWeight: 600, marginTop: 3 }}>
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, marginTop: 3 }}>
                   {hasMn && hasMx ? `${fmtMan(mn)}〜${fmtMan(mx)}万円` : hasMn ? `${fmtMan(mn)}万円〜` : `〜${fmtMan(mx)}万円`}
                 </div>
               ) : (
@@ -2053,7 +2053,7 @@ function PostCard({
               );
             })()}
           </div>
-          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success)", fontWeight: 600, flexShrink: 0 }}>
+          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, flexShrink: 0 }}>
             求人を見る →
           </div>
         </Link>
@@ -2174,14 +2174,14 @@ function PostCard({
             gap: 10,
           }}
         >
-          <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--success)" }}>
+          <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--success-ink)" }}>
             {post.user.name}さんに話を聞いてみる
           </span>
           <Link
             href={`/u/${post.user.id}`}
             style={{
               fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 12,
-              color: "var(--success)", background: "#fff", border: "1px solid #a7f3d0",
+              color: "var(--success-ink)", background: "#fff", border: "1px solid #a7f3d0",
               borderRadius: 6, padding: "5px 12px", textDecoration: "none", whiteSpace: "nowrap",
             }}
           >

@@ -101,7 +101,7 @@ export default function AmbassadorInvitePage() {
               textAlign: "center",
             }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--success)", marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "var(--success-ink)", marginBottom: 8 }}>
                 承認しました
               </div>
               <div style={{ color: "var(--ink-soft)", marginBottom: 24 }}>

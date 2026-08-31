@@ -9,7 +9,7 @@ import {
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
 import { fetchCompanyForTenant } from "@/lib/business/company";
-import { calcDisclosureScore, scoreLabel, scoreColor, DISCLOSURE_MAX, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
+import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, DISCLOSURE_MAX, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -259,7 +259,7 @@ export default async function BizDashboardPage({
               position: "relative",
             }}>
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 18, fontWeight: 800, color: scoreColor(disclosureScore.total) }}>
+                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 18, fontWeight: 800, color: scoreTextColor(disclosureScore.total) }}>
                   {disclosureScore.total}
                 </span>
               </div>
@@ -268,7 +268,7 @@ export default async function BizDashboardPage({
           <div style={{ flex: 1, minWidth: 140 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>開示充実度スコア</span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, color: scoreColor(disclosureScore.total), background: "var(--bg-tint)", border: `1px solid ${scoreColor(disclosureScore.total)}` }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, color: scoreTextColor(disclosureScore.total), background: "var(--bg-tint)", border: `1px solid ${scoreColor(disclosureScore.total)}` }}>
                 {scoreLabel(disclosureScore.total)}
               </span>
             </div>

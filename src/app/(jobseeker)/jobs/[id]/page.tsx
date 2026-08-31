@@ -219,7 +219,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.title}</div>
               <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rj.companyName}</div>
               {(rj.salaryMin || rj.salaryMax) && (
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)", marginTop: 2 }}>
                   {rj.salaryMin && rj.salaryMax ? `${fmtMan(rj.salaryMin)}〜${fmtMan(rj.salaryMax)}万円` : rj.salaryMin ? `${fmtMan(rj.salaryMin)}万円〜` : `〜${fmtMan(rj.salaryMax)}万円`}
                 </div>
               )}
@@ -234,7 +234,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
 
 function StatusBadge({ status, label }: { status: PositionMember["status"]; label: string }) {
   const styles = {
-    current: { bg: "var(--success-soft)", color: "var(--success)", border: "#A7F3D0" },
+    current: { bg: "var(--success-soft)", color: "var(--success-ink)", border: "#A7F3D0" },
     moved: { bg: "var(--warm-soft, #FEF3C7)", color: "var(--warm, #F59E0B)", border: "#FDE68A" },
     alumni: { bg: "var(--purple-soft, #F5F3FF)", color: "var(--purple)", border: "#E9D5FF" },
   };
@@ -308,7 +308,7 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
                 {m.isCurrent && (
                   <span style={{
                     fontSize: 12, fontWeight: 800, padding: "2px 7px", borderRadius: 100,
-                    background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0",
+                    background: "var(--success-soft)", color: "var(--success-ink)", border: "1px solid #A7F3D0",
                     letterSpacing: "0.04em",
                   }}>
                     現職
@@ -642,7 +642,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "5px 14px", borderRadius: 100,
                     background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                    color: "var(--success)", fontSize: 15, fontWeight: 700,
+                    color: "var(--success-ink)", fontSize: 15, fontWeight: 700,
                     fontFamily: "var(--font-inter), var(--font-noto)",
                   }}>
                   {job.salary_min && job.salary_max
@@ -1327,7 +1327,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                         display: "flex", alignItems: "center", gap: 6, fontSize: 12,
                         color: "var(--ink-mute)", marginBottom: 5, fontWeight: 600,
                       }}>
-                        <span style={{ padding: "2px 7px", borderRadius: 4, background: "var(--success-soft)", color: "var(--success)" }}>
+                        <span style={{ padding: "2px 7px", borderRadius: 4, background: "var(--success-soft)", color: "var(--success-ink)" }}>
                           編集部取材
                         </span>
                         {company.name}

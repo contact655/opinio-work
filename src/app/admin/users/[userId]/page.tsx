@@ -113,7 +113,7 @@ export default function AdminUserExperiencesPage() {
                 <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 2 }}>
                   {exp.started_at?.slice(0, 7)} 〜 {exp.is_current ? "現在" : (exp.ended_at?.slice(0, 7) ?? "")}
                   {exp.is_current && (
-                    <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px" }}>
+                    <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "var(--success-ink)", background: "var(--success-soft)", borderRadius: 4, padding: "1px 6px" }}>
                       在籍中
                     </span>
                   )}
@@ -168,7 +168,7 @@ export default function AdminUserExperiencesPage() {
                     <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>保存中...</span>
                   )}
                   {saved[exp.id] && (
-                    <span style={{ fontSize: 11, color: "var(--success)", fontWeight: 700 }}>✓ 保存</span>
+                    <span style={{ fontSize: 11, color: "var(--success-ink)", fontWeight: 700 }}>✓ 保存</span>
                   )}
                 </div>
               </div>

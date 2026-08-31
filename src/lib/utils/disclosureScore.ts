@@ -77,9 +77,30 @@ export function scoreLabel(total: number): string {
   return "未入力";
 }
 
+/** ★リングなど**塗り**に使う色。文字には `scoreTextColor()` を使うこと */
 export function scoreColor(total: number): string {
   if (total >= 80) return "var(--success)";
   if (total >= 50) return "var(--royal)";
   if (total >= 20) return "var(--warm)";
+  return "var(--ink-mute)";
+}
+
+/**
+ * ★文字色。`scoreColor()` をそのまま文字に使わないこと（2026-08-31 に分けた）。
+ *
+ * `/biz/dashboard` は同じ関数を **リングの塗り** と **18px の数字・11px のバッジ**の
+ * 両方に使っていたが、塗りとして良い色が文字として読めるとは限らない。
+ * 実測（`--bg-tint` #F8FAFC の上・必要 4.5）:
+ *   `--success` #059669 → **3.77** ❌ ／ `--warm` #F59E0B → **2.05** ❌
+ *   `--royal` → 14.01 ✅ ／ `--ink-mute` → 7.24 ✅
+ * つまり **4段階のうち2段階が読めていなかった。**
+ *
+ * ⚠️ 塗り側（`scoreColor`）は変えていない。リングは色面積が大きく、
+ *    文字と同じ基準は当てはまらない。**2つを1つに戻さないこと。**
+ */
+export function scoreTextColor(total: number): string {
+  if (total >= 80) return "var(--success-ink)"; // 5.35（#047857 on #F8FAFC）
+  if (total >= 50) return "var(--royal)";
+  if (total >= 20) return "#B45309";            // amber-700。4.80
   return "var(--ink-mute)";
 }

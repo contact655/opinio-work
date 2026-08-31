@@ -295,7 +295,7 @@ function SchoolRequestBanner({
     return (
       <div style={{ ...bannerBase, background: "var(--success-soft)", border: "1px solid #6ee7b7", color: "var(--ink-soft)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
-          <span style={{ color: "var(--success)", fontWeight: 600 }}>
+          <span style={{ color: "var(--success-ink)", fontWeight: 600 }}>
             ✓ 「{schoolName}」のマスター追加リクエストを送信しました
           </span>
           <button
@@ -304,7 +304,7 @@ function SchoolRequestBanner({
             style={{
               flexShrink: 0, padding: "3px 10px",
               background: "transparent", border: "1px solid var(--success)",
-              borderRadius: 6, fontSize: 12, fontWeight: 500, color: "var(--success)",
+              borderRadius: 6, fontSize: 12, fontWeight: 500, color: "var(--success-ink)",
               cursor: "pointer", fontFamily: "inherit",
             }}
           >

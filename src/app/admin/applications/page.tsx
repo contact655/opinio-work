@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; 
   pending:   { label: "新着",     bg: "#FEF3C7", color: "#B45309",       border: "#FDE68A" },
   reviewing: { label: "確認中",   bg: "#EFF3FC", color: "var(--royal)",  border: "#DCE5F7" },
   interview: { label: "面接中",   bg: "#F3E8FF", color: "#7C3AED",       border: "#E9D5FF" },
-  accepted:  { label: "採用",     bg: "#ECFDF5", color: "var(--success)", border: "#A7F3D0" },
+  accepted:  { label: "採用",     bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0" },
   rejected:  { label: "不採用",   bg: "#FEE2E2", color: "#DC2626",       border: "#FECACA" },
   hired:     { label: "採用確定", bg: "var(--success)", color: "#fff",   border: "var(--success)" },
 };
@@ -255,7 +255,7 @@ export default async function AdminApplicationsPage() {
                         <span title={to.join(", ")}
                           style={{
                             fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                            background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0",
+                            background: "#ECFDF5", color: "var(--success-ink)", border: "1px solid #A7F3D0",
                             whiteSpace: "nowrap",
                           }}>
                           {to.length}件

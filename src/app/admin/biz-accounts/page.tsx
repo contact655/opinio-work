@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const ENGAGEMENT_CONFIG = {
   none:       { label: "未認証",         bg: "#F1F5F9", color: "#6b7280",           border: "#E2E8F0" },
   verified:   { label: "ドメイン認証済", bg: "#EFF3FC", color: "var(--royal)",       border: "#DCE5F7" },
-  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "var(--success)",     border: "#A7F3D0" },
+  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "var(--success-ink)",     border: "#A7F3D0" },
 } as const;
 
 type EngagementKey = keyof typeof ENGAGEMENT_CONFIG;
@@ -157,12 +157,12 @@ export default async function AdminBizAccountsPage({
 
   const SUMMARY_CARDS = [
     { label: "全担当者",      value: totalCount,        color: "var(--royal)",   bg: "#EFF3FC" },
-    { label: "アクティブ",    value: activeCount,        color: "var(--success)", bg: "#ECFDF5" },
+    { label: "アクティブ",    value: activeCount,        color: "var(--success-ink)", bg: "#ECFDF5" },
     { label: "ログイン済み",  value: loggedInCount,      color: "#7C3AED",        bg: "#F3E8FF" },
     {
       label: "未ログイン",
       value: neverLoggedInCount,
-      color: neverLoggedInCount > 0 ? "#B45309" : "var(--success)",
+      color: neverLoggedInCount > 0 ? "#B45309" : "var(--success-ink)",
       bg:    neverLoggedInCount > 0 ? "#FEF3C7" : "#ECFDF5",
     },
   ];
@@ -313,7 +313,7 @@ export default async function AdminBizAccountsPage({
                         {acc.companyPublished && (
                           <span style={{
                             fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
-                            background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0",
+                            background: "#ECFDF5", color: "var(--success-ink)", border: "1px solid #A7F3D0",
                           }}>
                             公開中
                           </span>

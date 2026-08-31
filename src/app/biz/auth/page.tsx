@@ -399,7 +399,7 @@ function PwStrength({ password }: { password: string }) {
         {checks.map(({ label, ok }) => (
           <span key={label} style={{
             fontSize: 10, fontWeight: 600,
-            color: ok ? "var(--success)" : "var(--ink-mute)",
+            color: ok ? "var(--success-ink)" : "var(--ink-mute)",
             display: "flex", alignItems: "center", gap: 3,
           }}>
             <span>{ok ? "✓" : "○"}</span> {label}
@@ -613,7 +613,7 @@ function SignupForm({ onSwitchToLogin, inviteContext }: SignupFormProps) {
             background: "var(--success-soft)", border: "1px solid #A7F3D0",
             borderRadius: 10, padding: "16px 20px", textAlign: "center",
           }}>
-            <p style={{ fontWeight: 700, color: "var(--success)", margin: "0 0 4px" }}>
+            <p style={{ fontWeight: 700, color: "var(--success-ink)", margin: "0 0 4px" }}>
               ✓ 参加リクエストを送りました
             </p>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>

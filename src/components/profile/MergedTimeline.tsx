@@ -472,7 +472,7 @@ function CurrentBadge() {
         fontSize: 12,
         fontWeight: 700,
         letterSpacing: "0.04em",
-        color: "var(--success)",
+        color: "var(--success-ink)",
         background: "var(--success-soft)",
         border: "1px solid #6ee7b7",
         borderRadius: 4,
@@ -1369,7 +1369,7 @@ export default function MergedTimeline({
                                       （値が無いとき空の span が残る）。 */}
                             <EmploymentSlot data={c} actions={careerActions} marginLeft={6} />
                             {c.is_current && items.length > 1 && (
-                              <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
+                              <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success-ink)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
                                 在籍中
                               </span>
                             )}

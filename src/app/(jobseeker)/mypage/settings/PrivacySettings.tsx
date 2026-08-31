@@ -179,7 +179,7 @@ export default function PrivacySettings({ initialVisibility }: { initialVisibili
           >
             {savingVis ? "保存中…" : "保存する"}
           </button>
-          {visDone && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)" }}>保存しました</span>}
+          {visDone && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)" }}>保存しました</span>}
           {visError && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{visError}</span>}
         </div>
       </FormSection>

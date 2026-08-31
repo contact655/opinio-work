@@ -788,7 +788,7 @@ export default function CandidatesClient({
                             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>
                           )}
                           {c.isActivelyLooking && (
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #6EE7B7" }}>転職検討中</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success-ink)", border: "1px solid #6EE7B7" }}>転職検討中</span>
                           )}
                           {c.isMentor && (
                             <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--purple-soft)", color: "var(--purple)", border: "1px solid #DDD6FE" }}>メンター</span>

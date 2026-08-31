@@ -569,7 +569,7 @@ export function MeetingDetailPanel({
                     <strong style={{ color: "var(--royal)", fontWeight: 600 }}>{c.role}</strong>
                     {c.isCurrent && (
                       <span style={{
-                        background: "var(--success-soft)", color: "var(--success)",
+                        background: "var(--success-soft)", color: "var(--success-ink)",
                         padding: "1px 6px", borderRadius: 4,
                         fontWeight: 700, fontSize: 12, letterSpacing: "0.05em",
                       }}>
@@ -611,7 +611,7 @@ export function MeetingDetailPanel({
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#B45309" }}>保存中…</span>
               )}
               {memoSaveState === "saved" && (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--success)" }}>✓ 保存済み</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)" }}>✓ 保存済み</span>
               )}
             </span>
           </div>

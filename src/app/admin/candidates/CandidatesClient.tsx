@@ -228,7 +228,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                     {/* 公開設定 */}
                     <td style={{ padding: "11px 14px" }}>
                       {u.visibility === "public" ? (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)", border: "1px solid #A7F3D0" }}>公開</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success-ink)", border: "1px solid #A7F3D0" }}>公開</span>
                       ) : u.visibility === "login_only" ? (
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>ログイン限定</span>
                       ) : (

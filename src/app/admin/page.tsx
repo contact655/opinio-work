@@ -332,7 +332,7 @@ export default async function AdminDashboard() {
         const funnel = [
           { label: "登録完了", count: total, color: "var(--royal)", bg: "#EFF3FC" },
           { label: "オンボーディング完了", count: stats.onboardingCompletedCount, color: "#7C3AED", bg: "#F5F3FF" },
-          { label: "プロフィール記入済み", count: stats.profileFilledCount, color: "var(--success)", bg: "#ECFDF5" },
+          { label: "プロフィール記入済み", count: stats.profileFilledCount, color: "var(--success-ink)", bg: "#ECFDF5" },
           { label: "応募・面談実績あり", count: stats.appliedOrMetCount, color: "#D97706", bg: "#FEF3C7" },
         ];
         return (
@@ -773,7 +773,7 @@ export default async function AdminDashboard() {
               {
                 label: "公開中の企業",
                 value: stats.activeCompaniesCount,
-                color: "var(--success)",
+                color: "var(--success-ink)",
                 bar: stats.activeCompaniesCount,
                 max: Math.max(stats.usersCount, 1),
               },
@@ -831,22 +831,22 @@ export default async function AdminDashboard() {
           }}>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
               BIZ担当者（未ログイン）:{" "}
-              <strong style={{ color: stats.neverLoggedInBizCount > 0 ? "#B45309" : "var(--success)" }}>
+              <strong style={{ color: stats.neverLoggedInBizCount > 0 ? "#B45309" : "var(--success-ink)" }}>
                 {stats.neverLoggedInBizCount}名
               </strong>
             </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "var(--success)" }}>
+              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "var(--success-ink)" }}>
                 {stats.pendingJobsCount}件
               </strong>
             </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              面談申込待ち: <strong style={{ color: stats.pendingMeetingsCount > 0 ? "var(--royal)" : "var(--success)" }}>
+              面談申込待ち: <strong style={{ color: stats.pendingMeetingsCount > 0 ? "var(--royal)" : "var(--success-ink)" }}>
                 {stats.pendingMeetingsCount}件
               </strong>
             </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              メンター相談転送待ち: <strong style={{ color: stats.pendingReservationsCount > 0 ? "#7C3AED" : "var(--success)" }}>
+              メンター相談転送待ち: <strong style={{ color: stats.pendingReservationsCount > 0 ? "#7C3AED" : "var(--success-ink)" }}>
                 {stats.pendingReservationsCount}件
               </strong>
             </p>
@@ -897,7 +897,7 @@ export default async function AdminDashboard() {
                       display: "inline-flex", alignItems: "center", gap: 5,
                       padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: 600,
                       background: c.is_published ? "#ECFDF5" : "#F8FAFC",
-                      color: c.is_published ? "var(--success)" : "#94A3B8",
+                      color: c.is_published ? "var(--success-ink)" : "#94A3B8",
                       border: `1px solid ${c.is_published ? "#A7F3D0" : "#E2E8F0"}`,
                     }}>
                       <span style={{

@@ -77,7 +77,7 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
         <div style={{
           marginBottom: 18, padding: "12px 16px", borderRadius: 10, fontSize: 13,
           background: message.kind === "ok" ? "var(--success-soft)" : "var(--error-soft)",
-          color: message.kind === "ok" ? "var(--success)" : "var(--error)",
+          color: message.kind === "ok" ? "var(--success-ink)" : "var(--error)",
           border: `1px solid ${message.kind === "ok" ? "#A7F3D0" : "#FCA5A5"}`,
         }}>{message.text}</div>
       )}
@@ -216,7 +216,7 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
                             <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>{fmt(h.startedAt)}</td>
                             <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>{fmt(h.endedAt)}</td>
                             <td style={{ padding: "8px 12px", whiteSpace: "nowrap", fontWeight: h.status === "active" ? 700 : 400,
-                                         color: h.status === "active" ? "var(--success)" : "var(--ink-mute)" }}>{h.status}</td>
+                                         color: h.status === "active" ? "var(--success-ink)" : "var(--ink-mute)" }}>{h.status}</td>
                           </tr>
                         ))}
                       </tbody>

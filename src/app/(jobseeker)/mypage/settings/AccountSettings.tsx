@@ -84,7 +84,7 @@ function NotificationSettingsSection() {
           </div>
         </div>
         {saved && (
-          <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--success)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--success-ink)", display: "flex", alignItems: "center", gap: 4 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             保存済み
           </span>

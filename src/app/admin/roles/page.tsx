@@ -183,7 +183,7 @@ export default function AdminRolesPage() {
             type="button"
             disabled={isPending}
             onClick={() => toggleActive(role.id, role.is_active)}
-            style={{ padding: "3px 10px", borderRadius: 100, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", background: role.is_active ? "var(--success-soft)" : "#f1f5f9", color: role.is_active ? "var(--success)" : "var(--ink-mute)" }}
+            style={{ padding: "3px 10px", borderRadius: 100, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", background: role.is_active ? "var(--success-soft)" : "#f1f5f9", color: role.is_active ? "var(--success-ink)" : "var(--ink-mute)" }}
           >
             {role.is_active ? "有効" : "無効"}
           </button>

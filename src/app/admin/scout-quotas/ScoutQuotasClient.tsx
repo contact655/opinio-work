@@ -62,7 +62,7 @@ export default function ScoutQuotasClient({ quotas: initial }: { quotas: Quota[]
           </p>
         </div>
         {msg && (
-          <div style={{ background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 8, padding: "8px 16px", fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+          <div style={{ background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 8, padding: "8px 16px", fontSize: 13, color: "var(--success-ink)", fontWeight: 600 }}>
             ✓ {msg}
           </div>
         )}
@@ -102,14 +102,14 @@ export default function ScoutQuotasClient({ quotas: initial }: { quotas: Quota[]
                   </td>
                   <td style={TD}>
                     {q.bonusCredits > 0
-                      ? <span style={{ color: "var(--success)", fontWeight: 700 }}>+{q.bonusCredits}</span>
+                      ? <span style={{ color: "var(--success-ink)", fontWeight: 700 }}>+{q.bonusCredits}</span>
                       : <span style={{ color: "var(--ink-mute)" }}>—</span>}
                   </td>
                   <td style={TD}>{q.usedThisMonth} 通</td>
                   <td style={TD}>
                     <span style={{
                       fontWeight: 700,
-                      color: remaining === 0 ? "var(--error)" : remaining < 5 ? "#d97706" : "var(--success)",
+                      color: remaining === 0 ? "var(--error)" : remaining < 5 ? "#d97706" : "var(--success-ink)",
                     }}>
                       {remaining} 通
                     </span>

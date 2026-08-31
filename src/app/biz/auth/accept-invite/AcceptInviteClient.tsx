@@ -312,7 +312,7 @@ function StatusIcon({ type }: { type: "error" | "warning" | "invite" | "ready" }
     error: { bg: "var(--error-soft)", color: "var(--error)" },
     warning: { bg: "var(--warm-soft)", color: "var(--warm)" },
     invite: { bg: "var(--royal-50)", color: "var(--royal)" },
-    ready: { bg: "var(--success-soft)", color: "var(--success)" },
+    ready: { bg: "var(--success-soft)", color: "var(--success-ink)" },
   };
   const { bg, color } = configs[type];
 

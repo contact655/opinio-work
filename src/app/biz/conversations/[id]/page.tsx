@@ -54,7 +54,7 @@ type MessageRow = {
 const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   active:   { label: "進行中",   color: "var(--accent)",   bg: "var(--royal-50)" },
   mediated: { label: "調整中",   color: "var(--purple)",   bg: "var(--purple-soft)" },
-  direct:   { label: "直接対話", color: "var(--success)",  bg: "var(--success-soft)" },
+  direct:   { label: "直接対話", color: "var(--success-ink)",  bg: "var(--success-soft)" },
   archived: { label: "クローズ", color: "var(--ink-mute)", bg: "var(--bg-tint)" },
 };
 
@@ -274,7 +274,7 @@ export default async function BizConversationDetailPage({
                 borderRadius: 100,
                 fontSize: 12,
                 fontWeight: 600,
-                color: "var(--success)",
+                color: "var(--success-ink)",
                 background: "var(--success-soft)",
                 border: "1px solid #A7F3D0",
               }}>

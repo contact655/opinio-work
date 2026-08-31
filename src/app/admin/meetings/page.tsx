@@ -156,7 +156,7 @@ export default async function AdminMeetingsPage() {
           { label: "総申込数",   value: counts.total,     color: "var(--royal)",   bg: "#EFF3FC" },
           { label: "申込待ち",   value: counts.pending,   color: "#B45309",        bg: "#FEF3C7" },
           { label: "日程確定",   value: counts.scheduled, color: "#7C3AED",        bg: "#F3E8FF" },
-          { label: "完了",       value: counts.completed, color: "var(--success)", bg: "#ECFDF5" },
+          { label: "完了",       value: counts.completed, color: "var(--success-ink)", bg: "#ECFDF5" },
         ].map(({ label, value, color, bg }) => (
           <div key={label} style={{
             background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14,
@@ -278,7 +278,7 @@ export default async function AdminMeetingsPage() {
                           <span title={to.join(", ")}
                             style={{
                               fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                              background: "#ECFDF5", color: "var(--success)", border: "1px solid #A7F3D0",
+                              background: "#ECFDF5", color: "var(--success-ink)", border: "1px solid #A7F3D0",
                               whiteSpace: "nowrap",
                             }}>
                             {to.length}件

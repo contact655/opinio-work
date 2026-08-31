@@ -206,7 +206,7 @@ export function CompanyAdminDndOverlay() {
             </div>
           )}
           {saved && !saving && !error && (
-            <div style={{ padding: "7px 20px", background: "#ECFDF5", fontSize: 12, color: "var(--success)", borderBottom: "1px solid #A7F3D0", fontWeight: 600 }}>
+            <div style={{ padding: "7px 20px", background: "#ECFDF5", fontSize: 12, color: "var(--success-ink)", borderBottom: "1px solid #A7F3D0", fontWeight: 600 }}>
               ✓ 保存しました
             </div>
           )}

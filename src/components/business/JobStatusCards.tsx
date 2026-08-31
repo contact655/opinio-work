@@ -21,7 +21,7 @@ export function JobStatusCards({ counts }: Props) {
       label: "公開中",
       subLabel: "Active",
       count: counts.active,
-      color: "var(--success)",
+      color: "var(--success-ink)",
       bg: "var(--success-soft)",
       href: "/biz/jobs?status=active",
     },
@@ -88,7 +88,7 @@ export function JobStatusCards({ counts }: Props) {
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "8px 16px", borderRadius: 8,
               fontSize: 12, fontWeight: 600,
-              background: "var(--success-soft)", color: "var(--success)",
+              background: "var(--success-soft)", color: "var(--success-ink)",
               border: "1px solid #A7F3D0", textDecoration: "none",
             }}
           >

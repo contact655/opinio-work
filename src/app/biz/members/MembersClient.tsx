@@ -245,7 +245,7 @@ function DropdownMenu({
                 border: "none",
                 fontFamily: "inherit",
                 fontSize: 13,
-                color: "var(--success)",
+                color: "var(--success-ink)",
                 cursor: "pointer",
               }}
             >
@@ -981,7 +981,7 @@ function PendingInvitesSection({
                         fontFamily: "inherit",
                         fontSize: 12,
                         fontWeight: 600,
-                        color: isCopied ? "var(--success)" : "var(--ink-soft)",
+                        color: isCopied ? "var(--success-ink)" : "var(--ink-soft)",
                         cursor: "pointer",
                         transition: "all 0.15s",
                         whiteSpace: "nowrap",
@@ -1513,7 +1513,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     {/* メール */}
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{member.email}</span>
-                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="コピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 3px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success)" : "var(--ink-mute)", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="コピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 3px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success-ink)" : "var(--ink-mute)", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                         {copiedEmail === member.email
                           ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                           : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
@@ -1713,7 +1713,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     return (
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>担当{stat.total}件</span>
-                        {stat.completed > 0 && <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success)" }}>完了{stat.completed}件</span>}
+                        {stat.completed > 0 && <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success-ink)" }}>完了{stat.completed}件</span>}
                       </div>
                     );
                   })()}
@@ -1740,7 +1740,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                         </span>
                       ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontSize: 11, color: a.is_public ? "var(--success)" : "var(--ink-mute)", fontWeight: 600 }}>{a.is_public ? "公開中" : "非公開"}</span>
+                        <span style={{ fontSize: 11, color: a.is_public ? "var(--success-ink)" : "var(--ink-mute)", fontWeight: 600 }}>{a.is_public ? "公開中" : "非公開"}</span>
                         <button
                           onClick={() => handleTogglePublic(a.id, a.is_public)}
                           disabled={togglingPublicId === a.id}

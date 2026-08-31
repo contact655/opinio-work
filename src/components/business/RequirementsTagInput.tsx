@@ -24,7 +24,7 @@ export function RequirementsTagInput({
     : "var(--royal-50)";
   const pillColor =
     color === "purple" ? "var(--purple)"
-    : color === "success" ? "var(--success)"
+    : color === "success" ? "var(--success-ink)"
     : color === "warm" ? "var(--warm)"
     : "var(--royal)";
 

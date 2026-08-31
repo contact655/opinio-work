@@ -55,10 +55,10 @@ const STYLES: Record<StatusVariant, { bg: string; color: string; label: string }
   pending_review:     { bg: "var(--purple-soft)",  color: "var(--purple)", label: "運営審査中" },
   interview:          { bg: "var(--purple-soft)",  color: "var(--purple)", label: "面接中" },
   // green ─────────────────────────────────────────────────────────────────────
-  published:          { bg: "var(--success-soft)", color: "var(--success)", label: "公開中" },
-  accepted:           { bg: "var(--success-soft)", color: "var(--success)", label: "採用" },
+  published:          { bg: "var(--success-soft)", color: "var(--success-ink)", label: "公開中" },
+  accepted:           { bg: "var(--success-soft)", color: "var(--success-ink)", label: "採用" },
   hired:              { bg: "var(--success)",      color: "#ffffff",        label: "採用確定" },
-  approved:           { bg: "var(--success-soft)", color: "var(--success)", label: "承認済み" },
+  approved:           { bg: "var(--success-soft)", color: "var(--success-ink)", label: "承認済み" },
   // gray ──────────────────────────────────────────────────────────────────────
   completed:          { bg: "var(--line-soft)",    color: "var(--ink-soft)", label: "完了" },
   completed_received: { bg: "var(--line-soft)",    color: "var(--ink-soft)", label: "完了" },

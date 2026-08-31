@@ -233,7 +233,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                           </span>
                         )}
                         {hasSalary && (
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success-ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             {formatSalary(job.salary_min, job.salary_max)}
                           </span>
                         )}

@@ -758,7 +758,7 @@ function CompanySearch({
       {/* ── 選んだのかどうかを必ず出す ────────────────────────────────────
           ⚠️ 「変わらないこと」でしか失敗に気づけない状態を作らない。 */}
       {isMaster && (
-        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           OPINIOに掲載中の企業と連携します
         </p>
@@ -1081,7 +1081,7 @@ function StintForm({
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: "var(--success)",
+                color: "var(--success-ink)",
                 background: "var(--success-soft)",
                 padding: "2px 8px",
                 borderRadius: 100,

@@ -528,7 +528,7 @@ export default function JobDetailClient({
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
                   background: company?.is_published ? "#ECFDF5" : "#F1F5F9",
-                  color: company?.is_published ? "var(--success)" : "#94A3B8",
+                  color: company?.is_published ? "var(--success-ink)" : "#94A3B8",
                 }}>
                   {company?.is_published ? "公開中" : "非公開"}
                 </span>

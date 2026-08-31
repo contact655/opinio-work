@@ -503,7 +503,7 @@ export function JobEditForm({
     fontSize: 12, padding: "4px 10px", borderRadius: 100,
     transition: "all 0.3s", flexShrink: 0,
     ...(saveState === "saving" ? { color: "var(--warm)", background: "var(--warm-soft)" }
-      : saveState === "saved"  ? { color: "var(--success)", background: "var(--success-soft)" }
+      : saveState === "saved"  ? { color: "var(--success-ink)", background: "var(--success-soft)" }
       : saveState === "error"  ? { color: "var(--error)", background: "var(--error-soft)" }
       : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
   };
@@ -1126,7 +1126,7 @@ export function JobEditForm({
             <FormSection title="採用温度感" desc="「HOT」にすると求職者側の求人カードに強調バッジが表示されます。積極的に採用したいポジションに設定してください。">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {([
-                  { value: "open", label: "OPEN", sublabel: "通常募集", color: "var(--success)", bg: "var(--success-soft)" },
+                  { value: "open", label: "OPEN", sublabel: "通常募集", color: "var(--success-ink)", bg: "var(--success-soft)" },
                   { value: "hot",  label: "HOT",  sublabel: "積極採用中", color: "#DC2626", bg: "#FEE2E2" },
                 ] as const).map((opt) => {
                   const isSelected = form.urgency === opt.value;

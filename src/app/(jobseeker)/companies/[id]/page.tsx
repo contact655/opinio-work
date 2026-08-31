@@ -728,7 +728,7 @@ function JobEmbedCard({
             {/* Salary */}
             <div style={{ flexShrink: 0, textAlign: "right" }}>
               {hasSalary ? (
-                <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success-ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                   {salaryDisplay}
                 </span>
               ) : (

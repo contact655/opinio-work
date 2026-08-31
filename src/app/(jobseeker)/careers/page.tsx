@@ -148,7 +148,7 @@ export default function CareersPage() {
                 <span style={{ fontSize: 22 }}>{r.icon}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{r.label}</div>
-                  <div style={{ fontSize: 12, color: "var(--success)", fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>{r.salaryRange}</div>
+                  <div style={{ fontSize: 12, color: "var(--success-ink)", fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>{r.salaryRange}</div>
                 </div>
               </Link>
             ))}

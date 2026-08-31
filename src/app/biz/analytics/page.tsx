@@ -136,7 +136,7 @@ function KpiCard({
       {showDelta && (
         <div style={{
           display: "flex", alignItems: "center", gap: 4,
-          fontSize: 11, color: up ? "var(--success)" : "var(--error)", fontWeight: 600,
+          fontSize: 11, color: up ? "var(--success-ink)" : "var(--error)", fontWeight: 600,
         }}>
           {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
           {up ? "+" : ""}{delta} 先月比
@@ -219,8 +219,8 @@ function MultiBarChart({ data }: { data: MonthRow[] }) {
 
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, { label: string; bg: string; color: string }> = {
-    published: { label: "公開中", bg: "var(--success-soft)", color: "var(--success)" },
-    active:    { label: "公開中", bg: "var(--success-soft)", color: "var(--success)" }, // 旧ステータス
+    published: { label: "公開中", bg: "var(--success-soft)", color: "var(--success-ink)" },
+    active:    { label: "公開中", bg: "var(--success-soft)", color: "var(--success-ink)" }, // 旧ステータス
     pending_review: { label: "審査中", bg: "var(--warm-soft)", color: "var(--warm)" },
     draft: { label: "下書き", bg: "var(--line-soft)", color: "var(--ink-mute)" },
     private: { label: "非公開", bg: "var(--line-soft)", color: "var(--ink-mute)" },
@@ -364,7 +364,7 @@ export default async function AnalyticsPage() {
           />
           <KpiCard
             label="オファー" value={cur.offers} delta={delta.offers}
-            color="var(--success)" icon={<CheckCircle2 size={16} />}
+            color="var(--success-ink)" icon={<CheckCircle2 size={16} />}
           />
         </div>
       </div>
@@ -409,7 +409,7 @@ export default async function AnalyticsPage() {
               { label: "面談完了", sub: "カジュアル面談", count: meetings.completed, color: "var(--purple)", bg: "var(--purple-soft)" },
               { label: "応募", sub: "書類選考", count: selection.applied, color: "var(--royal)", bg: "var(--royal-50)" },
               { label: "面接", sub: "選考・面接中", count: selection.interview1, color: "#0EA5E9", bg: "#E0F2FE" },
-              { label: "内定・オファー", sub: "採用確定", count: selection.offered + selection.hired, color: "var(--success)", bg: "var(--success-soft)" },
+              { label: "内定・オファー", sub: "採用確定", count: selection.offered + selection.hired, color: "var(--success-ink)", bg: "var(--success-soft)" },
             ].map((step, i, arr) => (
               <div key={step.label} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -448,7 +448,7 @@ export default async function AnalyticsPage() {
         <SectionTitle><Briefcase size={14} color="var(--royal)" /> 求人ステータス</SectionTitle>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {[
-            { label: "公開中", count: jobStats.published, total: jobStats.total, color: "var(--success)" },
+            { label: "公開中", count: jobStats.published, total: jobStats.total, color: "var(--success-ink)" },
             { label: "審査中", count: jobStats.pending, total: jobStats.total, color: "var(--warm)" },
             { label: "下書き", count: jobStats.draft, total: jobStats.total, color: "var(--ink-mute)" },
           ].map((row) => (
@@ -516,7 +516,7 @@ export default async function AnalyticsPage() {
                     <td style={{ padding: "10px 12px", textAlign: "right" }}>
                       <span style={{
                         fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700,
-                        color: j.isUnderperforming ? "var(--error)" : j.conversion_rate_pct >= 5 ? "var(--success)" : "var(--ink)",
+                        color: j.isUnderperforming ? "var(--error)" : j.conversion_rate_pct >= 5 ? "var(--success-ink)" : "var(--ink)",
                       }}>
                         {j.conversion_rate_pct.toFixed(1)}%
                       </span>
@@ -574,12 +574,12 @@ export default async function AnalyticsPage() {
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {item.ok
-                    ? <CheckCircle2 size={10} color="var(--success)" />
+                    ? <CheckCircle2 size={10} color="var(--success-ink)" />
                     : <Minus size={10} color="var(--ink-mute)" />
                   }
                 </div>
                 <span style={{ fontSize: 12, color: item.ok ? "var(--ink)" : "var(--ink-mute)" }}>{item.label}</span>
-                {item.hint && <span style={{ fontSize: 11, color: item.ok ? "var(--success)" : "var(--error)", marginLeft: "auto" }}>{item.hint}</span>}
+                {item.hint && <span style={{ fontSize: 11, color: item.ok ? "var(--success-ink)" : "var(--error)", marginLeft: "auto" }}>{item.hint}</span>}
               </div>
             ))}
           </div>

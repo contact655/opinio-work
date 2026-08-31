@@ -1149,7 +1149,7 @@ export default function JobsClient({
               <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
                 <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
                 <span style={{ marginLeft: 2 }}>件</span>
-                {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
+                {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
               </span>
             </div>
           </div>
@@ -1375,7 +1375,7 @@ export default function JobsClient({
                           </div>
                         )}
                         {(job.salary_min ?? 0) > 0 && (
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                             {fmtMan(job.salary_min)}
                             {job.salary_max && job.salary_max > job.salary_min! ? `〜${fmtMan(job.salary_max)}` : ""}万円
                           </div>

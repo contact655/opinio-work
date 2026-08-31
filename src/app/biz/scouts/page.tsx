@@ -10,7 +10,7 @@ export const metadata = { title: { absolute: "スカウト管理 | OPINIO Busine
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   sent:       { label: "未読",     color: "var(--royal)",    bg: "var(--royal-50)",     border: "var(--royal-100)" },
   read:       { label: "既読",     color: "var(--ink-soft)", bg: "var(--bg-tint)",      border: "var(--line)" },
-  interested: { label: "興味あり", color: "var(--success)",  bg: "var(--success-soft)", border: "#6EE7B7" },
+  interested: { label: "興味あり", color: "var(--success-ink)",  bg: "var(--success-soft)", border: "#6EE7B7" },
   declined:   { label: "辞退",     color: "var(--ink-mute)", bg: "#F1F5F9",             border: "var(--line)" },
 };
 
@@ -82,7 +82,7 @@ export default async function BizScoutsPage() {
                 background: tab.active ? "var(--royal)" : "#fff",
                 border: `1px solid ${tab.active ? "var(--royal)" : (tab as any).success ? "#6EE7B7" : (tab as any).purple ? "#C4B5FD" : "var(--line)"}`,
                 borderRadius: 100, fontSize: 12, fontWeight: 600,
-                color: tab.active ? "#fff" : (tab as any).success ? "var(--success)" : (tab as any).purple ? "#7C3AED" : "var(--ink-soft)",
+                color: tab.active ? "#fff" : (tab as any).success ? "var(--success-ink)" : (tab as any).purple ? "#7C3AED" : "var(--ink-soft)",
                 display: "flex", alignItems: "center", gap: 5,
               }}>
                 {tab.label}
@@ -200,7 +200,7 @@ export default async function BizScoutsPage() {
                           href={`/biz/conversations/${row.conversationId}`}
                           style={{
                             fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 6,
-                            background: "var(--success-soft)", color: "var(--success)",
+                            background: "var(--success-soft)", color: "var(--success-ink)",
                             border: "1px solid #6EE7B7", textDecoration: "none",
                           }}
                         >

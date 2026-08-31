@@ -740,7 +740,7 @@ export function CreateCompanyClient({
             </div>
             {joinRequestSent ? (
               <div style={{
-                fontSize: 12, color: "var(--success)", fontWeight: 600,
+                fontSize: 12, color: "var(--success-ink)", fontWeight: 600,
                 padding: "10px 14px", background: "var(--success-soft)",
                 borderRadius: 8, marginBottom: 10,
               }}>

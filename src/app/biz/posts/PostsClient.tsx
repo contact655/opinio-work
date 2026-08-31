@@ -52,7 +52,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
   culture:   { bg: "var(--royal-50)",    color: "var(--royal)" },
   interview: { bg: "var(--warm-soft)",   color: "#92400E" },
   event:     { bg: "var(--purple-soft)", color: "var(--purple)" },
-  product:   { bg: "var(--success-soft)", color: "var(--success)" },
+  product:   { bg: "var(--success-soft)", color: "var(--success-ink)" },
   hiring:    { bg: "#FEE2E2",            color: "#DC2626" },
   other:     { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
 };
@@ -72,7 +72,7 @@ const TYPE_COLORS: Record<ContentType, { bg: string; color: string }> = {
   article: { bg: "var(--royal-50)",    color: "var(--royal)" },
   video:   { bg: "var(--error-soft)",  color: "var(--error)" },
   audio:   { bg: "var(--purple-soft)", color: "var(--purple)" },
-  social:  { bg: "var(--success-soft)", color: "var(--success)" },
+  social:  { bg: "var(--success-soft)", color: "var(--success-ink)" },
   event:   { bg: "var(--warm-soft)",   color: "var(--warm)" },
   other:   { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
 };
@@ -296,7 +296,7 @@ function StoriesTab({ companyId, initialStories }: { companyId: string; initialS
                 合計 <strong style={{ color: "var(--ink)" }}>{stories.length}</strong> 件
               </span>
               {publishedCount > 0 && (
-                <Badge bg="var(--success-soft)" color="var(--success)">公開中 {publishedCount}</Badge>
+                <Badge bg="var(--success-soft)" color="var(--success-ink)">公開中 {publishedCount}</Badge>
               )}
               {draftCount > 0 && (
                 <Badge bg="var(--line-soft)" color="var(--ink-mute)">下書き {draftCount}</Badge>
@@ -523,7 +523,7 @@ function StoryCard({
           </Badge>
           <Badge
             bg={story.is_published ? "var(--success-soft)" : "var(--line-soft)"}
-            color={story.is_published ? "var(--success)" : "var(--ink-mute)"}
+            color={story.is_published ? "var(--success-ink)" : "var(--ink-mute)"}
           >
             {story.is_published ? "公開中" : "下書き"}
           </Badge>
@@ -574,7 +574,7 @@ function StoryCard({
             padding: "5px 10px", borderRadius: "var(--radius-sm)",
             background: story.is_published ? "var(--line-soft)" : "var(--success-soft)",
             border: "1px solid " + (story.is_published ? "var(--line)" : "#A7F3D0"),
-            color: story.is_published ? "var(--ink-mute)" : "var(--success)",
+            color: story.is_published ? "var(--ink-mute)" : "var(--success-ink)",
             fontSize: 11, fontWeight: 600, cursor: "pointer",
           }}
         >
@@ -1151,7 +1151,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
                   marginTop: 8, padding: "8px 10px",
                   background: ogpMessage.kind === "success" ? "var(--success-soft)" : "var(--error-soft)",
                   borderRadius: "var(--radius-sm)", fontSize: 12,
-                  color: ogpMessage.kind === "success" ? "var(--success)" : "var(--error)",
+                  color: ogpMessage.kind === "success" ? "var(--success-ink)" : "var(--error)",
                 }}>
                   <AlertCircle size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
                   {ogpMessage.text}

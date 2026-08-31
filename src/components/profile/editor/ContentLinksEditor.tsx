@@ -149,7 +149,7 @@ function ContentLinkForm({ initial, onDraftChange }: {
             </p>
           )}
           {ogpFetched && !ogpFetching && (
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
+            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)", margin: "4px 0 0" }}>✓ タイトル・サムネイルを自動取得しました</p>
           )}
         </div>
 

@@ -294,7 +294,7 @@ export default function PlacementsClient({ placements: initial, users, companies
                   {p.resigned_at ? (
                     <span style={{ color: "var(--ink-mute)", fontSize: 12 }}>退職済み</span>
                   ) : p.daysLeft === 0 ? (
-                    <span style={{ color: "var(--success)", fontWeight: 600, fontSize: 12 }}>期間終了</span>
+                    <span style={{ color: "var(--success-ink)", fontWeight: 600, fontSize: 12 }}>期間終了</span>
                   ) : (
                     <span style={{
                       display: "inline-block",
