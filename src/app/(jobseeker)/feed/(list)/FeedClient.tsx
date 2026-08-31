@@ -45,31 +45,52 @@ const AUTO_POST_TYPES = new Set(["company_joined", "job_posted", "article_publis
  *    「何の出来事か」は2〜4字のバッジで足りる。
  *
  * ⚠️ 色は**トークンだけで組む**。ハードコードするとダークモードで破綻する。
- *    枠線は `color-mix` で soft と同系の濃さを作っている
- *    （`--success-100` のような中間トークンが無いため。未対応ブラウザでは
- *     `border` 宣言ごと落ちて枠線が消えるだけで、可読性には影響しない）。
+ *    ⚠️ `color-mix` で枠線を作る記述は 2026-08-31 に不要になった
+ *       （3種を濃紺に揃え、`--royal-100` という中間トークンがそのまま使えるため）。
+ *       **種別ごとに色を分ける形に戻さないこと**（下の `BADGE_STYLE` のコメント）。
  *
  * ⚠️ `mentor_post` はここに入れない。名前の右に既に「面談OK」バッジがあり、二重になる。
  */
+/* ⚠️★**3種とも同じ色（濃紺）にした（2026-08-31）。色で出し分けないこと。**
+      それまでは 新規掲載＝緑 / 新着求人＝橙 / 取材記事＝濃紺 だった。
+
+   ── ① コントラストが基準を割っていた（実測）──────────────────────────
+      12px の太字に必要なのは **4.5:1**（3.0 が使えるのは 18.66px 以上の太字）。
+
+        | 旧 | 比 | |
+        |---|---|---|
+        | 緑（新規掲載） `#059669` on `#ECFDF5` | **3.58** | ❌ |
+        | 橙（新着求人） `#F59E0B` on `#FEF3C7` | **1.93** | ❌ |
+        | 濃紺（取材記事） | 13.19 | ✅ |
+
+      **3つのうち2つが割れていた。** 濃紺に揃えると同時に直る。
+
+   ── ② 色の役割に反していた ─────────────────────────────────────────
+      `.claude/skills/ui-conventions`「色の役割」:
+        **緑 = 金銭的にプラスの条件のみ**（年収・確定拠出年金・SO/RSU）
+        **オレンジ = カジュアル面談のみ**
+      「新規掲載」は金銭ではなく、「新着求人」は面談ではない。
+      ⚠️ とくに橙は `#F59E0B` で、**カジュアル面談CTA（`#F59E0B → #F97316`）と
+         同じ色から始まる。** 同じ色が2つの意味を持つ形。
+
+   ── ③ 色で伝える必要が無い ─────────────────────────────────────────
+      `lib/utils/chipVariant.ts` 自身が
+      「**凡例なしで意味が伝わらないなら neutral にして、文言側で説明する**」と定めている。
+      ここは**ラベル（新規掲載 / 新着求人 / 取材記事）が既に説明している**ので、
+      色を足しても凡例の無い色分けが増えるだけ。
+
+   ⚠️ **色を戻さないこと。** 戻すなら①のコントラストと②の役割を両方解いてから。
+   ⚠️ 種別を増やすときも `BADGE_STYLE` を共有する。**個別に色を渡せる形にしない。** */
+const BADGE_STYLE = {
+  color: "var(--royal)",
+  bg: "var(--royal-50)",
+  border: "var(--royal-100)",
+} as const;
+
 const POST_TYPE_BADGE: Record<string, { label: string; color: string; bg: string; border: string } | undefined> = {
-  company_joined: {
-    label: "新規掲載",
-    color: "var(--success)",
-    bg: "var(--success-soft)",
-    border: "color-mix(in srgb, var(--success) 30%, transparent)",
-  },
-  article_published: {
-    label: "取材記事",
-    color: "var(--royal)",
-    bg: "var(--royal-50)",
-    border: "var(--royal-100)",
-  },
-  job_posted: {
-    label: "新着求人",
-    color: "var(--warm)",
-    bg: "var(--warm-soft)",
-    border: "color-mix(in srgb, var(--warm) 30%, transparent)",
-  },
+  company_joined:    { label: "新規掲載", ...BADGE_STYLE },
+  article_published: { label: "取材記事", ...BADGE_STYLE },
+  job_posted:        { label: "新着求人", ...BADGE_STYLE },
 };
 
 /**
