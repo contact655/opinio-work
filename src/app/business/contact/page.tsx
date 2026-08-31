@@ -31,6 +31,19 @@ export const metadata: Metadata = {
   alternates: { canonical: "/business/contact" },
   /* ⚠️ フォームなので検索結果に出す必要が無い。導線は /business から辿れる。 */
   robots: { index: false, follow: true },
+  /* ⚠️★`openGraph.images` を必ず自前で持つこと（2026-08-31 実測）。
+        省くと**ルートの `src/app/opengraph-image.tsx` に落ちるが、あれは本番で
+        0バイトを返す**（status は 200 なので気づけない）。
+        `/contact` `/terms` など、自前の og を持たないページは全部その状態。
+        ⚠️ noindex でも関係ない。Slack などにURLを貼ると壊れたプレビューが出る。
+        ⚠️ ここで使っている `/api/og` は 2026-08-25 に直してあり、実バイトが返る。 */
+  openGraph: {
+    title: "採用のご相談 | OPINIO for Business",
+    description: "掲載・採用についてのご相談を承ります。営業のお電話はいたしません。",
+    type: "website",
+    url: "https://opinio.jp/business/contact",
+    images: [{ url: "https://opinio.jp/api/og?name=OPINIO+for+Business&sub=%E6%8E%A1%E7%94%A8%E3%81%AE%E3%81%94%E7%9B%B8%E8%AB%87&v=2", width: 1200, height: 630 }],
+  },
 };
 
 export default function BusinessContactPage() {
