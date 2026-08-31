@@ -22,6 +22,7 @@ const SECTIONS = [
   { href: "/dev/preview/company-cards", label: "企業カード" },
   { href: "/dev/preview/job-cards", label: "求人カード" },
   { href: "/dev/preview/timeline", label: "職歴タイムライン" },
+  { href: "/dev/preview/benefits-editor", label: "福利厚生の入力" },
 ];
 
 export default function PreviewLayout({ children }: { children: React.ReactNode }) {

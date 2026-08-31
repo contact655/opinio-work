@@ -43,6 +43,8 @@ const ITEMS = [
     desc: "年収なし・下限だけ・上限だけ。会社が引けないときに落ちないか" },
   { href: "/dev/preview/timeline", label: "職歴タイムライン",
     desc: "同社グループ・出戻り・並行職・長期ブランク。行の2経路に編集操作が出るか" },
+  { href: "/dev/preview/benefits-editor", label: "福利厚生の入力 → 保存 → 表示",
+    desc: "企業が入力したものがどう保存され、求職者にどう見えるかを1画面で" },
 ];
 
 export default function PreviewIndex() {
