@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
+import { OrgChart, CareerMatch } from "@/components/business/ProposalDiagrams";
 import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 600;
@@ -11,18 +11,24 @@ export const revalidate = 600;
 /*
  * ═══ 企業向けLP ═══════════════════════════════════════════════════════════
  *
- * ⚠️★**料金の話はこのページに書かない（2026-08-31 に移設）。**
- *    金額・プラン・FAQ は **[/business/pricing](pricing/page.tsx)** にある。
+ * 2026-08-31 に「提案」1本へ絞って作り直した。
+ * FV（組織図）→ マニフェスト → 提案のしくみ（職歴年表）→ 3ステップ → 最終CTA。
+ *
+ * ⚠️★**料金の話をこのページに書かない。** 金額・プラン・FAQ は
+ *    **[/business/pricing](pricing/page.tsx)** にある。
  *    掲載利用規約 第4条2項が「有料プランの内容・料金・支払方法・契約期間は
  *    本サービス上に表示するところによる」と定めているので、
  *    **単純に消すことはできず、移設という形にした。**
  *    ⚠️ ここに金額を書き戻さないこと。**表示先が2つになると片方だけ古くなる。**
- *    ⚠️ 約束してよいのは無料の範囲だけ。数字は `PAID_PLAN_MONTHLY_FEE`
- *       （lib/constants/plans.ts）が唯一の定義で、読むのは pricing 側だけ。
+ *    ⚠️ 数字は `PAID_PLAN_MONTHLY_FEE`（lib/constants/plans.ts）が唯一の定義で、
+ *       読むのは pricing 側だけ。
  *
- * 2026-08-21 に全面的に作り直した。それ以前は「即戦力がもう登録しています」
- * 「メンター面談を経た本気層」「編集部が直接ヒアリングしてプロフィールを整えます」
- * を主張していたが、実データの裏付けが1つも無かった（削除の経緯は同日のコミット）。
+ * ⚠️★**トップに戻さないと決めたもの（2026-08-31）。**
+ *    ・料金セクション・FAQ →（上記のとおり /business/pricing へ移設）
+ *    ・導入の流れ（STEP1〜3）→ 3ステップに統合した
+ *    ・製品UIのキャプチャ（企業ページ / 求人フォーム）→ 図版に置き換えた
+ *      ⚠️ 求人フォームのキャプチャは、プレースホルダに**実在他社名**
+ *         （タイミー）が写り込んでいた。戻すなら撮り直しから。
  *
  * ⚠️ **次の主張を書き足さないこと。** どれも 2026-08-21 時点で実体が無い。
  *   ・候補者の質・量（IT/SaaS の職歴を持つ外部実ユーザーは1人）
@@ -31,54 +37,43 @@ export const revalidate = 600;
  *   ・カジュアル面談の実績（ow_casual_meetings は0行）
  *   ・メンター（機能が存在しない。ow_users.is_mentor は書き込み経路0件の死列）
  *
+ * ⚠️ **数値を載せないこと。** 登録者数・通過率・承諾率・定着率・日数のいずれも
+ *    実測値が無い。出身企業のロゴ帯も復活させない（実データと乖離した経緯がある）。
+ *    導入企業の声も、掲載可能な実在の事例が出るまで枠ごと作らない。
+ *
  * ⚠️ 掲載が無料であることは /terms/listing 第4条1項に定めがあるので、
  *    **「掲載は無料」はここに書いてよい**（金額と成果報酬の話は pricing 側）。
- *
- * ⚠️ **スカウト送信に言及しないこと。**
- *    SCOUT_SENDING_ENABLED で停止中で、`PLAN_FEATURES` からも外してある。
  *
  * ⚠️ **「審査なし」と書かないこと（2026-08-21 実測）。**
  *    自己登録した企業は `is_published: false` で作られ
  *    （api/biz/companies/route.ts）、`is_published` が true になるまで
  *    求人を published にできない（api/biz/jobs/[id]/route.ts が 403 を返す）。
- *    以前の「登録は1分・審査なし」「登録後すぐに求人を公開できます」は誤り。
  *
- * ── スクリーンショット ──────────────────────────────────────────────────
- * /images/lp-business/*.webp。**ライブプレビューにしない**（求職者向けLPと同じ理由）。
+ * ⚠️★**mailto: を置かないこと。** メーラーの無い環境では押しても何も起きない。
+ *    相談の導線は `/business/contact`（フォーム）。
+ *    ⚠️ ここを `**` で囲まないこと。`**` とパスの `/` が並ぶと `*&#47;` になり、
+ *       **このブロックコメントがその場で閉じる**（実際に一度壊した）。
  *
- *   company-page-v2.webp     2688×2084  viewport 1440 / clip x=48 y=1250 w=1344 h=1042
- *   company-page-sm-v2.webp   800×1720  viewport  440 / clip x=20 y=1600 w=400  h=860
- *   job-form-v2.webp         1820×1400  viewport 1440 / clip x=490 y=626 w=910 h=700
- *   job-form-sm-v2.webp       480×816   viewport 1440 / clip x=246 y=126 w=240 h=408
- *
- * ⚠️ **切り出し幅 c と表示幅 d は 0.77 ≦ d/c ≦ 1.3 に収める**
- *    （根拠は ProductShot.tsx のコメント）。表示幅を変えるなら撮り直すこと。
- * ⚠️ **差し替えるときはファイル名の連番を上げる（v1 → v2）。**
- *    Next の画像最適化は元パスをキーにするので、同名だと古いバイト列が配信され続ける。
- *
- * ⚠️ **撮り直すときは写り込みを必ず確認する。** 実在ユーザーの氏名・所属・在籍期間が
- *    入ってはいけない（LPは公開かつインデックス対象）。現在の4枚は検査済みで0件。
- *    ・企業ページの「現役社員」枠は**入れない**。実データは社内のダミーが大半。
- *    ・/biz/candidates は**使わない**。出るのは13人全員がダミーか運営本人。
- *    ・求人フォームの上部は**入れない**。プレースホルダーが
- *      「例：プロダクトマネージャー（タイミーキャリアプラス）」で、実在他社名が写る。
+ * ⚠️ 図版は [components/business/ProposalDiagrams.tsx](../../components/business/ProposalDiagrams.tsx)。
+ *    広い画面と狭い画面で**別の SVG** を出している。片方だけ直さないこと。
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 export const metadata: Metadata = {
   title: { absolute: "IT/SaaS採用プラットフォーム | OPINIO for Business" },
   description:
-    "IT/SaaS業界に特化したキャリアプラットフォーム OPINIO の企業向けページ。企業ページの開設と求人の掲載は無料で、掲載件数・掲載期間の制限はありません。",
+    "自社の組織のどこに、どんな形の空きがあるのか。条件を打ち込んで探すのではなく、そこに収まる人を OPINIO が指し示します。IT/SaaS業界に特化したキャリアプラットフォーム。",
   alternates: { canonical: "/business" },
   openGraph: {
     title: "IT/SaaS採用プラットフォーム | OPINIO for Business",
-    description: "企業ページの開設と求人の掲載は無料。掲載件数・掲載期間の制限はありません。IT/SaaS業界に特化したキャリアプラットフォーム OPINIO。",
+    description: "足りないところに、ぴったり収まる人を。IT/SaaS業界に特化したキャリアプラットフォーム OPINIO の企業向けページ。",
     type: "website",
     url: "https://opinio.jp/business",
-    images: [{ url: "https://opinio.jp/api/og?name=OPINIO+for+Business&sub=%E6%8E%B2%E8%BC%89%E3%81%AF%E7%84%A1%E6%96%99%E3%81%A7%E3%81%99&v=2", width: 1200, height: 630 }],
+    images: [{ url: "https://opinio.jp/api/og?name=OPINIO+for+Business&sub=%E6%8E%A1%E7%94%A8%E3%81%AF%E3%80%81%E6%A4%9C%E7%B4%A2%E3%81%8B%E3%82%89%E6%8F%90%E6%A1%88%E3%81%B8&v=2", width: 1200, height: 630 }],
   },
 };
 
+/** セクション頭の小文字ラベル */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
@@ -91,61 +86,25 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * プロダクトの実画面。広い画面と狭い画面で別ファイルを出し分ける。
- * ⚠️ 片方だけ差し替えないこと（狭い側だけ古い画面が残る）。
+/*
+ * ⚠️ 3ステップは**カード枠にしない**（2026-08-31）。
+ *    上辺 2px のアクセント罫線と余白だけで区切る。
+ *    枠を足すと、外した「導入の流れ」のカードに戻ることになる。
  */
-function Shot({ wide, narrow, alt, narrowMaxWidth }: {
-  wide: { src: string; w: number; h: number };
-  narrow: { src: string; w: number; h: number };
-  alt: string;
-  /* ⚠️ 狭幅の切り出しが小さい画像で使う。指定しないと 390px 幅いっぱい（340px）まで
-        引き伸ばされ、切り出し幅に対する倍率が 1.3 を超えてぼやける。
-        job-form-sm は切り出しが 240px しかないので 300 に抑えている（1.25倍）。
-
-     ⚠️★**すべての狭幅画像に付けること（2026-08-31）。** 上限を付け忘れると
-        `92vw` まで伸びるので、**タブレット幅で倍率が跳ね上がる。**
-        company-page-sm が実際にそうなっていた（切り出し400px に対し、
-        767px の画面で **706px = 1.77倍**）。**上のルールを自分で破っていた。**
-
-     ⚠️ 決め方: **切り出し幅 × 1.0〜1.25** を上限にする。
-        目安は `冒頭の一覧の clip w` を見ること（company-page-sm=400 / job-form-sm=240）。
-
-     ⚠️ もう1つ、**2枚を並べたときの大きさも見ること。** 片方だけ上限が無いと
-        「同じ製品の実画面」なのに 2.35倍の差がつく（実際にそうなっていた）。 */
-  narrowMaxWidth?: number;
-}) {
-  /* ⚠️ 広い側と狭い側で**枠ごと分ける**。1つの枠に2枚入れて maxWidth を掛けると、
-        広い画面の枠まで狭められる（レスポンシブで変えたい値をインラインに書かない）。 */
-  const frame: React.CSSProperties = {
-    borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden",
-    background: "#fff", boxShadow: "0 4px 20px rgba(0,35,102,0.07)",
-    maxWidth: "100%",
-  };
-  return (
-    <>
-      <div className="hidden md:block" style={frame}>
-        <Image
-          src={wide.src} alt={alt} width={wide.w} height={wide.h}
-          sizes="(min-width: 1180px) 1100px, 92vw"
-          style={{ width: "100%", height: "auto" }}
-        />
-      </div>
-      <div
-        className="block md:hidden"
-        style={narrowMaxWidth
-          ? { ...frame, maxWidth: narrowMaxWidth, marginLeft: "auto", marginRight: "auto" }
-          : frame}
-      >
-        <Image
-          src={narrow.src} alt={alt} width={narrow.w} height={narrow.h}
-          sizes={narrowMaxWidth ? `${narrowMaxWidth}px` : "92vw"}
-          style={{ width: "100%", height: "auto" }}
-        />
-      </div>
-    </>
-  );
-}
+const STEPS = [
+  {
+    title: "会社を置く",
+    body: "事業・製品・拠点を載せた企業ページをつくります。求職者は登録なしで読めます。",
+  },
+  {
+    title: "組織の形が見える",
+    body: "社員とOB・OGの経歴が並びます。どんな人で成り立っている会社なのかが、人の側から立ち上がります。",
+  },
+  {
+    title: "空いた席に合う人を示す",
+    body: "その席で力を発揮した人と同じ道を歩いてきた人を、OPINIOが提案します。",
+  },
+];
 
 export default async function ForCompaniesPage() {
   const supabase = createClient();
@@ -157,13 +116,7 @@ export default async function ForCompaniesPage() {
     bizCtaHref = (memberships?.length ?? 0) > 0 ? "/biz/dashboard" : "/biz/companies/add/new";
   }
 
-  const sectionStyle = (bg = "#fff"): React.CSSProperties => ({
-    background: bg, padding: "80px 24px",
-  });
   const innerStyle: React.CSSProperties = { maxWidth: 900, margin: "0 auto" };
-  /* ⚠️ 実画面のスクショはここに置く。900 だと切り出し(1344px)を 0.67 倍まで
-        縮めることになり、文字が読めなくなる（0.77 を下回る）。 */
-  const wideInnerStyle: React.CSSProperties = { maxWidth: 1100, margin: "0 auto" };
 
   return (
     <>
@@ -175,32 +128,45 @@ export default async function ForCompaniesPage() {
              通らないページなので、あちらの `<main id="main-content">` が効かない）。 */}
       <main id="main-content" style={{ paddingTop: 60 }}>
 
-        {/* ─── FV ─── */}
+        {/* ─── FV ─────────────────────────────────────────────────────── */}
         <section style={{
           background: "linear-gradient(180deg, var(--royal-50) 0%, #fff 100%)",
           borderTop: "1px solid var(--line)",
-          padding: "88px 24px 76px",
+          padding: "80px 24px 72px",
         }}>
           <div style={{ ...innerStyle, textAlign: "center" }}>
+            <SectionLabel>採用は、検索から提案へ</SectionLabel>
+
+            {/* ⚠️ h1 はページに1つだけ。
+                ⚠️ 和文は文節を無視してどこでも改行される。割りたくない塊を
+                   inline-block で包んでいる（390px で「ぴった / り」に割れる）。 */}
             <h1 style={{
               fontFamily: "var(--font-noto-serif)",
-              fontSize: "clamp(27px, 5vw, 44px)", fontWeight: 500,
+              fontSize: "clamp(26px, 5vw, 44px)", fontWeight: 500,
               color: "var(--ink)", lineHeight: 1.35, marginBottom: 20,
             }}>
-              {/* ⚠️ 和文は文節を無視してどこでも改行される。390px で「無 / 料で。」に
-                     割れたので、割りたくない塊を inline-block で包んでいる。 */}
-              <span style={{ display: "inline-block" }}>求人も、</span>
-              <span style={{ display: "inline-block" }}>企業ページも、</span>
-              <span style={{ display: "inline-block" }}>無料で。</span>
+              {/* ⚠️ 2行に固定する。広い画面では1行に収まってしまうので `<br />` を入れる。
+                     inline-block は「割りたくない塊」を守るためのもので、
+                     **改行位置は指定できない**（和文はどこでも改行される）。
+                     390px でも各行が収まるので、3行にはならない。 */}
+              <span style={{ display: "inline-block" }}>足りないところに、</span>
+              <br />
+              <span style={{ display: "inline-block" }}>ぴったり収まる人を。</span>
             </h1>
+
             <p style={{
               fontSize: "clamp(14px, 2vw, 17px)", color: "var(--ink-soft)",
-              lineHeight: 1.9, marginBottom: 36, maxWidth: 640,
+              lineHeight: 1.9, marginBottom: 40, maxWidth: 660,
               marginLeft: "auto", marginRight: "auto",
             }}>
-              IT/SaaS業界に特化したキャリアプラットフォームです。<br className="hidden sm:inline" />
-              企業ページの開設と求人掲載に費用はかかりません。
+              自社の組織のどこに、どんな形の空きがあるのか。
+              条件を打ち込んで探すのではなく、そこに収まる人をOPINIOが指し示します。
             </p>
+
+            {/* 組織図。⚠️ 広い画面と狭い画面で別の SVG（ProposalDiagrams.tsx） */}
+            <div style={{ maxWidth: 680, margin: "0 auto 40px" }}>
+              <OrgChart />
+            </div>
 
             <div style={{
               display: "flex", gap: 12, justifyContent: "center",
@@ -212,12 +178,13 @@ export default async function ForCompaniesPage() {
                 borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none",
                 boxShadow: "0 4px 16px rgba(0,35,102,0.22)",
               }}>
-                無料で企業登録
+                企業ページをつくる
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M5 12h14M13 5l7 7-7 7"/>
                 </svg>
               </Link>
-              <a href="mailto:contact@opinio.co.jp" style={{
+              {/* ⚠️ mailto に戻さないこと。実体は /business/contact のフォーム。 */}
+              <Link href="/business/contact" style={{
                 display: "inline-flex", alignItems: "center", gap: 7,
                 padding: "15px 28px", background: "#fff", color: "var(--royal)",
                 border: "1.5px solid var(--royal-100)", borderRadius: 10,
@@ -226,165 +193,95 @@ export default async function ForCompaniesPage() {
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
-                相談する
-              </a>
+                話を聞いてみる
+              </Link>
             </div>
 
-            {/*
-              ⚠️ 数字バッジは置かない（2026-08-21 の判断）。
-                 公開企業84社は大半が運営が作成したもので、
-                 「84社が使っている」の意味にならない。
-            */}
-          </div>
-        </section>
-
-        {/* ─── 01 できること ─── */}
-        <section id="can" style={sectionStyle("#fff")}>
-          <div style={wideInnerStyle}>
-            <div style={{ maxWidth: 640, marginBottom: 56 }}>
-              <SectionLabel>01 / できること</SectionLabel>
-              <h2 style={{
-                fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)",
-                fontWeight: 500, color: "var(--ink)", marginBottom: 16, lineHeight: 1.35,
-              }}>
-                自社の情報を、置いておける場所。
-              </h2>
-              <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-                企業ページと求人を、費用をかけずに公開できます。<br />
-                既存の採用媒体と並行して使えます。
-              </p>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 64 }}>
-              {[
-                {
-                  num: "01",
-                  title: "企業ページをつくる",
-                  body: "事業内容・製品・導入事例・拠点・資本関係などを載せられます。求職者は登録なしで読めます。",
-                  wide:   { src: "/images/lp-business/company-page-v2.webp", w: 2688, h: 2084 },
-                  narrow: { src: "/images/lp-business/company-page-sm-v2.webp", w: 800, h: 1720 },
-                  /* ⚠️★上限を付けた（2026-08-31）。**外さないこと。**
-                        切り出しは **400px**（このファイル冒頭の一覧）なので、
-                        上限なしだと 92vw まで伸び、**767px の画面で 706px = 1.77倍**になる。
-                        ⚠️ 下の `Shot` のコメント自身が「**1.3 を超えるとぼやける**」と
-                           書いており、**その基準を company-page-sm だけが破っていた。**
-                        400px なら **1.0倍**で、拡大がまったく無い（最もシャープ）。
-
-                     ⚠️ もう1つの狙いは**2枚の大きさを揃えること。** job-form-sm は
-                        300px 上限なので、無制限だと**767px で 706 対 300 = 2.35倍**の差になり、
-                        同じ「製品の実画面」なのに扱いが違って見えた。400 対 300 なら 1.33倍。
-                     ⚠️ 375px では 92vw=345px なので**この上限に当たらない**（従来どおり）。 */
-                  narrowMaxWidth: 400,
-                  alt: "OPINIO の企業ページ。主な製品・サービスと導入事例が並び、右側に業界・資本区分・親会社・従業員数などの企業情報が表示されている。",
-                },
-                {
-                  num: "02",
-                  title: "求人を出す",
-                  body: "掲載は無料で、件数にも期間にも制限はありません。雇用形態・業態タグ・技術スタックなどを選んで作成します。",
-                  wide:   { src: "/images/lp-business/job-form-v2.webp", w: 1820, h: 1400 },
-                  narrow: { src: "/images/lp-business/job-form-sm-v2.webp", w: 480, h: 816 },
-                  narrowMaxWidth: 300,
-                  alt: "OPINIO の求人作成画面。業態タグと技術スタックを選択肢から選べる。",
-                },
-              ].map(({ num, title, body, wide, narrow, alt, narrowMaxWidth }) => (
-                <div key={num}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
-                    <span style={{
-                      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800,
-                      color: "var(--royal)", letterSpacing: "0.08em", flexShrink: 0,
-                    }}>{num}</span>
-                    <h3 style={{ fontSize: "clamp(17px, 2.6vw, 20px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>
-                      {title}
-                    </h3>
-                  </div>
-                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 22, maxWidth: 620 }}>
-                    {body}
-                  </p>
-                  <Shot wide={wide} narrow={narrow} alt={alt} narrowMaxWidth={narrowMaxWidth} />
-                </div>
-              ))}
-            </div>
-
-            <p style={{ marginTop: 24, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              ※ 画面は実際のものです。掲載内容は変わることがあります。
+            {/* ⚠️ どちらも事実。登録はメールアドレスだけで完了し、
+                   支払い手段の登録は求めていない（掲載は /terms/listing 第4条1項で無料）。 */}
+            <p style={{ marginTop: 16, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              メールアドレスだけ　·　クレジットカード不要
             </p>
           </div>
         </section>
 
-        {/* ─── 03 導入の流れ ─── */}
-        <section id="flow" style={sectionStyle("#fff")}>
+        {/* ─── マニフェスト帯 ──────────────────────────────────────────── */}
+        <section style={{
+          background: "var(--bg-tint)",
+          borderTop: "1px solid var(--line)",
+          borderBottom: "1px solid var(--line)",
+          padding: "72px 24px",
+        }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
+            <h2 style={{
+              fontFamily: "var(--font-noto-serif)",
+              fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 500,
+              color: "var(--ink)", lineHeight: 1.4, marginBottom: 22,
+            }}>
+              探す前に、届く。
+            </h2>
+            <p style={{ fontSize: "clamp(14px, 2vw, 16px)", color: "var(--ink-soft)", lineHeight: 2 }}>
+              <span style={{ display: "block" }}>検索は、欲しい人物像がわかっている前提の道具です。</span>
+              <span style={{ display: "block" }}>本当に足りない人は、たいてい言葉になっていません。</span>
+            </p>
+          </div>
+        </section>
+
+        {/* ─── 提案のしくみ ────────────────────────────────────────────── */}
+        <section id="how" style={{ background: "#fff", padding: "80px 24px" }}>
           <div style={innerStyle}>
-            <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <SectionLabel>03 / 導入の流れ</SectionLabel>
-              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)" }}>
-                登録から求人公開まで
+            <div style={{ maxWidth: 660, marginBottom: 48 }}>
+              <SectionLabel>提案のしくみ</SectionLabel>
+              <h2 style={{
+                fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)",
+                fontWeight: 500, color: "var(--ink)", marginBottom: 16, lineHeight: 1.4,
+              }}>
+                根拠は、その人の歩いてきた道。
               </h2>
+              <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+                どこから来て、いま何をしているのか。
+                空いている席で力を発揮した人と同じ道を歩いてきた人を、OPINIOが指し示します。
+              </p>
             </div>
 
-            {/*
-              ⚠️ 「候補者から応募が届く」をステップに置かないこと。
-                 ow_job_applications は0行で、一度も発生していない（2026-08-21 実測）。
-            */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch">
-              {[
-                {
-                  step: "STEP 1",
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                  ),
-                  title: "企業を登録",
-                  body: "メールアドレスだけで完了します。入力は1分ほどで、すぐに企業ページの編集を始められます。",
-                },
-                {
-                  step: "STEP 2",
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>
-                    </svg>
-                  ),
-                  title: "企業ページを整える",
-                  body: "事業内容・製品・拠点などを入力します。この間に運営が内容を確認します（通常2〜3営業日）。",
-                },
-                {
-                  step: "STEP 3",
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                    </svg>
-                  ),
-                  title: "求人を公開",
-                  body: "確認が済むと求人を公開できます。掲載は無料で、件数にも期間にも制限はありません。",
-                },
-              ].map(({ step, icon, title, body }, i, arr) => (
-                <React.Fragment key={step}>
+            {/* 職歴年表 → 空席 */}
+            <CareerMatch />
+
+            {/* ⚠️★この注記を消さないこと。**組織図と職歴の両方**にかかる文言にしてある。
+                   図に出てくる経歴は仕組みを説明するための例で、実データではない。
+                   片方だけの注記にすると、FV の組織図が実在の自社組織だと読まれる。 */}
+            <p style={{ marginTop: 20, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              ※ 本ページの図（組織図・職歴）は仕組みのイメージです。経歴・組織は実在の特定個人や実際の求人を示すものではありません。
+            </p>
+          </div>
+        </section>
+
+        {/* ─── 3ステップ ──────────────────────────────────────────────── */}
+        <section id="steps" style={{ background: "var(--bg-tint)", padding: "80px 24px" }}>
+          <div style={innerStyle}>
+            {/* ⚠️ カード枠にしない。上辺2pxの罫線＋余白だけで区切る（理由は STEPS の上） */}
+            <div className="grid grid-cols-1 gap-y-10 gap-x-8 md:grid-cols-3">
+              {STEPS.map(({ title, body }, i) => (
+                <div key={title} style={{ borderTop: "2px solid var(--royal)", paddingTop: 20 }}>
                   <div style={{
-                    padding: "24px 20px", background: "var(--bg-tint)",
-                    borderRadius: 12, border: "1px solid var(--line)",
-                    height: "100%", display: "flex", flexDirection: "column",
+                    fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 800,
+                    letterSpacing: "0.1em", color: "var(--royal)", marginBottom: 12,
                   }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)", marginBottom: 12 }}>
-                      {step}
-                    </div>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-                      {icon}
-                    </div>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 8, lineHeight: 1.4 }}>{title}</h3>
-                    <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, flex: 1 }}>{body}</p>
+                    {String(i + 1).padStart(2, "0")}
                   </div>
-                  {/* ⚠️ 矢印は「最後の1枚以外」。段数を変えたら grid-cols も一緒に直す */}
-                  {i < arr.length - 1 && (
-                    <div className="hidden md:flex items-center justify-center" style={{ color: "var(--ink-mute)", fontSize: 18 }}>→</div>
-                  )}
-                </React.Fragment>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", marginBottom: 10, lineHeight: 1.45 }}>
+                    {title}
+                  </h3>
+                  <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+                    {body}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ─── Final CTA ─── */}
+        {/* ─── Final CTA ──────────────────────────────────────────────── */}
         <section style={{
           padding: "96px 24px",
           background: "linear-gradient(135deg, #001F5B 0%, #002E8A 50%, #003BB5 100%)",
@@ -392,35 +289,36 @@ export default async function ForCompaniesPage() {
           position: "relative", overflow: "hidden",
         }}>
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 40%)" }} />
-          <div style={{ maxWidth: 600, margin: "0 auto", position: "relative" }}>
+          <div style={{ maxWidth: 620, margin: "0 auto", position: "relative" }}>
             <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(25px, 4vw, 40px)", fontWeight: 500, color: "#fff", lineHeight: 1.35, marginBottom: 16 }}>
-              掲載は無料です。<br className="sm:hidden" />まず置いてみてください。
+              <span style={{ display: "inline-block" }}>まず、会社を</span>
+              <span style={{ display: "inline-block" }}>置いてみてください。</span>
             </h2>
-            <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, marginBottom: 44 }}>
-              企業ページをつくるところから始められます。
+            <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, marginBottom: 40 }}>
+              企業ページをつくるところから始められます。掲載は無料です。
             </p>
-            <Link href={bizCtaHref} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "16px 44px", background: "#fff", color: "var(--royal)", borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.24), 0 2px 8px rgba(0,0,0,0.16)" }}>
-              無料で企業登録
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
-            </Link>
-            {/* ⚠️ 「入社まで費用なし（成果報酬制）」を戻さないこと（2026-08-21 に削除） */}
-            {/* ⚠️★白の不透明度を上げた（2026-08-31）。**0.55 / 0.5 に戻さないこと。**
-                   濃紺グラデ（rgb(0,31,91)→rgb(0,59,181)）の**明るい側**で実測すると
-                   コントラスト比が **0.55 → 3.79 / 0.5 → 3.38** で、
-                   12px の小さい文字に必要な **4.5:1 を下回っていた**（WCAG AA）。
-                   0.78 なら **6.1** で通る。
-                ⚠️ サイズも 12 → 13px にした。ここはCTA直下の補足で、
-                   **読ませる前提の文**。12px は本文の最小としても小さい。
-                ⚠️ 測るときは**グラデーションの明るい側**で計算すること。
-                   暗い側だけで測ると通ってしまう。 */}
-            <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link href={bizCtaHref} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "16px 40px", background: "#fff", color: "var(--royal)", borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.24), 0 2px 8px rgba(0,0,0,0.16)" }}>
+                企業ページをつくる
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+              </Link>
+              {/* ⚠️ mailto に戻さないこと。実体は /business/contact のフォーム。 */}
+              <Link href="/business/contact" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "16px 32px", background: "transparent", color: "#fff", border: "1.5px solid rgba(255,255,255,0.5)", borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: "none" }}>
+                話を聞いてみる
+              </Link>
+            </div>
+            {/* ⚠️★白の不透明度を 0.78 未満に戻さないこと（2026-08-31 実測）。
+                   濃紺グラデ（rgb(0,31,91)→rgb(0,59,181)）の**明るい側**で測ると
+                   0.55 で 3.79 / 0.5 で 3.38 となり、小さい文字に必要な
+                   4.5:1（WCAG AA）を下回る。0.78 なら 6.1 で通る。
+                ⚠️ 測るときは**グラデーションの明るい側**で計算すること。 */}
+            <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
               {["求人掲載は無料", "既存媒体と並行可能"].map((txt) => (
                 <div key={txt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.78)" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {txt}
                 </div>
               ))}
-              <a href="mailto:contact@opinio.co.jp" style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.78)", textDecoration: "underline" }}>相談する</a>
             </div>
           </div>
         </section>
@@ -444,7 +342,7 @@ export default async function ForCompaniesPage() {
             borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
             boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
           }}>
-            企業を新規登録
+            企業ページをつくる
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
           </Link>
         </div>

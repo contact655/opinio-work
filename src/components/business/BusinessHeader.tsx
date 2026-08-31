@@ -28,8 +28,8 @@ import { Menu, X } from "lucide-react";
 const BUSINESS_TOP = "/business";
 
 const NAV_LINKS: { href: string; label: string }[] = [
-  { href: `${BUSINESS_TOP}#flow`, label: "導入の流れ" },
-  { href: "/business/pricing",    label: "料金" },
+  { href: `${BUSINESS_TOP}#how`, label: "提案のしくみ" },
+  { href: "/business/pricing",   label: "料金" },
 ];
 
 export function BusinessHeader() {
