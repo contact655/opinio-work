@@ -214,7 +214,9 @@ export default function BusinessPricingPage() {
                 <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
                 採用人数にかかわらず月額のみです。
               </p>
-              <a href="mailto:contact@opinio.co.jp" style={{
+              {/* ⚠️ 2026-08-31 に mailto から /business/contact（フォーム）へ変えた。
+                     mailto に戻さないこと。メーラーの無い環境では押しても何も起きない。 */}
+              <Link href="/business/contact" style={{
                 display: "inline-flex", alignItems: "center", gap: 7,
                 padding: "11px 22px", background: "#fff", color: "var(--royal)",
                 border: "1.5px solid var(--royal-100)", borderRadius: 9,
@@ -225,7 +227,7 @@ export default function BusinessPricingPage() {
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
                 料金について問い合わせる
-              </a>
+              </Link>
             </div>
 
             {/* ⚠️ この一文は `/biz/candidates` のゲート文言と同じ内容にしてある。
@@ -316,10 +318,10 @@ export default function BusinessPricingPage() {
             <div style={{ textAlign: "center", marginTop: 36 }}>
               <p style={{ fontSize: 14, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                 その他のご質問は{" "}
-                <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)", textDecoration: "underline" }}>
-                  contact@opinio.co.jp
-                </a>{" "}
-                までお気軽にどうぞ。
+                <Link href="/business/contact" style={{ color: "var(--royal)", textDecoration: "underline" }}>
+                  お問い合わせフォーム
+                </Link>
+                {" "}からお気軽にどうぞ。
               </p>
             </div>
 
