@@ -492,7 +492,13 @@ function StoryCard({
         width: 88, height: 60, flexShrink: 0, borderRadius: 8,
         overflow: "hidden",
         background: story.cover_image_url ? "var(--line-soft)" : catColor.bg,
-        border: story.cover_image_url ? "none" : `1px solid ${catColor.color}22`,
+        /* ⚠️★`${...}22` で16進アルファを足す書き方をやめた（2026-09-02）。
+                `catColor.color` は `var(--purple)` などの**CSS変数の参照**なので
+                `var(--purple)22` になり、**CSS として不正 → 枠線ごと破棄**されていた。
+             ⚠️ 12種のうち**リテラルの16進は `interview` の1つだけ**で、
+                そこだけ枠線が出て**残り11種は出ていなかった**（偶然の不揃い）。
+             → 標準の `--line` に揃える。`/biz/analytics` の KpiCard と同じ根。 */
+        border: story.cover_image_url ? "none" : "1px solid var(--line)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
         {story.cover_image_url ? (
@@ -1415,7 +1421,8 @@ function LinkCard({
         width: 80, height: 56, flexShrink: 0, borderRadius: 8,
         overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
         background: post.thumbnail_url ? "var(--line-soft)" : c.bg,
-        border: post.thumbnail_url ? "none" : `1px solid ${c.color}22`,
+        /* ⚠️ 上と同じ理由（`${...}22` は CSS 変数の参照に対して不正）。2026-09-02 */
+        border: post.thumbnail_url ? "none" : "1px solid var(--line)",
       }}>
         {post.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element

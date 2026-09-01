@@ -104,11 +104,26 @@ async function fetchRecentActivities(supabase: ReturnType<typeof createClient>, 
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+/**
+ * ★アイコンの背景は `bg` で受ける（2026-09-02）。
+ *
+ * ⚠️★それまでは `background: `${color}18`` で**16進のアルファを後ろに足す**つもりだったが、
+ *    渡ってくるのは `var(--royal)` のような**CSS変数の参照**なので `var(--royal)18` になり、
+ *    **CSS として不正 → 宣言ごと破棄 → 背景は透明**だった。
+ *    実測（2026-09-01 / `/biz/analytics`）: **4枠すべて `rgba(0,0,0,0)`**。
+ *    ⚠️ 既定値も `var(--royal)` なので、**リテラルの16進を渡さないかぎり一度も効いていない。**
+ *
+ * ⚠️ `color-mix()` は使わない。**このリポジトリで一度も使っていない**ので、
+ *    ここで初導入すると対応ブラウザの前提を1箇所だけ持ち込むことになる。
+ *    既存の soft トークンを渡すほうが確実で、デザインシステムとも揃う。
+ *
+ * ⚠️ `bg` は**必須にしてある。** 省略できると、次にカードを足す人が同じ穴に落ちる。
+ */
 function KpiCard({
-  label, value, sub, delta, color = "var(--royal)", icon,
+  label, value, sub, delta, color = "var(--royal)", bg, icon,
 }: {
   label: string; value: string | number; sub?: string; delta?: number;
-  color?: string; icon: React.ReactNode;
+  color?: string; bg: string; icon: React.ReactNode;
 }) {
   const showDelta = delta !== undefined && delta !== 0;
   const up = (delta ?? 0) > 0;
@@ -120,7 +135,7 @@ function KpiCard({
     }}>
       <div style={{
         width: 32, height: 32, borderRadius: 8,
-        background: `${color}18`,
+        background: bg,
         display: "flex", alignItems: "center", justifyContent: "center",
         color, marginBottom: 8, flexShrink: 0,
       }}>
@@ -352,19 +367,20 @@ export default async function AnalyticsPage() {
         }}>
           <KpiCard
             label="応募数" value={cur.applications} delta={delta.applications}
-            color="var(--royal)" icon={<ClipboardList size={16} />}
+            color="var(--royal)" bg="var(--royal-50)" icon={<ClipboardList size={16} />}
           />
           <KpiCard
             label="スカウト" value={cur.scouts} delta={delta.scouts}
-            color="var(--accent)" icon={<Users size={16} />}
+            /* ⚠️ `--accent` 専用の soft トークンは無い。`--royal-50` は極薄の青で、青系の下地として使える */
+            color="var(--accent)" bg="var(--royal-50)" icon={<Users size={16} />}
           />
           <KpiCard
             label="面談実施" value={cur.interviews} delta={delta.interviews}
-            color="var(--purple)" icon={<MessageSquare size={16} />}
+            color="var(--purple)" bg="var(--purple-soft)" icon={<MessageSquare size={16} />}
           />
           <KpiCard
             label="オファー" value={cur.offers} delta={delta.offers}
-            color="var(--success-ink)" icon={<CheckCircle2 size={16} />}
+            color="var(--success-ink)" bg="var(--success-soft)" icon={<CheckCircle2 size={16} />}
           />
         </div>
       </div>

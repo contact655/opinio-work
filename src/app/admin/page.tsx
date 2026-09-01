@@ -130,11 +130,7 @@ async function getStats() {
     totalApplicationsCount: totalApplications.count ?? 0,
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
-    /* ⚠️ メンター機能は存在しない（`ow_mentors` は migration 140 で DROP 済み・
-          `src` からの参照0件）。**0 の直書きは意図どおり。**
-          ⚠️ 行そのものを消していないのは、`archive` に残る文脈を辿れなくするため。
-             **数え直そうとしないこと。** */
-    pendingReservationsCount: 0,
+
 
     bizAdminsCount: bizAdmins.count ?? 0,
     selfUnreviewedCount: selfListed.count,
@@ -164,7 +160,7 @@ export default async function AdminDashboard() {
   const stats = await getStats();
   /* ⚠️ 口コミ承認待ちは 2026-08-07 に外した。参照していた ow_company_reviews が
         このプロジェクトに存在せず、常に0件を足していただけだったため。 */
-  const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount + stats.pendingReservationsCount
+  const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0)
     /* ⚠️ 未確認は0にできるので**要対応に数える**（2026-08-25）。
           掲載中の総数を足さないこと。あれは0にならない。 */
@@ -530,74 +526,6 @@ export default async function AdminDashboard() {
               </Link>
             )}
 
-            {stats.pendingReservationsCount > 0 && (
-              <Link href="/admin/reservations" style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: 10,
-                  background: "#F3E8FF", border: "1px solid #E9D5FF",
-                  cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#E9D5FF", color: "#7C3AED",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#6D28D9", margin: 0, marginBottom: 2 }}>メンター相談 転送待ち</p>
-                    <p style={{ fontSize: 11, color: "#7C3AED", margin: 0 }}>{stats.pendingReservationsCount}件</p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </Link>
-            )}
-
-
-            {stats.neverLoggedInBizCount > 0 && (
-              <Link href="/admin/biz-accounts?filter=never_login" style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: 10,
-                  background: "#FFFBEB", border: "1px solid #FDE68A",
-                  cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#FEF3C7", color: "#B45309",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      <line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>BIZ担当者 未ログイン</p>
-                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
-                      招待済みで未ログインの担当者が{stats.neverLoggedInBizCount}名います
-                    </p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </Link>
-            )}
-
-            {/* ★自己申告で掲載されていて、運営がまだ確認していない人（2026-08-25）。
-                   ⚠️ 事前の承認を廃止したので、なりすましは**後から見つけて外す**しかない。
-                      通知が届く企業は79社中7社で、残りは企業側が気づけない。
-                      **ここが運営にとって唯一の入口。**
-                   ⚠️ 0件なら出さない。`ops_reviewed_at` を付けたことで**0にできる**ようになり、
-                      要対応タスクとして扱えるようになった（掲載中の総数では0にならなかった）。 */}
             {stats.selfUnreviewedCount > 0 && (
               <Link href="/admin/ambassador-requests" style={{ textDecoration: "none" }}>
                 <div style={{
@@ -890,11 +818,6 @@ export default async function AdminDashboard() {
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
               面談申込待ち: <strong style={{ color: stats.pendingMeetingsCount > 0 ? "var(--royal)" : "var(--success-ink)" }}>
                 {stats.pendingMeetingsCount}件
-              </strong>
-            </p>
-            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              メンター相談転送待ち: <strong style={{ color: stats.pendingReservationsCount > 0 ? "#7C3AED" : "var(--success-ink)" }}>
-                {stats.pendingReservationsCount}件
               </strong>
             </p>
           </div>
