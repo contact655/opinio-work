@@ -10,7 +10,7 @@ import {
   type GroupSlug,
   type CategorySlug,
 } from "@/lib/utils/toolCfg";
-import { InfoCard } from "./InfoCard";
+import { HoverNoteCard } from "@/components/companies/HoverNoteCard";
 import { CHIP_STYLES } from "@/lib/utils/chipVariant";
 import { ShowMoreButton } from "./ShowMoreButton";
 
@@ -69,10 +69,14 @@ export default function ToolsSectionClient({ tools }: Props) {
         return (
           <div
             key={groupSlug}
+            /* ⚠️★**`overflow: hidden` を戻さないこと**（2026-09-02 に外した）。
+                  角丸のためにヘッダー背景を切る目的だったが、**note のふきだしが
+                  カードの下にはみ出す形なので、下端で切り取られていた**（実測で
+                  高さ61pxのうち見えていたのは一部）。角丸はヘッダー側に
+                  `borderRadius: "11px 11px 0 0"` を指定して保つ（枠線1px のぶん内側なので 11）。 */
             style={{
               border: "1px solid var(--line)",
               borderRadius: 12,
-              overflow: "hidden",
             }}
           >
             {/* グループヘッダー */}
@@ -84,6 +88,9 @@ export default function ToolsSectionClient({ tools }: Props) {
                 padding: "10px 16px",
                 background: "var(--bg-tint)",
                 borderBottom: "1px solid var(--line)",
+                /* ⚠️ 親の `overflow: hidden` を外したので、ここで角を丸める。
+                      外枠 12px の内側なので 11px。 */
+                borderRadius: "11px 11px 0 0",
               }}
             >
               <div
@@ -155,22 +162,25 @@ export default function ToolsSectionClient({ tools }: Props) {
 
                 return (
                   <div key={tool.id} style={{ minWidth: 140, flex: "1 1 140px", maxWidth: 220 }}>
-                    <InfoCard
+                    {/* ⚠️★**カテゴリ名を2行目に落とさないこと**（2026-09-02 に `|| categoryLabel` を削除）。
+                           グループ見出しがすぐ上にあるので、「開発」「コミュニケーション」を
+                           カードにも出すと**同じことを2回言うだけ**になる。しかも本物の `note` と
+                           同じ見た目で並ぶので、全体が「読まなくていい行」に見えていた。
+                           実測（2026-09-02 / 本番14件）: note があるのは **4件**だけ。
+
+                        ⚠️★**note は常時表示にしないこと**（2026-09-02 / 柴さん）。
+                           note を持つカードだけ背が高くなり、行の中で **82 / 61 / 52px** と
+                           凸凹していた（実測）。畳めば全カードが1行になり高さが揃う。
+                           ⚠️ **福利厚生（`BenefitCard`）と同じにしないこと。** あちらの括弧内は
+                              「月1万円まで」のような**判断に効く値**で59%が持っているので
+                              常時表示のまま。**性質が違うので扱いが違う。**
+
+                        ⚠️ 色はカテゴリで出し分けない（2026-08-23）。ツールは金銭条件ではないので
+                           neutral 固定。以前は緑・黄・紫が意味なく付いていた。 */}
+                    <HoverNoteCard
                       icon={icon}
                       label={tool.name}
-                      /* ⚠️★**カテゴリ名をここに落とさないこと**（2026-09-02 に `|| categoryLabel` を削除）。
-                            グループ見出しがすぐ上にあるので、「開発」「コミュニケーション」を
-                            カードにも出すと**同じことを2回言うだけ**になる。しかも本物の `note` と
-                            同じ見た目で並ぶので、全体が「読まなくていい行」に見えていた。
-                            実測（2026-09-02 / 本番14件）: note があるのは **4件**で、
-                            残り10件はカテゴリ名が note の位置に出ていた。
-                         ⚠️ 入力が無ければ2行目ごと出さない。空欄は空欄のまま
-                            （CLAUDE.md「値が無いことを、ある値に置き換えない」）。 */
-                      sublabel={tool.note || undefined}
-                      /* ⚠️ カテゴリごとの色は使わない（2026-08-23）。
-                            ツールは金銭条件ではないので neutral 固定。
-                            以前は toolCfg のカテゴリ色（緑・黄・紫）がそのまま出ており、
-                            「Salesforce だけ緑」のように意味の無い色分けになっていた。 */
+                      note={tool.note}
                       variant="neutral"
                     />
                   </div>
