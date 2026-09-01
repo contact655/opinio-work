@@ -627,14 +627,17 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
 // 説明していなかったため、企業ページに載ることを本人が認識できていない。
 // ここでは掲載先を明示したうえで、現在の状態と変更導線を出す。
 
-type ViewerListing = "public" | "login_only" | "hidden";
+export type ViewerListing = "public" | "login_only" | "hidden";
 
-type ViewerRelation =
+export type ViewerRelation =
   | { kind: "anonymous" }
   | { kind: "unrelated" }
   | { kind: "affiliated"; listing: ViewerListing; experienceCount: number };
 
-function ListingStatusPanel({
+/* ⚠️ `export` してある理由は `/dev/preview/listing-status` から使うため（2026-09-02）。
+      3状態（掲載中 / ログイン限定 / 非掲載）のうち、実データで出せるのは1つだけ。
+      CLAUDE.md「カードが出る側を一度も描画しないまま本番へ出した」を繰り返さない。 */
+export function ListingStatusPanel({
   relation,
   companyName,
 }: {
@@ -644,9 +647,23 @@ function ListingStatusPanel({
   // 在籍者・経験者以外には出さない。求職者向けの獲得導線は別途（段階0〜2の設計）。
   if (relation.kind !== "affiliated") return null;
 
+  /* ★`toneInk` を足した（2026-09-02）。**ボタンだけ**に使う濃い色。
+        ⚠️ `tone`（明るい方）は**ドットと枠のまま**にする。色の役割
+           （緑＝掲載中 / 橙＝ログイン限定 / 灰＝非掲載）は**変えていない。濃さだけ。**
+        ⚠️ 直す前のボタンは 12.5px（基準 4.5）で:
+             掲載中      … 文字 `--success` on `--success-soft` = **3.58** ❌
+             ログイン限定 … 白文字 on `--warm`                   = **2.15** ❌（大きい文字の基準3.0にも届かない）
+             非掲載      … 白文字 on `--ink-mute` = 7.58 ✅（据え置き）
+        ⚠️★これは 2026-08-31〜09-01 に直した「**文字色**としての `--warm` / `--success`」
+           とは**別の系統**（塗りの上に白文字を置いている側）。あの移行では触っていない。
+        ⚠️ `--success-ink` / `--warm-ink` は本来「明るい背景に載せる文字」の色。
+           ここで**塗り**に使うのは、白文字で 5.48 / 5.02 になることを実測したうえでの個別判断。
+           **名前だけを理由に他所へ広げないこと。** */
   const COPY: Record<ViewerListing, {
     tone: string;
     toneSoft: string;
+    /** ボタン専用の濃い色。文字にも塗りにも使う */
+    toneInk: string;
     label: string;
     body: string;
     action: string;
@@ -654,6 +671,7 @@ function ListingStatusPanel({
     public: {
       tone: "var(--success)",
       toneSoft: "var(--success-soft)",
+      toneInk: "var(--success-ink)",   // 文字色として --success-soft の上で 5.21
       label: "このページに掲載中です",
       body: `あなたの職歴は ${companyName} のページに掲載され、ログインしていない方にも表示されています。`,
       action: "掲載設定を変更する",
@@ -661,6 +679,7 @@ function ListingStatusPanel({
     login_only: {
       tone: "var(--warm)",
       toneSoft: "var(--warm-soft)",
+      toneInk: "var(--warm-ink)",      // 塗りとして白文字で 5.02
       label: "ログインした方にのみ掲載中です",
       body: `あなたの職歴は ${companyName} のページに掲載されていますが、ログインしていない方には表示されていません。全体に公開すると、この会社に興味を持った方から見つけてもらえます。`,
       action: "掲載設定を変更する",
@@ -668,6 +687,7 @@ function ListingStatusPanel({
     hidden: {
       tone: "var(--ink-mute)",
       toneSoft: "var(--bg-tint)",
+      toneInk: "var(--ink-mute)",      // 元から白文字で 7.58。変えない
       label: "このページには掲載されていません",
       body: `あなたには ${companyName} での職歴が登録されていますが、このページには掲載されていません。掲載すると、この会社を調べている方があなたを見つけられるようになります。`,
       action: "掲載する",
@@ -711,9 +731,11 @@ function ListingStatusPanel({
           alignSelf: "flex-start",
           padding: "8px 18px",
           borderRadius: 100,
-          background: relation.listing === "public" ? "transparent" : c.tone,
+          background: relation.listing === "public" ? "transparent" : c.toneInk,
+          /* ⚠️ 枠は `tone`（明るい方）のまま。ここは面積が小さく、
+                文字と背景のコントラストには関与しない。 */
           border: `1px solid ${c.tone}`,
-          color: relation.listing === "public" ? c.tone : "#fff",
+          color: relation.listing === "public" ? c.toneInk : "#fff",
           fontSize: 12.5,
           fontWeight: 700,
           textDecoration: "none",
