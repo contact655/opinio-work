@@ -14,7 +14,7 @@ async function getStats() {
     pendingJobs, pendingMeetings, bizAdmins,
     /* ⚠️ 順番は下の Promise.all と1対1。ずれても型が同じなのでエラーにならない */
     selfListed,
-    onboardingCompleted, profileFilled, appliedOrMet, schoolRequests,
+    onboardingCompleted, profileFilled, appliedOrMet,
   ] = await Promise.all([
     /* ⚠️★ここは `supabase`（運営本人のセッション）で数えていた（〜2026-08-29）。
           **運営も `authenticated` ロールで来るので RLS が効く。**
@@ -65,14 +65,6 @@ async function getStats() {
     // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
     admin.from("ow_profile_desired_roles").select("user_id"),
     admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
-    /* ★学校追加リクエストの pending（2026-09-01 追加）。
-          ⚠️★**要対応に入っていなかった。** 実測（2026-09-01）: **3件・最古は74日前**。
-             `/admin/school-requests` を直接開かないと誰も気づけない状態だった。
-             面談対応者と同じ「運営が動かないと止まったまま」の待ち行列なので、
-             同じようにダッシュボードから呼び出す。
-          ⚠️ `created_at` も取る。**件数だけだと「放置されている」ことが読み取れない**
-             （2026-08-30 に面談対応者で同じ学びを書いている）。 */
-    admin.from("ow_school_requests").select("created_at").eq("status", "pending"),
   ]);
 
   // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
@@ -143,14 +135,7 @@ async function getStats() {
           ⚠️ 行そのものを消していないのは、`archive` に残る文脈を辿れなくするため。
              **数え直そうとしないこと。** */
     pendingReservationsCount: 0,
-    /* ★学校追加リクエスト（2026-09-01）。⚠️ 件数と**最古の経過日**を対にして持つ。 */
-    pendingSchoolRequestsCount: (schoolRequests.data ?? []).length,
-    pendingSchoolRequestsOldestDays: (() => {
-      const rows = (schoolRequests.data ?? []) as { created_at: string }[];
-      if (rows.length === 0) return null;   // ⚠️ 0 ではなく null（0日前と区別する）
-      const oldest = rows.reduce((a, r) => (r.created_at < a ? r.created_at : a), rows[0].created_at);
-      return Math.floor((Date.now() - new Date(oldest).getTime()) / 86400000);
-    })(),
+
     bizAdminsCount: bizAdmins.count ?? 0,
     selfUnreviewedCount: selfListed.count,
     /* ★未確認のうち**最も古いものの経過日数**。0件なら null（0 ではない）。
@@ -183,9 +168,7 @@ export default async function AdminDashboard() {
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0)
     /* ⚠️ 未確認は0にできるので**要対応に数える**（2026-08-25）。
           掲載中の総数を足さないこと。あれは0にならない。 */
-    + stats.selfUnreviewedCount
-    /* ★学校追加リクエストも要対応（2026-09-01）。**0にできる**ので数えてよい。 */
-    + stats.pendingSchoolRequestsCount;
+    + stats.selfUnreviewedCount;
 
   const kpis = [
     {
@@ -647,49 +630,6 @@ export default async function AdminDashboard() {
                         <>最も古いもので {stats.selfUnreviewedOldestDays} 日前 ・ </>
                       )}
                       企業ページに出ている人です。在籍確認はしていません
-                    </p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </Link>
-            )}
-
-            {/* ★学校追加リクエスト（2026-09-01 追加）。
-                   ⚠️★**要対応に入っていなかった。** 実測: **3件・最古74日前**。
-                      `/admin/school-requests` を直接開かないと誰も気づけなかった。
-                   ⚠️ これは**求職者が送ってきたもの**で、承認するまで学校マスタに載らない
-                      ＝ その人の学歴が正しく登録できないまま止まっている。
-                   ⚠️ 面談対応者と同じく **0にできる**ので要対応に数えてよい。 */}
-            {stats.pendingSchoolRequestsCount > 0 && (
-              <Link href="/admin/school-requests" style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: 10,
-                  background: "#FFFBEB", border: "1px solid #FDE68A",
-                  transition: "background 0.15s", cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#FEF3C7", color: "#B45309",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>
-                      学校追加リクエスト {stats.pendingSchoolRequestsCount}件
-                    </p>
-                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
-                      {/* ⚠️ しきい値で色を変えない。**何日で問題かは決めていない。**
-                             面談対応者の行と同じ扱いにしてある。 */}
-                      {stats.pendingSchoolRequestsOldestDays !== null && stats.pendingSchoolRequestsOldestDays >= 1 && (
-                        <>最も古いもので {stats.pendingSchoolRequestsOldestDays} 日前 ・ </>
-                      )}
-                      承認するまで、その人の学歴が登録できません
                     </p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">

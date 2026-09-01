@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -63,11 +62,10 @@ export default async function AdminSchoolsPage() {
             }}>学校マスタ</h1>
           </div>
           <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>
-            {schools.length}件 登録済み ／ 新規追加は
-            <Link href="/admin/school-requests" style={{ color: "var(--royal)", textDecoration: "none", marginLeft: 4 }}>
-              学校追加リクエスト
-            </Link>
-            から承認してください
+            {/* ⚠️ 「新規追加は〈学校追加リクエスト〉から承認してください」を消した（2026-09-01）。
+                   リクエスト機能ごと畳んだため。実測でリクエスト由来の学校は**0件**だった。
+                   学校は migration で足す（マスタ37件はすべてその経路）。 */}
+            {schools.length}件 登録済み
           </p>
         </div>
       </div>

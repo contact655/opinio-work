@@ -264,121 +264,25 @@ function EducationForm({
   );
 }
 
-// ── SchoolRequestBanner ───────────────────────────────────────────────────────
+/* ⚠️★学校マスタへの「追加リクエスト」は 2026-09-01 に畳んだ（柴さんの判断）。
+      それまでは `school_id` が null で保存されたときにバナーを出し、
+      `/api/jobseeker/school-requests` へ送って運営が承認する形だった。
 
-function SchoolRequestBanner({
-  schoolName,
-  kana,
-  onKanaChange,
-  status,
-  error,
-  onSubmit,
-  onClose,
-}: {
-  schoolName: string;
-  kana: string;
-  onKanaChange: (v: string) => void;
-  status: "idle" | "submitting" | "success" | "error";
-  error: string;
-  onSubmit: () => void;
-  onClose: () => void;
-}) {
-  const bannerBase: React.CSSProperties = {
-    marginBottom: "var(--space-4)",
-    padding: "14px var(--space-4)",
-    borderRadius: 10,
-    fontSize: 12,
-    lineHeight: 1.7,
-  };
+   ⚠️ **学歴の保存には元から関係ない。** `ow_user_educations` は
+      `school`(text, NOT NULL) と `school_id`(nullable) の**両方**を持つ
+      「マスタ＋自由入力」のハイブリッドで、LinkedIn と同じ。
+      マスタに無い学校でも**そのまま保存され、プロフィールに出る。**
 
-  if (status === "success") {
-    return (
-      <div style={{ ...bannerBase, background: "var(--success-soft)", border: "1px solid #6ee7b7", color: "var(--ink-soft)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
-          <span style={{ color: "var(--success-ink)", fontWeight: 600 }}>
-            ✓ 「{schoolName}」のマスター追加リクエストを送信しました
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              flexShrink: 0, padding: "3px 10px",
-              background: "transparent", border: "1px solid var(--success)",
-              borderRadius: 6, fontSize: 12, fontWeight: 500, color: "var(--success-ink)",
-              cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    );
-  }
+   ⚠️★消した理由は実績（2026-09-01 実測）:
+        リクエスト全3件（**すべて 2026-06-19 の同じ日**）／ 承認 **0件** ／
+        **リクエスト由来の学校 0件**（マスタ37件はすべて migration 由来）。
+        中身は「あ」「朝霞」など**入力途中の断片**か、**既にマスタにあるもの**だった。
+      ＝ 運営に承認の手を求めながら、**マスタに1件も貢献していなかった。**
+      74日放置されていたのはそのため。
 
-  return (
-    <div style={{ ...bannerBase, background: "var(--purple-soft)", border: "1px solid #c4b5fd", color: "var(--ink-soft)" }}>
-      <div style={{ marginBottom: "var(--space-2)" }}>
-        あなたの学校「<strong style={{ color: "var(--ink)" }}>{schoolName}</strong>」はマスターにありません。
-        運営に追加リクエストを送信できます。
-      </div>
-      <div style={{ marginBottom: error ? 6 : 10 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-          <span style={{ flexShrink: 0, color: "var(--ink-mute)" }}>ふりがな（任意）：</span>
-          <input
-            type="text"
-            value={kana}
-            onChange={(e) => onKanaChange(e.target.value)}
-            placeholder="例: とうきょうだいがく"
-            disabled={status === "submitting"}
-            style={{
-              flex: 1, minWidth: 0, padding: "4px var(--space-2)",
-              border: "1px solid var(--line)", borderRadius: 6,
-              fontSize: 12, fontFamily: "inherit",
-              background: status === "submitting" ? "var(--bg-tint)" : "#fff",
-            }}
-          />
-        </label>
-      </div>
-      {error && (
-        <div style={{ marginBottom: 8, color: "var(--error)", fontSize: 12, fontWeight: 600 }}>
-          エラー: {error}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: "var(--space-2)" }}>
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={status === "submitting"}
-          style={{
-            padding: "5px 14px",
-            background: "var(--purple)", border: "none",
-            borderRadius: 6, fontSize: 12, fontWeight: 600,
-            color: "#fff", cursor: status === "submitting" ? "not-allowed" : "pointer",
-            opacity: status === "submitting" ? 0.6 : 1,
-            fontFamily: "inherit",
-          }}
-        >
-          {status === "submitting" ? "送信中..." : "リクエストを送る"}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={status === "submitting"}
-          style={{
-            padding: "5px 14px",
-            background: "transparent", border: "1px solid var(--line)",
-            borderRadius: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
-            cursor: status === "submitting" ? "not-allowed" : "pointer",
-            opacity: status === "submitting" ? 0.6 : 1,
-            fontFamily: "inherit",
-          }}
-        >
-          今は送らない
-        </button>
-      </div>
-    </div>
-  );
-}
+   ⚠️ **バナーを戻さないこと。** 戻すなら「入力途中の断片を送れない」ようにするのが先。
+   ⚠️ テーブル `ow_school_requests` は残してある（3行は使われた記録）。**DROP していない。**
+   ⚠️ 学校は migration で足す。 */
 
 // ── EducationEditor ───────────────────────────────────────────────────────────
 
@@ -432,10 +336,6 @@ export function EducationEditor({
   const [toastMsg,     setToastMsg]     = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"default" | "error">("default");
   // School request banner state（段階6-8 Phase 3）
-  const [bannerSchoolName, setBannerSchoolName] = useState<string | null>(null);
-  const [bannerKana,       setBannerKana]       = useState<string>("");
-  const [bannerStatus,     setBannerStatus]     = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [bannerError,      setBannerError]      = useState<string>("");
 
   const showToast = useCallback(
     (msg: string, variant: "default" | "error" = "default") => {
@@ -485,13 +385,6 @@ export function EducationEditor({
       setEditDraft(EMPTY_EDU_DRAFT);
       setEditJustSaved(false);
       onClosedRef.current?.();  // ★保存できたらカードごと表示モードへ（2-2〜2-4 と同じ）
-      // 段階6-8 Phase 3: school_id が null の場合、バナー表示
-      if (updated.school_id === null && updated.school.trim().length > 0) {
-        setBannerSchoolName(updated.school);
-        setBannerKana("");
-        setBannerStatus("idle");
-        setBannerError("");
-      }
     } catch {
       showToast("保存に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -533,13 +426,6 @@ export function EducationEditor({
       setAddDraft(EMPTY_EDU_DRAFT);
       setAddJustSaved(false);
       onClosedRef.current?.();
-      // 段階6-8 Phase 3: school_id が null の場合、バナー表示
-      if (inserted.school_id === null && inserted.school.trim().length > 0) {
-        setBannerSchoolName(inserted.school);
-        setBannerKana("");
-        setBannerStatus("idle");
-        setBannerError("");
-      }
     } catch {
       showToast("追加に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -578,39 +464,7 @@ export function EducationEditor({
     if (target) setDeleteTarget(target);
   }, [openDeleteId, educations]);
 
-  // ── School request banner handlers（段階6-8 Phase 3）──────────────────────────
-  const handleBannerSubmit = useCallback(async () => {
-    if (!bannerSchoolName) return;
-    setBannerStatus("submitting");
-    setBannerError("");
-    try {
-      const res = await fetch("/api/jobseeker/school-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          school_name:      bannerSchoolName,
-          school_name_kana: bannerKana.trim() || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
-        setBannerError(body.error ?? "リクエストの送信に失敗しました");
-        setBannerStatus("error");
-        return;
-      }
-      setBannerStatus("success");
-    } catch {
-      setBannerError("ネットワークエラーが発生しました");
-      setBannerStatus("error");
-    }
-  }, [bannerSchoolName, bannerKana]);
 
-  const handleBannerClose = useCallback(() => {
-    setBannerSchoolName(null);
-    setBannerKana("");
-    setBannerStatus("idle");
-    setBannerError("");
-  }, []);
 
   /* ★編集はモーダル（2026-08-17 / フェーズ2）。この部品は**常にマウントされている**。
         ⚠️ 差分の基準は**いま保存されている行**（ルール⑦）。
@@ -628,17 +482,6 @@ export function EducationEditor({
       {/* ⚠️ 見出しはここでは描かない（2026-08-17）。`/u/[id]` と同じ
              `ProfileTimelineSection` が持つ。ここに戻すと 0件のときも見出しが出る。 */}
       {/* School request banner（段階6-8 Phase 3）— 教育リストの上に表示 */}
-      {bannerSchoolName && (
-        <SchoolRequestBanner
-          schoolName={bannerSchoolName}
-          kana={bannerKana}
-          onKanaChange={setBannerKana}
-          status={bannerStatus}
-          error={bannerError}
-          onSubmit={() => { void handleBannerSubmit(); }}
-          onClose={handleBannerClose}
-        />
-      )}
 
       {/* ★編集フォームだけ（2026-08-16 / 2-5）。一覧・鉛筆・ゴミ箱・0件の1行は
              公開プロフィールと同じ `MergedTimeline`（学歴の行）が持つ。
