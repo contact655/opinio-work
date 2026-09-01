@@ -106,7 +106,7 @@ export default function CompanyCardsPreview() {
       <div style={{
         marginTop: 8, padding: "12px 14px", borderRadius: 8,
         background: "#FFFBEB", border: "1px solid #FDE68A",
-        fontSize: 12, color: "#92400E", lineHeight: 1.8,
+        fontSize: 12, color: "var(--warm-ink)", lineHeight: 1.8,
       }}>
         ⚠️ <strong>これは不具合ではありません。</strong>0人・0件は事実で、
         「値が無いのに既定値を出す」には当たりません。

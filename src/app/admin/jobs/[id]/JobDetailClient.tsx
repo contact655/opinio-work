@@ -75,7 +75,7 @@ type Job = {
 
 
 const STATUS_BADGE: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending_review: { label: "審査待ち",   color: "#92400E", bg: "#FEF3C7", border: "#FDE68A" },
+  pending_review: { label: "審査待ち",   color: "var(--warm-ink)", bg: "#FEF3C7", border: "#FDE68A" },
   published:      { label: "公開中",     color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
   active:         { label: "公開中(旧)", color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
   draft:          { label: "下書き",     color: "#475569", bg: "#F1F5F9", border: "#E2E8F0" },
@@ -758,7 +758,7 @@ function SourcePanel({ job }: { job: Job }) {
       borderRadius: 10, padding: "16px 20px", marginBottom: 28,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: missing ? "#92400E" : "#334155" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: missing ? "var(--warm-ink)" : "#334155" }}>
           出典（運営用）
         </span>
         <span style={{ fontSize: 12, color: "#94A3B8" }}>公開ページには出ません</span>
@@ -811,7 +811,7 @@ function SourcePanel({ job }: { job: Job }) {
         {!error && !saved && (
           verifiedAt
             ? <span style={{ color: "#64748B" }}>最終突合: {formatDate(verifiedAt)}</span>
-            : <span style={{ color: missing ? "#92400E" : "#64748B" }}>
+            : <span style={{ color: missing ? "var(--warm-ink)" : "#64748B" }}>
                 {missing ? "出典が未記録です" : "原文との突合はまだ記録されていません"}
               </span>
         )}

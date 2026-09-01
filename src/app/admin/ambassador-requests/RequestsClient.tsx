@@ -86,7 +86,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                   {!r.reviewedAt && (
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
-                      background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD34D",
+                      background: "#FEF3C7", color: "var(--warm-ink)", border: "1px solid #FCD34D",
                       whiteSpace: "nowrap",
                     }}>未確認</span>
                   )}
@@ -97,7 +97,7 @@ export function RequestsClient({ requests }: { requests: AmbassadorRequest[] }) 
                          「企業ページから外す」で片付けられる。 */}
                   {r.isTest && (
                     <span style={{
-                      marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#92400E",
+                      marginLeft: 6, fontSize: 11, fontWeight: 700, color: "var(--warm-ink)",
                       background: "#FEF3C7", border: "1px solid #FDE68A",
                       borderRadius: 4, padding: "1px 5px", verticalAlign: "middle",
                       whiteSpace: "nowrap",

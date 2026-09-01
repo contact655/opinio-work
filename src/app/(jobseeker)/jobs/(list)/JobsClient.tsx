@@ -1077,13 +1077,13 @@ export default function JobsClient({
               background: "var(--warm-soft)", border: "1px solid #FDE68A",
               borderRadius: 10, padding: "8px 14px",
             }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#92400E" }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>
                 {ignoredTerms.map((t) => `「${t}」`).join("")}
                 は絞り込みに使えませんでした
               </span>
               {/* 全語が使えなかったときは「残りの語」が存在しないので出さない */}
               {ignoredTerms.length < q.trim().split(/[\s　]+/).filter(Boolean).length && (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#92400E", opacity: 0.85 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--warm-ink)", opacity: 0.85 }}>
                   残りの語だけで検索しています
                 </span>
               )}
@@ -1188,7 +1188,7 @@ export default function JobsClient({
                 display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0,
                 padding: "3px 10px", borderRadius: 100,
                 background: "#FEF3C7", border: "1.5px solid #FDE68A",
-                color: "#92400E", fontSize: 12, fontWeight: 700,
+                color: "var(--warm-ink)", fontSize: 12, fontWeight: 700,
               }}>
                 指定された企業が見つかりません。すべての募集を表示しています
               </span>

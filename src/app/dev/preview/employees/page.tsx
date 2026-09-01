@@ -105,7 +105,7 @@ export default function EmployeesPreview() {
       <div style={{
         marginTop: 8, marginBottom: 28, padding: "12px 14px", borderRadius: 8,
         background: "#FFFBEB", border: "1px solid #FDE68A",
-        fontSize: 12, color: "#92400E", lineHeight: 1.8,
+        fontSize: 12, color: "var(--warm-ink)", lineHeight: 1.8,
       }}>
         ⚠️ <strong>私（Claude）は <code>jobCategoryColors.ts</code> を変えていません。</strong>
         どちらを採るかは製品の判断です。選択肢と根拠は <code>docs/todo.md</code>。

@@ -594,12 +594,12 @@ export function MeetingDetailPanel({
           <div style={{
             display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
           }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
             </svg>
             <span style={{
               fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 12, fontWeight: 700, color: "#B45309", letterSpacing: "0.15em",
+              fontSize: 12, fontWeight: 700, color: "var(--warm-ink)", letterSpacing: "0.15em",
             }}>
               INTERNAL NOTE
             </span>
@@ -608,7 +608,7 @@ export function MeetingDetailPanel({
             </span>
             <span aria-live="polite" style={{ marginLeft: "auto" }}>
               {memoSaveState === "saving" && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#B45309" }}>保存中…</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>保存中…</span>
               )}
               {memoSaveState === "saved" && (
                 <span style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)" }}>✓ 保存済み</span>
@@ -636,7 +636,7 @@ export function MeetingDetailPanel({
               outline: "none",
               boxSizing: "border-box",
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--warm)"; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--warm-ink)"; }}
             onBlur={(e) => { e.currentTarget.style.borderColor = "#FDE68A"; }}
           />
 

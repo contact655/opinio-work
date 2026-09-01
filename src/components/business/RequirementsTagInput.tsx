@@ -5,28 +5,24 @@ import { useRef } from "react";
 type Props = {
   tags: string[];
   onTagsChange: (tags: string[]) => void;
-  color?: "royal" | "purple" | "success" | "warm";
   placeholder?: string;
 };
 
 export function RequirementsTagInput({
   tags,
   onTagsChange,
-  color = "royal",
   placeholder = "タグを追加して Enter...",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const pillBg =
-    color === "purple" ? "var(--purple-soft)"
-    : color === "success" ? "var(--success-soft)"
-    : color === "warm" ? "var(--warm-soft)"
-    : "var(--royal-50)";
-  const pillColor =
-    color === "purple" ? "var(--purple)"
-    : color === "success" ? "var(--success-ink)"
-    : color === "warm" ? "var(--warm-ink)"
-    : "var(--royal)";
+  /* ⚠️ **色を受け取る prop は置かない**（2026-09-02 に `color` を撤去）。
+        呼び出し側で色を決められると、凡例の無い色分けが増える
+        （ui-conventions「チップに個別の色を渡せる形にしないこと」）。
+        実際、渡されていたのは必須スキル=royal / 歓迎スキル=purple の2つで、
+        **どちらの入力欄にも見出しが付いている**ので色は意味を足していなかった。
+        `success` と `warm` の分岐は一度も呼ばれていない死んだ枝だった。 */
+  const pillBg = "var(--royal-50)";
+  const pillColor = "var(--royal)";
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     const val = e.currentTarget.value.trim();

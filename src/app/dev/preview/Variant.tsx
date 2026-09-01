@@ -66,7 +66,7 @@ export function PreviewHeader({ title, children }: { title: string; children: Re
       <p style={{
         margin: "8px 0 0", padding: "10px 12px", borderRadius: 8,
         background: "#FFFBEB", border: "1px solid #FDE68A",
-        fontSize: 12, color: "#92400E", lineHeight: 1.7,
+        fontSize: 12, color: "var(--warm-ink)", lineHeight: 1.7,
       }}>
         <strong>絶対値（px）を実ページと比べないでください。</strong>
         この画面の本文幅は最大 980px で、企業詳細・求人詳細の列幅とは違います。

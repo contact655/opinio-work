@@ -63,7 +63,7 @@ const CATEGORY_DEFS: {
   {
     id: "event",
     label: "チーム・イベント",
-    iconColor: "#B45309",
+    iconColor: "var(--warm-ink)",
     iconBg: "var(--warm-soft)",
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

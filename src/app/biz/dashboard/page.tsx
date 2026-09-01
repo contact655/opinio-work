@@ -182,11 +182,11 @@ export default async function BizDashboardPage({
           borderRadius: 12, padding: "14px 18px", marginBottom: 16,
           display: "flex", alignItems: "flex-start", gap: 12,
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 3 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>
               運営審査中です
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
@@ -221,7 +221,7 @@ export default async function BizDashboardPage({
             {ctx.logoLetter ?? ctx.tenantName[0]}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 3 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>
               企業ロゴが未設定です
             </div>
             <div style={{ fontSize: 11, color: "#78350F", lineHeight: 1.6 }}>

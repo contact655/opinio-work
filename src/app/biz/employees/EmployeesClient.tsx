@@ -202,7 +202,7 @@ function HiddenCard({
           </span>
           <span style={{
             fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
-            color: "#92400E", background: "#FEF3C7", border: "1px solid #FDE68A",
+            color: "var(--warm-ink)", background: "#FEF3C7", border: "1px solid #FDE68A",
             borderRadius: 4, padding: "1px 6px", fontFamily: "var(--font-inter), var(--font-noto)",
           }}>
             非表示中
@@ -288,7 +288,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
           <strong style={{ color: "var(--ink)" }}>管理アカウント</strong> は、この管理画面を使えるメンバー（チーム管理と同じ）です。
         </p>
         {hidden.length > 0 && (
-          <div style={{ marginTop: 10, padding: "8px 12px", background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "#92400E" }}>
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "var(--warm-ink)" }}>
             企業ページから非表示中のメンバー: {hidden.length}名 — 「非表示中」タブから解除できます
           </div>
         )}
@@ -322,7 +322,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
                 fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700,
                 padding: "1px 6px", borderRadius: 10,
                 background: tab === key ? (key === "hidden" ? "#FEF3C7" : "var(--royal-50)") : "var(--line-soft)",
-                color: tab === key ? (key === "hidden" ? "#92400E" : "var(--royal)") : "var(--ink-mute)",
+                color: tab === key ? (key === "hidden" ? "var(--warm-ink)" : "var(--royal)") : "var(--ink-mute)",
               }}>
                 {count}
               </span>
@@ -333,7 +333,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
 
       {/* 非表示タブの説明 */}
       {tab === "hidden" && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
+        <div style={{ marginBottom: 16, padding: "10px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "var(--warm-ink)", lineHeight: 1.7 }}>
           企業ページ（公開面）から非表示にしたメンバーです。<br />
           ユーザー自身のプロフィール（/u/...）には変わらず表示されます。「表示に戻す」で解除できます。
         </div>

@@ -38,13 +38,14 @@ const cards = [
    */
   {
     emoji: "🏢",
-    bg: "var(--warm-soft)",
+    /* ⚠️ 黄色（--warm 系）にしないこと。このサイトの黄色は「注意・未完了・待ち」の色で、
+          企業向けページへの案内は注意ではない。3色目が要るという理由だけで
+          warm を借りると、黄色の意味がまた2つになる（2026-09-02）。 */
+    bg: "var(--royal-50)",
     title: "企業のご担当者さまへ",
     desc: "掲載・料金については企業向けページをご覧ください",
     cta: "企業向けページを見る →",
-    /* ⚠️ これは**文字色**（85行目の `color: card.ctaColor`）。
-          `--warm` は白の上で 2.15 で、13px には届かない。→ `--warm-ink`（5.02） */
-    ctaColor: "var(--warm-ink)",
+    ctaColor: "var(--royal)",
     href: "/business",
     /** サイト内リンクなので next/link で遷移する（全ページ再読み込みにしない） */
     internal: true,

@@ -90,7 +90,7 @@ export default async function AdminCandidatesPage({
           {neverLoggedInCount > 0 && (
             <span style={{
               fontSize: 12, padding: "3px 10px", borderRadius: 100,
-              background: "#FEF3C7", color: "#B45309",
+              background: "#FEF3C7", color: "var(--warm-ink)",
               border: "1px solid #FDE68A", fontWeight: 600,
             }}>
               未ログイン {neverLoggedInCount}名

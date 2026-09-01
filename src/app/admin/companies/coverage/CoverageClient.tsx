@@ -106,7 +106,7 @@ export default function CoverageClient(
         <br />
         列見出しをクリックすると<strong>その項目が空の企業だけ</strong>に絞れます。
         <br />
-        空のマスは、運営画面に入力欄がある項目は <strong style={{ color: "#B45309" }}>＋</strong>（押すと該当タブが開く）、
+        空のマスは、運営画面に入力欄がある項目は <strong style={{ color: "var(--warm-ink)" }}>＋</strong>（押すと該当タブが開く）、
         migration で投入する項目は <strong>−</strong> で示しています。
       </p>
 
@@ -210,7 +210,7 @@ export default function CoverageClient(
                   >
                     {col.label}
                     <br />
-                    <span style={{ fontWeight: 500, color: emptyCount[col.key] > 0 ? "#B45309" : "#059669" }}>
+                    <span style={{ fontWeight: 500, color: emptyCount[col.key] > 0 ? "var(--warm-ink)" : "#059669" }}>
                       {emptyCount[col.key] === 0 ? "済" : `空${emptyCount[col.key]}`}
                     </span>
                   </button>
@@ -267,7 +267,7 @@ export default function CoverageClient(
                       <Link
                         href={`/admin/companies/${r.id}?tab=${col.tab}`}
                         aria-label={`${r.name} の ${col.title} を入力する`}
-                        style={{ display: "block", color: "#B45309", textDecoration: "none", fontSize: 14, lineHeight: 1 }}
+                        style={{ display: "block", color: "var(--warm-ink)", textDecoration: "none", fontSize: 14, lineHeight: 1 }}
                       >
                         ＋
                       </Link>

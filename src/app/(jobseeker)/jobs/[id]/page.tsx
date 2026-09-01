@@ -236,7 +236,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
 function StatusBadge({ status, label }: { status: PositionMember["status"]; label: string }) {
   const styles = {
     current: { bg: "var(--success-soft)", color: "var(--success-ink)", border: "#A7F3D0" },
-    moved: { bg: "var(--warm-soft, #FEF3C7)", color: "var(--warm, #F59E0B)", border: "#FDE68A" },
+    moved: { bg: "var(--warm-soft)", color: "var(--warm-ink)", border: "#FDE68A" },
     alumni: { bg: "var(--purple-soft, #F5F3FF)", color: "var(--purple)", border: "#E9D5FF" },
   };
   const s = styles[status];

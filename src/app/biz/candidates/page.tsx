@@ -56,7 +56,7 @@ export default async function CandidatesPage() {
             background: "var(--warm-soft)", display: "flex",
             alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
           }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
@@ -450,10 +450,10 @@ export default async function CandidatesPage() {
           background: "var(--warm-soft)", border: "1px solid #FDE68A",
           borderRadius: 10, padding: "14px 18px", marginBottom: 20,
         }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 4 }}>
             スカウト送信は現在準備中です
           </div>
-          <div style={{ fontSize: 12.5, color: "#92400E", lineHeight: 1.75 }}>
+          <div style={{ fontSize: 12.5, color: "var(--warm-ink)", lineHeight: 1.75 }}>
             求職者側の受信画面を用意している最中のため、送信を一時的に停止しています。
             候補者の検索・閲覧はそのままご利用いただけます。
           </div>

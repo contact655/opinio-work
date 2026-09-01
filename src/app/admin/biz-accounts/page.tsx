@@ -162,7 +162,7 @@ export default async function AdminBizAccountsPage({
     {
       label: "未ログイン",
       value: neverLoggedInCount,
-      color: neverLoggedInCount > 0 ? "#B45309" : "var(--success-ink)",
+      color: neverLoggedInCount > 0 ? "var(--warm-ink)" : "var(--success-ink)",
       bg:    neverLoggedInCount > 0 ? "#FEF3C7" : "#ECFDF5",
     },
   ];
@@ -354,7 +354,7 @@ export default async function AdminBizAccountsPage({
                       {acc.neverLoggedIn ? (
                         <span style={{
                           fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 100,
-                          background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A",
+                          background: "#FEF3C7", color: "var(--warm-ink)", border: "1px solid #FDE68A",
                           display: "inline-flex", alignItems: "center", gap: 5,
                         }}>
                           <span style={{
@@ -403,7 +403,7 @@ export default async function AdminBizAccountsPage({
                     <td style={{ padding: "12px 16px" }}>
                       {(() => {
                         const state = !acc.userId
-                          ? { label: "招待中", bg: "#FEF3C7", fg: "#B45309", bd: "#FDE68A", dot: "#F59E0B" }
+                          ? { label: "招待中", bg: "#FEF3C7", fg: "var(--warm-ink)", bd: "#FDE68A", dot: "#F59E0B" }
                           : acc.acceptedAt
                             ? { label: "承諾済み", bg: "#ECFDF5", fg: "var(--success)", bd: "#A7F3D0", dot: "var(--success)" }
                             : { label: "運営が直接登録", bg: "#EFF3FC", fg: "var(--royal)", bd: "#DCE5F7", dot: "#3B5FD9" };
@@ -462,11 +462,11 @@ export default async function AdminBizAccountsPage({
           background: "#FFFBEB", border: "1px solid #FDE68A",
           display: "flex", alignItems: "center", gap: 10, fontSize: 13,
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span style={{ color: "#92400E", fontWeight: 500 }}>
+          <span style={{ color: "var(--warm-ink)", fontWeight: 500 }}>
             <strong>{neverLoggedInCount}名</strong>の担当者が招待後にまだログインしていません。
             必要に応じて再招待を検討してください。
           </span>

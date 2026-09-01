@@ -341,18 +341,18 @@ export default async function AnalyticsPage() {
           display: "flex", flexWrap: "wrap", gap: 16,
           marginBottom: 24,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#92400E", fontWeight: 600 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--warm-ink)", fontWeight: 600 }}>
             <AlertCircle size={14} />
             対応が必要な項目
           </div>
           {todos.reply_overdue > 0 && (
-            <span style={{ fontSize: 12, color: "#92400E" }}>返信遅延: <strong>{todos.reply_overdue}件</strong></span>
+            <span style={{ fontSize: 12, color: "var(--warm-ink)" }}>返信遅延: <strong>{todos.reply_overdue}件</strong></span>
           )}
           {todos.new_applications > 0 && (
-            <span style={{ fontSize: 12, color: "#92400E" }}>新規応募: <strong>{todos.new_applications}件</strong></span>
+            <span style={{ fontSize: 12, color: "var(--warm-ink)" }}>新規応募: <strong>{todos.new_applications}件</strong></span>
           )}
           {todos.interviews_today > 0 && (
-            <span style={{ fontSize: 12, color: "#92400E" }}>本日面談: <strong>{todos.interviews_today}件</strong></span>
+            <span style={{ fontSize: 12, color: "var(--warm-ink)" }}>本日面談: <strong>{todos.interviews_today}件</strong></span>
           )}
         </div>
       )}

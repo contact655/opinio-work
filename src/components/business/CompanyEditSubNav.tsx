@@ -119,7 +119,7 @@ export function CompanyEditSubNav({
             background: "var(--warm-soft)", border: "1px solid #FDE68A",
           }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm)", flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#92400E" }}>未公開の変更あり</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>未公開の変更あり</span>
           </div>
         ) : (
           <div style={{

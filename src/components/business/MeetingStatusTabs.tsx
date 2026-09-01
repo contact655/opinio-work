@@ -4,7 +4,7 @@ import type { MeetingStatus } from "@/lib/business/mockMeetings";
 import { STATUS_TABS } from "@/lib/business/mockMeetings";
 
 const STATUS_COLORS: Record<MeetingStatus, { bg: string; border: string; color: string }> = {
-  pending:           { bg: "#FFFBEB",             border: "#FCD34D", color: "#B45309" },
+  pending:           { bg: "#FFFBEB",             border: "#FCD34D", color: "var(--warm-ink)" },
   company_contacted: { bg: "var(--royal-50)",      border: "var(--royal)", color: "var(--royal)" },
   scheduled:         { bg: "var(--purple-soft)",   border: "var(--purple)", color: "var(--purple)" },
   completed:         { bg: "#F1F5F9",              border: "#94A3B8", color: "#475569" },

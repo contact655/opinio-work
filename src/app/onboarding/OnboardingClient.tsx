@@ -823,7 +823,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
 
                   {/* ⚠️ 揃っていない行は保存されない。黙って捨てない。 */}
                   {touched && !ready && (
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#92400E", marginTop: 10, lineHeight: 1.7 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 10, lineHeight: 1.7 }}>
                       会社名・職種・入社年月・退職年月がそろうと保存されます。
                     </p>
                   )}
@@ -930,7 +930,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           {/* ⚠️ 会社だけ埋めて職種・年月が空だと**保存されない**。
                  黙って捨てると、いま直したのと同じ「入力させたのに保存しない」に戻る。 */}
           {hasCompany && !canSaveExperience && (
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#92400E", background: "var(--warm-soft)",
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", background: "var(--warm-soft)",
                         border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginTop: 16, lineHeight: 1.7 }}>
               {isCurrent
                 ? "職種と入社年月を選ぶと、経歴として保存されます。"

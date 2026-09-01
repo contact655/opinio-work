@@ -293,7 +293,7 @@ export default function AdminArticlesClient({
                         border: `1px solid ${article.company_id ? "#D97706" : "var(--line, #E2E8F0)"}`,
                         fontSize: 12, fontFamily: "inherit",
                         background: article.company_id ? "#FFFBEB" : "#fff",
-                        color: article.company_id ? "#B45309" : "var(--ink-mute, #94A3B8)",
+                        color: article.company_id ? "var(--warm-ink)" : "var(--ink-mute, #94A3B8)",
                         cursor: "pointer",
                         opacity: linkingCompany === article.id ? 0.5 : 1,
                       }}

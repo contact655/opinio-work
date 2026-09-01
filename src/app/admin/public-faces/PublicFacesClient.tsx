@@ -38,7 +38,7 @@ export function PublicFacesClient({ faces }: { faces: PublicFace[] | null }) {
           {suspicious.length > 0 && (
             <div style={{
               padding: "12px 14px", borderRadius: 8, marginBottom: 16,
-              background: "#FEF3C7", border: "1px solid #FDE68A", color: "#92400E",
+              background: "#FEF3C7", border: "1px solid #FDE68A", color: "var(--warm-ink)",
               fontSize: 13, lineHeight: 1.7,
             }}>
               <strong>要確認 {suspicious.length}名</strong> — 社内ドメイン（<code>@opinio.co.jp</code>）
@@ -79,7 +79,7 @@ export function PublicFacesClient({ faces }: { faces: PublicFace[] | null }) {
                         </Link>
                         {f.isTest && (
                           <span style={{
-                            marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#92400E",
+                            marginLeft: 6, fontSize: 11, fontWeight: 700, color: "var(--warm-ink)",
                             background: "#FEF3C7", border: "1px solid #FDE68A",
                             borderRadius: 4, padding: "1px 5px",
                           }}>

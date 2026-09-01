@@ -48,13 +48,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   other:     "その他",
 };
 
+/* ⚠️ **カテゴリごとに色を変えない**（2026-09-02 に6色 → 1色）。
+      チップの**中身がラベルそのもの**（528行目 `{CATEGORY_LABELS[...]}`）なので、
+      色は意味を足していない。足していないのに
+      「採用情報」を赤（＝エラー・危険）、「インタビュー」を黄（＝注意・未完了）で
+      塗っていた。凡例の無い色分けは増やさない（ui-conventions）。 */
 const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
-  culture:   { bg: "var(--royal-50)",    color: "var(--royal)" },
-  interview: { bg: "var(--warm-soft)",   color: "#92400E" },
-  event:     { bg: "var(--purple-soft)", color: "var(--purple)" },
-  product:   { bg: "var(--success-soft)", color: "var(--success-ink)" },
-  hiring:    { bg: "#FEE2E2",            color: "var(--error-ink)" },
-  other:     { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
+  culture:   { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  interview: { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  event:     { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  product:   { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  hiring:    { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  other:     { bg: "var(--line-soft)", color: "var(--ink-mute)" },
 };
 
 // ─── External link type maps ──────────────────────────────────────────────────
@@ -68,13 +73,16 @@ const TYPE_LABELS: Record<ContentType, string> = {
   other:   "その他",
 };
 
+/* ⚠️ 上の CATEGORY_COLORS と同じ理由で1色。1439行目で
+      `<Badge …>{TYPE_LABELS[t]}</Badge>` と、ラベルを中身にして描いている。
+      アイコン（TYPE_ICONS）も併記されるので、色が無くても種類は分かる。 */
 const TYPE_COLORS: Record<ContentType, { bg: string; color: string }> = {
-  article: { bg: "var(--royal-50)",    color: "var(--royal)" },
-  video:   { bg: "var(--error-soft)",  color: "var(--error-ink)" },
-  audio:   { bg: "var(--purple-soft)", color: "var(--purple)" },
-  social:  { bg: "var(--success-soft)", color: "var(--success-ink)" },
-  event:   { bg: "var(--warm-soft)",   color: "var(--warm-ink)" },
-  other:   { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
+  article: { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  video:   { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  audio:   { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  social:  { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  event:   { bg: "var(--line-soft)", color: "var(--ink-mute)" },
+  other:   { bg: "var(--line-soft)", color: "var(--ink-mute)" },
 };
 
 const TYPE_ICONS: Record<ContentType, string> = {

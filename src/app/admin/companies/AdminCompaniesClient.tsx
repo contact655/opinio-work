@@ -291,7 +291,7 @@ export default function AdminCompaniesClient(
           掲載条件の判定に失敗しました。<strong>「要対応」の件数は表示できていません</strong>（0件という意味ではありません）。
         </div>
       ) : blockedCount > 0 ? (
-        <div role="status" style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#92400E", lineHeight: 1.7 }}>
+        <div role="status" style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--warm-ink)", lineHeight: 1.7 }}>
           <strong>要対応 {blockedCount}社</strong> — 公開中ですが、いまの掲載条件を満たしていません。
           一度取り下げると、直すまで公開に戻せません。表の「⚠️ 要対応」から企業詳細を開いて設定してください。
         </div>
@@ -419,7 +419,7 @@ export default function AdminCompaniesClient(
                                   display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4,
                                   padding: "2px 7px", borderRadius: 100,
                                   background: "#FEF3C7", border: "1px solid #FDE68A",
-                                  fontSize: 10.5, fontWeight: 700, color: "#92400E", whiteSpace: "nowrap",
+                                  fontSize: 10.5, fontWeight: 700, color: "var(--warm-ink)", whiteSpace: "nowrap",
                                 }}
                               >
                                 ⚠️ 要対応
@@ -525,7 +525,7 @@ export default function AdminCompaniesClient(
                             title="運営として掲載を承認します。取り消しはできません（掲載は別操作）"
                             style={{
                               fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
-                              background: "var(--warm)", color: "#fff", border: "none", whiteSpace: "nowrap",
+                              background: "var(--warm-ink)", color: "#fff", border: "none", whiteSpace: "nowrap",
                               opacity: isLoading ? 0.5 : 1,
                             }}>
                             承認する

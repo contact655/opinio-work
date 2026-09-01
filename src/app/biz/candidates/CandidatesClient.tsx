@@ -121,7 +121,7 @@ function Pill({
 }) {
   const palette = {
     royal:  { bg: "var(--royal-50)",   border: "var(--royal)",   text: "var(--royal)" },
-    warm:   { bg: "var(--warm-soft)",  border: "#F59E0B",        text: "#92400E" },
+    warm:   { bg: "var(--warm-soft)",  border: "#F59E0B",        text: "var(--warm-ink)" },
     purple: { bg: "var(--purple-soft)", border: "var(--purple)", text: "var(--purple)" },
   }[color];
   return (

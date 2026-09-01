@@ -706,7 +706,7 @@ export function CreateCompanyClient({
           const isAmber = false;
           const bg = isAmber ? "var(--warm-soft)" : "var(--royal-50)";
           const border = isAmber ? "1.5px solid #FCD34D" : "1.5px solid var(--royal-100)";
-          const headColor = isAmber ? "#92400E" : "var(--royal)";
+          const headColor = isAmber ? "var(--warm-ink)" : "var(--royal)";
           const bodyColor = isAmber ? "#78350F" : "#1e3a6e";
           return (
           <div style={{ background: bg, border, borderRadius: 10, padding: "16px 18px" }}>
@@ -767,7 +767,7 @@ export function CreateCompanyClient({
                   disabled={joinRequestLoading}
                   style={{
                     padding: "8px 16px",
-                    background: isAmber ? "#92400E" : "var(--royal)",
+                    background: isAmber ? "var(--warm-ink)" : "var(--royal)",
                     color: "#fff",
                     border: "none", borderRadius: 8,
                     fontSize: 12, fontWeight: 600,
@@ -788,7 +788,7 @@ export function CreateCompanyClient({
                   style={{
                     padding: "8px 16px",
                     background: "transparent",
-                    color: isAmber ? "#92400E" : "var(--royal)",
+                    color: isAmber ? "var(--warm-ink)" : "var(--royal)",
                     border: `1.5px solid ${isAmber ? "#FCD34D" : "var(--royal-100)"}`,
                     borderRadius: 8,
                     fontSize: 12, fontWeight: 600,

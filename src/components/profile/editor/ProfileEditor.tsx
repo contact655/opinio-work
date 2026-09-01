@@ -343,7 +343,7 @@ export default function ProfileEditor({
               background: "#F59E0B",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 11V6a2 2 0 0 0-4 0v5" />
                 <path d="M14 10V4a2 2 0 0 0-4 0v6" />
                 <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
@@ -351,10 +351,10 @@ export default function ProfileEditor({
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "#92400E", marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "var(--warm-ink)", marginBottom: 4 }}>
                 ようこそ！まずはプロフィールを完成させましょう
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#B45309", lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", lineHeight: 1.7 }}>
                 自己紹介・職歴・学歴を入力すると、企業のカジュアル面談やメンター相談が
                 スムーズになります。<strong>入力内容は自動保存</strong>されます。
               </div>
@@ -367,7 +367,7 @@ export default function ProfileEditor({
               aria-label="バナーを閉じる"
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "#B45309", padding: 4, flexShrink: 0,
+                color: "var(--warm-ink)", padding: 4, flexShrink: 0,
                 fontSize: 18, lineHeight: 1,
               }}
             >

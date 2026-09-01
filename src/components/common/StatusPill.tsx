@@ -43,8 +43,8 @@ interface StatusPillProps {
 // ─── 6色相パレット（CSS変数のみ使用、ハードコード禁止） ────────────────────────
 const STYLES: Record<StatusVariant, { bg: string; color: string; label: string }> = {
   // amber ─────────────────────────────────────────────────────────────────────
-  pending:            { bg: "var(--warm-soft)",    color: "#B45309",       label: "新規受信" },
-  pending_received:   { bg: "var(--warm-soft)",    color: "#B45309",       label: "未対応" },
+  pending:            { bg: "var(--warm-soft)",    color: "var(--warm-ink)",       label: "新規受信" },
+  pending_received:   { bg: "var(--warm-soft)",    color: "var(--warm-ink)",       label: "未対応" },
   // royal blue ────────────────────────────────────────────────────────────────
   company_contacted:  { bg: "var(--royal-50)",     color: "var(--royal)",  label: "確認中" },
   confirming:         { bg: "var(--royal-50)",     color: "var(--royal)",  label: "確認中" },

@@ -1197,7 +1197,7 @@ export function CompanyEditClient({
             padding: "7px 14px",
             borderRadius: 8,
             background: "#FFFBEB",
-            color: "#92400E",
+            color: "var(--warm-ink)",
             border: "none",
             fontSize: 12,
             fontWeight: 600,

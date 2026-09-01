@@ -299,7 +299,7 @@ export default function PlacementsClient({ placements: initial, users, companies
                     <span style={{
                       display: "inline-block",
                       background: (p.daysLeft ?? 0) > 180 ? "var(--error-soft)" : "var(--warm-soft)",
-                      color: (p.daysLeft ?? 0) > 180 ? "var(--error)" : "#92400E",
+                      color: (p.daysLeft ?? 0) > 180 ? "var(--error)" : "var(--warm-ink)",
                       fontSize: 12, fontWeight: 700,
                       padding: "3px 10px", borderRadius: 100,
                     }}>

@@ -184,7 +184,7 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
             display: "inline-flex", alignItems: "center", gap: 5,
             padding: "6px 14px",
             background: "#FEF3C7",
-            color: "#92400E",
+            color: "var(--warm-ink)",
             border: "1px solid #FCD34D",
             borderRadius: 100,
             fontSize: 13,

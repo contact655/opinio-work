@@ -27,7 +27,7 @@ export default function BenefitsEditorPreview() {
       <div style={{
         marginTop: 8, padding: "12px 14px", borderRadius: 8,
         background: "#FFFBEB", border: "1px solid #FDE68A",
-        fontSize: 12, color: "#92400E", lineHeight: 1.8,
+        fontSize: 12, color: "var(--warm-ink)", lineHeight: 1.8,
       }}>
         ⚠️ <strong>これは <code>/biz/company</code> の完全な代わりにはなりません。</strong>
         ページ側の配線（<code>items={"{form.benefitsTags}"}</code> /

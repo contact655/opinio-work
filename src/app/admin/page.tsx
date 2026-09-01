@@ -230,7 +230,7 @@ export default async function AdminDashboard() {
         </svg>
       ),
       iconBg: "#FEF3C7",
-      iconColor: "#B45309",
+      iconColor: "var(--warm-ink)",
       accentBar: "#F59E0B",
       href: "/admin/jobs",
     },
@@ -279,7 +279,7 @@ export default async function AdminDashboard() {
               background: "#F59E0B",
               boxShadow: "0 0 0 3px rgba(245,158,11,0.25)",
             }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#92400E" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)" }}>
               要対応タスク {totalPending}件
             </span>
           </div>
@@ -360,7 +360,7 @@ export default async function AdminDashboard() {
           { label: "登録完了", count: total, color: "var(--royal)", bg: "#EFF3FC" },
           { label: "オンボーディング完了", count: stats.onboardingCompletedCount, color: "#7C3AED", bg: "#F5F3FF" },
           { label: "プロフィール記入済み", count: stats.profileFilledCount, color: "var(--success-ink)", bg: "#ECFDF5" },
-          { label: "応募・面談実績あり", count: stats.appliedOrMetCount, color: "#D97706", bg: "#FEF3C7" },
+          { label: "応募・面談実績あり", count: stats.appliedOrMetCount, color: "var(--warm-ink)", bg: "#FEF3C7" },
         ];
         return (
           <div style={{
@@ -449,7 +449,7 @@ export default async function AdminDashboard() {
               fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0,
               display: "flex", alignItems: "center", gap: 6,
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
@@ -457,7 +457,7 @@ export default async function AdminDashboard() {
             </h2>
             {totalPending > 0 && (
               <span style={{
-                background: "#FEF3C7", color: "#92400E",
+                background: "#FEF3C7", color: "var(--warm-ink)",
                 fontSize: 10, fontWeight: 700,
                 padding: "2px 8px", borderRadius: 100,
               }}>
@@ -478,7 +478,7 @@ export default async function AdminDashboard() {
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 8,
-                    background: "#FEF3C7", color: "#B45309",
+                    background: "#FEF3C7", color: "var(--warm-ink)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
                   }}>
@@ -487,10 +487,10 @@ export default async function AdminDashboard() {
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>求人審査待ち</p>
-                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>{stats.pendingJobsCount}件の求人審査が必要</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>求人審査待ち</p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>{stats.pendingJobsCount}件の求人審査が必要</p>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
@@ -536,7 +536,7 @@ export default async function AdminDashboard() {
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 8,
-                    background: "#FEF3C7", color: "#B45309",
+                    background: "#FEF3C7", color: "var(--warm-ink)",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -545,10 +545,10 @@ export default async function AdminDashboard() {
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
                       面談対応者（自己申告） 未確認 {stats.selfUnreviewedCount}名
                     </p>
-                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
                       {/* ★何日誰も見ていないかを出す（2026-08-30）。
                              ⚠️ しきい値で色を変えない。**何日で問題かは決めていない**
                                 （見る人と頻度が未決）。数字だけ出して判断は運営に委ねる。
@@ -560,7 +560,7 @@ export default async function AdminDashboard() {
                       企業ページに出ている人です。在籍確認はしていません
                     </p>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
@@ -755,7 +755,7 @@ export default async function AdminDashboard() {
               {
                 label: "公開中の求人",
                 value: stats.activeJobsCount,
-                color: "#F59E0B",
+                color: "var(--warm-ink)",
                 bar: stats.activeJobsCount,
                 max: Math.max(stats.usersCount, 1),
               },
@@ -806,12 +806,12 @@ export default async function AdminDashboard() {
           }}>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
               BIZ担当者（未ログイン）:{" "}
-              <strong style={{ color: stats.neverLoggedInBizCount > 0 ? "#B45309" : "var(--success-ink)" }}>
+              <strong style={{ color: stats.neverLoggedInBizCount > 0 ? "var(--warm-ink)" : "var(--success-ink)" }}>
                 {stats.neverLoggedInBizCount}名
               </strong>
             </p>
             <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
-              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "#B45309" : "var(--success-ink)" }}>
+              審査待ち求人: <strong style={{ color: stats.pendingJobsCount > 0 ? "var(--warm-ink)" : "var(--success-ink)" }}>
                 {stats.pendingJobsCount}件
               </strong>
             </p>

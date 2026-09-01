@@ -213,12 +213,12 @@ export default function CasualMeetingForm({
         <div style={{
           background: "var(--warm-soft)", border: "1px solid #FDE68A",
           borderRadius: 12, padding: "12px 16px", marginBottom: 20,
-          fontSize: 12, lineHeight: 1.9, color: "#92400E",
+          fontSize: 12, lineHeight: 1.9, color: "var(--warm-ink)",
         }}>
           あなたのプロフィールでは、<strong>{companyName}</strong> に<strong>現在も在籍中</strong>として登録されています。
           <br />
           退職済みの場合は、
-          <Link href="/mypage/details/experience" style={{ color: "#92400E", fontWeight: 700, textDecoration: "underline" }}>
+          <Link href="/mypage/details/experience" style={{ color: "var(--warm-ink)", fontWeight: 700, textDecoration: "underline" }}>
             職歴の更新
           </Link>
           をご検討ください。<strong>このまま申し込むこともできます。</strong>

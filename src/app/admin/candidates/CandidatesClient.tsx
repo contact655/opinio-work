@@ -242,7 +242,7 @@ export function CandidatesClient({ users }: { users: User[] }) {
                           {formatRelative(u.lastLogin)}
                         </span>
                       ) : (
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "#FEF3C7", color: "#B45309" }}>未ログイン</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "#FEF3C7", color: "var(--warm-ink)" }}>未ログイン</span>
                       )}
                     </td>
                     {/* 登録日 */}

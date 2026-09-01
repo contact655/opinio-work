@@ -101,6 +101,6 @@ export function scoreColor(total: number): string {
 export function scoreTextColor(total: number): string {
   if (total >= 80) return "var(--success-ink)"; // 5.35（#047857 on #F8FAFC）
   if (total >= 50) return "var(--royal)";
-  if (total >= 20) return "#B45309";            // amber-700。4.80
+  if (total >= 20) return "var(--warm-ink)";           // #92400E。6.78
   return "var(--ink-mute)";
 }

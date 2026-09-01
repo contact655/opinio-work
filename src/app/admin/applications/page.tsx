@@ -22,7 +22,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
-  pending:   { label: "新着",     bg: "#FEF3C7", color: "#B45309",       border: "#FDE68A" },
+  pending:   { label: "新着",     bg: "#FEF3C7", color: "var(--warm-ink)",       border: "#FDE68A" },
   reviewing: { label: "確認中",   bg: "#EFF3FC", color: "var(--royal)",  border: "#DCE5F7" },
   interview: { label: "面接中",   bg: "#F3E8FF", color: "#7C3AED",       border: "#E9D5FF" },
   accepted:  { label: "採用",     bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0" },

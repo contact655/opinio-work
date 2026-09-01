@@ -1450,7 +1450,7 @@ function StintForm({
                 既存レコードを編集した人にとっては新しく増えた項目なので、咎める語調にしない。 */
           <div style={{
             display: "flex", alignItems: "flex-start", gap: 7,
-            fontSize: 12, fontWeight: 600, color: "#92400E",
+            fontSize: 12, fontWeight: 600, color: "var(--warm-ink)",
             background: "var(--warm-soft)", border: "1px solid #FDE68A",
             borderRadius: 8, padding: "9px 11px", marginTop: 8, lineHeight: 1.65,
           }}>

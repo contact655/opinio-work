@@ -1000,7 +1000,6 @@ export function JobEditForm({
                 <RequirementsTagInput
                   tags={form.requiredSkills}
                   onTagsChange={(t) => updateForm("requiredSkills", t)}
-                  color="royal"
                   placeholder="スキルを入力して Enter..."
                 />
                 <Hint>業務遂行に必要不可欠なスキル・経験を記述してください。年齢・性別等の属性は記載しないでください。</Hint>
@@ -1010,7 +1009,6 @@ export function JobEditForm({
                 <RequirementsTagInput
                   tags={form.preferredSkills}
                   onTagsChange={(t) => updateForm("preferredSkills", t)}
-                  color="purple"
                   placeholder="歓迎スキルを入力して Enter..."
                 />
               </FormGroup>

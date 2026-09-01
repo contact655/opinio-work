@@ -201,7 +201,7 @@ export function CompanyAdminDndOverlay() {
 
           {/* 保存状態バー */}
           {saving && (
-            <div style={{ padding: "7px 20px", background: "#FFFBEB", fontSize: 12, color: "#92400E", borderBottom: "1px solid #FDE68A", fontWeight: 600 }}>
+            <div style={{ padding: "7px 20px", background: "#FFFBEB", fontSize: 12, color: "var(--warm-ink)", borderBottom: "1px solid #FDE68A", fontWeight: 600 }}>
               ⏳ 保存中...
             </div>
           )}

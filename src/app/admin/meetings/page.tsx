@@ -5,7 +5,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
-  pending:           { label: "申込待ち",     bg: "#FEF3C7", color: "#B45309", border: "#FDE68A" },
+  pending:           { label: "申込待ち",     bg: "#FEF3C7", color: "var(--warm-ink)", border: "#FDE68A" },
   company_contacted: { label: "企業連絡済み", bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7" },
   scheduled:         { label: "日程確定",     bg: "#F3E8FF", color: "#7C3AED",       border: "#E9D5FF" },
   completed:         { label: "完了",         bg: "#F1F5F9", color: "#6b7280",       border: "#E2E8F0" },
@@ -154,7 +154,7 @@ export default async function AdminMeetingsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
         {[
           { label: "総申込数",   value: counts.total,     color: "var(--royal)",   bg: "#EFF3FC" },
-          { label: "申込待ち",   value: counts.pending,   color: "#B45309",        bg: "#FEF3C7" },
+          { label: "申込待ち",   value: counts.pending,   color: "var(--warm-ink)",        bg: "#FEF3C7" },
           { label: "日程確定",   value: counts.scheduled, color: "#7C3AED",        bg: "#F3E8FF" },
           { label: "完了",       value: counts.completed, color: "var(--success-ink)", bg: "#ECFDF5" },
         ].map(({ label, value, color, bg }) => (
@@ -342,7 +342,7 @@ export default async function AdminMeetingsPage() {
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       {s.thisMonthCompleted > 0 ? (
-                        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "#B45309" }}>
+                        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--warm-ink)" }}>
                           {s.thisMonthCompleted}件
                         </span>
                       ) : <span style={{ color: "#CBD5E1" }}>0件</span>}

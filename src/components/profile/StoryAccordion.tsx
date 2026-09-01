@@ -300,11 +300,17 @@ function buildNewStoriesAfterDrag(
 
 // ─── Type badge config ────────────────────────────────────────────────────────
 
+/* ⚠️ **タイプごとに色を変えない**（2026-09-02 に4色 → 1色）。
+      ラベルに "image" / "video" と**そのまま書いてある**ので、色は意味を足していない。
+      足していないのに、黄色（＝注意・未完了）と紫（＝求職者側では使わない色）を
+      借りていた。凡例の無い色分けは増やさない、という ui-conventions の原則どおり
+      neutral に寄せる。TypeSelector の「選択中」は tint と枠と文字色で示すので、
+      4色が1色になっても選択状態は見分けられる。 */
 const TYPE_CONFIG: Record<StoryType, { label: string; bg: string; color: string }> = {
-  image: { label: "image", bg: "var(--warm-soft)",   color: "var(--warm-ink)"     },
-  video: { label: "video", bg: "var(--purple-soft)", color: "var(--purple)"   },
-  card:  { label: "card",  bg: "var(--royal-50)",    color: "var(--royal)"    },
-  link:  { label: "link",  bg: "var(--line-soft)",   color: "var(--ink-mute)" },
+  image: { label: "image", bg: "var(--royal-50)", color: "var(--royal)" },
+  video: { label: "video", bg: "var(--royal-50)", color: "var(--royal)" },
+  card:  { label: "card",  bg: "var(--royal-50)", color: "var(--royal)" },
+  link:  { label: "link",  bg: "var(--royal-50)", color: "var(--royal)" },
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

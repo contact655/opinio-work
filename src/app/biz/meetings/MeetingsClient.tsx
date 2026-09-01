@@ -316,7 +316,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
                 background: "#FEF3C7",
                 fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 11, fontWeight: 700,
-                color: "#D97706",
+                color: "var(--warm-ink)",
               }}>
                 <span style={{
                   width: 5, height: 5, borderRadius: "50%",
