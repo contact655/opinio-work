@@ -15,7 +15,8 @@ import { Variant } from "../Variant";
  *
  * ── 役割は変えない ──────────────────────────────────────────────────────────
  * `.claude/skills/ui-conventions`「色の役割」は**オレンジ＝カジュアル面談のみ**と
- * 定めている。**3案とも橙のまま**で、役割は動かさない。
+ * 定めている。**どの案も橙のまま**で、役割は動かさない。
+ * ⚠️ 2026-09-02 に案D〜Gを追加（柴さん「以前のオレンジの方が良かった」）。論点は**明るさを取り戻せるか**。
  *
  * ⚠️ アウトライン（白地＋橙の枠）にする案は入れていない。同じ規約が
  *    「**塗り＝主要な遷移／ゴースト＝その場の展開**」と定めており、
@@ -62,6 +63,46 @@ const ROWS = [
     ratio: "5.18",
     note: "バッジと完全に同じ橙。⚠️ 立体感が減るぶん、他の塗りボタンとの差が色だけになる",
   },
+
+  /* ── ここから 2026-09-02 に追加（柴さん「以前のオレンジの方が良かった」）──────
+     論点は**明るさを取り戻せるか**。⚠️ 数字だけで決めると
+     「読めるが冴えない」に着地しがちなので、実物を並べて選ぶ。 */
+  {
+    key: "案D ── 少し明るい橙（#D9480F）＋白文字",
+    bg: "linear-gradient(135deg, #D9480F 0%, #B03A0C 100%)",
+    fg: "#fff",
+    shadow: "0 4px 14px rgba(217,72,15,0.35)",
+    ratio: "4.30",
+    note: "⚠️ 4.30 で基準（4.5）に届かない。 案Bより明るいが、この文字サイズでは使えない。差を見るために並べてある",
+    bad: true,
+  },
+  {
+    key: "案E ── #EA580C ＋白文字（現行サイズのまま）",
+    bg: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+    fg: "#fff",
+    shadow: "0 4px 14px rgba(234,88,12,0.35)",
+    ratio: "3.56",
+    note: "⚠️ 3.56。14px では基準割れ。 19px 太字にすれば 3.0 基準で使える（下の案F）",
+    bad: true,
+  },
+  {
+    key: "案F ── #EA580C ＋白文字＋文字を 19px 太字に",
+    bg: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+    fg: "#fff",
+    shadow: "0 4px 14px rgba(234,88,12,0.35)",
+    ratio: "3.56",
+    big: true,
+    note: "19px 太字なら必要な比が 3.0 に下がるので 3.56 で満たす。明るさを取り戻せる唯一の案。⚠️ 固定バーが高くなる",
+  },
+  {
+    key: "案G ── 以前の橙そのまま ＋ 濃い文字 ＋ 19px",
+    bg: "linear-gradient(135deg, #F59E0B 0%, #FB923C 100%)",
+    fg: "#7C2D12",
+    shadow: "0 4px 14px rgba(245,158,11,0.35)",
+    big: true,
+    ratio: "5.36",
+    note: "以前の色が1ピクセルも変わらない。⚠️ 濃い文字なので「押せる主ボタン」に見えにくく、近くの濃紺『応募する』と主従が逆転して見える",
+  },
 ] as const;
 
 function Icon({ size }: { size: number }) {
@@ -73,13 +114,15 @@ function Icon({ size }: { size: number }) {
 }
 
 /** `/u/[id]` と `/jobs/[id]` の主ボタン（9px 18px・text-sm・アイコンつき） */
-function MainCta({ bg, fg, shadow }: { bg: string; fg: string; shadow: string }) {
+/** ⚠️ `big` は「文字を大きくして 3.0 基準に下げる」案を**その大きさで**見るためのもの。
+    14px のまま note に「19px なら合格」と書いても判断できない。 */
+function MainCta({ bg, fg, shadow, big }: { bg: string; fg: string; shadow: string; big?: boolean }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 6,
       padding: "9px 18px", borderRadius: 8,
       background: bg, color: fg,
-      fontSize: "var(--text-sm)", fontWeight: 700,
+      fontSize: big ? 19 : "var(--text-sm)", fontWeight: big ? 800 : 700,
       boxShadow: shadow, whiteSpace: "nowrap",
     }}>
       <Icon size={13} />
@@ -102,12 +145,12 @@ function SmallCta({ bg, fg }: { bg: string; fg: string }) {
 }
 
 /** モバイルの固定バー（幅いっぱい） */
-function StickyCta({ bg, fg }: { bg: string; fg: string }) {
+function StickyCta({ bg, fg, big }: { bg: string; fg: string; big?: boolean }) {
   return (
     <span style={{
       display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
       padding: "13px 16px", borderRadius: 10,
-      background: bg, color: fg, fontSize: 14, fontWeight: 700,
+      background: bg, color: fg, fontSize: big ? 19 : 14, fontWeight: big ? 800 : 700,
     }}>
       <Icon size={15} />
       話を聞く（カジュアル面談）
@@ -123,8 +166,8 @@ export default function MeetingCtaPreview() {
         カジュアル面談CTA の色
       </h1>
       <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-        現行は <strong style={{ color: "var(--ink)" }}>2.15</strong>（必要 4.5）。
-        3案とも橙のままで、<strong style={{ color: "var(--ink)" }}>色の役割は変えていません</strong>。
+        いま本番で使っているのは <strong style={{ color: "var(--ink)" }}>案B</strong>（比 5.18）。以下の「現行」は<strong style={{ color: "var(--ink)" }}>それ以前</strong>の色です。<br />変更前は <strong style={{ color: "var(--ink)" }}>2.15</strong>（必要 4.5）。
+        どの案も橙のままで、<strong style={{ color: "var(--ink)" }}>色の役割は変えていません</strong>。
       </p>
       <p style={{ margin: "0 0 24px", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.9 }}>
         比はグラデーションの<strong>最も明るいストップ</strong>で測っています（そこが最悪値）。
@@ -139,7 +182,7 @@ export default function MeetingCtaPreview() {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <MainCta bg={r.bg} fg={r.fg} shadow={r.shadow} />
+              <MainCta bg={r.bg} fg={r.fg} shadow={r.shadow} big={"big" in r ? r.big : false} />
               <SmallCta bg={r.bg} fg={r.fg} />
             </div>
             {/* ⚠️ 背景が変わると印象が変わる。実ページは白と --bg-tint の両方に置かれる */}
@@ -152,7 +195,7 @@ export default function MeetingCtaPreview() {
             </div>
             <div style={{ maxWidth: 420 }}>
               <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 8 }}>モバイルの固定バー</div>
-              <StickyCta bg={r.bg} fg={r.fg} />
+              <StickyCta bg={r.bg} fg={r.fg} big={"big" in r ? r.big : false} />
             </div>
           </div>
         </Variant>

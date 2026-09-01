@@ -89,7 +89,7 @@ export default function TimelinePreview() {
 
       <Variant
         label="編集アフォーダンスあり（/mypage と同じ）"
-        note="⚠️★行は career と career-same-company の2経路。**どちらにも鉛筆・ゴミ箱が出ること**"
+        note="⚠️★行は career と career-same-company の2経路。どちらにも鉛筆・ゴミ箱が出ること"
       >
         <EditableTimeline careers={CAREERS_BOOMERANG} />
       </Variant>

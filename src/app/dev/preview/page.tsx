@@ -49,7 +49,7 @@ const ITEMS = [
     desc: "企業が入力したものがどう保存され、求職者にどう見えるかを1画面で" },
   { href: "/dev/preview/listing-status", label: "掲載設定バナー（本人にだけ出る）",
     desc: "掲載中 / ログイン限定 / 非掲載 の3状態。実データで出せるのは1つだけ" },
-  { href: "/dev/preview/meeting-cta", label: "カジュアル面談CTA の色（判断待ち）",
+  { href: "/dev/preview/meeting-cta", label: "カジュアル面談CTA の色（案A〜G）",
     desc: "現行は白文字 on #F59E0B で 2.15（必要 4.5）。橙を保ったまま直す3案を実寸で並べる" },
 ];
 

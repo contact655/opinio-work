@@ -46,7 +46,7 @@ export default function TeamsPreview() {
 
       <Variant
         label="division 未設定が混ざる"
-        note="⚠️★部門の無いチームがどこへ入るか。**消えないこと**（1件も欠けさせない）"
+        note="⚠️★部門の無いチームがどこへ入るか。消えないこと（1件も欠けさせない）"
       >
         <OrgTeamsSectionClient detail={detailWith({ orgTeams: TEAMS_NO_DIVISION })} companyId={COMPANY_ID} jobCount={0} />
       </Variant>
