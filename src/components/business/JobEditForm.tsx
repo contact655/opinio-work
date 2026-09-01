@@ -52,6 +52,8 @@ type FormState = {
   location: string;
   remoteWorkStatus: string;
   probationPeriod: string;
+  workHours: string;
+  holidays: string;
   descriptionMarkdown: string;
   messageToCandidates: string;
   requiredSkills: string[];
@@ -82,7 +84,8 @@ function jobToForm(job: BizJob | null): FormState {
   if (!job) return {
     title: "", employmentType: "正社員", jobCategory: "", department: "",
     salaryMin: "", salaryMax: "", salaryNote: "", location: "", remoteWorkStatus: "",
-    probationPeriod: "", descriptionMarkdown: "", messageToCandidates: "",
+    probationPeriod: "", workHours: "", holidays: "",
+    descriptionMarkdown: "", messageToCandidates: "",
     requiredSkills: [], preferredSkills: [], cultureFit: "",
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
@@ -97,10 +100,12 @@ function jobToForm(job: BizJob | null): FormState {
     department: job.department ?? "",
     salaryMin: job.salaryMin?.toString() ?? "",
     salaryMax: job.salaryMax?.toString() ?? "",
-    salaryNote: "",
+    salaryNote: job.salaryNote ?? "",
     location: job.location ?? "",
     remoteWorkStatus: job.remoteWorkStatus ?? "",
-    probationPeriod: "",
+    probationPeriod: job.probationPeriod ?? "",
+    workHours: job.workHours ?? "",
+    holidays: job.holidays ?? "",
     descriptionMarkdown: job.descriptionMarkdown ?? "",
     messageToCandidates: job.messageToCandidates ?? "",
     requiredSkills: [...job.requiredSkills],
@@ -111,9 +116,13 @@ function jobToForm(job: BizJob | null): FormState {
     startDatePreference: job.startDatePreference ?? "応相談",
     assigneeIds: job.assigneeNames.map((_, i) => MOCK_TEAM[i]?.id ?? `member-${i + 1}`),
     urgency: job.urgency ?? "open",
-    whyHire: (job as unknown as { why_hire?: string }).why_hire ?? "",
-    teamComposition: (job as unknown as { team_composition?: string }).team_composition ?? "",
-    first90Days: (job as unknown as { first_90_days?: string }).first_90_days ?? "",
+    /* ⚠️ 2026-09-02 まで `as unknown as { why_hire?: string }` で**スネークケースの
+          プロパティを読もうとしており、`BizJob` には存在しないので常に undefined** だった。
+          キャストは型検査を素通りさせるので tsc も lint も何も言わない。
+          **キャストで別名を読むくらいなら、型に足すこと。** */
+    whyHire: job.whyHire ?? "",
+    teamComposition: job.teamComposition ?? "",
+    first90Days: job.first90Days ?? "",
     businessModel: job.businessModel ?? "",
     oteMin: job.oteMin?.toString() ?? "",
     oteMax: job.oteMax?.toString() ?? "",
@@ -926,6 +935,21 @@ export function JobEditForm({
                 <FormGroup style={{ margin: 0 }}>
                   <FormLabel optional htmlFor="jef-probation">試用期間</FormLabel>
                   <FormInput id="jef-probation" value={form.probationPeriod} onChange={(v) => updateForm("probationPeriod", v)} placeholder="例：3ヶ月" />
+                </FormGroup>
+              </div>
+              {/* ★勤務体系・休日（2026-09-02 追加）。
+                     列は前からあったが**入力欄・SELECT・描画のどれも無く、全件0件**だった。
+                  ⚠️ 自由入力にしてある。企業ごとに書き方が違い（「フレックス（コア11-15時）」
+                     「裁量労働制」など）、選択肢に畳むと必ず当てはまらない企業が出るため。
+                     ⚠️ 選択肢にするなら UI・API・DB の CHECK を3つ揃えること。 */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+                <FormGroup style={{ margin: 0 }}>
+                  <FormLabel optional htmlFor="jef-work-hours">勤務体系</FormLabel>
+                  <FormInput id="jef-work-hours" value={form.workHours} onChange={(v) => updateForm("workHours", v)} placeholder="例: 所定労働時間8時間、フレックスタイム制" />
+                </FormGroup>
+                <FormGroup style={{ margin: 0 }}>
+                  <FormLabel optional htmlFor="jef-holidays">休日・休暇</FormLabel>
+                  <FormInput id="jef-holidays" value={form.holidays} onChange={(v) => updateForm("holidays", v)} placeholder="例: 完全週休2日制、有給休暇（初年度10日）" />
                 </FormGroup>
               </div>
             </FormSection>

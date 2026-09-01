@@ -72,6 +72,8 @@ export async function PUT(
       location: str(body.location, 200),
       remote_work_status: str(body.remoteWorkStatus, 50),
       probation_period: str(body.probationPeriod, 100),
+      work_hours: str(body.workHours, 200),
+      holidays: str(body.holidays, 200),
       /* ⚠️ 正は `description`（2026-08-26 統合）。旧列に書くと求職者側に出ない。 */
       description: str(body.descriptionMarkdown, 50000),
       message_to_candidates: str(body.messageToCandidates, 2000),

@@ -48,6 +48,20 @@ export type BizJob = {
   incentiveNote?: string | null;
   // 技術スタック (Migration 245)
   techStack?: string[] | null;
+  /* ── ★2026-09-02 に追加。**入力欄と PUT は前からあったのに、この型に無く
+        `jobToForm` が空文字で固定していたため、編集画面を開き直すと消えていた。**
+        `salary_note` は本番の公開2件とも埋まっており、企業が1回保存すれば失われる状態だった。
+     ⚠️ 求人の編集は「取得した値をそのまま PUT で送り返す」形なので、
+        **SELECT・この型・mapper・`jobToForm` の4つが揃って初めて値が残る。**
+        列を足すときは4つとも触ること（CLAUDE.md「経歴に列を足すときは4箇所を揃える」と同じ形）。 */
+  whyHire?: string | null;
+  teamComposition?: string | null;
+  first90Days?: string | null;
+  probationPeriod?: string | null;
+  /** 勤務体系（「所定労働時間8時間、フレックスタイム制」など） */
+  workHours?: string | null;
+  /** 休日・休暇（「完全週休2日制、有給休暇（10日〜）」など） */
+  holidays?: string | null;
 };
 
 

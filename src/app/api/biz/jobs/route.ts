@@ -6,7 +6,7 @@ import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
-import { validateJobOptionFields } from "@/lib/business/jobs";
+import { validateJobOptionFields, toUrgency } from "@/lib/business/jobs";
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
@@ -39,6 +39,8 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     location: str(body.location, 200),
     remote_work_status: str(body.remoteWorkStatus, 50),
     probation_period: str(body.probationPeriod, 100),
+    work_hours: str(body.workHours, 200),
+    holidays: str(body.holidays, 200),
     /* ⚠️ 正は `description`（2026-08-26 統合）。旧列に書くと求職者側に出ない。 */
     description: str(body.descriptionMarkdown, 50000),
     message_to_candidates: str(body.messageToCandidates, 2000),
@@ -56,6 +58,22 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     sales_hunter_farmer: str(body.salesHunterFarmer, 20) ?? null,
     incentive_note: str(body.incentiveNote, 1000) ?? null,
     tech_stack: strArr(body.techStack).slice(0, 40),
+    /* ⚠️★2026-09-02 追加。**この3つは PUT にしか無く、新規作成の初回保存で落ちていた。**
+          フォームは `currentJobId` が無いときだけ POST するので、
+          「なぜ今採用するか」「チーム構成」「入社後90日」を書いてから
+          「作成して続ける」を押すと、その3つだけが消える形だった。
+       ⚠️ **POST と PUT は同じ項目を受けること。** 片方だけに足すと、
+          新規作成と編集で保存される内容が変わる。 */
+    why_hire: str(body.whyHire, 5000),
+    team_composition: str(body.teamComposition, 5000),
+    first_90_days: str(body.first90Days, 5000),
+    /* ⚠️ 同上。`urgency`（採用温度感）と `department_id` も PUT にしか無く、
+          新規作成時は DB の既定値になっていた。「HOT」を選んで作成しても `open` で入る。
+       ⚠️ `toUrgency` は PUT と同じものを使う。ここで別の判定を書かない。 */
+    urgency: toUrgency(body.urgency),
+    department_id: (typeof body.departmentId === "string"
+      && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.departmentId))
+      ? body.departmentId : null,
     status: "draft",
     updated_at: new Date().toISOString(),
   };

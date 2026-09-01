@@ -177,6 +177,12 @@ function mapJob(row: Record<string, any>): Job {
     work_style: (() => { const raw = (row.work_style ?? row.remote_work_status) as string | null; return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : ""; })(),
     salary_min: salaryMin,
     salary_max: salaryMax,
+    /* ⚠️ `?? ""` にしない。空文字にすると表示側の `&&` ガードが効かず、
+          ラベルだけの行が出る（CLAUDE.md「`?? ""` を挟んだ後の `??` は効かない」）。 */
+    salary_note: (row.salary_note as string | null) ?? null,
+    work_hours: (row.work_hours as string | null) ?? null,
+    holidays: (row.holidays as string | null) ?? null,
+    probation_period: (row.probation_period as string | null) ?? null,
     experience: "",
     tags,
     highlight: (row.catch_copy as string) ?? (row.one_liner as string) ?? "",
@@ -190,6 +196,11 @@ function mapJob(row: Record<string, any>): Job {
     main_tasks: [],
     required_skills: requiredSkills,
     preferred_skills: preferredSkills,
+    /* ⚠️★**空のままにする。`ow_jobs.benefits` は【廃止】**（2026-09-02 / 柴さん）。
+          **福利厚生は企業単位で同じ**なので、求人ページも `ow_companies.benefits` を出す
+          （`jobs/[id]/page.tsx` の福利厚生セクションは `company.benefits` を渡している）。
+          ⚠️ `ow_jobs.benefits` には本番5件データが入っているが、**どこにも出ない。**
+             新しく読み書きしないこと。読む先が2つに戻る。 */
     benefits: [],
     selection_flow: selectionFlow,
     selection_note: (row.message_to_candidates as string) ?? "",
@@ -1054,6 +1065,13 @@ const JOB_DETAIL_COLS = [
   "why_hire", "team_composition", "first_90_days",
   // セールス職専用（詳細のみ）
   "sales_hunter_farmer", "incentive_note",
+  /* ★待遇・労働環境（2026-09-02 追加）。**この4列は詳細ページの「勤務条件」に出す。**
+     ⚠️ `salary_note` と `probation_period` は **`/biz` の入力欄が前からあったのに
+        ここに無く、企業が入力しても画面に出ていなかった**（本番でも salary_note は
+        公開2件とも埋まっていた）。CLAUDE.md「COLS 定数と mapper を突き合わせる」の実例。
+     ⚠️ `work_hours` / `holidays` は入力欄も無かったので同時に足した。
+        **列・API・入力欄・COLS・描画の5つが揃って初めて出る。** */
+  "salary_note", "probation_period", "work_hours", "holidays",
 ].join(", ");
 
 export const getJobs = unstable_cache(

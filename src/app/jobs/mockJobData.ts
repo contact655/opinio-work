@@ -51,6 +51,18 @@ export type Job = {
   work_style: string;
   salary_min: number;
   salary_max: number;
+  /* ── 待遇・労働環境（2026-09-02 追加）───────────────────────────
+     ⚠️ **すべて任意。値が無ければ行ごと出さない**（「—」でも埋めない）。
+     ⚠️ 福利厚生はここに無い。**福利厚生は企業単位で同じ**という判断（2026-09-02 / 柴さん）
+        なので、求人ページも `ow_companies.benefits` を出す。**`ow_jobs.benefits` は【廃止】。** */
+  /** 給与の補足（「※年棒制」「業績連動ボーナスあり」など）。金額の下に小さく出す */
+  salary_note?: string | null;
+  /** 勤務体系（「所定労働時間8時間、フレックスタイム制」など） */
+  work_hours?: string | null;
+  /** 休日・休暇（「完全週休2日制、有給休暇（10日〜）」など） */
+  holidays?: string | null;
+  /** 試用期間（「あり（3ヶ月）」など）。⚠️ 正は `probation_period`。`trial_period` は【廃止】 */
+  probation_period?: string | null;
   experience: string;
   tags: string[];
   highlight: string;

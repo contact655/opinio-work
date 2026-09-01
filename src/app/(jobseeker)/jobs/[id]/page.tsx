@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
+import { ConditionRow } from "@/components/jobs/ConditionRow";
 import { getJobBySlugOrId, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getPublicAmbassadorsCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, getJobs, type JobPositionMember } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -869,6 +870,14 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                           : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
                           : `〜${fmtMan(job.salary_max)}万円`}
                       </span>
+                      {/* ⚠️ 給与の補足（「※年棒制」「業績連動ボーナスあり」など）。
+                             **入力欄は前からあったのに `JOB_DETAIL_COLS` に無く、
+                             公開2件とも埋まっているのに一度も出ていなかった**（2026-09-02 に追加）。 */}
+                      {job.salary_note && (
+                        <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                          {job.salary_note}
+                        </p>
+                      )}
                     </div>
                     {/* OTE行（営業職かつ入力あり） */}
                     {isBusinessJob && (job.ote_min || job.ote_max) && (
@@ -917,54 +926,35 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                     )}
                   </div>
                   )}
-                  {/* 勤務地 */}
-                  {job.location && (
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                      </svg>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>勤務地</span>
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.location}</span>
-                  </div>
-                  )}
-                  {/* 働き方 */}
-                  {job.work_style && (
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-                      </svg>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>働き方</span>
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.work_style}</span>
-                  </div>
-                  )}
-                  {/* 雇用形態 */}
-                  {job.employment_type && (
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                      </svg>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>雇用形態</span>
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.employment_type}</span>
-                  </div>
-                  )}
-                  {/* 職種 */}
-                  {job.roleLabel && (
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                      </svg>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>職種</span>
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{job.roleLabel}</span>
-                  </div>
-                  )}
+                  {/* ⚠️ 同じ形のカードが増えたので `ConditionRow` に寄せた（2026-09-02）。
+                         それまで**同一のマークアップが4回コピー**されており、
+                         行を足すたびに 12行の複製が増える形だった。
+                      ⚠️ **値が無い行は出さない**（`ConditionRow` が null を返す）。
+                         「—」で埋めない。CLAUDE.md「値が無いことを、ある値に置き換えない」。 */}
+                  <ConditionRow label="勤務地" value={job.location} icon={
+                    <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>
+                  } />
+                  <ConditionRow label="働き方" value={job.work_style} icon={
+                    <><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></>
+                  } />
+                  <ConditionRow label="雇用形態" value={job.employment_type} icon={
+                    <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></>
+                  } />
+                  <ConditionRow label="職種" value={job.roleLabel} icon={
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  } />
+                  {/* ★勤務体系・休日・試用期間（2026-09-02 追加）。
+                         HERP など他社の求人票が「待遇・労働環境」として出している項目で、
+                         **列は前からあったのに入力欄も描画も無く、全件0件だった。** */}
+                  <ConditionRow label="勤務体系" value={job.work_hours} icon={
+                    <><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></>
+                  } />
+                  <ConditionRow label="休日・休暇" value={job.holidays} icon={
+                    <><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>
+                  } />
+                  <ConditionRow label="試用期間" value={job.probation_period} icon={
+                    <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></>
+                  } />
                 </div>
               </section>
               )}

@@ -107,6 +107,12 @@ type DbJobFull = {
   incentive_note: string | null;
   // 技術スタック (Migration 245)
   tech_stack: string[] | null;
+  // ★2026-09-02 追加（SELECT・mapper・jobToForm とセットで足すこと）
+  why_hire: string | null;
+  team_composition: string | null;
+  first_90_days: string | null;
+  work_hours: string | null;
+  holidays: string | null;
   ow_job_assignees: { user_id: string }[] | null;
 };
 
@@ -334,7 +340,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, why_hire, team_composition, first_90_days, work_hours, holidays, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -395,6 +401,15 @@ export async function fetchJobById(
     salesHunterFarmer: row.sales_hunter_farmer ?? undefined,
     incentiveNote: row.incentive_note ?? undefined,
     techStack: row.tech_stack ?? [],
+    /* ★2026-09-02 追加。**ここに書き忘れると `jobToForm` が空を入れ、
+          企業が別の項目を保存した瞬間にこの列が消える。**（実際に5項目で起きていた） */
+    salaryNote: row.salary_note ?? undefined,
+    probationPeriod: row.probation_period ?? undefined,
+    whyHire: row.why_hire ?? undefined,
+    teamComposition: row.team_composition ?? undefined,
+    first90Days: row.first_90_days ?? undefined,
+    workHours: row.work_hours ?? undefined,
+    holidays: row.holidays ?? undefined,
   };
 
   return { job, assigneeIds, jobRoles, companyId: row.company_id ?? "" };
