@@ -795,31 +795,47 @@ export async function JobDetailView({
                   {/* 年収 / OTE */}
                   {(job.salary_min || job.salary_max) && (
                   <div style={{ gridColumn: "1 / -1" }}>
-                    {/* 基本給行 */}
-                    <div style={{ padding: "16px 20px", borderRadius: isBusinessJob && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                          想定年収
-                        </span>
-                      </div>
+                  {/* 基本給行。
+                      ⚠️★**`space-between` にしないこと**（2026-09-02）。
+                         元は「ラベル ← → 金額」の2つで両端に寄せていたが、
+                         ① 補足を3つ目の子として足したら金額が中央に浮いて間延びし、
+                         ② 2つに戻しても **1440px でラベルと金額の間が 345px** 空いた。
+                         どちらも「横に長くて読みにくい」。
+                      ⚠️ **下のカード群（勤務地・働き方…）と同じ「ラベルが上・値が下」に揃えてある。**
+                         同じブロックの中で並びの規則を2つ持たない。 */}
+                  <div style={{
+                    padding: "16px 20px",
+                    borderRadius: isBusinessJob && (job.ote_min || job.ote_max) ? "12px 12px 0 0" : 12,
+                    background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                  }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+                        想定年収
+                      </span>
                       <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {job.salary_min && job.salary_max
                           ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
                           : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
                           : `〜${fmtMan(job.salary_max)}万円`}
                       </span>
-                      {/* ⚠️ 給与の補足（「※年棒制」「業績連動ボーナスあり」など）。
-                             **入力欄は前からあったのに `JOB_DETAIL_COLS` に無く、
-                             公開2件とも埋まっているのに一度も出ていなかった**（2026-09-02 に追加）。 */}
-                      {job.salary_note && (
-                        <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                          {job.salary_note}
-                        </p>
-                      )}
                     </div>
-                    {/* OTE行（営業職かつ入力あり） */}
+                    {/* 給与の補足（「※年棒制」「業績連動ボーナスあり」など）。
+                        ⚠️ 入力欄は前からあったのに `JOB_DETAIL_COLS` に無く、
+                           公開2件とも埋まっているのに一度も出ていなかった（2026-09-02 に追加）。 */}
+                    {job.salary_note && (
+                      <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                        {job.salary_note}
+                      </p>
+                    )}
+                  </div>
+                    {/* OTE行（営業職かつ入力あり）。
+                        ⚠️ 上の基本給行と同じ「ラベルが上・値が下」。両端寄せに戻さないこと。
+                        ⚠️★**条件式の直後（`&& (` の次の行）にコメントを置かないこと。**
+                           子が2つになり `tsc` が「')' expected」で落ちる。ガードの外に書く。
+                        ⚠️ コメント本文に閉じ記号（アスタリスク＋スラッシュ）を書くと
+                           そこでコメントが終わってしまう。記号で例示しないこと。 */}
                     {isBusinessJob && (job.ote_min || job.ote_max) && (
-                    <div style={{ padding: "14px 20px", borderRadius: "0 0 12px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderTop: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ padding: "14px 20px", borderRadius: "0 0 12px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderTop: "none", display: "flex", flexDirection: "column", gap: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ width: 28, height: 28, borderRadius: 7, background: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
