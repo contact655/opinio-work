@@ -8,6 +8,57 @@
 
 ---
 
+## ✅ 求人のプレビューを作った（2026-09-02）── 下書きでは 404 だった
+
+`/biz` の「プレビュー」ボタンは `/jobs/{id}` を開くだけで、公開ページは
+`status='published'` かつ `is_test=false` しか返さない。つまり
+**企業は公開申請する前に自分の求人の見た目を確認できなかった。**
+
+| | |
+|---|---|
+| 新ルート | **`/biz/jobs/[id]/preview`**（`force-dynamic` ＋ `noindex` ＋ 所属チェック） |
+| 描画 | **公開ページと同じ [JobDetailView](../src/components/jobs/JobDetailView.tsx)** |
+| 取得 | `getJobForPreview`（`status` / `is_test` を見ない）→ `getJobById(id, true)` |
+
+### ⚠️★`/jobs/[id]` に分岐を足してはいけない
+
+あのページは **ISR（`revalidate = 60`）で応答がキャッシュ共有される**
+（本番実測で `x-vercel-cache: STALE`）。「閲覧者が管理者なら下書きも見せる」を足すと、
+**下書きのプレビューが他人に配られる。** だから別ルートにした。
+
+⚠️ `searchParams` や `draftMode()` を使う案も同じ理由で不可
+   （読んだ時点でルート全体が動的になり、全求人ページの ISR が消える）。
+
+### ⚠️ 本体を部品に切り出した（1,627行 → page 96行 + JobDetailView 1,565行）
+
+公開ページとプレビューで**同じものを描く**ため。**プレビュー側にJSXをコピーしない。**
+差が出たらプレビューの意味が無くなる。
+`SCHEMA_EMPLOYMENT_TYPE` は `generateMetadata` と本体の両方が使うので
+[lib/constants/schemaEmploymentType.ts](../src/lib/constants/schemaEmploymentType.ts) に出した。
+
+### ⚠️ `getJobById` にも published のフィルタがあった
+
+`getJobBySlugOrId` だけ緩めても効かず、プレビューが空になった（実際に踏んだ）。
+`getJobById(id, includeUnpublished = false)` の**第2引数**を足してある。
+⚠️ **true にしてよいのは `getJobForPreview` からだけ。** 求職者向けの経路は既定のまま呼ぶこと。
+
+### ⚠️ `notFound()` は使っていない（ソフト200）
+
+親の `app/biz/jobs/loading.tsx` が Suspense 境界を作るため、
+**HTTP 200 のままシェルだけが流れて真っ白になる**（CLAUDE.md「ソフト200」）。
+実測でそうなり、利用者には理由の分からない空白ページに見えた。
+`/biz` の内側で認証は middleware が担保しているので、
+**status より「何が起きたか伝わること」を優先し、明示的に案内を描いている。**
+
+⚠️★**失敗の理由を出し分けないこと。** 「他社の求人」「存在しないID」「不正なID」で
+   文言を変えると、**その求人が存在するかどうかが分かってしまう。** 3つとも同じ画面を返す。
+
+実測（2026-09-02 / dev）: 自社の下書き=求人が出る ／ 他社の求人・存在しないID・UUIDでない値
+= **3つとも同じ案内画面で、他社の求人内容は0件** ／ 未ログイン = 307（ログインへ）。
+公開ページ側は `/jobs/{下書きのid}` が **404 のまま**、`/jobs` 一覧にも出ない。
+
+---
+
 ## ✅ 求人の「待遇・労働環境」を通した／保存しても消える項目が7つあった（2026-09-02）
 
 他社（HERP Career）の求人票と突き合わせた結果。**`ow_jobs` は70列あり、列はほぼ足りていた。

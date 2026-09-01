@@ -1257,16 +1257,23 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
  *    公開求人5件すべてで 404 になっていた。
  */
 const getJobById = cache(async function getJobById(
-  id: string
+  id: string,
+  /* ⚠️★**true にしてよいのは `getJobForPreview` からだけ。**
+        下書き・非公開・テスト求人がそのまま返る。既定は false で、
+        求職者向けの経路は必ず既定のまま呼ぶこと。
+     ⚠️ `cache()` は引数もキーに含めるので、true / false で結果が混ざることはない。 */
+  includeUnpublished = false
 ): Promise<{ job: Job; company: Company; relatedJobs: Job[] } | null> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  let q = supabase
     .from("ow_jobs")
     .select(JOB_DETAIL_COLS)
-    .eq("id", id)
-    .eq("status", "published").eq("is_test", false)
-    .single();
+    .eq("id", id);
+  if (!includeUnpublished) {
+    q = q.eq("status", "published").eq("is_test", false);
+  }
+  const { data, error } = await q.single();
 
   if (error || !data) {
     if (error?.code !== "PGRST116") console.error("[getJobById]", error?.message);
@@ -1367,6 +1374,33 @@ const getJobById = cache(async function getJobById(
 
   return { job, company, relatedJobs };
 });
+
+/**
+ * ★下書き・テスト求人も取得する。**プレビュー専用。**
+ *
+ * ⚠️★**求職者向けの経路から絶対に呼ばないこと。** `status` も `is_test` も見ないので、
+ *    下書き・非公開・テスト求人がそのまま返る。
+ *    呼び出してよいのは `/biz/jobs/[id]/preview` だけで、あちらは
+ *    **その企業の管理者であること**を確かめてから呼んでいる。
+ * ⚠️ `/jobs/[id]` は ISR（`revalidate = 60`）で**応答がキャッシュ共有される**ので、
+ *    あのページに閲覧者ごとの分岐を足してはいけない（プレビューが他人に配られる）。
+ *    だからプレビューは**別ルート**にしてある。
+ */
+export async function getJobForPreview(
+  jobId: string
+): Promise<{ job: Job; company: Company; relatedJobs: Job[]; resolvedId: string; slug: string | null } | null> {
+  const supabase = createAdminClient();
+  const { data: rows } = await supabase
+    .from("ow_jobs")
+    .select("id, slug")
+    .eq("id", jobId)
+    .limit(1);
+  const row = rows?.[0];
+  if (!row) return null;
+  const result = await getJobById(row.id as string, true);
+  if (!result) return null;
+  return { ...result, resolvedId: row.id as string, slug: (row.slug as string | null) ?? null };
+}
 
 export async function getJobBySlugOrId(
   slugOrId: string

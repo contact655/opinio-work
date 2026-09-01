@@ -1309,7 +1309,12 @@ export function JobEditForm({
           <button
             type="button"
             onClick={() => {
-              if (currentJobId) window.open(`/jobs/${currentJobId}`, "_blank", "noopener,noreferrer");
+              /* ⚠️★2026-09-02 まで公開ページ `/jobs/{id}` を開いており、
+                     **下書きでは必ず 404** だった（公開ページは published かつ is_test=false しか返さない）。
+                     つまり企業は公開申請する前に見た目を確認できなかった。
+                     `/biz/jobs/{id}/preview` は force-dynamic ＋ noindex ＋ 所属チェック付きで、
+                     描画は公開ページと同じ `JobDetailView` を使う。 */
+              if (currentJobId) window.open(`/biz/jobs/${currentJobId}/preview`, "_blank", "noopener,noreferrer");
             }}
             disabled={!currentJobId}
             style={{
