@@ -889,23 +889,26 @@ function StintForm({
         行き止まりを作っても入力は増えない。通してから誘う。 */
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Company name + anon toggle */}
+      {/*
+        会社名
+
+        ⚠️★**「非公開にする」チェックは 2026-09-02 に撤去した（柴さんの判断）。戻さないこと。**
+           社名を伏せる機能は持たない、という製品判断。LinkedIn も同じで、あちらで社名を
+           伏せる方法は「その職歴を載せない」だけ（職歴に会社を書けば社名は必ず出るし、
+           会社ページの社員一覧にも載る）。
+           ⚠️ **したがって、社名を出したくない人の選択肢は「その職歴を登録しない」になる。**
+              これは承知のうえの判断であって、実装漏れではない。
+           実測（2026-09-02 / 本番 24件）: `company_anonymized` は **0件**で、
+           撤去した時点で誰も使っていなかった。
+
+        ⚠️ **`draft.isAnon` と下の分岐は残してある。** 既存の匿名行（本番0件）を編集したとき、
+           `CompanySearch` に流し込んで保存すると **`company_text` へ黙って変わる**。
+           「値が無い」ではなく「別の値に化ける」形なので、経路ごと消さずに読み書きを保つ。
+           ⚠️ **新しく `isAnon` を true にする経路を足さないこと。** 選ぶ手段が無いのが今の仕様。
+      */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ marginBottom: 6 }}>
           <label style={labelStyle()}>会社名<RequiredMark /></label>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 500, color: companyLocked ? "var(--ink-mute)" : "var(--ink-soft)", cursor: companyLocked ? "default" : "pointer", userSelect: "none" }}>
-            <input
-              type="checkbox"
-              checked={draft.isAnon}
-              disabled={companyLocked}
-              onChange={(e) =>
-                // isAnon 切替時に companyId もリセット（XOR整合のため）
-                onDraftChange({ ...draft, isAnon: e.target.checked, companyId: null })
-              }
-              style={{ accentColor: "var(--royal)" }}
-            />
-            非公開にする
-          </label>
         </div>
         {draft.isAnon ? (
           /* 匿名経路: company_anonymized に保存 → プレーン input のまま */
