@@ -322,9 +322,21 @@ export default async function SchoolPage(
               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <Users size={14} color="rgba(255,255,255,0.7)" />
                 <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
-                  {graduates.length > 0
-                    ? `OPINIO登録中の出身者 ${graduates.length}名`
-                    : "現在出身者の登録はありません"}
+                  {/* ★★未ログインに「登録はありません」と言わない（2026-09-01）。
+                         ⚠️ 実ユーザーは**全員 `ow_users.visibility = 'login_only'`** なので、
+                            未ログインには必ず0件になる。`getGraduates` は `isLoggedIn` を
+                            受けて正しく絞っている（81行目）のに、**文言だけがその事実を
+                            知らないまま「登録はありません」と断定していた。**
+                         ⚠️ 実測（2026-09-01 / 獨協大学）: 未ログイン「出身者の登録はありません」／
+                            ログイン済み **2名**。**公開ページが事実でないことを言っていた。**
+                         ⚠️ 未ログインには**件数を出さない**。0 と出すこと自体が
+                            「居ない」の主張になる。居るか居ないかも言わない
+                            （`login_only` の人の存在を漏らさない）。 */}
+                  {!user
+                    ? "出身者はログインすると表示されます"
+                    : graduates.length > 0
+                      ? `OPINIO登録中の出身者 ${graduates.length}名`
+                      : "現在出身者の登録はありません"}
                 </span>
                 {school.country && (
                   <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
@@ -339,7 +351,7 @@ export default async function SchoolPage(
 
       {/* ── 出身者一覧 / 投稿タブ ────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px" }}>
-        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} />
+        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} isLoggedIn={!!user} />
       </div>
     </main>
   );

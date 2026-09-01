@@ -38,7 +38,12 @@ export type SchoolPost = {
   userAvatarUrl: string | null;
 };
 
-type Props = { graduates: Graduate[]; posts: SchoolPost[] };
+type Props = {
+  graduates: Graduate[];
+  posts: SchoolPost[];
+  /** ⚠️ 空状態の文言だけに使う。既定 false（fail-closed＝「登録がありません」と断定しない側） */
+  isLoggedIn?: boolean;
+};
 type Tab = "graduates" | "posts";
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -295,7 +300,7 @@ function PostsEmptyState() {
 
 // ─── メインコンポーネント ─────────────────────────────────────────────────────
 
-export default function SchoolGraduatesClient({ graduates, posts }: Props) {
+export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false }: Props) {
   const [tab, setTab] = useState<Tab>("graduates");
 
   return (
@@ -388,7 +393,11 @@ export default function SchoolGraduatesClient({ graduates, posts }: Props) {
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={1.2} strokeLinecap="round" style={{ marginBottom: 12 }}>
               <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
             </svg>
-            <p>この学校の出身者はまだ登録されていません。</p>
+            {/* ⚠️ 未ログインには「登録されていません」と言わない。
+                   実ユーザーは全員 `login_only` なので、未ログインには必ず0件になる。 */}
+            <p>{isLoggedIn
+              ? "この学校の出身者はまだ登録されていません。"
+              : "出身者はログインすると表示されます。"}</p>
           </div>
         ) : graduates.length <= 2 ? (
           <div className="sch-band-stack">

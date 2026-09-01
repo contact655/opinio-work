@@ -35,28 +35,54 @@ const STEPS = [
     desc: "職種・給与・勤務形態でフィルタして、自分の条件に合う求人を絞り込む。",
     href: "/jobs",
     cta: "求人を見る →",
-    color: "#059669",
+    /* ⚠️ `#059669`（= --success）は白の上で **3.77**。12px / 13px には 4.5 が要る。
+          文字は `--success-ink`(5.48)、塗りは従来どおり。 */
+    color: "var(--success-ink)",
     bg: "#ECFDF5",
   },
   {
-    step: "04",
+    /* ⚠️★2026-09-01 に "04" → "03" に詰めた。
+          STEP 03 は「年収相場を把握する」→ `/salary` で、`0c06c6ec`（2026-08-29）で
+          ページごと削除された。そのとき**番号と見出しが取り残され**、
+          画面は「4 ステップ」と言いながら **01 / 02 / 04 の3枚**を出していた。
+       ⚠️ 消えた 03 を作り直さない。年収データを増やす予定が無いという判断で消したもの。 */
+    step: "03",
     icon: "💬",
     title: "先輩に話を聞く",
     desc: "カジュアル面談で現役社員・OB/OGに率直な質問をする。情報収集から選考の相談まで対応。",
     href: "/companies",
     cta: "面談を申し込む →",
-    color: "var(--purple)",
-    bg: "var(--purple-soft)",
+    /* ⚠️ 紫にしない。`.claude/skills/ui-conventions`「色の役割」で**紫は使わない**。
+          globals.css の但し書き「①②③（運営・企業側の状態表示）は当面残す」は
+          **求職者側には適用されない。**
+       ⚠️ オレンジ（＝カジュアル面談）にもしない。ここは「面談を申し込む」導線だが、
+          3枚のステップの**通し番号を色で示している**だけで、面談バッジではない。
+          ステップ間の区別しか運んでいないので濃紺に寄せる。 */
+    color: "var(--royal)",
+    bg: "var(--royal-50)",
   },
 ];
 
 const ROLE_GUIDES = [
-  { slug: "sales",       label: "エンタープライズ営業",    salaryRange: "800〜1,800万円", icon: "📈" },
-  { slug: "cs",          label: "カスタマーサクセス",      salaryRange: "600〜1,200万円", icon: "🤝" },
-  { slug: "eng",         label: "ソフトウェアエンジニア", salaryRange: "700〜1,500万円", icon: "⚙️" },
-  { slug: "pm",          label: "プロダクトマネージャー", salaryRange: "800〜1,400万円", icon: "🗂️" },
-  { slug: "mkt",         label: "マーケティング",          salaryRange: "600〜1,100万円", icon: "📣" },
-  { slug: "hr",          label: "人事・採用",              salaryRange: "500〜900万円",   icon: "👥" },
+  /* ⚠️★年収レンジ（`salaryRange`）は 2026-09-01 に外した。**直書きの推測値だった。**
+        実測（2026-09-01 / 本番）: **公開求人は2件だけ**（どちらも Salesforce）。
+        つまり **6職種のうち5職種は、根拠になる求人が1件も無いまま**
+        「600〜1,200万円」などを事実として公開していた。
+     ⚠️ そもそも年収データベース（`/salary`）は `0c06c6ec`（2026-08-29）に
+        **「年収データを増やす予定が無い」という理由で削除**されている。
+        そのとき meta・FAQ・見出し下の文言は消したが、**ここだけ残っていた。**
+     ⚠️ OPINIO は有料職業紹介事業の許可事業者（13-ユ-316441）。
+        出典の無い数字は**的確表示義務**に関わる（出典なし求人13件を取り下げたのと同じ性質）。
+     ⚠️ **求人から算出して出し直さないこと。** 2件では職種別の相場にならない。
+        CLAUDE.md「値が無いことを、ある値に置き換えない」。
+     ⚠️ カードの用途は**遷移**（「職種を選ぶと、その職種の先輩と求人を一気に確認できます」）。
+        年収が無くてもこの役割は変わらない。 */
+  { slug: "sales",       label: "エンタープライズ営業",    icon: "📈" },
+  { slug: "cs",          label: "カスタマーサクセス",      icon: "🤝" },
+  { slug: "eng",         label: "ソフトウェアエンジニア", icon: "⚙️" },
+  { slug: "pm",          label: "プロダクトマネージャー", icon: "🗂️" },
+  { slug: "mkt",         label: "マーケティング",          icon: "📣" },
+  { slug: "hr",          label: "人事・採用",              icon: "👥" },
 ];
 
 const FAQS = [
@@ -117,7 +143,9 @@ export default function CareersPage() {
         {/* ─ 転職4ステップ ─ */}
         <div style={{ marginBottom: 60 }}>
           <h2 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(18px,2.5vw,26px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 24px" }}>
-            OPINIO で転職を進める 4 ステップ
+            {/* ⚠️ 件数を直書きしない。カードを増減したときに必ず食い違う
+                   （実際に 2026-08-29 の削除で「4 ステップ」と3枚が食い違った）。 */}
+            OPINIO で転職を進める {STEPS.length} ステップ
           </h2>
           <div className="cg-step-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
             {STEPS.map((s) => (
@@ -148,7 +176,6 @@ export default function CareersPage() {
                 <span style={{ fontSize: 22 }}>{r.icon}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>{r.label}</div>
-                  <div style={{ fontSize: 12, color: "var(--success-ink)", fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>{r.salaryRange}</div>
                 </div>
               </Link>
             ))}
