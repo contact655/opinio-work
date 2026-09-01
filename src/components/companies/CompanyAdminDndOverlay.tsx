@@ -213,7 +213,7 @@ export function CompanyAdminDndOverlay() {
           {/* ⚠️ **失敗を必ず出す。** 2026-08-23 まで戻り値を捨てており、
                  85社で0行更新なのに「✓ 保存しました」と出ていた。 */}
           {error && !saving && (
-            <div style={{ padding: "7px 20px", background: "var(--error-soft)", fontSize: 12, color: "var(--error)", borderBottom: "1px solid #FCA5A5", fontWeight: 600 }}>
+            <div style={{ padding: "7px 20px", background: "var(--error-soft)", fontSize: 12, color: "var(--error-ink)", borderBottom: "1px solid #FCA5A5", fontWeight: 600 }}>
               ✕ 保存できませんでした：{error}
             </div>
           )}

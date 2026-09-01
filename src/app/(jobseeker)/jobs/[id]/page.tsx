@@ -616,7 +616,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "4px 10px", borderRadius: 6, marginBottom: "var(--space-2)",
-                  background: "#FEE2E2", color: "#DC2626",
+                  background: "#FEE2E2", color: "var(--error-ink)",
                   fontSize: 12, fontWeight: 800, letterSpacing: "0.08em",
                   fontFamily: "var(--font-inter), var(--font-noto)", border: "1px solid #FECACA",
                 }}>

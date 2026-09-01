@@ -237,7 +237,7 @@ export default function PlacementsClient({ placements: initial, users, companies
               )}
 
               {error && (
-                <p style={{ fontSize: 13, color: "var(--error)", background: "var(--error-soft)", padding: "10px 14px", borderRadius: 8 }}>
+                <p style={{ fontSize: 13, color: "var(--error-ink)", background: "var(--error-soft)", padding: "10px 14px", borderRadius: 8 }}>
                   {error}
                 </p>
               )}

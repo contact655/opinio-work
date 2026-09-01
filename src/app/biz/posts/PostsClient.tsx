@@ -53,7 +53,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
   interview: { bg: "var(--warm-soft)",   color: "#92400E" },
   event:     { bg: "var(--purple-soft)", color: "var(--purple)" },
   product:   { bg: "var(--success-soft)", color: "var(--success-ink)" },
-  hiring:    { bg: "#FEE2E2",            color: "#DC2626" },
+  hiring:    { bg: "#FEE2E2",            color: "var(--error-ink)" },
   other:     { bg: "var(--line-soft)",   color: "var(--ink-mute)" },
 };
 
@@ -70,7 +70,7 @@ const TYPE_LABELS: Record<ContentType, string> = {
 
 const TYPE_COLORS: Record<ContentType, { bg: string; color: string }> = {
   article: { bg: "var(--royal-50)",    color: "var(--royal)" },
-  video:   { bg: "var(--error-soft)",  color: "var(--error)" },
+  video:   { bg: "var(--error-soft)",  color: "var(--error-ink)" },
   audio:   { bg: "var(--purple-soft)", color: "var(--purple)" },
   social:  { bg: "var(--success-soft)", color: "var(--success-ink)" },
   event:   { bg: "var(--warm-soft)",   color: "var(--warm-ink)" },
@@ -605,7 +605,7 @@ function StoryCard({
             background: "transparent", border: "none", cursor: "pointer",
             color: "var(--ink-mute)",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--error-soft)"; e.currentTarget.style.color = "var(--error)"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--error-soft)"; e.currentTarget.style.color = "var(--error-ink)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-mute)"; }}
         >
           <Trash2 size={14} strokeWidth={2} />
@@ -1494,7 +1494,7 @@ function LinkCard({
             width: 30, height: 30, borderRadius: "var(--radius-sm)",
             background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-mute)",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--error-soft)"; e.currentTarget.style.color = "var(--error)"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--error-soft)"; e.currentTarget.style.color = "var(--error-ink)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-mute)"; }}
         >
           <Trash2 size={14} strokeWidth={2} />

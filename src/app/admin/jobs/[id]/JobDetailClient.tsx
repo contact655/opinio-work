@@ -335,7 +335,7 @@ export default function JobDetailClient({
                   style={{
                     padding: "8px 20px", borderRadius: 6, fontSize: 13, fontWeight: 600,
                     cursor: "pointer", border: "1px solid #FCA5A5",
-                    background: "#FEE2E2", color: "#DC2626",
+                    background: "#FEE2E2", color: "var(--error-ink)",
                     opacity: actionLoading ? 0.5 : 1,
                   }}
                 >
@@ -351,7 +351,7 @@ export default function JobDetailClient({
                 style={{
                   padding: "8px 20px", borderRadius: 6, fontSize: 13, fontWeight: 600,
                   cursor: "pointer", border: "1px solid #FCA5A5",
-                  background: "#FEE2E2", color: "#DC2626",
+                  background: "#FEE2E2", color: "var(--error-ink)",
                   opacity: actionLoading ? 0.5 : 1,
                 }}
               >
@@ -704,7 +704,7 @@ export default function JobDetailClient({
                 style={{
                   padding: "8px 20px", borderRadius: 6, fontSize: 13, fontWeight: 600,
                   cursor: !rejectionReason.trim() || actionLoading ? "not-allowed" : "pointer",
-                  border: "1px solid #FCA5A5", background: "#FEE2E2", color: "#DC2626",
+                  border: "1px solid #FCA5A5", background: "#FEE2E2", color: "var(--error-ink)",
                   opacity: !rejectionReason.trim() || actionLoading ? 0.5 : 1,
                 }}
               >

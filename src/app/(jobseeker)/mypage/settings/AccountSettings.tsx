@@ -147,10 +147,18 @@ export default function AccountSettings({ authEmail }: { authEmail: string }) {
   return (
     <div style={{ maxWidth: 720, padding: "8px 0 40px" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>設定</h1>
+      {/* ⚠️★2026-09-01 に書き直した。それまでは
+             「プロフィールの公開範囲はマイページの『転職の希望』から変更できます」
+             と書いてあったが、**3つとも事実ではなかった**:
+               ① 公開範囲は 2026-08-20 に**このページの上部へ移した**（`settings/page.tsx` に
+                  「本文の『転職の希望』から移した。両方に置かないこと」と書いてある）
+               ② `/mypage` に「転職の希望」という見出しは**無い**（いまは「意思表示」）
+               ③ `/mypage` に公開範囲の設定は**無い**
+             ＝ **同じページの 200px 上にある設定を、別のページへ探しに行かせていた。**
+          ⚠️ セクション名を書き写さない。ここでは「上の『公開範囲』」とだけ言う
+             （名前が変わるたびに直す箇所が増える）。 */}
       <p style={{ fontSize: 13, color: "var(--ink-mute)", margin: "0 0 24px", lineHeight: 1.7 }}>
-        ログイン情報とメール通知の設定です。プロフィールの公開範囲は
-        <a href="/mypage" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>マイページ</a>
-        の「転職の希望」から変更できます。
+        ログイン情報とメール通知の設定です。プロフィールの公開範囲は、このページ上部の「公開範囲」から変更できます。
       </p>
       <div style={{ maxWidth: 680 }}>
 
@@ -194,7 +202,9 @@ export default function AccountSettings({ authEmail }: { authEmail: string }) {
             borderRadius: 14, padding: "20px 24px", marginBottom: 24,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+          {/* ⚠️ 淡い赤（`--error-soft`）の上なので `--error-ink`。
+                 `--error` だと **3.95**（13px には 4.5 が要る）。 */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--error-ink)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>アカウント削除
           </div>
           {/*

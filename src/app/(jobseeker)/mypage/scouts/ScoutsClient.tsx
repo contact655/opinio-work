@@ -34,7 +34,11 @@ function formatDate(iso: string | null): string {
  *    画面側でもボタンを消すが、**画面の状態を根拠にしない**（別タブで返答済みの可能性）。
  *    409 が返ったら「すでに返答済み」として扱い、その旨を出す。
  */
-export function ScoutsClient({ scouts: initial }: { scouts: ScoutItem[] }) {
+export function ScoutsClient({ scouts: initial, sendingEnabled = false }: {
+  scouts: ScoutItem[];
+  /** スカウト送信が開いているか。⚠️ 既定 false（fail-closed）。空状態の文言に使う */
+  sendingEnabled?: boolean;
+}) {
   const [scouts, setScouts] = useState(initial);
 
   /* ⚠️★**ページ側で器を作らない**（2026-08-25）。余白と最大幅は `MypageLayout` が持つ。
@@ -69,7 +73,7 @@ export function ScoutsClient({ scouts: initial }: { scouts: ScoutItem[] }) {
       </p>
 
       {scouts.length === 0 ? (
-        <EmptyState />
+        <EmptyState sendingEnabled={sendingEnabled} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {scouts.map((s) => (
@@ -89,7 +93,24 @@ export function ScoutsClient({ scouts: initial }: { scouts: ScoutItem[] }) {
   );
 }
 
-function EmptyState() {
+/**
+ * ★★「起こせなかった0」を「まだ起きていない0」として見せない（2026-09-01）。
+ *
+ * ⚠️ 直す前は、送信が止まっていても常に
+ *    「まだスカウトは届いていません／**プロフィールに経歴や希望条件を入れておくと、
+ *      企業から見つけてもらいやすくなります**」と出していた。
+ *    **本人のプロフィールが足りないから届かない、と読める。**
+ *
+ * ⚠️ 実際は `SCOUT_SENDING_ENABLED` が未設定で**企業は誰にも送れない**
+ *    （`POST /api/biz/scouts` は認証より前に 503）。実測（2026-09-01）: `ow_scouts` **0件**。
+ *    受け取る設定にしている人（`scout_enabled = true`）が **17人**いても、
+ *    **1通も届きようがない。**
+ *
+ * ⚠️ 2026-08-31 に `/biz/scouts`（企業側）を同じ理由で直した。**その対。**
+ *    企業側にだけ「まだご利用いただけません」と出して、求職者側に
+ *    「あなたのプロフィール次第」と言い続けるのは筋が通らない。
+ */
+function EmptyState({ sendingEnabled }: { sendingEnabled: boolean }) {
   return (
     <div
       style={{
@@ -110,7 +131,7 @@ function EmptyState() {
           marginBottom: 6,
         }}
       >
-        まだスカウトは届いていません
+        {sendingEnabled ? "まだスカウトは届いていません" : "スカウトはまだ始まっていません"}
       </div>
       <p
         style={{
@@ -121,12 +142,20 @@ function EmptyState() {
           margin: "0 0 18px",
         }}
       >
-        プロフィールに経歴や希望条件を入れておくと、企業から見つけてもらいやすくなります。
+        {sendingEnabled
+          ? "プロフィールに経歴や希望条件を入れておくと、企業から見つけてもらいやすくなります。"
+          : "現在は登録者を増やしている段階のため、企業からのスカウト送信を止めています。始まりましたら、こちらとメールでお知らせします。"}
       </p>
+      {/* ⚠️ 送信が止まっているあいだは CTA を出さない。
+             「充実させれば届く」と読めてしまい、届かない理由を取り違えさせる。
+             ⚠️ プロフィールを書く導線は `/mypage` 本体に元からある。ここに無くても行き止まりにならない。 */}
       {/* ⚠️ 遷移先は `/mypage`（プロフィール本体）。**「編集」ページではない。**
              ラベルを「編集する」にすると、スカウトの画面から編集画面へ送られたように読める
              （実際に「サイドバーのスカウトを押すとプロフィール編集になる」と読まれた。
-              2026-08-27）。**何が増えるとスカウトが届きやすいか**を言うラベルにする。 */}
+              2026-08-27）。**何が増えるとスカウトが届きやすいか**を言うラベルにする。
+          ⚠️★式の位置（`{cond && ( ... )}`）に JSX コメントと要素を並べないこと。
+             子が2つになって `tsc` が「')' expected」で落ちる。**コメントは外に置く。** */}
+      {sendingEnabled && (
       <Link
         href="/mypage"
         style={{
@@ -143,6 +172,7 @@ function EmptyState() {
       >
         プロフィールを充実させる
       </Link>
+      )}
     </div>
   );
 }

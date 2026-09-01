@@ -66,8 +66,8 @@ const STYLES: Record<StatusVariant, { bg: string; color: string; label: string }
   private:            { bg: "var(--line-soft)",    color: "var(--ink-mute)", label: "非公開" },
   cancelled:          { bg: "var(--line-soft)",    color: "var(--ink-soft)", label: "キャンセル" },
   // red ───────────────────────────────────────────────────────────────────────
-  declined:           { bg: "var(--error-soft)",   color: "var(--error)",  label: "見送り" },
-  rejected:           { bg: "var(--error-soft)",   color: "var(--error)",  label: "差し戻し" },
+  declined:           { bg: "var(--error-soft)",   color: "var(--error-ink)",  label: "見送り" },
+  rejected:           { bg: "var(--error-soft)",   color: "var(--error-ink)",  label: "差し戻し" },
 };
 
 const FALLBACK_STYLE = { bg: "var(--line-soft)", color: "var(--ink-soft)" };

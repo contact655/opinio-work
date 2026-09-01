@@ -224,7 +224,7 @@ function StatusBadge({ status }: { status: string | null }) {
     pending_review: { label: "審査中", bg: "var(--warm-soft)", color: "var(--warm-ink)" },
     draft: { label: "下書き", bg: "var(--line-soft)", color: "var(--ink-mute)" },
     private: { label: "非公開", bg: "var(--line-soft)", color: "var(--ink-mute)" },
-    rejected: { label: "差戻し", bg: "var(--error-soft)", color: "var(--error)" },
+    rejected: { label: "差戻し", bg: "var(--error-soft)", color: "var(--error-ink)" },
   };
   const s = map[status ?? ""] ?? { label: status ?? "—", bg: "var(--line-soft)", color: "var(--ink-mute)" };
   return (

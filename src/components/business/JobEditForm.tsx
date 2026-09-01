@@ -504,7 +504,7 @@ export function JobEditForm({
     transition: "all 0.3s", flexShrink: 0,
     ...(saveState === "saving" ? { color: "var(--warm-ink)", background: "var(--warm-soft)" }
       : saveState === "saved"  ? { color: "var(--success-ink)", background: "var(--success-soft)" }
-      : saveState === "error"  ? { color: "var(--error)", background: "var(--error-soft)" }
+      : saveState === "error"  ? { color: "var(--error-ink)", background: "var(--error-soft)" }
       : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
   };
   const saveStatusText = saveState === "saving" ? "下書きに保存中..."
@@ -1127,7 +1127,7 @@ export function JobEditForm({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {([
                   { value: "open", label: "OPEN", sublabel: "通常募集", color: "var(--success-ink)", bg: "var(--success-soft)" },
-                  { value: "hot",  label: "HOT",  sublabel: "積極採用中", color: "#DC2626", bg: "#FEE2E2" },
+                  { value: "hot",  label: "HOT",  sublabel: "積極採用中", color: "var(--error-ink)", bg: "#FEE2E2" },
                 ] as const).map((opt) => {
                   const isSelected = form.urgency === opt.value;
                   return (

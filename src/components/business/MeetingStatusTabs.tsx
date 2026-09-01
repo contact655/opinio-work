@@ -8,7 +8,7 @@ const STATUS_COLORS: Record<MeetingStatus, { bg: string; border: string; color: 
   company_contacted: { bg: "var(--royal-50)",      border: "var(--royal)", color: "var(--royal)" },
   scheduled:         { bg: "var(--purple-soft)",   border: "var(--purple)", color: "var(--purple)" },
   completed:         { bg: "#F1F5F9",              border: "#94A3B8", color: "#475569" },
-  declined:          { bg: "var(--error-soft)",    border: "var(--error)", color: "var(--error)" },
+  declined:          { bg: "var(--error-soft)",    border: "var(--error)", color: "var(--error-ink)" },
 };
 
 type Props = {

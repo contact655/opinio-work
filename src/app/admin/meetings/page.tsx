@@ -9,7 +9,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; 
   company_contacted: { label: "企業連絡済み", bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7" },
   scheduled:         { label: "日程確定",     bg: "#F3E8FF", color: "#7C3AED",       border: "#E9D5FF" },
   completed:         { label: "完了",         bg: "#F1F5F9", color: "#6b7280",       border: "#E2E8F0" },
-  declined:          { label: "辞退/不採択",  bg: "#FEE2E2", color: "#DC2626",       border: "#FECACA" },
+  declined:          { label: "辞退/不採択",  bg: "#FEE2E2", color: "var(--error-ink)",       border: "#FECACA" },
 };
 
 type Meeting = {

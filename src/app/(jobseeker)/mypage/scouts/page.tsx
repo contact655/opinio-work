@@ -93,7 +93,11 @@ export default async function ScoutsPage() {
       activeKey="scouts"
       scoutsBadge={unanswered}
     >
-      <ScoutsClient scouts={scouts} />
+      {/* ⚠️ 判定は `POST /api/biz/scouts` と `/biz/candidates` と**同じ env**にする。
+             片方だけ変えると「届かないのに理由が違う」案内になる。
+          ⚠️ ここでは env だけを見る。本人の受け取り設定（`scout_enabled`）は
+             **別の話**なので混ぜない（混ぜると「設定すれば届く」と読める）。 */}
+      <ScoutsClient scouts={scouts} sendingEnabled={process.env.SCOUT_SENDING_ENABLED === "true"} />
     </MypageLayout>
   );
 }

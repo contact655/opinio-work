@@ -309,7 +309,7 @@ function MismatchState({
 
 function StatusIcon({ type }: { type: "error" | "warning" | "invite" | "ready" }) {
   const configs = {
-    error: { bg: "var(--error-soft)", color: "var(--error)" },
+    error: { bg: "var(--error-soft)", color: "var(--error-ink)" },
     warning: { bg: "var(--warm-soft)", color: "var(--warm-ink)" },
     invite: { bg: "var(--royal-50)", color: "var(--royal)" },
     ready: { bg: "var(--success-soft)", color: "var(--success-ink)" },

@@ -784,7 +784,7 @@ function JobEmbedCard({
             {job.urgency === "hot" && (
               <span style={{
                 fontSize: 12, padding: "2px 7px", borderRadius: 4,
-                background: "#FEE2E2", color: "#DC2626",
+                background: "#FEE2E2", color: "var(--error-ink)",
                 border: "1px solid #FECACA", fontWeight: 700,
               }}>🔥 HOT</span>
             )}

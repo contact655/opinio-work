@@ -76,14 +76,28 @@ export default function ApplicationsClient({ initialApplications }: { initialApp
         }}>応募管理</h1>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {/* ★4つとも同じ色にした（2026-09-01）。理由は3つ。
+                ① **`text-yellow-600`(#CA8A04) が白の上で 2.94。** 数字は 24px なので基準は 3.0
+                   だが届かない（実測）。
+                ② **`text-purple-600` は紫。** `.claude/skills/ui-conventions`「色の役割」は
+                   **紫は使わない**と定めている。globals.css の但し書き
+                   「①②③（運営・企業側の状態表示）は当面残す」は**求職者側には適用されない。**
+                ③ ★**凡例が無く、色が何も伝えていない。** 黄=書類 / 紫=面接 / 濃紺=内定 /
+                   灰=応募済み を読み手が解釈する手がかりがどこにも無い。
+                   ここで情報を運んでいるのは**数字の下のラベル**であって、色ではない。
+                   `lib/utils/chipVariant.ts`「凡例なしで意味が伝わらないなら neutral にして
+                   文言側で説明する」と、`MergedTimeline` の EMPLOYMENT_BADGE で
+                   「全値とも同じ見た目にする」とした前例に合わせる。
+             ⚠️ 1つだけ色を残す案は採らない。**どれかが上位だという序列**になる
+                （EMPLOYMENT_BADGE で「正社員だけ色を残す案」を退けたのと同じ理由）。 */}
           {[
-            { label: "書類選考中", count: counts.doc_review, color: "text-yellow-600" },
-            { label: "面接中", count: counts.interview, color: "text-purple-600" },
-            { label: "内定", count: counts.offered, color: "text-primary" },
-            { label: "応募済み", count: counts.total, color: "text-gray-600" },
+            { label: "書類選考中", count: counts.doc_review },
+            { label: "面接中", count: counts.interview },
+            { label: "内定", count: counts.offered },
+            { label: "応募済み", count: counts.total },
           ].map((card) => (
             <div key={card.label} className="bg-white rounded-card p-4 border border-card-border text-center">
-              <p className={`text-2xl font-bold ${card.color}`}>{card.count}</p>
+              <p className="text-2xl font-bold" style={{ color: "var(--ink)" }}>{card.count}</p>
               <p className="text-xs text-gray-500 mt-1">{card.label}</p>
             </div>
           ))}
