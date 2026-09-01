@@ -1214,11 +1214,12 @@ export async function JobDetailView({
                             <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--line)", margin: "4px 0" }} />
                           )}
                         </div>
-                        {/* 右：内容 */}
-                        <div style={{ flex: 1, paddingBottom: isLast ? 0 : 20, paddingTop: 6 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", marginBottom: 3 }}>
-                            {step.step}
-                          </div>
+                        {/* 右：内容。
+                            ⚠️★**`step.step` を出さないこと**（2026-09-02 に削除）。
+                               `mapJob` が `String(i + 1)` を入れているだけで、
+                               **左のドットとまったく同じ数字が2つ並んでいた。**
+                               番号はドットが持つ。ここは名前だけにする。 */}
+                        <div style={{ flex: 1, paddingBottom: isLast ? 0 : 20, paddingTop: 10 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: step.meta ? 4 : 0 }}>
                             {step.name}
                           </div>
