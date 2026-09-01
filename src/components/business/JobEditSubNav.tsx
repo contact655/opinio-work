@@ -7,17 +7,34 @@ export type EditSection = {
   showStatus?: boolean;
 };
 
+/**
+ * 「推奨項目」の1つ。**公開の条件ではない。**
+ *
+ * ⚠️★**`completionPercent` に混ぜないこと。** 混ぜると、既に公開中の求人の％が
+ *    その日いきなり下がる（公開中2件は3項目とも空なので 100% → 77% になる）。
+ *    企業から見れば「何もしていないのに減った」であり、直す動機にならない。
+ */
+export type RecommendedItem = {
+  key: string;
+  label: string;
+  /** クリックで開くセクション（`EditSection.id`） */
+  sectionId: string;
+  filled: boolean;
+};
+
 type Props = {
   sections: EditSection[];
   activeSection: string;
   onSectionClick: (id: string) => void;
   completionPercent: number;
+  recommended?: RecommendedItem[];
 };
 
 export function JobEditSubNav({
   sections,
   activeSection,
   onSectionClick,
+  recommended = [],
   completionPercent,
 }: Props) {
   return (
@@ -131,6 +148,58 @@ export function JobEditSubNav({
           全項目を入力すると、公開申請がスムーズに進みます。
         </div>
       </div>
+
+      {/*
+        推奨項目（2026-09-02 追加）
+
+        ⚠️★**上の入力進捗とは別枠にしてある。** 必須ではないので、
+           未入力を「未入力」と赤や黄で咎めない。黄色は「注意・未完了・待ち」の色で、
+           任意の項目に使うと**やらないと駄目に見える**（ui-conventions「色の役割」）。
+        ⚠️ 済 / 未済は**色ではなく記号と濃さ**で示す。同じ画面に上のセクション一覧
+           （✓ / 未入力）があるので、色で二重に意味を作らない。
+        ⚠️★ここに項目を足したら、**求人詳細に表示先があること**を必ず確かめること。
+           表示先の無い項目を勧めると「入力させたのに出ない」になる。
+      */}
+      {recommended.length > 0 && (
+        <div style={{
+          marginTop: 12, padding: "14px 16px",
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
+        }}>
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "baseline",
+            fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 4,
+          }}>
+            <span>推奨項目（任意）</span>
+            <span style={{ color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+              {recommended.filter((r) => r.filled).length} / {recommended.length}
+            </span>
+          </div>
+          <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 10 }}>
+            公開の条件ではありません。書くと、候補者が応募するかどうかを判断しやすくなります。
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {recommended.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => onSectionClick(r.sectionId)}
+                title={r.filled ? `${r.label}（入力済み）` : `${r.label} を書く`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 11, fontWeight: 600, padding: "4px 10px",
+                  borderRadius: 100, cursor: "pointer",
+                  border: r.filled ? "1px solid var(--royal-100, #dce5f7)" : "1px solid var(--line)",
+                  background: r.filled ? "var(--royal-50)" : "var(--line-soft)",
+                  color: r.filled ? "var(--royal)" : "var(--ink-mute)",
+                }}
+              >
+                <span aria-hidden="true">{r.filled ? "✓" : "＋"}</span>
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

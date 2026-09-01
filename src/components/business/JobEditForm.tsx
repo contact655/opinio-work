@@ -8,7 +8,7 @@ import { useAutoSave } from "@/hooks/useAutoSave";
 import type { TeamMember } from "@/lib/business/jobs";
 import Link from "next/link";
 import type { BizJob } from "@/lib/business/mockJobs";
-import { JobEditSubNav, type EditSection } from "./JobEditSubNav";
+import { JobEditSubNav, type EditSection, type RecommendedItem } from "./JobEditSubNav";
 import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
@@ -500,6 +500,31 @@ export function JobEditForm({
     const done = keys.filter((k) => sectionComplete[k]).length;
     return Math.round((done / keys.length) * 100);
   }, [sectionComplete]);
+
+  /* ── 推奨項目（2026-09-02 追加）────────────────────────────────
+     ⚠️★**`completionPercent` に混ぜていない。** 混ぜると、公開中の求人の％が
+        その日いきなり下がる（公開中2件は3項目とも空なので 100% → 77%）。
+        企業から見れば「何もしていないのに減った」で、直す動機にならない。
+
+     ⚠️★**求人詳細に表示先がある項目だけを載せること。** 表示先の無いものを勧めると
+        「入力させたのに出ない」になる。2026-09-02 に確認した時点で
+        **`culture_fit`（求めるカルチャーフィット）は求職者側に表示先が無い**
+        （`/admin/jobs/[id]` の審査画面にしか出ない）ので**入れていない**。
+        載せるなら、先に求人詳細に描画を作ること。
+
+     ⚠️ 本番0件だった3項目（なぜ今採用するか / チーム構成 / 入社後90日）は、
+        2026-09-02 まで**保存しても消えていた**。0件は「書かなかった」ではなく
+        「残らなかった」でもある（CLAUDE.md「起きなかった0か、起こせなかった0か」）。 */
+  const recommended: RecommendedItem[] = useMemo(() => [
+    { key: "whyHire",         label: "なぜ今採用するか", sectionId: "content", filled: !!form.whyHire.trim() },
+    { key: "teamComposition", label: "チーム構成",       sectionId: "content", filled: !!form.teamComposition.trim() },
+    { key: "first90Days",     label: "入社後90日",       sectionId: "content", filled: !!form.first90Days.trim() },
+    { key: "messageToCandidates", label: "候補者へのメッセージ", sectionId: "content", filled: !!form.messageToCandidates.trim() },
+    { key: "salaryNote",      label: "給与の補足",       sectionId: "salary",  filled: !!form.salaryNote.trim() },
+    { key: "workHours",       label: "勤務体系",         sectionId: "salary",  filled: !!form.workHours.trim() },
+    { key: "holidays",        label: "休日・休暇",       sectionId: "salary",  filled: !!form.holidays.trim() },
+    { key: "probationPeriod", label: "試用期間",         sectionId: "salary",  filled: !!form.probationPeriod.trim() },
+  ], [form]);
 
   const sections: EditSection[] = SECTION_DEFS.map((s) => ({
     ...s,
@@ -1377,6 +1402,7 @@ export function JobEditForm({
           sections={sections}
           activeSection={activeSection}
           onSectionClick={setActiveSection}
+          recommended={recommended}
           completionPercent={completionPercent}
         />
 
