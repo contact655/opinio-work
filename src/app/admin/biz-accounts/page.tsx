@@ -405,7 +405,7 @@ export default async function AdminBizAccountsPage({
                         const state = !acc.userId
                           ? { label: "招待中", bg: "#FEF3C7", fg: "var(--warm-ink)", bd: "#FDE68A", dot: "#F59E0B" }
                           : acc.acceptedAt
-                            ? { label: "承諾済み", bg: "#ECFDF5", fg: "var(--success)", bd: "#A7F3D0", dot: "var(--success)" }
+                            ? { label: "承諾済み", bg: "#ECFDF5", fg: "var(--success-ink)", bd: "#A7F3D0", dot: "var(--success)" }
                             : { label: "運営が直接登録", bg: "#EFF3FC", fg: "var(--royal)", bd: "#DCE5F7", dot: "#3B5FD9" };
                         return (
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>

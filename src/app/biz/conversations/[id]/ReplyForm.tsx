@@ -90,7 +90,7 @@ export function ReplyForm({ conversationId }: Props) {
             background: "var(--error-soft)",
             border: "1px solid #FECACA",
             fontSize: 12,
-            color: "var(--error)",
+            color: "var(--error-ink)",
           }}
         >
           {error}

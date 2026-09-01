@@ -279,7 +279,7 @@ function StoriesTab({ companyId, initialStories }: { companyId: string; initialS
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "12px 16px", marginBottom: 16, borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
-          fontSize: 13, color: "var(--error)", fontWeight: 600,
+          fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <AlertCircle size={14} strokeWidth={2} />
@@ -857,7 +857,7 @@ function StoryEditor({
             <div style={{
               padding: "8px 12px", marginBottom: 12,
               background: "var(--error-soft)", borderRadius: "var(--radius-sm)",
-              fontSize: 12, color: "var(--error)", fontWeight: 500,
+              fontSize: 12, color: "var(--error-ink)", fontWeight: 500,
             }}>
               {formError}
             </div>
@@ -1048,7 +1048,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "12px 16px", marginBottom: 16, borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
-          fontSize: 13, color: "var(--error)", fontWeight: 600,
+          fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <AlertCircle size={14} strokeWidth={2} />{errorMessage}
@@ -1265,7 +1265,7 @@ function LinksTab({ companyId, initialPosts }: { companyId: string; initialPosts
               <div style={{
                 padding: "8px 12px", marginBottom: 12,
                 background: "var(--error-soft)", borderRadius: "var(--radius-sm)",
-                fontSize: 12, color: "var(--error)", fontWeight: 500,
+                fontSize: 12, color: "var(--error-ink)", fontWeight: 500,
               }}>
                 {formError}
               </div>

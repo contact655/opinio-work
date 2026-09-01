@@ -474,7 +474,7 @@ function ScoutCard({
 function StatusPill({ status }: { status: ScoutItem["status"] }) {
   const map = {
     sent: { label: "未返答", bg: "var(--warm-soft)", fg: "var(--warm-ink)" },
-    interested: { label: "返答済み", bg: "var(--success-soft)", fg: "var(--success)" },
+    interested: { label: "返答済み", bg: "var(--success-soft)", fg: "var(--success-ink)" },
     declined: { label: "見送り", bg: "var(--line-soft)", fg: "var(--ink-mute)" },
   } as const;
   const s = map[status];

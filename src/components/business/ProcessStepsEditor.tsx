@@ -104,7 +104,7 @@ export function ProcessStepsEditor({ steps, onStepsChange }: Props) {
                 transition: "all 0.15s",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--error)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--error-ink)";
                 (e.currentTarget as HTMLButtonElement).style.background = "var(--error-soft)";
               }}
               onMouseLeave={(e) => {

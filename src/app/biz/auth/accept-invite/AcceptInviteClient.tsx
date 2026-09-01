@@ -217,7 +217,7 @@ function ReadyState({ token, companyName }: { token: string; companyName: string
       {error && (
         <div style={{
           fontSize: 12,
-          color: "var(--error)",
+          color: "var(--error-ink)",
           padding: "10px 14px",
           background: "var(--error-soft)",
           borderRadius: 8,

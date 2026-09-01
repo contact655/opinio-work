@@ -431,7 +431,7 @@ export default function CasualMeetingForm({
             style={{
               background: "var(--error-soft)", border: "1px solid #FECACA",
               borderRadius: 8, padding: "12px 16px", marginBottom: 16,
-              fontSize: 13, color: "var(--error)",
+              fontSize: 13, color: "var(--error-ink)",
             }}>
             {error}
           </div>

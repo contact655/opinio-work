@@ -737,7 +737,7 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "10px 14px", marginBottom: 14, borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
-          fontSize: 13, color: "var(--error)", fontWeight: 600,
+          fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
         }} role="alert">
           <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span>{photoError}</span>
           <button type="button" onClick={() => setPhotoError(null)} style={{

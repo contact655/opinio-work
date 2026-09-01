@@ -350,7 +350,7 @@ function ConfirmDialog({
             border: "1px solid #FCA5A5",
             borderRadius: 8,
             fontSize: 13,
-            color: "var(--error)",
+            color: "var(--error-ink)",
             marginBottom: 16,
           }}>
             {errorMessage}
@@ -524,7 +524,7 @@ function EditProfileDialog({
             border: "1px solid #FCA5A5",
             borderRadius: 8,
             fontSize: 13,
-            color: "var(--error)",
+            color: "var(--error-ink)",
             marginBottom: 16,
           }}>
             {errorMessage}
@@ -729,7 +729,7 @@ function AddMemberDialog({
             border: "1px solid #FCA5A5",
             borderRadius: 8,
             fontSize: 13,
-            color: "var(--error)",
+            color: "var(--error-ink)",
             marginBottom: 16,
           }}>
             {localError ?? errorMessage}
@@ -955,7 +955,7 @@ function PendingInvitesSection({
                         padding: "1px 7px",
                         borderRadius: 100,
                         background: "var(--error-soft)",
-                        color: "var(--error)",
+                        color: "var(--error-ink)",
                       }}>
                         期限切れ
                       </span>

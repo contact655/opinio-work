@@ -860,7 +860,7 @@ export function CreateCompanyClient({
         <>
         {error && (
           <div style={{
-            fontSize: 12, color: "var(--error)",
+            fontSize: 12, color: "var(--error-ink)",
             padding: "9px 12px", background: "var(--error-soft)",
             borderRadius: 6, lineHeight: 1.6,
           }}>

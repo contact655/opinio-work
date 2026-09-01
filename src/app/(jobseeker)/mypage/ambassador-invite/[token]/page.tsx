@@ -85,7 +85,7 @@ export default function AmbassadorInvitePage() {
               border: "1px solid #fca5a5",
               borderRadius: 12,
               padding: "24px 28px",
-              color: "var(--error)",
+              color: "var(--error-ink)",
             }}>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>エラー</div>
               <div>{error}</div>

@@ -820,7 +820,7 @@ const s = {
     borderRadius: 10,
     padding: "12px 16px",
     fontSize: 14,
-    color: "var(--error)",
+    color: "var(--error-ink)",
     marginBottom: 20,
     lineHeight: 1.6,
   } as React.CSSProperties,

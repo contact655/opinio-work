@@ -921,7 +921,7 @@ function InviteBanner({ companyName, subtitle }: { companyName: string; subtitle
 function ErrorBox({ message }: { message: string }) {
   return (
     <div role="alert" aria-live="polite" style={{
-      fontSize: 12, color: "var(--error)",
+      fontSize: 12, color: "var(--error-ink)",
       padding: "10px 14px", background: "var(--error-soft)",
       borderRadius: 9, marginBottom: 14,
       border: "1px solid #FECACA", lineHeight: 1.6,

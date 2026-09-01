@@ -226,7 +226,7 @@ export default function ApplicationForm({
               style={{
                 padding: "12px 16px", background: "var(--error-soft)",
                 border: "1px solid #FECACA", borderRadius: 8,
-                fontSize: 13, color: "var(--error)", marginBottom: 20,
+                fontSize: 13, color: "var(--error-ink)", marginBottom: 20,
               }}>
               {error}
             </div>

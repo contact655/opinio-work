@@ -286,7 +286,7 @@ export default function UpdatePasswordPage() {
                       border: "1px solid #FCA5A5",
                       borderRadius: 8,
                       fontSize: 13,
-                      color: "var(--error)",
+                      color: "var(--error-ink)",
                       marginBottom: 16,
                     }}
                   >

@@ -68,7 +68,7 @@ export function JobStatusCards({ counts }: Props) {
       label: "差し戻し",
       subLabel: "Rejected",
       count: counts.rejected,
-      color: "var(--error)",
+      color: "var(--error-ink)",
       bg: "var(--error-soft)",
       href: "/biz/jobs?status=rejected",
     },
