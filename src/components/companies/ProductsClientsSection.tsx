@@ -1,4 +1,5 @@
 import React from "react";
+import { splitParenSuffix } from "@/lib/utils/parenSuffix";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { SecTitle } from "@/app/(jobseeker)/companies/[id]/SecTitle";
 import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleList";
@@ -21,13 +22,9 @@ const PRODUCTS_LIMIT = 5;
 // ─── ProductsClientsSection ───────────────────────────────────────────────────
 
 /** 製品名から（...）形式のサブタイトルを分離する */
-function parseProductName(raw: string): { name: string; sub: string | null } {
-  const m = raw.match(/^(.+?)（(.+?)）\s*$/);
-  if (m) return { name: m[1].trim(), sub: m[2].trim() };
-  const m2 = raw.match(/^(.+?)\((.+?)\)\s*$/);
-  if (m2) return { name: m2[1].trim(), sub: m2[2].trim() };
-  return { name: raw, sub: null };
-}
+/* ⚠️ 分解の規則は `lib/utils/parenSuffix.ts` に集約した（2026-09-02）。
+      福利厚生でも同じ形が必要になったため。**ここに正規表現を戻さないこと。** */
+const parseProductName = splitParenSuffix;
 
 /**
  * キーワードから製品カードの**アイコン**を決める。

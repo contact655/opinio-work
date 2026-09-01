@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import {
   TOOL_CATEGORY_ICONS,
-  TOOL_CATEGORY_LABELS,
   CATEGORY_TO_GROUP,
   GROUP_ORDER,
   GROUP_DEFS,
@@ -66,7 +65,6 @@ export default function ToolsSectionClient({ tools }: Props) {
         const isExpanded = expandedGroups.has(groupSlug);
         const visible = isExpanded ? groupTools : groupTools.slice(0, GROUP_MAX);
         const hiddenCount = groupTools.length - GROUP_MAX;
-        const showSublabel = def.categories.length > 1;
 
         return (
           <div
@@ -139,7 +137,6 @@ export default function ToolsSectionClient({ tools }: Props) {
             >
               {visible.map((tool) => {
                 const iconDef = TOOL_CATEGORY_ICONS[tool.category as CategorySlug];
-                const categoryLabel = TOOL_CATEGORY_LABELS[tool.category as CategorySlug];
                 if (!iconDef) return null;
 
                 const icon = (
@@ -161,7 +158,15 @@ export default function ToolsSectionClient({ tools }: Props) {
                     <InfoCard
                       icon={icon}
                       label={tool.name}
-                      sublabel={showSublabel ? (tool.note || categoryLabel) : (tool.note || undefined)}
+                      /* ⚠️★**カテゴリ名をここに落とさないこと**（2026-09-02 に `|| categoryLabel` を削除）。
+                            グループ見出しがすぐ上にあるので、「開発」「コミュニケーション」を
+                            カードにも出すと**同じことを2回言うだけ**になる。しかも本物の `note` と
+                            同じ見た目で並ぶので、全体が「読まなくていい行」に見えていた。
+                            実測（2026-09-02 / 本番14件）: note があるのは **4件**で、
+                            残り10件はカテゴリ名が note の位置に出ていた。
+                         ⚠️ 入力が無ければ2行目ごと出さない。空欄は空欄のまま
+                            （CLAUDE.md「値が無いことを、ある値に置き換えない」）。 */
+                      sublabel={tool.note || undefined}
                       /* ⚠️ カテゴリごとの色は使わない（2026-08-23）。
                             ツールは金銭条件ではないので neutral 固定。
                             以前は toolCfg のカテゴリ色（緑・黄・紫）がそのまま出ており、

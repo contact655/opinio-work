@@ -4,6 +4,7 @@ import React, { useState, useId } from "react";
 import { InfoCard } from "@/app/(jobseeker)/companies/[id]/InfoCard";
 import type { ChipVariant } from "@/lib/utils/chipVariant";
 import type { Benefit } from "@/lib/companies/benefits";
+import { splitParenSuffix } from "@/lib/utils/parenSuffix";
 
 /**
  * 福利厚生の1枚。`detail` があるときだけ開けるようにする（2026-08-31）。
@@ -38,11 +39,26 @@ export function BenefitCard({
   const [hovered, setHovered] = useState(false); // ホバーで開いた
   const id = useId();
 
+  /* ★`名前（補足）` を分けて、補足は弱い2行目に置く（2026-09-02）。
+     ⚠️ それまで括弧ごと1つの太字で描いており、**カードによって1〜3行と高さが揃わず、
+        全部が同じ強さで主張していた**（柴さんの指摘「常時出ているとノイズ」）。
+     ⚠️★**ホバーで出す案は採らなかった。** touch にホバー状態が無いのでスマホで
+        一生読めない。実測（2026-09-02 / 29件）で**59%に括弧があり、中身は
+        「月1万円まで」「週2出社」のような判断に効く値**だった。隠す情報ではない。
+     ⚠️ 分解の規則は `lib/utils/parenSuffix.ts`。主要製品と同じものを使う。 */
+  const { name, sub } = splitParenSuffix(benefit.name);
+
   /* ⚠️ 詳細が無いときは従来どおり。**ここを分岐しないと、詳細の無い
         カード（大半）まで押せるように見える。** */
   if (!benefit.detail) {
-    return <InfoCard icon={icon} label={benefit.name} variant={variant} />;
+    return <InfoCard icon={icon} label={name} sublabel={sub ?? undefined} variant={variant} />;
   }
+
+  /* ⚠️ `detail` があるときは「詳細を見る」を2行目に使うので、括弧の補足は
+        名前の側に戻す（2行目を2つの意味で奪い合わせない）。
+        実測（2026-09-02 / 本番29件）では **detail は0件**で、括弧との併用も0件。
+        将来どちらも入ったときに壊れないようにしてあるだけ。 */
+  const label = sub ? `${name}（${sub}）` : name;
 
   const open = pinned || hovered;
 
@@ -71,7 +87,7 @@ export function BenefitCard({
                ⚠️ 絶対配置に戻さないこと。 */}
         <InfoCard
           icon={icon}
-          label={benefit.name}
+          label={label}
           sublabel={open ? "閉じる" : "詳細を見る"}
           variant={variant}
         />
