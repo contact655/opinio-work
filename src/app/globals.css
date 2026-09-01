@@ -1751,3 +1751,33 @@ body {
     overflow: visible !important;
   }
 }
+
+/* ── 求人詳細「選考フロー」の並び ────────────────────────────────
+   ⚠️★**レスポンシブで変える値はここに置く。インラインに書かない**
+      （CLAUDE.md「レスポンシブで変えたい値をインラインに書かない」）。
+      ドットの色だけは isFirst / isLast で変わるのでインラインのまま。
+
+   広いとき  … 左→右の横並び（2026-09-02 に縦から変更・柴さんの指示）。
+   狭いとき  … **1列になる幅では横線が意味を失う**ので縦の並びに戻す。
+              実測（375px）: `minmax(150px,1fr)` は1列にしかならず、
+              **6ステップすべての線が右へ伸びて宙に浮いていた。**
+
+   ⚠️ 横スクロールにはしない。本番の求人は6ステップあり、
+      スクロールにすると後半が画面外に隠れて気づけない。 */
+.job-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  row-gap: 18px;
+}
+.job-flow-step { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.job-flow-dotrow { display: flex; align-items: center; }
+.job-flow-line { flex: 1; height: 2px; background: var(--line); margin-left: 6px; margin-right: 2px; }
+.job-flow-label { padding-right: 14px; }
+
+@media (max-width: 560px) {
+  /* 1列。横線を消し、ドットを左・ラベルを右に置いて縦のリストにする。 */
+  .job-flow { grid-template-columns: 1fr; row-gap: 14px; }
+  .job-flow-step { flex-direction: row; align-items: flex-start; gap: 12px; }
+  .job-flow-line { display: none; }
+  .job-flow-label { padding-right: 0; padding-top: 5px; }
+}
