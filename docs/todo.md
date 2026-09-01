@@ -2036,16 +2036,20 @@ env に関係なく is_published を見る」）。
 
 ⚠️ `related_article_slugs` のほうは**9件すべて実在・公開中**で、正常に動いている。
 
-### ついでに: 企業が実在しない記事が4件ある
+### ✅ 企業が実在しない記事4件は削除した（2026-09-01 / migration 20260901190000）
 
 `archi-village-cto-dx-journey` / `freee-platform-infra-report` /
-`layerx-nakamura-why-mentor` / `layerx-suzuki-backend-career` の
-`company_slug` は **`ow_companies` に無い**（migration 238/239 で企業側を削除した）。
+`layerx-nakamura-why-mentor` / `layerx-suzuki-backend-career`。
+企業側は migration 238/239 で削除済みだったが、**記事だけが公開されたまま残っていた。**
 
-⚠️ **CTA は出ない**（`resolvePublishedCompanyHref` が null を返し、
-   `CompanyCTA` がブロックごと出さない）。**リンク切れにはなっていない。**
-   ただし記事本文は「LayerX の〜」と語り続けるので、**掲載していない企業の記事が
-   4件公開されている**という状態そのものは残る。取り下げるかは運営の判断。
+⚠️★**`ow_posts.ref_article_id` に FK が1本も無い。** 記事だけ消すと投稿4件が
+   参照先を失い、**幽霊投稿になる**（238/239 で作った「幽霊投稿60件」と同じ形）。
+   → 投稿も同じ migration で消した。いいね0 / コメント0 / 通知0 は事前に確認済み。
+
+⚠️ 他の記事6件が `related_article_slugs` でこの4件を指していたので、配列から取り除いた。
+
+実測（適用後）: 記事 16 → **12** ／ 投稿 170 → **166** ／ 可視投稿 110 → **106** ／
+企業が無い記事 **0** ／ 関連記事が切れている記事 **0**。
 
 ---
 
