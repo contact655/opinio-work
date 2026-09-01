@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
-import { resolveAvatarColor } from "@/lib/jobCategoryColors";
+import { AVATAR_COLOR } from "@/lib/avatarColor";
 import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 
 /**
@@ -27,7 +27,7 @@ import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 
    | | 色の決め方 | 見た目 |
    |---|---|---|
-   | 企業ページ | `resolveAvatarColor(職種)` | 淡い背景 + 濃い文字 |
+   | 企業ページ | `AVATAR_COLOR`（全員同じ） | 淡い背景 + 濃い文字 |
    | 求人ページ（旧） | `userId.charCodeAt(0) % 5` | 濃いグラデ + 白文字 |
 
    ⚠️ 求人ページ側の色は `userId` の先頭文字で決まるだけで、**何も意味していなかった。**
@@ -36,13 +36,9 @@ import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
          トークンとは無関係」）。問題は**2ページで食い違うこと**のほう。
 
    ⚠️★**「企業ページ側は職種で色が決まるから意味がある」は誤りだった**（2026-08-31 に訂正）。
-      `JOB_CATEGORY_COLORS` の7キーは「2026-05 時点の実値」とコメントされているが、
-      **現在の `ow_roles` の親カテゴリ UUID と1つも一致しない。**
-      つまり `resolveAvatarColor` は**全員にフォールバック色を返している。**
-      ⚠️ 意図した職種別の色は**1人にも出ていない。**（→ `docs/todo.md` / 未決）
-
-   ⚠️ それでも揃える先を企業ページにした。**判定が1箇所になる**ので、
-      UUID を直せば両ページが同時に直る。**ここに色表を作り直さないこと。** */
+      色表の7キーが現在の `ow_roles` と1つも一致しておらず、**職種別の色は1人にも出ていなかった。**
+      ✅ **2026-09-02 に表ごと畳んで1色に確定させた**（`lib/avatarColor.ts` の `AVATAR_COLOR`）。
+         凡例が無い色分けは持たない、という判断。**ここに色表を作り直さないこと。** */
 
 /**
  * 求人詳細の社員カード。
@@ -66,7 +62,7 @@ export function JobEmployeeCard({ emp, companyId, casualBase }: {
   casualBase: string | null;
 }) {
   /* ⚠️ 企業ページの社員カードと**同じ関数**を使う。色は職種で決まる（上のコメント）。 */
-  const color = resolveAvatarColor(emp.roleParentId, emp.roleCategoryId);
+  const color = AVATAR_COLOR;
   const initial = emp.avatarInitial ?? emp.name.charAt(0);
   void companyId;
 

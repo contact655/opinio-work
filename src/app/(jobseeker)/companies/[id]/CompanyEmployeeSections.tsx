@@ -17,7 +17,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
-import { resolveAvatarColor } from "@/lib/jobCategoryColors";
+import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
 import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 
@@ -62,7 +62,7 @@ function EmployeeCardInner({
   badge?: React.ReactNode;
   subInfo?: React.ReactNode;
 }) {
-  const avatarColor = resolveAvatarColor(employee.roleParentId, employee.roleCategoryId);
+  const avatarColor = AVATAR_COLOR;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
       {/* アバター */}

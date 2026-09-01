@@ -731,31 +731,6 @@ export const COMPANY_CARDS_REAL_MIX: CompanyForCarousel[] = [
   ),
 ];
 
-/* ── ★職種別カラーの判断材料（2026-08-31）──────────────────────────────────
-   ⚠️ `lib/jobCategoryColors.ts` の7キーは「2026-05 時点の ow_roles 実値」と
-      コメントされているが、**現在の親カテゴリ UUID と1つも一致しない**（実測 0/7）。
-      そのため `resolveAvatarColor` は**全員にフォールバック色**を返している。
-
-   ⚠️★**2つを並べて見るためのフィクスチャ。** 片方は本番と同じ、もう片方は
-      「UUID を直したらこう見える」。**どちらを採るかは製品の判断**なので、
-      私（Claude）は `jobCategoryColors.ts` を変えていない。
-      → 選択肢と根拠は `docs/todo.md`。 */
-
-/** いまの本番。実在する親カテゴリ UUID を渡す → **色表に無いので全員フォールバック** */
-const REAL_PARENT_IDS = PARENT_ROLE_IDS;
-
-/** UUID を直した場合。**色表に載っているキー**を渡す → 職種別に色がつく
- *  ⚠️ これらは**現在の ow_roles には存在しない**古い UUID。
- *     「直したらこう見える」を示すためだけに使う。**本番のデータではない。** */
-const COLORMAP_KEYS = [
-  "a905184b-2a26-4be6-8881-fa96e3b0d94a", // エンジニア
-  "15077bd6-0b80-49bf-875c-b5068a615de5", // PdM / PM
-  "9ff6eb0c-4726-4d71-9d84-863b2e674f19", // マーケティング
-  "89b056f4-ef14-4e4a-a71c-5fd5e4c4618a", // 営業
-  "093cd4bb-e610-464a-90b7-8caae04996c9", // カスタマーサクセス
-  "3b29af59-7601-43ff-8a32-beec3ac5b084", // 経営・CxO
-];
-
 const ROLE_LABELS = ["エンジニア", "プロダクト", "マーケティング", "営業", "カスタマーサクセス", "経営・CxO"];
 
 function empWithParent(i: number, parentIds: string[]): CompanyEmployee {
@@ -769,10 +744,16 @@ function empWithParent(i: number, parentIds: string[]): CompanyEmployee {
   });
 }
 
-/** A案（いまの本番）: 全員が同じ淡いグレー */
-export const EMPLOYEES_COLOR_NOW: CompanyEmployee[] =
-  Array.from({ length: 6 }, (_, i) => empWithParent(i, REAL_PARENT_IDS));
+/* ── アバターの色（2026-09-02 に決着）──────────────────────────
+   ✅ **職種別の色は持たない。全員 `AVATAR_COLOR` の1色**（`lib/avatarColor.ts`）。
+      旧 `jobCategoryColors.ts` の7キーは現在の `ow_roles` と1つも一致しておらず、
+      **職種別の色は1人にも出ていなかった**。UUID を直すのではなく表ごと畳んだ
+      （凡例がどこにも無いため。→ ui-conventions「凡例なしで意味が伝わらないなら neutral」）。
 
-/** B案（UUID を直した場合）: 職種ごとに色がつく */
-export const EMPLOYEES_COLOR_FIXED: CompanyEmployee[] =
-  Array.from({ length: 6 }, (_, i) => empWithParent(i, COLORMAP_KEYS));
+   ⚠️★**A案 / B案 を並置していたフィクスチャは削除した。** 表が無くなった以上、
+      B案（UUID を直した場合）を描いても **A案と同じ見た目にしかならない**。
+      「別物」と書いた2枚が同じに見えるのは、判断材料として害しかない。 */
+
+/** 実在する親カテゴリ UUID を渡す。**色は職種で変わらない**（全員おなじ淡いグレー）。 */
+export const EMPLOYEES_COLOR_NOW: CompanyEmployee[] =
+  Array.from({ length: 6 }, (_, i) => empWithParent(i, PARENT_ROLE_IDS));
