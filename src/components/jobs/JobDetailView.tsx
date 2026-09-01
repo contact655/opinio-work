@@ -1184,63 +1184,46 @@ export async function JobDetailView({
                 }>
                   選考フロー
                 </SecTitle>
-                {/*
-                  選考フロー（左→右の横並び。2026-09-02 に縦から変更・柴さんの指示）
-
-                  ⚠️★**横スクロールにしないこと。** 本番の求人は6ステップあり
-                     「電話スクリーニング（リクルーター）」のような長いラベルが入る。
-                     スクロールにすると**後半のステップが画面外に隠れて気づけない。**
-                     Grid の `auto-fit` で折り返す（1440px=946px幅なら1行、375px なら2列）。
-                  ⚠️★**`flex` にしないこと。** `flex: 1 1 150px` だと折り返した行の要素が
-                     伸びて、**1行目152px / 2行目303px** と幅が揃わなかった（実測）。
-                     Grid なら全ステップが等幅になり、余った列は空くだけで済む。
-                  ⚠️ **並びとレスポンシブは `globals.css` の `.job-flow` に置いてある。**
-                     ここにインラインで書き戻さないこと。ドットの色だけ isFirst / isLast で
-                     変わるのでインラインのまま。
-                  ⚠️ 折り返した行の末尾では線が次に繋がらないまま右へ伸びる。列数は幅で
-                     変わる（`auto-fit`）ので**どのセルが行末かは判定できない**
-                     （`:last-in-row` は存在しない）。文章の折り返しと同じ読みとして許容している。
-                     ⚠️ 1列になる幅（560px 以下）では**線ごと消して縦の並びに戻す**。
-                        1列で全ステップの線が宙に浮くのは明らかにおかしいため。
-                  ⚠️ 番号は**ドットだけ**にした。それまで `step.step` を小さく併記していたが、
-                     `mapJob` が `String(i + 1)` を入れているだけで**ドットと同じ数字が2つ**出ていた。
-                */}
-                <div className="job-flow">
+                {/* 縦並びタイムライン */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {job.selection_flow.map((step, i) => {
                     const isFirst = i === 0;
                     const isLast = i === job.selection_flow.length - 1;
                     return (
-                      <div key={i} className="job-flow-step">
-                        {/* 番号ドット + 右へ伸びる線 */}
-                        <div className="job-flow-dotrow">
+                      <div key={i} style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+                        {/* 左：番号ドット + 縦線 */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 36, flexShrink: 0 }}>
                           <div style={{
-                            width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                            width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
                             background: isLast
                               ? "linear-gradient(135deg, var(--success) 0%, #34D399 100%)"
                               : isFirst
                               ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
                               : "#fff",
-                            border: (isFirst || isLast) ? "none" : "2px solid var(--line)",
+                            border: isLast ? "none" : isFirst ? "none" : "2px solid var(--line)",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             color: (isFirst || isLast) ? "#fff" : "var(--ink-mute)",
                             fontSize: 13, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
-                            boxShadow: (isFirst || isLast) ? "0 4px 12px rgba(0,35,102,0.2)" : "none",
+                            boxShadow: isFirst || isLast ? "0 4px 12px rgba(0,35,102,0.2)" : "none",
                           }}>
                             {isLast ? (
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8}><polyline points="20 6 9 17 4 12"/></svg>
                             ) : (i + 1)}
                           </div>
                           {!isLast && (
-                            <div className="job-flow-line" />
+                            <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--line)", margin: "4px 0" }} />
                           )}
                         </div>
-                        {/* ラベル。⚠️ 右に余白を取って、隣のステップと文字がくっつかないようにする。 */}
-                        <div className="job-flow-label">
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+                        {/* 右：内容 */}
+                        <div style={{ flex: 1, paddingBottom: isLast ? 0 : 20, paddingTop: 6 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink-mute)", marginBottom: 3 }}>
+                            {step.step}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: step.meta ? 4 : 0 }}>
                             {step.name}
                           </div>
                           {step.meta && (
-                            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 3 }}>{step.meta}</div>
+                            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>{step.meta}</div>
                           )}
                         </div>
                       </div>
