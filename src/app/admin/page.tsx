@@ -10,11 +10,11 @@ async function getStats() {
   const admin = createAdminClient();
 
   const [
-    users, activeCompanies, activeJobs, totalApplications,
+    users, testUsers, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
     /* ⚠️ 順番は下の Promise.all と1対1。ずれても型が同じなのでエラーにならない */
     selfListed,
-    onboardingCompleted, profileFilled, appliedOrMet,
+    onboardingCompleted, profileFilled, appliedOrMet, schoolRequests,
   ] = await Promise.all([
     /* ⚠️★ここは `supabase`（運営本人のセッション）で数えていた（〜2026-08-29）。
           **運営も `authenticated` ロールで来るので RLS が効く。**
@@ -34,6 +34,16 @@ async function getStats() {
           （CLAUDE.md「完全に隠さないこと」）。⚠️ ただし実測では 38人中 32人が is_test で、
           **実ユーザーは6人**。この数字を対外的な指標に使わないこと。 */
     admin.from("ow_users").select("id", { count: "exact", head: true }).eq("is_system", false),
+    /* ★検証用アカウントの数も取る（2026-09-01）。
+          ⚠️ 上のコメントは「実ユーザーは6人。この数字を対外的な指標に使わないこと」と
+             **コード側では知っていた**が、**画面には一切出ていなかった。**
+             ダッシュボードを見た人には「登録ユーザー 38 / オンボーディング完了率 79%」
+             としか見えず、**84% が検証用アカウントであることを知る手段が無かった。**
+          ⚠️ 隠すのではなく**内訳を出す**。`/admin/ambassador-requests` が
+             `is_test` を隠さず「検証用アカウント」とラベルを付けているのと同じ方針
+             （CLAUDE.md「完全に隠さないこと」）。 */
+    admin.from("ow_users").select("id", { count: "exact", head: true })
+      .eq("is_system", false).eq("is_test", true),
     admin.from("ow_companies").select("id", { count: "exact", head: true }).eq("is_published", true),
     admin.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published"),
     admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
@@ -55,6 +65,14 @@ async function getStats() {
     // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
     admin.from("ow_profile_desired_roles").select("user_id"),
     admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
+    /* ★学校追加リクエストの pending（2026-09-01 追加）。
+          ⚠️★**要対応に入っていなかった。** 実測（2026-09-01）: **3件・最古は74日前**。
+             `/admin/school-requests` を直接開かないと誰も気づけない状態だった。
+             面談対応者と同じ「運営が動かないと止まったまま」の待ち行列なので、
+             同じようにダッシュボードから呼び出す。
+          ⚠️ `created_at` も取る。**件数だけだと「放置されている」ことが読み取れない**
+             （2026-08-30 に面談対応者で同じ学びを書いている）。 */
+    admin.from("ow_school_requests").select("created_at").eq("status", "pending"),
   ]);
 
   // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
@@ -114,12 +132,25 @@ async function getStats() {
 
   return {
     usersCount: users.count ?? 0,
+    testUsersCount: testUsers.count ?? 0,
     activeCompaniesCount: activeCompanies.count ?? 0,
     activeJobsCount: activeJobs.count ?? 0,
     totalApplicationsCount: totalApplications.count ?? 0,
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
+    /* ⚠️ メンター機能は存在しない（`ow_mentors` は migration 140 で DROP 済み・
+          `src` からの参照0件）。**0 の直書きは意図どおり。**
+          ⚠️ 行そのものを消していないのは、`archive` に残る文脈を辿れなくするため。
+             **数え直そうとしないこと。** */
     pendingReservationsCount: 0,
+    /* ★学校追加リクエスト（2026-09-01）。⚠️ 件数と**最古の経過日**を対にして持つ。 */
+    pendingSchoolRequestsCount: (schoolRequests.data ?? []).length,
+    pendingSchoolRequestsOldestDays: (() => {
+      const rows = (schoolRequests.data ?? []) as { created_at: string }[];
+      if (rows.length === 0) return null;   // ⚠️ 0 ではなく null（0日前と区別する）
+      const oldest = rows.reduce((a, r) => (r.created_at < a ? r.created_at : a), rows[0].created_at);
+      return Math.floor((Date.now() - new Date(oldest).getTime()) / 86400000);
+    })(),
     bizAdminsCount: bizAdmins.count ?? 0,
     selfUnreviewedCount: selfListed.count,
     /* ★未確認のうち**最も古いものの経過日数**。0件なら null（0 ではない）。
@@ -152,13 +183,21 @@ export default async function AdminDashboard() {
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0)
     /* ⚠️ 未確認は0にできるので**要対応に数える**（2026-08-25）。
           掲載中の総数を足さないこと。あれは0にならない。 */
-    + stats.selfUnreviewedCount;
+    + stats.selfUnreviewedCount
+    /* ★学校追加リクエストも要対応（2026-09-01）。**0にできる**ので数えてよい。 */
+    + stats.pendingSchoolRequestsCount;
 
   const kpis = [
     {
       label: "登録ユーザー数",
       sublabel: "Job Seekers",
       value: stats.usersCount,
+      /* ⚠️★実測（2026-09-01）: 38人中 **32人が検証用**。実ユーザーは6人。
+            内訳を出さないと、この画面の数字とファネルの%が**何を測っているのか
+            読み取れない。** 隠すのではなく**内訳で示す**。 */
+      note: stats.testUsersCount > 0
+        ? `うち検証用 ${stats.testUsersCount} ／ 実ユーザー ${stats.usersCount - stats.testUsersCount}`
+        : null,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -173,6 +212,7 @@ export default async function AdminDashboard() {
     {
       label: "BIZ担当者数",
       sublabel: "Biz Accounts",
+      note: null,
       value: stats.bizAdminsCount,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -188,6 +228,7 @@ export default async function AdminDashboard() {
     {
       label: "公開中の企業数",
       sublabel: "Active Companies",
+      note: null,
       value: stats.activeCompaniesCount,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -202,6 +243,7 @@ export default async function AdminDashboard() {
     {
       label: "公開中の求人数",
       sublabel: "Active Jobs",
+      note: null,
       value: stats.activeJobsCount,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -313,6 +355,12 @@ export default async function AdminDashboard() {
               <div style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", marginBottom: 2 }}>
                 {kpi.label}
               </div>
+              {/* ★内訳（2026-09-01）。⚠️ 数字だけだと**何を数えたか**が読めない。 */}
+              {kpi.note && (
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginBottom: 2 }}>
+                  {kpi.note}
+                </div>
+              )}
               <div style={{
                 fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: 9, fontWeight: 700,
@@ -349,6 +397,22 @@ export default async function AdminDashboard() {
               </svg>
               ユーザーファネル（オンボーディング完了率）
             </div>
+            {/* ★★母数に検証用アカウントが入っていることを画面に出す（2026-09-01）。
+                   ⚠️ 実測（2026-09-01）: 母数38のうち**32が検証用**で、
+                      「オンボーディング完了 79%」は**実ユーザーだけなら 50%（3/6）**。
+                      比率の意味がまるで違う。**注記が無いと成長の指標として誤読される。**
+                   ⚠️ 検証用を母数から外す案は採らない。運営画面はテストデータも
+                      見えるほうが正しい（CLAUDE.md「完全に隠さないこと」）。
+                      **見せ方の問題なので、注記で解く。** */}
+            {stats.testUsersCount > 0 && (
+              <div style={{
+                fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8,
+                marginBottom: 12, paddingBottom: 10, borderBottom: "1px solid var(--line-soft)",
+              }}>
+                ⚠️ 母数 {stats.usersCount} 人のうち <strong style={{ color: "var(--ink)" }}>{stats.testUsersCount} 人が検証用アカウント</strong>です。
+                この比率は成長の指標として使えません。
+              </div>
+            )}
             <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
               {funnel.map((step, i) => {
                 const pct = total > 0 ? Math.round((step.count / total) * 100) : 0;
@@ -583,6 +647,49 @@ export default async function AdminDashboard() {
                         <>最も古いもので {stats.selfUnreviewedOldestDays} 日前 ・ </>
                       )}
                       企業ページに出ている人です。在籍確認はしていません
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </Link>
+            )}
+
+            {/* ★学校追加リクエスト（2026-09-01 追加）。
+                   ⚠️★**要対応に入っていなかった。** 実測: **3件・最古74日前**。
+                      `/admin/school-requests` を直接開かないと誰も気づけなかった。
+                   ⚠️ これは**求職者が送ってきたもの**で、承認するまで学校マスタに載らない
+                      ＝ その人の学歴が正しく登録できないまま止まっている。
+                   ⚠️ 面談対応者と同じく **0にできる**ので要対応に数えてよい。 */}
+            {stats.pendingSchoolRequestsCount > 0 && (
+              <Link href="/admin/school-requests" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  transition: "background 0.15s", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "#B45309",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#92400E", margin: 0, marginBottom: 2 }}>
+                      学校追加リクエスト {stats.pendingSchoolRequestsCount}件
+                    </p>
+                    <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>
+                      {/* ⚠️ しきい値で色を変えない。**何日で問題かは決めていない。**
+                             面談対応者の行と同じ扱いにしてある。 */}
+                      {stats.pendingSchoolRequestsOldestDays !== null && stats.pendingSchoolRequestsOldestDays >= 1 && (
+                        <>最も古いもので {stats.pendingSchoolRequestsOldestDays} 日前 ・ </>
+                      )}
+                      承認するまで、その人の学歴が登録できません
                     </p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round">
