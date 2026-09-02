@@ -61,6 +61,46 @@ function productStyle(name: string): { bg: string; border: string; color: string
   return { ...ROYAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> };
 }
 
+/**
+ * 部署名から**主な営業先カードのアイコン**を決める。
+ *
+ * ⚠️ **色は出し分けない。** `productStyle` と同じ理由（凡例が無い色分けを増やさない）。
+ *    → src/lib/utils/chipVariant.ts の「色の役割」
+ *
+ * ⚠️ `productStyle` を流用しないこと。あちらは製品名（CRM / Tableau など）を
+ *    前提にした正規表現で、「情報システム部」は既定のモニターアイコンに落ちる。
+ *    部署は部署の語彙で引く。
+ */
+function salesTargetStyle(name: string): { bg: string; border: string; color: string; icon: React.ReactNode } {
+  const n = name.toLowerCase();
+  const NEUTRAL = CHIP_STYLES.neutral;
+
+  // 情報システム・IT（⚠️「営業」より先に判定する。「営業支援システム部」のような
+  //    複合語で、より具体的なほうを採りたいため）
+  if (/(情報システム|情シス|it部|ｉｔ|システム部|インフラ|セキュリティ|dx|技術|開発|エンジニア)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg> };
+  // 人事・採用・労務
+  if (/(人事|採用|hr|労務|人材|タレント|talent|総務)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> };
+  // マーケティング・広報
+  if (/(マーケ|広報|宣伝|pr|ブランド|market)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 11v3a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg> };
+  // 経理・財務・法務
+  if (/(経理|財務|会計|法務|コンプライアンス|finance|legal)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg> };
+  // 経営・役員
+  if (/(経営|役員|取締役|cxo|ceo|事業部長|企画)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="9" y1="13" x2="9.01" y2="13"/></svg> };
+  // カスタマーサポート・CS
+  if (/(サポート|カスタマ|cs部|問い合わせ|コールセンター|support)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> };
+  // 営業・セールス（⚠️ 最後に置く。「営業」は他の部署名にも含まれうる）
+  if (/(営業|セールス|sales|インサイド|フィールド)/.test(n))
+    return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> };
+  // 既定：部署一般（建物）
+  return { ...NEUTRAL, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h6"/></svg> };
+}
+
 // ─── ⑦ 資本関係・グループ ────────────────────────────────────────────────────
 
 /* ⚠️ CAPITAL_TYPE_LABELS は `lib/constants/capitalType.ts` へ移した（2026-08-30）。
@@ -71,8 +111,11 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   const hasProducts = detail.main_products && detail.main_products.length > 0;
   const hasCases    = detail.customer_cases && detail.customer_cases.length > 0;
   const hasCustomers = detail.main_customers && detail.main_customers.length > 0;
+  /* ⚠️ 主な営業先は `main_customers`（顧客そのもの）とは**別の項目**。
+        顧客企業の中の「どの部署に売るか」を持つ。片方が空でも他方は出す。 */
+  const hasSalesTargets = detail.main_sales_targets && detail.main_sales_targets.length > 0;
 
-  if (!hasProducts && !hasCases && !hasCustomers) return null;
+  if (!hasProducts && !hasCases && !hasCustomers && !hasSalesTargets) return null;
 
   // id は "products-clients" のまま（CompanyCardList.tsx 等の外部参照があるため変更不可）
   return (
@@ -103,26 +146,18 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
 
       <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
 
-        {/* ── 製品・サービス ── */}
-        {hasProducts && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" as const }}>主な製品・サービス</h3>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-            {/* ⚠️ 列数を縮めるのは 900px 以上だけ（2026-08-12）。
-                   狭い画面で製品数に合わせると、**カードが横に伸びる**。
-                   1製品の企業（Opinio / Translead）が 375px で
-                   139px → 285px の全幅カードになった（実測）。
-                   「カードの大きさは維持する」ので 2列 / 3列は固定のままにする。
-                ⚠️ auto-fit は使わない。カードが引き伸ばされて1枚が巨大化する。
-                ⚠️ 900px 以上は固定幅（183px）。1fr のままでも 946/5 ≒ 183px で
-                   同じ見た目になるが、製品数が減っても列幅が変わらないことを
-                   明示しておくために固定値にしている。
-                ⚠️ このスタイルタグの中に山括弧と二重引用符を書かないこと。
-                   サーバーだけが実体参照へ変換し hydration error になる。 */}
-            <style>{`
+        {/* ⚠️ 列数を縮めるのは 900px 以上だけ（2026-08-12）。
+               狭い画面で製品数に合わせると、**カードが横に伸びる**。
+               1製品の企業（Opinio / Translead）が 375px で
+               139px → 285px の全幅カードになった（実測）。
+               「カードの大きさは維持する」ので 2列 / 3列は固定のままにする。
+            ⚠️ auto-fit は使わない。カードが引き伸ばされて1枚が巨大化する。
+            ⚠️ 900px 以上は固定幅（183px）。1fr のままでも 946/5 ≒ 183px で
+               同じ見た目になるが、製品数が減っても列幅が変わらないことを
+               明示しておくために固定値にしている。
+            ⚠️ このスタイルタグの中に山括弧と二重引用符を書かないこと。
+               サーバーだけが実体参照へ変換し hydration error になる。 */}
+        <style>{`
               .products-grid {
                 display: grid;
                 gap: var(--space-2);
@@ -136,6 +171,16 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
                 .products-grid { grid-template-columns: repeat(var(--product-cols, 5), minmax(0, 183px)); }
               }
             `}</style>
+
+
+        {/* ── 製品・サービス ── */}
+        {hasProducts && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" as const }}>主な製品・サービス</h3>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>{detail.main_products!.length}製品</span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
             {/* ⚠️ 初期表示は5件＝900px で1行ちょうど（2026-08-13）。
                    **列数の式は変えていない**（`Math.min(全件, 5)`）。畳んでも列幅が
                    動かないよう、母数は表示件数ではなく全件のまま。 */}
@@ -216,8 +261,83 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
           </div>
         )}
 
+        {/* ── 区切り線（製品 ↔ 営業先） ── */}
+        {hasProducts && hasSalesTargets && (
+          <div style={{ height: 1, background: "var(--line)", margin: "8px 0 4px" }} />
+        )}
+
+        {/* ── 主な営業先 ── */}
+        {/* ⚠️ 「主な顧客」とは別物。あちらは**顧客そのもの**（企業名）で、
+               こちらは**顧客企業の中のどの部署に売るか**。粒度が違うので統合しないこと。
+           ⚠️ `customer_cases` の有無で出し分けない（主な顧客はフォールバックだが、
+               これは独立した項目）。 */}
+        {hasSalesTargets && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" as const }}>主な営業先</h3>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>{detail.main_sales_targets!.length}部門</span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
+            <CollapsibleList
+              limit={PRODUCTS_LIMIT}
+              labelCollapsed={`すべて見る（残り ${detail.main_sales_targets!.length - PRODUCTS_LIMIT}）`}
+              containerClassName="products-grid"
+              containerStyle={{ ["--product-cols" as string]: Math.min(detail.main_sales_targets!.length, 5) } as React.CSSProperties}
+              buttonWrapperStyle={{ marginTop: "var(--space-3)" }}
+              items={detail.main_sales_targets!.map((raw, i) => {
+                /* ⚠️ 製品と同じく `部署名（補足）` の形を許す。捨てないこと。 */
+                const { name, sub } = parseProductName(raw);
+                const s = salesTargetStyle(name);
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      background: "#fff",
+                      border: `1px solid var(--line)`,
+                      borderRadius: 10,
+                      padding: "10px var(--space-3)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      /* ⚠️ 製品カードと同じ 72px。同じ節に2種類の高さを並べない。 */
+                      height: 72,
+                      boxSizing: "border-box",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                      background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {s.icon}
+                    </div>
+                    {/* ⚠️ minWidth: 0 が要る（無いと ellipsis が効かない）。 */}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)", lineHeight: 1.35, fontFamily: "var(--font-inter), var(--font-noto)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {name}
+                      </p>
+                      {sub && (
+                        <p style={{
+                          margin: "2px 0 0", fontSize: "var(--text-xs)", fontWeight: 500,
+                          color: "var(--ink-mute)", lineHeight: 1.3,
+                          fontFamily: "var(--font-inter), var(--font-noto)",
+                          display: "-webkit-box", WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+                        }}>
+                          {sub}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            />
+          </div>
+        )}
+
         {/* ── 区切り線 ── */}
-        {hasProducts && (hasCases || hasCustomers) && (
+        {(hasProducts || hasSalesTargets) && (hasCases || hasCustomers) && (
           <div style={{ height: 1, background: "var(--line)", margin: "8px 0 4px" }} />
         )}
 

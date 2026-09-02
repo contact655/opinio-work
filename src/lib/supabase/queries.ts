@@ -354,6 +354,11 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     main_customers: Array.isArray(row.main_customers) && (row.main_customers as string[]).length > 0
       ? (row.main_customers as string[])
       : null,
+    /* ⚠️ 主な営業先。顧客そのものではなく、顧客企業の中の「どの部署に売るか」。
+          `main_customers`（顧客そのもの）とは粒度が違う。**混ぜないこと。** */
+    main_sales_targets: Array.isArray(row.main_sales_targets) && (row.main_sales_targets as string[]).length > 0
+      ? (row.main_sales_targets as string[])
+      : null,
     // Numbers survey timestamp
     numbersUpdatedAt: (row.numbers_updated_at as string | null) ?? null,
     // Org teams
@@ -657,7 +662,9 @@ const COMPANY_DETAIL_COLS = [
   // Culture description
   "culture_description",
   // Products & Customers
-  "main_products", "main_customers",
+  /* ⚠️ `main_customers`（顧客そのもの）と `main_sales_targets`（顧客企業の中の部署）は
+        **別の項目**。混ぜないこと。詳しくは migration 20260903020000 のコメント。 */
+  "main_products", "main_customers", "main_sales_targets",
   // Numbers survey timestamp
   "numbers_updated_at",
   // Social links

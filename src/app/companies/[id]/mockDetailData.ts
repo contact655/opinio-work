@@ -121,6 +121,9 @@ export type CompanyDetail = {
   // Products & Customers
   main_products?: string[] | null;
   main_customers?: string[] | null;
+  /** 主な営業先。**顧客ではなく、顧客企業の中の部署**（営業部・人事部・情報システム部など）。
+   *  ⚠️ `main_customers`（顧客そのもの）と混ぜないこと。粒度が違う。 */
+  main_sales_targets?: string[] | null;
   customer_cases?: Array<{
     name: string;
     industry: string;
