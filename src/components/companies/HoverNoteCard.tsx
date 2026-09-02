@@ -66,10 +66,35 @@ export function HoverNoteCard({
           background: "none", border: 0, padding: 0, cursor: "pointer", font: "inherit",
         }}
       >
-        {/* ⚠️ 押せることが分かるように、名前のあとに小さな印を付ける。
-               印が無いと**ホバーできることに気づけない**（スマホでは特に）。
-               ⚠️ 絶対配置で隅に重ねないこと。`BenefitCard` で試して文字に被った。 */}
-        <InfoCard icon={icon} label={`${label} ⓘ`} variant={variant} />
+        {/* ⚠️★**印は下向きシェブロン**（2026-09-02 に `ⓘ` から変更・柴さん）。
+               `ⓘ` は**丸で囲まれているため警告記号に見え、マイナスの印象を与える**
+               という指摘があった。シェブロンは同じページの「すべて見る（残り N）」で
+               既に使っており、**新しい語彙を増やさずに「開くと何かある」が伝わる。**
+            ⚠️ 印を消さないこと。スマホにはホバーが無いので、**押せることが見た目で
+               分からないと補足が一生読まれない**（タップ対応の意味が消える）。
+            ⚠️ 絶対配置で隅に重ねないこと。`BenefitCard` で試して文字に被った。 */}
+        <InfoCard
+          icon={icon}
+          label={
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              {label}
+              <svg
+                width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"
+                aria-hidden="true"
+                style={{
+                  flexShrink: 0, opacity: 0.55,
+                  /* 開いているときは上向きにして状態を示す */
+                  transform: open ? "rotate(180deg)" : "none",
+                  transition: "transform 0.15s",
+                }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </span>
+          }
+          variant={variant}
+        />
       </button>
 
       {open && (

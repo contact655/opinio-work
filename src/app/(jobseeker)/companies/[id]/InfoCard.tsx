@@ -6,7 +6,9 @@ import { chipStyle, type ChipVariant } from "@/lib/utils/chipVariant";
 
 type InfoCardProps = {
   icon: React.ReactNode;
-  label: string;
+  /** ⚠️ 文字列でよい。`ReactNode` に広げてあるのは、開閉の印（シェブロン）を
+   *     名前の隣に置くため（`HoverNoteCard`）。既存の呼び出しは文字列のまま動く。 */
+  label: React.ReactNode;
   sublabel?: string;
   /**
    * 色は**役割**で決める。既定は neutral（色に意味を持たせない）。
