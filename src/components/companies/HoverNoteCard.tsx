@@ -81,6 +81,8 @@ export function HoverNoteCard({
             background: "var(--ink)", color: "#fff",
             borderRadius: 10, padding: "10px 12px",
             fontSize: 12, lineHeight: 1.7,
+            /* ⚠️ 補足が2つ（括弧内 ＋ detail）あるとき改行で分けるため。 */
+            whiteSpace: "pre-line",
             boxShadow: "0 6px 24px rgba(15,23,42,0.22)",
           }}
         >
