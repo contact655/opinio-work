@@ -21,15 +21,15 @@ import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
 import AmbassadorWidget from "./AmbassadorWidget";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
-import { AV_GRADIENTS } from "./avatarGradients";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStageCfg } from "@/lib/utils/stageCfg";
 import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
+import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { CAPITAL_TYPE_LABELS } from "@/lib/constants/capitalType";
 import { truncateAtBoundary } from "@/lib/utils/truncate";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
-import type { CompanyPhoto, CompanyRecruiter } from "@/lib/supabase/queries";
+import type { CompanyPhoto } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
@@ -951,115 +951,6 @@ function JobsSection({
       </div>
     </section>
     </>
-  );
-}
-
-function RecruitersSection({
-  recruiters,
-}: {
-  recruiters: CompanyRecruiter[];
-}) {
-  return (
-    <section
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header */}
-      <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-      }}>
-        <SecTitle
-          iconColor="default"
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            </svg>
-          }
-        >
-          採用担当者
-        </SecTitle>
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-      <div className="employee-grid">
-        {recruiters.map((r, i) => (
-          <div
-            key={r.id}
-            style={{
-              display: "flex",
-              gap: 12,
-              padding: "var(--space-4)",
-              border: "1px solid var(--line)",
-              borderRadius: 12,
-              background: "#fff",
-              alignItems: "center",
-            }}
-          >
-            {/* アバター 48px circular */}
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                flexShrink: 0,
-                background: r.avatar_color ?? AV_GRADIENTS[i % AV_GRADIENTS.length],
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontWeight: 700,
-                fontSize: 16,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-              }}
-            >
-              {r.avatar_initial}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              {/* 1行目: 名前 */}
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {r.name}
-              </div>
-              {/* 2行目: 部門 › 職種 */}
-              {(r.department || r.role_title) && (
-                <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {[r.department, r.role_title].filter(Boolean).join(" › ")}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          marginTop: "var(--space-4)",
-          padding: "var(--space-3) var(--space-4)",
-          background: "var(--bg-tint)",
-          borderRadius: 8,
-          fontSize: "var(--text-xs)",
-          color: "var(--ink-soft)",
-          lineHeight: 1.7,
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-2)",
-        }}
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}>
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        カジュアル面談を申し込むと、上記担当者から連絡が届きます。
-      </div>
-      </div>
-    </section>
   );
 }
 
@@ -2313,7 +2204,24 @@ export default async function CompanyDetailPage({
             )}
 
             {recruiters.length > 0 && (
-              <RecruitersSection recruiters={recruiters} />
+              <RecruitersSection
+                recruiters={recruiters}
+                /* ⚠️ 見出しはこのページの SecTitle。切り出し前と同じアイコン・文言。 */
+                title={
+                  <SecTitle
+                    iconColor="default"
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      </svg>
+                    }
+                  >
+                    採用担当者
+                  </SecTitle>
+                }
+              />
             )}
 
 

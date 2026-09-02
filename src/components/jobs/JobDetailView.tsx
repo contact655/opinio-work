@@ -18,7 +18,7 @@ import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { type PositionMember } from "@/app/jobs/mockJobData";
 import { ConditionRow } from "@/components/jobs/ConditionRow";
-import { getJobBySlugOrId, getJobForPreview, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getPublicAmbassadorsCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobForPreview, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getPublicAmbassadorsCached, getCompanyRecruitersCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
@@ -43,6 +43,7 @@ import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-30 にページから切り出した。`/dev/preview/employees` から見るため
       （ページ内のローカル関数だと preview で import できない）。 */
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
+import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // 5分間ページキャッシュ（ISR）
@@ -328,7 +329,7 @@ export async function JobDetailView({
      ⚠️ `getJobEmployees` は `getCompanyEmployees` を職種で絞ったものなので、
         **同じ元から引いて差集合を取る**（別々に引くと基準がずれる）。
      ⚠️ どちらも `unstable_cache` 付き。ここで生のクライアントを使わない。 */
-  const [allEmployees, companyTools, companyResult, ambassadors] = await Promise.all([
+  const [allEmployees, companyTools, companyResult, ambassadors, recruiters] = await Promise.all([
     getCompanyEmployeesCached(job.company_id),
     getCompanyToolsCached(job.company_id),
     /* ⚠️ `detail`（拠点・資本関係）はここからしか取れない。
@@ -338,6 +339,9 @@ export async function JobDetailView({
           ⚠️ これが無いと**誰を指名できるか判断できない**。判断できないまま
              セクション末尾に一括CTAを置いていたのが、今回直す誤解の原因。 */
     getPublicAmbassadorsCached(job.company_id),
+    /* ★採用担当者（2026-09-03）。企業詳細と同じ関数・同じキャッシュ。
+          ⚠️ `unstable_cache` 付きのほうを呼ぶ。生の `getCompanyRecruiters` を使わない。 */
+    getCompanyRecruitersCached(job.company_id),
   ]);
   const companyDetail = companyResult?.detail ?? null;
   const matchedIds = new Set<string>(
@@ -1387,6 +1391,25 @@ export async function JobDetailView({
                   }
                 />
               )}
+
+              {/* ★採用担当者（企業詳細と同じコンポーネント）── 2026-09-03 追加
+                     ⚠️ 実体は `components/companies/RecruitersSection.tsx`。
+                        企業詳細から切り出して共通化した。**ここに複製しないこと。**
+                     ⚠️ 位置は「拠点・資本関係」の下（柴さんの指定）。 */}
+              <RecruitersSection
+                recruiters={recruiters}
+                title={
+                  <SecTitle color="var(--royal)" icon={
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    </svg>
+                  }>
+                    採用担当者
+                  </SecTitle>
+                }
+              />
 
               {/* Position members — role-matched alumni/current employees */}
               <PositionMembersSection members={positionMembers} jobCategory={job.dept ?? ""} />
