@@ -205,12 +205,10 @@ export async function generateMetadata({
 function Hero({
   company,
   detail,
-  recruiters,
   coverPhotoUrl,
 }: {
   company: Company;
   detail: CompanyDetail;
-  recruiters: CompanyRecruiter[];
   coverPhotoUrl?: string | null;
 }) {
   const displayBrand = (company.brand_name ?? company.name_en ?? company.name)
@@ -461,34 +459,6 @@ function Hero({
         </div>
 
 
-        {/* Recruiter strip */}
-        {recruiters.length > 0 && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10,
-            paddingTop: "var(--space-4)", marginTop: "var(--space-4)", borderTop: "1px solid var(--line-soft)",
-          }}>
-            <div style={{ display: "flex" }}>
-              {recruiters.slice(0, 3).map((r, i) => (
-                <div key={r.id} style={{
-                  width: 32, height: 32, borderRadius: "50%",
-                  background: r.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                  border: "2.5px solid #fff",
-                  marginLeft: i === 0 ? 0 : -10,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: "var(--text-xs)", fontWeight: 700,
-                  boxShadow: "0 0 0 1px var(--line)",
-                  position: "relative", zIndex: 3 - i,
-                }}>
-                  {r.avatar_initial || (r.name ?? "採").charAt(0)}
-                </div>
-              ))}
-            </div>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
-              採用担当: <strong style={{ color: "var(--ink)" }}>{recruiters.slice(0, 2).map(r => r.name ?? "担当者").join(" · ")}</strong>
-              {recruiters.length > 2 && ` 他${recruiters.length - 2}名`}
-            </span>
-          </div>
-        )}
       </div>
     </section>
   );
@@ -2070,7 +2040,7 @@ export default async function CompanyDetailPage({
       />
       <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb items={[{ label: "OPINIO", href: "/" }, { label: "企業", href: "/companies" }, { label: company.name }]} />
-      <Hero company={company} detail={detail} recruiters={recruiters} coverPhotoUrl={photos[0]?.image_url ?? null} />
+      <Hero company={company} detail={detail} coverPhotoUrl={photos[0]?.image_url ?? null} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
