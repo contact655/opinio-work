@@ -558,7 +558,6 @@ function job(over: Partial<Job> = {}): Job {
     benefits: [],
     selection_flow: [],
     selection_note: "",
-    position_members: [],
     related_article_title: "",
     related_article_excerpt: "",
     ...over,

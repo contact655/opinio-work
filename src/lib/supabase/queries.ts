@@ -204,7 +204,6 @@ function mapJob(row: Record<string, any>): Job {
     benefits: [],
     selection_flow: selectionFlow,
     selection_note: (row.message_to_candidates as string) ?? "",
-    position_members: [],
     related_article_title: "",
     related_article_excerpt: "",
     // enrichment fields (Migration 147)
