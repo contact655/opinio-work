@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { RolePicker } from "@/components/onboarding/RolePicker";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
@@ -492,99 +493,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
                 職種
               </div>
-              <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-                当てはまるものを選んでください（{MAX_ROLES}つまで）。あとから詳しく設定できます。
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-                {topRoles.map((r) => {
-                  /* ★その親の**子が選ばれていても親を選択中として見せる**（2026-08-29）。
-                        こうしないと、子を選んだ瞬間に**画面から選択が消える**
-                        （親チップ列に子は無いため）。実際にテストで踏んだ。 */
-                  const childIds = (childrenOf.get(r.id) ?? []).map((c) => c.id);
-                  const active = roleIds.includes(r.id) || roleIds.some((id) => childIds.includes(id));
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setRoleIds((prev) =>
-                        /* 選択中なら、親も配下の子もまとめて外す */
-                        active
-                          ? prev.filter((x) => x !== r.id && !childIds.includes(x))
-                          /* ⚠️ 上限を超えたら足さない。API 側も5件で切るので、
-                                ここで通すと「選べたのに保存されない」になる。 */
-                          : prev.length >= MAX_ROLES ? prev : [...prev, r.id]
-                      )}
-                      style={{
-                        padding: "7px 13px", borderRadius: 100,
-                        border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-                        background: active ? "var(--royal-50)" : "#fff",
-                        color: active ? "var(--royal)" : "var(--ink-soft)",
-                        fontSize: 13, fontWeight: active ? 700 : 500,
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
-                    >
-                      {/* ⚠️★**親チップに子の名前を出さないこと**（2026-08-29 に一度やって戻した）。
-                             子を選ぶと親チップと子チップが**同じラベルで2つ並び**、
-                             どちらを押しているのか分からなくなる（テストでも取り違えた）。
-                             選ばれた子は**下の行でハイライト**して示す。 */}
-                      {r.name}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* ★選んだ親の子職種（2026-08-29）。⚠️ 選ばなくても進める。
-                     子を選ぶと親の選択は外し、子に置き換える（親と子が両方付くと
-                     「職種 × 年数」の集計で重複して見えるため）。 */}
-              {(() => {
-                /* 親そのものを選んでいる場合と、その配下の子を選んでいる場合の両方で開く */
-                const openParents = topRoles
-                  .filter((p) => {
-                    const ids = (childrenOf.get(p.id) ?? []).map((c) => c.id);
-                    return ids.length > 0 && (roleIds.includes(p.id) || roleIds.some((x) => ids.includes(x)));
-                  })
-                  .map((p) => p.id);
-                if (openParents.length === 0) return null;
-                return (
-                  <div style={{ marginBottom: 20 }}>
-                    <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
-                      さらに近いものがあれば選んでください（任意）。
-                    </p>
-                    {openParents.map((pid) => (
-                      <div key={pid} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                        {(childrenOf.get(pid) ?? []).map((c) => {
-                          const on = roleIds.includes(c.id);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              aria-pressed={on}
-                              onClick={() => setRoleIds((prev) =>
-                                on
-                                  /* もう一度押したら親に戻す（選択が空になる状態を作らない） */
-                                  ? [...prev.filter((x) => x !== c.id), pid]
-                                  /* 親を外して子に差し替える。⚠️ 上限は親を外したぶん空くので超えない */
-                                  : [...prev.filter((x) => x !== pid), c.id].slice(0, MAX_ROLES)
-                              )}
-                              style={{
-                                padding: "5px 11px", borderRadius: 100,
-                                border: `1px solid ${on ? "var(--royal)" : "var(--line)"}`,
-                                background: on ? "var(--royal-50)" : "#fff",
-                                color: on ? "var(--royal)" : "var(--ink-soft)",
-                                fontSize: 12, fontWeight: on ? 700 : 500,
-                                cursor: "pointer", fontFamily: "inherit",
-                              }}
-                            >
-                              {c.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
+              <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} max={MAX_ROLES} />
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
                 入社年月
