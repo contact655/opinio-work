@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
@@ -208,6 +209,14 @@ export async function PUT(
       console.error('[feed company_joined]', feedErr);
     }
   }
+
+  /* ★キャッシュを捨てる（2026-09-04 追加）。事業領域・対象業界のルートと同じ理由。
+     ⚠️★これが無いと、運営が企業情報を直しても `/companies` の絞り込みが古いまま。
+        `?industry=` の結果は `createPublicClient` の fetch キャッシュに載っており、
+        あのクライアントは**意図して `no-store` にしていない**。
+     ⚠️ **migration でデータを変えた場合はここを通らない**（sitemap と同じ穴）。 */
+  revalidatePath("/companies");
+  revalidateTag("business-domains");
 
   return NextResponse.json({ company: data });
 }

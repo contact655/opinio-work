@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/auth/isAdmin";
 import { MAX_BUSINESS_DOMAINS_PER_COMPANY } from "@/lib/companies/businessDomains";
@@ -93,13 +94,28 @@ export async function PUT(
 
   if (error) {
     /* ⚠️ error を握りつぶさない。RPC の RAISE は 22023（invalid_parameter_value）で
-          上げているので、それは利用者に見せてよい 400。それ以外は 500。 */
+            上げているので、それは利用者に見せてよい 400。それ以外は 500。 */
     console.error(`[PUT /api/admin/companies/${params.id}/business-domains]`, error.message);
     if (error.code === "22023") {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+
+  /* ★キャッシュを捨てる（2026-09-04 追加）。
+     ⚠️★**これが無いと、運営が付け替えても `/companies` の絞り込みが古いまま。**
+      `?industry=` の結果は `createPublicClient` 経由の fetch キャッシュ（Data Cache）に
+      載っており、`createPublicClient` は**意図して `no-store` にしていない**
+      （cookies() を呼ばないので ISR/fetch キャッシュを効かせる設計）。
+      実測（2026-09-04）: 事業領域を付け替えても `?industry=collab` が 8社のまま出続け、
+      **次のデプロイまで直らなかった**。
+     ⚠️ `revalidateTag("business-domains")` **だけでは足りない。** あのタグが付いているのは
+      選択肢と facet の件数（`businessDomainsCached.ts`）だけで、
+      **`searchCompanies` の絞り込みクエリには付いていない。** 両方呼ぶ。
+     ⚠️ **migration でデータを変えた場合はここを通らない**（sitemap と同じ穴）。
+      そのときはデプロイで直る、と割り切っている。 */
+  revalidatePath("/companies");
+  revalidateTag("business-domains");
 
   return NextResponse.json({ success: true, count: data ?? 0 });
 }
