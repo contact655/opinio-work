@@ -66,7 +66,7 @@ export type Company = {
    *     ここで条件を組み立て直さないこと（ゲートと食い違う）。 */
   publish_blockers?: string[];
   /** 対象業界（軸2）の3値。⚠️ null は「未確認」で、"horizontal"（業界を問わない）とは別物 */
-  target_industry_scope?: "vertical" | "horizontal" | null;
+  target_industry_scope?: "vertical" | "horizontal" | "consumer" | null;
   /** ⚠️ 未確認の件数から検証用企業を外すために要る（`/admin/companies` の「要対応」と揃える） */
   is_test?: boolean | null;
 };

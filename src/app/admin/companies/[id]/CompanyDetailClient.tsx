@@ -512,7 +512,7 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
     { key: 'domains', label: `事業領域 (${selectedDomains.length})` },
     /* ⚠️ 未確認は件数ではなく「未」と出す。0件と未確認は別物なので、
           `(0)` と出すと「調べて0件だった」に見える。 */
-    { key: 'target', label: `対象業界 (${targetScope === null ? '未' : targetScope === 'horizontal' ? '横断' : selectedTargets.length})` },
+    { key: 'target', label: `対象業界 (${targetScope === null ? '未' : targetScope === 'horizontal' ? '横断' : targetScope === 'consumer' ? '消費者' : selectedTargets.length})` },
     { key: 'recruiter', label: '採用担当者' },
     { key: 'admins', label: `アクセス管理 (${adminList.length})` },
     { key: 'opinio', label: 'OPINIO独自' },
@@ -1136,7 +1136,10 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
           <div className="space-y-2 mb-5">
             {([
               { value: 'vertical' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.vertical, hint: '特定の業界向けに作っている（例: 建設向け施工管理 SaaS）' },
-              { value: 'horizontal' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.horizontal, hint: '業界を問わず売っている。★「調べた結果そうだった」という記録です' },
+              { value: 'horizontal' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.horizontal, hint: '業界を問わず、企業に売っている。★「調べた結果そうだった」という記録です' },
+              /* ⚠️★消費者向けを「業界を問わない」に混ぜない。あれは「あらゆる業界の
+                    企業に売っている」という意味で、B2C をそこに入れると嘘になる。 */
+              { value: 'consumer' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.consumer, hint: '主な売り先が消費者（例: 配車アプリ）。★これも「調べた結果」の記録です' },
               { value: null, label: TARGET_INDUSTRY_SCOPE_LABELS.unknown, hint: 'まだ調べていない。★運営の作業一覧に残ります' },
             ]).map((opt) => (
               <label

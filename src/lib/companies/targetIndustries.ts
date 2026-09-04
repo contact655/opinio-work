@@ -18,16 +18,25 @@
  */
 
 /**
- * 3値。⚠️ **`horizontal` と未確認（null）は別物。**
- *   `horizontal` … 調べて「業界を問わない」と分かった（＝運営が判断した結果）
+ * 4値。⚠️ **`horizontal` / `consumer` / 未確認（null）は3つとも別物。**
+ *   `vertical`   … 特定の業界に張っている（明細1〜3件）
+ *   `horizontal` … 調べて「**業界を問わない**（企業向け）」と分かった
+ *   `consumer`   … 調べて「**消費者向け**」と分かった（2026-09-04 追加）
  *   `null`       … まだ誰も見ていない
- * 混ぜると、運営の作業一覧から「見るべきもの」が消える。
  *
- * ⚠️ **DB の CHECK（`ow_companies_target_industry_scope_check`）と同じ2値 + NULL。**
- *    値を足すときは migration の CHECK と UI の3択も同時に直すこと
+ * ⚠️★**`consumer` を `horizontal` に混ぜないこと。** あれは「あらゆる**業界の企業**に
+ *    売っている」という意味で、消費者向けをそこに入れると嘘になる。
+ *    ⓘ 足した理由: 「調べた結果、消費者向けだった」は**記録すべき事実**であって未確認ではない。
+ *       NULL に置き続けると、運営が毎回同じ会社を開いて思い出すコストを払う。
+ *
+ * ⚠️★**表示側で `consumer` を `vertical` と同じ扱いにしないこと**
+ *    （あとで別の見せ方をする余地を残してある）。
+ *
+ * ⚠️ **DB の CHECK（`ow_companies_target_industry_scope_check`）と同じ3値 + NULL。**
+ *    値を足すときは migration の CHECK・RPC の検証・UI の選択肢も同時に直すこと
  *    （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
  */
-export const TARGET_INDUSTRY_SCOPES = ["vertical", "horizontal"] as const;
+export const TARGET_INDUSTRY_SCOPES = ["vertical", "horizontal", "consumer"] as const;
 export type TargetIndustryScope = (typeof TARGET_INDUSTRY_SCOPES)[number];
 
 export function isTargetIndustryScope(v: unknown): v is TargetIndustryScope {
@@ -37,7 +46,8 @@ export function isTargetIndustryScope(v: unknown): v is TargetIndustryScope {
 /** 画面に出す文言。⚠️ ここ1箇所から出す（運営画面と一覧で言い方を割らない） */
 export const TARGET_INDUSTRY_SCOPE_LABELS: Record<TargetIndustryScope | "unknown", string> = {
   vertical: "特定の業界に張っている",
-  horizontal: "業界を問わない",
+  horizontal: "業界を問わない（企業向け）",
+  consumer: "消費者向け",
   unknown: "未確認",
 };
 
@@ -58,6 +68,6 @@ export const MAX_TARGET_INDUSTRIES_PER_COMPANY = 3;
 /** 企業1社の対象業界（表示用にまとめた形） */
 export type CompanyTargetIndustries = {
   scope: TargetIndustryScope | null;
-  /** ⚠️ `scope !== "vertical"` のときは必ず空配列（複合FKで DB が保証している） */
+  /** ⚠️ `scope !== "vertical"` のときは必ず空配列（複合FKで DB が保証している。`consumer` も同じ） */
   items: { industryId: string; name: string; isPrimary: boolean }[];
 };
