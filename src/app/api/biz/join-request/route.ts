@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
 import { joinRequestTemplate } from "@/lib/notify/templates";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+/* ⚠️ 依頼は**メールを送るだけで、どこにも残っていなかった**（2026-09-04 に配線）。
+      本人が画面を開き直すと、依頼した事実が消えていた。 */
+import { recordJoinRequest } from "@/lib/business/joinRequests";
 
 /**
  * POST /api/biz/join-request
@@ -145,6 +148,10 @@ export async function POST(req: Request) {
          テナント解決も `ow_company_admins` 経由で、**その行はすぐ上の INSERT で作っている。**
          `api/biz/companies/route.ts` のコメントも同じことを書いている。
     */
+    /* ⚠️ 即時承認でも記録する。「いつ誰がどの経路で入ったか」を後から追えるようにする
+          （`created_via: "join_request"` と同じ理由）。 */
+    await recordJoinRequest(admin, { owUserId: requester.id, companyId, approved: true });
+
     console.info(`[join-request] auto-approved user=${requester.id} for company=${companyId}`);
     return NextResponse.json({ success: true, auto_approved: true });
   }
@@ -181,6 +188,11 @@ export async function POST(req: Request) {
 
   const sent = results.filter((r) => r.status === "fulfilled").length;
   console.info(`[join-request] sent=${sent}/${recipients.length} for company=${company.id}`);
+
+  /* ★依頼したという事実を残す（2026-09-04）。**メール送信の後に置く。**
+     ⚠️ 記録に失敗しても 500 にしない。メールは既に出ているので、
+        「届いているのに失敗と出る」ほうが害が大きい（関数の中でログは出す）。 */
+  await recordJoinRequest(admin, { owUserId: requester.id, companyId, approved: false });
 
   return NextResponse.json({ success: true, notified: sent });
 }

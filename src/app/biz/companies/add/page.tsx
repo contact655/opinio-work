@@ -1,5 +1,8 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext, getBizUserName } from "@/lib/business/dashboard";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchPendingJoinRequests } from "@/lib/business/joinRequests";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +46,14 @@ const OPTIONS = [
   },
 ];
 
+/** ⚠️ サーバーで組み立てる。`toLocaleDateString` の既定はロケール依存で、
+       サーバーとブラウザで文字列が変わるとハイドレーション不一致になる。 */
+function formatSentAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 export default async function AddCompanyPage() {
   /*
     ⚠️ **所属が無い人にこそ出すページ。** 2026-08-14 まで
@@ -60,6 +71,21 @@ export default async function AddCompanyPage() {
   const ctx = await getTenantContext();
   const userName = ctx?.userName ?? (await getBizUserName());
 
+  /* ★出した依頼を出す（2026-09-04 / 柴さんの指摘）。
+     ⚠️ **ここは依頼を送った人が必ず戻ってくる場所。**
+        `/biz/dashboard` は所属が無いとここへリダイレクトされるので、
+        依頼の記録をどこにも出さないと「参加方法を選んでください」だけが残り、
+        本人には**送ったのか失敗したのか区別が付かない。**
+     ⚠️ 表示は admin クライアントで引く。`ow_company_join_requests` は
+        anon / authenticated に GRANT が無い（`lib/business/joinRequests.ts` の注記）。 */
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const admin = createAdminClient();
+  const { data: owUser } = user
+    ? await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle()
+    : { data: null };
+  const pending = owUser ? await fetchPendingJoinRequests(admin, owUser.id as string) : [];
+
   return (
     <BusinessLayout
       userName={userName}
@@ -68,6 +94,7 @@ export default async function AddCompanyPage() {
       tenantLogoLetter={ctx?.logoLetter}
       memberships={ctx?.allCompanies}
       currentTenantId={ctx?.tenantId}
+      hasCompany={!!ctx}
     >
       <div style={{ maxWidth: "var(--max-w-form)", margin: "0 auto", padding: "48px 24px" }}>
         {/* 戻るリンク
@@ -86,6 +113,36 @@ export default async function AddCompanyPage() {
           </svg>
           ホームに戻る
         </a>}
+
+        {/* ★送信済みの依頼（2026-09-04）。
+               ⚠️ **「承認されました」とは書かない。** この表の `status` を
+                  承認時に書き換える経路はまだ無く、分かるのは「送った」ことだけ。
+                  既に担当者になっている企業は `fetchPendingJoinRequests` が落とす。 */}
+        {pending.length > 0 && (
+          <div style={{
+            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+            borderRadius: 12, padding: "16px 18px", marginBottom: 28,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 8 }}>
+              担当者への追加を依頼しています
+            </div>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+              {pending.map((p) => (
+                <li key={p.companyId} style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
+                  <strong style={{ fontWeight: 700 }}>{p.companyName}</strong>
+                  <span style={{ color: "var(--ink-mute)" }}>
+                    {"　"}{formatSentAt(p.sentAt)}に送信
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              既存の担当者が承認すると、この企業を操作できるようになります。
+              承認されるまでは、上の一覧に残ります。
+              {/* ⚠️ 待ち時間を約束しない。承認するのは OPINIO ではなく相手の企業。 */}
+            </p>
+          </div>
+        )}
 
         {/* タイトル */}
         <h1 style={{
