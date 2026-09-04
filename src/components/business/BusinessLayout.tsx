@@ -19,6 +19,22 @@ type Props = {
   children: React.ReactNode;
   memberships?: TenantCompany[];
   currentTenantId?: string;
+  /**
+   * ⚠️★**企業が紐付いていないときは `false` を渡す**（2026-09-04 / 柴さんの指摘）。
+   *
+   * 企業が無いのに **12項目のサイドバーが出ていた。** 押すと `BizNoTenantPage`
+   * （「企業アカウントが必要です」）へ着くだけで、**どれ一つ使えない。**
+   * 登録直後・承認待ちの人には「使える機能が並んでいる」ようにしか見えず、
+   * 押して初めて行き止まりだと分かる形だった。
+   *
+   * ⚠️ 灰色にして無効化する案は採らない。**押せないものを並べる意味が無い**
+   *    （CLAUDE.md「値が無いことを、ある値に置き換えない」と同じ）。**出さない。**
+   *
+   * ⚠️ `loading.tsx` の骨組みには渡さないこと（既定の `true` のまま）。
+   *    あれは**企業がある人**のページの骨組みで、`false` にすると
+   *    サイドバーが消えてから生えるちらつきになる。
+   */
+  hasCompany?: boolean;
 };
 
 type NavItem = {
@@ -101,6 +117,7 @@ export function BusinessLayout({
   children,
   memberships,
   currentTenantId,
+  hasCompany = true,
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -313,9 +330,15 @@ export function BusinessLayout({
       </header>
 
       {/* ── Body: sidebar + main ── */}
-      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "calc(100vh - 57px)" }}>
+      {/* ⚠️ 企業が無いときは1列。列だけ残すと本文が右に寄り、
+             「サイドバーが読み込み中」に見える。 */}
+      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: hasCompany ? "240px 1fr" : "1fr", minHeight: "calc(100vh - 57px)" }}>
 
-        {/* Sidebar */}
+        {/* Sidebar
+            ⚠️★**企業が紐付いていないときは丸ごと出さない**（2026-09-04 / 柴さんの指摘）。
+               12項目とも `BizNoTenantPage` へ着くだけで、使えるものが1つも無い。
+               詳細は `Props.hasCompany` の注記。 */}
+        {hasCompany && (
         <aside className="biz-layout-sidebar" style={{
           background: "#fff",
           borderRight: "1px solid var(--line)",
@@ -445,11 +468,18 @@ export function BusinessLayout({
           </nav>
 
         </aside>
+        )}
 
         {/* Main content */}
+        {/* ⚠️ 企業が無いときはサイドバーを出さないので、**本文を中央に寄せる**
+               （2026-09-04）。左寄せのままだと 1440px で左端に貼り付き、
+               右が大きく空いて「サイドバーが消えた」ように見える。
+               ここは登録フローなので、`/biz/auth` と同じ中央寄せに揃える。 */}
         <main id="main-content" className="biz-layout-main" style={variant === "fullBleed"
           ? { padding: 0, minWidth: 0, overflow: "hidden" }
-          : { padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }
+          : hasCompany
+            ? { padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }
+            : { padding: "28px 36px 60px", maxWidth: 960, minWidth: 0, margin: "0 auto", width: "100%" }
         }>
           {children}
         </main>

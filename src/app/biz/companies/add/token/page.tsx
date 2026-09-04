@@ -22,6 +22,7 @@ export default async function AddByTokenPage() {
       tenantLogoLetter={ctx?.logoLetter}
       memberships={ctx?.allCompanies}
       currentTenantId={ctx?.tenantId}
+      hasCompany={!!ctx}
     >
       <AddByTokenClient />
     </BusinessLayout>

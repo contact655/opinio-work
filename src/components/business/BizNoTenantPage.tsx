@@ -11,7 +11,7 @@ type Props = {
  */
 export function BizNoTenantPage({ userName = "ご担当者" }: Props) {
   return (
-    <BusinessLayout userName={userName}>
+    <BusinessLayout userName={userName} hasCompany={false}>
       <div style={{
         maxWidth: 480,
         margin: "80px auto",

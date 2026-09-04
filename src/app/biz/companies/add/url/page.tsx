@@ -22,6 +22,7 @@ export default async function AddByUrlPage() {
       tenantLogoLetter={ctx?.logoLetter}
       memberships={ctx?.allCompanies}
       currentTenantId={ctx?.tenantId}
+      hasCompany={!!ctx}
     >
       <AddByUrlClient />
     </BusinessLayout>

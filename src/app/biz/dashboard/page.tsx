@@ -24,7 +24,7 @@ async function NoTenantPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const userName = user?.email ? user.email.split("@")[0] : "ご担当者";
   return (
-    <BusinessLayout userName={userName}>
+    <BusinessLayout userName={userName} hasCompany={false}>
       <div style={{
         background: "#fff",
         borderRadius: 14,

@@ -23,7 +23,7 @@ export default async function CandidatesPage() {
   const ctx = await getTenantContext();
   if (!ctx) {
     return (
-      <BusinessLayout userName="担当者">
+      <BusinessLayout userName="担当者" hasCompany={false}>
         <div style={{
           background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
           padding: 40, textAlign: "center", maxWidth: "var(--max-w-form)", margin: "60px auto",

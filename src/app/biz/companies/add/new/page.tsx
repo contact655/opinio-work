@@ -95,7 +95,7 @@ export default async function CreateCompanyPage() {
   if (!ctx) {
     const userName = userBadge?.name ?? "ご担当者";
     return (
-      <BusinessLayout userName={userName}>
+      <BusinessLayout userName={userName} hasCompany={false}>
         <CreateCompanyClient
           userBadge={userBadge}
           prefilledCompanyName={prefilledCompanyName}
