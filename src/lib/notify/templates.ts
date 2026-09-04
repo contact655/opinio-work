@@ -525,6 +525,40 @@ export function joinRequestTemplate(params: {
   };
 }
 
+/**
+ * 依頼が承認され、担当者になったことを**本人**に知らせる（2026-09-04）。
+ *
+ * ⚠️★これが無いと、承認されたことが本人に伝わらない。運営が承認する経路
+ *    （`/admin/company-join-requests`）は**企業からの返事ではない**ので、
+ *    本人は待ち続けることになる。
+ *
+ * ⚠️ 取引通知（本人の操作の結果を返すもの）なので opt-out 列は要らない。
+ * ⚠️ **誰が承認したかは書かない。** 企業の担当者が承認したのか運営が代理で通したのかは、
+ *    本人にとって意味の違う情報で、書くなら正確に書き分ける必要がある。
+ *    いまは書き分けられないので**書かない**。
+ */
+export function joinRequestApprovedTemplate(params: {
+  to: string;
+  requesterName: string;
+  companyName: string;
+}) {
+  return {
+    to: params.to,
+    subject: `[OPINIO] 「${esc(params.companyName)}」の担当者として登録されました`,
+    html: htmlWrap(`
+      <h2>${esc(params.requesterName)} さん</h2>
+      <p>
+        「<strong>${esc(params.companyName)}</strong>」の採用担当者として登録されました。
+        企業情報の編集や求人の掲載ができます。
+      </p>
+      <a href="https://opinio.jp/biz/dashboard" style="${BTN}">OPINIO Business を開く →</a>
+      <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+        心当たりのない場合は、このメールに返信してお知らせください。
+      </p>
+    `),
+  };
+}
+
 // ── 面談対応者の申請（企業/運営宛）─────────────────────────────────────────
 /**
  * 本人が「話を聞かれてもよい」と申請したことを企業に知らせる（2026-08-23）。

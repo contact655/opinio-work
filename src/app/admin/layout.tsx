@@ -22,6 +22,7 @@ import {
   Send,
   CreditCard,
   ClipboardCheck,
+  UserPlus,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -59,6 +60,11 @@ const NAV_GROUPS = [
                「人の掲載」を全部扱う**ので、`掲載` だけでは何の掲載か読めない。
                人を指すときは `面談対応者` を使う（`/biz` と同じ語彙で、企業や求人と衝突しない）。 */
       { label: "面談対応者（自己申告）", href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
+      /* ★2026-09-04 追加。「勝手に載っている人がいないか」（上）とは**別の問い**で、
+            こちらは「企業に入りたい人を入れるか」。統合しないこと。
+            ⚠️ 依頼メールが届く企業は掲載中79社のうち2社だけ（2026-09-04 実測）。
+               残りは運営が見なければどこにも着かない。 */
+      { label: "企業への参加依頼",     href: "/admin/company-join-requests", icon: <UserPlus     size={16} strokeWidth={2} /> },
       /* ★「登録している人」ではなく「訪問者に実際に見えている人」の一覧（2026-08-26）。
             /admin/candidates とは別の問いに答えるので分けてある。 */
       { label: "公開面に出ている人", href: "/admin/public-faces", icon: <Eye          size={16} strokeWidth={2} /> },

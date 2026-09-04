@@ -1,5 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
+/* ⚠️★件数も一覧も同じ関数を通す。条件を書き分けると
+      「1件と出ているのに開くと空」が起きる（`fetchSelfListed` と同じ理由）。 */
+import { fetchOpenJoinRequests } from "@/lib/business/joinRequests";
 import Link from "next/link";
 
 async function getStats() {
@@ -122,7 +125,19 @@ async function getStats() {
     .limit(5);
   if (recentCompaniesErr) console.error("[admin] ow_companies(recent):", recentCompaniesErr.message);
 
+  /* ★企業への参加依頼（2026-09-04）。
+     ⚠️ 失敗を 0 に倒さない。**「0件」と「取得できなかった」を区別して出す。**
+        ここを 0 にすると、要対応が消えて誰も見に行かなくなる。 */
+  const joinRequests = await fetchOpenJoinRequests(admin);
+  const joinRequestsOldestDays = joinRequests && joinRequests.length > 0
+    /* ⚠️ 起点は一覧の「◯日前」と同じ `sentAt`。別の起点にすると数字が食い違う */
+    ? Math.max(...joinRequests.map((r) => Math.floor((Date.now() - Date.parse(r.sentAt)) / 86_400_000)))
+    : null;
+
   return {
+    joinRequestsCount: joinRequests?.length ?? 0,
+    joinRequestsFailed: joinRequests === null,
+    joinRequestsOldestDays,
     usersCount: users.count ?? 0,
     testUsersCount: testUsers.count ?? 0,
     activeCompaniesCount: activeCompanies.count ?? 0,
@@ -164,7 +179,10 @@ export default async function AdminDashboard() {
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0)
     /* ⚠️ 未確認は0にできるので**要対応に数える**（2026-08-25）。
           掲載中の総数を足さないこと。あれは0にならない。 */
-    + stats.selfUnreviewedCount;
+    + stats.selfUnreviewedCount
+    /* ⚠️ 取得に失敗したときは 1件として数える（下のカードが「失敗」を出すため）。
+          0 にすると、壊れているのに要対応が消える。 */
+    + (stats.joinRequestsFailed ? 1 : stats.joinRequestsCount);
 
   const kpis = [
     {
@@ -520,6 +538,57 @@ export default async function AdminDashboard() {
                     <p style={{ fontSize: 11, color: "#3B5FD9", margin: 0 }}>{stats.pendingMeetingsCount}件</p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </Link>
+            )}
+
+            {/* ★企業への参加依頼（2026-09-04）。
+                   ⚠️ 掲載中79社のうち依頼メールが届くのは2社だけ（2026-09-04 実測）。
+                      残り77社では企業側に受け取れる人がいないので、
+                      **ここに出ないと依頼はどこにも着かない。** */}
+            {(stats.joinRequestsCount > 0 || stats.joinRequestsFailed) && (
+              <Link href="/admin/company-join-requests" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  transition: "background 0.15s", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "var(--warm-ink)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" />
+                      <line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
+                      {stats.joinRequestsFailed
+                        ? "企業への参加依頼 取得に失敗"
+                        : `企業への参加依頼 ${stats.joinRequestsCount}件`}
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
+                      {stats.joinRequestsFailed ? (
+                        /* ⚠️ 「0件」と読ませない */
+                        <>0件という意味ではありません。開いて確認してください</>
+                      ) : (
+                        <>
+                          {stats.joinRequestsOldestDays !== null && stats.joinRequestsOldestDays >= 1 && (
+                            <>最も古いもので {stats.joinRequestsOldestDays} 日前 ・ </>
+                          )}
+                          {/* ⚠️ ここで「誰にも届いていません」と断定しない。届く企業もある
+                                 （宛先の有無は**依頼ごとに違う**ので一覧で出す）。 */}
+                          承認すると、その企業の管理画面をその人に渡します
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>

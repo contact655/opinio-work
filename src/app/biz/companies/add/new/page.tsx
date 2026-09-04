@@ -1,4 +1,5 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
+import { corporateDomainOfEmail } from "@/lib/constants/emailDomains";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,11 +39,10 @@ export default async function CreateCompanyPage() {
   // 業種の選択肢（ow_industries のフラット20件）。⚠️ コードに書かない
   const industries = await fetchIndustryOptions(createAdminClient(), "biz/companies/add/new");
 
-  // メールドメインで企業マスタを照合（LinkedIn的なドメインマッチング）
-  const emailDomain = user?.email ? user.email.split("@")[1]?.toLowerCase() ?? null : null;
-  // フリーメールドメインはマッチング対象外
-  const FREE_DOMAINS = ["gmail.com", "yahoo.co.jp", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "me.com", "live.com", "googlemail.com"];
-  const matchableDomain = emailDomain && !FREE_DOMAINS.includes(emailDomain) ? emailDomain : null;
+  // メールドメインで企業マスタを照合（LinkedIn的なドメインマッチング）。フリーメールは対象外
+  /* ⚠️ フリーメールの一覧は `lib/constants/emailDomains.ts` に集約した（2026-09-04）。
+        ここに書き戻さないこと。運営の依頼一覧が同じ判定を使う。 */
+  const matchableDomain = corporateDomainOfEmail(user?.email);
 
   // ユーザー登録時に入力した所属企業を取得
   // 優先順位: user_metadata.pending_company > ow_experiences.is_current=true
