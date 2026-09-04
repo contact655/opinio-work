@@ -1658,6 +1658,43 @@ Opinio は有料職業紹介事業の許可事業者（13-ユ-316441）なので
 
 ---
 
+### ⚠️★複合FK のテーブルは PostgREST の埋め込みが使えない（2026-09-04 確立）
+
+**`ow_company_target_industries` は `ow_companies!company_id(...)` で埋め込めない。**
+
+```
+Could not find a relationship between 'ow_company_target_industries' and 'ow_companies'
+in the schema cache
+```
+
+原因は、この表から `ow_companies` への外部キーが**複合FK**だから
+（`(company_id, target_industry_scope) → ow_companies(id, target_industry_scope)`。
+「明細を持てるのは `vertical` の企業だけ」を構造で担保するために 2026-09-04 に入れた）。
+**PostgREST は複合FKを埋め込みの関係として解決できない。**
+
+→ **2段に分けて `.in("id", ...)` で引く。**
+
+```ts
+// ✗ 埋め込み（複合FKでは解決できない）
+.from("ow_company_target_industries")
+.select("industry_id, ow_companies!company_id(id, name)")
+
+// ✓ 2段に分ける
+const { data: links } = await db.from("ow_company_target_industries").select("industry_id, company_id");
+const ids = Array.from(new Set((links ?? []).map((r) => r.company_id)));
+const { data: companies } = await db.from("ow_companies").select("id, name").in("id", ids);
+```
+
+⚠️★**`error` を見ていれば気づけるが、`?? []` で受けると「0件」に化ける。**
+   PostgREST は 200 で返すので、**画面は「該当なし」として正常に見える。**
+   実際に 2026-09-04 に踏み、`console.error` を出していたおかげで即座に分かった
+   （下の「`?? ""` を挟んだ後の `?? フォールバック`」と同じ形。**既定値が事実を潰す**）。
+
+⚠️ **この形のテーブルを増やすたびに同じ穴を踏む。** 複合FKで整合を担保する表を作るときは、
+   **埋め込みを使わない前提で読み取り側を書くこと。**
+
+---
+
 ### ⚠️★`?? ""` を挟んだ後の `?? フォールバック` は**永久に効かない**（2026-08-25 記録・フェーズ2で直す）
 
 ```ts

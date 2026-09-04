@@ -4,6 +4,7 @@ import { getFollowCounts } from "@/lib/people/followCounts";
 import { canUserPost } from "@/lib/feed/canPost";
 import { createAdminClient } from "@/lib/supabase/admin";
 import MypageClient from "./MypageClient";
+import { fetchIndustryMatchBlocks } from "@/lib/companies/industryMatch";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import {
   buildTimelineCareerEntriesFromRaw,
@@ -578,6 +579,12 @@ export default async function MypagePage({
     for (const r of likedRows ?? []) likedPostIds.push(r.post_id as string);
   }
 
+  /* ★「◯◯の経験が活きる会社」（2026-09-04 / フェーズ5）。
+     ⚠️ ログイン中の本人にだけ出す。`/search` にも `/companies` にも混ぜない。
+     ⚠️ 出せるブロックが1つも無ければ空配列が返り、**セクションごと描かれない**。
+     ⚠️ 失敗しても `/mypage` は落とさない（関数の中で console.error を出す）。 */
+  const industryMatchBlocks = owUser ? await fetchIndustryMatchBlocks(owUser.id) : [];
+
   const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
 
   return (
@@ -624,6 +631,7 @@ export default async function MypagePage({
       recentPosts={recentPosts}
       likedPostIds={likedPostIds}
       featuredArticles={featuredArticles}
+      industryMatchBlocks={industryMatchBlocks}
     />
   );
 }

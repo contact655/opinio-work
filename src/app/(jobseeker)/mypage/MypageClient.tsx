@@ -19,6 +19,9 @@ import type { ComponentProps } from "react";
       （職歴・学歴カードと重複するため）。`MergedTimeline` 本体は `/u/[id]` が使う。 */
 import { type CareerEntry } from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
+/* ★「◯◯の経験が活きる会社」（2026-09-04）。⚠️ ブロックが0件なら何も描かない部品。 */
+import { IndustryMatchSection } from "@/components/mypage/IndustryMatchSection";
+import type { IndustryMatchBlock } from "@/lib/companies/industryMatch";
 
 /* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
       `/mypage` が編集フォームにそのまま渡すので、片方に列を足してもう片方に
@@ -227,6 +230,7 @@ export default function MypageClient({
   recentPosts = [],
   likedPostIds = [],
   featuredArticles = [],
+  industryMatchBlocks = [],
   ...editorProps
 }: {
   /** 投稿してよい人か（lib/feed/canPost）。false なら「アクティビティ」を出さない */
@@ -268,6 +272,8 @@ export default function MypageClient({
     type: string; eyecatch_gradient: string | null; read_min: number | null;
     published_at: string | null;
   }[];
+  /** ★「◯◯の経験が活きる会社」。⚠️ 空配列なら部品が何も描かない（「該当なし」も出さない） */
+  industryMatchBlocks?: IndustryMatchBlock[];
 } & ProfileEditorProps) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
@@ -353,6 +359,12 @@ export default function MypageClient({
           ⚠️ 促し自体を消したわけではない。ボックスの要約が
              「スカウト｜未選択」と灰色で出るので、未設定であることは読める。
           ⚠️ `showScoutBanner` プロップと `/mypage` 側の判定も外した。 */}
+
+      {/* ★「◯◯の経験が活きる会社」（2026-09-04 / フェーズ5）。
+             ⚠️ 出せるブロックが無ければ**何も描かない**（部品が null を返す）。
+                「該当なし」も出さない。
+             ⚠️ 意思表示カードの下・企業向け導線の上に置く。 */}
+      <IndustryMatchSection blocks={industryMatchBlocks} />
 
       {/* ⚠️ 「プロフィール完成度」「最近の申込」「ブックマーク」を外した（2026-08-16）。
              ・完成度 … プロフィール本体が同じページに出るようになり、

@@ -49,6 +49,8 @@ const ITEMS = [
     desc: "企業が入力したものがどう保存され、求職者にどう見えるかを1画面で" },
   { href: "/dev/preview/listing-status", label: "掲載設定バナー（本人にだけ出る）",
     desc: "掲載中 / ログイン限定 / 非掲載 の3状態。実データで出せるのは1つだけ" },
+  { href: "/dev/preview/industry-match", label: "◯◯の経験が活きる会社（/mypage）",
+    desc: "0ブロックで何も出ないこと。長い社名が右カラム320pxではみ出さないこと。ログインの内側なので実画面では確かめにくい" },
   { href: "/dev/preview/roles", label: "職種の選択（大分類 → 小分類）",
     desc: "親を2つ以上選んだときに、どこまでがどの親の子か読めるか。ログインの内側なので実画面では確かめにくい" },
   { href: "/dev/preview/meeting-cta", label: "カジュアル面談CTA の色（決着済み・案B）",
