@@ -58,6 +58,19 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     console.error('[admin/companies/[id]] 事業領域の取得に失敗:', domainsError.message);
   }
 
+  /* 対象業界（軸2 = 誰に売っているか）。⚠️ 軸1（事業領域）とは別物。
+     ⚠️ 語彙は上の `industries`（ow_industries）を業種と共有している。
+        選択肢を別に引かないこと（粒度が割れると突合が繋がらない）。 */
+  const { data: companyTargets, error: targetsError } = await supabase
+    .from('ow_company_target_industries')
+    .select('industry_id, is_primary')
+    .eq('company_id', params.id)
+    .order('display_order');
+  // ⚠️ error を握りつぶさない。0件と取得失敗を同じ「未設定」に見せない
+  if (targetsError) {
+    console.error('[admin/companies/[id]] 対象業界の取得に失敗:', targetsError.message);
+  }
+
   // この企業に紐付け済みのジャンル（承認済み・未承認問わず全件）
   const { data: companyGenres } = await supabase
     .from('ow_company_genres')
@@ -86,6 +99,7 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
       allIndustries={industries ?? []}
       allBusinessDomains={businessDomains}
       companyBusinessDomains={companyDomains ?? []}
+      companyTargetIndustries={companyTargets ?? []}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
       admins={admins ?? []}

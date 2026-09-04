@@ -65,6 +65,10 @@ export type Company = {
    *  ⚠️ 判定は `lib/companies/publishable.ts` の `findPublishBlockers`。
    *     ここで条件を組み立て直さないこと（ゲートと食い違う）。 */
   publish_blockers?: string[];
+  /** 対象業界（軸2）の3値。⚠️ null は「未確認」で、"horizontal"（業界を問わない）とは別物 */
+  target_industry_scope?: "vertical" | "horizontal" | null;
+  /** ⚠️ 未確認の件数から検証用企業を外すために要る（`/admin/companies` の「要対応」と揃える） */
+  is_test?: boolean | null;
 };
 
 /* ⚠️ **データはサーバー（page.tsx + createAdminClient）で取る。**
@@ -201,6 +205,17 @@ export default function AdminCompaniesClient(
    *  （絞り込みで隠れると「直った」と誤読される） */
   const blockedCount = companies.filter((c) => (c.publish_blockers?.length ?? 0) > 0).length;
 
+  /** ★対象業界（軸2）がまだ未確認の企業数（2026-09-04）。
+   *  ⚠️ 数えるのは**掲載中で検証用でないもの**だけ。運営が埋めていく対象がそれなので、
+   *     下書きやテスト企業まで数えると、いつまでも0にならない数字になる。
+   *  ⚠️★`horizontal`（業界を問わない）は**未確認に数えない。** あれは運営が調べた結果で、
+   *     埋まっている状態。ここを混ぜると、作業一覧から「見るべきもの」が消える。 */
+  const targetUnknownCount = companies.filter(
+    (c) => c.listing_status === "listed"
+      && c.is_test !== true
+      && (c.target_industry_scope ?? null) === null,
+  ).length;
+
   const filtered = companies.filter((c) => {
     const es = c.engagement_status ?? "none";
     if (activeTab === "contracted" && es !== "contracted") return false;
@@ -296,6 +311,19 @@ export default function AdminCompaniesClient(
           一度取り下げると、直すまで公開に戻せません。表の「⚠️ 要対応」から企業詳細を開いて設定してください。
         </div>
       ) : null}
+
+      {/* ★対象業界（軸2）の埋まり具合（2026-09-04）。
+             ⚠️ これは「要対応」ではない。**壊れているのではなく、まだ調べていない**だけ。
+                掲載条件とは無関係なので、上の警告（琥珀）と同じ色にしない。
+             ⚠️ 0件になるのが最終形だが、急ぐものではない。 */}
+      {targetUnknownCount > 0 && (
+        <div role="status" style={{ background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--royal)", lineHeight: 1.7 }}>
+          <strong>対象業界 未確認 {targetUnknownCount}社</strong> — 掲載中の企業のうち、
+          「誰に売っているか」をまだ調べていないものです。企業詳細の「対象業界」タブで
+          <strong>特定の業界に張っている / 業界を問わない</strong> のどちらかを記録してください。
+          <span style={{ color: "var(--ink-mute)" }}>（掲載の条件ではありません。いまは求職者側に何も出ません）</span>
+        </div>
+      )}
 
       {/* Search */}
       <div style={{ position: "relative", marginBottom: 16 }}>
