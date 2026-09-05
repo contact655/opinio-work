@@ -50,6 +50,19 @@ export default async function OrganizationPage({
       /* ★`display_order` も取る（2026-09-05）。⚠️ **親ごとの相対順**なので、
             この order だけでは親子が混ざる。木に組むのは `StandardRoleCombobox` 側。 */
       .select("id, name, parent_id, display_order")
+      /* ★無効・統合済みを外す（2026-09-05）。**この画面だけが絞っていなかった。**
+            ⚠️ 絞り方は `onboarding/page.tsx` と**同じ**にする。ここ独自の条件を書かない。
+            ⚠️ 外れるのは6件（全154 → 148）。すべて「営業」配下で、
+               `is_active = false` かつ `merged_into_id` が
+               「ソリューションエンジニア・プリセールス」を指している統合済みの行。
+            ⚠️★**統合先へ読み替える処理は足さない**（今回のスコープ外）。
+               既に統合済みの職種に紐づいている企業がいたら、
+               `StandardRoleBadge` が名前を出せなくなる。実測（2026-09-05）では
+               `ow_company_job_roles` は**1件**で、指しているのは「エンジニア」
+               （有効・未統合）なので**この6件には当たらない**。
+               ⚠️ 「0件だから安全」ではない。**何を指しているかを見て判断した。** */
+      .is("merged_into_id", null)
+      .eq("is_active", true)
       .order("display_order", { ascending: true })
       .order("name", { ascending: true }),
   ]);
