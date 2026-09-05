@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { IndustryOption } from "@/lib/companies/industries";
 import type { CompanyLookupResult } from "./useCompanyLookup";
+import { companyMatchLabelForUser } from "@/lib/companies/matchedOn";
 
 /**
  * 「この会社をOPINIOに登録する」— 経歴入力の途中で企業マスタを作る。
@@ -26,6 +27,12 @@ import type { CompanyLookupResult } from "./useCompanyLookup";
  * ⚠️ **選ばなくても作れる。止めない。** 同名の別会社は実在する
  *    （美容室・飲食店・地方の中小企業）。止めると正しい登録まで塞ぐ。
  */
+/** `GET /api/jobseeker/companies?name=` が返す重複候補 */
+type DuplicateCandidate = CompanyLookupResult & {
+  /** どの列で一致したか。⚠️ 実装語なので**そのまま出さない**（`companyMatchLabelForUser` で畳む） */
+  matchedOn?: string | null;
+};
+
 export function CompanyCreateDialog({
   initialName,
   onCancel,
@@ -40,7 +47,10 @@ export function CompanyCreateDialog({
   const [industryId, setIndustryId] = useState<string>("");
   const [industries, setIndustries] = useState<IndustryOption[] | null>(null);
   const [industriesFailed, setIndustriesFailed] = useState(false);
-  const [candidates, setCandidates] = useState<CompanyLookupResult[]>([]);
+  /* ★候補には「なぜ出たか」を添える（2026-09-05）。照合が brand_name / name_en /
+        search_aliases まで広がったので、**名前が似ていない候補が出る**
+        （「ANDPAD」→「株式会社アンドパッド」）。理由が無いと押してよいか分からない。 */
+  const [candidates, setCandidates] = useState<DuplicateCandidate[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -78,7 +88,7 @@ export function CompanyCreateDialog({
       try {
         const res = await fetch(`/api/jobseeker/companies?name=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { candidates?: CompanyLookupResult[] };
+        const data = (await res.json()) as { candidates?: DuplicateCandidate[] };
         if (alive) setCandidates(data.candidates ?? []);
       } catch (err) {
         // ⚠️ 照会できなくても作成は止めない（候補が出ないだけ）。ログには残す
@@ -179,6 +189,13 @@ export function CompanyCreateDialog({
                     {c.name}
                   </span>
                   {/* ⚠️ lookup と同じ文言にする。ここだけ別の言い方にしない */}
+                  {/* ★なぜ候補に出たか。⚠️ 名前で一致したときは出さない
+                         （見れば分かるので、当たり前のことを説明する行が増えるだけ）。 */}
+                  {companyMatchLabelForUser(c.matchedOn ?? null) && (
+                    <span style={{ display: "block", fontSize: 11.5, color: "var(--royal)", marginTop: 1 }}>
+                      {companyMatchLabelForUser(c.matchedOn ?? null)}
+                    </span>
+                  )}
                   {!c.isListed && (
                     <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 1 }}>
                       OPINIOに未掲載（企業ページはありません）

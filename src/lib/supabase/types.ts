@@ -6636,6 +6636,7 @@ export type Database = {
           id: string
           is_approved: boolean
           is_published: boolean
+          matched_on: string
           name: string
           slug: string
           source: string

@@ -120,6 +120,9 @@ export async function POST(req: Request) {
   const duplicates = (dupRows ?? []) as {
     id: string; name: string; slug: string | null;
     is_published: boolean; source: string | null;
+    /** ★どの列で一致したか（2026-09-05）。照合が brand_name / name_en /
+        search_aliases まで広がったので、理由が無いと運営が判断できない */
+    matched_on: string | null;
   }[];
 
   // 4. slug の導出
@@ -352,7 +355,10 @@ export async function POST(req: Request) {
               正規化して一致した既存企業をそのまま載せる。 */
         duplicates: duplicates
           .filter((d) => d.id !== company.id)
-          .map((d) => ({ id: d.id, name: d.name, isPublished: d.is_published, source: d.source })),
+          .map((d) => ({
+            id: d.id, name: d.name, isPublished: d.is_published,
+            source: d.source, matchedOn: d.matched_on,
+          })),
       })
     );
   } catch (err) {

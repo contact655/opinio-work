@@ -54,7 +54,8 @@ const MAX_DUPLICATE_CANDIDATES = 5;
  *    「（株）鹿島建設」と打った人に「鹿島建設」を出せない。
  *    ここは DB の `normalize_company_name()` を通すので、法人格の表記ゆれを吸収する。
  *
- * ⚠️ 返すのは **id / name / isListed の3つだけ**（lookup と同じ条件）。
+ * ⚠️ 返すのは **id / name / isListed** ＋ **matchedOn**（なぜ候補に出たか）。
+ * ⚠️ それ以外は返さない（lookup と同じ条件）。`matchedOn` は列名そのものなので、**画面では文言に畳む**。
  * ⚠️ 非公開の企業も候補に出す。**出さないと、同じ会社をもう一度作らせることになる。**
  */
 export async function GET(req: Request) {
@@ -78,7 +79,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "照会に失敗しました" }, { status: 500 });
   }
 
-  const hits = ((rows ?? []) as { id: string; name: string }[]).slice(0, MAX_DUPLICATE_CANDIDATES);
+  const hits = ((rows ?? []) as { id: string; name: string; matched_on: string | null }[])
+    .slice(0, MAX_DUPLICATE_CANDIDATES);
   if (hits.length === 0) return NextResponse.json({ candidates: [] });
 
   /* ⚠️ RPC は `listing_status` を返さないので、掲載中かどうかはここで引き直す。
@@ -104,6 +106,10 @@ export async function GET(req: Request) {
           id: h.id,
           name: h.name,
           isListed: m?.is_published === true && m?.listing_status === "listed",
+          /* ★なぜ候補に出たか。⚠️ 実装語をそのまま返すが、**画面では文言に畳んでから出す**
+                （`companyMatchLabelForUser`）。ここで日本語にしないのは、
+                運営向けと利用者向けで言い方が違うため。 */
+          matchedOn: h.matched_on,
         };
       }),
   });
@@ -178,6 +184,8 @@ export async function POST(req: Request) {
   const duplicates = (dupRows ?? []) as {
     id: string; name: string; slug: string | null;
     is_published: boolean; source: string | null;
+    /** ★どの列で一致したか（2026-09-05）。運営が「なぜ候補に出たか」を判断するために要る */
+    matched_on: string | null;
   }[];
 
   /* ── slug ────────────────────────────────────────────────────────────────
@@ -248,7 +256,12 @@ export async function POST(req: Request) {
         createdAt: company.created_at,
         duplicates: duplicates
           .filter((d) => d.id !== company.id)
-          .map((d) => ({ id: d.id, name: d.name, isPublished: d.is_published, source: d.source })),
+          .map((d) => ({
+            id: d.id, name: d.name, isPublished: d.is_published, source: d.source,
+            /* ★どの列で一致したか。「ANDPAD」で「株式会社アンドパッド」が出ても
+                  名前は似ていないので、理由が無いと運営が判断できない */
+            matchedOn: d.matched_on,
+          })),
       }),
     );
   } catch (err) {
@@ -266,7 +279,7 @@ export async function POST(req: Request) {
       duplicate_candidates: duplicates
         .filter((d) => d.id !== company.id)
         .slice(0, MAX_DUPLICATE_CANDIDATES)
-        .map((d) => ({ id: d.id, name: d.name })),
+        .map((d) => ({ id: d.id, name: d.name, matchedOn: d.matched_on })),
     },
     { status: 201 },
   );

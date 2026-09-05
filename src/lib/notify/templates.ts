@@ -1,3 +1,4 @@
+import { companyMatchLabelForAdmin } from "@/lib/companies/matchedOn";
 /** 運営の宛先。⚠️ 新しい持ち方を作らない。既存の3テンプレートと同じこれを使う。 */
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 
@@ -349,22 +350,26 @@ export function newCompanyAdminTemplate(params: {
    * 正規化した企業名が一致した既存企業。
    * ⚠️ **作成は止めていない**（同名の別会社が実在するため）。
    *    重複に気づける経路はこの通知だけなので、必ず載せる。
+   * ⚠️★`matchedOn` は**どの列で一致したか**（2026-09-05）。照合が
+   *    brand_name / name_en / search_aliases まで広がったので、
+   *    **なぜ候補に出たのかが分からないと運営が判断できない**
+   *    （「ANDPAD」で「株式会社アンドパッド」が出ても、名前は似ていない）。
    */
-  duplicates?: { id: string; name: string; isPublished: boolean; source: string | null }[];
+  duplicates?: { id: string; name: string; isPublished: boolean; source: string | null; matchedOn?: string | null }[];
 }) {
   const dups = params.duplicates ?? [];
   const subjectPrefix = dups.length > 0 ? "[OPINIO] [重複の疑い] " : "[OPINIO] ";
   const duplicateNote = dups.length > 0
     ? `<div style="color: #92400E; background: #FEF3C7; padding: 12px 14px; border-radius: 6px; font-size: 13px;">
         <p style="margin: 0 0 8px;">
-          ⚠️ 正規化した企業名が一致する既存企業が <strong>${dups.length}件</strong> あります。
+          ⚠️ 企業名が一致する既存企業が <strong>${dups.length}件</strong> あります。
           <strong>同名の別会社の可能性もあるため、作成は止めていません。</strong>
           統合が必要かどうか確認してください。
         </p>
         <ul style="margin: 0; padding-left: 18px;">
           ${dups.map((d) => `<li style="margin-bottom: 4px;">
             <a href="https://opinio.jp/admin/companies/${d.id}">${esc(d.name)}</a>
-            <span style="color:#78350F;">（${d.isPublished ? "公開中" : "非公開"} / source: ${esc(d.source ?? "null")}）</span>
+            <span style="color:#78350F;">（${d.isPublished ? "公開中" : "非公開"} / source: ${esc(d.source ?? "null")}${d.matchedOn ? ` / 一致したのは<strong>${esc(companyMatchLabelForAdmin(d.matchedOn))}</strong>` : ""}）</span>
           </li>`).join("")}
         </ul>
         <p style="margin: 8px 0 0; font-size: 12px;">
