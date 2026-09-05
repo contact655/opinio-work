@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LayoutGrid } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
@@ -312,6 +312,39 @@ export function JobseekerHeader() {
                   </svg>
                 </Link>
                 <NotificationBell />
+                {/* ⚠️★**企業担当者の常設スイッチ**（2026-09-05）。ベルとアバターの間。
+                       畳んだドロップダウンの中だと、企業側と求職者側を行き来する人が
+                       毎回2アクション必要になるため常時見える位置へ出した。
+
+                    ⚠️ **出すのは `ow_company_admins` に有効な行がある人だけ。**
+                       この列は「自分宛のもの」（自分のメッセージ・自分の通知）で揃えている。
+                       所属が無い人にはアイコンを出さず、ドロップダウンの
+                       「企業の方はこちら」（→ /business）だけを出す。
+                    ⚠️ **`accepted_at` や `ow_job_assignees` を条件にしないこと。**
+                       どちらも本番で該当0人（実測 2026-09-05）。誰にも出なくなる。
+                    ⚠️ アイコン列はモバイルでは出ない（`hidden md:flex`）。
+                       **モバイルメニュー側の項目を消さないこと。** */}
+                {user.isBizMember && (
+                  <Link
+                    href="/biz/dashboard"
+                    aria-label="企業の管理画面"
+                    title="企業の管理画面"
+                    style={{
+                      width: 36, height: 36,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      borderRadius: 8, border: "1px solid var(--line)",
+                      background: "#fff", color: "var(--ink-mute)",
+                      flexShrink: 0, textDecoration: "none",
+                      transition: "border-color 0.15s, color 0.15s",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--royal)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-mute)"; }}
+                  >
+                    {/* ⚠️ ビルのアイコンにしない。左ナビの「企業」（→ /companies・求職者向けの
+                           企業一覧）と同じ絵になり、行き先を取り違える。 */}
+                    <LayoutGrid size={16} strokeWidth={2.2} />
+                  </Link>
+                )}
                 <div style={{ position: "relative" }} ref={dropdownRef}>
                   <button type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -377,17 +410,23 @@ export function JobseekerHeader() {
                              `NoTenantPage`（「企業アカウントが必要です。OPINIO運営より
                              送られた招待リンクからご参加ください」）に着いて行き止まりになる。
                              掲載を検討する人の入口は `/business`。 */}
-                      <Link
-                        href={user.isBizMember ? "/biz/dashboard" : "/business"}
-                        onClick={() => setDropdownOpen(false)}
-                        style={{ display: "block", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, textDecoration: "none", borderTop: "0.5px solid var(--line-soft)" }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-                      >
-                        {/* ⚠️ 未ログイン側と同じ文言にすること（「企業の方はこちら」）。
-                               ログインの前後で別の呼び方にしない。 */}
-                        {user.isBizMember ? "企業の管理画面" : "企業の方はこちら"}
-                      </Link>
+                      {/* ⚠️★**企業担当者にはここへ出さない**（2026-09-05）。
+                             同じ操作に到達できる入口が2つ並ぶと、片方を直したときに
+                             もう片方が取り残される（職歴カードで実際に起きている）。
+                             担当者の入口は**上のアイコン列に寄せた**。ここに戻さないこと。
+                          ⚠️ 所属が無い人にだけ出す。文言は未ログイン側と同じ
+                             「企業の方はこちら」にする。ログインの前後で呼び方を変えない。 */}
+                      {!user.isBizMember && (
+                        <Link
+                          href="/business"
+                          onClick={() => setDropdownOpen(false)}
+                          style={{ display: "block", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, textDecoration: "none", borderTop: "0.5px solid var(--line-soft)" }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+                        >
+                          企業の方はこちら
+                        </Link>
+                      )}
                       <button
                         type="button"
                         onClick={handleLogout}
