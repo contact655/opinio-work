@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
-import { companyDisplayName } from "@/lib/companies/displayName";
 /* ⚠️ 学歴の区分もここに直書きしない。API（educations POST）が `DEGREES` で検証しており、
       別の語彙を送ると 400 になる（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { DEGREES, DEGREE_LABELS } from "@/lib/constants/careerOptions";
@@ -29,14 +28,16 @@ const REMOTE_CHIPS = REMOTE_WORK_STATUSES
   .map((o) => ({ value: o.value as string, label: REMOTE_SHORT_LABEL[o.value] ?? o.label }))
   .reverse();
 
+/* ⚠️★`/api/companies/lookup` の返り値。**id / name / isListed の3つだけ**。
+      未掲載の企業も引けるようにしたぶん、返す情報を絞ってある（2026-09-04）。
+   ⚠️ `name` は**サーバー側で表示名に解決済み**（`companyDisplayName` を通してある）。
+      ここで `name_en` / `brand_name` から組み立て直さないこと。
+   ⚠️ 業種は返らない。未掲載企業の業種まで出すことになるので落とした。 */
 type CompanyResult = {
   id: string;
   name: string;
-  /** 英語社名。表示名を作るのに使う（`companyDisplayName`） */
-  name_en: string | null;
-  brand_name: string | null;
-  /** 業種（`ow_industries.name`）。⚠️ 廃止列 `ow_companies.industry` ではない */
-  industry: string | null;
+  /** 掲載中か。⚠️ false は「OPINIOに未掲載」＝企業ページが無い（または一覧に出していない） */
+  isListed: boolean;
 };
 
 /* これまでの職歴（任意・複数）。
@@ -83,8 +84,9 @@ const emptyEducation = (key: number): EducationRow => ({
  * 候補・選択カードに出す社名。**企業一覧・企業ページと同じ表示名にする。**
  * ⚠️ ここで正規表現を書かない。`lib/companies/displayName.ts` を通す。
  */
-const companyLabel = (c: CompanyResult) =>
-  c.brand_name?.trim() || companyDisplayName(c.name, c.name_en).displayName;
+/* ⚠️ 表示名は**サーバーが解決して返す**（`/api/companies/lookup`）。
+      ここで組み立てない（2箇所で組むと片方だけ直る形になる）。 */
+const companyLabel = (c: CompanyResult) => c.name;
 
 const pastJobReady = (j: PastJob) =>
   (!!j.company || j.companyText.trim().length > 0) &&
@@ -987,7 +989,10 @@ function CompanyPicker({
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await fetch(`/api/onboarding/companies/search?q=${encodeURIComponent(q)}`);
+        /* ⚠️★共通の `lookup` に寄せた（2026-09-04）。旧 `/api/onboarding/companies/search` は
+              未掲載企業の**業種まで返しており**、`is_test` も除外していなかった。
+              返す情報を絞ったうえで、経歴エディタと同じ入口にする。 */
+        const res = await fetch(`/api/companies/lookup?q=${encodeURIComponent(q)}`);
         if (res.ok) {
           const data = await res.json();
           setResults(data.results ?? []);
@@ -1003,7 +1008,7 @@ function CompanyPicker({
   /* ⚠️ 表示名でも完全一致を見る。候補に「Salesforce」と出ているのに
         「Salesforce」と打つと『この名前のまま入力する』が出る、を防ぐ。 */
   const exactMatch = results.some(
-    (r) => r.name === text.trim() || (r.brand_name ?? "") === text.trim() || companyLabel(r) === text.trim()
+    (r) => r.name === text.trim()
   );
 
   return (
@@ -1020,8 +1025,12 @@ function CompanyPicker({
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {companyLabel(selected)}
               </div>
-              {selected.industry && (
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{selected.industry}</div>
+              {/* ★選んだのが未掲載の企業なら、その旨をここでも出す。
+                     ⚠️ 候補の行だけに出すと、選んだあとに消えて誤解される。 */}
+              {!selected.isListed && (
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                  OPINIOに未掲載（企業ページはありません）
+                </div>
               )}
             </div>
             <button
@@ -1109,12 +1118,16 @@ function CompanyPicker({
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {companyLabel(c)}
                   </div>
-                  {/* ⚠️★`phase` を戻さないこと（2026-08-29）。生値（listed / unicorn /
-                         series_d …）がそのまま出ていた。ここは企業を見分けるための行なので
-                         業種だけでよい。上場かどうかは見分けの役に立たない。 */}
-                  {c.industry && (
+                  {/* ★掲載中と未掲載を区別して出す（2026-09-04）。
+                         ⚠️ 未掲載でも**選べる**（company_id で繋がる）。
+                            「選べない」と誤解される表現にしないこと。
+                         ⚠️★`phase` を戻さないこと（2026-08-29）。生値（listed / unicorn /
+                            series_d …）がそのまま出ていた前例がある。
+                         ⚠️ 業種も出さない（`lookup` が返さない。未掲載企業の業種まで
+                            出すことになるため）。 */}
+                  {!c.isListed && (
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                      {c.industry}
+                      OPINIOに未掲載（企業ページはありません）
                     </div>
                   )}
                 </div>

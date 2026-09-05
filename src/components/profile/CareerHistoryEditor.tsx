@@ -13,11 +13,9 @@ import {
   groupReasonsByAxis,
 } from "@/lib/constants/careerReasons";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
-import Image from "next/image";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -493,12 +491,17 @@ function ReasonChip({
 
 // ── CompanySearch ─────────────────────────────────────────────────────────────
 
+/* ⚠️★`/api/companies/lookup` の返り値。**id / name / isListed の3つだけ**。
+      未掲載の企業も引けるようにしたぶん、返す情報を絞ってある
+      （「掲載していない」という状態そのものが運営の情報なので、
+       名前を引ける以上のことをさせない。2026-09-04 / 柴さんの条件）。
+   ⚠️ ロゴ・業種・従業員数は**返らない**。サブテキストに出していたが、
+      未掲載企業まで出すことになるので落とした。 */
 type CompanySuggestion = {
   id: string;
   name: string;
-  logo_url: string | null;
-  industry: string | null;
-  employee_count: string | null;
+  /** 掲載中か。⚠️ false は「OPINIOに未掲載」＝企業ページが無い（または一覧に出していない） */
+  isListed: boolean;
 };
 
 const AVATAR_COLORS = ["#4F46E5", "var(--success)", "#DC2626", "#D97706", "#0891B2", "#7C3AED"];
@@ -576,8 +579,11 @@ function CompanySearch({
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
+        /* ⚠️★`/api/companies/search` ではなく `lookup`。あちらは掲載中しか返さず、
+              **マスタにある未掲載の企業を選べない**（実測: 「鹿島」で0件だった）。
+              選べないと company_text に落ち、業界に結びつかない。 */
         const res = await fetch(
-          `/api/companies/search?q=${encodeURIComponent(q.trim())}&limit=10`
+          `/api/companies/lookup?q=${encodeURIComponent(q.trim())}`
         );
         if (res.ok) {
           const data = (await res.json()) as { results?: CompanySuggestion[] };
@@ -636,9 +642,11 @@ function CompanySearch({
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {value}
             </div>
-            {selectedMeta?.industry && (
+            {/* ★選んだのが未掲載の企業なら、その旨をここでも出す。
+                   ⚠️ 候補の行だけに出すと、選んだあとに消えて「掲載中を選んだ」と誤解される。 */}
+            {selectedMeta && !selectedMeta.isListed && (
               <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                {selectedMeta.industry}
+                OPINIOに未掲載（企業ページはありません）
               </div>
             )}
           </div>
@@ -695,26 +703,23 @@ function CompanySearch({
                 }}
                 className="ched-suggest-row"
               >
-                {/* アバター: logo_url があれば画像、無ければイニシャル+固定色 */}
+                {/* ⚠️ ロゴは出さない（lookup が返さない）。イニシャル＋固定色 */}
                 <div style={{
                   width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                  overflow: "hidden",
-                  background: c.logo_url ? "#f5f7fa" : avatarColor,
+                  background: avatarColor,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  {c.logo_url ? (
-                    <Image src={c.logo_url} alt={c.name} width={36} height={36} style={{ objectFit: "contain" }} />
-                  ) : (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                      {c.name.charAt(0)}
-                    </span>
-                  )}
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                    {c.name.charAt(0)}
+                  </span>
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
-                  {(c.industry || c.employee_count) && (
-                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                      {[c.industry, formatEmployeeCount(c.employee_count)].filter(Boolean).join(" · ")}
+                  {/* ★掲載中と未掲載を区別して出す。⚠️ 未掲載でも**選べる**（company_id で繋がる）。
+                         「選べない」と誤解される表現にしないこと。 */}
+                  {!c.isListed && (
+                    <div style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                      OPINIOに未掲載（企業ページはありません）
                     </div>
                   )}
                 </div>
