@@ -26,7 +26,9 @@ export default async function AdminCompaniesPage() {
       .from("ow_companies")
       /* ⚠️ `target_industry_scope`（軸2の3値）も取る。運営がここを埋めていく作業画面なので、
             未確認が何社あるかが一目で分かる必要がある（2026-09-04 追加）。 */
-      .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url, url, target_industry_scope, is_test")
+      /* ⚠️ `source`（どの入口から作られたか）も取る。利用者が経歴入力から作った企業を
+            運営が見つける唯一の入口がこの一覧なので（2026-09-05 追加）。 */
+      .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url, url, target_industry_scope, is_test, source")
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("updated_at", { ascending: false }),
     supabase.from("ow_jobs").select("company_id"),

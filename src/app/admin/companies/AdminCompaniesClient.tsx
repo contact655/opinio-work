@@ -35,6 +35,12 @@ const STATUS_TABS = [
   { key: "contracted", label: "契約済み" },
   { key: "verified",   label: "ドメイン認証済" },
   { key: "none",       label: "未認証" },
+  /* ★利用者が経歴入力から作った企業（2026-09-05）。
+        ⚠️ この一覧に出さないと**誰も見つけられない**。作成は止めていないので、
+           気づける経路は運営メールとこのタブだけ。
+        ⚠️ `source='user'` かつ `listing_status='draft'` の両方で絞る。
+           運営が掲載に上げた後もここに残ると、作業一覧として使えなくなる。 */
+  { key: "user_draft", label: "利用者が作成" },
 ];
 
 export type CompanyAdmin = { name: string; isActive: boolean };
@@ -50,6 +56,8 @@ export type Company = {
   is_approved: boolean;
   accepting_casual_meetings: boolean;
   listing_status: ListingStatus | null;
+  /** どの入口から作られたか。⚠️ 誰が作ったか（ロール）ではない */
+  source: string | null;
   engagement_status: EngagementStatus | null;
   jobs_public: boolean;
   verified_at: string | null;
@@ -221,6 +229,8 @@ export default function AdminCompaniesClient(
     if (activeTab === "contracted" && es !== "contracted") return false;
     if (activeTab === "verified"   && es !== "verified")   return false;
     if (activeTab === "none"       && es !== "none")       return false;
+    /* ★利用者が作った未掲載の企業だけ。⚠️ 掲載に上げたものは外す（作業一覧なので） */
+    if (activeTab === "user_draft" && !(c.source === "user" && c.listing_status !== "listed")) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -236,6 +246,10 @@ export default function AdminCompaniesClient(
   const contractedCount = companies.filter((c) => (c.engagement_status ?? "none") === "contracted").length;
   const verifiedCount   = companies.filter((c) => (c.engagement_status ?? "none") === "verified").length;
   const noneCount       = companies.filter((c) => (c.engagement_status ?? "none") === "none").length;
+  /* ★運営が見るべき件数。⚠️ `is_test` は除外しない —— 検証用企業も
+        「利用者が作った未掲載」であることに変わりはなく、ここは作業一覧なので
+        隠すと自分で見えない状態を作る（CLAUDE.md「完全に隠さないこと」）。 */
+  const userDraftCount  = companies.filter((c) => c.source === "user" && c.listing_status !== "listed").length;
 
   return (
     <div style={{ padding: 32 }}>
@@ -342,7 +356,16 @@ export default function AdminCompaniesClient(
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {STATUS_TABS.map((tab) => {
-          const count = tab.key === "all" ? companies.length : tab.key === "contracted" ? contractedCount : tab.key === "verified" ? verifiedCount : noneCount;
+          /* ⚠️ 三項の連鎖に足すと**最後の else に全部落ちる**（新しいタブが noneCount を出す）。
+                表引きにして、キーを足し忘れたら 0 ではなく undefined になるようにする。 */
+          const COUNTS: Record<string, number> = {
+            all: companies.length,
+            contracted: contractedCount,
+            verified: verifiedCount,
+            none: noneCount,
+            user_draft: userDraftCount,
+          };
+          const count = COUNTS[tab.key];
           const active = activeTab === tab.key;
           return (
             <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} style={{
