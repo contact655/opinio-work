@@ -367,21 +367,27 @@ export function JobseekerHeader() {
                       >
                         マイページ
                       </Link>
-                      {/* ⚠️ 企業所属がある人にだけ出す（2026-09-05）。求職者側から /biz へ戻る
-                             導線がこれと下のモバイルメニューしか無い。**消さないこと。**
-                             それまでは、ログイン中の人事担当者が自社の管理画面へ行く手段が
-                             フッターの「企業登録」（＝ログイン画面）だけだった。 */}
-                      {user.isBizMember && (
-                        <Link
-                          href="/biz/dashboard"
-                          onClick={() => setDropdownOpen(false)}
-                          style={{ display: "block", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, textDecoration: "none", borderTop: "0.5px solid var(--line-soft)" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-                        >
-                          企業の管理画面
-                        </Link>
-                      )}
+                      {/* ⚠️★**全員に出す。ただし行き先は所属で変える**（2026-09-05）。
+                             ログイン中は求職者側から企業側へ戻る導線が、これと下の
+                             モバイルメニューしか無い。**消さないこと。**
+                             未ログインのヘッダーには「企業の方はこちら」があるのに、
+                             ログインすると消えていた（下の `) : (` 側）。
+
+                          ⚠️ **所属が無い人を `/biz/dashboard` へ送らないこと。**
+                             `NoTenantPage`（「企業アカウントが必要です。OPINIO運営より
+                             送られた招待リンクからご参加ください」）に着いて行き止まりになる。
+                             掲載を検討する人の入口は `/business`。 */}
+                      <Link
+                        href={user.isBizMember ? "/biz/dashboard" : "/business"}
+                        onClick={() => setDropdownOpen(false)}
+                        style={{ display: "block", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, textDecoration: "none", borderTop: "0.5px solid var(--line-soft)" }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+                      >
+                        {/* ⚠️ 未ログイン側と同じ文言にすること（「企業の方はこちら」）。
+                               ログインの前後で別の呼び方にしない。 */}
+                        {user.isBizMember ? "企業の管理画面" : "企業の方はこちら"}
+                      </Link>
                       <button
                         type="button"
                         onClick={handleLogout}
@@ -695,17 +701,15 @@ export function JobseekerHeader() {
               >
                 マイページ
               </Link>
-              {/* ⚠️ デスクトップのドロップダウンと同じ条件・同じ行き先にすること。
+              {/* ⚠️ デスクトップのドロップダウンと同じ条件・同じ行き先・同じ文言にすること。
                      片方だけに出すと「スマホからは自社の管理画面に入れない」になる。 */}
-              {user.isBizMember && (
-                <Link
-                  href="/biz/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
-                >
-                  企業の管理画面
-                </Link>
-              )}
+              <Link
+                href={user.isBizMember ? "/biz/dashboard" : "/business"}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
+              >
+                {user.isBizMember ? "企業の管理画面" : "企業の方はこちら"}
+              </Link>
               <button
                 type="button"
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
