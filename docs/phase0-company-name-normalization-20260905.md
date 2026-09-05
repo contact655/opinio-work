@@ -278,3 +278,101 @@ CREATE INDEX ow_companies_normalized_name_idx
 3. **長音は落とさない**
 4. 変えたあと **`UPDATE ow_companies SET name = name`** で全行再計算し、
    **異なり数が100のまま（衝突0）であることと、`updated_at` が動いていないこと**を実測する
+
+---
+
+## E. ✅ 実装した（2026-09-05）
+
+推奨した順序どおり、**別コミット**で入れた。①はスカウトに影響せず、②は影響するため。
+
+### E-1. ① 別名を重複照合に入れた（`20260905100000_match_company_aliases.sql`）
+
+`find_companies_by_normalized_name` が **name / brand_name / name_en / search_aliases**
+の4つを見るようにした。**`normalize_company_name` は1文字も変えていない。**
+
+| | 変更前 | 変更後 |
+|---|---|---|
+| `ANDPAD` / `andpad` / `ＡＮＤＰＡＤ` | **0件** | 株式会社アンドパッド（**brand_name**） |
+| `アサナ` | **0件** | Asana Japan株式会社（**search_aliases**） |
+| `Asana Japan` | 1件 | 同（name） |
+| `鹿島建設株式会社` | 1件 | 同（name） |
+
+**★過剰一致の総当たり**: 掲載83社の 正式名称83 ／ brand_name 10 ／ name_en 79 ／
+別名の各語 28 ＝ **200入力すべて「ちょうど1社」。2社以上返る入力は0件。**
+
+⚠️★**`search_aliases` は配列ではなく空白区切りの `text`**（列の COMMENT にもそう書いてある）。
+   **正規化は空白を除去するので、先に分割してから正規化する。**
+   まとめて掛けると `サンプルワークス SampleWorks` が
+   `サンプルワークスsampleworks` という無意味な1語になる。
+
+⚠️★**EXECUTE は元から PUBLIC に配られていた**（ACL の `=X/postgres`）。
+   「service_role のみ」ではなかった。**SECURITY INVOKER なので RLS が効き**、
+   anon からは掲載中しか返らない（実測: 鹿島建設は0件、Salesforce は返る）。
+   `DROP FUNCTION` で ACL が消えるので、元と同じ状態に戻してある。
+
+⚠️ 戻り値に **`matched_on`**（name / brand_name / name_en / search_aliases）を足した。
+   照合が広がると**名前が似ていない候補が出る**（「ANDPAD」→「株式会社アンドパッド」）ので、
+   理由が無いと運営も利用者も判断できない。
+   文言は [lib/companies/matchedOn.ts](../src/lib/companies/matchedOn.ts) に集約
+   （**実装語をそのまま画面に出さない**）。運営向けは「ブランド名」、
+   利用者向けは「ブランド名が一致」。⚠️ `name` のときは**何も出さない**
+   （見れば分かるので、当たり前のことを説明する行が増えるだけ）。
+
+### E-2. ② かな畳みを足した（`20260905120000_normalize_kana_folding.sql`）
+
+`normalize_company_name` に **ひらがな→カタカナ** と **半角カナ→全角カナ** を足した。
+**長音「ー」は落としていない。**
+
+```
+normalize_company_name('株式会社アンドパッド') → アンドパッド
+normalize_company_name('株式会社あんどぱっど') → アンドパッド   ★新
+normalize_company_name('ｱﾝﾄﾞﾊﾟｯﾄﾞ')           → アンドパッド   ★新
+normalize_company_name('サーバーワークス')      → サーバーワークス（長音は残る）
+```
+
+⚠️★**半角カナの濁点・半濁点は2文字**（`ｶ` + `ﾞ`）なので、単独カナの `translate` より
+   **先に**1文字へ畳む。順序を入れ替えると `カ゛` のような中途半端な列が残り、
+   全角の `ガ` と一致しない。
+
+#### スカウトへの影響（★実測）
+
+`normalize_company_name` は `can_send_scout` / `get_blocked_companies`
+（**スカウトのブロック判定**）も使うので、migration の中で前後を突き合わせた。
+
+| 確認 | 結果 |
+|---|---|
+| `can_send_scout` / `get_blocked_companies` の定義が変わっていないこと | ✅ md5 を事前チェックで検証（違えば中止） |
+| **ブロック対象が減っていないこと** | ✅ **11件が維持**（減ったら中止する条件を入れてある） |
+| **`can_send_scout` の判定が変わった組み合わせ** | ✅ **0件**（`false→true` が1件でもあれば中止） |
+
+⚠️ 判定は「増えるのは可、減るのは不可」で書いてある。
+   一致が増える＝**より多くブロックする**ので fail-safe だが、
+   **止まらなくなる側（false→true）は1件でも通さない。**
+
+#### 再計算の実測
+
+| 確認 | 結果 |
+|---|---|
+| 値が変わった社数 | **2社**（`やめるラボ`→`ヤメルラボ` / `みずほ証券`→`ミズホ証券`）——試算どおり |
+| 衝突（同じ正規化値が2社以上） | **0組** |
+| 冪等（再計算してずれる社数） | **0社** |
+| **`updated_at` が動いていないこと** | ✅ **今日更新された企業は0社**（最終更新は 2026-09-04 のまま）。`/companies` の新着順は保たれた |
+
+⚠️ `UPDATE ow_companies SET name = name` で再計算している。
+   トリガー（BEFORE INSERT OR UPDATE）が `name` から必ず計算するため。
+   **`updated_at` を触るトリガーは無い**ので順序は動かない。
+
+#### アプリ経由の実測
+
+```
+ANDPAD           → 株式会社アンドパッド(brand_name)
+あんどぱっど      → 株式会社アンドパッド(name)          ★かな畳み
+ｱﾝﾄﾞﾊﾟｯﾄﾞ        → 株式会社アンドパッド(name)          ★かな畳み（半角）
+あさな           → Asana Japan株式会社(search_aliases)  ★かな畳み＋別名
+ｱｻﾅ             → Asana Japan株式会社(search_aliases)
+おおばやしぐみ    → []   （正しい。大林組は漢字で、読み仮名を持っていない）
+サーバーワークス   → []   （該当企業が無い。長音を落としていないので誤爆もしない）
+```
+
+⚠️ `おおばやしぐみ` が0件なのは**取りこぼしではなく、別名（読み仮名）が空だから**。
+   → `search_aliases` の充填が効く（docs/todo.md）。
