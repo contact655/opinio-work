@@ -37,7 +37,9 @@ export function JobseekerHeader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  /* `isBizMember` は「有効な企業所属が1件以上あるか」。true のときだけ
+     ユーザーメニューに /biz/dashboard を出す（2026-09-05）。 */
+  const [user, setUser] = useState<{ email: string; name: string; isBizMember: boolean } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SuggestResult | null>(null);
@@ -75,16 +77,32 @@ export function JobseekerHeader() {
       if (resolvedAuthId === authUser.id) return;
       resolvedAuthId = authUser.id;
 
-      const { data: owUser } = await supabase
+      /*
+        ⚠️ **企業所属は埋め込みで取る。別クエリを足さないこと**（2026-09-05）。
+           ヘッダーは全ページに載るので、往復を1回に減らした 2026-08-13 の経緯がある。
+           `ow_company_admins` を別に引くと、その削減をそのまま打ち消す。
+
+        ⚠️ **FK ヒント（`!ow_company_admins_user_id_fkey`）は省略できない。**
+           `ow_company_admins` から `ow_users` への FK が **`user_id` と
+           `invited_by_user_id` の2本**あるため、ヒント無しだと PostgREST が
+           関係を決められず **`error` が返って埋め込みごと落ちる**。
+
+        ⚠️ `error` を捨てないこと。捨てると RLS も GRANT も関係名の誤りも
+           すべて「所属なし」に化け、**企業の人にリンクが出ないだけ**になる。
+      */
+      const { data: owUser, error: owUserErr } = await supabase
         .from("ow_users")
-        .select("name")
+        .select("name, ow_company_admins!ow_company_admins_user_id_fkey(is_active)")
         .eq("auth_id", authUser.id)
         .maybeSingle();
+      if (owUserErr) console.error("[JobseekerHeader] ow_users:", owUserErr.message);
 
       if (!active) return;
+      const memberships = (owUser?.ow_company_admins ?? []) as { is_active: boolean | null }[];
       setUser({
         email: authUser.email ?? "",
         name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
+        isBizMember: memberships.some((m) => m.is_active === true),
       });
     }
 
@@ -349,6 +367,21 @@ export function JobseekerHeader() {
                       >
                         マイページ
                       </Link>
+                      {/* ⚠️ 企業所属がある人にだけ出す（2026-09-05）。求職者側から /biz へ戻る
+                             導線がこれと下のモバイルメニューしか無い。**消さないこと。**
+                             それまでは、ログイン中の人事担当者が自社の管理画面へ行く手段が
+                             フッターの「企業登録」（＝ログイン画面）だけだった。 */}
+                      {user.isBizMember && (
+                        <Link
+                          href="/biz/dashboard"
+                          onClick={() => setDropdownOpen(false)}
+                          style={{ display: "block", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, textDecoration: "none", borderTop: "0.5px solid var(--line-soft)" }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+                        >
+                          企業の管理画面
+                        </Link>
+                      )}
                       <button
                         type="button"
                         onClick={handleLogout}
@@ -662,6 +695,17 @@ export function JobseekerHeader() {
               >
                 マイページ
               </Link>
+              {/* ⚠️ デスクトップのドロップダウンと同じ条件・同じ行き先にすること。
+                     片方だけに出すと「スマホからは自社の管理画面に入れない」になる。 */}
+              {user.isBizMember && (
+                <Link
+                  href="/biz/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
+                >
+                  企業の管理画面
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
