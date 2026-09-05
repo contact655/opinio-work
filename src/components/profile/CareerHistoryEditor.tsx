@@ -5,6 +5,7 @@ import {
   useCompanyLookup,
   type CompanyLookupResult,
 } from "@/components/companies/useCompanyLookup";
+import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
 import { EMPLOYMENT_TYPES, RANKS, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
@@ -538,6 +539,9 @@ function CompanySearch({
   const [freeConfirmed, setFreeConfirmed] = useState(
     () => companyId === null && value.trim().length > 0
   );
+  /* ★「この会社をOPINIOに登録する」を開いているか（2026-09-05）。
+        ⚠️ ダイアログは**ドロップダウンの代わりに**出す。重ねない。 */
+  const [creating, setCreating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 入力が空になったら確定状態も捨てる（キャンセル→追加で持ち越さないため）
@@ -561,6 +565,7 @@ function CompanySearch({
     onChange(null, q); // companyId をキーストローク毎にリセット
     setSelectedMeta(null);
     setFreeConfirmed(false);
+    setCreating(false);
     setOpen(true);
     /* ⚠️★叩くのは `/api/companies/lookup`（hook の中）。`/api/companies/search` は
           掲載中しか返さず、**マスタにある未掲載の企業を選べない**
@@ -699,11 +704,11 @@ function CompanySearch({
             );
           })}
 
-          {/* ＋ 自由入力で確定 — 入力がある限り常時表示
-              ⚠️ 「新規登録」と書かない。**企業マスタには何も作らない**。
-                 保存先は ow_experiences.company_text だけ（2026-08-13 に文言を実態へ寄せた）。 */}
+          {/* ★① この会社をOPINIOに登録する（2026-09-05 追加）
+              ⚠️ **自由入力より先・大きく出す。** 自由入力は業界に結びつかないので、
+                 そちらが既定に見えると「業界に繋がらない経歴」が増える。 */}
           <div
-            onMouseDown={(e) => { e.preventDefault(); handleNew(); }}
+            onMouseDown={(e) => { e.preventDefault(); setCreating(true); setOpen(false); }}
             style={{
               padding: "9px 12px", display: "flex", alignItems: "center", gap: 10,
               cursor: "pointer",
@@ -722,14 +727,42 @@ function CompanySearch({
             </div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                「{value}」をこの名前のまま入力する
+                「{value}」をOPINIOに登録する
               </div>
               <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                OPINIO 未掲載の企業として記録します
+                会社名と業種だけ。あなたの経歴に会社として紐づきます
               </div>
             </div>
           </div>
+
+          {/* ② 自由入力で確定 —— ⚠️ **消さない。** 企業作成は取り消せないが、
+              自由入力は本人の職歴の中で完結する。失敗したときのコストが違うので
+              逃げ道として残す（2026-09-05 / 柴さんの判断）。
+              ⚠️ 「新規登録」と書かない。**企業マスタには何も作らない**。
+                 保存先は ow_experiences.company_text だけ（2026-08-13 に文言を実態へ寄せた）。 */}
+          <div
+            onMouseDown={(e) => { e.preventDefault(); handleNew(); }}
+            style={{
+              padding: "8px 12px", display: "flex", alignItems: "center", gap: 10,
+              cursor: "pointer", borderTop: "1px solid var(--line-soft)",
+            }}
+            className="ched-suggest-new"
+          >
+            <div style={{ width: 28, flexShrink: 0 }} />
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+              登録せず、「{value}」をこの名前のまま入力する
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* ★作成ダイアログ。⚠️ 経歴編集とオンボーディングで**同じ部品**を使う */}
+      {creating && !isMaster && (
+        <CompanyCreateDialog
+          initialName={value}
+          onCancel={() => setCreating(false)}
+          onCreated={(c) => { setCreating(false); handleSelect(c); }}
+        />
       )}
 
       {/* ── 選んだのかどうかを必ず出す ────────────────────────────────────
@@ -737,7 +770,13 @@ function CompanySearch({
       {isMaster && (
         <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          OPINIOに掲載中の企業と連携します
+          {/* ⚠️★「掲載中の」と言い切らない（2026-09-05 に修正）。
+                 2026-09-04 に未掲載の企業も選べるようにしたので、鹿島建設を選ぶと
+                 **上のチップが「OPINIOに未掲載」、この行が「掲載中」**と矛盾していた。
+                 既存レコードを開いた直後は `selectedMeta` が無く掲載状態が分からないので、
+                 **どちらの場合も正しい言い方**にする。掲載しているかどうかは
+                 チップ側の「OPINIOに未掲載」で示す。 */}
+          OPINIOの企業と連携します
         </p>
       )}
       {!isMaster && freeConfirmed && (

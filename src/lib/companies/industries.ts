@@ -19,10 +19,21 @@ export type IndustryOption = {
   id: string;
   name: string;
   slug: string;
+  /**
+   * ★選択肢に添える短い説明（2026-09-05 に列を追加）。**迷いやすい組にだけ付く。**
+   * 2026-09-05 時点は5件 —— 製造の3値（電機・機械 / 素材・化学 / 食品・飲料）と
+   * 商社・卸売 / 小売・流通。それ以外は **null**。
+   *
+   * ⚠️ **UI 側の定数にしないこと。** 業種マスタはこの2週間で2回動いており
+   *    （不動産・建設の分割 / インターネット・Web の統合）、別ファイルに置くと
+   *    値を足したときに追従を忘れる。マスタと同じ行に持つ。
+   * ⚠️ **null のときは行を出さない。** 「—」も出さない（説明が要らない業種なので）。
+   */
+  description: string | null;
 };
 
 /** ⚠️ `.select()` には文字列リテラルを渡す（配列を join すると型が落ちる）。 */
-export const INDUSTRY_OPTION_COLS = "id, name, slug" as const;
+export const INDUSTRY_OPTION_COLS = "id, name, slug, description" as const;
 
 /**
  * 新規登録フォーム用の選択肢。有効な業種を `display_order` 順で返す。

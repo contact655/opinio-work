@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import {
   useCompanyLookup,
   type CompanyLookupResult,
 } from "@/components/companies/useCompanyLookup";
+import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
 import { useRouter } from "next/navigation";
 import { RolePicker } from "@/components/onboarding/RolePicker";
 import { createClient } from "@/lib/supabase/client";
@@ -951,6 +952,9 @@ function CompanyPicker({
         ⚠️ 取得できたらドロップダウンを開くのは**この画面だけ**の作法なので、
            コールバックで受ける（経歴編集は `open` を自前で持っている）。 */
   const [showDropdown, setShowDropdown] = useState(false);
+  /* ★「この会社をOPINIOに登録する」を開いているか（2026-09-05）。
+        ⚠️ ダイアログは**ドロップダウンの代わりに**出す。重ねない。 */
+  const [creating, setCreating] = useState(false);
   const { results, loading: searching, search, clear: clearResults } = useCompanyLookup({
     debounceMs: 280,
     onResults: () => setShowDropdown(true),
@@ -1029,6 +1033,7 @@ function CompanyPicker({
               onChange={(e) => {
                 onTextChange(e.target.value);
                 search(e.target.value);
+                setCreating(false);
                 // ⚠️ 空にしたらドロップダウンも畳む（切り出し前と同じ挙動）
                 if (e.target.value.trim().length === 0) setShowDropdown(false);
               }}
@@ -1113,39 +1118,66 @@ function CompanyPicker({
               </button>
             ))}
 
-            {/* 自由入力のまま進むオプション（マスタに完全一致が無い場合） */}
+            {/* ★① この会社をOPINIOに登録する（2026-09-05 追加）
+                ⚠️ **自由入力より先・大きく出す。** 自由入力は業界に結びつかないので、
+                   そちらが既定に見えると「業界に繋がらない経歴」が増える。 */}
             {showFreeTextOption && !exactMatch && text.trim().length > 0 && (
               <>
                 {results.length > 0 && <div style={{ height: 1, background: "var(--line)", margin: "0 12px" }} />}
                 <button
                   type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setShowDropdown(false); }}
+                  onMouseDown={(e) => { e.preventDefault(); setCreating(true); setShowDropdown(false); }}
                   style={{
                     width: "100%", textAlign: "left", background: "none", border: "none",
                     padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--royal-50)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "none"; }}
                 >
                   <div style={{
                     width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                    background: "var(--bg-tint)", border: "1px dashed var(--line)",
+                    background: "var(--royal-50)", border: "1px dashed var(--royal)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)" }}>
+                      「{text.trim()}」をOPINIOに登録する
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
+                      会社名と業種だけ。あなたの経歴に会社として紐づきます
+                    </div>
+                  </div>
+                </button>
+              </>
+            )}
+
+            {/* ② 自由入力のまま進む（マスタに完全一致が無い場合）
+                ⚠️ **消さない。** 企業作成は取り消せないが、自由入力は本人の職歴の中で
+                   完結する。失敗したときのコストが違うので逃げ道として残す
+                   （2026-09-05 / 柴さんの判断）。 */}
+            {showFreeTextOption && !exactMatch && text.trim().length > 0 && (
+              <>
+                <div style={{ height: 1, background: "var(--line)", margin: "0 12px" }} />
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); setShowDropdown(false); }}
+                  style={{
+                    width: "100%", textAlign: "left", background: "none", border: "none",
+                    padding: "11px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "none"; }}
+                >
+                  <div style={{ width: 32, flexShrink: 0 }} />
                   {/* ⚠️ 「登録」と書かない。企業マスタには何も作らず、
                          ow_experiences.company_text に名前が入るだけ（2026-08-13）。
                       ⚠️ 「企業として保存します」も書かない（2026-08-14）。
                          ow_companies に行は作られないので、企業ページも検索候補も増えない。
                          作られると読める文言は、この画面で実際に誤解された。 */}
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-                      「{text.trim()}」をこの名前のまま入力する
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                      あなたの経歴にこの社名で保存します
-                    </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+                    登録せず、「{text.trim()}」をこの名前のまま入力する
                   </div>
                 </button>
               </>
@@ -1153,6 +1185,15 @@ function CompanyPicker({
           </div>
         )}
       </div>
+
+      {/* ★作成ダイアログ。⚠️ 経歴編集とオンボーディングで**同じ部品**を使う */}
+      {creating && !selected && (
+        <CompanyCreateDialog
+          initialName={text.trim()}
+          onCancel={() => setCreating(false)}
+          onCreated={(c) => { setCreating(false); clearResults(); onSelect(c); }}
+        />
+      )}
 
       {/* ⚠️ 選択後の「OPINIOに掲載中の企業と連携します」は出さない（2026-08-15 削除）。
              選ばれた企業はカード（社名＋業種）で見えているので、それ以上の説明は要らない。
