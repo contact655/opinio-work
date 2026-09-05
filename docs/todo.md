@@ -8,6 +8,38 @@
 
 ---
 
+## ⚠️ `ow_companies.status` を DROP するかどうか（2026-09-05 に判断を保留）
+
+**対象**: `ow_companies.status`（text / NULL可 / `DEFAULT 'pending'` / CHECK なし）。
+実データは `pending` 91 ／ `draft` 5 ／ `active` 4（2026-09-05 実測・100社）。
+
+**なぜ残っているか**: 2026-09-05 に RLS から `status = 'active'` を外し、
+**この列は完全に無参照になった**（`pg_depend` 0本／`status` を参照するポリシー 0本／
+src の分岐 0件）。それでも**列は落としていない** —— 外したことによる実害が
+無いことを本番でしばらく見てから決めたかったため。
+
+⚠️ 外す前は **`status = 'active'` が `is_published` を迂回する第2の公開ゲート**だった。
+   実測（is_test の検証企業を1社作って確認）: `status='active'` かつ
+   `is_published=false` の企業が **anon から PostgREST 経由で読めていた**
+   （anon の可視件数が 90 → 91 に増えた）。適用後は 90 に戻り、名指しでも読めない。
+   経緯は [docs/phase0-company-status-20260905.md](phase0-company-status-20260905.md)。
+
+**やるなら何をするか**:
+1. **書き込み経路を先に消す。** いま `status: "draft"` を書いているのは
+   `POST /api/biz/companies` と `POST /api/jobseeker/companies` の2つだけ。
+   落とすならこの2行を先に消す（列が無いと INSERT ごと落ちる）
+2. `ALTER TABLE ow_companies DROP COLUMN status;`
+   ⚠️ **CASCADE は要らない**（依存は0本にしてある）。付けないこと
+3. anon / 非admin / admin の3者で実測し、**anon が 90 社のまま**であることを確かめる
+
+⚠️ **CHECK を張って残す案は採らない。** 3値の意味はどこにも書かれておらず
+   （`pending` は DB の DEFAULT のまま、`active` は 2026-05〜06 の遺物）、
+   CHECK を張ると**根拠の無い3値を正として固定する**ことになる。
+⚠️ **「運営の承認待ち」にこの列を使わない。** `is_approved` が既にあり
+   `check_listed_requires_approval` で効いている。**2つ目の承認軸を作らない。**
+
+---
+
 ## ✅ 求人の「推奨項目」を出すようにした（2026-09-02 / 柴さんの判断＝A案）
 
 「なぜ今採用するか」「チーム構成」「入社後90日」は**求人詳細に出ると効く項目**だが、
