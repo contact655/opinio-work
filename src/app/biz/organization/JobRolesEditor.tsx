@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useMemo } from "react";
+import { buildRoleTree } from "@/lib/roles/jobRoles";
 
 export type CompanyJobRole = {
   id: string;
@@ -13,6 +14,8 @@ export type StandardRole = {
   id: string;
   name: string;
   parent_id: string | null;
+  /** ⚠️ **親ごとの相対順**。フラットに並べると親子が混ざる（CLAUDE.md） */
+  display_order: number | null;
 };
 
 type Props = {
@@ -59,7 +62,48 @@ function StandardRoleCombobox({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const parentMap = new Map(roles.filter((r) => !r.parent_id).map((r) => [r.id, r.name]));
+  /* ★木に組んでから出す（2026-09-05 修正）。
+     ── 何が起きていたか ──────────────────────────────────────────────────
+     `filtered` を**そのまま map** しており、`display_order` が
+     **親ごとの相対順**であることを踏まえていなかった。実測（本番データ・154件）:
+       先頭22件が全部**子**で、最初の親（経営・CxO）が出るのは **23番目**。
+       「CEO・代表取締役」が8番目に出て、親はその15行あとにあった。
+     ⚠️ `ow_roles` の子には `display_order = 0` の行があるので、
+        「たまたま親が先に来る」ことも無い。
+
+     ── 直し方は `RoleSearchSelect` に揃えた ────────────────────────────────
+     親（`tree.topLevel`）→ その子 の順に組み、**子には親名を出す**
+     （`{親名} ›` を小さく前置。あちらと同じ表現）。
+     ⚠️ **新しい組み方を発明しない。** 並べ方も見せ方もあちらと同じにする。
+     ⚠️★ただし**初期表示で子を畳む挙動は持ち込んでいない。** あちらは検索欄が
+        空のとき大分類だけを出すが、ここは154件を一覧する前提の画面なので、
+        **件数（集合）は変えず並びだけを直す**に留めた。 */
+  const tree = useMemo(
+    () => buildRoleTree(roles.map((r, i) => ({
+      id: r.id,
+      parentId: r.parent_id,
+      name: r.name,
+      slug: null,
+      /* ⚠️ `display_order` が無い行は**渡された順**を使う。
+            `page.tsx` が display_order → name で並べているので、順序は保たれる。 */
+      displayOrder: r.display_order ?? i,
+    }))),
+    [roles],
+  );
+  const parentMap = useMemo(
+    () => new Map(tree.topLevel.map((r) => [r.id, r.name])),
+    [tree],
+  );
+  /** 親 id → 子。⚠️ 渡された順（＝display_order 順）を保つ */
+  const childrenOf = useMemo(() => {
+    const m = new Map<string, StandardRole[]>();
+    for (const r of roles) {
+      if (!r.parent_id) continue;
+      if (!m.has(r.parent_id)) m.set(r.parent_id, []);
+      m.get(r.parent_id)!.push(r);
+    }
+    return m;
+  }, [roles]);
 
   const getSelectedLabel = () => {
     if (!value) return "";
@@ -69,6 +113,8 @@ function StandardRoleCombobox({
     return `${parentMap.get(role.parent_id) ?? ""} › ${role.name}`;
   };
 
+  /* ⚠️★**マッチ条件は変えない**（2026-09-05）。集合を変えずに並びだけ直す。
+        子は「親名 or 自分の名前」に部分一致で当たる、という既存の挙動をそのまま残す。 */
   const filtered = roles.filter((r) => {
     if (!query) return true;
     if (!r.parent_id) {
@@ -77,6 +123,26 @@ function StandardRoleCombobox({
     const parent = parentMap.get(r.parent_id) ?? "";
     return parent.includes(query) || r.name.includes(query);
   });
+
+  /* ★`filtered` を**親 → その子** の順に並べ替える。
+     ⚠️ **絞り込んでも親子の構造を保つ。** 子だけがヒットしたときは親の行は出ないが、
+        子の行に親名を出しているので何の下かは読める。
+     ⚠️★**1件も落とさないこと。** 親が `roles` に無い孤児は末尾に付ける。
+        落とすと「絞り込んだら候補が消えた」になり、集合が変わってしまう。 */
+  const rows = useMemo(() => {
+    const keep = new Set(filtered.map((r) => r.id));
+    const out: StandardRole[] = [];
+    const emitted = new Set<string>();
+    for (const top of tree.topLevel) {
+      const self = roles.find((r) => r.id === top.id);
+      if (self && keep.has(top.id)) { out.push(self); emitted.add(top.id); }
+      for (const c of childrenOf.get(top.id) ?? []) {
+        if (keep.has(c.id)) { out.push(c); emitted.add(c.id); }
+      }
+    }
+    for (const r of filtered) if (!emitted.has(r.id)) out.push(r);
+    return out;
+  }, [filtered, tree, childrenOf, roles]);
 
   useEffect(() => {
     if (!open) return;
@@ -194,12 +260,12 @@ function StandardRoleCombobox({
             </li>
           ) : (
             <>
-              {filtered.length > 20 && (
+              {rows.length > 20 && (
                 <li style={{ padding: "4px 12px", fontSize: 11, color: "var(--ink-mute)" }}>
-                  {filtered.length} 件 — 絞り込むと候補が減ります
+                  {rows.length} 件 — 絞り込むと候補が減ります
                 </li>
               )}
-              {filtered.map((r) => {
+              {rows.map((r) => {
                 const isParent = !r.parent_id;
                 const parentName = r.parent_id ? (parentMap.get(r.parent_id) ?? "") : "";
                 return (
@@ -217,7 +283,15 @@ function StandardRoleCombobox({
                     onMouseEnter={(e) => { if (r.id !== value) (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
                     onMouseLeave={(e) => { if (r.id !== value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                   >
-                    {isParent ? r.name : (query ? <>{parentName} › <strong>{r.name}</strong></> : r.name)}
+                    {/* ★子には**常に**親名を出す（2026-09-05）。
+                           以前は検索中だけ出しており、初期表示ではインデント22pxだけだったので
+                           「何の下の職種か」が読めなかった。表現は `RoleSearchSelect` に合わせる。 */}
+                    {!isParent && parentName && (
+                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginRight: 6 }}>
+                        {parentName} ›
+                      </span>
+                    )}
+                    {isParent ? r.name : (query ? <strong>{r.name}</strong> : r.name)}
                   </li>
                 );
               })}

@@ -47,7 +47,9 @@ export default async function OrganizationPage({
 
     adminSupabase
       .from("ow_roles")
-      .select("id, name, parent_id")
+      /* ★`display_order` も取る（2026-09-05）。⚠️ **親ごとの相対順**なので、
+            この order だけでは親子が混ざる。木に組むのは `StandardRoleCombobox` 側。 */
+      .select("id, name, parent_id, display_order")
       .order("display_order", { ascending: true })
       .order("name", { ascending: true }),
   ]);
