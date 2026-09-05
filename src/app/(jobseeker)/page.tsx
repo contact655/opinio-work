@@ -137,7 +137,7 @@ export default async function HomePage() {
   // ── 企業カードの付帯件数 ────────────────────────────────────────
   // プレビュー12社ぶんだけを対象にするので、件数が増えても負荷は一定。
   const companyRows = companyRowsRaw as unknown as {
-    id: string; name: string; brand_name: string | null; industry: string | null;
+    id: string; slug: string | null; name: string; brand_name: string | null; industry: string | null;
     phase: string | null; logo_url: string | null; logo_letter: string | null;
     logo_gradient: string | null; url: string | null;
   }[];
@@ -169,6 +169,7 @@ export default async function HomePage() {
 
   const companies: LPCompanyCard[] = companyRows.map((c) => ({
     id: c.id,
+    slug: c.slug,
     name: c.brand_name ?? c.name,
     businessDomain: primaryBusinessDomain(previewDomains.get(c.id))?.name ?? null,
     phase: c.phase,

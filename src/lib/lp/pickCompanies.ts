@@ -39,6 +39,10 @@ import { filterListedCompanies } from "@/lib/companies/visibility";
 
 export type PickedCompanyRow = {
   id: string;
+  /* ⚠️ リンクは slug で組む（2026-09-05）。UUID で `/companies/<uuid>` を叩くと
+        **308 で slug へ転送される**（canonical も slug を指している）。
+        LP から出るリンクだけが正規URLでない状態だった。 */
+  slug: string | null;
   name: string;
   brand_name: string | null;
   industry: string | null;
@@ -50,7 +54,7 @@ export type PickedCompanyRow = {
 };
 
 const COMPANY_COLS =
-  "id, name, brand_name, industry, phase, logo_url, logo_letter, logo_gradient, url";
+  "id, slug, name, brand_name, industry, phase, logo_url, logo_letter, logo_gradient, url";
 
 export async function pickLpCompanies(
   db: ReturnType<typeof createAdminClient>,

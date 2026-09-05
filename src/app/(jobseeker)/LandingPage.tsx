@@ -85,6 +85,8 @@ export type LPFacet = { key: string; label: string; count: number; href: string 
 
 export type LPCompanyCard = {
   id: string;
+  /** リンク用。⚠️ `id`(UUID) で組むと 308 を1回挟む。`slug ?? id` で組むこと */
+  slug: string | null;
   name: string;
   /** 主の事業領域名。⚠️ `industry`(text) ではない（廃止予定で新規企業では空になる） */
   businessDomain: string | null;
@@ -381,7 +383,7 @@ export default function LandingPage({
 
           <div className="lp-cards">
             {companies.map((c) => (
-              <Link key={c.id} href={`/companies/${c.id}`} className="lp-card">
+              <Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="lp-card">
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
                   <CompanyLogo
                     name={c.name}
