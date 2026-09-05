@@ -309,3 +309,260 @@ IT・ソフトウェア / インターネット・Webサービス / 電子機器
 
 ⚠️ **今回のフェーズ1では触らない。** 統合（インターネット・Web → IT・ソフトウェア）は
 「2つの値が同じものを指していた」という**語彙の重複**の話で、こちらは**粒度**の話。別の作業。
+
+---
+
+## H. フェーズ2で実装したこと（2026-09-05）
+
+### H-1. 作成は `POST /api/jobseeker/companies`（新設）
+
+⚠️★**`POST /api/biz/companies` は使い回さなかった。** あちらは企業を作るだけでなく
+**呼んだ人をその企業の担当者にする**（`ow_company_admins` に `permission='admin'` を INSERT）。
+入ると `getCompanyContext` が非 null を返すので、**元勤務先を登録した求職者に /biz の
+サイドバーが出て、その会社の情報を編集でき、応募・面談の通知の宛先にもなる。**
+
+| 触るもの | `/api/biz/companies` | **`/api/jobseeker/companies`** |
+|---|---|---|
+| `ow_companies` | 作る | **作る** |
+| `ow_company_admins` | **作る** | **作らない** |
+| `ow_company_plans` | **作る** | **作らない** |
+| `biz_current_company_id` Cookie | **セットする** | **セットしない** |
+
+実測（2026-09-05 / is_test アカウントで1社作成）:
+`ow_companies` 100→101、**`ow_company_admins` 14→14 / `ow_company_plans` 88→88 で変化なし**。
+`/biz/dashboard` の企業切替にも出ず、Cookie も上書きされなかった（既存の所属企業のまま）。
+
+⚠️ **このルートに `ow_company_admins` / `ow_company_plans` / Cookie を触るコードを足さないこと。**
+
+### H-2. ★取らなかった項目 —— 運営が後から埋める前提
+
+聞くのは **会社名と業種の2つだけ**。**URL・従業員数・所在地・説明文は取らない。**
+
+2026-09-02 に「職務経歴書をそのまま入力させるのは負荷が高いのでは」という指摘が出ており、
+ここは**職歴を書いている途中に挟まる画面**なので、項目を増やすと入力が止まる。
+
+⚠️ したがって、利用者が作った企業は**名前・ブランド名・業種しか入っていない**。
+   残りは運営が `/admin/companies/[id]` で埋める。
+   **見つけ方は `/admin/companies` の「利用者が作成」タブ**（`source='user'` かつ未掲載）。
+
+⚠️ **業種だけは必須にした。** この入口は業界マッチのために作るので、
+   業種が無いと `ow_industries` を介した対象業界との突合に乗らず、
+   作っても `company_text` と同じ結果になる。
+   （`/api/biz/companies` は業種が任意。**入口ごとに条件が違ってよい**——
+    あちらは公開時に `checkPublishable` が要求する。）
+
+### H-3. ★`company_text`（自由入力）の道は残した
+
+**消していない。** ただし**順序を入れ替え、登録を先・大きく**、自由入力を後ろ・小さくした。
+
+判断の根拠は「失敗したときのコストが非対称」であること:
+
+| | 取り消せるか |
+|---|---|
+| **企業作成** | **取り消せない。** マスタに行が残り、消せるのは運営だけ |
+| **自由入力** | 本人の職歴の中で完結する。間違えても他の誰にも影響しない |
+
+⚠️ 実ユーザーの自由入力は **0件**（2026-09-05 実測）。**消しても実害は測れない**が、
+   逃げ道を塞ぐのは**実際に増えてからでよい**（2026-09-05 / 柴さんの判断）。
+
+#### ★件数を見るクエリ（増えたかどうかはこれで判断する）
+
+```sql
+-- 実ユーザーの職歴のうち、マスタに繋がっていないもの（＝自由入力）
+select
+  count(*) filter (where e.company_id is not null)                          as マスタ,
+  count(*) filter (where e.company_id is null and e.company_text is not null) as 自由入力,
+  count(*) filter (where e.company_anonymized)                              as 匿名,
+  count(*)                                                                  as 合計
+from ow_experiences e
+join ow_users u on u.id = e.user_id
+where coalesce(u.is_test, false) = false and coalesce(u.is_system, false) = false;
+```
+
+実測（2026-09-05）: 実ユーザー15件 → マスタ 15 / 自由入力 **0** / 匿名 0
+（全26件では自由入力5件だが、**5件とも `is_test` アカウント**）。
+
+### H-4. 業種の説明文は `ow_industries.description`（列）
+
+**UI 側の定数にしなかった。** 業種マスタはこの2週間で2回動いており
+（不動産・建設の分割 / インターネット・Web の統合）、別ファイルに置くと
+**値を足したときに追従を忘れる**。同じ migration の同じ VALUES に並べれば忘れられない。
+
+⚠️ `/admin` に業種マスタの CRUD 画面は**無い**（`ow_industries` を UPDATE / INSERT する
+   src コードは0件。`/admin/roles` と `/admin/schools` にはあるが industries には無い）。
+   **列を足しても入力欄は要らない。**
+
+⚠️ **説明は5件だけ。残り16件には付けない。** 全部に付けると、
+   説明の要らない業種にも書くことになり、迷う組が埋もれる。
+
+| 業種 | 説明 |
+|---|---|
+| 電機・機械 | 機械・電機・自動車・精密機器などの製造 |
+| 素材・化学 | 化学・素材・金属などの製造 |
+| 食品・飲料 | 食品・飲料の製造 |
+| 商社・卸売 | メーカーと小売の間に立ち、仕入れて売る（総合商社・専門商社・卸） |
+| 小売・流通 | 消費者に直接売る（店舗・EC・チェーン） |
+
+⚠️★**製造3値のどれかを「受け皿」にしない**（2026-09-05 / 柴さんの判断）。
+   「電機・機械＝メーカー全般」とする案は**採らなかった** ——
+   化学メーカーの人が「電機・機械」を選んでしまい、**2階層化しても
+   『電機・機械』のまま固定されて移し直せない。** 互いに排他だと分かる説明を
+   3つとも付けて、最初から正しい箱に入れてもらう。
+
+⚠️ **説明は「製造業が無い」ことを解決していない。** 精密機器メーカーの人は
+   「電機・機械」に辿り着けるが、**「製造業」という上位の箱は今も無い**。
+   → G-2 の宿題。★`ow_industries` には **`parent_id` が既にある**ので、
+   **列追加なしで2階層にできる**（見積もりは思ったより軽い）。次のタスク候補。
+
+⚠️ `/biz` の企業登録フォームには説明を出していない（`fetchIndustryOptions` は
+   `description` を返すようになったので、出すなら描画を足すだけ）。
+   **今回の依頼の範囲外なので触っていない。**
+
+### H-5. 重複は「作る前に照会し、選ばなければ作る」
+
+`GET /api/jobseeker/companies?name=` が DB の `normalize_company_name()` で照会する。
+
+⚠️★**`/api/companies/lookup` では代われない。** あちらは名前の**部分一致**（ILIKE）なので、
+   「（株）鹿島建設」と打った人に「鹿島建設株式会社」を出せない。実測でも lookup は0件、
+   こちらは1件返した。
+
+⚠️ 返す列は **id / name / isListed の3つだけ**（lookup と同じ条件）。
+   RPC は `listing_status` を返さないので、掲載中かどうかは引き直している
+   （`is_published` だけでは `isListed` にならない）。
+
+⚠️ **候補が出ても作成を止めない。** 同名の別会社は実在する。
+
+### H-6. 検証（2026-09-05 / is_test アカウント・dev）
+
+| 確認したこと | 結果 |
+|---|---|
+| ピッカーに無い会社名で作成できる | ✅ 「検証建設工業株式会社」を作成 |
+| 作られた行のフラグ | `source='user'` / `status='draft'` / `is_published=false` / `listing_status='draft'` / `is_approved=false` / `industry_id`=建設 |
+| slug | **null**（日本語社名なので導出しない） |
+| 副作用が無いこと | `ow_company_admins` 14→14 / `ow_company_plans` 88→88 / `/biz` の企業切替に出ない |
+| 業種の選択肢 | **21件**、説明つきは**5件のみ** |
+| 「もしかしてこれ？」 | 「（株）鹿島建設」→ **鹿島建設株式会社** を候補に出す |
+| `/companies`・`/jobs`・`?industry=`・sitemap・`/api/companies/search` | **すべて0件**（漏れなし） |
+| 企業詳細 | dev は 200（**dev 例外**）。★同じ状態の企業で**本番は 404** を確認（鹿島建設 / opinio.jp） |
+| `/mypage` の業界マッチ | ✅ 「建設の経験が活きる会社」に**アンドパッド / スパイダープラス / ダンドリワーク / フォトラクション**の4社 |
+| `/admin/companies` | 「利用者が作成」タブに **1** |
+| 後片付け | 企業・職歴とも削除し、5テーブルの件数が作業前と一致することを確認 |
+
+⚠️★**dev の 200 を「漏れている」と読まないこと。** `filterVisibleCompanies` は
+   **dev では絞らない**（非公開企業の詳細を確認できるようにするための例外）。
+   本番の挙動は、**同じ状態の既存企業**（`is_published=false` / `listing_status='draft'` の
+   ゼネコン）で確かめる —— 実測 **404**、一覧・sitemap にも0件。
+
+### H-7. ついでに直した文言の矛盾
+
+経歴編集で未掲載の企業を選ぶと、チップに「**OPINIOに未掲載**」と出ているすぐ下に
+「**OPINIOに掲載中の企業と連携します**」が出ていた（2026-09-04 に未掲載も選べるように
+した時点で矛盾していた）。**「OPINIOの企業と連携します」**に変えた。
+
+⚠️ 既存レコードを開いた直後は掲載状態が分からない（候補から選んでいないので
+   `selectedMeta` が無い）。**どちらの場合も正しい言い方**にしてある。
+
+---
+
+## I. ★語彙のドリフト —— CHECK の無い列挙列で必ず起きる（2026-09-05）
+
+### I-1. 実際に起きていたこと（`ow_companies.source`）
+
+この列は 2026-05-18（`archive/104`）に **`source text`（制約なし）** として足された。
+104 のコメントは語彙を宣言していた —— `admin_seed` / `self_serve` / `NULL`。
+
+**3年半後（2026-09-05 / 100社）の実測:**
+
+```
+migration 79 / NULL 9 / manual 8 / biz_self 3 / admin_seed 1
+  ★宣言にあった self_serve … 0件
+  ★宣言に無い migration と manual … 87件
+```
+
+**宣言が0件で、宣言に無い値が大多数。** これは**誰かが間違えたのではなく、
+CHECK の無い列挙列で必ず起きる形**。DB は何も言わず、コードも定数を持たないので、
+**気づくには数えるしかない。**
+
+→ 2026-09-05 に CHECK と [`src/lib/constants/companySource.ts`](../src/lib/constants/companySource.ts) を
+   同じ migration で入れた（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
+
+⚠️ **`NOT NULL` にはしていない。** NULL 9件は「どの入口から来たか分からない」という
+   事実で、`created_at` から推測して埋めると**推測値の投入**になる。
+
+### I-2. 同じ形の列を洗い出した（★対処は今回しない）
+
+**条件**: `ow_*` の text 列 ／ CHECK 制約も enum 型も無い ／ 名前が列挙っぽい
+（`status` `_type` `category` `stage` `level` `source` `scope` `visibility` `permission` ほか）
+／ 実データが1行以上ある。
+
+```sql
+-- ⚠️★`query_to_xml` の根要素は <row>。`/r/` と書くと**0件になる**（一度これで空を見た）。
+--    ルール⑱「grep が 0件のときは、検索が効いていることを先に確かめる」と同じ形。
+WITH cols AS (
+  SELECT c.relname AS tbl, a.attname AS col
+  FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid
+  WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'
+    AND c.relname LIKE 'ow!_%' ESCAPE '!'
+    AND a.attnum>0 AND NOT a.attisdropped
+    AND format_type(a.atttypid, NULL)='text'
+    AND a.attname ~ '(status|_type|type$|category|stage|level|kind|source|format|style|frequency|freq|scope|state|visibility|permission|plan|tier|gender|role$|target$)'
+), checked AS (
+  SELECT c.relname AS tbl, a.attname AS col
+  FROM pg_constraint con JOIN pg_class c ON c.oid=con.conrelid
+  JOIN unnest(con.conkey) k(attnum) ON true
+  JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.attnum
+  WHERE con.contype='c' AND c.relnamespace='public'::regnamespace
+), cand AS (
+  SELECT cols.tbl, cols.col FROM cols
+  LEFT JOIN checked ON checked.tbl=cols.tbl AND checked.col=cols.col
+  WHERE checked.col IS NULL
+)
+SELECT tbl, col,
+       (xpath('/row/n/text()', x))[1]::text::int AS rows_total,
+       (xpath('/row/d/text()', x))[1]::text::int AS distinct_vals,
+       (xpath('/row/v/text()', x))[1]::text      AS sample_values
+FROM (SELECT tbl, col, query_to_xml(format(
+  'select count(*) as n, count(distinct %I) as d, coalesce(string_agg(distinct %I, '' | '' order by %I),''(すべてNULL)'') as v from public.%I',
+  col, col, col, tbl), false, true, '') AS x FROM cand) s
+WHERE (xpath('/row/n/text()', x))[1]::text::int > 0
+ORDER BY (xpath('/row/d/text()', x))[1]::text::int DESC, tbl, col;
+```
+
+#### 実測（2026-09-05）— ★列挙とみなせるもの
+
+| テーブル | 列 | 実データの値 |
+|---|---|---|
+| **`ow_companies`** | **`status`** | `active` / `draft` / `pending` |
+| **`ow_companies`** | `funding_stage` | `listed` / `seed` / `series_b` |
+| **`ow_posts`** | **`post_type`** | `article_published` / `company_joined` / `job_posted` |
+| **`ow_activities`** | `type` | `company_info_updated` / `job_updated` / `offer_sent` |
+| **`ow_activities`** | `target_type` | `company` / `job` / `job_application` |
+| **`ow_profiles`** | `desired_work_style` | `flexible` / `full_remote` |
+| **`ow_terms_agreements`** | `terms_type` | `business` / `listing` |
+| **`ow_jobs`** | `work_style` | `hybrid`（23件すべて） |
+| **`ow_company_posts`** | `category` | `interview` |
+| `ow_page_views` | `page_type` | 9値 |
+| `ow_contact_submissions` | `action_type` | 7値 |
+
+⚠️ **`ow_companies.status` が筆頭。** `ow_jobs.status` には CHECK があるのに、
+   **企業側には無い**。しかも `active` / `draft` / `pending` の3値が実在し、
+   意味を説明した記述がどこにも無い（`ow_jobs` の `active` を削除したときと同じ形）。
+
+⚠️ **全部が対処対象ではない。** `ow_page_views.page_type` と
+   `ow_contact_submissions.action_type` は**ログの記録**なので、
+   増える値を CHECK で止めると記録が落ちる（止めたい対象ではない）。
+
+⚠️ **偽陽性がある。** 名前で拾っているので、`ow_jobs.source_url`（URL）・
+   `ow_company_external_links.source_name`（媒体名）・`ow_profiles.job_type`（自由記述）
+   のような**列挙でないもの**も混ざる。**distinct が少ない＝列挙とは限らない。**
+
+⚠️ **NULL だらけの列も出る**（`autonomy_level` `business_stage` `management_style` ほか）。
+   値が1つも無いので語彙が推定できない。**先に「使うのか」を決めること。**
+
+### I-3. ★見つけたときの直し方（`source` でやったこと）
+
+1. **既存の値を数える。** 語彙を「宣言」から取らない ——**実データから取る**
+2. **CHECK を張る前に、語彙に無い値が0件であることをアサートする**（migration の中で）
+3. **同じ migration で定数ファイルを作る**（UI と API がそれを見る）
+4. **NULL は残す。** 埋めると推測値の投入になる
+5. **列の COMMENT に「値を足すときは CHECK と定数の両方」と書く**
