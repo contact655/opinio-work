@@ -772,14 +772,15 @@ export function CompanyEditClient({
                     掲載利用規約
                   </a>
                   への同意が必要です。規約の全文を確認の上、同意してください。
-                  <br />
-                  {/* ⚠️ 成功報酬（人材紹介）の同意はここで取らない。
-                         掲載だけしたい企業に紹介の同意まで求めない（2026-08-14 分割）。 */}
-                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-                    成功報酬（人材紹介）については、スカウト・紹介機能を使うときに
-                    <a href="/terms/placement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>人材紹介利用規約</a>
-                    への同意をお願いします。
-                  </span>
+                  {/* ⚠️★**成功報酬（人材紹介）の案内は外した**（2026-09-05）。**戻さないこと。**
+                         「スカウト・紹介機能を使うときに人材紹介利用規約への同意をお願いします」と
+                         書いていたが、**その同意はもう求めていない**（同日にスカウト側の
+                         ゲートを外した）。事実でなくなるので消した。
+
+                      ⚠️ OPINIO は職安法4条6項の募集情報等提供に該当するサービスで、
+                         あっせんを行わない（掲載利用規約 第6条1項）。月額プランのみで、
+                         成功報酬は発生しない。会社（株式会社Opinio）は人材紹介事業も
+                         行っているが、**それは別契約で、このプロダクトの対象外**。 */}
                 </p>
                 <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 16 }}>
                   <input

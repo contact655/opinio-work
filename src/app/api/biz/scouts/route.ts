@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notify/email";
@@ -94,16 +92,21 @@ export async function POST(req: NextRequest) {
         再開してプランに含めるなら、`lib/constants/plans.ts` の
         `PLAN_FEATURES` に `scoutSend` を戻したうえでここにも判定を足すこと。 */
 
-  /* 人材紹介利用規約（成功報酬）への同意が要る。
-     ⚠️ **画面側（/biz/candidates）と同じ判定にすること。** 片方だけ変えると
-        「押せるのに 403」か「押せないのに送れる」になる（スカウトのフラグと同じ形）。 */
-  const { data: { user: scoutUser } } = await createClient().auth.getUser();
-  if (!scoutUser || !(await hasAgreedTerms(scoutUser.id, "placement"))) {
-    return NextResponse.json(
-      { error: "人材紹介利用規約への同意が必要です。「候補者を探す」から同意してください。" },
-      { status: 403 }
-    );
-  }
+  /* ⚠️★**人材紹介利用規約の同意ゲートは外した**（2026-09-05）。**戻さないこと。**
+
+        スカウトは**掲載側（月額プラン）の機能**で、OPINIO は職安法4条6項の
+        募集情報等提供に該当するサービス（掲載利用規約 第6条1項）。
+        あっせんを行わないので、成功報酬の規約に同意させる理由が無い。
+
+        ⚠️ 外す前は `hasAgreedTerms(user, "placement")` を要求していた。
+           人材紹介利用規約 第8条は「理論年収 × 15%（最低50万円）」を定めており、
+           **月額プランの機能を使うために成功報酬の規約へ同意させる**形になっていた。
+           `SCOUT_SENDING_ENABLED` が未設定で眠っていたため実害は0件だったが、
+           **スカウトを開けた日に全社が踏む**状態だった。
+
+        ⚠️ 会社（株式会社Opinio）は人材紹介事業も行っているが、**OPINIO という
+           プロダクトはその対象外**。切り分けは掲載利用規約 第6条2項・3項が持つ。
+           ここに紹介側の判定を混ぜないこと。 */
 
   if (!ctx.isPublished) {
     return NextResponse.json(

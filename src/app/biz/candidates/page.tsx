@@ -1,8 +1,5 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { hasAgreedTerms } from "@/lib/business/termsAgreement";
-import { createClient } from "@/lib/supabase/server";
-import { PlacementTermsPanel } from "./PlacementTermsPanel";
 import { SCOUT_MONTHLY_LIMIT_DEFAULT, usedThisMonth as usedThisMonthOf } from "@/lib/constants/scoutQuota";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcTotalExperience } from "@/lib/profile/tenure";
@@ -159,12 +156,11 @@ export default async function CandidatesPage() {
    *  片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。 */
   const scoutSendingEnabledEnv = process.env.SCOUT_SENDING_ENABLED === "true";
 
-  /* 人材紹介（成功報酬）の同意。⚠️ 掲載の同意とは別に、**使うときに**取る。
-     ⚠️ API 側（POST /api/biz/scouts）でも同じ判定をしている。
-        画面を隠すだけでは直接叩けてしまう。 */
-  const { data: { user: authUser } } = await createClient().auth.getUser();
-  const placementAgreed = authUser ? await hasAgreedTerms(authUser.id, "placement") : false;
-  const scoutSendingEnabled = scoutSendingEnabledEnv && placementAgreed;
+  /* ⚠️★**人材紹介（成功報酬）の同意ゲートは外した**（2026-09-05）。**戻さないこと。**
+        スカウトは掲載側（月額プラン）の機能で、OPINIO はあっせんを行わない
+        （掲載利用規約 第6条1項）。成功報酬の規約に同意させる理由が無い。
+        API 側（POST /api/biz/scouts）からも同じ判定を外してある。 */
+  const scoutSendingEnabled = scoutSendingEnabledEnv;
 
   const adminClient = createAdminClient();
 
@@ -442,9 +438,6 @@ export default async function CandidatesPage() {
              求職者に届かないため。再開は SCOUT_SENDING_ENABLED=true
              （詳細は CLAUDE.md「スカウトは送れるが、受け取る手段が無い」）。
              候補者検索そのものは使えるのでページは残す。 */}
-      {scoutSendingEnabledEnv && !placementAgreed && (
-        <PlacementTermsPanel companyId={ctx.tenantId} />
-      )}
       {!scoutSendingEnabledEnv && (
         <div style={{
           background: "var(--warm-soft)", border: "1px solid #FDE68A",
