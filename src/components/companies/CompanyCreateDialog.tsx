@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { IndustryOption } from "@/lib/companies/industries";
+import { flattenIndustryOptions, type IndustryOption } from "@/lib/companies/industries";
 import type { CompanyLookupResult } from "./useCompanyLookup";
 import { companyMatchLabelForUser } from "@/lib/companies/matchedOn";
 
@@ -222,8 +222,13 @@ export function CompanyCreateDialog({
       ) : industries === null ? (
         <p style={{ fontSize: 12, color: "var(--ink-mute)" }}>読み込み中…</p>
       ) : (
+        /* ⚠️ 2階層（製造業）。**親も選べる**（分からない人は「製造業」のままで進める）。
+              ⚠️ `display_order` は**親ごとの相対順**なので `flattenIndustryOptions` を通す。
+                 通さないと親子が混ざる。
+              ⚠️ 子は左に余白を付け、親の名前を小さく添える。チップだけだと
+                 「製造業」と「電機・機械」が対等に見える。 */
         <div style={{ display: "grid", gap: 6 }}>
-          {industries.map((i) => {
+          {flattenIndustryOptions(industries).map((i) => {
             const active = industryId === i.id;
             return (
               <button
@@ -232,12 +237,20 @@ export function CompanyCreateDialog({
                 aria-pressed={active}
                 onClick={() => setIndustryId(i.id)}
                 style={{
-                  width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                  textAlign: "left", cursor: "pointer", fontFamily: "inherit",
                   padding: "9px 12px", borderRadius: 8,
                   border: active ? "2px solid var(--royal)" : "1px solid var(--line)",
                   background: active ? "var(--royal-50)" : "#fff",
+                  /* ★子は左に寄せて親との関係を出す */
+                  marginLeft: i.parent_id ? 16 : 0,
+                  width: i.parent_id ? "calc(100% - 16px)" : "100%",
                 }}
               >
+                {i.parent_id && (
+                  <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.3 }}>
+                    {industries.find((p) => p.id === i.parent_id)?.name ?? ""}
+                  </span>
+                )}
                 <span style={{
                   display: "block", fontSize: 13, fontWeight: 600,
                   color: active ? "var(--royal)" : "var(--ink)",

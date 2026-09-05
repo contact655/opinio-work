@@ -17,6 +17,7 @@ import {
   TARGET_INDUSTRY_SCOPE_LABELS,
   type TargetIndustryScope,
 } from '@/lib/companies/targetIndustries';
+import { IndustrySelectOptions } from '@/components/companies/IndustrySelectOptions';
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -71,13 +72,19 @@ type CompanyAdmin = {
   user: AdminUser[] | AdminUser | null;
 };
 
-/** 業種マスタ（ow_industries）。2026-08-25 時点でフラット20件 */
+/**
+ * 業種マスタ（ow_industries）。★2026-09-05 から**2階層**（有効22件 = トップ18 + 子4）。
+ * 親を持つのは「製造業」だけ（子: 電子機器・半導体 / 電機・機械 / 素材・化学 / 食品・飲料）。
+ */
 type Industry = {
   id: string;
   name: string;
   slug: string;
+  /** ⚠️ **親ごとの相対順**。フラットに並べると親子が混ざる */
   display_order: number;
   is_active: boolean;
+  /** 2階層の親。⚠️ 親も選べる（`<optgroup>` のラベルは選択できないため） */
+  parent_id: string | null;
   /** 公開ゲートで事業領域を必須にするか。⚠️ slug で判定せず、この列を読む */
   requires_business_domain: boolean;
 };
@@ -202,6 +209,30 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
   const [primaryDomain, setPrimaryDomain] = useState<string | null>(
     companyBusinessDomains.find((d) => d.is_primary)?.domain_id ?? null
   );
+  /* ★対象業界の選択肢を「親 → その子」の順に並べる（2026-09-05）。
+        ⚠️ `display_order` は**親ごとの相対順**なので、DB の順のままでは親子が混ざる。 */
+  const orderedTargetIndustries = (() => {
+    const active = allIndustries.filter((i) => i.is_active);
+    const ids = new Set(active.map((i) => i.id));
+    const children = new Map<string, Industry[]>();
+    const roots: Industry[] = [];
+    for (const i of active) {
+      if (i.parent_id && ids.has(i.parent_id)) {
+        const arr = children.get(i.parent_id) ?? [];
+        arr.push(i);
+        children.set(i.parent_id, arr);
+      } else {
+        roots.push(i);
+      }
+    }
+    const out: Industry[] = [];
+    for (const r of roots) {
+      out.push(r);
+      for (const c of children.get(r.id) ?? []) out.push(c);
+    }
+    return out;
+  })();
+
   /** この企業の業種が事業領域を必須としているか（マスタの requires_business_domain） */
   const industryRequiresDomain = allIndustries.find(
     (i) => i.id === formData.industry_id
@@ -681,11 +712,9 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
                     className={inputCls}
                   >
                     <option value="">選択してください</option>
-                    {allIndustries.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name}{i.is_active ? '' : '（無効）'}
-                      </option>
-                    ))}
+                    {/* ⚠️ 2階層（製造業）を出す。**親も選べる**（2026-09-05）。
+                           フラットに map すると親子が混ざるので、必ずこの部品を通すこと。 */}
+                    <IndustrySelectOptions options={allIndustries} />
                   </select>
                 </div>
                 <div>
@@ -1171,8 +1200,13 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
                 どの業界向けかを選んでください。最大 {MAX_TARGET_INDUSTRIES_PER_COMPANY} 件。
                 1つを「主」にしてください。
               </p>
+              {/* ⚠️ 2階層（製造業）。**親も選べる**（「製造業向け」としか言えない会社があるため。
+                     クアルコムジャパンが実際にそれで未確認のまま止まっていた）。
+                  ⚠️ `display_order` は**親ごとの相対順**なので、フラットに並べると親子が混ざる。
+                     `orderedTargetIndustries` で親 → その子 の順に並べ直している。
+                  ⚠️ 子には親の名前を小さく添える。2列グリッドでは字下げだけだと関係が読めない。 */}
               <div className="grid grid-cols-2 gap-3">
-                {allIndustries.filter((i) => i.is_active).map((i) => {
+                {orderedTargetIndustries.map((i) => {
                   const checked = selectedTargets.includes(i.id);
                   const atLimit = !checked && selectedTargets.length >= MAX_TARGET_INDUSTRIES_PER_COMPANY;
                   return (
@@ -1190,7 +1224,14 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
                           onChange={() => toggleTarget(i.id)}
                           className="mt-0.5 w-4 h-4"
                         />
-                        <p className="font-medium text-sm">{i.name}</p>
+                        <div>
+                          {i.parent_id && (
+                            <p className="text-[11px] text-gray-500 leading-none mb-0.5">
+                              {allIndustries.find((p) => p.id === i.parent_id)?.name ?? ''}
+                            </p>
+                          )}
+                          <p className="font-medium text-sm">{i.name}</p>
+                        </div>
                       </label>
                       {checked && (
                         <label className="flex items-center gap-2 mt-2 pl-7 cursor-pointer">

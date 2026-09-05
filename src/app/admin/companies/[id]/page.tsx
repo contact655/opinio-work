@@ -42,7 +42,9 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
         無効な行はセレクト側で「（無効）」と示す。 */
   const { data: industries } = await supabase
     .from('ow_industries')
-    .select('id, name, slug, display_order, is_active, requires_business_domain')
+    /* ★`parent_id` を取る（2026-09-05 に2階層化）。`display_order` は
+       **親ごとの相対順**なので、これが無いと並びが壊れる。 */
+    .select('id, name, slug, display_order, is_active, requires_business_domain, parent_id')
     .order('display_order');
 
   /* 事業領域（複数・主が1つ）。⚠️ 選択肢はマスタから。コードに書かない */

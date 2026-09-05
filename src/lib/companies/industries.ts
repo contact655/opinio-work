@@ -30,10 +30,21 @@ export type IndustryOption = {
    * ⚠️ **null のときは行を出さない。** 「—」も出さない（説明が要らない業種なので）。
    */
   description: string | null;
+  /**
+   * ★2階層の親（2026-09-05）。**「製造業」だけが親を持つ。**
+   * 子は 電子機器・半導体 / 電機・機械 / 素材・化学 / 食品・飲料 の4つ。
+   *
+   * ⚠️ **親も選べる。** `<optgroup>` のラベルは選択できないので、
+   *    各グループの先頭に**親自身の option** を置くこと
+   *    （置かないと「製造業としか言えない人」が詰まる）。
+   * ⚠️ `display_order` は**親ごとの相対順**（`ow_roles` と同じ）。
+   *    フラットに `order("display_order")` して並べない —— 木に組んでから並べる。
+   */
+  parent_id: string | null;
 };
 
 /** ⚠️ `.select()` には文字列リテラルを渡す（配列を join すると型が落ちる）。 */
-export const INDUSTRY_OPTION_COLS = "id, name, slug, description" as const;
+export const INDUSTRY_OPTION_COLS = "id, name, slug, description, parent_id" as const;
 
 /**
  * 新規登録フォーム用の選択肢。有効な業種を `display_order` 順で返す。
@@ -54,6 +65,9 @@ export async function fetchIndustryOptions(
     .from("ow_industries")
     .select(INDUSTRY_OPTION_COLS)
     .eq("is_active", true)
+    /* ⚠️ `display_order` は**親ごとの相対順**なので、これだけでは親子が混ざる。
+          並べ替えは呼び出し側（`buildIndustryTree` → `flattenIndustryOptions`）で行う。
+          ここで order を外さないのは、同じ親の中の順序をDBに決めさせるため。 */
     .order("display_order", { ascending: true });
 
   if (error) {
@@ -61,4 +75,48 @@ export async function fetchIndustryOptions(
     return [];
   }
   return (data ?? []) as IndustryOption[];
+}
+
+/**
+ * ★`<select>` に出す順に並べ替える（親 → その子 → 次の親 …）。
+ *
+ * ⚠️ `display_order` は**親ごとの相対順**なので、DB から来た配列をそのまま
+ *    並べると親子が混ざる。**必ずこれを通すこと。**
+ *
+ * ⚠️ 返すのは「親自身も含む」平坦な配列。**親も選べる**ので、
+ *    `<optgroup>` を使うときは各グループの先頭に親を置くこと。
+ */
+export function flattenIndustryOptions(options: IndustryOption[]): IndustryOption[] {
+  const children = new Map<string, IndustryOption[]>();
+  const roots: IndustryOption[] = [];
+  const ids = new Set(options.map((o) => o.id));
+  for (const o of options) {
+    if (o.parent_id && ids.has(o.parent_id)) {
+      const arr = children.get(o.parent_id) ?? [];
+      arr.push(o);
+      children.set(o.parent_id, arr);
+    } else {
+      roots.push(o);
+    }
+  }
+  const out: IndustryOption[] = [];
+  for (const r of roots) {
+    out.push(r);
+    for (const c of children.get(r.id) ?? []) out.push(c);
+  }
+  return out;
+}
+
+/** 親 id → 子の配列。⚠️ 子を持たない親はキーごと無い */
+export function groupIndustryChildren(options: IndustryOption[]): Map<string, IndustryOption[]> {
+  const ids = new Set(options.map((o) => o.id));
+  const map = new Map<string, IndustryOption[]>();
+  for (const o of options) {
+    if (o.parent_id && ids.has(o.parent_id)) {
+      const arr = map.get(o.parent_id) ?? [];
+      arr.push(o);
+      map.set(o.parent_id, arr);
+    }
+  }
+  return map;
 }

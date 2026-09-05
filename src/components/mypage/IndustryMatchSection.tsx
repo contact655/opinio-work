@@ -85,12 +85,17 @@ export function IndustryMatchSection({ blocks }: { blocks: IndustryMatchBlock[] 
                       {c.name}
                     </span>
                     {/* ★理由文。⚠️ **会社ごとに手書きしない。** 対象業界データだけで書ける形。
-                           ⚠️ 遷移データ由来の「◯人が移った」は入れない（`ow_transitions` が5行しかない）。 */}
+                           ⚠️ 遷移データ由来の「◯人が移った」は入れない（`ow_transitions` が5行しかない）。
+                           ⚠️★渡すのは **会社が言っている対象業界**（`c.matchedIndustryName`）で、
+                              見出しの業種（`b.industryName`）ではない（2026-09-05）。
+                              業種を2階層にしたので、「電機・機械の経験が活きる会社」の下に
+                              「**製造業**向けにサービスを提供しています」と出る組み合わせがある。
+                              **見出しは本人の申告どおり、繋がりはこの行で読める。** */}
                     <span style={{
                       display: "block", fontSize: 11.5, color: "var(--ink-mute)",
                       lineHeight: 1.6, marginTop: 1,
                     }}>
-                      {industryMatchReason(b.industryName)}
+                      {industryMatchReason(c.matchedIndustryName)}
                     </span>
                   </span>
                 </Link>

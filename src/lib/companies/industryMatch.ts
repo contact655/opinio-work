@@ -1,6 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import {
+  buildIndustryTree,
+  expandIndustryWithAncestors,
+  industryAncestorDistance,
+  type IndustryNode,
+} from "@/lib/companies/industryTree";
 
 /**
  * 「あなたの◯◯の経験が活きる会社」— 職歴の業界 × 企業の対象業界（軸2）の突合。
@@ -69,6 +75,7 @@ export const getOwnCompanyId = unstable_cache(
   { revalidate: 3600, tags: ["own-company"] },
 );
 
+/** 一致した「企業側の対象業界」の名前。⚠️ 見出しではなく**理由文**に使う */
 export type IndustryMatchCompany = {
   id: string;
   slug: string | null;
@@ -77,6 +84,15 @@ export type IndustryMatchCompany = {
   logoUrl: string | null;
   logoLetter: string | null;
   logoGradient: string | null;
+  /**
+   * ★この会社が**どの対象業界で**当たったかの表示名（2026-09-05）。
+   *
+   * ⚠️ 見出し（`industryName`）とは**別物**。祖先展開を入れたので、
+   *    「電機・機械」出身の人が「製造業向け」の会社に当たる。
+   *    見出しは**本人が申告した業種**、理由文は**会社が言っている対象業界**。
+   * ⚠️ 同じ業種のときは見出しと同じ文字列になる（それでよい）。
+   */
+  matchedIndustryName: string;
 };
 
 export type IndustryMatchBlock = {
@@ -106,9 +122,17 @@ export function industryMatchHeading(industryName: string): string {
   return `${industryName}の経験が活きる会社`;
 }
 
-/** 理由文。⚠️ 会社ごとに手書きしない。対象業界データだけで書ける形にする */
-export function industryMatchReason(industryName: string): string {
-  return `${industryName}向けにサービスを提供しています`;
+/**
+ * 理由文。⚠️ 会社ごとに手書きしない。対象業界データだけで書ける形にする。
+ *
+ * ⚠️★渡すのは**会社が言っている対象業界**（`matchedIndustryName`）であって、
+ *    見出しの業種ではない。2026-09-05 に業種を2階層にしたので、
+ *    「電機・機械の経験が活きる会社」という見出しの下に
+ *    「**製造業**向けにサービスを提供しています」と出る組み合わせがある。
+ *    **これが繋がりの説明になっている。**
+ */
+export function industryMatchReason(matchedIndustryName: string): string {
+  return `${matchedIndustryName}向けにサービスを提供しています`;
 }
 
 /**
@@ -177,7 +201,33 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   }
   if (spansByIndustry.size === 0) return [];
 
-  const industryIds = Array.from(spansByIndustry.keys());
+  const ownIndustryIds = Array.from(spansByIndustry.keys());
+
+  /* ①.5 ★業種の木を読み、**本人の業種を祖先展開する**（2026-09-05）。
+     ⚠️★展開するのは**本人側だけ**。企業の対象業界は展開しない。
+        展開すると兄弟に広がり、「電子機器・半導体向け」の企業に
+        **電機・機械** 出身の人が当たってしまう。 */
+  const { data: allIndustries, error: treeErr } = await db
+    .from("ow_industries")
+    .select("id, name, slug, parent_id, display_order, description")
+    .eq("is_active", true);
+  if (treeErr) {
+    console.error("[industryMatch] 業種の木の取得に失敗:", treeErr.message);
+    return [];
+  }
+  const tree = buildIndustryTree(
+    (allIndustries ?? []).map((r): IndustryNode => ({
+      id: r.id as string,
+      name: r.name as string,
+      slug: r.slug as string,
+      parentId: (r.parent_id as string | null) ?? null,
+      displayOrder: (r.display_order as number | null) ?? 0,
+      description: (r.description as string | null) ?? null,
+    })),
+  );
+
+  /* 本人の業種 ＋ その祖先。これで「製造業向け」の企業に当たるようになる */
+  const industryIds = expandIndustryWithAncestors(tree, ownIndustryIds);
 
   /* ② その業界を対象業界に持つ掲載中の企業。⚠️ vertical だけ（scope は複合FKで保証済み）
      ⚠️★**ここで `ow_companies` を埋め込み（`ow_companies!company_id(...)`）で取らないこと。**
@@ -213,19 +263,30 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   }
   const companyById = new Map((companyRows ?? []).map((c) => [c.id as string, c]));
 
-  const { data: industries, error: iErr } = await db
-    .from("ow_industries")
-    .select("id, name")
-    .in("id", industryIds);
-  if (iErr) {
-    console.error("[industryMatch] 業種マスタの取得に失敗:", iErr.message);
-    return [];
-  }
-  const industryName = new Map((industries ?? []).map((i) => [i.id as string, i.name as string]));
+  /* ⚠️ 業種名は上で読んだ木から引く（別クエリにしない）。
+        祖先ぶんの名前も要るので、木を持っているほうが確実。 */
+  const industryName = new Map(
+    Array.from(tree.byId.values()).map((n) => [n.id, n.name] as const),
+  );
 
   const ownCompanyId = await getOwnCompanyId();
 
-  const byIndustry = new Map<string, IndustryMatchCompany[]>();
+  /* ★グループ化のキーは **本人が申告した業種**（案A / 2026-09-05）。
+        企業側の対象業界（＝当たった相手）ではない。
+
+     ⚠️★見出しに「製造業」と出さないため。祖先展開を入れたので、
+        企業側でグループ化すると **本人が申告していない粒度の業種名**が
+        「あなたの職歴から（製造業 7年）」として出てしまう。
+        年数も本人の業種のまま（親に畳まない）。
+     ⚠️ 繋がりは**理由文**で読める（「製造業向けにサービスを提供しています」）。
+
+     ⚠️ 同じ会社が同じブロックに複数回入りうる（対象業界を2つ持つ会社が、
+        本人の業種とその親の**両方**に一致する）。そのときは
+        **より近いほう**（距離が小さいほう）を理由に採る。 */
+  const ownIndustryList = Array.from(spansByIndustry.keys());
+  type Hit = { company: IndustryMatchCompany; distance: number };
+  const hitsByOwnIndustry = new Map<string, Map<string, Hit>>();
+
   for (const row of targets ?? []) {
     const co = companyById.get(row.company_id as string);
     if (!co) continue;
@@ -237,37 +298,69 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
     /* ④ 自社を除く。⚠️ ownCompanyId が null のときは既に console.error が出ている */
     if (ownCompanyId && co.id === ownCompanyId) continue;
 
-    const key = row.industry_id as string;
-    const arr = byIndustry.get(key) ?? [];
-    arr.push({
-      id: co.id,
-      slug: co.slug,
-      /* ⚠️ 表示名の組み立ては `lib/companies/displayName.ts` に集約されている。
-            ここで独自に組まない（3箇所に割れていたのを 2026-08-13 に集約した経緯がある）。 */
-      name: companyDisplayName(co.name, co.name_en).displayName,
-      tagline: co.tagline,
-      logoUrl: co.logo_url,
-      logoLetter: co.logo_letter,
-      logoGradient: co.logo_gradient,
-    });
-    byIndustry.set(key, arr);
+    const targetId = row.industry_id as string;
+    const targetName = industryName.get(targetId);
+    if (!targetName) continue;   // 名前を出せないなら書かない
+
+    for (const ownId of ownIndustryList) {
+      /* ★本人の業種から見て、当たった対象業界が **自分自身か祖先** のときだけ採る。
+            ⚠️ 兄弟・子には広げない（`null` が返る）。 */
+      const distance = industryAncestorDistance(tree, ownId, targetId);
+      if (distance === null) continue;
+
+      const bucket = hitsByOwnIndustry.get(ownId) ?? new Map<string, Hit>();
+      const prev = bucket.get(co.id);
+      if (prev && prev.distance <= distance) continue;   // より近い理由が既にある
+      bucket.set(co.id, {
+        distance,
+        company: {
+          id: co.id,
+          slug: co.slug,
+          /* ⚠️ 表示名の組み立ては `lib/companies/displayName.ts` に集約されている。
+                ここで独自に組まない（3箇所に割れていたのを 2026-08-13 に集約した経緯がある）。 */
+          name: companyDisplayName(co.name, co.name_en).displayName,
+          tagline: co.tagline,
+          logoUrl: co.logo_url,
+          logoLetter: co.logo_letter,
+          logoGradient: co.logo_gradient,
+          matchedIndustryName: targetName,
+        },
+      });
+      hitsByOwnIndustry.set(ownId, bucket);
+    }
   }
 
-  /* ⑤ 除いた**後**に数える。2社未満のブロックは出さない */
-  const blocks: IndustryMatchBlock[] = [];
-  for (const [id, spans] of Array.from(spansByIndustry.entries())) {
-    const companies = byIndustry.get(id) ?? [];
-    if (companies.length < MIN_COMPANIES_PER_BLOCK) continue;
-    const name = industryName.get(id);
+  /* ⑤ ブロックを組む。⚠️ **並べ替え → 重複排除 → 件数で切る** の順。
+        件数で先に切ると、重複を除いた後に2社未満になるブロックが残る。 */
+  const draft: { industryId: string; industryName: string; years: number; companies: IndustryMatchCompany[] }[] = [];
+  for (const [ownId, spans] of Array.from(spansByIndustry.entries())) {
+    const name = industryName.get(ownId);
     if (!name) continue;   // 名前を出せないなら書かない
+    const companies = Array.from((hitsByOwnIndustry.get(ownId) ?? new Map<string, Hit>()).values())
+      .map((h) => h.company)
+      .sort((a, b) => a.name.localeCompare(b.name, "ja"));
+    draft.push({ industryId: ownId, industryName: name, years: mergedYears(spans), companies });
+  }
+
+  /* 経験年数の長い順。⚠️ この順が「先のブロック」を決めるので、重複排除より前に並べる */
+  draft.sort((a, b) => b.years - a.years);
+
+  /* ★同じ会社が複数のブロックに出ないようにする。**先のブロックを優先**して2つ目以降から除く */
+  const seen = new Set<string>();
+  const blocks: IndustryMatchBlock[] = [];
+  for (const d of draft) {
+    const companies = d.companies.filter((c) => !seen.has(c.id));
+    for (const c of companies) seen.add(c.id);
+    /* ⑥ 除いた**後**に数える。2社未満のブロックは出さない */
+    if (companies.length < MIN_COMPANIES_PER_BLOCK) continue;
     blocks.push({
-      industryId: id,
-      industryName: name,
-      years: mergedYears(spans),
-      companies: companies.sort((a, b) => a.name.localeCompare(b.name, "ja")),
+      industryId: d.industryId,
+      industryName: d.industryName,
+      years: d.years,
+      companies,
     });
   }
 
-  /* 経験年数の長い順。⚠️ 上限を超えたぶんは出さない（画面いっぱいに並べない） */
-  return blocks.sort((a, b) => b.years - a.years).slice(0, MAX_INDUSTRY_BLOCKS);
+  /* ⚠️ 上限を超えたぶんは出さない（画面いっぱいに並べない）。並べ替えは上で済んでいる */
+  return blocks.slice(0, MAX_INDUSTRY_BLOCKS);
 }

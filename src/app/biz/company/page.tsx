@@ -49,9 +49,11 @@ export default async function BizCompanyPage() {
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
     adminClient
       .from("ow_industries")
-      /* ⚠️ `parent_id` は取らない。2026-08-25 にマスタをフラット20件へ作り直し、
-            2段階セレクトも撤去したので読む側が無い。階層を戻すときに一緒に足すこと。 */
-      .select("id, name, slug, display_order")
+      /* ★`parent_id` を取る（2026-09-05 に業種を2階層に戻した）。
+            ⚠️ **2段セレクトには戻していない。** 1段のまま `<optgroup>` で出している
+               （`IndustrySelectOptions`）。この列が無いと親子が組めず、
+               `display_order` は**親ごとの相対順**なので並びが壊れる。 */
+      .select("id, name, slug, display_order, parent_id")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
     adminClient.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("status", "published"),
@@ -88,7 +90,8 @@ export default async function BizCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
-  type IndustryItem = { id: string; name: string; slug: string; display_order: number };
+  /** ⚠️ `parent_id` を含める。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05） */
+  type IndustryItem = { id: string; name: string; slug: string; display_order: number; parent_id: string | null };
 
   const industries: IndustryItem[] = (industriesResult.data ?? []) as IndustryItem[];
 

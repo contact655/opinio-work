@@ -21,6 +21,7 @@ import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
+import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -45,7 +46,8 @@ type Props = {
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
   /** ow_industries 全件。2026-08-25 からフラット20件（親子は無い） */
-  industries?: { id: string; name: string; slug: string; display_order: number }[];
+  /** ⚠️ `parent_id` は必須。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05） */
+  industries?: { id: string; name: string; slug: string; display_order: number; parent_id: string | null }[];
   /** スコア計算用（サーバー側で取得した静的カウント） */
   initialPublishedJobCount?: number;
   initialPublishedStoryCount?: number;
@@ -685,10 +687,19 @@ export function CompanyEditClient({
                 <FormHint>企業詳細ページのミッション直下に表示される短いサブテキストです。SEOの meta description にも使用されます。</FormHint>
               </FormGroup>
               {/* 業種（単一選択）
-                  ⚠️ 2026-08-25 に**2段階セレクトをやめて1段にした**。業種マスタを
-                     フラット20件に作り直したので `parent_id` を持つ行が1件も無く、
-                     「業種（中分類）」は**常に空で常に disabled** の死んだ入力欄になっていた。
-                     階層を戻すまで2段に戻さないこと。
+                  ── 経緯 ────────────────────────────────────────────────
+                  2026-08-25 に**2段階セレクトをやめて1段にした**。業種マスタを
+                  フラット20件に作り直したので `parent_id` を持つ行が1件も無く、
+                  「業種（中分類）」は**常に空で常に disabled** の死んだ入力欄になっていた。
+
+                  ★2026-09-05 に業種を2階層に戻した（親は「製造業」1つだけ）。
+                  ⚠️★**ただし2段セレクトには戻していない。** 1段のまま
+                     `<optgroup>` ＋ 親自身の option で出している
+                     （`IndustrySelectOptions`）。理由は2つ:
+                       ・親を持つのは1件だけなので、2段にすると**17件で2段目が空**になる
+                       ・親も選べる必要がある（「製造業としか言えない人」が詰まる）が、
+                         2段セレクトだと大分類を選んだ後に中分類が必須に見える
+                  ⚠️ 2段に戻すなら、上の「2段目が空になる」問題をどう出すかを先に決めること。
                   ⚠️ ここにあった「SaaSカテゴリ」欄も同時に外した（判定に使っていた
                      slug `it-saas` がマスタから消えたため）。`saas_category_id` の
                      列と値は残してある。事業領域の入力欄は別途作る。
@@ -708,9 +719,9 @@ export function CompanyEditClient({
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
                   >
                     <option value="">選択してください</option>
-                    {industries.map((i) => (
-                      <option key={i.id} value={i.id}>{i.name}</option>
-                    ))}
+                    {/* ⚠️ 2階層（製造業）を出す。**親も選べる**（2026-09-05）。
+                           フラットに map すると親子が混ざるので、必ずこの部品を通すこと。 */}
+                    <IndustrySelectOptions options={industries} />
                   </select>
                 ) : (
                   <FormHint>業種の一覧を取得できませんでした。時間をおいて再読み込みしてください。</FormHint>

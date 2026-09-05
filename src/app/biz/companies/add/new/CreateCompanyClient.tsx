@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
       `INDUSTRY_SELECT_GROUPS`（業種名の text）を使っており、企業が選んだ値と
       運営が見る列（industry_id）が別物になっていた。 */
 import type { IndustryOption } from "@/lib/companies/industries";
+import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -833,9 +834,9 @@ export function CreateCompanyClient({
             style={{ ...selectStyle, color: industryId ? "var(--ink)" : "var(--ink-mute)" }}
           >
             <option value="">選択してください（任意）</option>
-            {industries.map((i) => (
-              <option key={i.id} value={i.id}>{i.name}</option>
-            ))}
+            {/* ⚠️ 2階層（製造業）を出す。**親も選べる**（2026-09-05）。
+                   フラットに map すると親子が混ざるので、必ずこの部品を通すこと。 */}
+            <IndustrySelectOptions options={industries} />
           </select>
         </div>
         )}
