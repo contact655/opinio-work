@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
+import {
+  useCompanyLookup,
+  type CompanyLookupResult,
+} from "@/components/companies/useCompanyLookup";
 import { useRouter } from "next/navigation";
 import { RolePicker } from "@/components/onboarding/RolePicker";
 import { createClient } from "@/lib/supabase/client";
@@ -28,24 +32,13 @@ const REMOTE_CHIPS = REMOTE_WORK_STATUSES
   .map((o) => ({ value: o.value as string, label: REMOTE_SHORT_LABEL[o.value] ?? o.label }))
   .reverse();
 
-/* ⚠️★`/api/companies/lookup` の返り値。**id / name / isListed の3つだけ**。
-      未掲載の企業も引けるようにしたぶん、返す情報を絞ってある（2026-09-04）。
-   ⚠️ `name` は**サーバー側で表示名に解決済み**（`companyDisplayName` を通してある）。
-      ここで `name_en` / `brand_name` から組み立て直さないこと。
-   ⚠️ 業種は返らない。未掲載企業の業種まで出すことになるので落とした。 */
-type CompanyResult = {
-  id: string;
-  name: string;
-  /** 掲載中か。⚠️ false は「OPINIOに未掲載」＝企業ページが無い（または一覧に出していない） */
-  isListed: boolean;
-};
 
 /* これまでの職歴（任意・複数）。
    ⚠️ 現職と同じく **会社・職種・開始年月の3点が揃った行だけ** を保存する。
       中途半端な行を作らない（2026-08-10 の方針をそのまま適用する）。 */
 type PastJob = {
   key: number;
-  company: CompanyResult | null;
+  company: CompanyLookupResult | null;
   companyText: string;
   roleId: string;
   startYear: string;
@@ -86,7 +79,7 @@ const emptyEducation = (key: number): EducationRow => ({
  */
 /* ⚠️ 表示名は**サーバーが解決して返す**（`/api/companies/lookup`）。
       ここで組み立てない（2箇所で組むと片方だけ直る形になる）。 */
-const companyLabel = (c: CompanyResult) => c.name;
+const companyLabel = (c: CompanyLookupResult) => c.name;
 
 const pastJobReady = (j: PastJob) =>
   (!!j.company || j.companyText.trim().length > 0) &&
@@ -142,7 +135,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* 会社の検索・候補・ドロップダウンの状態は `CompanyPicker` の中にある。
      ここが持つのは「何が選ばれたか」だけ。 */
   const [query, setQuery] = useState("");
-  const [selectedCompany, setSelectedCompany] = useState<CompanyResult | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
@@ -944,21 +937,26 @@ function CompanyPicker({
   onTextChange, onSelect, onClear, onEnter,
 }: {
   text: string;
-  selected: CompanyResult | null;
+  selected: CompanyLookupResult | null;
   disabled?: boolean;
   placeholder: string;
   autoFocus?: boolean;
   onTextChange: (v: string) => void;
-  onSelect: (c: CompanyResult) => void;
+  onSelect: (c: CompanyLookupResult) => void;
   onClear: () => void;
   onEnter?: () => void;
 }) {
-  const [results, setResults] = useState<CompanyResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  /* ⚠️ 取得は `useCompanyLookup` に寄せた（2026-09-05）。
+        **デバウンスの 280ms は変えない** —— 揃えるとこの画面の挙動が変わる。
+        ⚠️ 取得できたらドロップダウンを開くのは**この画面だけ**の作法なので、
+           コールバックで受ける（経歴編集は `open` を自前で持っている）。 */
   const [showDropdown, setShowDropdown] = useState(false);
+  const { results, loading: searching, search, clear: clearResults } = useCompanyLookup({
+    debounceMs: 280,
+    onResults: () => setShowDropdown(true),
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (autoFocus) setTimeout(() => inputRef.current?.focus(), 100);
@@ -978,31 +976,6 @@ function CompanyPicker({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // デバウンス検索
-  const search = useCallback((q: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (q.trim().length === 0) {
-      setResults([]);
-      setShowDropdown(false);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        /* ⚠️★共通の `lookup` に寄せた（2026-09-04）。旧 `/api/onboarding/companies/search` は
-              未掲載企業の**業種まで返しており**、`is_test` も除外していなかった。
-              返す情報を絞ったうえで、経歴エディタと同じ入口にする。 */
-        const res = await fetch(`/api/companies/lookup?q=${encodeURIComponent(q)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data.results ?? []);
-          setShowDropdown(true);
-        }
-      } finally {
-        setSearching(false);
-      }
-    }, 280);
-  }, []);
 
   const showFreeTextOption = text.trim().length >= 1 && !selected && results.length < 8;
   /* ⚠️ 表示名でも完全一致を見る。候補に「Salesforce」と出ているのに
@@ -1036,7 +1009,7 @@ function CompanyPicker({
             <button
               type="button"
               onClick={() => {
-                setResults([]);
+                clearResults();
                 onClear();
                 setTimeout(() => inputRef.current?.focus(), 50);
               }}
@@ -1053,7 +1026,12 @@ function CompanyPicker({
               ref={inputRef}
               type="text"
               value={text}
-              onChange={(e) => { onTextChange(e.target.value); search(e.target.value); }}
+              onChange={(e) => {
+                onTextChange(e.target.value);
+                search(e.target.value);
+                // ⚠️ 空にしたらドロップダウンも畳む（切り出し前と同じ挙動）
+                if (e.target.value.trim().length === 0) setShowDropdown(false);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") setShowDropdown(false);
                 if (e.key === "Enter" && !showDropdown) onEnter?.();

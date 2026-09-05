@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useCompanyLookup,
+  type CompanyLookupResult,
+} from "@/components/companies/useCompanyLookup";
 import { EMPLOYMENT_TYPES, RANKS, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
@@ -491,19 +495,6 @@ function ReasonChip({
 
 // ── CompanySearch ─────────────────────────────────────────────────────────────
 
-/* ⚠️★`/api/companies/lookup` の返り値。**id / name / isListed の3つだけ**。
-      未掲載の企業も引けるようにしたぶん、返す情報を絞ってある
-      （「掲載していない」という状態そのものが運営の情報なので、
-       名前を引ける以上のことをさせない。2026-09-04 / 柴さんの条件）。
-   ⚠️ ロゴ・業種・従業員数は**返らない**。サブテキストに出していたが、
-      未掲載企業まで出すことになるので落とした。 */
-type CompanySuggestion = {
-  id: string;
-  name: string;
-  /** 掲載中か。⚠️ false は「OPINIOに未掲載」＝企業ページが無い（または一覧に出していない） */
-  isListed: boolean;
-};
-
 const AVATAR_COLORS = ["#4F46E5", "var(--success)", "#DC2626", "#D97706", "#0891B2", "#7C3AED"];
 function getAvatarColor(name: string): string {
   const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
@@ -535,11 +526,12 @@ function CompanySearch({
   disabled: boolean;
   onChange: (companyId: string | null, companyName: string) => void;
 }) {
-  const [results, setResults] = useState<CompanySuggestion[]>([]);
+  /* ⚠️ 取得は `useCompanyLookup` に寄せた（2026-09-05）。
+        **デバウンスの 250ms は変えない** —— 揃えるとこの画面の挙動が変わる。 */
+  const { results, loading, search, clear: clearResults } = useCompanyLookup({ debounceMs: 250 });
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   /** 選んだ企業の付随情報（業種など）。既存レコードを開いた直後は無いので名前だけ出す */
-  const [selectedMeta, setSelectedMeta] = useState<CompanySuggestion | null>(null);
+  const [selectedMeta, setSelectedMeta] = useState<CompanyLookupResult | null>(null);
   /* ⚠️ 「自由入力で確定した」ことを覚えておく。`companyId === null` だけでは
         「まだ入力している途中」と区別がつかず、確定前から未掲載の案内が出てしまう。
         既存レコードを開いたときは確定済みとして扱う（value があって id が無い＝自由入力）。 */
@@ -547,7 +539,6 @@ function CompanySearch({
     () => companyId === null && value.trim().length > 0
   );
   const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 入力が空になったら確定状態も捨てる（キャンセル→追加で持ち越さないため）
   useEffect(() => {
@@ -571,37 +562,18 @@ function CompanySearch({
     setSelectedMeta(null);
     setFreeConfirmed(false);
     setOpen(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (q.trim().length === 0) {
-      setResults([]);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        /* ⚠️★`/api/companies/search` ではなく `lookup`。あちらは掲載中しか返さず、
-              **マスタにある未掲載の企業を選べない**（実測: 「鹿島」で0件だった）。
-              選べないと company_text に落ち、業界に結びつかない。 */
-        const res = await fetch(
-          `/api/companies/lookup?q=${encodeURIComponent(q.trim())}`
-        );
-        if (res.ok) {
-          const data = (await res.json()) as { results?: CompanySuggestion[] };
-          setResults(data.results ?? []);
-        }
-      } catch {
-        // fetch 失敗時も ＋新規登録行は維持するため results を空のままにする
-      } finally {
-        setLoading(false);
-      }
-    }, 250);
+    /* ⚠️★叩くのは `/api/companies/lookup`（hook の中）。`/api/companies/search` は
+          掲載中しか返さず、**マスタにある未掲載の企業を選べない**
+          （実測: 「鹿島」で0件だった）。選べないと company_text に落ち、
+          業界に結びつかない。 */
+    search(q);
   }
 
-  function handleSelect(c: CompanySuggestion) {
+  function handleSelect(c: CompanyLookupResult) {
     onChange(c.id, c.name);
     setSelectedMeta(c);
     setFreeConfirmed(false);
-    setResults([]);
+    clearResults();
     setOpen(false);
   }
 
@@ -609,7 +581,7 @@ function CompanySearch({
     onChange(null, value); // companyId=null、companyName=入力テキストで確定
     setSelectedMeta(null);
     setFreeConfirmed(true);
-    setResults([]);
+    clearResults();
     setOpen(false);
   }
 
@@ -617,7 +589,7 @@ function CompanySearch({
     onChange(null, "");
     setSelectedMeta(null);
     setFreeConfirmed(false);
-    setResults([]);
+    clearResults();
     setOpen(false);
   }
 
