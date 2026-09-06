@@ -361,12 +361,19 @@ where split_part(split_part(url,'?',1),'#',1) like '%' || o.name
 select table_name, column_name, (xpath('/row/cnt/text()', x))[1]::text::int as hits
 from (
   select c.table_name, c.column_name,
-    query_to_xml(format('select count(*) as cnt from public.%I where %I like ''%%対象文字列%%''',
+    -- ⚠️ jsonb には like を直接当てられないので **必ず ::text にする**
+    query_to_xml(format('select count(*) as cnt from public.%I where %I::text like ''%%対象文字列%%''',
       c.table_name, c.column_name), false, true, '') as x
   from information_schema.columns c
   join information_schema.tables t
     on t.table_schema = c.table_schema and t.table_name = c.table_name and t.table_type = 'BASE TABLE'
-  where c.table_schema = 'public' and c.data_type in ('text','character varying')
+  where c.table_schema = 'public'
+    -- ⚠️★**jsonb / json / ARRAY を必ず入れる**（2026-09-06 に漏らした）。
+    --    text 列だけ走査して「DB は洗い終わった」と報告したが、記事本文は
+    --    `body_blocks` / `qa_blocks`（jsonb）にあり、**4箇所が残っていた**。
+    --    画面に出たので気づけたが、出ない列なら気づけない。
+    --    ⚠️ jsonb を比べるときは `列::text` にする（like も ~ も text 側で効かせる）。
+    and c.data_type in ('text','character varying','jsonb','json','ARRAY')
 ) s
 where (xpath('/row/cnt/text()', x))[1]::text::int > 0;
 ```
