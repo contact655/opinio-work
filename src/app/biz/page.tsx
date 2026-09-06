@@ -1,6 +1,7 @@
 import type React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 export const metadata: Metadata = {
   title: { absolute: "採用担当者の方へ | OPINIO for Business" },
@@ -85,7 +86,7 @@ export default function BizLandingPage() {
         zIndex: 100,
       }}>
         <Link href="/biz" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.02em" }}>OPINIO</span>
+          <OpinioLogo height={20} style={{ color: "var(--brand-ink)" }} />
           <span style={{
             fontSize: 9,
             fontWeight: 700,
@@ -369,7 +370,7 @@ export default function BizLandingPage() {
         flexWrap: "wrap",
         gap: 12,
       }}>
-        <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>OPINIO</span>
+        <OpinioLogo height={18} style={{ color: "#fff" }} />
         <div style={{ display: "flex", gap: 20, fontSize: 12 }}>
           <Link href="/terms/listing" style={{ color: "#6b7280", textDecoration: "none" }}>掲載利用規約</Link>
           <Link href="/terms/placement" style={{ color: "#6b7280", textDecoration: "none" }}>人材紹介利用規約</Link>

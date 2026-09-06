@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo } from "@/lib/auth/redirects";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 type Mode = "signup" | "login";
 
@@ -136,13 +137,7 @@ function BizAuthInner() {
           {/* ロゴ */}
           <div style={{ marginBottom: 32 }}>
             <a href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                width: 36, height: 36, background: "var(--royal)", borderRadius: 10,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>O</span>
-              </div>
-              <span style={{ fontSize: 18, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.5px" }}>OPINIO</span>
+              <OpinioLogo height={22} style={{ color: "var(--brand-ink)" }} />
             </a>
           </div>
 

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
 import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar } from "lucide-react";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -176,12 +177,7 @@ export function BusinessLayout({
       }}>
         {/* Brand */}
         <Link href="/biz/dashboard" className="biz-header-brand" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
-          <span style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontWeight: 700, fontSize: 20,
-            color: "var(--royal)",
-            letterSpacing: "-0.02em",
-          }}>OPINIO</span>
+          <OpinioLogo height={22} style={{ color: "var(--brand-ink)" }} />
           <span style={{
             fontFamily: "var(--font-inter), var(--font-noto)",
             fontSize: 9, fontWeight: 700,

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo, safeNext } from "@/lib/auth/redirects";
 import { AUTH_ERROR_DISPLAY, toAuthErrorCode, type AuthErrorCode } from "@/lib/constants/authErrors";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 // ─── SVG Components ─────────────────────────────────────────────────────────
 const GoogleLogo = () => (
@@ -361,7 +362,7 @@ function AuthPageInner() {
                  ログイン済み前提の要素（通知・マイページ）が入っている。 */}
           <div style={s.logoRow}>
             <a href="/" style={s.logoLink} aria-label="OPINIO トップへ">
-              OPINIO
+              <OpinioLogo height={22} label={null} />
             </a>
           </div>
 
@@ -776,11 +777,9 @@ const s = {
   } as React.CSSProperties,
 
   logoLink: {
-    fontFamily: "var(--font-inter), var(--font-noto)",
-    fontWeight: 800,
-    fontSize: 20,
-    letterSpacing: "-0.02em",
-    color: "var(--royal)",
+    display: "inline-flex",
+    /* ⚠️ ロゴは `currentColor` で描く。ここの color がそのまま塗りになる。 */
+    color: "var(--brand-ink)",
     textDecoration: "none",
   } as React.CSSProperties,
 

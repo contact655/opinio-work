@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ChevronDown, LayoutGrid } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 /* ⚠️★`highlight` を廃止した（2026-08-30）。**5項目すべて `false` で、
       琥珀色の分岐（デスクトップ・モバイルの2箇所）は一度も描画されていなかった。**
@@ -214,16 +215,8 @@ export function JobseekerHeader() {
           gap: 24,
         }}>
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
-            <span style={{
-              fontFamily: "var(--font-inter), sans-serif",
-              fontWeight: 700,
-              fontSize: 22,
-              color: "var(--royal)",
-              letterSpacing: "-0.02em",
-            }}>
-              OPINIO
-            </span>
+          <Link href="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center", color: "var(--brand-ink)" }}>
+            <OpinioLogo height={24} />
           </Link>
 
           {/* Nav — desktop only */}

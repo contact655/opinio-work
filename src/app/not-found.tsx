@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 export const metadata: Metadata = {
   title: { absolute: "ページが見つかりません | OPINIO" },
@@ -19,8 +20,8 @@ export default function NotFound() {
     }}>
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         {/* Logo */}
-        <Link href="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 40 }}>
-          <span style={{ fontSize: 24, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.02em" }}>OPINIO</span>
+        <Link href="/" style={{ textDecoration: "none", display: "inline-flex", marginBottom: 40, color: "var(--brand-ink)" }}>
+          <OpinioLogo height={28} />
         </Link>
 
         {/* 404 Number */}

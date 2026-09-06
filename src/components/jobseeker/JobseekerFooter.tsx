@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 /* ⚠️ **サーバーコンポーネント。** 事業領域の一覧を自分で引く。
       全ページに出るので `getBusinessDomainFacets()` は unstable_cache 済み（300s）。
@@ -19,13 +20,8 @@ export async function JobseekerFooter() {
 
           {/* Brand — spans 2 cols on mobile */}
           <div className="col-span-2 sm:col-span-1">
-            <div style={{
-              fontFamily: "var(--font-inter), sans-serif",
-              fontWeight: 700, fontSize: 24,
-              letterSpacing: "-0.02em", color: "#fff",
-              marginBottom: 12,
-            }}>
-              OPINIO
+            <div style={{ color: "#fff", marginBottom: 12 }}>
+              <OpinioLogo height={28} />
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 260, marginBottom: 20 }}>
               IT/SaaS業界の企業と求人を探せるプラットフォーム。<br />

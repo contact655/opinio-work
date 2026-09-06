@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState } from "react";
 import { Menu, X } from "lucide-react";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 /*
  * ⚠️ アンカー先が /business に実在することを必ず確かめてから足すこと。
@@ -77,15 +78,7 @@ export function BusinessHeader() {
 
         {/* ── Logo: Opinio + Business badge ── */}
         <Link href="/business" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontWeight: 700,
-            fontSize: 20,
-            color: "var(--royal)",
-            letterSpacing: "-0.02em",
-          }}>
-            OPINIO
-          </span>
+          <OpinioLogo height={22} style={{ color: "var(--brand-ink)" }} />
           <span style={{
             fontFamily: "var(--font-inter), var(--font-noto)",
             fontWeight: 700,

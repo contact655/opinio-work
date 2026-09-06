@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
+import OpinioLogo from "@/components/common/OpinioLogo";
 
 export default function GlobalError({
   error,
@@ -33,8 +34,8 @@ export default function GlobalError({
     }}>
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         {/* Logo */}
-        <Link href="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 40 }}>
-          <span style={{ fontSize: 24, fontWeight: 800, color: "var(--royal)", letterSpacing: "-0.02em" }}>OPINIO</span>
+        <Link href="/" style={{ textDecoration: "none", display: "inline-flex", marginBottom: 40, color: "var(--brand-ink)" }}>
+          <OpinioLogo height={28} />
         </Link>
 
         {/* Icon */}
