@@ -324,11 +324,20 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
     updateParam("q", name);
   }
 
-  function handleClear() {
+  /**
+   * 検索欄の ✕。**検索文字だけ**を消す。
+   *
+   * ⚠️★2026-09-06 まで、ここが `router.push("?")` で**絞り込みも全部消していた**。
+   *    入力欄の中の ✕ が、隣のチップまで解除するのは見た目と合っていない。
+   * ⚠️ 「すべてクリア」ボタンは同日に廃止した。いまは**それぞれを個別に外す**:
+   *      検索文字 → この ✕ ／ フェーズ・業種・都道府県 → チップの ✕
+   *      外資系・募集あり → もう一度押す（元からトグル）
+   */
+  function clearQuery() {
     setInputValue("");
     setShowSuggestions(false);
-    setOpenChip(null);
-    router.push("?");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    updateParam("q", null);
   }
 
   function toggleChip(name: string) {
@@ -342,10 +351,6 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
   const currentHiring     = searchParams.get("hiring") === "1";
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
-
-  const hasAnyFilter = Boolean(
-    searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign || currentWorkStyle
-  );
 
   /*
     都道府県は **47件すべて**を「よく選ばれる」→「すべての都道府県」の順で出す。
@@ -442,7 +447,7 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
               {inputValue && (
                 <button
                   type="button"
-                  onClick={handleClear}
+                  onClick={clearQuery}
                   style={{ background: "none", border: "none", cursor: "pointer", padding: "0 2px", color: "#8b95a3", lineHeight: 1, flexShrink: 0 }}
                   aria-label="クリア"
                 >
@@ -603,11 +608,12 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
             )}
           </label>
 
-          {hasAnyFilter && (
-            <button type="button" className="csb-clear" onClick={handleClear}>
-              ✕ すべてクリア
-            </button>
-          )}
+          {/* ⚠️★**「すべてクリア」は廃止した**（2026-09-06 / 柴さんの判断）。
+                 絞り込みが1つ付くたびに現れて右端の並びが動くうえ、
+                 **すべての条件は個別に外せる** —— チップは ✕、
+                 外資系と募集ありはもう一度押せば解除される（元からトグル）。
+              ⚠️ 戻すなら、検索欄の ✕ と役割が重ならないようにすること
+                 （あちらは検索文字だけを消す）。 */}
 
           </div>{/* /csb-filter-chips */}
 
