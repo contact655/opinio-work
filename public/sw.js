@@ -7,7 +7,11 @@
  *  - offline fallback → /offline
  */
 
-const CACHE_VERSION = "v2";
+/* ⚠️ **ブランド資産（アイコン・ロゴ）を差し替えたら必ず上げること。**
+      画像は CacheFirst + 30日 TTL なので、上げないと**既存の利用者に最大30日
+      古いロゴが出続ける。** activate で旧キャッシュを消すのはこの値の変更だけ。
+      v2 → v3: ロゴ確定に伴う favicon / PWA アイコンの差し替え（2026-09-06）。 */
+const CACHE_VERSION = "v3";
 const STATIC_CACHE = `opinio-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `opinio-images-${CACHE_VERSION}`;
 const PAGE_CACHE = `opinio-pages-${CACHE_VERSION}`;
