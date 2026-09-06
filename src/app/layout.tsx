@@ -71,21 +71,18 @@ export const metadata: Metadata = {
     title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
       "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "OPINIO — キャリアに、第三者の目を。",
-      },
-    ],
+    /* ⚠️★**`images` を書かないこと**（2026-09-06 に外した）。
+          ここに書くとファイル規約の [opengraph-image.tsx](./opengraph-image.tsx) を
+          上書きする。**実際に実在しない `/og-image.png` を指しており、本番で 404**
+          ——つまりサイト既定の OG 画像が一枚も出ていなかった。
+          既定画像を変えたいときは opengraph-image.tsx を直す。 */
   },
   twitter: {
     card: "summary_large_image",
     title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
     description:
       "IT/SaaS業界の企業情報と求人を、登録なしで。完全無料・営業電話なし。",
-    images: ["/og-image.png"],
+    /* ⚠️ 同上。書くと opengraph-image.tsx が Twitter カードに使われなくなる。 */
   },
   robots: {
     index: true,
@@ -101,6 +98,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
+      { url: "/icons/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
       { url: "/icons/pwa/icon-192.png", type: "image/png", sizes: "192x192" },
       { url: "/icons/pwa/icon-512.png", type: "image/png", sizes: "512x512" },
@@ -109,7 +107,7 @@ export const metadata: Metadata = {
           指していたが public/ に無く、**全ページで 404**（訪問者全員が毎回1回叩く）。
           `/favicon.ico`（src/app/favicon.ico）は実在するのでそれを指す。 */
     shortcut: "/favicon.ico",
-    apple: { url: "/icons/pwa/icon-192.png", sizes: "192x192" },
+    apple: { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
   },
   appleWebApp: {
     capable: true,
@@ -179,8 +177,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="OPINIO" />
-        <link rel="apple-touch-icon" href="/icons/pwa/icon-192.png" />
-        <link rel="mask-icon" href="/icons/pwa/icon-192.png" color="#002366" />
+        {/* ⚠️ apple-touch-icon はここに書かない。metadata.icons.apple が同じ link を出すので
+               **2枚出ていた**（2026-09-06 に削除）。変えるときは metadata 側を直す。 */}
+        {/* ⚠️ mask-icon（Safari のピン留めタブ）は **単色の SVG しか受け付けない。**
+               2026-09-06 まで PNG を指しており、**一度も表示されていなかった。**
+               色は color 属性で Safari が塗るので、SVG 側に fill を書かない。 */}
+        <link rel="mask-icon" href="/icons/mask-icon.svg" color="#141414" />
         {/* JSON-LD */}
         <script
           type="application/ld+json"
