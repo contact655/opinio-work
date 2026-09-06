@@ -1571,6 +1571,11 @@ export default function JobsClient({
         }
         .jobs-pill-item:hover { background: var(--royal-50); }
         .jobs-pill-item.selected { color: var(--royal); font-weight: 700; background: var(--royal-50); }
+        /* フェーズは2段階。親を太く、子を字下げして階層を示す（/companies の絞り込みと揃える）。
+           ⚠️ 字下げを外すとバケット（スタートアップ）と個別の段（ユニコーン等）が
+              同列に見え、2026-09-06 に指摘された形に戻る。 */
+        .jobs-pill-item.is-parent { font-weight: 700; }
+        .jobs-pill-item.is-child { padding-left: 30px; font-size: 12.5px; color: var(--ink-soft); }
         .jobs-sort-btn {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
@@ -1737,8 +1742,9 @@ export default function JobsClient({
                   phaseKeys.forEach((k) => set.delete(k));
                   setCompanyStage(Array.from(set).join(","));
                 }}>すべて</button>
-              {phaseOptions.map(({ value: key, label }) => (
-                <button key={key} className={`jobs-pill-item${companyStageSet.has(key) ? " selected" : ""}`}
+              {phaseOptions.map(({ value: key, label, parent }) => (
+                <button key={key}
+                  className={`jobs-pill-item ${parent ? "is-child" : "is-parent"}${companyStageSet.has(key) ? " selected" : ""}`}
                   onClick={() => toggleStage(key)}>{label}</button>
               ))}
             </>

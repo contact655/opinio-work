@@ -8,9 +8,9 @@ import { CompanyEditSubNav, type CompanySubNavSection } from "@/components/busin
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { BenefitsEditor } from "@/components/business/BenefitsEditor";
 import { TERMS_VERSION } from "@/lib/constants/terms";
+import { PHASE_SELECT_OPTIONS } from "@/lib/constants/phase";
 import {
   COMPANY_SECTIONS,
-  PHASE_OPTIONS,
   REMOTE_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
   type BizCompany,
@@ -730,7 +730,12 @@ export function CompanyEditClient({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
                   <FormLabel htmlFor="ce-phase">事業ステージ</FormLabel>
-                  <FormSelect id="ce-phase" value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_OPTIONS} />
+                  {/* ⚠️★**`PHASE_OPTIONS` をそのまま渡さないこと**（2026-09-06）。
+                         2026-09-06 まで渡しており、`value` が日本語だったため
+                         **12個すべてが DB の CHECK 違反で保存できなかった**。
+                         `ow_companies` は UPDATE が列単位 GRANT なので、
+                         事業ステージを選ぶと企業情報の保存が丸ごと失敗していた。 */}
+                  <FormSelect id="ce-phase" value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_SELECT_OPTIONS} />
                 </FormGroup>
               </div>
               {availableGenres.length > 0 && (

@@ -43,7 +43,8 @@ function FilterChip({
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string }[];
+  /** ⚠️ フェーズは2段階。`parent` を持つものが子で、親の直後にインデントして並ぶ。 */
+  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string; parent?: string }[];
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -122,7 +123,11 @@ function FilterChip({
                     onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 10,
-                      padding: "9px 12px", borderRadius: 8,
+                      /* ⚠️ 子は左に寄せて階層を示す。**インデントを外さないこと** ——
+                            外すとバケット（親）と個別の段が同列に見え、2026-09-06 に
+                            指摘された「シード〜シリーズC の下にシリーズB」に戻る。 */
+                      padding: o.parent ? "7px 12px 7px 30px" : "9px 12px",
+                      borderRadius: 8,
                       background: sel ? (o.bg ?? "var(--royal-50)") : "transparent",
                       border: `1.5px solid ${sel ? (o.color ?? "var(--royal)") : "transparent"}`,
                       cursor: "pointer", width: "100%", textAlign: "left",
@@ -133,13 +138,15 @@ function FilterChip({
                     onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                   >
                     <span style={{
-                      width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
+                      width: o.parent ? 7 : 10, height: o.parent ? 7 : 10, borderRadius: "50%", flexShrink: 0,
                       background: o.dot ?? o.color ?? "#94a3b8",
                       boxShadow: sel ? `0 0 0 3px ${o.bg ?? "#f1f5f9"}` : "none",
                     }} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{
-                        display: "block", fontSize: 13.5, fontWeight: sel ? 700 : 600,
+                        display: "block",
+                        fontSize: o.parent ? 13 : 13.5,
+                        fontWeight: sel ? 700 : o.parent ? 500 : 700,
                         color: sel ? (o.color ?? "var(--royal)") : "var(--ink)",
                         lineHeight: 1.3,
                       }}>

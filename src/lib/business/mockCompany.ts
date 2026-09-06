@@ -104,16 +104,18 @@ export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];
       `ow_industries`（フラット20件）へ移したので**再輸出ごと落とした**
       （読む側が1つも無くなったため）。選択肢は `lib/companies/industries.ts`。 */
 
-export const PHASE_OPTIONS = [
-  "シード",
-  "シリーズA",
-  "シリーズB-C",
-  "レイターステージ",
-  "上場(東証グロース)",
-  "上場(東証プライム)",
-  "上場(東証スタンダード)",
-  "その他",
-];
+/* ⚠️★**PHASE_OPTIONS をここに戻さないこと**（2026-09-06 に削除）。
+      業種で同じことを 2026-08-14 にやったのと**まったく同じ形**だった ——
+      `/biz/company` の編集フォームだけが独自の語彙を持ち、
+      求職者側のフィルタにも DB の CHECK にも無い値を保存しようとしていた。
+
+      ここにあった8値（シード / シリーズA / シリーズB-C / レイターステージ /
+      上場(東証グロース) / 上場(東証プライム) / 上場(東証スタンダード) / その他）は
+      **1つも `ow_companies_phase_check` を通らない。**
+      `ow_companies` は UPDATE が列単位 GRANT なので、企業が事業ステージを選ぶと
+      **企業情報の保存が丸ごと失敗していた。**
+
+      選択肢の唯一の出どころは [lib/constants/phase.ts](../constants/phase.ts)。 */
 
 export const REMOTE_OPTIONS = [
   "フルリモート可",
