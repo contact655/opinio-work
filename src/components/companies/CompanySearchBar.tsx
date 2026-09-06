@@ -471,14 +471,25 @@ export function CompanySearchBar({ industryOptions, targetIndustryOptions, compa
             listStyle
           />
 
-          {/* 対象業界（誰に売っているか＝軸2）
+          {/* 顧客の業界（誰に売っているか＝軸2）
               ⚠️★**事業領域と別の軸。** 統合しないこと。
-                 例: アンドパッドは 事業領域「プロジェクト管理」× 対象業界「建設」。
+                 例: アンドパッドは 事業領域「プロジェクト管理」× 顧客の業界「建設」。
+
+              ⚠️★**画面のラベルは「顧客の業界」。内部の呼び名は「対象業界」**（2026-09-06）。
+                 ずらしてあるのは意図的:
+                   ・「対象業界」だと**その会社自身の業界**とも読める。とくに選択肢に
+                     「IT・ソフトウェア」があり、実際は「IT企業に売っている会社」の意味なので
+                     まず誤読される。「顧客の」を付けるだけで消える。
+                   ・「事業領域」と「対象業界」は日常語だとほぼ同義で、
+                     **チップを開くまで違いが分からなかった**（柴さんの指摘）。
+                 ⚠️ DB（`ow_company_target_industries`）・URL（`?target=`）・
+                    CLAUDE.md・`/admin` は「対象業界」のまま。`?industry=` とラベルが
+                    一致していないのと同じ形で、**承知のうえ。**
               ⚠️ 実データにあるものだけを出す（サーバ側の `fetchAvailableTargetIndustries`）。
                  該当が無ければチップごと出さない。 */}
           {targetIndustryOptions.length > 0 && (
             <FilterChip
-              label="対象業界"
+              label="顧客の業界"
               value={currentTarget}
               options={targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name }))}
               onSelect={(v) => { updateParam("target", v); setOpenChip(null); }}
