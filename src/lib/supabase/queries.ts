@@ -7,7 +7,7 @@
  */
 
 import { unstable_cache, revalidateTag } from "next/cache";
-import type { CompanyBusinessDomain } from "@/types/genre";
+import type { CompanyBusinessDomain, CompanyTargetIndustry } from "@/types/genre";
 import { cache } from "react";
 import { createClient } from "./server";
 import { createAdminClient } from "./admin";
@@ -511,6 +511,57 @@ export async function fetchBusinessDomainsByCompany(
     const cid = row.company_id as string;
     if (!out.has(cid)) out.set(cid, []);
     out.get(cid)!.push({ id: d.id, name: d.name, slug: d.slug, is_primary: !!row.is_primary });
+  }
+  return out;
+}
+
+/**
+ * 企業ID → **顧客の業界**（＝軸2「誰に売っているか」。内部の呼び名は対象業界）。
+ *
+ * ⚠️★**事業領域（軸1「何を作っているか」）とは別物。** 統合しないこと。
+ *    例: アンドパッドは 事業領域「プロジェクト管理」× 顧客の業界「建設」。
+ *
+ * ⚠️★**返るのは `scope = 'vertical'` の企業だけ。** 明細を持てるのは vertical だけで、
+ *    `horizontal`（業界を問わない）/ `consumer`（消費者向け）/ NULL（未確認）は
+ *    **DB の複合FKによって明細が0件**になる（lib/companies/targetIndustries.ts）。
+ *    したがって「0件 = 顧客の業界の行を出さない」で正しい。
+ *    ⚠️ `horizontal` を「業界を問わない」という**値**として出したくなったら、
+ *       ここではなく `target_industry_scope` を別に読むこと。`consumer` を
+ *       `vertical` と同じ扱いにしないこと（targetIndustries.ts の注記）。
+ *
+ * ⚠️★**`ow_companies` を埋め込まないこと**（複合FKで PostgREST が解決できない）。
+ *    `ow_industries` 側は単純FKなので埋め込んでよい。
+ *
+ * ⚠️ N+1 にしない（企業ごとに引かない）。`companyIds` が空ならクエリを投げない。
+ * ⚠️ error を握りつぶさない。空で返すと「未設定」と「取得失敗」が区別できなくなる。
+ */
+export async function fetchTargetIndustriesByCompany(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  companyIds: string[],
+  label: string,
+): Promise<Map<string, CompanyTargetIndustry[]>> {
+  const out = new Map<string, CompanyTargetIndustry[]>();
+  if (companyIds.length === 0) return out;
+
+  const { data, error } = await db
+    .from("ow_company_target_industries")
+    .select("company_id, is_primary, ow_industries(id, name, slug, is_active)")
+    .in("company_id", companyIds)
+    .order("display_order", { ascending: true });
+
+  if (error) {
+    console.error(`[${label}] 顧客の業界（対象業界）の取得に失敗:`, error.message);
+    return out;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const row of (data ?? []) as any[]) {
+    const i = row.ow_industries as { id: string; name: string; slug: string; is_active: boolean } | null;
+    // ⚠️ 選択肢から下げた業種は出さない（`/companies` の絞り込みと揃える）
+    if (!i || !i.is_active) continue;
+    const cid = row.company_id as string;
+    if (!out.has(cid)) out.set(cid, []);
+    out.get(cid)!.push({ id: i.id, name: i.name, slug: i.slug, is_primary: !!row.is_primary });
   }
   return out;
 }
@@ -1866,6 +1917,23 @@ export const getArticlesByCompanyCached = (companyId: string) =>
     () => getArticlesByCompany(companyId),
     ["company-articles", companyId],
     { revalidate: 60 }
+  )();
+
+/**
+ * 顧客の業界（軸2）。運営しか触らない項目なので長めでよい。
+ * ⚠️ **0件は「vertical ではない」か「未確認」。** 表示側は行ごと出さないこと
+ *    （`horizontal` を「業界を問わない」と書き足すのは別の判断。fetch 側の注記を読む）。
+ */
+export const getCompanyTargetIndustriesCached = (companyId: string) =>
+  unstable_cache(
+    async () =>
+      (await fetchTargetIndustriesByCompany(
+        createAdminClient(),
+        [companyId],
+        "getCompanyTargetIndustriesCached",
+      )).get(companyId) ?? [],
+    ["company-target-industries", companyId],
+    { revalidate: 300 }
   )();
 
 /** 社内で使っているツール。公開/非公開の状態を持たないので長めでよい */

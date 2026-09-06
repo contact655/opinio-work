@@ -31,6 +31,22 @@ export type CompanyBusinessDomain = {
   is_primary: boolean;
 };
 
+/**
+ * 顧客の業界（`ow_industries` を業種と共有）。＝軸2「誰に売っているか」。
+ * **内部・DB・`/admin`・URL（`?target=`）での呼び名は「対象業界」。**
+ *
+ * ⚠️★**事業領域（軸1「何を作っているか」）とは別物。** 型も配列も混ぜないこと。
+ *    例: アンドパッドは 事業領域「プロジェクト管理」× 顧客の業界「建設」。
+ * ⚠️ 1社あたり最大3件（`MAX_TARGET_INDUSTRIES_PER_COMPANY`）。主は1件。
+ * ⚠️ 値を持つのは `target_industry_scope = 'vertical'` の企業だけ。
+ */
+export type CompanyTargetIndustry = {
+  id: string;
+  name: string;
+  slug: string;
+  is_primary: boolean;
+};
+
 /** 主の事業領域を取り出す。⚠️ 表示側はこれを使う（配列を直接 join しない） */
 export function primaryBusinessDomain(
   domains: CompanyBusinessDomain[] | null | undefined,

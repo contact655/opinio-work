@@ -13,6 +13,7 @@ import {
   getArticlesByCompanyCached,
   getCompanyEmployeesCached,
   getCompanyToolsCached,
+  getCompanyTargetIndustriesCached,
   getCompanyStoriesCached,
   getPublicAmbassadorsCached,
   type PublicAmbassador,
@@ -65,6 +66,7 @@ import { formatEmployeeCount, parseEmployeeCount } from "@/lib/utils/employeeCou
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
+import type { CompanyTargetIndustry } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
@@ -1402,10 +1404,13 @@ function Sidebar({
   company,
   detail,
   ambassadors = [],
+  targetIndustries = [],
 }: {
   company: Company;
   detail: CompanyDetail;
   ambassadors?: PublicAmbassador[];
+  /** 顧客の業界（軸2）。⚠️ `vertical` の企業だけが値を持つ。空なら行ごと出さない */
+  targetIndustries?: CompanyTargetIndustry[];
 }) {
   return (
     <aside
@@ -1682,6 +1687,18 @@ function Sidebar({
               /* ⚠️ 下の `.filter((item) => item.value)` が値の無い行を落とす。
                     ラベルは「業界」ではなく**事業領域**（何をやっている会社か）。 */
               { key: "事業領域", value: primaryBusinessDomain(company.business_domains)?.name ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+              /* 顧客の業界（＝軸2「誰に売っているか」。内部の呼び名は「対象業界」）。
+                 ⚠️★**事業領域のすぐ下に置く。** 2つ並んで初めて軸の違いが伝わる
+                    （「プロジェクト管理 を 建設 に売っている会社」と1組で読める）。
+                    離して置くと、`/companies` の絞り込みに2つチップがある理由が
+                    結果ページ側で説明されないままになる —— それが 2026-09-06 に
+                    「事業領域と対象業界はわかりづらい」と言われた形。
+                 ⚠️ **ラベルは「顧客の業界」。**「対象業界」に戻さないこと
+                    （その会社自身の業界と読める。CLAUDE.md の判断）。
+                 ⚠️ 値が無ければ下の `.filter((item) => item.value)` が行ごと落とす。
+                    「業界を問わない」等のフォールバックを書かないこと ——
+                    0件は `horizontal` / `consumer` / **未確認**のどれでもありうる。 */
+              { key: "顧客の業界", value: targetIndustries.map((t) => t.name).join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
               /* ⚠️ `capital_notes` の置き場所は2箇所ある（2026-08-13）。
                     **`capital_notes` はここに出さない。**「拠点・資本関係」セクション
                     （本文）の資本関係カードに移した（2026-08-13）。
@@ -1803,7 +1820,7 @@ export default async function CompanyDetailPage({
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
-         articleIdRowsResult] = await Promise.all([
+         targetIndustries, articleIdRowsResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -1815,6 +1832,10 @@ export default async function CompanyDetailPage({
     getCompanyStoriesCached(companyId) as Promise<CompanyPost[]>,
     getPublicAmbassadorsCached(companyId),
     getCompanyToolsCached(companyId),
+    /* 顧客の業界（軸2 = 誰に売っているか）。⚠️ 事業領域（軸1）とは別物。
+       ⚠️ 値を持つのは `vertical` の企業だけなので、大半は空配列で返る。
+          サイドバーは値が無ければ行ごと出さない（`.filter((item) => item.value)`）。 */
+    getCompanyTargetIndustriesCached(companyId),
     /* ⚠️ 記事IDは companyId しか要らないのでここに相乗りさせる。
           閲覧者の ow_users はもう引かない（認証を読まないため）。 */
     adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
@@ -2227,7 +2248,7 @@ export default async function CompanyDetailPage({
 
           </main>
 
-          <Sidebar company={company} detail={detail} ambassadors={ambassadors} />
+          <Sidebar company={company} detail={detail} ambassadors={ambassadors} targetIndustries={targetIndustries} />
         </div>
       </div>
 
