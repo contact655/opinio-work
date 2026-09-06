@@ -147,39 +147,43 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
           {/* View toggle + 件数 — 行2 右端 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flexShrink: 0 }}>
+            {/* ⚠️★**表示切替は `/companies` の `GridSortBar` と同じ見た目にする**（2026-09-06）。
+                   それまでは articles だけ「白い箱 + 影 + royal の文字」で、
+                   企業一覧の「濃紺の塗り + 白文字」と違っていた。
+                ⚠️ ボタンのスタイルは globals.css の **`.view-btn`**（企業一覧と共有）。
+                   ここに padding や font-size を書き足さないこと —— 2ページでまたズレる。
+                ⚠️ **ラベルは「グリッド / リスト」のまま。** 企業一覧の「一覧 / 詳細」に
+                   揃えないこと —— あちらの「詳細」は情報量の多い行を指すが、
+                   記事のリストは**逆に省スペースな行**で、意味が合わない。 */}
             <div style={{
               display: "flex", gap: 2,
-              background: "var(--bg-tint)", border: `1.5px solid ${LINE}`,
-              borderRadius: 9, padding: 3,
+              background: "var(--line-soft)", borderRadius: 8, padding: 2,
             }}>
               {([
-                { mode: "grid", label: "グリッド", icon: (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                { mode: "grid", label: "グリッド", title: "グリッド表示", icon: (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                     <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
                     <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
                   </svg>
                 )},
-                { mode: "list", label: "リスト", icon: (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                { mode: "list", label: "リスト", title: "リスト表示", icon: (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
                   </svg>
                 )},
-              ] as const).map(({ mode, label, icon }) => (
+              ] as const).map(({ mode, label, title, icon }) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => updateParam("view", mode === "list" ? null : mode)}
-                  title={label}
+                  className="view-btn"
+                  title={title}
                   style={{
-                    padding: "5px 10px",
-                    borderRadius: 7, border: "none",
-                    background: currentView === mode ? "#fff" : "transparent",
-                    color: currentView === mode ? "var(--royal)" : INK_MUTE,
-                    cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 4,
-                    fontSize: 12, fontWeight: 600,
-                    boxShadow: currentView === mode ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    transition: "all 0.12s",
+                    background: currentView === mode ? "var(--royal)" : "transparent",
+                    color: currentView === mode ? "#fff" : "var(--ink-mute)",
                   }}
                 >
                   {icon}
@@ -187,7 +191,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                 </button>
               ))}
             </div>
-            <div style={{ width: 1, height: 16, background: LINE }} />
+            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
             <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>{total}</strong> 本
             </span>
