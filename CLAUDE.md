@@ -2686,19 +2686,56 @@ Salesforce Japan への暫定投入（2026-07-28 migration `20260728105851`）:
 
 ---
 
-## ow_companies.phase カラムの定義（2026-07-28 確立）
+## ow_companies.phase カラムの定義（2026-07-28 確立 / 2026-09-06 に2段階へ）
 
 phase は「企業グループとしてのステージ」を表す。
 日本法人自体の上場有無ではなく、最終親会社の状態で判定する。
-
-- 最終親会社が上場している → `listed`
-- 最終親会社が非公開（PE買収等） → `non_listed`
-- 最終親会社が未上場のユニコーン → `unicorn`
 
 日本法人が外資系であることは `capital_type`（⑦資本関係）で表現する。
 「日本法人は非上場」は phase の判定基準にならない。
 ヴイエムウェア（親: Broadcom NYSE上場）や
 ウォークミー（親: SAP NYSE上場）が `listed` のままなのはこの定義による。
+
+### ⚠️★語彙は2段階。**唯一の出どころは [lib/constants/phase.ts](src/lib/constants/phase.ts)**
+
+| 親 | 子 |
+|---|---|
+| `startup`（スタートアップ） | `seed` `series_a` `series_b` `series_c` `series_d` `unicorn` |
+| `listed`（上場企業） | `listed_prime` `listed_standard` `listed_growth` `listed_overseas` |
+| `non_listed`（非上場） | — |
+
+**親も子も `phase` に入れてよい。** 絞り込みは**選んだ側を展開する**（親を選ぶと子も含む）。
+⚠️ **ラウンドや市場を確認できないときは親を入れる。** それらしい段を当てはめない。
+   実際、未上場と分かっても調達ラウンドが非公表の企業が4社あり `startup` で止めてある。
+
+### ⚠️★2026-09-06 まで、語彙が噛み合わないまま4か所に割れていた
+
+| どこ | 何が入っていたか |
+|---|---|
+| `lib/constants/phase.ts` | 12個・日本語（`/companies` と `/jobs` の絞り込み） |
+| `lib/business/mockCompany.ts` | **8個・別の日本語**（`/biz/company` の入力欄） |
+| `lib/utils/stageCfg.ts` | 30キー（企業詳細のバッジ） |
+| DB の CHECK | 8個・英語 ← **唯一の正** |
+
+**その結果 `/biz/company` の「事業ステージ」は、どれを選んでも保存できなかった。**
+`ow_companies` は UPDATE が列単位 GRANT なので、**企業情報の保存が丸ごと失敗していた。**
+→ いまは `phase.ts` の1系統。**`value` は DB に入る値そのもの。日本語に戻さないこと。**
+
+### ⚠️ 「成長ステージ」のようなバケットを、個別の段と同列に並べない
+
+以前は「成長ステージ（シード〜シリーズC）」が「シリーズB」の隣にあり、
+実データでは**どちらも同じ1社**を指していた。粒度が違うものは階層で分ける。
+
+実測（2026-09-06 / 掲載83社）: `listed` 56 ／ `unicorn` 11 ／ `startup` 5 ／
+`non_listed` 5 ／ `listed_growth` 3 ／ `series_d` 2 ／ `series_b` 1。**NULL は0社。**
+
+⚠️ **`listed` 56社の市場別内訳はまだ無い。** 52社は外資系子会社だが、
+   `capital_type` から機械的に決めると推測値の投入になる（外国企業が東証に
+   上場している例もある）。**企業ごとに確かめて `listed_overseas` 等へ落とすこと。**
+
+⚠️ 出典は `ow_company_data_sources` の `field = 'phase'` に記録する（9社ぶんが入っている）。
+
+⚠️ `business_stage` は**本番100行すべて NULL**。COMMENT で【廃止】と印を付けた。読み書きしない。
 
 ### ⚠️ `listed_exchange` は使わない。上場市場は `capital_notes` に書く（2026-08-13 確立）
 

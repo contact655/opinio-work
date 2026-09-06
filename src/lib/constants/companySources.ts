@@ -12,8 +12,9 @@
  *    読むのは admin クライアントだけ。求職者にも企業にも出さない。
  */
 
-/** 出典を記録する対象の項目。⚠️ DB の `field` CHECK と同じ並び。 */
-export const COMPANY_SOURCE_FIELDS = ["headquarters_address"] as const;
+/** 出典を記録する対象の項目。⚠️ DB の `field` CHECK と同じ並び。
+ *  ⚠️ `phase` は 2026-09-06 に追加（掲載中9社のフェーズを埋めたとき）。 */
+export const COMPANY_SOURCE_FIELDS = ["headquarters_address", "phase"] as const;
 export type CompanySourceField = (typeof COMPANY_SOURCE_FIELDS)[number];
 
 /**
