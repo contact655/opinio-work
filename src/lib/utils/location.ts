@@ -54,3 +54,34 @@ export const OTHER_PREFECTURES = PREFECTURES.filter(
   (p) => !(COMMON_PREFECTURES as readonly string[]).includes(p),
 );
 
+/**
+ * 絞り込みに出す都道府県を「よく選ばれる」と「その他」に分ける。
+ *
+ * ⚠️ **`/companies` と `/jobs` の3箇所（企業の一覧・求人のピル・求人のサイドバー）が
+ *    これを使う。** 呼び出し側で `COMMON_PREFECTURES` を展開し直さないこと。
+ *
+ * ⚠️ **見出しは「その他」。「すべての都道府県」にしない。**
+ *    絞り込みに出るのは**実データがある都道府県だけ**なので、47件から選ぶ入力欄
+ *    （職歴エディタ・オンボーディングの `<optgroup>`）とは意味が違う。
+ *
+ * ⚠️★**1グループにしかならないときは見出しを付けない。**
+ *    見出しは2つを**見分けるため**にあるので、1つしかないなら邪魔なだけ。
+ *    実際 `/jobs` は公開求人2件がどちらも東京都で、いま該当が1県しか無い ——
+ *    そこに「よく選ばれる」とだけ書いても意味がない。
+ *
+ * @param available 実データに1件でもある都道府県（北から南の順で渡す）
+ */
+export function groupPrefectures(
+  available: readonly string[],
+): { group: string | null; prefectures: string[] }[] {
+  const common = (COMMON_PREFECTURES as readonly string[]).filter((p) => available.includes(p));
+  const others = available.filter((p) => !common.includes(p));
+
+  if (common.length === 0 || others.length === 0) {
+    return [{ group: null, prefectures: [...available] }];
+  }
+  return [
+    { group: "よく選ばれる", prefectures: common },
+    { group: "その他", prefectures: others },
+  ];
+}

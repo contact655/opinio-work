@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
-import { COMMON_PREFECTURES } from "@/lib/utils/location";
+import { groupPrefectures } from "@/lib/utils/location";
 
 /**
  * 勤務形態フィルターを出すか。
@@ -350,20 +350,14 @@ export function CompanySearchBar({ locations, phaseOptions, industryOptions, com
 
   /*
     都道府県は「よく選ばれる」を先頭に出す。
-    ⚠️ **語彙は [lib/utils/location.ts](../../lib/utils/location.ts) の `COMMON_PREFECTURES` を使う。**
-       ここに東京・大阪…と書き足さないこと。職歴エディタとオンボーディングの
-       `<optgroup>` が同じ定数を見ており、割れると画面ごとに並びが変わる。
-    ⚠️ **`locations` は「掲載中の企業がある都道府県」だけ**（0件の選択肢を出さない規則）。
-       だから2つ目の見出しは「すべての都道府県」ではなく「その他」。
-       47件から選ぶ入力欄（職歴・オンボーディング）とは意味が違う。
-    ⚠️ よく選ばれる4県が1つも該当しないときは見出しごと出さない。
+    ⚠️★**分け方も語彙も [lib/utils/location.ts](../../lib/utils/location.ts) の
+       `groupPrefectures` が唯一の出どころ。** `/jobs` のピルとサイドバーも同じ関数を使う。
+       ここで COMMON_PREFECTURES を展開し直さないこと（3箇所で並びが割れる）。
+    ⚠️ `locations` は「掲載中の企業がある都道府県」だけ（0件の選択肢を出さない規則）。
   */
-  const commonLocations = (COMMON_PREFECTURES as readonly string[]).filter((p) => locations.includes(p));
-  const otherLocations = locations.filter((l) => !commonLocations.includes(l));
-  const locationOptions = [
-    ...commonLocations.map((l) => ({ value: l, label: l, group: "よく選ばれる" })),
-    ...otherLocations.map((l) => ({ value: l, label: l, group: commonLocations.length ? "その他" : undefined })),
-  ];
+  const locationOptions = groupPrefectures(locations).flatMap((g) =>
+    g.prefectures.map((l) => ({ value: l, label: l, group: g.group ?? undefined })),
+  );
 
   // アクティブフィルターのリスト（サマリー行用）
   const activeFilters: { key: string; label: string; color?: string; bg?: string; dot?: string; onRemove: () => void }[] = [];

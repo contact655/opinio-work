@@ -52,7 +52,7 @@ const SALARY_PILL_TIERS = [
   { value: "1500", label: "1500万〜" },
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
-import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
+import { extractPrefecture, groupPrefectures, PREFECTURES } from "@/lib/utils/location";
 import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { fmtMan } from "@/lib/utils/salary";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
@@ -164,6 +164,8 @@ function SidebarFilters({
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
+  /* ⚠️ 上のピル行と**同じ関数**で分ける。ここで独自に並べ替えないこと。 */
+  const prefectureGroups = useMemo(() => groupPrefectures(availablePrefectures), [availablePrefectures]);
 
   function toggleSection(key: string) {
     setCollapsed(prev => {
@@ -260,9 +262,20 @@ function SidebarFilters({
           <SectionHeader label="勤務地" sectionKey="prefecture" hasActive={!!prefecture} />
           {!collapsed.has("prefecture") && (
             <div style={{ paddingBottom: 8, maxHeight: 180, overflowY: "auto" }}>
-              {availablePrefectures.map((p) => (
-                <CheckItem key={p} label={p} active={prefecture === p}
-                  onClick={() => setParam("prefecture", prefecture === p ? "" : p)} />
+              {/* ⚠️ ピルのドロップダウンと**同じ並び**にする。片方だけ直さないこと。 */}
+              {prefectureGroups.map((g) => (
+                <div key={g.group ?? "flat"}>
+                  {g.group && (
+                    <div style={{
+                      padding: "8px 16px 2px", fontSize: 11, fontWeight: 700,
+                      color: "var(--ink-mute)", letterSpacing: "0.06em",
+                    }}>{g.group}</div>
+                  )}
+                  {g.prefectures.map((p) => (
+                    <CheckItem key={p} label={p} active={prefecture === p}
+                      onClick={() => setParam("prefecture", prefecture === p ? "" : p)} />
+                  ))}
+                </div>
               ))}
             </div>
           )}
@@ -561,6 +574,16 @@ export default function JobsClient({
     });
     return PREFECTURES.filter((p) => prefSet.has(p));
   }, [allJobs]);
+
+  /* 「よく選ばれる」を先頭に出す（/companies の絞り込みと同じ形）。
+     ⚠️ 語彙も分け方も lib/utils/location.ts の `groupPrefectures` が唯一の出どころ。
+        ここで COMMON_PREFECTURES を展開し直さないこと。
+     ⚠️ 1グループにしかならないときは見出しが付かない（`group` が null）。
+        いま公開求人は東京都だけなので、実際そうなる。 */
+  const prefectureGroups = useMemo(
+    () => groupPrefectures(availablePrefectures),
+    [availablePrefectures],
+  );
 
   const searchResult = useMemo(() => {
     let list = [...allJobs];
@@ -1575,6 +1598,11 @@ export default function JobsClient({
            ⚠️ 字下げを外すとバケット（スタートアップ）と個別の段（ユニコーン等）が
               同列に見え、2026-09-06 に指摘された形に戻る。 */
         .jobs-pill-item.is-parent { font-weight: 700; }
+        /* 都道府県のグループ見出し（よく選ばれる / その他） */
+        .jobs-pill-group {
+          padding: 8px 12px 2px; font-size: 11px; font-weight: 700;
+          color: var(--ink-mute); letter-spacing: 0.06em;
+        }
         .jobs-pill-item.is-child { padding-left: 30px; font-size: 12.5px; color: var(--ink-soft); }
         .jobs-sort-btn {
           display: inline-flex; align-items: center; gap: 5px;
@@ -1796,10 +1824,15 @@ export default function JobsClient({
           {openFilter === "prefecture" && (
             <>
               <button className={`jobs-pill-item${!prefecture ? " selected" : ""}`} onClick={() => { setParam("prefecture", ""); setOpenFilter(null); }}>すべて</button>
-              {availablePrefectures.map((p) => (
-                <button key={p} className={`jobs-pill-item${prefecture === p ? " selected" : ""}`}
-                  onClick={() => { setParam("prefecture", p); setOpenFilter(null); }}
-                >{p}</button>
+              {prefectureGroups.map((g) => (
+                <div key={g.group ?? "flat"}>
+                  {g.group && <div className="jobs-pill-group">{g.group}</div>}
+                  {g.prefectures.map((p) => (
+                    <button key={p} className={`jobs-pill-item${prefecture === p ? " selected" : ""}`}
+                      onClick={() => { setParam("prefecture", p); setOpenFilter(null); }}
+                    >{p}</button>
+                  ))}
+                </div>
               ))}
             </>
           )}
