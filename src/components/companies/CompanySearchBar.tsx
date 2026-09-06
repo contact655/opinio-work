@@ -42,6 +42,7 @@ function FilterChip({
   listStyle = false,
   phaseStyle = false,
   searchable = false,
+  hint,
 }: {
   label: string;
   value: string;
@@ -55,6 +56,11 @@ function FilterChip({
   listStyle?: boolean;
   phaseStyle?: boolean; // フェーズ専用カラー表示
   searchable?: boolean;
+  /** メニューの先頭に出す一言。⚠️ **「事業領域」と「顧客の業界」の判別だけのため**に
+   *  足した（2026-09-07）。名前が似ていて、開いて中身を見るまで違いが分からない
+   *  という指摘への対処。**全チップに付けないこと** —— 自明なチップに説明が付くと
+   *  この2つが持つ「読まないと間違える」という合図が薄まる。 */
+  hint?: string;
 }) {
   const [q, setQ] = useState("");
   const isActive = !!value;
@@ -115,6 +121,16 @@ function FilterChip({
           maxHeight: phaseStyle ? 420 : listStyle ? 320 : "none",
           overflowY: (phaseStyle || listStyle) ? "auto" : "visible",
         }}>
+          {/* ⚠️ メニューの外側 padding は形ごとに違う（listStyle は左右0）ので、
+                 hint は自分で左右 padding を持つ。上の padding には依存しない。 */}
+          {hint && (
+            <div style={{
+              padding: listStyle ? "2px 16px 8px" : "0 0 8px",
+              marginBottom: 6,
+              borderBottom: "1px solid var(--line)",
+              fontSize: 11.5, lineHeight: 1.4, color: "var(--ink-mute)",
+            }}>{hint}</div>
+          )}
           {phaseStyle ? (
             // フェーズ専用: カラーバッジ + 説明付きカード
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -469,6 +485,8 @@ export function CompanySearchBar({ industryOptions, targetIndustryOptions, compa
             isOpen={openChip === "industry"}
             onToggle={() => toggleChip("industry")}
             listStyle
+            /* ⚠️ 隣の「顧客の業界」の hint と**対で読ませる**。片方だけ変えないこと。 */
+            hint="この会社が何を作っているか"
           />
 
           {/* 顧客の業界（誰に売っているか＝軸2）
@@ -496,6 +514,11 @@ export function CompanySearchBar({ industryOptions, targetIndustryOptions, compa
               isOpen={openChip === "target"}
               onToggle={() => toggleChip("target")}
               listStyle
+              /* ⚠️ 「その会社自身の業界」と読まれるのを防ぐのがこの一言の目的。
+                    選択肢に「IT・ソフトウェア」があるため、無いと必ず誤読される。
+                 ⚠️ **隣の hint と同じ言い回しで書く**（「この会社が◯◯」）。
+                    揃っていないと2つが同じ軸の言い換えに見え、比べられない。 */
+              hint="この会社が誰に売っているか"
             />
           )}
 
